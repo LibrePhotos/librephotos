@@ -12,7 +12,9 @@ import { push } from "redux-first-history";
 
 import { generatePhotoIm2txtCaption, savePhotoCaption } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
+import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { fuzzyMatch } from "../../util/util";
 import suggestion from "./Suggestion";
 
 type Props = {
@@ -23,6 +25,9 @@ export function Description(props: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
+
+  const { data: thingAlbums } = useFetchThingsAlbumsQuery();
+
   const { photoDetail, isPublic } = props;
 
   const [editMode, setEditMode] = useState(false);
@@ -37,7 +42,22 @@ export function Description(props: Props) {
         HTMLAttributes: {
           style: "border: 1px solid #000; border-radius: 0.4rem; padding: 0.1rem 0.3rem; box-decoration-break: clone;",
         },
-        suggestion,
+        renderLabel({ options, node }) {
+          return `${options.suggestion.char}${node.attrs.label ?? node.attrs.id}`;
+        },
+        suggestion: {
+          items: ({ query }) => {
+            if (thingAlbums == null) {
+              return [];
+            }
+            return thingAlbums
+              ?.filter(item => fuzzyMatch(query, item.title) && item.thing_type === "hashtag_attribute")
+              .map(item => item.title)
+              .slice(0, 5);
+          },
+          char: suggestion.char,
+          render: suggestion.render,
+        },
       }),
     ],
     content: imageCaption,
@@ -50,10 +70,7 @@ export function Description(props: Props) {
   useEffect(() => {
     if (photoDetail) {
       const currentCaption = photoDetail.captions_json.user_caption ? photoDetail.captions_json.user_caption : "";
-      const replacedCaption = currentCaption.replace(
-        /#(\w+)/g,
-        '<span data-type="mention" style="border: 1px solid #000; border-radius: 0.4rem; padding: 0.1rem 0.3rem; box-decoration-break: clone;" contenteditable="false" data-id=$1>#$1</span>'
-      );
+      const replacedCaption = currentCaption.replace(/#(\w+)/g, '<span data-type="mention" data-id=$1>#$1</span>');
       editor?.commands.setContent(replacedCaption);
       setImageCaption(currentCaption);
     }
@@ -92,6 +109,7 @@ export function Description(props: Props) {
                   })}
                   onClick={() => {
                     editor?.commands.setContent(photoDetail.captions_json.im2txt);
+                    setImageCaption(photoDetail.captions_json.im2txt);
                   }}
                 >
                   {photoDetail.captions_json.im2txt}

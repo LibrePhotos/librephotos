@@ -9,6 +9,7 @@ const ThingsAlbumListSchema = z
     title: z.string(),
     cover_photos: PhotoHashSchema.array(),
     photo_count: z.number(),
+    thing_type: z.string(),
   })
   .array();
 
