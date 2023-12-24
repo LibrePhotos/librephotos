@@ -184,6 +184,7 @@ export function Sidebar(props: Props) {
         onRequestClose={() => {
           setPersonEditOpen(false);
           setSelectedFaces([]);
+          dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
         }}
         selectedFaces={selectedFaces}
       />
