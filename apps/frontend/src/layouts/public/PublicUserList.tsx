@@ -1,18 +1,18 @@
 import { Avatar, Button, Group, Stack, Text, Title } from "@mantine/core";
 import { IconUser as User } from "@tabler/icons-react";
-import React, { useEffect } from "react";
-import { push } from "redux-first-history";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-import { fetchPublicUserList } from "../../actions/publicActions";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useFetchUserListQuery } from "../../api_client/api";
+import { UserList } from "../../store/user/user.zod";
+
+function publicUsers(items: UserList = []) {
+  return items.filter(el => el.public_sharing);
+}
 
 export function PublicUserList() {
-  const dispatch = useAppDispatch();
-  const pub = useAppSelector(store => store.pub);
-
-  useEffect(() => {
-    dispatch(fetchPublicUserList());
-  }, [dispatch]);
+  const navigate = useNavigate();
+  const { data: users } = useFetchUserListQuery();
 
   return (
     <Stack align="flex-start">
@@ -22,11 +22,11 @@ export function PublicUserList() {
             <User />
             Users
           </Group>
-          <Text color="dimmed">Showing {pub.publicUserList.length} users</Text>
+          <Text color="dimmed">Showing {publicUsers(users).length} users</Text>
         </div>
       </Title>
-      {pub.publicUserList.map(el => {
-        let displayName;
+      {publicUsers(users).map(el => {
+        let displayName: string;
         if (el.first_name.length > 0 && el.last_name.length > 0) {
           displayName = `${el.first_name} ${el.last_name}`;
         } else {
@@ -40,9 +40,7 @@ export function PublicUserList() {
             style={{
               height: 42,
             }}
-            onClick={() => {
-              dispatch(push(`/user/${el.username}/`));
-            }}
+            onClick={() => navigate(`/user/${el.username}/`)}
             leftIcon={<Avatar size={25} radius="xl" src="/unknown_user.jpg" />}
           >
             <div>

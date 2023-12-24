@@ -2,27 +2,34 @@ import { Loader, Stack, Text } from "@mantine/core";
 import { IconPhoto as Photo, IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
 import React from "react";
 
+import { useFetchUserListQuery } from "../../api_client/api";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppSelector } from "../../store/store";
 
 type GroupHeaderProps = {
   group: {
-    userId: string;
+    userId: number;
     photos: any[];
   };
   isSharedToMe: boolean;
 };
 
 function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
-  const { publicUserList } = useAppSelector(state => state.pub);
+  const { data: users } = useFetchUserListQuery();
 
-  const owner = publicUserList.filter(e => e.id === group.userId)[0];
-  let displayName = group.userId;
-  if (owner && owner.last_name.length + owner.first_name.length > 0) {
-    displayName = `${owner.first_name} ${owner.last_name}`;
-  } else if (owner) {
-    displayName = owner.username;
+  function getUserName(userId: number) {
+    if (!users) {
+      return <Loader size={16} />;
+    }
+    const owner = users.filter(e => e.id === userId)[0];
+    let displayName = `${group.userId}`;
+    if (owner && owner.last_name.length + owner.first_name.length > 0) {
+      displayName = `${owner.first_name} ${owner.last_name}`;
+    } else if (owner) {
+      displayName = owner.username;
+    }
+    return <Text>{displayName}</Text>;
   }
 
   return (
@@ -36,7 +43,7 @@ function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
         <User size={36} style={{ margin: 5 }} />
         <div>
           <Text size="md" weight="bold">
-            {displayName}
+            {getUserName(group.userId)}
           </Text>
           <Text size="xs" color="dimmed" style={{ display: "flex", alignItems: "center" }}>
             <Polaroid size={16} style={{ marginRight: 5 }} />

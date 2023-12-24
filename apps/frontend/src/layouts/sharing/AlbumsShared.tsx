@@ -5,6 +5,7 @@ import debounce from "lodash/debounce";
 import React, { useCallback, useEffect } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
+import { useFetchUserListQuery } from "../../api_client/api";
 import { Tile } from "../../components/Tile";
 import { useAppSelector } from "../../store/store";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
@@ -28,7 +29,6 @@ export function AlbumsShared({ showSidebar, isSharedToMe }: any) {
   const [totalListHeight, setTotalListHeight] = React.useState(0);
   const [width, setWidth] = React.useState(window.innerWidth);
   const photoGridRef = React.createRef<Grid>();
-  const pub = useAppSelector(state => state.pub);
   const rect = useResizeObserver()[1];
   const scrollSpeedHandler = new ScrollSpeed();
   const {
@@ -39,6 +39,7 @@ export function AlbumsShared({ showSidebar, isSharedToMe }: any) {
     fetchingAlbumsSharedFromMe,
     fetchedAlbumsSharedFromMe,
   } = useAppSelector(state => state.albums);
+  const { data: users } = useFetchUserListQuery();
 
   useEffect(() => {
     let contents: any[];
@@ -102,7 +103,7 @@ export function AlbumsShared({ showSidebar, isSharedToMe }: any) {
       const cell = albumGridContents[rowIndex][columnIndex];
       if (cell.user_id) {
         // sharer info header
-        const owner = pub.publicUserList.filter(e => e.id === cell.user_id)[0];
+        const owner = users?.filter(e => e.id === cell.user_id)[0];
         let displayName = cell.user_id;
         if (owner && owner.last_name.length + owner.first_name.length > 0) {
           displayName = `${owner.first_name} ${owner.last_name}`;

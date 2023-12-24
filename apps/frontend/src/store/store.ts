@@ -12,7 +12,6 @@ import { api } from "../api_client/api";
 import albums from "../reducers/albumsReducer";
 import people from "../reducers/peopleReducer";
 import { photos } from "../reducers/photosReducer";
-import pub from "../reducers/publicReducer";
 import { search } from "../reducers/searchReducer";
 import ui from "../reducers/uiReducer";
 import util from "../reducers/utilReducer";
@@ -43,7 +42,6 @@ export const store = configureStore({
     auth,
     search,
     ui,
-    pub,
     user,
     worker,
     player,

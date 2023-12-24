@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { fetchUserAlbumsSharedToMe } from "../../actions/albumsActions";
 import { fetchPhotosSharedToMe } from "../../actions/photosActions";
-import { fetchPublicUserList } from "../../actions/publicActions";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { AlbumsShared } from "./AlbumsShared";
@@ -19,7 +18,6 @@ export function SharedToMe() {
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.SHARED_BY_ME) {
-      dispatch(fetchPublicUserList());
       dispatch(fetchPhotosSharedToMe());
       dispatch(fetchUserAlbumsSharedToMe());
     }
