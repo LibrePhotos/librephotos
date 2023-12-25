@@ -20,6 +20,14 @@ logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)
 
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except Exception:
+        return False
+
+
 def convert_to_degrees(values):
     """
     Helper function to convert the GPS coordinates stored in the EXIF to degrees in float format
