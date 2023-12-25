@@ -21,3 +21,4 @@ class Tags:
     SUBJECT_DISTANCE = "EXIF:SubjectDistance"
     DIGITAL_ZOOM_RATIO = "EXIF:DigitalZoomRatio"
     REGION_INFO = "XMP:RegionInfo"
+    ROTATION = "QuickTime:Rotation"

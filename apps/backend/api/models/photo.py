@@ -30,7 +30,7 @@ from api.thumbnails import (
     doesStaticThumbnailExists,
     doesVideoThumbnailExists,
 )
-from api.util import get_metadata, logger
+from api.util import get_metadata, is_number, logger
 
 
 class VisiblePhotoManager(models.Manager):
@@ -596,13 +596,17 @@ class Photo(models.Model):
             api.models.cluster.get_unknown_cluster(user=self.owner)
         )
 
-        (region_info,) = get_metadata(
-            self.main_file.path, tags=[Tags.REGION_INFO], try_sidecar=True, struct=True
+        (region_info, rotation) = get_metadata(
+            self.main_file.path,
+            tags=[Tags.REGION_INFO, Tags.ROTATION],
+            try_sidecar=True,
+            struct=True,
         )
 
         if region_info:
             logger.debug(f"Extracted region_info for {self.main_file.path}")
             logger.debug(f"region_info: {region_info}")
+            logger.info(f"orientation: {rotation}")
             # Extract faces
             for region in region_info["RegionList"]:
                 if region.get("Type") != "Face":
@@ -617,67 +621,47 @@ class Photo(models.Model):
                 else:
                     person = api.models.person.get_unknown_person(owner=self.owner)
                 # Create face from the region infos
-                image = np.array(PIL.Image.open(self.thumbnail_big.path))
+                big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail_big.path))
                 area = region.get("Area")
                 applied_to_dimensions = region.get("AppliedToDimensions")
                 if (area and area.get("Unit") == "normalized") or (
                     applied_to_dimensions
                     and applied_to_dimensions.get("Unit") == "pixel"
                 ):
-                    # To-Do: Not sure, when to use this instead of the thumbnail size tbh
-                    # if applied_to_dimensions:
-                    #    image_width = applied_to_dimensions.get("W")
-                    #    image_height = applied_to_dimensions.get("H")
-
-                    # To-Do: Rotation, this is already handled by thumbnail creation?!
-                    # if region.get("Rotation"):
-                    #    rotation = region.get("Rotation")
-                    #    if rotation == 90:
-                    #        image = np.rot90(image, 1)
-                    #    elif rotation == 180:
-                    #        image = np.rot90(image, 2)
-                    #    elif rotation == 270:
-                    #        image = np.rot90(image, 3)
-                    image_width = image.shape[1]
-                    image_height = image.shape[0]
-                    if not area.get("X") or not isinstance(
-                        area.get("X"), numbers.Number
+                    image_width = big_thumbnail_image.shape[1]
+                    image_height = big_thumbnail_image.shape[0]
+                    if (
+                        not is_number(area.get("X"))
+                        or not is_number(area.get("Y"))
+                        or not is_number(area.get("W"))
+                        or not is_number(area.get("H"))
                     ):
                         logger.info(
-                            f"Broken face area exif data! region_info: {region_info}"
-                        )
-                        continue
-                    if not area.get("Y") or not isinstance(
-                        area.get("Y"), numbers.Number
-                    ):
-                        logger.info(
-                            f"Broken face area exif data! region_info: {region_info}"
-                        )
-                        continue
-                    if not area.get("W") or not isinstance(
-                        area.get("W"), numbers.Number
-                    ):
-                        logger.info(
-                            f"Broken face area exif data! region_info: {region_info}"
-                        )
-                        continue
-                    if not area.get("H") or not isinstance(
-                        area.get("H"), numbers.Number
-                    ):
-                        logger.info(
-                            f"Broken face area exif data! region_info: {region_info}"
+                            f"Broken face area exif data! No numerical positional data. region_info: {region_info}"
                         )
                         continue
 
-                    correct_w = float(area["W"])
-                    correct_h = float(area["H"])
-
-                    correct_x = float(area["X"])
-                    correct_y = float(area["Y"])
+                    correct_w = float(area.get("W"))
+                    correct_h = float(area.get("H"))
+                    correct_x = float(area.get("X"))
+                    correct_y = float(area.get("Y"))
+                    if rotation == 90:
+                        temp_x = correct_x
+                        correct_x = correct_y
+                        correct_y = 1 - temp_x
+                        correct_w, correct_h = correct_h, correct_w
+                    elif rotation == 180:
+                        correct_x = 1 - correct_x
+                        correct_y = 1 - correct_y
+                    elif rotation == 270:
+                        temp_x = correct_x
+                        correct_x = 1 - correct_y
+                        correct_y = temp_x
+                        correct_w, correct_h = correct_h, correct_w
 
                     # Calculate the half-width and half-height of the box
-                    half_width = correct_w * image_width / 2
-                    half_height = correct_h * image_height / 2
+                    half_width = (correct_w * image_width) / 2
+                    half_height = (correct_h * image_height) / 2
 
                     # Calculate the top, right, bottom, and left coordinates
                     top = int((correct_y * image_height) - half_height)
@@ -685,7 +669,7 @@ class Photo(models.Model):
                     bottom = int((correct_y * image_height) + half_height)
                     left = int((correct_x * image_width) - half_width)
 
-                    face_image = image[top:bottom, left:right]
+                    face_image = big_thumbnail_image[top:bottom, left:right]
                     face_image = PIL.Image.fromarray(face_image)
 
                     # Figure out which face idx it is, but reading the number of the faces of the person
@@ -720,7 +704,7 @@ class Photo(models.Model):
             return
 
         try:
-            image = np.array(PIL.Image.open(self.thumbnail_big.path))
+            big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
             face_locations = []
             # Create
@@ -743,7 +727,7 @@ class Photo(models.Model):
                     face_encoding = face[0]
                     face_location = face[1]
                     top, right, bottom, left = face_location
-                    face_image = image[top:bottom, left:right]
+                    face_image = big_thumbnail_image[top:bottom, left:right]
                     face_image = PIL.Image.fromarray(face_image)
 
                     image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
