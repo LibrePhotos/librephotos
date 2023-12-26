@@ -149,7 +149,7 @@
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-airbnb-typescript": "17.1.0",
     "eslint-config-node": "4.1.0",
-    "eslint-config-prettier": "9.0.0",
+    "eslint-config-prettier": "9.1.0",
     "eslint-config-recommended": "4.1.0",
     "eslint-filtered-fix": "0.3.0",
     "eslint-nibble": "8.1.0",
