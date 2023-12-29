@@ -180,7 +180,7 @@ class StorageStatsView(APIView):
     def get(self, request, format=None):
         import shutil
 
-        total_storage, used_storage, free_storage = shutil.disk_usage("/")
+        total_storage, used_storage, free_storage = shutil.disk_usage(settings.DATA_ROOT)
         return Response(
             {
                 "total_storage": total_storage,
