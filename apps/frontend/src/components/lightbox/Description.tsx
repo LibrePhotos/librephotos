@@ -15,6 +15,7 @@ import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
+import "./Hashtag.css";
 import suggestion from "./Suggestion";
 
 type Props = {
@@ -40,7 +41,7 @@ export function Description(props: Props) {
       TipTapText,
       Mention.configure({
         HTMLAttributes: {
-          style: "border: 1px solid #000; border-radius: 0.4rem; padding: 0.1rem 0.3rem; box-decoration-break: clone;",
+          class: "hashtag",
         },
         renderLabel({ options, node }) {
           return `${options.suggestion.char}${node.attrs.label ?? node.attrs.id}`;

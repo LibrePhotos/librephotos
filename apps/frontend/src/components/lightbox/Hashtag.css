@@ -1,0 +1,16 @@
+.hashtag {
+  border: 0.1rem transparent;
+  font-size: 0.6875rem;
+  background-color: #d8f5a2;
+  color: #66a80f;
+  letter-spacing: rem(0.25px);
+  border-radius: 2rem;
+  line-height: calc(1.25rem - 0.125rem);
+  align-items: center;
+  font-weight: 700;
+  text-transform: uppercase;
+  justify-content: center;
+  padding: 0 calc(1rem / 1.5);
+  box-decoration-break: clone;
+  display: inline-flex;
+}
