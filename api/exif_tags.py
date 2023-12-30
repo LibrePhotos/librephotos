@@ -22,3 +22,4 @@ class Tags:
     DIGITAL_ZOOM_RATIO = "EXIF:DigitalZoomRatio"
     REGION_INFO = "XMP:RegionInfo"
     ROTATION = "QuickTime:Rotation"
+    ORIENTATION = "EXIF:Orientation"
