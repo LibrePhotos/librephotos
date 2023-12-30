@@ -62,6 +62,7 @@ class UserSerializer(serializers.ModelSerializer):
             "image_scale",
             "save_metadata_to_disk",
             "datetime_rules",
+            "llm_settings",
             "default_timezone",
             "public_sharing",
             "face_recognition_model",
@@ -226,6 +227,9 @@ class UserSerializer(serializers.ModelSerializer):
             instance.cluster_selection_epsilon = validated_data.pop(
                 "cluster_selection_epsilon"
             )
+            instance.save()
+        if "llm_settings" in validated_data:
+            instance.llm_settings = validated_data.pop("llm_settings")
             instance.save()
 
         return instance
