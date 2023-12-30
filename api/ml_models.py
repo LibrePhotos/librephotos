@@ -18,6 +18,7 @@ class MlTypes:
     FACE_RECOGNITION = "face_recognition"
     CATEGORIES = "categories"
     CLIP = "clip"
+    LLM = "llm"
 
 
 ML_MODELS = [
@@ -69,11 +70,30 @@ ML_MODELS = [
         "unpack-command": "tar -zxC",
         "target-dir": "blip",
     },
+    {
+        "id": 7,
+        "name": "mistral-7b-v0.1.Q5_K_M",
+        "url": "https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/resolve/main/mistral-7b-v0.1.Q5_K_M.gguf?download=true",
+        "type": MlTypes.LLM,
+        "unpack-command": None,
+        "target-dir": "mistral-7b-v0.1.Q5_K_M.gguf",
+    },
 ]
 
 
 def download_model(model):
     model = model.copy()
+    if model["type"] == MlTypes.LLM:
+        util.logger.info("Downloading LLM model")
+        model_to_download = site_config.LLM_MODEL
+        if model_to_download is None:
+            util.logger.info("No LLM model selected")
+            return
+        util.logger.info(f"Model to download: {model_to_download}")
+        # Look through ML_MODELS and find the model with the name
+        for ml_model in ML_MODELS:
+            if ml_model["name"] == model_to_download:
+                model = ml_model
     if model["type"] == MlTypes.CAPTIONING:
         util.logger.info("Downloading captioning model")
         model_to_download = site_config.CAPTIONING_MODEL
@@ -92,6 +112,10 @@ def download_model(model):
 
     if model["unpack-command"] == "tar -zxC":
         target_dir = model_folder / (model["target-dir"] + ".tar.gz")
+    if model["unpack-command"] == "tar -xvf":
+        target_dir = model_folder / (model["target-dir"] + ".tar")
+    if model["unpack-command"] is None:
+        target_dir = model_folder / model["target-dir"]
 
     response = requests.get(model["url"], stream=True)
     total_size = int(response.headers.get("content-length", 0))
@@ -113,6 +137,10 @@ def download_model(model):
 
     if model["unpack-command"] == "tar -zxC":
         with tarfile.open(target_dir, mode="r:gz") as tar:
+            tar.extractall(path=model_folder)
+        os.remove(target_dir)
+    if model["unpack-command"] == "tar -xvf":
+        with tarfile.open(target_dir, mode="r:") as tar:
             tar.extractall(path=model_folder)
         os.remove(target_dir)
 
