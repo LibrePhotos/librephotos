@@ -200,9 +200,7 @@ class Photo(models.Model):
         image_path = self.thumbnail_big.path
         search_captions = self.search_captions
         try:
-            caption = (
-                caption.replace("<start>", "").replace("<end>", "").strip().lower()
-            )
+            caption = caption.replace("<start>", "").replace("<end>", "").strip()
             self.captions_json["user_caption"] = caption
             self.search_captions = caption
             if commit:
@@ -212,6 +210,30 @@ class Photo(models.Model):
                 "saved captions for image %s. caption: %s. search_captions: %s. captions_json: %s."
                 % (image_path, caption, search_captions, self.captions_json)
             )
+
+            hashtags = [
+                word
+                for word in caption.split()
+                if word.startswith("#") and len(word) > 1
+            ]
+
+            for hashtag in hashtags:
+                album_thing = api.models.album_thing.get_album_thing(
+                    title=hashtag, owner=self.owner
+                )
+                if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
+                    album_thing.photos.add(self)
+                    album_thing.thing_type = "hashtag_attribute"
+                    album_thing.save()
+
+            for album_thing in api.models.album_thing.AlbumThing.objects.filter(
+                Q(photos__in=[self.image_hash])
+                & Q(thing_type="hashtag_attribute")
+                & Q(owner=self.owner)
+            ).all():
+                if album_thing.title not in caption:
+                    album_thing.photos.remove(self)
+                    album_thing.save()
             return True
         except Exception:
             util.logger.warning("could not save captions for image %s" % image_path)
