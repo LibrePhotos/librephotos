@@ -596,9 +596,9 @@ class Photo(models.Model):
             api.models.cluster.get_unknown_cluster(user=self.owner)
         )
 
-        (region_info, rotation) = get_metadata(
+        (region_info, orientation) = get_metadata(
             self.main_file.path,
-            tags=[Tags.REGION_INFO, Tags.ROTATION],
+            tags=[Tags.REGION_INFO, Tags.ORIENTATION],
             try_sidecar=True,
             struct=True,
         )
@@ -606,7 +606,6 @@ class Photo(models.Model):
         if region_info:
             logger.debug(f"Extracted region_info for {self.main_file.path}")
             logger.debug(f"region_info: {region_info}")
-            logger.info(f"orientation: {rotation}")
             # Extract faces
             for region in region_info["RegionList"]:
                 if region.get("Type") != "Face":
@@ -645,18 +644,32 @@ class Photo(models.Model):
                     correct_h = float(area.get("H"))
                     correct_x = float(area.get("X"))
                     correct_y = float(area.get("Y"))
-                    if rotation == 90:
+                    if orientation == "Rotate 90 CW":
+                        temp_x = correct_x
+                        correct_x = 1 - correct_y
+                        correct_y = temp_x
+                        correct_w, correct_h = correct_h, correct_w
+                    elif orientation == "Mirror horizontal":
+                        correct_x = 1 - correct_x
+                    elif orientation == "Rotate 180":
+                        correct_x = 1 - correct_x
+                        correct_y = 1 - correct_y
+                    elif orientation == "Mirror vertical":
+                        correct_y = 1 - correct_y
+                    elif orientation == "Mirror horizontal and rotate 270 CW":
+                        temp_x = correct_x
+                        correct_x = 1 - correct_y
+                        correct_y = temp_x
+                        correct_w, correct_h = correct_h, correct_w
+                    elif orientation == "Mirror horizontal and rotate 90 CW":
                         temp_x = correct_x
                         correct_x = correct_y
                         correct_y = 1 - temp_x
                         correct_w, correct_h = correct_h, correct_w
-                    elif rotation == 180:
-                        correct_x = 1 - correct_x
-                        correct_y = 1 - correct_y
-                    elif rotation == 270:
+                    elif orientation == "Rotate 270 CW":
                         temp_x = correct_x
-                        correct_x = 1 - correct_y
-                        correct_y = temp_x
+                        correct_x = correct_y
+                        correct_y = 1 - temp_x
                         correct_w, correct_h = correct_h, correct_w
 
                     # Calculate the half-width and half-height of the box
