@@ -19,6 +19,7 @@ class SearchListViewSet(ListViewSet):
         "search_location",
         "faces__person__name",
         "exif_timestamp",
+        "lens",
         "main_file__path",
         # To-Do: Allow searching for videos
     ]
