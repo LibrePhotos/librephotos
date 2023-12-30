@@ -176,9 +176,7 @@ class Photo(models.Model):
                 blip = True
 
             caption = generate_caption(image_path=image_path, blip=blip, onnx=onnx)
-            caption = (
-                caption.replace("<start>", "").replace("<end>", "").strip().lower()
-            )
+            caption = caption.replace("<start>", "").replace("<end>", "").strip()
             captions["im2txt"] = caption
             self.captions_json = captions
             # todo: handle duplicate captions
