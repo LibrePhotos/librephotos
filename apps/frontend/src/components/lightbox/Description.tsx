@@ -54,7 +54,9 @@ export function Description(props: Props) {
             return thingAlbums
               ?.filter(item => fuzzyMatch(query, item.title) && item.thing_type === "hashtag_attribute")
               .map(item => item.title)
-              .slice(0, 5);
+              .slice(0, 5)
+              .concat(query)
+              .reverse();
           },
           char: suggestion.char,
           render: suggestion.render,
