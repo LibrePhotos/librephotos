@@ -20,6 +20,7 @@ from api.face_recognition import get_face_encodings, get_face_locations
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.image_captioning import generate_caption
+from api.llm import generate_prompt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.places365.places365 import place365_instance
@@ -177,6 +178,31 @@ class Photo(models.Model):
 
             caption = generate_caption(image_path=image_path, blip=blip, onnx=onnx)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
+            settings = User.objects.get(username=self.owner).llm_settings
+            if site_config.LLM_MODEL != "None" and settings["enabled"]:
+                face = api.models.Face.objects.filter(photo=self).first()
+                person_name = ""
+                if face and settings["add_person"]:
+                    person_name = " Person: " + face.person.name
+                place = ""
+                if self.search_location and settings["add_location"]:
+                    place = " Place: " + self.search_location
+                keywords = ""
+                if settings["add_keywords"]:
+                    keywords = " and tags or keywords"
+                prompt = (
+                    "Q: Your task is to improve the following image caption: "
+                    + caption
+                    + ". You also know the following information about the image:"
+                    + place
+                    + person_name
+                    + ". Stick as closely as possible to the caption, while replacing generic information with information you know about the image. Only output the caption"
+                    + keywords
+                    + ". \n A:"
+                )
+                util.logger.info(prompt)
+                caption = generate_prompt(prompt)
+
             captions["im2txt"] = caption
             self.captions_json = captions
             # todo: handle duplicate captions
@@ -829,7 +855,8 @@ class Photo(models.Model):
         ):
             for attribute in self.captions_json["places365"]["attributes"]:
                 album_thing = api.models.album_thing.get_album_thing(
-                    title=attribute, owner=self.owner
+                    title=attribute,
+                    owner=self.owner,
                 )
                 if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
                     album_thing.photos.add(self)
@@ -837,7 +864,8 @@ class Photo(models.Model):
                     album_thing.save()
             for category in self.captions_json["places365"]["categories"]:
                 album_thing = api.models.album_thing.get_album_thing(
-                    title=category, owner=self.owner
+                    title=category,
+                    owner=self.owner,
                 )
                 if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
                     album_thing = api.models.album_thing.get_album_thing(

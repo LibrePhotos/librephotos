@@ -11,6 +11,21 @@ def get_default_config_datetime_rules():  # This is a callable
     return DEFAULT_RULES_JSON
 
 
+def get_default_llm_settings():
+    return {
+        "enabled": False,
+        "add_person": False,
+        "add_location": False,
+        "add_keywords": False,
+        "add_camera": False,
+        "add_lens": False,
+        "add_album": False,
+        "sentiment": 0,
+        "custom_prompt": "",
+        "custom_prompt_enabled": False,
+    }
+
+
 class User(AbstractUser):
     scan_directory = models.CharField(max_length=512, db_index=True)
     confidence = models.FloatField(default=0.1, db_index=True)
@@ -40,7 +55,7 @@ class User(AbstractUser):
     save_metadata_to_disk = models.TextField(
         choices=SaveMetadata.choices, default=SaveMetadata.OFF
     )
-
+    llm_settings = models.JSONField(default=get_default_llm_settings)
     datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
     default_timezone = models.TextField(
         choices=[(x, x) for x in pytz.all_timezones],
