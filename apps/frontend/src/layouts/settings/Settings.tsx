@@ -268,6 +268,54 @@ export function Settings() {
             }}
           />
         </Card>
+        <Card shadow="md">
+          <Stack>
+            <Title order={4} sx={{ marginBottom: 16 }}>
+              <Trans i18nKey="settings.llm">Large Language Model Settings</Trans>
+            </Title>
+            <Switch
+              label={t("settings.enablellm")}
+              checked={userSelfDetails.llm_settings?.enabled}
+              onChange={event => {
+                setUserSelfDetails({
+                  ...userSelfDetails,
+                  llm_settings: {
+                    ...userSelfDetails.llm_settings,
+                    enabled: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("settings.addperson")}
+              checked={userSelfDetails.llm_settings?.add_person}
+              disabled={!userSelfDetails.llm_settings?.enabled}
+              onChange={event => {
+                setUserSelfDetails({
+                  ...userSelfDetails,
+                  llm_settings: {
+                    ...userSelfDetails.llm_settings,
+                    add_person: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("settings.addlocation")}
+              checked={userSelfDetails.llm_settings?.add_location}
+              disabled={!userSelfDetails.llm_settings?.enabled}
+              onChange={event => {
+                setUserSelfDetails({
+                  ...userSelfDetails,
+                  llm_settings: {
+                    ...userSelfDetails.llm_settings,
+                    add_location: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+          </Stack>
+        </Card>
         <Space h="xl" />
       </Stack>
       <Dialog

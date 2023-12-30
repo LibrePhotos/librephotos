@@ -43,6 +43,11 @@ const CAPTIONING_MODELS = [
   { value: "none", label: "None" },
 ];
 
+const LLM_MODELS = [
+  { value: "mistral-7b-v0.1.Q5_K_M", label: "Mistral 7B v0.1 Q5 K M" },
+  { value: "none", label: "None" },
+];
+
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
@@ -51,6 +56,7 @@ export function SiteSettings() {
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
+  const [llmModel, setLlmModel] = useState("none");
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
@@ -58,7 +64,6 @@ export function SiteSettings() {
   const [opened, { open, close }] = useDisclosure(false);
 
   const saveSettingsWithValidation = (input: any) => {
-    console.log(input);
     if (input.heavyweight_process && input.heavyweight_process > 3) {
       setWarning("heavyweight");
       open();
@@ -81,6 +86,7 @@ export function SiteSettings() {
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
       setCaptioningModel(settings.captioning_model);
+      setLlmModel(settings.llm_model);
     }
   }, [settings, isLoading]);
 
@@ -246,6 +252,28 @@ export function SiteSettings() {
                   const value = model ?? "";
                   saveSettingsWithValidation({ captioning_model: value });
                   setCaptioningModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack spacing={0}>
+                <Text>{t("sitesettings.llm_model_header")}</Text>
+                <Text fz="sm" color="dimmed">
+                  {t("sitesettings.llm_model_description")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                withinPortal
+                data={LLM_MODELS}
+                dropdownPosition="bottom"
+                value={llmModel}
+                onChange={model => {
+                  const value = model ?? "";
+                  saveSettingsWithValidation({ llm_model: value });
+                  setLlmModel(value);
                 }}
               />
             </Grid.Col>

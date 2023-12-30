@@ -44,6 +44,7 @@ export const UserSchema = z.object({
   min_cluster_size: z.number(),
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
+  llm_settings: z.any().nullable(),
 });
 
 export const ManageUser = z.object({

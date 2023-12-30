@@ -190,7 +190,11 @@
     "min_samples": "Minimum Samples",
     "min_samples_help": "Changes how conservative clusters are. A smaller value means less conservative.",
     "cluster_selection_epsilon": "Cluster Selection Epsilon",
-    "cluster_selection_epsilon_help": "Determines which clusters get merged. A higher value means more clusters will be merged."
+    "cluster_selection_epsilon_help": "Determines which clusters get merged. A higher value means more clusters will be merged.",
+    "llm": "Large Language Model Settings",
+    "enablellm": "Enable Large Language Model For Captions",
+    "addperson": "Add Persons to the Captions",
+    "addlocation": "Add Locations to the Captions"
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -453,6 +457,8 @@
     "heavyweight": "Increase the number of picture-scanning workers beyond 1, but be prepared to use 800 MB memory for each additional one.",
     "captioning_model_header": "Captioning Model",
     "captioning_model_description": "Select a model for generating image captions.",
+    "llm_model_header": "Large Language Model",
+    "llm_model_description": "Select a model for postprocessing a caption with an large language model.",
     "ram_warning_header": "Large RAM Size possible",
     "heavyweight_process_warning": "Setting the number of heavyweight processes to more than 3 will likely require more than 16GB of RAM. Please consider this before proceeding.",
     "blip_warning": "This feature needs an additional 3GBs of RAM to work properly. Please consider this before proceeding."

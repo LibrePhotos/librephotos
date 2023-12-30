@@ -15,6 +15,7 @@ const SiteSettingsSchema = z.object({
   map_api_key: z.string(),
   map_api_provider: z.string(),
   captioning_model: z.string(),
+  llm_model: z.string(),
 });
 
 export type SiteSettings = z.infer<typeof SiteSettingsSchema>;

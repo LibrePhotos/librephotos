@@ -638,7 +638,7 @@ export function fetchNoTimestampPhotoPaginated(dispatch: AppDispatch, page: numb
 export function generatePhotoIm2txtCaption(image_hash: string) {
   return function cb(dispatch: Dispatch<any>) {
     dispatch({ type: "GENERATE_PHOTO_CAPTION" });
-    Server.post("photosedit/generateim2txt", { image_hash })
+    Server.post("photosedit/generateim2txt", { image_hash }, { timeout: 200000 })
       .then(() => {
         dispatch({ type: "GENERATE_PHOTO_CAPTION_FULFILLED" });
         // @ts-ignore
