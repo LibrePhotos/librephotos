@@ -19,7 +19,8 @@ python service/thumbnail/main.py 2>&1 | tee /logs/thumbnail.log &
 python service/face_recognition/main.py 2>&1 | tee /logs/face_recognition.log &
 python service/clip_embeddings/main.py 2>&1 | tee /logs/clip_embeddings.log &
 python service/image_captioning/main.py 2>&1 | tee /logs/image_captioning.log &
-python manage.py clear_cache
+python service/llm/main.py 2>&1 | tee /logs/llm.log &
+python manage.py clear_cache 
 python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 
 if [[ -n "$ADMIN_USERNAME" ]]; then
