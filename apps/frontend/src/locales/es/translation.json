@@ -192,7 +192,11 @@
             "hog": "HOG",
             "cnn": "CNN"
         },
-        "min_cluster_size": "Tamaño mínimo del clúster"
+        "min_cluster_size": "Tamaño mínimo del clúster",
+        "addperson": "Agregar personas a los subtítulos",
+        "addlocation": "Agregar ubicaciones a los subtítulos",
+        "llm": "Ajustes del modelo de idioma grande",
+        "enablellm": "Activar el modelo de idioma grande para los subtítulos"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de detección de Nextcloud",
@@ -421,7 +425,9 @@
         "captioning_model_description": "Modelo a utilizar para generar títulos de las imágenes.",
         "heavyweight_process_warning": "Establecer el número de procesos pesados a más de 3 probablemente requerirá más de 16GB de RAM. Tenlo en cuenta antes de continuar.",
         "ram_warning_header": "Es posible un gran tamaño de RAM",
-        "blip_warning": "Esta función necesita 3 GB adicionales de RAM para funcionar correctamente. Tenlo en cuenta antes de continuar."
+        "blip_warning": "Esta función necesita 3 GB adicionales de RAM para funcionar correctamente. Tenlo en cuenta antes de continuar.",
+        "llm_model_header": "Modelo de lenguaje grande",
+        "llm_model_description": "Seleccione un modelo para posprocesar un título con un modelo de lenguaje grande."
     },
     "countstats": {
         "photos": "Fotos"
