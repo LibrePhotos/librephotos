@@ -5,22 +5,18 @@ import debounce from "lodash/debounce";
 import React, { useCallback, useEffect } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
+import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/sharing";
 import { useFetchUserListQuery } from "../../api_client/api";
-import { Tile } from "../../components/Tile";
-import { useAppSelector } from "../../store/store";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
-import {
-  calculateGridCellSize,
-  calculateSharedAlbumGridCells,
-  calculateSharedPhotoGridCells,
-} from "../../util/gridUtils";
+import { calculateGridCellSize, calculateSharedPhotoGridCells } from "../../util/gridUtils";
 import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
+import { Tile } from "../Tile";
 
 const DAY_HEADER_HEIGHT = 70;
 const SPEED_THRESHOLD = 300;
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
-export function AlbumsShared({ showSidebar, isSharedToMe }: any) {
+export function AlbumsSharedByMe({ showSidebar }: any) {
   const [albumGridContents, setAlbumGridContents] = React.useState<any[]>([]);
   const [entrySquareSize, setEntrySquareSize] = React.useState(200);
   const [height, setHeight] = React.useState(window.innerHeight);
@@ -31,25 +27,16 @@ export function AlbumsShared({ showSidebar, isSharedToMe }: any) {
   const photoGridRef = React.createRef<Grid>();
   const rect = useResizeObserver()[1];
   const scrollSpeedHandler = new ScrollSpeed();
-  const {
-    albumsSharedToMe,
-    albumsSharedFromMe,
-    fetchingAlbumsSharedToMe,
-    fetchedAlbumsSharedToMe,
-    fetchingAlbumsSharedFromMe,
-    fetchedAlbumsSharedFromMe,
-  } = useAppSelector(state => state.albums);
+  const { data: albums, isFetching, isSuccess } = useFetchSharedAlbumsByMeQuery();
   const { data: users } = useFetchUserListQuery();
 
   useEffect(() => {
-    let contents: any[];
-    if (isSharedToMe) {
-      contents = calculateSharedAlbumGridCells(albumsSharedToMe, numEntrySquaresPerRow).cellContents;
-    } else {
-      contents = calculateSharedPhotoGridCells(albumsSharedFromMe, numEntrySquaresPerRow).cellContents;
+    if (!isSuccess) {
+      return;
     }
+    const contents = calculateSharedPhotoGridCells(albums, numEntrySquaresPerRow).cellContents;
     setAlbumGridContents(contents);
-  }, [albumsSharedToMe, albumsSharedFromMe, isSharedToMe]);
+  }, [albums, isSuccess]);
 
   useEffect(() => {
     const listHeight = albumGridContents
@@ -161,28 +148,16 @@ export function AlbumsShared({ showSidebar, isSharedToMe }: any) {
 
   return (
     <div>
-      {fetchingAlbumsSharedToMe && !fetchedAlbumsSharedToMe && (
-        <Stack align="center">
-          <Loader />
-          Loading albums shared with you...
-        </Stack>
-      )}
-      {fetchingAlbumsSharedFromMe && !fetchedAlbumsSharedFromMe && (
+      {isFetching && (
         <Stack align="center">
           <Loader />
           Loading albums shared by you...
         </Stack>
       )}
 
-      {isSharedToMe && albumGridContents.length === 0 && fetchedAlbumsSharedToMe && (
-        <div>No one has shared any albums with you yet.</div>
-      )}
+      {albumGridContents.length === 0 && isSuccess && <div>You have not shared any albums yet.</div>}
 
-      {!isSharedToMe && albumGridContents.length === 0 && fetchedAlbumsSharedFromMe && (
-        <div>You have not shared any albums yet.</div>
-      )}
-
-      {(fetchedAlbumsSharedToMe || fetchedAlbumsSharedFromMe) && albumGridContents.length > 0 && (
+      {albumGridContents.length > 0 && (
         <div>
           <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
             {({ width: gridWidth }) => (

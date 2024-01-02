@@ -3,9 +3,8 @@ import { IconPhoto as Photo, IconPolaroid as Polaroid, IconUser as User } from "
 import React from "react";
 
 import { useFetchUserListQuery } from "../../api_client/api";
-import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppSelector } from "../../store/store";
+import { useFetchSharedPhotosByMeQuery } from "../../api_client/photos/sharing";
+import { PhotoListView } from "../photolist/PhotoListView";
 
 type GroupHeaderProps = {
   group: {
@@ -57,37 +56,33 @@ function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
   );
 }
 
-type PhotosSharedProps = {
-  isSharedToMe: boolean;
-};
+export function PhotosSharedByMe() {
+  const { data: photos = [], isFetching } = useFetchSharedPhotosByMeQuery();
 
-export function PhotosShared({ isSharedToMe }: Readonly<PhotosSharedProps>) {
-  const type = isSharedToMe ? PhotosetType.SHARED_TO_ME : PhotosetType.SHARED_BY_ME;
-  const loadingText = isSharedToMe ? "Loading photos shared with you..." : "Loading photos shared by you...";
-  const { photosGroupedByUser, fetchedPhotosetType } = useAppSelector(state => state.photos);
+  if (isFetching) {
+    return (
+      <Stack align="center">
+        <Loader />
+        <Text>Loading photos shared by you...</Text>
+      </Stack>
+    );
+  }
 
   return (
-    <div>
-      {fetchedPhotosetType !== type ? (
-        <Stack align="center">
-          <Loader />
-          {loadingText}
-        </Stack>
-      ) : (
-        photosGroupedByUser.map(group => (
-          <PhotoListView
-            key={group.key}
-            title="Photos"
-            loading={fetchedPhotosetType !== type}
-            icon={<Photo size={50} />}
-            photoset={group.photos}
-            idx2hash={group.photos}
-            isPublic
-            header={<GroupHeader group={group} isSharedToMe={isSharedToMe} />}
-            selectable={false}
-          />
-        ))
-      )}
-    </div>
+    <>
+      {photos.map(group => (
+        <PhotoListView
+          key={group.userId}
+          title="Photos"
+          loading={isFetching}
+          icon={<Photo size={50} />}
+          photoset={group.photos}
+          idx2hash={group.photos}
+          isPublic
+          header={<GroupHeader group={group} isSharedToMe={false} />}
+          selectable={false}
+        />
+      ))}
+    </>
   );
 }

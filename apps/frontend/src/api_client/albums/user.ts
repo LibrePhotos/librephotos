@@ -1,41 +1,18 @@
 import { showNotification } from "@mantine/notifications";
-import { z } from "zod";
 
-import { PhotoSuperSimpleSchema } from "../../actions/albumActions.types";
-import { DatePhotosGroupSchema, SimpleUserSchema } from "../../actions/photosActions.types";
 import i18n from "../../i18n";
 import { api } from "../api";
-
-const UserAlbumResponseSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  cover_photo: PhotoSuperSimpleSchema,
-  photo_count: z.number(),
-  owner: SimpleUserSchema,
-  shared_to: SimpleUserSchema.array(),
-  created_on: z.string(),
-  favorited: z.boolean(),
-});
-
-const UserAlbumListSchema = UserAlbumResponseSchema.array();
-
-const UserAlbumListResponseSchema = z.object({
-  results: UserAlbumListSchema,
-});
-
-export type UserAlbumList = z.infer<typeof UserAlbumListSchema>;
-
-const UserAlbumSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  owner: SimpleUserSchema,
-  shared_to: SimpleUserSchema.array(),
-  date: z.string(),
-  location: z.string().nullable(),
-  grouped_photos: DatePhotosGroupSchema.array(),
-});
-
-export type UserAlbum = z.infer<typeof UserAlbumSchema>;
+import type {
+  AddPhotoFromUserAlbumParams,
+  CreateUserAlbumParams,
+  DeleteUserAlbumParams,
+  RemovePhotoFromUserAlbumParams,
+  RenameUserAlbumParams,
+  SetUserAlbumCoverParams,
+  UserAlbum,
+  UserAlbumList,
+} from "./types";
+import { UserAlbumListResponseSchema, UserAlbumSchema } from "./types";
 
 enum Endpoints {
   fetchUserAlbums = "fetchUserAlbums",
@@ -46,49 +23,7 @@ enum Endpoints {
   removePhotoFromUserAlbum = "removePhotoFromUserAlbum",
   addPhotoToUserAlbum = "addPhotoToUserAlbum",
   setUserAlbumCover = "setUserAlbumCover",
-  shareUserAlbum = "shareUserAlbum",
-  fetchAlbumsSharedByMe = "fetchAlbumsSharedByMe",
-  fetchAlbumsSharedWithMe = "fetchAlbumsSharedWithMe",
 }
-
-type DeleteUserAlbumParams = {
-  id: string;
-  albumTitle: string;
-};
-
-type RenameUserAlbumParams = {
-  id: string;
-  title: string;
-  newTitle: string;
-};
-
-type CreateUserAlbumParams = {
-  title: string;
-  photos: string[];
-};
-
-type RemovePhotoFromUserAlbumParams = {
-  id: string;
-  title: string;
-  photos: string[];
-};
-
-type AddPhotoFromUserAlbumParams = {
-  id: string;
-  title: string;
-  photos: string[];
-};
-
-type SetUserAlbumCoverParams = {
-  id: string;
-  photo: string;
-};
-
-type ShareUserAlbumParams = {
-  albumId: string;
-  userId: string;
-  share: boolean;
-};
 
 export const userAlbumsApi = api
   .injectEndpoints({
@@ -197,40 +132,10 @@ export const userAlbumsApi = api
           });
         },
       }),
-      [Endpoints.shareUserAlbum]: builder.mutation<void, ShareUserAlbumParams>({
-        query: ({ albumId, userId, share }) => ({
-          url: `useralbum/share/`,
-          method: "POST",
-          body: { shared: share, album_id: albumId, target_user_id: userId },
-        }),
-        transformResponse: (response, meta, query) => {
-          if (query.share) {
-            showNotification({
-              message: i18n.t("toasts.sharingalbum"),
-              title: i18n.t("toasts.sharingalbumtitle"),
-              color: "teal",
-            });
-          } else {
-            showNotification({
-              message: i18n.t("toasts.unsharingalbum"),
-              title: i18n.t("toasts.unsharingalbumtitle"),
-              color: "teal",
-            });
-          }
-        },
-      }),
-      [Endpoints.fetchAlbumsSharedByMe]: builder.query<UserAlbumList, void>({
-        query: () => "albums/user/shared/fromme/",
-        transformResponse: response => UserAlbumListResponseSchema.parse(response).results,
-      }),
-      [Endpoints.fetchAlbumsSharedWithMe]: builder.query<UserAlbumList, void>({
-        query: () => "albums/user/shared/tome/",
-        transformResponse: response => UserAlbumListResponseSchema.parse(response).results,
-      }),
     }),
   })
-  .enhanceEndpoints<"UserAlbums" | "UserAlbum" | "UserAlbumsSharedByMe" | "UserAlbumsSharedWithMe">({
-    addTagTypes: ["UserAlbums", "UserAlbum", "UserAlbumsSharedWithMe", "UserAlbumsSharedByMe"],
+  .enhanceEndpoints<"UserAlbums" | "UserAlbum" | "SharedAlbumsByMe" | "SharedAlbumsWithMe">({
+    addTagTypes: ["UserAlbums", "UserAlbum", "SharedAlbumsByMe", "SharedAlbumsWithMe"],
     endpoints: {
       [Endpoints.fetchUserAlbums]: {
         providesTags: ["UserAlbums"],
@@ -256,16 +161,6 @@ export const userAlbumsApi = api
       [Endpoints.addPhotoToUserAlbum]: {
         invalidatesTags: ["UserAlbums", "UserAlbum"],
       },
-      [Endpoints.shareUserAlbum]: {
-        // TODO(sickelap): invalidate only the album that was shared
-        invalidatesTags: ["UserAlbums", "UserAlbum", "UserAlbumsSharedByMe"],
-      },
-      [Endpoints.fetchAlbumsSharedByMe]: {
-        providesTags: ["UserAlbumsSharedByMe"],
-      },
-      [Endpoints.fetchAlbumsSharedWithMe]: {
-        providesTags: ["UserAlbumsSharedWithMe"],
-      },
     },
   });
 
@@ -279,5 +174,4 @@ export const {
   useRemovePhotoFromUserAlbumMutation,
   useSetUserAlbumCoverMutation,
   useAddPhotoToUserAlbumMutation,
-  useShareUserAlbumMutation,
 } = userAlbumsApi;

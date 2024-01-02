@@ -45,8 +45,8 @@ import { AdminPage } from "./layouts/settings/AdminPage";
 import { Library } from "./layouts/settings/Library";
 import { Profile } from "./layouts/settings/Profile";
 import { Settings } from "./layouts/settings/Settings";
-import { SharedFromMe } from "./layouts/sharing/SharedFromMe";
-import { SharedToMe } from "./layouts/sharing/SharedToMe";
+import { SharedByMe } from "./layouts/sharing/SharedByMe";
+import { SharedWithMe } from "./layouts/sharing/SharedWithMe";
 import { selectIsAuthenticated } from "./store/auth/authSelectors";
 import { useAppSelector } from "./store/store";
 
@@ -139,8 +139,8 @@ export function App() {
                 <Route path="explorer" element={<Explorer />} />
                 <Route path="albumviewer" element={<AlbumViewer />} />
                 <Route path="useralbum/:albumID" element={<AlbumUserGallery />} />
-                <Route path="shared/tome/:which" element={<SharedToMe />} />
-                <Route path="shared/fromme/:which" element={<SharedFromMe />} />
+                <Route path="shared/tome/:which" element={<SharedWithMe />} />
+                <Route path="shared/fromme/:which" element={<SharedByMe />} />
                 <Route path="admin" element={<AdminPage />} />
                 <Route path="map" element={<PhotoMap />} />
                 <Route path="placetree" element={<LocationTree />} />

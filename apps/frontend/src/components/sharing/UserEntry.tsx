@@ -3,9 +3,11 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { UserAlbum, useFetchUserAlbumQuery, useShareUserAlbumMutation } from "../../api_client/albums/user";
+import { useShareUserAlbumMutation } from "../../api_client/albums/sharing";
+import type { UserAlbum } from "../../api_client/albums/types";
+import { useFetchUserAlbumQuery } from "../../api_client/albums/user";
 import { i18nResolvedLanguage } from "../../i18n";
-import { IUser } from "../../store/user/user.zod";
+import type { IUser } from "../../store/user/user.zod";
 
 type UserEntryProps = {
   item: IUser;

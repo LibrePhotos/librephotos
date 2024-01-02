@@ -25,7 +25,8 @@ import {
   setPhotosHidden,
   setPhotosPublic,
 } from "../../actions/photosActions";
-import { UserAlbum, useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/user";
+import { UserAlbum } from "../../api_client/albums/types";
+import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";

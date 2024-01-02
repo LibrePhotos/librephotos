@@ -1,6 +1,5 @@
 import { showNotification } from "@mantine/notifications";
 import axios from "axios";
-import _ from "lodash";
 import type { Dispatch } from "redux";
 import { z } from "zod";
 
@@ -11,9 +10,9 @@ import i18n from "../i18n";
 // eslint-disable-next-line import/no-cycle
 import { PhotosetType } from "../reducers/photosReducer";
 import type { AppDispatch } from "../store/store";
-import { getPhotosFlatFromGroupedByDate, getPhotosFlatFromGroupedByUser } from "../util/util";
+import { getPhotosFlatFromGroupedByDate } from "../util/util";
 import type { DatePhotosGroup, Photo, PigPhoto, SimpleUser } from "./photosActions.types";
-import { DatePhotosGroupSchema, PhotoSchema, PigPhotoSchema, SharedFromMePhotoSchema } from "./photosActions.types";
+import { DatePhotosGroupSchema, PhotoSchema, PigPhotoSchema } from "./photosActions.types";
 
 export type UserPhotosGroup = {
   userId: number;
@@ -183,67 +182,6 @@ export function fetchRecentlyAddedPhotos(dispatch: AppDispatch) {
         payload: error,
       });
     });
-}
-
-const PigPhotoListResponseSchema = z.object({
-  results: PigPhotoSchema.array(),
-});
-
-export function fetchPhotosSharedToMe() {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_PHOTOSET });
-    Server.get("photos/shared/tome/")
-      .then(response => {
-        const data = PigPhotoListResponseSchema.parse(response.data);
-        const sharedPhotosGroupedByOwner: UserPhotosGroup[] = _.toPairs(_.groupBy(data.results, "owner.id")).map(
-          el => ({ userId: parseInt(el[0], 10), photos: el[1] })
-        );
-
-        dispatch({
-          type: FETCH_PHOTOSET_FULFILLED,
-          payload: {
-            photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedByOwner),
-            photosGroupedByUser: sharedPhotosGroupedByOwner,
-            photosetType: PhotosetType.SHARED_TO_ME,
-          },
-        });
-      })
-      .catch(err => {
-        dispatch(fetchPhotosetRejected(err));
-      });
-  };
-}
-
-const PhotosSharedFromMeResponseSchema = z.object({
-  results: SharedFromMePhotoSchema.array(),
-});
-
-export function fetchPhotosSharedFromMe() {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: FETCH_PHOTOSET });
-    Server.get("photos/shared/fromme/")
-      .then(response => {
-        const data = PhotosSharedFromMeResponseSchema.parse(response.data);
-        const sharedPhotosGroupedBySharedTo: UserPhotosGroup[] = _.toPairs(_.groupBy(data.results, "user_id")).map(
-          el => ({
-            userId: parseInt(el[0], 10),
-            photos: el[1].map(item => item.photo),
-          })
-        );
-
-        dispatch({
-          type: FETCH_PHOTOSET_FULFILLED,
-          payload: {
-            photosFlat: getPhotosFlatFromGroupedByUser(sharedPhotosGroupedBySharedTo),
-            photosGroupedByUser: sharedPhotosGroupedBySharedTo,
-            photosetType: PhotosetType.SHARED_BY_ME,
-          },
-        });
-      })
-      .catch(err => {
-        dispatch(fetchPhotosetRejected(err));
-      });
-  };
 }
 
 const PhotosUpdatedResponseSchema = z.object({
