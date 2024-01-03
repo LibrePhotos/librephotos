@@ -1,6 +1,5 @@
 import { ActionIcon, Avatar, Box, Button, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 // only needs to be imported once
 import {
   IconEdit as Edit,
@@ -19,6 +18,7 @@ import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
+import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
@@ -46,13 +46,7 @@ export function Sidebar(props: Props) {
   const notThisPerson = faceId => {
     const ids = [faceId];
     dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
-    showNotification({
-      message: t("toasts.removefacestoperson", {
-        numberOfFaces: ids.length,
-      }),
-      title: t("toasts.removefacestopersontitle"),
-      color: "teal",
-    });
+    notification.removeFacesFromPerson(ids.length);
     dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
   };
 

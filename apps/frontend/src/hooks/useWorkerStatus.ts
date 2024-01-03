@@ -1,4 +1,3 @@
-import { showNotification } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -6,6 +5,7 @@ import { fetchAlbumDateList } from "../actions/albumsActions";
 import { peopleAlbumsApi } from "../api_client/albums/people";
 import { api, useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
+import { notification } from "../service/notifications";
 import { useAppDispatch, useAppSelector } from "../store/store";
 import { selectUserSelfDetails } from "../store/user/userSelectors";
 import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
@@ -39,13 +39,7 @@ export function useWorkerStatus(): {
   useEffect(() => {
     if (hadPreviousJob && workerRunningJob !== undefined && currentData?.job_detail === null) {
       if (previousJob?.job_detail?.job_type_str !== undefined) {
-        showNotification({
-          message: t("toasts.jobfinished", {
-            job: previousJob?.job_detail?.job_type_str,
-          }),
-          title: workerRunningJob?.job_type_str,
-          color: "teal",
-        });
+        notification.jobFinished(workerRunningJob?.job_type_str, previousJob?.job_detail?.job_type_str);
       }
       if (workerRunningJob?.job_type_str.toLowerCase() === "train faces") {
         dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false }));

@@ -1,7 +1,6 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 import { Stack } from "@mantine/core";
 import { useElementSize, useScrollLock } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
@@ -17,7 +16,7 @@ import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { ScrollScrubber } from "../../components/scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FacesTab } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -258,13 +257,7 @@ export function FaceDashboard() {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
       dispatch(api.endpoints.deleteFaces.initiate({ faceIds: ids }));
-      showNotification({
-        message: i18n.t("toasts.deletefaces", {
-          numberOfFaces: ids.length,
-        }),
-        title: i18n.t("toasts.deletefacestitle"),
-        color: "teal",
-      });
+      notification.deleteFaces(ids.length);
       setSelectedFaces([]);
     }
   };
@@ -279,13 +272,7 @@ export function FaceDashboard() {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
       dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
-      showNotification({
-        message: i18n.t("toasts.removefacestoperson", {
-          numberOfFaces: ids.length,
-        }),
-        title: i18n.t("toasts.removefacestopersontitle"),
-        color: "teal",
-      });
+      notification.removeFacesFromPerson(ids.length);
       setSelectedFaces([]);
     }
   };

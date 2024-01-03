@@ -1,6 +1,5 @@
 import { ActionIcon, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 import {
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
@@ -17,7 +16,7 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
@@ -77,14 +76,7 @@ export function HeaderComponent({
   const confirmFacesAssociation = () => {
     const facesToAddIDs = cell.faces.map(i => i.id);
     dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: facesToAddIDs, personName: cell.name }));
-    showNotification({
-      message: i18n.t("toasts.addfacestoperson", {
-        numberOfFaces: facesToAddIDs.length,
-        personNamen: cell.name,
-      }),
-      title: i18n.t("toasts.addfacestopersontitle"),
-      color: "teal",
-    });
+    notification.addFacesToPerson(cell.name, facesToAddIDs.length);
   };
 
   useEffect(() => {

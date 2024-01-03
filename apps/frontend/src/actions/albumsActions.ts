@@ -1,12 +1,8 @@
-import _ from "lodash";
-import type { Dispatch } from "react";
-
 import { Server } from "../api_client/apiClient";
 import { PhotosetType } from "../reducers/photosReducer";
 import type { AppDispatch } from "../store/store";
 import { addTempElementsToGroups, getPhotosFlatFromGroupedByDate } from "../util/util";
-import type { UserAlbumInfo } from "./albumActions.types";
-import { FetchDateAlbumsListResponseSchema, FetchUserAlbumsSharedResponseSchema } from "./albumActions.types";
+import { FetchDateAlbumsListResponseSchema } from "./albumActions.types";
 import type { IncompleteDatePhotosGroup } from "./photosActions.types";
 import { IncompleteDatePhotosGroupSchema } from "./photosActions.types";
 
@@ -95,47 +91,4 @@ export function fetchAlbumDate(dispatch: AppDispatch, options: AlbumDateOption) 
     .catch(err => {
       dispatch({ type: "FETCH_DATE_ALBUMS_RETRIEVE_REJECTED", payload: err });
     });
-}
-
-export function fetchUserAlbumsSharedToMe() {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME" });
-    Server.get("/albums/user/shared/tome/")
-      .then(response => {
-        const data = FetchUserAlbumsSharedResponseSchema.parse(response.data);
-        const userAlbumInfoList: UserAlbumInfo[] = data.results;
-        const sharedAlbumsGroupedByOwner = _.toPairs(_.groupBy(userAlbumInfoList, "owner.id")).map(el => ({
-          user_id: parseInt(el[0], 10),
-          albums: el[1],
-        }));
-        dispatch({
-          type: "FETCH_ALBUMS_SHARED_TO_ME_FULFILLED",
-          payload: sharedAlbumsGroupedByOwner,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_ALBUMS_SHARED_TO_ME_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchUserAlbumsSharedFromMe() {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: "FETCH_ALBUMS_SHARED_FROM_ME" });
-    Server.get("/albums/user/shared/fromme/")
-      .then(response => {
-        const data = FetchUserAlbumsSharedResponseSchema.parse(response.data);
-        const userAlbumInfoList: UserAlbumInfo[] = data.results;
-        dispatch({
-          type: "FETCH_ALBUMS_SHARED_FROM_ME_FULFILLED",
-          payload: userAlbumInfoList,
-        });
-      })
-      .catch(err => {
-        dispatch({
-          type: "FETCH_ALBUMS_SHARED_FROM_ME_REJECTED",
-          payload: err,
-        });
-      });
-  };
 }

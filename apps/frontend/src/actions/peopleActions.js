@@ -1,8 +1,6 @@
-import { showNotification } from "@mantine/notifications";
-
 import { peopleAlbumsApi } from "../api_client/albums/people";
 import { Server } from "../api_client/apiClient";
-import i18n from "../i18n";
+import { notification } from "../service/notifications";
 import { PersonDataPointList } from "./peopleActions.types";
 
 export function setAlbumCoverForPerson(person_id, photo_hash) {
@@ -14,12 +12,7 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
       .then(() => {
         // To-Do: I should do something with the response
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_FULFILLED" });
-        showNotification({
-          message: i18n.t("toasts.setcoverphoto"),
-          title: i18n.t("toasts.setcoverphototitle"),
-          color: "teal",
-        });
-
+        notification.setCoverPhoto();
         dispatch(peopleAlbumsApi.endpoints.fetchPeopleAlbums.initiate());
       })
       .catch(payload => {

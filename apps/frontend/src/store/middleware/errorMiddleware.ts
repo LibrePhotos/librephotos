@@ -1,10 +1,8 @@
-import { showNotification } from "@mantine/notifications";
 import type { Middleware, MiddlewareAPI } from "@reduxjs/toolkit";
 import { isRejectedWithValue } from "@reduxjs/toolkit";
 
 import { Endpoints, api } from "../../api_client/api";
-import i18n from "../../i18n";
-import { toUpperCase } from "../../util/stringUtils";
+import { notification } from "../../service/notifications";
 import { AuthErrorSchema } from "../auth/auth.zod";
 import { logout } from "../auth/authSlice";
 
@@ -20,11 +18,7 @@ export const errorMiddleware: Middleware =
         errors.forEach(error => {
           if (error.field === "code") {
             if (error.message === "token_not_valid") {
-              showNotification({
-                message: i18n.t("login.error.token_not_valid"),
-                title: i18n.t("login.error.token"),
-                color: "red",
-              });
+              notification.invalidToken();
               dispatch(logout());
               dispatch(api.util.resetApiState());
               return;
@@ -35,17 +29,8 @@ export const errorMiddleware: Middleware =
             return;
           }
 
-          const message =
-            action.meta.arg.endpointName === Endpoints.login && i18n.exists(`login.error${error.field}`)
-              ? i18n.t(`login.error${error.field}`)
-              : error.message;
-
-          showNotification({
-            message,
-            title: toUpperCase(error.field),
-            color: "red",
-            // To-Do: Add Cross Icon
-          });
+          const isLogin = action.meta.arg.endpointName === Endpoints.login;
+          notification.authError(isLogin, error.field, error.message);
         });
       }
     }

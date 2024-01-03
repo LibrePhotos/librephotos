@@ -1,8 +1,7 @@
-import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 import { z } from "zod";
 
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { api } from "../api";
 
 export const PersonResponseSchema = z.object({
@@ -68,11 +67,7 @@ export const peopleAlbumsApi = api
           body: { newPersonName },
         }),
         transformResponse(response, meta, query) {
-          showNotification({
-            message: i18n.t("toasts.renameperson", query),
-            title: i18n.t("toasts.renamepersontitle"),
-            color: "teal",
-          });
+          notification.renamePerson(query.personName, query.newPersonName);
         },
       }),
       [Endpoints.deletePersonAlbum]: builder.mutation<void, string>({
@@ -81,11 +76,7 @@ export const peopleAlbumsApi = api
           method: "DELETE",
         }),
         transformResponse() {
-          showNotification({
-            message: i18n.t("toasts.deleteperson"),
-            title: i18n.t("toasts.deletepersontitle"),
-            color: "teal",
-          });
+          notification.deletePerson();
         },
       }),
     }),

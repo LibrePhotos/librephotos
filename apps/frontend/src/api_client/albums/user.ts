@@ -1,6 +1,4 @@
-import { showNotification } from "@mantine/notifications";
-
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { api } from "../api";
 import type {
   AddPhotoFromUserAlbumParams,
@@ -43,11 +41,7 @@ export const userAlbumsApi = api
           body: {},
         }),
         transformResponse: (response, meta, query) => {
-          showNotification({
-            message: i18n.t("toasts.deletealbum", query),
-            title: i18n.t("toasts.deletealbumtitle"),
-            color: "teal",
-          });
+          notification.deleteAlbum(query.albumTitle);
         },
       }),
       [Endpoints.renameUserAlbum]: builder.mutation<void, RenameUserAlbumParams>({
@@ -57,14 +51,7 @@ export const userAlbumsApi = api
           body: { title: newTitle },
         }),
         transformResponse: (response, meta, query) => {
-          showNotification({
-            message: i18n.t("toasts.renamealbum", {
-              oldTitle: query.title,
-              newTitle: query.newTitle,
-            }),
-            title: i18n.t("toasts.renamealbumtitle"),
-            color: "teal",
-          });
+          notification.renameAlbum(query.title, query.newTitle);
         },
       }),
       [Endpoints.createUserAlbum]: builder.mutation<void, CreateUserAlbumParams>({
@@ -74,14 +61,7 @@ export const userAlbumsApi = api
           body: { title, photos },
         }),
         transformResponse: (response, meta, query) => {
-          showNotification({
-            message: i18n.t("toasts.createnewalbum", {
-              title: query.title,
-              numberOfPhotos: query.photos.length,
-            }),
-            title: i18n.t("toasts.createalbumtitle"),
-            color: "teal",
-          });
+          notification.createAlbum(query.title, query.photos.length);
         },
       }),
       [Endpoints.removePhotoFromUserAlbum]: builder.mutation<void, RemovePhotoFromUserAlbumParams>({
@@ -91,14 +71,7 @@ export const userAlbumsApi = api
           body: { removedPhotos: photos },
         }),
         transformResponse: (response, meta, query) => {
-          showNotification({
-            message: i18n.t("toasts.removefromalbum", {
-              title: query.title,
-              numberOfPhotos: query.photos.length,
-            }),
-            title: i18n.t("toasts.removefromalbumtitle"),
-            color: "teal",
-          });
+          notification.removePhotosFromAlbum(query.title, query.photos.length);
         },
       }),
       [Endpoints.setUserAlbumCover]: builder.mutation<void, SetUserAlbumCoverParams>({
@@ -108,11 +81,7 @@ export const userAlbumsApi = api
           body: { cover_photo: photo },
         }),
         transformResponse: () => {
-          showNotification({
-            message: i18n.t("toasts.setcoverphoto"),
-            title: i18n.t("toasts.setcoverphototitle"),
-            color: "teal",
-          });
+          notification.setCoverPhoto();
         },
       }),
       [Endpoints.addPhotoToUserAlbum]: builder.mutation<void, AddPhotoFromUserAlbumParams>({
@@ -122,14 +91,7 @@ export const userAlbumsApi = api
           body: { title, photos },
         }),
         transformResponse: (response, meta, query) => {
-          showNotification({
-            message: i18n.t("toasts.addtoalbum", {
-              title: query.title,
-              numberOfPhotos: query.photos.length,
-            }),
-            title: i18n.t("toasts.addtoalbumtitle"),
-            color: "teal",
-          });
+          notification.addPhotosToAlbum(query.title, query.photos.length);
         },
       }),
     }),

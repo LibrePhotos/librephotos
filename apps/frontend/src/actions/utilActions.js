@@ -1,8 +1,6 @@
-import { showNotification } from "@mantine/notifications";
-
 import { api } from "../api_client/api";
 import { Server } from "../api_client/apiClient";
-import i18n from "../i18n";
+import { notification } from "../service/notifications";
 import { ManageUser, UserSchema } from "../store/user/user.zod";
 import { userActions } from "../store/user/userSlice";
 import { scanPhotos } from "./photosActions";
@@ -27,11 +25,7 @@ export function updateAvatar(user, form_data) {
         dispatch(api.endpoints.fetchUserList.initiate()).refetch();
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
         dispatch(api.endpoints.fetchNextcloudDirs.initiate()).refetch();
-        showNotification({
-          message: i18n.t("toasts.updateuser", { username: user.username }),
-          title: i18n.t("toasts.updateusertitle"),
-          color: "teal",
-        });
+        notification.updateUser(user.username);
       })
       .catch(error => {
         dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
@@ -47,11 +41,7 @@ export function updateUser(user, dispatch) {
       dispatch(userActions.updateRules(data));
       dispatch(api.endpoints.fetchUserList.initiate()).refetch();
       dispatch(api.endpoints.fetchNextcloudDirs.initiate()).refetch();
-      showNotification({
-        message: i18n.t("toasts.updateuser", { username: user.username }),
-        title: i18n.t("toasts.updateusertitle"),
-        color: "teal",
-      });
+      notification.updateUser(user.username);
     })
     .catch(error => {
       dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
@@ -65,12 +55,7 @@ export function updateUserAndScan(user) {
         ManageUser.parse(response.data);
         dispatch(userActions.updateRules(response.data));
         dispatch(api.endpoints.fetchUserList.initiate()).refetch();
-        showNotification({
-          message: i18n.t("toasts.updateuser", { username: user.username }),
-          title: i18n.t("toasts.updateusertitle"),
-          color: "teal",
-        });
-
+        notification.updateUser(user.username);
         dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
         if (user.scan_directory) {
           dispatch(scanPhotos());
@@ -93,11 +78,7 @@ export function deleteMissingPhotos() {
     Server.get(`deletemissingphotos`)
       .then(response => {
         const data = DeleteMissingPhotosResponse.parse(response.data);
-        showNotification({
-          message: i18n.t("toasts.deletemissingphotos"),
-          title: i18n.t("toasts.deletemissingphotostitle"),
-          color: "teal",
-        });
+        notification.deleteMissingPhotos();
 
         dispatch({
           type: "DELETE_MISSING_PHOTOS_FULFILLED",
@@ -121,11 +102,7 @@ export function generateEventAlbums() {
     Server.get(`autoalbumgen/`)
       .then(response => {
         const data = GenerateEventAlbumsResponse.parse(response.data);
-        showNotification({
-          message: i18n.t("toasts.generateeventalbums"),
-          title: i18n.t("toasts.generateeventalbumstitle"),
-          color: "teal",
-        });
+        notification.generateEventAlbums();
 
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_FULFILLED",
@@ -150,11 +127,7 @@ export function generateEventAlbumTitles() {
     Server.get("autoalbumtitlegen/")
       .then(response => {
         const data = GenerateEventAlbumsTitlesResponse.parse(response.data);
-        showNotification({
-          message: i18n.t("toasts.regenerateevents"),
-          title: i18n.t("toasts.regenerateeventstitle"),
-          color: "teal",
-        });
+        notification.regenerateEventAlbums();
 
         dispatch({
           type: "GENERATE_EVENT_ALBUMS_TITLES_FULFILLED",

@@ -10,7 +10,6 @@ import {
   Text,
   Tooltip,
 } from "@mantine/core";
-import { showNotification } from "@mantine/notifications";
 import {
   IconBarbell as Barbell,
   IconPlus as Plus,
@@ -21,7 +20,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api, useWorkerQuery } from "../../api_client/api";
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FacesOrderOption } from "../../store/faces/facesActions.types";
 import type { IFacesOrderOption } from "../../store/faces/facesActions.types";
@@ -129,11 +128,7 @@ export function ButtonHeaderGroup({
               variant="light"
               onClick={() => {
                 dispatch(api.endpoints.trainFaces.initiate());
-                showNotification({
-                  message: i18n.t("toasts.trainingstarted"),
-                  title: i18n.t("toasts.trainingstartedtitle"),
-                  color: "teal",
-                });
+                notification.trainFaces();
               }}
             >
               <Barbell />

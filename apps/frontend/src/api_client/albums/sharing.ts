@@ -1,7 +1,6 @@
-import { showNotification } from "@mantine/notifications";
 import _ from "lodash";
 
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { api } from "../api";
 import type { UserAlbumList } from "./types";
 import { UserAlbumListResponseSchema } from "./types";
@@ -33,19 +32,7 @@ export const sharedUserAlbumsApi = api
           body: { shared: share, album_id: albumId, target_user_id: userId },
         }),
         transformResponse: (response, meta, query) => {
-          if (query.share) {
-            showNotification({
-              message: i18n.t("toasts.sharingalbum"),
-              title: i18n.t("toasts.sharingalbumtitle"),
-              color: "teal",
-            });
-          } else {
-            showNotification({
-              message: i18n.t("toasts.unsharingalbum"),
-              title: i18n.t("toasts.unsharingalbumtitle"),
-              color: "teal",
-            });
-          }
+          notification.toggleAlbumSharing(query.share);
         },
       }),
       [Endpoints.fetchSharedAlbumsByMe]: builder.query<UserAlbumList, void>({

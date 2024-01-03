@@ -23,7 +23,6 @@ import {
   createStyles,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 import {
   IconBook as Book,
   IconBrandNextcloud as BrandNextcloud,
@@ -47,7 +46,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { IUser } from "../../store/user/user.zod";
 
@@ -379,11 +378,7 @@ export function Library() {
                 disabled={!workerAvailability}
                 onClick={() => {
                   dispatch(api.endpoints.trainFaces.initiate());
-                  showNotification({
-                    message: i18n.t("toasts.trainingstarted"),
-                    title: i18n.t("toasts.trainingstartedtitle"),
-                    color: "teal",
-                  });
+                  notification.trainFaces();
                 }}
                 leftIcon={<FaceId />}
                 variant="outline"
@@ -406,11 +401,7 @@ export function Library() {
                 disabled={!workerAvailability}
                 onClick={() => {
                   dispatch(api.endpoints.rescanFaces.initiate());
-                  showNotification({
-                    message: i18n.t("toasts.rescanfaces"),
-                    title: i18n.t("toasts.rescanfacestitle"),
-                    color: "teal",
-                  });
+                  notification.rescanFaces();
                 }}
                 leftIcon={<FaceId />}
                 variant="outline"

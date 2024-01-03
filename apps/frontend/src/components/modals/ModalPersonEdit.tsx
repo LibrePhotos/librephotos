@@ -12,14 +12,13 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import i18n from "../../i18n";
+import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 
@@ -97,14 +96,7 @@ export function ModalPersonEdit(props: Props) {
                   personName: newPersonName,
                 })
               );
-              showNotification({
-                message: i18n.t("toasts.addfacestoperson", {
-                  numberOfFaces: selectedFaceIDs.length,
-                  personName: newPersonName,
-                }),
-                title: i18n.t("toasts.addfacestopersontitle"),
-                color: "teal",
-              });
+              notification.addFacesToPerson(newPersonName, selectedFaceIDs.length);
               if (resetGroups) {
                 resetGroups();
               }
@@ -128,6 +120,7 @@ export function ModalPersonEdit(props: Props) {
             filteredPeopleList.length > 0 &&
             filteredPeopleList?.map(item => (
               <UnstyledButton
+                key={item.key}
                 sx={theme => ({
                   display: "block",
                   borderRadius: theme.radius.xl,
@@ -144,14 +137,7 @@ export function ModalPersonEdit(props: Props) {
                       personName: item.text,
                     })
                   );
-                  showNotification({
-                    message: i18n.t("toasts.addfacestoperson", {
-                      numberOfFaces: selectedFaceIDs.length,
-                      personName: item.text,
-                    }),
-                    title: i18n.t("toasts.addfacestopersontitle"),
-                    color: "teal",
-                  });
+                  notification.addFacesToPerson(item.text, selectedFaceIDs.length);
                   onRequestClose();
                 }}
               >
