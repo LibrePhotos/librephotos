@@ -1,18 +1,14 @@
 import { api } from "../api_client/api";
 import { Server } from "../api_client/apiClient";
 import { notification } from "../service/notifications";
-import { ManageUser, UserSchema } from "../store/user/user.zod";
+import { UserSchema } from "../store/user/user.zod";
 import { userActions } from "../store/user/userSlice";
-import { scanPhotos } from "./photosActions";
 import {
   CountStats,
   DeleteMissingPhotosResponse,
-  GenerateEventAlbumsResponse,
   GenerateEventAlbumsTitlesResponse,
   LocationSunburst,
-  LocationTimeline,
   PhotoMonthCount,
-  SearchTermExamples,
   WordCloudResponse,
 } from "./utilActions.types";
 
@@ -48,25 +44,6 @@ export function updateUser(user, dispatch) {
     });
 }
 
-export function updateUserAndScan(user) {
-  return function cb(dispatch) {
-    Server.patch(`manage/user/${user.id}/`, user)
-      .then(response => {
-        ManageUser.parse(response.data);
-        dispatch(userActions.updateRules(response.data));
-        dispatch(api.endpoints.fetchUserList.initiate()).refetch();
-        notification.updateUser(user.username);
-        dispatch(api.endpoints.fetchUserSelfDetails.initiate(user.id)).refetch();
-        if (user.scan_directory) {
-          dispatch(scanPhotos());
-        }
-      })
-      .catch(error => {
-        dispatch({ type: "UPDATE_USER_REJECTED", payload: error });
-      });
-  };
-}
-
 export function deleteMissingPhotos() {
   return function cb(dispatch) {
     dispatch({ type: "DELETE_MISSING_PHOTOS" });
@@ -87,30 +64,6 @@ export function deleteMissingPhotos() {
       })
       .catch(err => {
         dispatch({ type: "DELETE_MISSING_PHOTOS_REJECTED", payload: err });
-      });
-  };
-}
-
-export function generateEventAlbums() {
-  return function cb(dispatch) {
-    dispatch({ type: "GENERATE_EVENT_ALBUMS" });
-    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-    dispatch({
-      type: "SET_WORKER_RUNNING_JOB",
-      payload: { job_type_str: "Generate Event Albums" },
-    });
-    Server.get(`autoalbumgen/`)
-      .then(response => {
-        const data = GenerateEventAlbumsResponse.parse(response.data);
-        notification.generateEventAlbums();
-
-        dispatch({
-          type: "GENERATE_EVENT_ALBUMS_FULFILLED",
-          payload: data,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "GENERATE_EVENT_ALBUMS_REJECTED", payload: err });
       });
   };
 }
@@ -143,23 +96,6 @@ export function generateEventAlbumTitles() {
   };
 }
 
-export function fetchExampleSearchTerms() {
-  return function cb(dispatch) {
-    dispatch({ type: "FETCH_EXAMPLE_SEARCH_TERMS" });
-    Server.get(`searchtermexamples/`)
-      .then(response => {
-        const data = SearchTermExamples.parse(response.data.results);
-        dispatch({
-          type: "FETCH_EXAMPLE_SEARCH_TERMS_FULFILLED",
-          payload: data,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_EXAMPLE_SEARCH_TERMS_REJECTED", payload: err });
-      });
-  };
-}
-
 export function fetchLocationSunburst() {
   return function cb(dispatch) {
     dispatch({ type: "FETCH_LOCATION_SUNBURST" });
@@ -175,21 +111,6 @@ export function fetchLocationSunburst() {
         dispatch({ type: "FETCH_LOCATION_SUNBURST_REJECTED", payload: err });
       });
   };
-}
-
-export function fetchLocationTimeline(dispatch) {
-  dispatch({ type: "FETCH_LOCATION_TIMELINE" });
-  Server.get(`locationtimeline/`)
-    .then(response => {
-      const data = LocationTimeline.parse(response.data);
-      dispatch({
-        type: "FETCH_LOCATION_TIMELINE_FULFILLED",
-        payload: data,
-      });
-    })
-    .catch(err => {
-      dispatch({ type: "FETCH_LOCATION_TIMELINE_REJECTED", payload: err });
-    });
 }
 
 export function fetchTimezoneList(dispatch) {
@@ -219,24 +140,6 @@ export function fetchCountStats() {
       })
       .catch(err => {
         dispatch({ type: "FETCH_COUNT_STATS_REJECTED", payload: err });
-      });
-  };
-}
-
-export function fetchLocationClusters() {
-  return function cb(dispatch) {
-    dispatch({ type: "FETCH_LOCATION_CLUSTERS" });
-    Server.get(`locclust/`)
-      .then(response => {
-        // To-Do: Weird response from server
-        // const data = LocationCluster.array().parse(response.data);
-        dispatch({
-          type: "FETCH_LOCATION_CLUSTERS_FULFILLED",
-          payload: response.data,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_LOCATION_CLUSTERS_REJECTED", payload: err });
       });
   };
 }
