@@ -8,7 +8,7 @@ import magic
 from constance import config as site_config
 from django.conf import settings
 from django.db.models import Q, Sum
-from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
+from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse, FileResponse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -183,7 +183,7 @@ class StorageStatsView(APIView):
     def get(self, request, format=None):
         import shutil
 
-        total_storage, used_storage, free_storage = shutil.disk_usage("/")
+        total_storage, used_storage, free_storage = shutil.disk_usage(settings.DATA_ROOT)
         return Response(
             {
                 "total_storage": total_storage,
@@ -552,8 +552,11 @@ class MediaAccessFullsizeOriginalView(APIView):
                     "/nextcloud_media/", "/nextcloud_original/"
                 )
                 internal_path = "/nextcloud_original" + photo.main_file.path[21:]
+            elif photo.main_file.path.startswith(settings.PHOTOS):
+                internal_path = "/original" + photo.main_file.path[len(settings.PHOTOS):]
             else:
-                internal_path = "/original" + photo.main_file.path[5:]
+                # If, for some reason, the file is in a weird place, handle that.
+                internal_path = None
 
             internal_path = quote(internal_path)
 
@@ -579,21 +582,30 @@ class MediaAccessFullsizeOriginalView(APIView):
             # or the photo is shared with the user
             image_hash = fname.split(".")[0].split("_")[0]  # janky alert
             user = User.objects.filter(id=token["user_id"]).only("id").first()
-            if photo.owner == user or user in photo.shared_to.all():
+
+            if internal_path is not None:
                 response = HttpResponse()
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
                 response["Content-Type"] = filename
                 response["X-Accel-Redirect"] = internal_path
+            else:
+                try:
+                    response = FileResponse(open(photo.main_file.path, 'rb'))
+                except FileNotFoundError:
+                    return HttpResponse(status=404)
+                except PermissionError:
+                    return HttpResponse(status=403)
+                except IOError:
+                    return HttpResponse(status=500)
+                except:
+                    raise
+
+            if photo.owner == user or user in photo.shared_to.all():
                 return response
             else:
                 for album in photo.albumuser_set.only("shared_to"):
                     if user in album.shared_to.all():
-                        response = HttpResponse()
-                        mime = magic.Magic(mime=True)
-                        filename = mime.from_file(photo.main_file.path)
-                        response["Content-Type"] = filename
-                        response["X-Accel-Redirect"] = internal_path
                         return response
             return HttpResponse(status=404)
 
