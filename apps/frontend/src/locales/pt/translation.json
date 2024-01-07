@@ -197,7 +197,11 @@
         "min_samples_help": "Modifica o quão conservador os aglomerados são. Um valor mais baixo significa menos conservativo.",
         "cluster_selection_epsilon": "Seleção de aglomerados Epsilon",
         "cluster_selection_epsilon_help": "Determina quais aglomerados são unidos. Um valor mais alto resulta em mais aglomerados unidos.",
-        "min_samples": "Mínimo de amostras"
+        "min_samples": "Mínimo de amostras",
+        "enablellm": "Ligar modelo de linguagem grande para legendas",
+        "addlocation": "Adicionar locais às legendas",
+        "llm": "Definições de modelo de linguagem grande",
+        "addperson": "Adicionar pessoas às legendas"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -431,7 +435,9 @@
         "captioning_model_description": "Modelo para usar na criação de legendas das fotos.",
         "heavyweight_process_warning": "Definir o número de processos pesados para mais que 3 requer mais que 16GB de RAM, tenha isto em consideração antes de proceder.",
         "ram_warning_header": "Tamanho grande de RAM possível",
-        "blip_warning": "Esta função necessita de 3GB de RAM adicionais para funcionar corretamente, tenha isto em conta antes de proceder."
+        "blip_warning": "Esta função necessita de 3GB de RAM adicionais para funcionar corretamente, tenha isto em conta antes de proceder.",
+        "llm_model_header": "Modelo de linguagem grande",
+        "llm_model_description": "Selecione um modelo para pós-processar a legenda com um modelo de linguagem grande."
     },
     "countstats": {
         "photos": "Fotos"
