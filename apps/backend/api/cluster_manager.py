@@ -46,7 +46,7 @@ class ClusterManager:
             for face in unknown_faces:
                 face.cluster = unknown_cluster
                 face.person = unknown_person
-                face.person_label_is_inferred = None
+                face.person_label_is_inferred = False
                 face.save()
             for face in known_faces:
                 face.cluster = unknown_cluster
@@ -76,7 +76,7 @@ class ClusterManager:
                     face.get_encoding_array()
                 )
             Face.objects.filter(id__in=unknown_ids).update(
-                cluster=new_cluster, person=new_person, person_label_is_inferred=None
+                cluster=new_cluster, person=new_person, person_label_is_inferred=False
             )
         else:
             clusters_by_person: dict[int, Cluster] = dict()

@@ -742,7 +742,6 @@ class Photo(models.Model):
                         known_face_locations=[(top, right, bottom, left)],
                     )[0]
                     face = api.models.face.Face(
-                        image_path=image_path,
                         photo=self,
                         location_top=top,
                         location_right=right,
@@ -754,7 +753,7 @@ class Photo(models.Model):
                     )
                     face_io = BytesIO()
                     face_image.save(face_io, format="JPEG")
-                    face.image.save(face.image_path, ContentFile(face_io.getvalue()))
+                    face.image.save(image_path, ContentFile(face_io.getvalue()))
                     face_io.close()
                     face.save()
                     person._calculate_face_count()
@@ -808,7 +807,6 @@ class Photo(models.Model):
                         continue
 
                     face = api.models.face.Face(
-                        image_path=image_path,
                         photo=self,
                         location_top=face_location[0],
                         location_right=face_location[1],
@@ -821,7 +819,7 @@ class Photo(models.Model):
 
                     face_io = BytesIO()
                     face_image.save(face_io, format="JPEG")
-                    face.image.save(face.image_path, ContentFile(face_io.getvalue()))
+                    face.image.save(image_path, ContentFile(face_io.getvalue()))
                     face_io.close()
                     face.save()
                 logger.info(

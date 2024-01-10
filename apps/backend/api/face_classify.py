@@ -113,7 +113,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     """
     all_clusters: list[Cluster] = []
     face: Face
-    print("[INFO] Creating clusters")
+    logger.info("Creating clusters")
 
     data = {
         "all": {"encoding": [], "id": [], "person_id": [], "person_labeled": []},
@@ -171,7 +171,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
         idxs = np.where(clt.labels_ == labelID)[0]
         sortedIndexes[labelID] = idxs
 
-    print("[INFO] Found {} clusters".format(len(sortedIndexes)))
+    logger.info("Found {} clusters".format(len(sortedIndexes)))
     for labelID in sorted(
         sortedIndexes, key=lambda key: np.size(sortedIndexes[key]), reverse=True
     ):
