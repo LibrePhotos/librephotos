@@ -160,6 +160,12 @@ export function FaceDashboard() {
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [scrollTo]);
 
+  useEffect(() => {
+    if (fetchingInferredFacesList || fetchingLabeledFacesList) {
+      setGroups([]);
+    }
+  }, [fetchingInferredFacesList, fetchingLabeledFacesList]);
+
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
     if (cellContents[rowStopIndex][columnStopIndex]) {
