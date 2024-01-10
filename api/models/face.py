@@ -14,7 +14,6 @@ class Face(models.Model):
         Photo, related_name="faces", on_delete=models.CASCADE, blank=False, null=True
     )
     image = models.ImageField(upload_to="faces", null=True)
-    image_path = models.FilePathField()
 
     person = models.ForeignKey(
         Person, on_delete=models.DO_NOTHING, related_name="faces"
@@ -27,7 +26,7 @@ class Face(models.Model):
         blank=True,
         null=True,
     )
-    person_label_is_inferred = models.BooleanField(null=True, db_index=True)
+    person_label_is_inferred = models.BooleanField(default=False, db_index=True)
     person_label_probability = models.FloatField(default=0.0, db_index=True)
 
     location_top = models.IntegerField()
