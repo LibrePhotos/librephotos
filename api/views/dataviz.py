@@ -1,4 +1,5 @@
 from django.http import HttpResponseForbidden
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -16,8 +17,18 @@ from api.social_graph import build_social_graph
 
 
 class ClusterFaceView(APIView):
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method",
+    )
     def get(self, request, format=None):
-        res = cluster_faces(request.user)
+        return self._cluster_faces(request.user)
+
+    def post(self, request, format=None):
+        return self._cluster_faces(request.user)
+
+    def _cluster_faces(self, user):
+        res = cluster_faces(user)
         return Response(res)
 
 
