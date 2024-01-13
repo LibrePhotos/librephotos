@@ -24,7 +24,17 @@ from api.views.pagination import RegularResultsSetPagination
 
 
 class ScanFacesView(APIView):
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method",
+    )
     def get(self, request, format=None):
+        return self._scan_faces(request)
+
+    def post(self, request, format=None):
+        return self._scan_faces(request)
+
+    def _scan_faces(self, request, format=None):
         if not do_all_models_exist():
             create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
         try:
