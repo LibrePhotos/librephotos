@@ -191,7 +191,11 @@
         "min_samples": "Minimumaantal items",
         "min_samples_help": "Geef aan hoe terughoudend clusters dienen te zĳn. Lagere waarde = minder terughoudend.",
         "cluster_selection_epsilon": "Clusterselectie - Epsilon",
-        "cluster_selection_epsilon_help": "Geef aan hoe clusters dienen te worden gegroepeerd. Hogere waarde = meer groeperingen."
+        "cluster_selection_epsilon_help": "Geef aan hoe clusters dienen te worden gegroepeerd. Hogere waarde = meer groeperingen.",
+        "llm": "Large Language Model-instellingen",
+        "enablellm": "Large Language Model gebruiken voor bijschriften",
+        "addperson": "Personen vermelden in bijschriften",
+        "addlocation": "Locaties vermelden in bijschriften"
     },
     "topmenu": {
         "profile": "Profiel",
@@ -397,7 +401,9 @@
         "captioning_model_description": "Het model voor het opstellen van bijschriften.",
         "heavyweight_process_warning": "Let op: als je het aantal zware processen op meer dan 3 instelt, dan heb je mogelijk meer dan 16 GB ramgeheugen nodig. Wees je hiervan bewust.",
         "blip_warning": "Deze functie vereist 3 GB extra ramgeheugen. Wees je hiervan bewust.",
-        "ram_warning_header": "Mogelijk verhoogd geheugengebruik"
+        "ram_warning_header": "Mogelijk verhoogd geheugengebruik",
+        "llm_model_header": "Large Language Model",
+        "llm_model_description": "Kies een model voor het naverwerken van een bijschrift met een large language model."
     },
     "modalnextcloud": {
         "choosedirectory": "Kies een map uit onderstaande lijst",
