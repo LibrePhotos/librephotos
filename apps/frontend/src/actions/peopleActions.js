@@ -1,7 +1,6 @@
 import { peopleAlbumsApi } from "../api_client/albums/people";
 import { Server } from "../api_client/apiClient";
 import { notification } from "../service/notifications";
-import { PersonDataPointList } from "./peopleActions.types";
 
 export function setAlbumCoverForPerson(person_id, photo_hash) {
   return function cb(dispatch) {
@@ -19,19 +18,4 @@ export function setAlbumCoverForPerson(person_id, photo_hash) {
         dispatch({ type: "SET_ALBUM_COVER_FOR_PERSON_REJECTED", payload });
       });
   };
-}
-
-export function fetchSocialGraph(dispatch) {
-  dispatch({ type: "FETCH_SOCIAL_GRAPH" });
-  Server.get("socialgraph")
-    .then(response => {
-      const payload = PersonDataPointList.parse(response.data);
-      dispatch({
-        type: "FETCH_SOCIAL_GRAPH_FULFILLED",
-        payload,
-      });
-    })
-    .catch(payload => {
-      dispatch({ type: "FETCH_SOCIAL_GRAPH_REJECTED", payload });
-    });
 }
