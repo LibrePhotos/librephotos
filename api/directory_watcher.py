@@ -410,7 +410,12 @@ def face_scanner(photo: Photo, job_id):
 
 
 def face_scan_job(photo: Photo, job_id):
-    photo._extract_faces()
+    failed = False
+    try:
+        photo._extract_faces()
+    except Exception:
+        util.logger.exception("An error occurred: ")
+        failed = True
     with db.connection.cursor() as cursor:
         cursor.execute(
             """
@@ -429,6 +434,15 @@ def face_scan_job(photo: Photo, job_id):
             """,
             {"job_id": str(job_id)},
         )
+        if failed:
+            cursor.execute(
+                """
+                    update api_longrunningjob
+                    set failed = %(failed)s
+                    where job_id = %(job_id)s
+                """,
+                {"job_id": str(job_id), "failed": failed},
+            )
 
 
 def scan_faces(user, job_id):
