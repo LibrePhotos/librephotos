@@ -471,5 +471,3 @@ def scan_faces(user, job_id):
 
     cluster_job_id = uuid.uuid4()
     AsyncTask(cluster_all_faces, user, cluster_job_id).run()
-
-    return {"new_face_count": all.len(), "status": lrj.failed is False}
