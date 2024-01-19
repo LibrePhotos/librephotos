@@ -392,17 +392,11 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         util.logger.exception("An error occurred: ")
         lrj.failed = True
 
-    lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    lrj.finished = True
-    lrj.save()
-
     added_photo_count = Photo.objects.count() - photo_count_before
     util.logger.info("Added {} photos".format(added_photo_count))
 
     cluster_job_id = uuid.uuid4()
     AsyncTask(cluster_all_faces, user, cluster_job_id).run()
-
-    return {"new_photo_count": added_photo_count, "status": lrj.failed is False}
 
 
 def face_scanner(photo: Photo, job_id):
