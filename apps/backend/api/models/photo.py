@@ -13,10 +13,11 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 
 import api.date_time_extractor as date_time_extractor
+import api.face_extractor as face_extractor
 import api.models
 import api.util as util
 from api.exif_tags import Tags
-from api.face_recognition import get_face_encodings, get_face_locations
+from api.face_recognition import get_face_encodings
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.image_captioning import generate_caption
@@ -31,7 +32,7 @@ from api.thumbnails import (
     doesStaticThumbnailExists,
     doesVideoThumbnailExists,
 )
-from api.util import get_metadata, is_number, logger
+from api.util import get_metadata, logger
 
 
 class VisiblePhotoManager(models.Manager):
@@ -630,204 +631,79 @@ class Photo(models.Model):
                 self.save(save_metadata=False)
 
     def _extract_faces(self, second_try=False):
-        qs_unknown_person = api.models.person.Person.objects.filter(
-            Q(name="unknown") | Q(name=api.models.person.Person.UNKNOWN_PERSON_NAME)
-        )
-        if qs_unknown_person.count() == 0:
-            unknown_person = api.models.person.get_unknown_person(owner=self.owner)
-        else:
-            unknown_person = qs_unknown_person[0]
-
         unknown_cluster: api.models.cluster.Cluster = (
             api.models.cluster.get_unknown_cluster(user=self.owner)
         )
+        try:
+            big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail_big.path))
 
-        (region_info, orientation) = get_metadata(
-            self.main_file.path,
-            tags=[Tags.REGION_INFO, Tags.ORIENTATION],
-            try_sidecar=True,
-            struct=True,
-        )
+            face_locations = face_extractor.extract(
+                self.main_file.path, self.thumbnail_big.path, self.owner
+            )
 
-        if region_info:
-            logger.debug(f"Extracted region_info for {self.main_file.path}")
-            logger.debug(f"region_info: {region_info}")
-            # Extract faces
-            for region in region_info["RegionList"]:
-                if region.get("Type") != "Face":
-                    continue
+            if len(face_locations) == 0:
+                return
 
-                # Find person with the name of the region with get_or_create
-                if region.get("Name"):
+            face_encodings = get_face_encodings(
+                self.thumbnail_big.path, known_face_locations=face_locations
+            )
+            for idx_face, face in enumerate(zip(face_encodings, face_locations)):
+                face_encoding = face[0]
+                face_location = face[1]
+
+                top, right, bottom, left, person_name = face_location
+                if person_name:
                     person = api.models.person.get_or_create_person(
-                        name=region.get("Name"), owner=self.owner
+                        name=person_name, owner=self.owner
                     )
                     person.save()
                 else:
                     person = api.models.person.get_unknown_person(owner=self.owner)
-                # Create face from the region infos
-                big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail_big.path))
-                area = region.get("Area")
-                applied_to_dimensions = region.get("AppliedToDimensions")
-                if (area and area.get("Unit") == "normalized") or (
-                    applied_to_dimensions
-                    and applied_to_dimensions.get("Unit") == "pixel"
-                ):
-                    image_width = big_thumbnail_image.shape[1]
-                    image_height = big_thumbnail_image.shape[0]
-                    if (
-                        not is_number(area.get("X"))
-                        or not is_number(area.get("Y"))
-                        or not is_number(area.get("W"))
-                        or not is_number(area.get("H"))
-                    ):
-                        logger.info(
-                            f"Broken face area exif data! No numerical positional data. region_info: {region_info}"
-                        )
-                        continue
 
-                    correct_w = float(area.get("W"))
-                    correct_h = float(area.get("H"))
-                    correct_x = float(area.get("X"))
-                    correct_y = float(area.get("Y"))
-                    if orientation == "Rotate 90 CW":
-                        temp_x = correct_x
-                        correct_x = 1 - correct_y
-                        correct_y = temp_x
-                        correct_w, correct_h = correct_h, correct_w
-                    elif orientation == "Mirror horizontal":
-                        correct_x = 1 - correct_x
-                    elif orientation == "Rotate 180":
-                        correct_x = 1 - correct_x
-                        correct_y = 1 - correct_y
-                    elif orientation == "Mirror vertical":
-                        correct_y = 1 - correct_y
-                    elif orientation == "Mirror horizontal and rotate 270 CW":
-                        temp_x = correct_x
-                        correct_x = 1 - correct_y
-                        correct_y = temp_x
-                        correct_w, correct_h = correct_h, correct_w
-                    elif orientation == "Mirror horizontal and rotate 90 CW":
-                        temp_x = correct_x
-                        correct_x = correct_y
-                        correct_y = 1 - temp_x
-                        correct_w, correct_h = correct_h, correct_w
-                    elif orientation == "Rotate 270 CW":
-                        temp_x = correct_x
-                        correct_x = correct_y
-                        correct_y = 1 - temp_x
-                        correct_w, correct_h = correct_h, correct_w
+                face_image = big_thumbnail_image[top:bottom, left:right]
+                face_image = PIL.Image.fromarray(face_image)
 
-                    # Calculate the half-width and half-height of the box
-                    half_width = (correct_w * image_width) / 2
-                    half_height = (correct_h * image_height) / 2
+                image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                    # Calculate the top, right, bottom, and left coordinates
-                    top = int((correct_y * image_height) - half_height)
-                    right = int((correct_x * image_width) + half_width)
-                    bottom = int((correct_y * image_height) + half_height)
-                    left = int((correct_x * image_width) - half_width)
+                margin = int((right - left) * 0.05)
+                existing_faces = api.models.face.Face.objects.filter(
+                    photo=self,
+                    location_top__lte=top + margin,
+                    location_top__gte=top - margin,
+                    location_right__lte=right + margin,
+                    location_right__gte=right - margin,
+                    location_bottom__lte=bottom + margin,
+                    location_bottom__gte=bottom - margin,
+                    location_left__lte=left + margin,
+                    location_left__gte=left - margin,
+                )
 
-                    face_image = big_thumbnail_image[top:bottom, left:right]
-                    face_image = PIL.Image.fromarray(face_image)
+                if existing_faces.count() != 0:
+                    continue
 
-                    # Figure out which face idx it is, but reading the number of the faces of the person
-                    idx_face = api.models.face.Face.objects.filter(
-                        person=person
-                    ).count()
-                    image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
-
-                    face_encoding = get_face_encodings(
-                        self.thumbnail_big.path,
-                        known_face_locations=[(top, right, bottom, left)],
-                    )[0]
-                    face = api.models.face.Face(
-                        photo=self,
-                        location_top=top,
-                        location_right=right,
-                        location_bottom=bottom,
-                        location_left=left,
-                        encoding=face_encoding.tobytes().hex(),
-                        person=person,
-                        cluster=unknown_cluster,
-                    )
-                    face_io = BytesIO()
-                    face_image.save(face_io, format="JPEG")
-                    face.image.save(image_path, ContentFile(face_io.getvalue()))
-                    face_io.close()
-                    face.save()
+                face = api.models.face.Face(
+                    photo=self,
+                    location_top=top,
+                    location_right=right,
+                    location_bottom=bottom,
+                    location_left=left,
+                    encoding=face_encoding.tobytes().hex(),
+                    person=person,
+                    cluster=unknown_cluster,
+                )
+                if person_name:
                     person._calculate_face_count()
                     person._set_default_cover_photo()
-                    logger.debug(f"Created face {face} from {self.main_file.path}")
-            return
-
-        try:
-            big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail_big.path))
-
-            face_locations = []
-            # Create
-            try:
-                face_locations = get_face_locations(
-                    self.thumbnail_big.path,
-                    model=self.owner.face_recognition_model.lower(),
+                face_io = BytesIO()
+                face_image.save(face_io, format="JPEG")
+                face.image.save(image_path, ContentFile(face_io.getvalue()))
+                face_io.close()
+                face.save()
+            logger.info(
+                "image {}: {} face(s) saved".format(
+                    self.image_hash, len(face_locations)
                 )
-            except Exception as e:
-                logger.info(
-                    f"Can't extract face information on photo: {self.main_file.path}"
-                )
-                logger.info(e)
-
-            if len(face_locations) > 0:
-                face_encodings = get_face_encodings(
-                    self.thumbnail_big.path, known_face_locations=face_locations
-                )
-                for idx_face, face in enumerate(zip(face_encodings, face_locations)):
-                    face_encoding = face[0]
-                    face_location = face[1]
-                    top, right, bottom, left = face_location
-                    face_image = big_thumbnail_image[top:bottom, left:right]
-                    face_image = PIL.Image.fromarray(face_image)
-
-                    image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
-
-                    margin = int((right - left) * 0.05)
-                    existing_faces = api.models.face.Face.objects.filter(
-                        photo=self,
-                        location_top__lte=face_location[0] + margin,
-                        location_top__gte=face_location[0] - margin,
-                        location_right__lte=face_location[1] + margin,
-                        location_right__gte=face_location[1] - margin,
-                        location_bottom__lte=face_location[2] + margin,
-                        location_bottom__gte=face_location[2] - margin,
-                        location_left__lte=face_location[3] + margin,
-                        location_left__gte=face_location[3] - margin,
-                    )
-
-                    if existing_faces.count() != 0:
-                        continue
-
-                    face = api.models.face.Face(
-                        photo=self,
-                        location_top=face_location[0],
-                        location_right=face_location[1],
-                        location_bottom=face_location[2],
-                        location_left=face_location[3],
-                        encoding=face_encoding.tobytes().hex(),
-                        person=unknown_person,
-                        cluster=unknown_cluster,
-                    )
-
-                    face_io = BytesIO()
-                    face_image.save(face_io, format="JPEG")
-                    face.image.save(image_path, ContentFile(face_io.getvalue()))
-                    face_io.close()
-                    face.save()
-                logger.info(
-                    "image {}: {} face(s) saved".format(
-                        self.image_hash, len(face_locations)
-                    )
-                )
-
+            )
         except IntegrityError:
             # When using multiple processes, then we can save at the same time, which leads to this error
             if self.files.count() > 0:
