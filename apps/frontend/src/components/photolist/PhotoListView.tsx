@@ -4,7 +4,7 @@ import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { setAlbumCoverForPerson } from "../../actions/peopleActions";
+import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
@@ -65,6 +65,7 @@ function PhotoListViewComponent(props: Props) {
   const gridHeight = useRef(200);
   const setScrollLocked = useScrollLock(false)[1];
   const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
+  const [setPersonAlbumCover] = useSetPersonAlbumCoverMutation();
 
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
@@ -301,7 +302,10 @@ function PhotoListViewComponent(props: Props) {
                     title={title}
                     setAlbumCover={actionType => {
                       if (actionType === "person") {
-                        dispatch(setAlbumCoverForPerson(params.albumID, selectionState.selectedItems[0].id));
+                        setPersonAlbumCover({
+                          id: `${params.albumID}`,
+                          cover_photo: selectionState.selectedItems[0].id,
+                        });
                       }
                       if (actionType === "useralbum") {
                         setUserAlbumCover({

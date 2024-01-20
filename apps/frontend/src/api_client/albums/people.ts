@@ -40,6 +40,7 @@ enum Endpoints {
   fetchPeopleAlbums = "fetchPeopleAlbums",
   renamePersonAlbum = "renamePersonAlbum",
   deletePersonAlbum = "deletePersonAlbum",
+  setPersonAlbumCover = "setPersonAlbumCover",
 }
 
 export const peopleAlbumsApi = api
@@ -54,8 +55,8 @@ export const peopleAlbumsApi = api
             text: item.name,
             video: !!item.video,
             face_count: item.face_count,
-            face_photo_url: item.face_photo_url || "",
-            face_url: item.face_url || "",
+            face_photo_url: item.face_photo_url ?? "",
+            face_url: item.face_url ?? "",
           }));
           return _.orderBy(people, ["text", "face_count"], ["asc", "desc"]);
         },
@@ -66,7 +67,7 @@ export const peopleAlbumsApi = api
           method: "PATCH",
           body: { newPersonName },
         }),
-        transformResponse(response, meta, query) {
+        transformResponse: (response, meta, query) => {
           notification.renamePerson(query.personName, query.newPersonName);
         },
       }),
@@ -75,8 +76,18 @@ export const peopleAlbumsApi = api
           url: `persons/${id}/`,
           method: "DELETE",
         }),
-        transformResponse() {
+        transformResponse: () => {
           notification.deletePerson();
+        },
+      }),
+      [Endpoints.setPersonAlbumCover]: builder.mutation<void, { id: string; cover_photo: string }>({
+        query: ({ id, cover_photo }) => ({
+          url: `persons/${id}/`,
+          method: "PATCH",
+          body: { cover_photo },
+        }),
+        transformResponse: () => {
+          notification.setCoverPhoto();
         },
       }),
     }),
@@ -96,5 +107,9 @@ export const peopleAlbumsApi = api
     },
   });
 
-export const { useFetchPeopleAlbumsQuery, useRenamePersonAlbumMutation, useDeletePersonAlbumMutation } =
-  peopleAlbumsApi;
+export const {
+  useFetchPeopleAlbumsQuery,
+  useRenamePersonAlbumMutation,
+  useDeletePersonAlbumMutation,
+  useSetPersonAlbumCoverMutation,
+} = peopleAlbumsApi;
