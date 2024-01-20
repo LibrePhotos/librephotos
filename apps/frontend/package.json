@@ -133,7 +133,7 @@
     "@types/crypto-js": "4.2.1",
     "@types/jest": "^28.1.7",
     "@types/lodash": "4.14.202",
-    "@types/luxon": "3.3.7",
+    "@types/luxon": "3.4.2",
     "@types/node": "18.18.12",
     "@types/react": "18.2.47",
     "@types/react-beautiful-dnd": "^13.1.3",
