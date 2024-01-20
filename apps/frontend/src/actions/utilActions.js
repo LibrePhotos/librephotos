@@ -113,20 +113,6 @@ export function fetchLocationSunburst() {
   };
 }
 
-export function fetchTimezoneList(dispatch) {
-  dispatch({ type: "FETCH_TIMEZONE_LIST" });
-  Server.get(`timezones/`)
-    .then(response => {
-      dispatch({
-        type: "FETCH_TIMEZONE_LIST_FULFILLED",
-        payload: response.data,
-      });
-    })
-    .catch(err => {
-      dispatch({ type: "FETCH_TIMEZONE_LIST_REJECTED", payload: err });
-    });
-}
-
 export function fetchCountStats() {
   return function cb(dispatch) {
     dispatch({ type: "FETCH_COUNT_STATS" });

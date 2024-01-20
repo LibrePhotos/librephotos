@@ -67,8 +67,6 @@ const initialState = {
   fetchedJobList: false,
 
   error: null,
-  fetchingTimezones: false,
-  timezoneList: [],
 };
 
 export default function reducer(state = initialState, action = DEFAULT_ACTION) {
@@ -266,19 +264,6 @@ export default function reducer(state = initialState, action = DEFAULT_ACTION) {
       };
     }
 
-    case "FETCH_TIMEZONE_LIST": {
-      return { ...state, fetchingTimezones: true };
-    }
-    case "FETCH_TIMEZONE_LIST_REJECTED": {
-      return { ...state, fetchingTimezones: false, error: action.payload };
-    }
-    case "FETCH_TIMEZONE_LIST_FULFILLED": {
-      return {
-        ...state,
-        fetchingTimezones: false,
-        timezoneList: JSON.parse(action.payload),
-      };
-    }
     case "FETCH_COUNT_STATS": {
       return { ...state, fetchingCountStats: true };
     }

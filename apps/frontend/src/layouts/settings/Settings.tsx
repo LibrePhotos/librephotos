@@ -18,20 +18,20 @@ import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { fetchCountStats, fetchTimezoneList, updateUser } from "../../actions/utilActions";
+import { fetchCountStats, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
+import { useFetchTimezonesQuery } from "../../api_client/util";
 import { ConfigDateTime } from "../../components/settings/ConfigDateTime";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export function Settings() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
-  const timezoneListRedux = useAppSelector(state => state.util.timezoneList);
   const [userSelfDetails, setUserSelfDetails] = useState(userSelfDetailsRedux);
-  const [timezoneList, setTimezoneList] = useState(timezoneListRedux);
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
+  const { data: timezoneList = [] } = useFetchTimezonesQuery();
 
   // open update dialog, when user was edited
   useEffect(() => {
@@ -45,12 +45,7 @@ export function Settings() {
   useEffect(() => {
     dispatch(fetchCountStats());
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
-    fetchTimezoneList(dispatch);
   }, [auth.access.user_id, dispatch]);
-
-  useEffect(() => {
-    setTimezoneList(timezoneListRedux);
-  }, [timezoneListRedux]);
 
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
@@ -140,7 +135,7 @@ export function Settings() {
               searchable
               title={t("timezoneexplain")}
               onChange={value => {
-                setUserSelfDetails({ ...userSelfDetails, default_timezone: value || "UTC" });
+                setUserSelfDetails({ ...userSelfDetails, default_timezone: value ?? "UTC" });
               }}
               data={timezoneList}
             />
