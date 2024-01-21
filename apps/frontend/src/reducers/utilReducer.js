@@ -38,10 +38,6 @@ const initialState = {
   fetchingExampleSearchTerms: false,
   fetchedExampleSearchTerms: false,
 
-  locationSunburst: { name: "Loading..." },
-  fetchingLocationSunburst: false,
-  fetchedLocationSunburst: false,
-
   locationTimeline: [],
   fetchingLocationTimeline: false,
   fetchedLocationTimeline: false,
@@ -223,25 +219,6 @@ export default function reducer(state = initialState, action = DEFAULT_ACTION) {
         fetchingLocationTimeline: false,
         fetchedLocationTimeline: true,
         locationTimeline: action.payload,
-      };
-    }
-
-    case "FETCH_LOCATION_SUNBURST": {
-      return { ...state, fetchingLocationSunburst: true };
-    }
-    case "FETCH_LOCATION_SUNBURST_REJECTED": {
-      return {
-        ...state,
-        fetchingLocationSunburst: false,
-        error: action.payload,
-      };
-    }
-    case "FETCH_LOCATION_SUNBURST_FULFILLED": {
-      return {
-        ...state,
-        fetchingLocationSunburst: false,
-        fetchedLocationSunburst: true,
-        locationSunburst: action.payload,
       };
     }
 

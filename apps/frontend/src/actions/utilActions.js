@@ -7,7 +7,6 @@ import {
   CountStats,
   DeleteMissingPhotosResponse,
   GenerateEventAlbumsTitlesResponse,
-  LocationSunburst,
   PhotoMonthCount,
   WordCloudResponse,
 } from "./utilActions.types";
@@ -92,23 +91,6 @@ export function generateEventAlbumTitles() {
           type: "GENERATE_EVENT_ALBUMS_TITLES_REJECTED",
           payload: err,
         });
-      });
-  };
-}
-
-export function fetchLocationSunburst() {
-  return function cb(dispatch) {
-    dispatch({ type: "FETCH_LOCATION_SUNBURST" });
-    Server.get(`locationsunburst/`)
-      .then(response => {
-        const data = LocationSunburst.parse(response.data);
-        dispatch({
-          type: "FETCH_LOCATION_SUNBURST_FULFILLED",
-          payload: data,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_LOCATION_SUNBURST_REJECTED", payload: err });
       });
   };
 }

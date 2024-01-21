@@ -1,6 +1,6 @@
-import { Group as GroupMantine, NativeSelect } from "@mantine/core";
+import { Group, NativeSelect } from "@mantine/core";
 import { LinearGradient } from "@visx/gradient";
-import { Group } from "@visx/group";
+import { Group as VisxGroup } from "@visx/group";
 import { Tree } from "@visx/hierarchy";
 import {
   LinkHorizontal,
@@ -18,12 +18,11 @@ import {
 } from "@visx/shape";
 import { hierarchy } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
-import { fetchLocationSunburst } from "../actions/utilActions";
-import { useAppDispatch, useAppSelector } from "../store/store";
+import { useFetchLocationTreeQuery } from "../api_client/util";
 
-type Props = {
+type Props = Readonly<{
   width: number;
   height: number;
   margin?: {
@@ -32,20 +31,15 @@ type Props = {
     right: number;
     bottom: number;
   };
-};
+}>;
+
+const STEP_PERCENT = 0.5;
 
 export function LocationLink(props: Props) {
   const [layout, setLayout] = useState("cartesian");
   const [orientation, setOrientation] = useState("horizontal");
   const [linkType, setLinkType] = useState("diagonal");
-  const [stepPercent] = useState(0.5);
-
-  const { locationSunburst } = useAppSelector(store => store.util);
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    dispatch(fetchLocationSunburst());
-  }, []);
+  const { data: locationSunburst, isFetching } = useFetchLocationTreeQuery();
 
   const {
     width,
@@ -61,9 +55,9 @@ export function LocationLink(props: Props) {
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  let origin;
-  let sizeWidth;
-  let sizeHeight;
+  let origin: { x: number; y: number };
+  let sizeWidth: number;
+  let sizeHeight: number;
 
   if (layout === "polar") {
     origin = {
@@ -83,9 +77,13 @@ export function LocationLink(props: Props) {
     }
   }
 
+  if (isFetching) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div style={{ padding: 10 }}>
-      <GroupMantine position="center">
+      <Group position="center">
         <NativeSelect
           label="Layout"
           onChange={d => setLayout(d.currentTarget.value)}
@@ -107,7 +105,7 @@ export function LocationLink(props: Props) {
           data={["diagonal", "step", "curve", "line"]}
           defaultValue={linkType}
         />
-      </GroupMantine>
+      </Group>
       <svg width={width} height={height}>
         <LinearGradient id="lg" from="#fd9b93" to="#fe6e9e" />
         <Tree
@@ -118,7 +116,7 @@ export function LocationLink(props: Props) {
           separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
         >
           {tree => (
-            <Group top={origin.y} left={origin.x}>
+            <VisxGroup top={origin.y} left={origin.x}>
               {tree.links().map((link, i) => {
                 let LinkComponent;
 
@@ -156,7 +154,7 @@ export function LocationLink(props: Props) {
                 return (
                   <LinkComponent
                     data={link}
-                    percent={stepPercent}
+                    percent={STEP_PERCENT}
                     stroke="grey"
                     strokeWidth="2"
                     fill="none"
@@ -184,7 +182,7 @@ export function LocationLink(props: Props) {
                 }
 
                 return (
-                  <Group top={top} left={left} key={`${node.x}${node.y}`}>
+                  <VisxGroup top={top} left={left} key={`${node.x}${node.y}`}>
                     {node.depth === 0 && (
                       <rect
                         height={rectHeight}
@@ -207,11 +205,11 @@ export function LocationLink(props: Props) {
                         y={-(rectHeight / 2)}
                         x={0}
                         fill={node.data.children ? "#1b6c94" : "#1b8594"}
-                        stroke={node.data.children ? "#dddddd" : "#dddddd"}
+                        stroke="#dddddd"
                         strokeWidth={2}
-                        strokeDasharray={!node.data.children ? "0" : "0"}
-                        strokeOpacity={!node.data.children ? 1 : 1}
-                        rx={!node.data.children ? 5 : 5}
+                        strokeDasharray="0"
+                        strokeOpacity={1}
+                        rx={5}
                         onClick={() => {
                           // eslint-disable-next-line no-param-reassign
                           node.data.isExpanded = !node.data.isExpanded;
@@ -221,10 +219,10 @@ export function LocationLink(props: Props) {
                     <text y={5} x={10} fontSize={11} style={{ pointerEvents: "none" }} fill="white">
                       {node.data.name}
                     </text>
-                  </Group>
+                  </VisxGroup>
                 );
               })}
-            </Group>
+            </VisxGroup>
           )}
         </Tree>
       </svg>

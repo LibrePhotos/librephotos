@@ -35,20 +35,6 @@ export const GenerateEventAlbumsTitlesResponse = z.object({
 
 export const SearchTermExamples = z.array(z.string());
 
-interface LocationSunburstItem {
-  name: string;
-  hex?: string;
-  children?: LocationSunburstItem[];
-}
-
-export const LocationSunburst: z.ZodType<LocationSunburstItem> = z.lazy(() =>
-  z.object({
-    name: z.string(),
-    hex: z.string().optional(),
-    children: z.array(LocationSunburst).optional(),
-  })
-);
-
 export const TimelinePoint = z.object({
   data: z.array(z.number()),
   color: z.string(),
