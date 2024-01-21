@@ -39,11 +39,12 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
-import { deleteMissingPhotos, fetchCountStats, generateEventAlbumTitles, updateUser } from "../../actions/utilActions";
+import { deleteMissingPhotos, generateEventAlbumTitles, updateUser } from "../../actions/utilActions";
 import { useGenerateAutoAlbumsMutation } from "../../api_client/albums/auto";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
+import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../../api_client/util";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
 import { notification } from "../../service/notifications";
@@ -90,7 +91,6 @@ export function Library() {
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
-  const util = useAppSelector(state => state.util);
   const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
   const { t } = useTranslation();
   const [
@@ -100,6 +100,7 @@ export function Library() {
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const { classes } = useStyles();
   const [generateAutoAlbums] = useGenerateAutoAlbumsMutation();
+  const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
@@ -133,7 +134,6 @@ export function Library() {
   }, [userSelfDetailsRedux, userSelfDetails]);
 
   useEffect(() => {
-    dispatch(fetchCountStats());
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
     fetchNextcloudDirs(undefined, true);
   }, [auth.access.user_id, dispatch, fetchNextcloudDirs]);
@@ -179,12 +179,11 @@ export function Library() {
           <Stack>
             <Title order={4} sx={{ marginBottom: 16 }}>
               <Trans i18nKey="settings.photos">Photos</Trans>
-              {util.countStats.num_missing_photos > 0 && (
+              {countStats.num_missing_photos > 0 && (
                 <HoverCard width={280} shadow="md">
                   <HoverCard.Target>
                     <Badge onClick={open} color="red" sx={{ marginLeft: 10 }}>
-                      {util.countStats.num_missing_photos}{" "}
-                      <Trans i18nKey="settings.missingphotos">Missing photos</Trans>
+                      {countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos">Missing photos</Trans>
                     </Badge>
                   </HoverCard.Target>
                   <HoverCard.Dropdown>

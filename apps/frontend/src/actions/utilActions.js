@@ -4,7 +4,6 @@ import { notification } from "../service/notifications";
 import { UserSchema } from "../store/user/user.zod";
 import { userActions } from "../store/user/userSlice";
 import {
-  CountStats,
   DeleteMissingPhotosResponse,
   GenerateEventAlbumsTitlesResponse,
   PhotoMonthCount,
@@ -91,23 +90,6 @@ export function generateEventAlbumTitles() {
           type: "GENERATE_EVENT_ALBUMS_TITLES_REJECTED",
           payload: err,
         });
-      });
-  };
-}
-
-export function fetchCountStats() {
-  return function cb(dispatch) {
-    dispatch({ type: "FETCH_COUNT_STATS" });
-    Server.get(`stats/`)
-      .then(response => {
-        const data = CountStats.parse(response.data);
-        dispatch({
-          type: "FETCH_COUNT_STATS_FULFILLED",
-          payload: data,
-        });
-      })
-      .catch(err => {
-        dispatch({ type: "FETCH_COUNT_STATS_REJECTED", payload: err });
       });
   };
 }

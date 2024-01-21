@@ -18,7 +18,7 @@ import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { fetchCountStats, updateUser } from "../../actions/utilActions";
+import { updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
 import { useFetchTimezonesQuery } from "../../api_client/util";
 import { ConfigDateTime } from "../../components/settings/ConfigDateTime";
@@ -43,7 +43,6 @@ export function Settings() {
   }, [userSelfDetailsRedux, userSelfDetails]);
 
   useEffect(() => {
-    dispatch(fetchCountStats());
     dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
   }, [auth.access.user_id, dispatch]);
 

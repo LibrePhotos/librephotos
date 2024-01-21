@@ -8,21 +8,14 @@ import {
   IconTag as Tag,
   IconUsers as Users,
 } from "@tabler/icons-react";
-import React, { useEffect } from "react";
+import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { fetchCountStats } from "../actions/utilActions";
-import { useAppDispatch, useAppSelector } from "../store/store";
+import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../api_client/util";
 
 export function CountStats() {
-  const util = useAppSelector(state => state.util);
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
-
-  const { countStats } = useAppSelector(store => store.util);
-  useEffect(() => {
-    dispatch(fetchCountStats());
-  }, []);
+  const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
   return (
     <Group grow spacing="xs" align="stretch">
@@ -69,7 +62,7 @@ export function CountStats() {
               <Grid.Col span={3}>
                 <Flex gap="sm">
                   <FaceId />
-                  {util.countStats.num_inferred_faces}
+                  {countStats.num_inferred_faces}
                 </Flex>
               </Grid.Col>
               <Grid.Col span={9}>
@@ -82,7 +75,7 @@ export function CountStats() {
               <Grid.Col span={3}>
                 <Flex gap="sm">
                   <Tag />
-                  {util.countStats.num_labeled_faces}
+                  {countStats.num_labeled_faces}
                 </Flex>
               </Grid.Col>
               <Grid.Col span={9}>
@@ -95,7 +88,7 @@ export function CountStats() {
               <Grid.Col span={3}>
                 <Flex gap="sm">
                   <QuestionMark />
-                  {util.countStats.num_unknown_faces}
+                  {countStats.num_unknown_faces}
                 </Flex>
               </Grid.Col>
             </Grid>

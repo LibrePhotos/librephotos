@@ -11,10 +11,6 @@ const initialState = {
   fetchingSiteSettings: false,
   fetchedSiteSettings: false,
 
-  countStats: {},
-  fetchingCountStats: false,
-  fetchedCountStats: false,
-
   photoMonthCounts: [],
   fetchingPhotoMonthCounts: false,
   fetchedPhotoMonthCounts: false,
@@ -238,21 +234,6 @@ export default function reducer(state = initialState, action = DEFAULT_ACTION) {
         fetchingExampleSearchTerms: false,
         fetchedExampleSearchTerms: true,
         exampleSearchTerms: action.payload,
-      };
-    }
-
-    case "FETCH_COUNT_STATS": {
-      return { ...state, fetchingCountStats: true };
-    }
-    case "FETCH_COUNT_STATS_REJECTED": {
-      return { ...state, fetchingCountStats: false, error: action.payload };
-    }
-    case "FETCH_COUNT_STATS_FULFILLED": {
-      return {
-        ...state,
-        fetchingCountStats: false,
-        fetchedCountStats: true,
-        countStats: action.payload,
       };
     }
 
