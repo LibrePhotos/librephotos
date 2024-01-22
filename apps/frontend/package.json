@@ -130,7 +130,7 @@
     "@cucumber/messages": "^22.0.0",
     "@cypress/browserify-preprocessor": "^3.0.2",
     "@trivago/prettier-plugin-sort-imports": "4.3.0",
-    "@types/crypto-js": "4.2.1",
+    "@types/crypto-js": "4.2.2",
     "@types/jest": "^28.1.7",
     "@types/lodash": "4.14.202",
     "@types/luxon": "3.4.2",
