@@ -66,7 +66,7 @@ def export_onnx():
 
 def check_inactivity():
     global last_request_time
-    idle_threshold = 30
+    idle_threshold = 120
 
     while True:
         time.sleep(1)
