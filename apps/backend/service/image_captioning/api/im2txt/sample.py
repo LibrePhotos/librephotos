@@ -156,9 +156,8 @@ class Im2txt(object):
         if self.blip:
             image = self.load_image(image_path, blip_transform).to(self.device)
             with torch.no_grad():
-                # beam search
                 caption_blip = self.model.generate(
-                    image, sample=False, num_beams=3, max_length=50, min_length=10
+                    image, sample=True, num_beams=3, max_length=50, min_length=10
                 )
                 return caption_blip[0]
 
