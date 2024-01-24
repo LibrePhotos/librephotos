@@ -1,7 +1,7 @@
 import { Divider } from "@mantine/core";
 import React, { useEffect } from "react";
 
-import { fetchWordCloud } from "../../actions/utilActions";
+import { util } from "../../api_client/util";
 import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
 import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
 import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
@@ -31,7 +31,7 @@ export function WordClouds() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    fetchWordCloud(dispatch);
+    dispatch(util.endpoints.fetchWordCloud.initiate());
   }, []);
 
   return (

@@ -39,16 +39,31 @@ export const COUNT_STATS_DEFAULTS: CountStats = {
   num_albumuser: 0,
 };
 
+export const WordCloud = z.object({
+  label: z.string(),
+  y: z.number(),
+  x: z.number().optional(),
+});
+
+export const WordCloudResponseSchema = z.object({
+  captions: WordCloud.array(),
+  people: WordCloud.array(),
+  locations: WordCloud.array(),
+});
+
+type WordCloudResponse = z.infer<typeof WordCloudResponseSchema>;
+
 enum Endpoints {
   fetchTimezones = "fetchTimezones",
   fetchLocationTree = "fetchLocationTree",
   fetchCountStats = "fetchCountStats",
+  fetchWordCloud = "fetchWordCloud",
 }
 
 const TimezonesSchema = z.string().array();
 type Timezones = z.infer<typeof TimezonesSchema>;
 
-const utilApi = api
+export const util = api
   .injectEndpoints({
     endpoints: builder => ({
       [Endpoints.fetchTimezones]: builder.query<Timezones, void>({
@@ -70,6 +85,23 @@ const utilApi = api
         query: () => "stats/",
         transformResponse: response => CountStatsSchema.parse(response),
       }),
+      [Endpoints.fetchWordCloud]: builder.query<WordCloudResponse, void>({
+        query: () => "wordcloud/",
+        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+          /**
+           * This is a workaround. For the time being we'll use redux store instead of cache.
+           * The use of cached data is not working properly with Word Cloud component. This could be due to the timing.
+           */
+          dispatch({ type: "FETCH_WORDCLOUD" });
+          try {
+            const { data } = await queryFulfilled;
+            const payload = WordCloudResponseSchema.parse(data);
+            dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload });
+          } catch (error) {
+            dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: error });
+          }
+        },
+      }),
     }),
   })
   .enhanceEndpoints<"Timezones" | "LocationTree">({
@@ -84,4 +116,4 @@ const utilApi = api
     },
   });
 
-export const { useFetchTimezonesQuery, useFetchLocationTreeQuery, useFetchCountStatsQuery } = utilApi;
+export const { useFetchTimezonesQuery, useFetchLocationTreeQuery, useFetchCountStatsQuery } = util;
