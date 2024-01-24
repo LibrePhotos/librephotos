@@ -53,11 +53,19 @@ export const WordCloudResponseSchema = z.object({
 
 type WordCloudResponse = z.infer<typeof WordCloudResponseSchema>;
 
+const PhotoMonthCountSchema = z.object({
+  month: z.string(),
+  count: z.number(),
+});
+const PhotoMonthCountResponseSchema = z.array(PhotoMonthCountSchema);
+type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponseSchema>;
+
 enum Endpoints {
   fetchTimezones = "fetchTimezones",
   fetchLocationTree = "fetchLocationTree",
   fetchCountStats = "fetchCountStats",
   fetchWordCloud = "fetchWordCloud",
+  fetchPhotoMonthCount = "fetchPhotoMonthCount",
 }
 
 const TimezonesSchema = z.string().array();
@@ -102,6 +110,10 @@ export const util = api
           }
         },
       }),
+      [Endpoints.fetchPhotoMonthCount]: builder.query<PhotoMonthCountResponse, void>({
+        query: () => "photomonthcounts/",
+        transformResponse: (response: PhotoMonthCountResponse) => PhotoMonthCountResponseSchema.parse(response),
+      }),
     }),
   })
   .enhanceEndpoints<"Timezones" | "LocationTree">({
@@ -116,4 +128,9 @@ export const util = api
     },
   });
 
-export const { useFetchTimezonesQuery, useFetchLocationTreeQuery, useFetchCountStatsQuery } = util;
+export const {
+  useFetchTimezonesQuery,
+  useFetchLocationTreeQuery,
+  useFetchCountStatsQuery,
+  useFetchPhotoMonthCountQuery,
+} = util;

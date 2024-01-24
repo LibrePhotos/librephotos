@@ -3,7 +3,7 @@ import { Server } from "../api_client/apiClient";
 import { notification } from "../service/notifications";
 import { UserSchema } from "../store/user/user.zod";
 import { userActions } from "../store/user/userSlice";
-import { DeleteMissingPhotosResponse, GenerateEventAlbumsTitlesResponse, PhotoMonthCount } from "./utilActions.types";
+import { DeleteMissingPhotosResponse, GenerateEventAlbumsTitlesResponse } from "./utilActions.types";
 
 export function updateAvatar(user, form_data) {
   return function cb(dispatch) {
@@ -87,19 +87,4 @@ export function generateEventAlbumTitles() {
         });
       });
   };
-}
-
-export function fetchPhotoMonthCounts(dispatch) {
-  dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS" });
-  Server.get(`photomonthcounts/`)
-    .then(response => {
-      const data = PhotoMonthCount.array().parse(response.data);
-      dispatch({
-        type: "FETCH_PHOTO_MONTH_COUNTS_FULFILLED",
-        payload: data,
-      });
-    })
-    .catch(err => {
-      dispatch({ type: "FETCH_PHOTO_MONTH_COUNTS_REJECTED", payload: err });
-    });
 }

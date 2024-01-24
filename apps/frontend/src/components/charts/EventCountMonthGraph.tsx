@@ -1,11 +1,9 @@
 import { Loader, Stack, Title, useMantineColorScheme } from "@mantine/core";
-import React, { useEffect } from "react";
+import React from "react";
 import useDimensions from "react-cool-dimensions";
+import { Bars, Chart, Layer, Ticks } from "rumble-charts";
 
-import { fetchPhotoMonthCounts } from "../../actions/utilActions";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-
-const { Chart, Bars, Ticks, Layer } = require("rumble-charts");
+import { useFetchPhotoMonthCountQuery } from "../../api_client/util";
 
 export function EventCountMonthGraph() {
   const { colorScheme } = useMantineColorScheme();
@@ -15,17 +13,10 @@ export function EventCountMonthGraph() {
       unobserve(); // To stop observing the current target element
     },
   });
-  const dispatch = useAppDispatch();
-  const { photoMonthCounts, fetchedPhotoMonthCounts } = useAppSelector(state => state.util);
+  const { data: photoMonthCounts, isSuccess: fetchedPhotoMonthCounts } = useFetchPhotoMonthCountQuery();
 
-  useEffect(() => {
-    if (!fetchedPhotoMonthCounts) {
-      fetchPhotoMonthCounts(dispatch);
-    }
-  }, [dispatch]); // Only run on first render
-
-  let series = [];
-  let xticks = [];
+  let series: Array<{ y: number; month: string }> = [];
+  let xticks: Array<string> = [];
   if (fetchedPhotoMonthCounts) {
     const countDict = photoMonthCounts;
     series = countDict.map((el: any) => ({ y: el.count, month: el.month }));
@@ -82,5 +73,3 @@ export function EventCountMonthGraph() {
     </Stack>
   );
 }
-
-export default EventCountMonthGraph;
