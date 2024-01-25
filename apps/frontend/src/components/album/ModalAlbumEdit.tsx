@@ -13,11 +13,11 @@ import { i18nResolvedLanguage } from "../../i18n";
 import { fuzzyMatch } from "../../util/util";
 import { Tile } from "../Tile";
 
-type Props = {
+type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
   selectedImages: any[];
-};
+}>;
 
 export function ModalAlbumEdit(props: Props) {
   const [newAlbumTitle, setNewAlbumTitle] = useState("");

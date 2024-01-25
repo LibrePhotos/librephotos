@@ -17,9 +17,9 @@ import { editPhoto } from "../../actions/photosActions";
 import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch } from "../../store/store";
 
-type Props = {
+type Props = Readonly<{
   photoDetail: any;
-};
+}>;
 
 export function TimestampItem({ photoDetail }: Props) {
   const [timestamp, setTimestamp] = useState(

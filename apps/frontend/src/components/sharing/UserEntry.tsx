@@ -9,10 +9,10 @@ import { useFetchUserAlbumQuery } from "../../api_client/albums/user";
 import { i18nResolvedLanguage } from "../../i18n";
 import type { IUser } from "../../store/user/user.zod";
 
-type UserEntryProps = {
+type UserEntryProps = Readonly<{
   item: IUser;
   albumID: string;
-};
+}>;
 
 function getDisplayName(item: IUser) {
   return item.first_name.length > 0 && item.last_name.length > 0

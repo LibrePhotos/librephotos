@@ -4,12 +4,12 @@ import { useTranslation } from "react-i18next";
 
 import { i18nResolvedLanguage } from "../../i18n";
 
-interface IJobDuration {
+type IJobDuration = Readonly<{
   matches: boolean;
   finished: boolean;
   finishedAt: string | null;
   startedAt: string | null;
-}
+}>;
 
 export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDuration): JSX.Element | null {
   const { t } = useTranslation();

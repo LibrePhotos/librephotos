@@ -6,10 +6,10 @@ import { FacesTab } from "../../store/faces/facesActions.types";
 import type { IFacesTab } from "../../store/faces/facesActions.types";
 import { useAppSelector } from "../../store/store";
 
-type Props = {
+type Props = Readonly<{
   tab: IFacesTab;
   children: React.ReactNode;
-};
+}>;
 
 export function FacesCountersHoverCard({ tab, children }: Props) {
   const { inferredFacesList, labeledFacesList } = useAppSelector(store => store.face);

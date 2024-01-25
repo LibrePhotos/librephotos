@@ -7,12 +7,12 @@ import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 import type { DirTreeResponse } from "../../api_client/dir-tree";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
 
-type Props = {
+type Props = Readonly<{
   path: string;
   isOpen: boolean;
   onChange: (dir: string) => void;
   onClose: () => void;
-};
+}>;
 
 export function ModalNextcloudScanDirectoryEdit(props: Props) {
   const { t } = useTranslation();

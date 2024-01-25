@@ -7,12 +7,12 @@ import { fuzzyMatch } from "../../util/util";
 import { getRuleExtraInfo, useDateTimeSettingsStyles } from "../settings/date-time-settings";
 import type { DateTimeRule } from "../settings/date-time.zod";
 
-type Props = {
+type Props = Readonly<{
   opened: boolean;
   onClose: () => void;
   onAddRules: (item: any) => void;
   availableRules: DateTimeRule[];
-};
+}>;
 
 function searchRules(query: string) {
   return function cb(rule: DateTimeRule) {

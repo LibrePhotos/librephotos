@@ -25,7 +25,7 @@ import { ModalAlbumShare } from "../../components/sharing/ModalAlbumShare";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";
 
-function SharedWith({ album }: { album: UserAlbumInfo }) {
+function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
   const [opened, { toggle, close }] = useDisclosure(false);
   // To-Do: Figure out, why album is an array / json <- is it still the case?
   return (

@@ -1,17 +1,18 @@
 import { Group, Loader, Tabs } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useAppSelector, useAppDispatch } from "../../store/store";
-import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
+
 import { faceActions } from "../../store/faces/faceSlice";
 import { FacesTab } from "../../store/faces/facesActions.types";
-import type {IFacesTab} from "../../store/faces/facesActions.types";
+import type { IFacesTab } from "../../store/faces/facesActions.types";
+import { useAppDispatch, useAppSelector } from "../../store/store";
+import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 
-type Props = {
+type Props = Readonly<{
   width: number;
   fetchingLabeledFacesList: boolean;
   fetchingInferredFacesList: boolean;
-};
+}>;
 
 export function TabComponent({ width, fetchingLabeledFacesList, fetchingInferredFacesList }: Props) {
   const dispatch = useAppDispatch();

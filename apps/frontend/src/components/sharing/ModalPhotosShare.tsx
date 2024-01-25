@@ -12,11 +12,11 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 import classes from "./ModalAlbumShare.module.css";
 import filterUsers from "./utils";
 
-type Props = {
+type Props = Readonly<{
   selectedImageHashes: any;
   isOpen: boolean;
   onRequestClose: () => void;
-};
+}>;
 
 export function ModalPhotosShare(props: Props) {
   const { t } = useTranslation();

@@ -4,9 +4,9 @@ import { Map, Marker, Popup, TileLayer } from "react-leaflet";
 
 import { getAveragedCoordinates } from "../util/util";
 
-type Props = {
+type Props = Readonly<{
   photos: any[];
-};
+}>;
 
 export function LocationMap({ photos }: Props) {
   const mapRef = useRef<Map>(null);

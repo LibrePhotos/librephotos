@@ -28,7 +28,7 @@ import { VideoOverlay } from "./VideoOverlay";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
-type Props = {
+type Props = Readonly<{
   title: string;
   loading: boolean;
   icon: any;
@@ -43,7 +43,7 @@ type Props = {
   dayHeaderPrefix?: any;
   header?: any;
   additionalSubHeader?: any;
-};
+}>;
 
 type SelectionState = {
   selectedItems: any[];

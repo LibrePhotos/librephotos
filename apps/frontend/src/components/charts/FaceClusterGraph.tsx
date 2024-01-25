@@ -8,9 +8,9 @@ import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-type Props = {
+type Props = Readonly<{
   height: number;
-};
+}>;
 
 export function FaceClusterGraph({ height }: Props) {
   const [hintValue, setHintValue] = useState<any>({} as any);

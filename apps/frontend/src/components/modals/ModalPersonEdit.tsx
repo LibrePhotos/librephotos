@@ -22,12 +22,12 @@ import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 
-type Props = {
+type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
   resetGroups?: () => void;
   selectedFaces: any[];
-};
+}>;
 
 export function ModalPersonEdit(props: Props) {
   const [newPersonName, setNewPersonName] = useState("");

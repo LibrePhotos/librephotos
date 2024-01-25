@@ -9,7 +9,7 @@ import { useAppSelector } from "../../store/store";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 
-type Props = {
+type Props = Readonly<{
   lightboxImageId: any;
   lightboxImageIndex: any;
   idx2hash: any;
@@ -18,7 +18,7 @@ type Props = {
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
   onImageLoad: () => void;
-};
+}>;
 
 export function LightBox(props: Props) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);

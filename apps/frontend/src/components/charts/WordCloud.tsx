@@ -6,10 +6,10 @@ import { Chart, Cloud, Transform } from "rumble-charts";
 
 import { useAppSelector } from "../../store/store";
 
-type Props = {
+type Props = Readonly<{
   type: string;
   height: number;
-};
+}>;
 
 export function WordCloud(props: Props) {
   const { observe: observeChange, width } = useDimensions({

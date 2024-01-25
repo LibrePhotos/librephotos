@@ -10,10 +10,10 @@ import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { getRuleExtraInfo, useDateTimeSettingsStyles } from "./date-time-settings";
 import type { DateTimeRule } from "./date-time.zod";
 
-type ConfigDateTimeProps = {
+type ConfigDateTimeProps = Readonly<{
   value: string;
   onChange: (rules: string) => void;
-};
+}>;
 
 function cloneRules(rules: DateTimeRule[]): DateTimeRule[] {
   // poor man's deep-copy

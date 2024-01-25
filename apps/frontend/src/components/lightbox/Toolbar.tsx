@@ -16,12 +16,12 @@ import { playerActions } from "../../store/player/playerSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
 
-type Props = {
+type Props = Readonly<{
   photosDetail: any;
   isPublic: boolean;
   lightboxSidebarShow: boolean;
   closeSidepanel: () => void;
-};
+}>;
 
 export function Toolbar(props: Props) {
   const dispatch = useAppDispatch();

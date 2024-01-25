@@ -7,7 +7,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
 import { FaceTooltip } from "./FaceTooltip";
 
-type Props = {
+type Props = Readonly<{
   cell: any;
   isScrollingFast: boolean;
   selectMode: boolean;
@@ -15,7 +15,7 @@ type Props = {
   isSelected: boolean;
   handleClick: (e: any, cell: any) => void;
   handleShowClick: (e: any, cell: any) => void;
-};
+}>;
 
 export function FaceComponent({
   cell,

@@ -5,12 +5,12 @@ import React from "react";
 
 import { MediaType } from "../../actions/photosActions.types";
 
-type Props = {
+type Props = Readonly<{
   item: {
     type: MediaType;
     video_length: string;
   };
-};
+}>;
 
 const styles = createStyles(() => ({
   container: {

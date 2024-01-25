@@ -6,11 +6,11 @@ import React from "react";
 import { i18nResolvedLanguage } from "../../i18n";
 import { useAppSelector } from "../../store/store";
 
-type Props = {
+type Props = Readonly<{
   tooltipOpened: boolean;
   cell: any;
   children?: React.ReactNode;
-};
+}>;
 
 export function FaceTooltip({ tooltipOpened, cell, children }: Props) {
   const { activeTab } = useAppSelector(store => store.face);

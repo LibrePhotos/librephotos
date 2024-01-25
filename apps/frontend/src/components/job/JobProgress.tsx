@@ -2,12 +2,12 @@ import { Center, Progress } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-interface IJobProgress {
+type IJobProgress = Readonly<{
   target?: number;
   current?: number;
   finished: boolean;
   error: unknown;
-}
+}>;
 
 export function JobProgress({ target, current, finished, error }: IJobProgress) {
   const { t } = useTranslation();

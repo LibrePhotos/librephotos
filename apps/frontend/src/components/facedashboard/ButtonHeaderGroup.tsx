@@ -26,14 +26,14 @@ import { FacesOrderOption } from "../../store/faces/facesActions.types";
 import type { IFacesOrderOption } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-type Props = {
+type Props = Readonly<{
   selectMode: boolean;
   selectedFaces: any;
   changeSelectMode: () => void;
   addFaces: () => void;
   deleteFaces: () => void;
   notThisPerson: () => void;
-};
+}>;
 
 export function ButtonHeaderGroup({
   selectMode,

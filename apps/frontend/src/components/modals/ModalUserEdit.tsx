@@ -16,7 +16,7 @@ import { IUser } from "../../store/user/user.zod";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 
-type Props = {
+type Props = Readonly<{
   isOpen: boolean;
   updateAndScan?: boolean;
   userToEdit: any;
@@ -25,7 +25,7 @@ type Props = {
   userList: any;
   createNew: boolean;
   firstTimeSetup?: boolean;
-};
+}>;
 
 const findPath = (tree: DirTree[], path: string): boolean => {
   let result = false;

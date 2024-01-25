@@ -8,11 +8,11 @@ import classes from "./ModalAlbumShare.module.css";
 import { UserEntry } from "./UserEntry";
 import filterUsers from "./utils";
 
-type Props = {
+type Props = Readonly<{
   isOpen: boolean;
   onRequestClose: () => void;
   albumID: string;
-};
+}>;
 
 export function ModalAlbumShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");

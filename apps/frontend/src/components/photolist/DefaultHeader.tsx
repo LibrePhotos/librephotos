@@ -20,7 +20,7 @@ import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
 
-type Props = {
+type Props = Readonly<{
   loading: boolean;
   numPhotosetItems: number;
   numPhotos: number;
@@ -29,7 +29,7 @@ type Props = {
   additionalSubHeader: string;
   dayHeaderPrefix: string;
   date: string;
-};
+}>;
 
 export function DefaultHeader(props: Props) {
   const [modalOpen, setModalOpen] = useState(false);

@@ -32,6 +32,7 @@ type Props = {
   photoDetail: PhotoType;
   closeSidepanel: () => void;
 };
+
 export function Sidebar(props: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();

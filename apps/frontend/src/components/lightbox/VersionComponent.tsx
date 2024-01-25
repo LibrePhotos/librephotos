@@ -9,7 +9,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch } from "../../store/store";
 import { FileInfoComponent } from "./FileInfoComponent";
 
-export function VersionComponent(props: { photoDetail: PhotoType }) {
+export function VersionComponent(props: Readonly<{ photoDetail: PhotoType }>) {
   const { photoDetail } = props;
 
   const [showMore, setShowMore] = useState(false);

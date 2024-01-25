@@ -11,13 +11,13 @@ import "./ScrollScrubber.css";
 import { ScrollerType } from "./ScrollScrubberTypes.zod";
 import type { IScrollerData, IScrollerPosition, IScrollerType } from "./ScrollScrubberTypes.zod";
 
-type Props = {
+type Props = Readonly<{
   type: IScrollerType; // Type of scroller marks to display
   scrollPositions: IScrollerData[]; // Array of positions to show on the scroller (label and Y position on target scrollable area)
   targetHeight: number; // Height of the target scrollable area
   scrollToY: (number) => void; // Callback function that scrolls to a given Y position on target element
   children: ReactNode | null; // Target element must be one of the children nodes
-};
+}>;
 
 export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY, children }: Props) {
   // ref and size of scrollscrubber

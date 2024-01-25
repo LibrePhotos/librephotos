@@ -3,11 +3,11 @@ import { IconLock as Lock, IconLockOpen as LockOpen } from "@tabler/icons-react"
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-type Props = {
+type Props = Readonly<{
   createNew?: boolean;
   onValidate: (string, boolean) => void;
   closing?: boolean;
-};
+}>;
 
 export function PasswordEntry(props: Props): JSX.Element {
   const { closing, createNew, onValidate } = props;

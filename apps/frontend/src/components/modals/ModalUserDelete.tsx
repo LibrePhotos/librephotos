@@ -5,11 +5,11 @@ import { Trans, useTranslation } from "react-i18next";
 
 import { useDeleteUserMutation } from "../../api_client/api";
 
-type Props = {
+type Props = Readonly<{
   isOpen: boolean;
   userToDelete: any;
   onRequestClose: () => void;
-};
+}>;
 
 export function ModalUserDelete(props: Props) {
   const { isOpen, onRequestClose, userToDelete } = props;

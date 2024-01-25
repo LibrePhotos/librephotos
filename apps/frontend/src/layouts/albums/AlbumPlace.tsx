@@ -14,9 +14,9 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";
 
-type Props = {
+type Props = Readonly<{
   height?: number;
-};
+}>;
 
 export function AlbumPlace({ height }: Props) {
   const { width } = useViewportSize();

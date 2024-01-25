@@ -6,9 +6,9 @@ import { useTranslation } from "react-i18next";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import type { IJobDetailSchema } from "../../store/worker/worker.zod";
 
-interface IWorkerIndicator {
+type IWorkerIndicator = Readonly<{
   workerRunningJob: IJobDetailSchema;
-}
+}>;
 
 function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
   const { t } = useTranslation();

@@ -9,9 +9,9 @@ import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-type Props = {
+type Props = Readonly<{
   onToggleSidebar: () => void;
-};
+}>;
 
 export function TopMenuCommon({ onToggleSidebar }: Props) {
   return (

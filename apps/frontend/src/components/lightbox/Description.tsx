@@ -18,10 +18,11 @@ import { fuzzyMatch } from "../../util/util";
 import "./Hashtag.css";
 import suggestion from "./Suggestion";
 
-type Props = {
+type Props = Readonly<{
   isPublic: boolean;
   photoDetail: PhotoType;
-};
+}>;
+
 export function Description(props: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
