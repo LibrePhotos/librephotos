@@ -33,7 +33,10 @@ export function TimestampItem({ photoDetail }: Props) {
 
   const { t } = useTranslation();
   const lang = i18nResolvedLanguage();
-  import(`dayjs/locale/${lang}.js`);
+  import(
+    /* @vite-ignore */
+    `dayjs/locale/${lang}.js`
+  );
 
   const dispatch = useAppDispatch();
 

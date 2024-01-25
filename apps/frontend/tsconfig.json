@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "ESNext",
     "jsx": "react-jsx",
     "module": "esnext",
     "allowJs": true,
@@ -8,6 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "lib": ["dom", "dom.iterable", "esnext"],
+    "types": ["vite/client", "vitest/globals"],
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "moduleResolution": "node",

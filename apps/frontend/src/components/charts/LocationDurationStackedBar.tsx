@@ -3,11 +3,10 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
+import { Hint, HorizontalBarSeries, XAxis, XYPlot } from "react-vis";
 
 import { useLocationTimelineQuery } from "../../api_client/location-timeline";
 import { i18nResolvedLanguage } from "../../i18n";
-
-const { Hint, XYPlot, XAxis, HorizontalBarSeries } = require("react-vis");
 
 type HintProps = {
   y: number;

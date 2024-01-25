@@ -2,15 +2,17 @@
   "name": "librephotos-frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "lint:warn": "eslint --cache \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:error": "eslint --cache --quiet \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:error:fix": "eslint --quiet \"src/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:warning:fix": "eslint --cache --quiet \"src/**/*.{js,jsx,ts,tsx}\" --fix",
-    "start": "react-scripts start",
-    "build": "rimraf ./build && react-scripts build",
-    "test": "react-scripts test --env=jsdom --ci --watchAll=false",
-    "eject": "react-scripts eject",
+    "start": "vite",
+    "build": "vite build",
+    "test": "vitest --watch=false",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --watch=false",
     "analyze": "source-map-explorer 'build/static/js/*.js'",
     "prepare": "husky install",
     "postinstall": "patch-package",
@@ -19,11 +21,11 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "yarn prettier --config ./prettier.config.js --write",
-      "yarn eslint --cache --quiet -c ./.eslintrc.js"
+      "yarn prettier --config ./prettier.config.cjs --write",
+      "yarn eslint --cache --quiet -c ./.eslintrc.cjs"
     ],
     "*.{json,css,scss,md}": [
-      "yarn prettier --config ./prettier.config.js  --write"
+      "yarn prettier --config ./prettier.config.cjs  --write"
     ]
   },
   "browserslist": [
@@ -60,6 +62,9 @@
     "@visx/group": "3.3.0",
     "@visx/hierarchy": "3.3.0",
     "@visx/shape": "3.3.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "@welldone-software/why-did-you-render": "^7.0.1",
     "axios": "1.6.5",
     "bootstrap": "5.3.2",
     "calendar-months": "1.0.1",
@@ -123,6 +128,9 @@
     "rumble-charts": "5.0.0",
     "source-map-explorer": "2.5.3",
     "tippy.js": "^6.3.7",
+    "vite": "^5.0.12",
+    "vite-tsconfig-paths": "^4.3.1",
+    "vitest": "^1.2.1",
     "zod": "3.22.4"
   },
   "devDependencies": {
@@ -145,7 +153,7 @@
     "@types/react-virtualized": "^9.21.28",
     "@typescript-eslint/eslint-plugin": "6.7.3",
     "@typescript-eslint/parser": "6.7.3",
-    "@welldone-software/why-did-you-render": "7.0.1",
+    "@vitest/coverage-v8": "^1.2.1",
     "eslint": "8.56.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-airbnb-typescript": "17.1.0",
@@ -162,9 +170,9 @@
     "eslint-plugin-react-hooks": "4.6.0",
     "husky": "8.0.3",
     "jest": "28.1.3",
+    "jsdom": "^24.0.0",
     "lint-staged": "14.0.1",
     "prettier": "3.0.3",
-    "react-scripts": "5.0.1",
     "rimraf": "5.0.5",
     "source-map-loader": "4.0.1",
     "ts-loader": "9.4.4",

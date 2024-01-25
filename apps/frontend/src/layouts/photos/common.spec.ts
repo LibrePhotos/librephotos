@@ -2,7 +2,7 @@ import { updatePhotoGroups } from "./common";
 
 describe("common", () => {
   test("execute callback when done", () => {
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     updatePhotoGroups(fn)([
       {
@@ -17,7 +17,7 @@ describe("common", () => {
   });
 
   test("do not execute callback if no photos", () => {
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     updatePhotoGroups(fn)([
       {
@@ -30,7 +30,7 @@ describe("common", () => {
   });
 
   test("do nothing when no groups", () => {
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     updatePhotoGroups(fn)(undefined as any);
 
