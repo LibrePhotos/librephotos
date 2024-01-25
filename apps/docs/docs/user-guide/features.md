@@ -257,7 +257,7 @@ sidebar_position: 6
         <p hidden>Immich</p>         <td>❌</td>
         <p hidden>Photonix</p>       <td>✔️</td>
         <p hidden>Damselfly</p>      <td>❔</td>
-        <p hidden>Synology Photos</p><td>✔️ [*](https://kb.synology.com/en-uk/DSM/tutorial/Which_Synology_NAS_models_support_the_facial_recognition_feature_on_Synology_Photos)</td>
+        <p hidden>Synology Photos</p><td>✔️<a href="https://kb.synology.com/en-uk/DSM/tutorial/Which_Synology_NAS_models_support_the_facial_recognition_feature_on_Synology_Photos">*</a></td>
         <p hidden>Lomorage</p>       <td>❔</td>
         <p hidden>Piwigo</p>         <td>❔</td>
         <p hidden>Photostructure</p> <td>❔</td>
