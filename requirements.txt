@@ -33,7 +33,7 @@ PyExifTool==0.4.9
 PyJWT==2.8.0
 pyvips==2.2.1
 scikit-learn<1.4.1
-seaborn==0.13.1
+seaborn==0.13.2
 sentence_transformers==2.2.2
 timezonefinder==6.2.0
 tqdm==4.65.2
