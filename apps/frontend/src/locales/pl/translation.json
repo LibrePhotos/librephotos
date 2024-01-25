@@ -240,7 +240,8 @@
         "sharing": "Udostępnianie",
         "publicphotos": "Publiczne zdjęcia",
         "sharedwithyou": "Udostępnione tobie",
-        "facerecognition": "Twarze"
+        "facerecognition": "Twarze",
+        "videos": "Klipy wideo"
     },
     "selectionbar": {
         "deselect": "Odznacz wszystkie",
@@ -260,7 +261,10 @@
         "map_api_key_header": "Klucz API dostawcy map",
         "map_api_key_description": "Pobierz swój klucz API na stronie {{url}}",
         "headerheavyweight": "Zasobożerne procesy",
-        "heavyweight": "Zwiększ liczbę pracowników skanujących obrazy powyżej 1, ale przygotuj się na użycie 800 MB pamięci dla każdego dodatkowego pracownika."
+        "heavyweight": "Zwiększ liczbę pracowników skanujących obrazy powyżej 1, ale przygotuj się na użycie 800 MB pamięci dla każdego dodatkowego pracownika.",
+        "llm_model_header": "Duży Model Językowy",
+        "blip_warning": "Ta opcja do poprawnej pracy wymaga dodatkowych 3GB pamięci operacyjnej. Rozważ to zanim się zdecydujesz.",
+        "heavyweight_process_warning": "Ustawienie liczby procesów zasobożernych na więcej niż 3 będzie prawdopodobnie wymagało więcej niż 16GB pamięci operacyjnej. Rozważ to zanim się zdecydujesz."
     },
     "selectionactions": {
         "hide": "Ukryj",
@@ -367,7 +371,8 @@
         "startedby": "Uruchomiony przez",
         "itemsprocessed": "Obiekty przetworzone",
         "running": "działa",
-        "itemsadded": "Dodano zasób(y)"
+        "itemsadded": "Dodano zasób(y)",
+        "waiting": "oczekiwanie"
     },
     "modalscandirectoryedit": {
         "explanation2": "kliknie na przycisk \"Skanuj zdjęcia\", te we wskazanym folderze zostaną zaimportowane do konta użytkownika",
@@ -425,7 +430,8 @@
         "notimestamp": "Zdjęcia bez znaczników czasu",
         "hidden": "Ukryte zdjęcia",
         "favorite": "Ulubione zdjęcia",
-        "deleted": "Śmietnik"
+        "deleted": "Śmietnik",
+        "videos": "Klipy wideo"
     },
     "timezoneexplain": "Ta strefa czasowa jest wykorzystywana do zamiany znaczników czasu do domyślnej strefy czasowej użytkownika",
     "favoritesyncoptions": {
@@ -655,5 +661,10 @@
     "docs": "Dokumentacja",
     "deletealbumexplanation": "To działanie na trwałe usunie ten album. Tego działania nie da się cofnąć.",
     "storage": "Przechowywanie",
-    "storagetooltip": "Użyto {{usedstorage}} z {{totalstorage}}"
+    "storagetooltip": "Użyto {{usedstorage}} z {{totalstorage}}",
+    "Download Selected Photos": "Pobierz wybrane zdjęcia",
+    "Train Faces": "Wytrenuj Twarze",
+    "Find Similar Faces": "Znajdź Podobne Twarze",
+    "Scan Photos": "Analizowanie Zdjęć",
+    "version": "Wersja: {{version}}"
 }
