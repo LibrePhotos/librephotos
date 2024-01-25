@@ -254,6 +254,7 @@ export function Profile() {
 
           <Group align="end" mb={10} mt={10}>
             <Select
+              withinPortal
               label={t("settings.language")}
               placeholder={t("settings.language")}
               // @ts-ignore
