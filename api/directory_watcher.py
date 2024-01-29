@@ -2,6 +2,7 @@ import datetime
 import os
 import stat
 import uuid
+from typing import Optional
 
 import pytz
 from constance import config as site_config
@@ -57,91 +58,90 @@ else:
         return os.path.basename(path).startswith(".")
 
 
-def handle_new_image(user, path, job_id):
-    update_scan_counter(job_id)
+def create_new_image(user, path) -> Optional[Photo]:
+    """
+    Creates a new Photo object based on user input and file path.
+
+    Args:
+        user: The owner of the photo.
+        path: The file path of the image.
+
+    Returns:
+        Optional[Photo]: The created Photo object if successful, otherwise returns None.
+
+    Note:
+        This function checks for embedded content, associates metadata files with existing Photos,
+        creates new Photos based on hash, and handles existing Photos by adding new Files.
+
+    Raises:
+        No explicit exceptions are raised by this function.
+
+    Example:
+        photo_instance = create_new_image(current_user, "/path/to/image.jpg")
+    """
     if not is_valid_media(path):
         return
-    try:
-        elapsed_times = {
-            "md5": None,
-            "thumbnails": None,
-            "captions": None,
-            "image_save": None,
-            "exif": None,
-            "geolocation": None,
-            "faces": None,
-            "album_place": None,
-            "album_date": None,
-            "album_thing": None,
-        }
+    hash = calculate_hash(user, path)
+    if File.embedded_media.through.objects.filter(Q(to_file_id=hash)).exists():
+        util.logger.warning("embedded content file found {}".format(path))
+        return
 
-        util.logger.info("job {}: handling image {}".format(job_id, path))
+    if is_metadata(path):
+        photo_name = os.path.splitext(os.path.basename(path))[0]
+        photo_dir = os.path.dirname(path)
+        photo = Photo.objects.filter(
+            Q(files__path__contains=photo_dir)
+            & Q(files__path__contains=photo_name)
+            & ~Q(files__path__contains=os.path.basename(path))
+        ).first()
 
-        start = datetime.datetime.now()
-        hash = calculate_hash(user, path)
-        elapsed = (datetime.datetime.now() - start).total_seconds()
-        elapsed_times["md5"] = elapsed
-
-        if File.embedded_media.through.objects.filter(Q(to_file_id=hash)).exists():
-            util.logger.warning(
-                "job {}: embedded content file found {}".format(job_id, path)
-            )
-            return
-
-        if is_metadata(path):
-            photo_name = os.path.splitext(os.path.basename(path))[0]
-            photo_dir = os.path.dirname(path)
-            photo = Photo.objects.filter(
-                Q(files__path__contains=photo_dir)
-                & Q(files__path__contains=photo_name)
-                & ~Q(files__path__contains=os.path.basename(path))
-            ).first()
-
-            if photo:
-                file = File.create(path, user)
-                photo.files.add(file)
-                photo.save()
-            else:
-                util.logger.warning(
-                    "job {}: no photo to metadata file found {}".format(job_id, path)
-                )
-            return
-
-        photos: QuerySet[Photo] = Photo.objects.filter(Q(image_hash=hash))
-        if not photos.exists():
-            start = datetime.datetime.now()
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            photo: Photo = Photo()
-            photo.image_hash = hash
-            photo.owner = user
-            photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            photo.geolocation_json = {}
-            photo.video = is_video(path)
-            photo.save()
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: create database entry: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
+        if photo:
             file = File.create(path, user)
-            if has_embedded_media(file):
-                em_path = extract_embedded_media(file)
-                if em_path:
-                    em_file = File.create(em_path, user)
-                    file.embedded_media.add(em_file)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract embedded media: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
             photo.files.add(file)
-            photo.main_file = file
             photo.save()
+        else:
+            util.logger.warning("no photo to metadata file found {}".format(path))
+        return
 
+    photos: QuerySet[Photo] = Photo.objects.filter(Q(image_hash=hash))
+    if not photos.exists():
+        photo: Photo = Photo()
+        photo.image_hash = hash
+        photo.owner = user
+        photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+        photo.geolocation_json = {}
+        photo.video = is_video(path)
+        photo.save()
+        file = File.create(path, user)
+        if has_embedded_media(file):
+            em_path = extract_embedded_media(file)
+            if em_path:
+                em_file = File.create(em_path, user)
+                file.embedded_media.add(em_file)
+        photo.files.add(file)
+        photo.main_file = file
+        photo.save()
+        return photo
+    else:
+        file = File.create(path, user)
+        photo = photos.first()
+        photo.files.add(file)
+        photo.save()
+        photo._check_files()
+        util.logger.warning("photo {} exists already".format(path))
+        return None
+
+
+def handle_new_image(user, path, job_id):
+    update_scan_counter(job_id)
+    try:
+        start = datetime.datetime.now()
+
+        photo = create_new_image(user, path)
+        if photo:
+            util.logger.info("job {}: handling image {}".format(job_id, path))
             photo._generate_thumbnail(True)
-
+            elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 "job {}: generate thumbnails: {}, elapsed: {}".format(
                     job_id, path, elapsed
@@ -210,20 +210,6 @@ def handle_new_image(user, path, job_id):
             util.logger.info(
                 "job {}: image processed: {}, elapsed: {}".format(job_id, path, elapsed)
             )
-
-            if photo.image_hash == "":
-                util.logger.warning(
-                    "job {}: image hash is an empty string. File path: {}".format(
-                        job_id, path
-                    )
-                )
-        else:
-            file = File.create(path, user)
-            photo = photos.first()
-            photo.files.add(file)
-            photo.save()
-            photo._check_files()
-            util.logger.warning("job {}: file {} exists already".format(job_id, path))
     except Exception as e:
         try:
             util.logger.exception(

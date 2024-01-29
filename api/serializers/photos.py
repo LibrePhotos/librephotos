@@ -133,15 +133,18 @@ class PhotoHashListSerializer(serializers.ModelSerializer):
 
 class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
     photo_summary = serializers.SerializerMethodField()
-
     album_date_id = serializers.SerializerMethodField()
+    processing = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
-        fields = ("photo_summary", "album_date_id")
+        fields = ("photo_summary", "album_date_id", "processing")
 
     def get_photo_summary(self, obj) -> PhotoSummarySerializer:
         return PhotoSummarySerializer(obj.get()).data
+
+    def get_processing(self, obj) -> bool:
+        return obj.get().thumbnail_big is None
 
     def get_album_date_id(self, obj) -> int:
         return (
