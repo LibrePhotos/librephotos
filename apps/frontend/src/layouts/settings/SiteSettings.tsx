@@ -297,7 +297,7 @@ export function SiteSettings() {
                 onChange={e => {
                   if (/^([0-9\b]+)?$/.test(e.target.value)) {
                     setHeavyweightProcess(+e.currentTarget.value);
-                    saveSettingsWithValidation({ heavyweight_process: e.target.value });
+                    saveSettingsWithValidation({ heavyweight_process: +e.target.value });
                   }
                 }}
               />
