@@ -15,7 +15,7 @@ FROM halverneus/static-file-server
 ENV PORT 3000
 EXPOSE 3000
 
-COPY --from=builder /usr/src/app/build /web
+COPY --from=builder /usr/src/app/dist /web
 
 ENTRYPOINT ["/serve"]
 CMD []
