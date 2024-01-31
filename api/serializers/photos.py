@@ -144,7 +144,7 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
         return PhotoSummarySerializer(obj.get()).data
 
     def get_processing(self, obj) -> bool:
-        return obj.get().thumbnail_big is None
+        return obj.get().aspect_ratio is None
 
     def get_album_date_id(self, obj) -> int:
         return (
