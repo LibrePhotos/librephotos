@@ -272,7 +272,11 @@ class PhotoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def get_permissions(self):
-        if self.action == "list" or self.action == "retrieve":
+        if (
+            self.action == "list"
+            or self.action == "retrieve"
+            or self.action == "summary"
+        ):
             permission_classes = [IsPhotoOrAlbumSharedTo]
         else:  # pragma: no cover - unused
             permission_classes = [IsAdminUser or IsOwnerOrReadOnly]
