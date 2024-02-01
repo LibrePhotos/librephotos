@@ -316,7 +316,7 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
 class SetPhotosShared(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        shared = data["shared"]  # bool
+        shared = data["val_shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
         image_hashes = data["image_hashes"]
         """
