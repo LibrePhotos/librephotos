@@ -9,8 +9,8 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch } from "../../store/store";
 import { FileInfoComponent } from "./FileInfoComponent";
 
-export function VersionComponent(props: Readonly<{ photoDetail: PhotoType }>) {
-  const { photoDetail } = props;
+export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPublic: boolean }>) {
+  const { photoDetail, isPublic } = props;
 
   const [showMore, setShowMore] = useState(false);
   const [otherVersions] = useState<PhotoType[]>([]);
@@ -75,7 +75,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType }>) {
             {
               // To-Do: Add a type e.g. RAW, serial image, ai etc
             }
-            <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />
+            {!isPublic && <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />}
             <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />
             <FileInfoComponent
               description={t("exif.digitalzoomratio")}

@@ -86,10 +86,10 @@ export function Sidebar(props: Props) {
             </ActionIcon>
           </Group>
           {/* Start Item Time Taken */}
-          <TimestampItem photoDetail={photoDetail} />
+          <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
           {/* End Item Time Taken */}
           {/* Start Item File Path */}
-          <VersionComponent photoDetail={photoDetail} />
+          <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
           {/* End Item File Path */}
           {/* Start Item Location */}
 
@@ -126,26 +126,35 @@ export function Sidebar(props: Props) {
                   <Button
                     variant="subtle"
                     leftIcon={<Avatar radius="xl" src={serverAddress + nc.face_url} />}
-                    onClick={() => dispatch(push(`/search/${nc.name}`))}
+                    onClick={() => {
+                      if (isPublic) {
+                        return;
+                      }
+                      dispatch(push(`/search/${nc.name}`));
+                    }}
                   >
                     <Text align="center" size="sm">
                       {nc.name}
                     </Text>
                   </Button>
-                  <ActionIcon
-                    onClick={() => {
-                      setSelectedFaces([{ face_id: nc.face_id, face_url: nc.face_url }]);
-                      setPersonEditOpen(true);
-                    }}
-                    variant="light"
-                  >
-                    <Edit size={17} />
-                  </ActionIcon>
-                  <Tooltip label={t("facesdashboard.notthisperson")}>
-                    <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(nc.face_id)}>
-                      <UserOff />
+                  {!isPublic && (
+                    <ActionIcon
+                      onClick={() => {
+                        setSelectedFaces([{ face_id: nc.face_id, face_url: nc.face_url }]);
+                        setPersonEditOpen(true);
+                      }}
+                      variant="light"
+                    >
+                      <Edit size={17} />
                     </ActionIcon>
-                  </Tooltip>
+                  )}
+                  {!isPublic && (
+                    <Tooltip label={t("facesdashboard.notthisperson")}>
+                      <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(nc.face_id)}>
+                        <UserOff />
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
                 </Group>
               ))}
             </Stack>
