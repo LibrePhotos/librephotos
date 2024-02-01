@@ -35,6 +35,9 @@
       if (global === undefined) {
         var global = window;
       }
+      global.random = function () {
+        return Math.random();
+      };
     </script>
     <script type="module" src="/src/index.tsx"></script>
   </body>
