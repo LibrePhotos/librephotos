@@ -44,7 +44,7 @@ django-q2==1.6.1
 safetensors==0.4.2
 py-cpuinfo==9.0.0
 psutil==5.9.8
-onnxruntime==1.16.3
+onnxruntime==1.17.0
 # Dependencies for blip
 timm==0.4.12
 transformers==4.37.0
