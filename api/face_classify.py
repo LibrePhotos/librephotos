@@ -344,17 +344,16 @@ def train_faces(user: User, job_id) -> bool:
                             if target == face.person.id:
                                 probability = probability_array[i]
 
+                        face.person = Person.objects.get(id=highest_probability_person)
                         if (
-                            probability < user.confidence_unknown_face - 0.1
-                            and user.confidence_unknown_face > 0.5
-                            and user.confidence_unknown_face != 0
-                        ):
-                            face.person = Person.objects.get(
-                                id=highest_probability_person
-                            )
+                            probability > user.confidence_unknown_face
+                            or user.confidence_unknown_face == 0
+                        ) and face.person.id != unknown_person.id:
                             face.person_label_is_inferred = True
                             face.person_label_probability = highest_probability
                         else:
+                            face.person = unknown_person
+                            face.person_label_is_inferred = False
                             face.person_label_probability = probability
 
                         face_stack.append(face)
