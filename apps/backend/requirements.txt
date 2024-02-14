@@ -49,4 +49,4 @@ onnxruntime==1.17.0
 timm==0.4.12
 transformers==4.37.0
 # Dependencies for mistral quantized
-llama-cpp-python==0.2.38
+llama-cpp-python==0.2.42
