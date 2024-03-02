@@ -11,6 +11,7 @@ import translationEs from "./locales/es/translation.json";
 import translationEu from "./locales/eu/translation.json";
 import translationFi from "./locales/fi/translation.json";
 import translationFr from "./locales/fr/translation.json";
+import translationHi from "./locales/hi/translation.json";
 import translationIt from "./locales/it/translation.json";
 import translationJa from "./locales/ja/translation.json";
 import translationKo from "./locales/ko/translation.json";
@@ -102,6 +103,9 @@ const resources = {
   },
   ur: {
     translation: translationUr,
+  },
+  hi: {
+    translation: translationHi,
   },
 };
 i18n

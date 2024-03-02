@@ -363,6 +363,10 @@ export function Profile() {
                   value: "ur",
                   label: t("settings.urdu"),
                 },
+                {
+                  value: "hi",
+                  label: t("settings.hindi"),
+                },
               ]}
             />
             <Button
