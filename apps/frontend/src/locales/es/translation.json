@@ -196,7 +196,8 @@
         "addperson": "Agregar personas a las leyendas",
         "addlocation": "Agregar ubicaciones a las leyendas",
         "llm": "Configuración del modelo de idioma grande",
-        "enablellm": "Activar el modelo de idioma grande para las leyendas"
+        "enablellm": "Activar el modelo de idioma grande para las leyendas",
+        "hindi": "Hindi"
     },
     "modalnextcloud": {
         "setdirectory": "Establezca su directorio de escaneo de Nextcloud",
