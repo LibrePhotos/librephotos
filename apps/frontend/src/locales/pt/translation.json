@@ -201,7 +201,8 @@
         "enablellm": "Ligar modelo de linguagem grande para legendas",
         "addlocation": "Adicionar locais às legendas",
         "llm": "Definições de modelo de linguagem grande",
-        "addperson": "Adicionar pessoas às legendas"
+        "addperson": "Adicionar pessoas às legendas",
+        "hindi": "Hindi"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
