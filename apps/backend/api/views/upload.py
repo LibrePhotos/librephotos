@@ -18,7 +18,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 import api.util as util
-from api.directory_watcher import create_new_image, rescan_image
+from api.directory_watcher import create_new_image, handle_new_image
 from api.models import Photo, User
 from api.models.file import calculate_hash, calculate_hash_b64
 
@@ -141,8 +141,8 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
             chunked_upload.delete(delete_file=True)
-            create_new_image(user, photo_path)
-            AsyncTask(rescan_image, user, photo_path, image_hash).run()
+            photo = create_new_image(user, photo_path)
+            AsyncTask(handle_new_image, user, photo_path, image_hash, photo).run()
         else:
             util.logger.info(
                 "Photo {} duplicated with hash {} ".format(filename, image_hash)

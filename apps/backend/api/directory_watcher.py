@@ -132,12 +132,24 @@ def create_new_image(user, path) -> Optional[Photo]:
         return None
 
 
-def handle_new_image(user, path, job_id):
+def handle_new_image(user, path, job_id, photo):
+    """
+    Handles the creation and all the processing of the photo.
+
+    Args:
+        user: The owner of the photo.
+        path: The file path of the image.
+        job_id: The long running job id, which gets updated when the task runs
+        photo: An optional paramater, where you can input a photo instead of creating a new one. Used for uploading.
+
+    Note:
+        This function is used, when uploading a picture, because rescanning does not perform machine learning tasks
+    """
     update_scan_counter(job_id)
     try:
         start = datetime.datetime.now()
-
-        photo = create_new_image(user, path)
+        if photo is None:
+            photo = create_new_image(user, path)
         if photo:
             util.logger.info("job {}: handling image {}".format(job_id, path))
             photo._generate_thumbnail(True)
