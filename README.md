@@ -9,7 +9,8 @@
 ![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/mockups_main_fhd.png?raw=true)
 <sub>Mockup designed by rawpixel.com / Freepik</sub>
 
-- The [demo is available here](https://demo2.librephotos.com/). User is ```demo```, password is ```demo1234```.
+- **Stable** demo is available here:https://demo1.librephotos.com/ . User is ```demo```, password is ```demo1234``` (with sample images).
+- Latest **development** demo is available here: https://demo2.librephotos.com/ (same user/password)
 - You can watch development videos on [Niaz Faridani-Rad's channel](https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w)
 - You can join our [Discord][discord].
 
