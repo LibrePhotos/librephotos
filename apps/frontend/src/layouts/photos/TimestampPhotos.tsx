@@ -2,33 +2,24 @@ import { IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
+import { PigPhoto } from "../../actions/photosActions.types";
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PhotosState } from "../../reducers/photosReducer";
-import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "./common";
 
 export function TimestampPhotos() {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [group, setGroup] = useState({} as PhotoGroup);
-  useEffect(() => {
-    if (group.id && group.page) {
-      fetchAlbumDate(dispatch, {
-        album_date_id: group.id,
-        page: group.page,
-        photosetType: PhotosetType.TIMESTAMP,
-      });
-    }
-  }, [dispatch, group.id, group.page]);
+  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
+
+  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery();
 
   useEffect(() => {
-    if (fetchedPhotosetType !== PhotosetType.TIMESTAMP) {
-      fetchAlbumDateList(dispatch, { photosetType: PhotosetType.TIMESTAMP });
-    }
-  }, [dispatch]);
+    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
+  }, [photosGroupedByDate]);
+
+  const [group, setGroup] = useState({} as PhotoGroup);
+  useFetchDateAlbumQuery(group, { skip: !group.id });
 
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.reverse().forEach((photoGroup: any) => {
@@ -36,6 +27,7 @@ export function TimestampPhotos() {
       if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
         const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
         const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
+
         setGroup({ id: photoGroup.id, page });
       }
     });
@@ -44,9 +36,9 @@ export function TimestampPhotos() {
   return (
     <PhotoListView
       title={t("photos.photos")}
-      loading={fetchedPhotosetType !== PhotosetType.TIMESTAMP}
+      loading={isLoading}
       icon={<Photo size={50} />}
-      photoset={photosGroupedByDate}
+      photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
       updateGroups={getAlbums}
       selectable

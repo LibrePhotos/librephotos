@@ -139,6 +139,9 @@ export const FetchAutoAlbumsListResponseSchema = z.object({
 export const FetchDateAlbumsListResponseSchema = z.object({
   results: IncompleteDatePhotosGroupSchema.array(),
 });
+export const FetchDateAlbumResponseSchema = z.object({
+  results: IncompleteDatePhotosGroupSchema,
+});
 
 export const FetchUserAlbumsSharedResponseSchema = z.object({
   results: UserAlbumInfoSchema.array(),
