@@ -29,7 +29,7 @@ psycopg==3.1.18
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2023.4
 tzdata==2023.4
-PyExifTool==0.4.9
+PyExifTool==0.5.6
 PyJWT==2.8.0
 pyvips==2.2.1
 scikit-learn<1.4.1
