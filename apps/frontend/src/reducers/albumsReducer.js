@@ -1,4 +1,3 @@
-import { FETCH_USER_ALBUM_FULFILLED, FETCH_USER_ALBUM_REJECTED } from "../actions/albumsActions";
 import { DEFAULT_ACTION } from "./common";
 
 const initialState = {
@@ -25,14 +24,6 @@ const initialState = {
   albumsAutoGalleries: {},
   fetchingAlbumsAutoGalleries: false,
   fetchedAlbumsAutoGalleries: false,
-
-  albumsDateList: [],
-  fetchingAlbumsDateList: false,
-  fetchedAlbumsDateList: false,
-
-  albumsDateGalleries: {},
-  fetchingAlbumsDateGalleries: false,
-  fetchedAlbumsDateGalleries: false,
 
   albumsThingList: [],
   fetchingAlbumsThingList: false,
@@ -266,17 +257,6 @@ export default function reducer(state = initialState, action = DEFAULT_ACTION) {
         albumsUserList: action.payload,
       };
     }
-
-    case FETCH_USER_ALBUM_FULFILLED: {
-      return {
-        ...state,
-        albumDetails: action.payload.albumDetails,
-      };
-    }
-    case FETCH_USER_ALBUM_REJECTED: {
-      return { ...state, fetchingAlbumsUser: false, error: action.payload };
-    }
-
     case "TOGGLE_ALBUM_AUTO_FAVORITE": {
       return { ...state };
     }

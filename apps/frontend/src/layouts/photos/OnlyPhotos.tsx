@@ -2,43 +2,48 @@ import { IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
+import { PigPhoto } from "../../actions/photosActions.types";
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { updatePhotoGroups } from "./common";
+import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "./common";
 
 export function OnlyPhotos() {
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
+
+  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({ photosetType: PhotosetType.PHOTOS });
+
+  useEffect(() => {
+    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
+  }, [photosGroupedByDate]);
+
   const [group, setGroup] = useState({} as PhotoGroup);
+  useFetchDateAlbumQuery(
+    { album_date_id: group.id, page: group.page, photosetType: PhotosetType.PHOTOS },
+    { skip: !group.id }
+  );
 
-  useEffect(() => {
-    if (group.id && group.page) {
-      fetchAlbumDate(dispatch, {
-        album_date_id: group.id,
-        page: group.page,
-        photosetType: PhotosetType.PHOTOS,
-      });
-    }
-  }, [group.id, group.page]);
+  const getAlbums = (visibleGroups: any) => {
+    visibleGroups.reverse().forEach((photoGroup: any) => {
+      const visibleImages = photoGroup.items;
+      if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
+        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
-  useEffect(() => {
-    if (fetchedPhotosetType !== PhotosetType.PHOTOS) {
-      fetchAlbumDateList(dispatch, { photosetType: PhotosetType.PHOTOS });
-    }
-  }, [dispatch]); // Only run on first render
+        setGroup({ id: photoGroup.id, page });
+      }
+    });
+  };
 
   return (
     <PhotoListView
       title={t("photos.photos")}
-      loading={fetchedPhotosetType !== PhotosetType.PHOTOS}
+      loading={isLoading}
       icon={<Photo size={50} />}
-      photoset={photosGroupedByDate}
-      updateGroups={updatePhotoGroups(setGroup)}
+      photoset={photosGroupedByDate ?? []}
+      updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
     />

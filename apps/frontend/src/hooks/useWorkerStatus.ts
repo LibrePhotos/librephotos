@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchAlbumDateList } from "../actions/albumsActions";
+import { dateAlbumsApi } from "../api_client/albums/date";
 import { peopleAlbumsApi } from "../api_client/albums/people";
 import { api, useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
@@ -47,11 +47,13 @@ export function useWorkerStatus(): {
         dispatch(peopleAlbumsApi.endpoints.fetchPeopleAlbums.initiate());
       }
       if (workerRunningJob?.job_type_str.toLowerCase() === "scan photos") {
-        fetchAlbumDateList(dispatch, {
-          username: user.username,
-          person_id: user.id,
-          photosetType: PhotosetType.NONE,
-        });
+        dispatch(
+          dateAlbumsApi.endpoints.fetchDateAlbums.initiate({
+            username: user.username,
+            person_id: user.id,
+            photosetType: PhotosetType.NONE,
+          })
+        );
       }
     }
 

@@ -2,39 +2,46 @@ import { IconGlobe as Globe } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { fetchAlbumDate, fetchAlbumDateList } from "../../actions/albumsActions";
+import { PigPhoto } from "../../actions/photosActions.types";
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { updatePhotoGroups } from "../photos/common";
+import { useAppSelector } from "../../store/store";
+import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "../photos/common";
 
 export function UserPublicPage() {
   const params = useParams();
-
-  const { fetchedPhotosetType, photosFlat, photosGroupedByDate } = useAppSelector(state => state.photos as PhotosState);
-  const dispatch = useAppDispatch();
   const { auth } = useAppSelector(state => state);
+
+  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
+
+  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
+    photosetType: PhotosetType.PUBLIC,
+    username: params.username,
+  });
+
+  useEffect(() => {
+    if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
+  }, [photosGroupedByDate]);
+
   const [group, setGroup] = useState({} as PhotoGroup);
+  useFetchDateAlbumQuery(
+    { album_date_id: group.id, page: group.page, photosetType: PhotosetType.PUBLIC, username: params.username },
+    { skip: !group.id }
+  );
 
-  useEffect(() => {
-    if (group.id && group.page) {
-      fetchAlbumDate(dispatch, {
-        album_date_id: group.id,
-        page: group.page,
-        photosetType: PhotosetType.PUBLIC,
-        username: params.username,
-      });
-    }
-  }, [group.id, group.page]);
+  const getAlbums = (visibleGroups: any) => {
+    visibleGroups.reverse().forEach((photoGroup: any) => {
+      const visibleImages = photoGroup.items;
+      if (visibleImages.filter((i: any) => i.isTemp).length > 0) {
+        const firstTempObject = visibleImages.filter((i: any) => i.isTemp)[0];
+        const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
 
-  useEffect(() => {
-    fetchAlbumDateList(dispatch, {
-      photosetType: PhotosetType.PUBLIC,
-      username: params.username,
+        setGroup({ id: photoGroup.id, page });
+      }
     });
-  }, [dispatch]); // Only run on first render
+  };
 
   return (
     <PhotoListView
@@ -44,12 +51,12 @@ export function UserPublicPage() {
           ? "Your public photos"
           : `Public photos of ${params.username}`
       }
-      loading={fetchedPhotosetType !== PhotosetType.PUBLIC}
+      loading={isLoading}
       icon={<Globe size={50} />}
-      photoset={photosGroupedByDate}
+      photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
       isPublic={auth.access === null || auth.access.name !== params.username}
-      updateGroups={updatePhotoGroups(setGroup)}
+      updateGroups={getAlbums}
       selectable
     />
   );
