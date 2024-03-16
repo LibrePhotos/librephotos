@@ -195,7 +195,8 @@
         "llm": "Large Language Model-instellingen",
         "enablellm": "Large Language Model gebruiken voor bijschriften",
         "addperson": "Personen vermelden in bijschriften",
-        "addlocation": "Locaties vermelden in bijschriften"
+        "addlocation": "Locaties vermelden in bijschriften",
+        "hindi": "Hindi"
     },
     "topmenu": {
         "profile": "Profiel",
