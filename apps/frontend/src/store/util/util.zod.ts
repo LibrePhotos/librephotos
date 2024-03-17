@@ -17,4 +17,5 @@ export type ImageTagResponseType = z.infer<typeof ImageTagResponse>;
 
 export const ImageTagResponse = z.object({
   image_tag: z.string(),
+  git_hash: z.string(),
 });

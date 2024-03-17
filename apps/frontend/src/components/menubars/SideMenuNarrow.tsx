@@ -36,7 +36,7 @@ export function SideMenuNarrow(): JSX.Element {
   const [active, setActive] = useState("/");
 
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
-  const { data: imageTag } = useFetchImageTagQuery();
+  const { data: imageInfos } = useFetchImageTagQuery();
 
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
@@ -140,13 +140,15 @@ export function SideMenuNarrow(): JSX.Element {
             </Tooltip>
           )}
           <div className={classes.text} style={{ paddingTop: 0, paddingBottom: 0 }}>
-            <span style={{ flexGrow: 2 }}>
-              {imageTag?.image_tag
-                ? t("version", {
-                    version: imageTag?.image_tag,
-                  })
-                : ""}
-            </span>
+            <Tooltip label={`Backend Version: ${imageInfos?.git_hash}`}>
+              <span style={{ flexGrow: 2 }}>
+                {imageInfos?.image_tag
+                  ? t("version", {
+                      version: imageInfos?.image_tag,
+                    })
+                  : ""}
+              </span>
+            </Tooltip>
           </div>
         </div>
         <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
