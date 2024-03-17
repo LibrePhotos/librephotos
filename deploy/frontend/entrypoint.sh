@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+GIT_HASH=$(git rev-parse --short HEAD)
+export GIT_HASH
+
 echo "installing frontend"
 FORCE_COLOR=true npm install --legacy-peer-deps | cat
 FORCE_COLOR=true npm postinstall | cat
