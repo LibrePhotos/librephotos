@@ -202,7 +202,18 @@ class StorageStatsView(APIView):
 
 class ImageTagView(APIView):
     def get(self, request, format=None):
-        return Response({"image_tag": os.environ.get("IMAGE_TAG", "")})
+        # Add an exception for the directory '/code'
+        subprocess.run(
+            ["git", "config", "--global", "--add", "safe.directory", "/code"]
+        )
+
+        # Get the current commit hash
+        git_hash = (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+            .strip()
+            .decode("utf-8")
+        )
+        return Response({"image_tag": "dev", "git_hash": git_hash})
 
 
 class SearchTermExamples(APIView):
