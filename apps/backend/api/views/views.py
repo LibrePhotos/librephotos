@@ -213,7 +213,9 @@ class ImageTagView(APIView):
             .strip()
             .decode("utf-8")
         )
-        return Response({"image_tag": "dev", "git_hash": git_hash})
+        return Response(
+            {"image_tag": os.environ.get("IMAGE_TAG", ""), "git_hash": git_hash}
+        )
 
 
 class SearchTermExamples(APIView):
