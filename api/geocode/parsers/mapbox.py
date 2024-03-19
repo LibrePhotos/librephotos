@@ -3,7 +3,7 @@ from api.geocode import GEOCODE_VERSION
 
 def parse(location):
     context = location.raw["context"]
-    center = [location.raw["center"][0], location.raw["center"][1]]
+    center = [location.raw["center"][1], location.raw["center"][0]]
     local_name = location.raw["text"]
     places = [local_name] + [
         i["text"] for i in context if not i["id"].startswith("post")
