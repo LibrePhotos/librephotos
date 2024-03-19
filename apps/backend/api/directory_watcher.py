@@ -132,15 +132,15 @@ def create_new_image(user, path) -> Optional[Photo]:
         return None
 
 
-def handle_new_image(user, path, job_id, photo):
+def handle_new_image(user, path, job_id, photo=None):
     """
     Handles the creation and all the processing of the photo.
 
     Args:
         user: The owner of the photo.
         path: The file path of the image.
-        job_id: The long running job id, which gets updated when the task runs
-        photo: An optional paramater, where you can input a photo instead of creating a new one. Used for uploading.
+        job_id: The long-running job id, which gets updated when the task runs
+        photo: An optional parameter, where you can input a photo instead of creating a new one. Used for uploading.
 
     Note:
         This function is used, when uploading a picture, because rescanning does not perform machine learning tasks
