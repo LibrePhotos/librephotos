@@ -7,9 +7,8 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 ENV CLI_WIDTH 80
 RUN git clone https://github.com/LibrePhotos/librephotos-frontend /usr/src/app
-RUN npm install --legacy-peer-deps
-RUN npm run postinstall
-RUN npm run build
+RUN yarn install
+RUN yarn run build
 RUN git rev-parse --short HEAD > /usr/src/app/dist/git_hash.txt
 
 FROM halverneus/static-file-server
