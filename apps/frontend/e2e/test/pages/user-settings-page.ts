@@ -1,5 +1,6 @@
-import type { DateTimeRule } from "../../../src/components/settings/date-time.zod";
+/* eslint-disable class-methods-use-this */
 import { userDefaults } from "../fixtures/user_defaults";
+import i18n from "../support/i18n.json";
 import { CommonActions } from "./common-actions";
 
 enum PropTypes {
@@ -12,20 +13,17 @@ enum PropTypes {
 export class UserSettingsPage extends CommonActions {
   path = "/settings";
 
-  properties = {
-    "Scene Confidence": PropTypes.RADIO,
-    "Semantic Search Max Results": PropTypes.RADIO,
-    "Synchronize metadata to disk": PropTypes.RADIO,
-    "Minimum image rating to interpret as favorite": PropTypes.RADIO,
-    "Default timezone": PropTypes.SELECT,
-    "Inferred faces confidence": PropTypes.INPUT,
-    "Always transcode videos": PropTypes.SWITCH,
-  };
+  properties = {};
 
-  defaultDateTimeRules: DateTimeRule[] = JSON.parse(userDefaults.datetime_rules).filter(rule => rule.is_default);
+  defaultDateTimeRules: any[] = JSON.parse(userDefaults.datetime_rules).filter(rule => rule.is_default);
+
+  constructor() {
+    super();
+    this.populateProperties();
+  }
 
   isActivePage() {
-    cy.get("h1").should("have.text", "Settings").wait(500);
+    cy.get("h1").should("have.text", i18n.settings.header).wait(500);
   }
 
   changePropertyValue(label: string, value: string) {
@@ -47,6 +45,7 @@ export class UserSettingsPage extends CommonActions {
         break;
 
       default:
+        console.error(label, this.properties[label]);
         throw new Error("Unknown property type");
     }
   }
@@ -63,8 +62,7 @@ export class UserSettingsPage extends CommonActions {
       case PropTypes.SWITCH:
         cy.get("label")
           .contains(label)
-          .parent()
-          .parent()
+          .parentsUntil(".mantine-Switch-root")
           .find("input")
           .should(value === "on" ? "be.checked" : "not.be.checked");
         break;
@@ -87,11 +85,11 @@ export class UserSettingsPage extends CommonActions {
   }
 
   saveChanges() {
-    cy.get(".mantine-Dialog-root span").contains("Update").parentsUntil("button").click();
+    cy.get(".mantine-Dialog-root span").contains(i18n.settings.favoriteupdate).parentsUntil("button").click();
   }
 
   cancelChanges() {
-    cy.get(".mantine-Dialog-root span").contains("Cancel").parentsUntil("button").click();
+    cy.get(".mantine-Dialog-root span").contains(i18n.settings.nextcloudcancel).parentsUntil("button").click();
   }
 
   resetSettingsToDefaults() {
@@ -100,14 +98,13 @@ export class UserSettingsPage extends CommonActions {
      * The order of next two requests isn't important. The goal is to obtain user id to be updated and jwt for the
      * update request.
      */
-    cy.request("POST", "/api/auth/token/obtain/", { username: "admin", password: "admin" }).then(t => {
-      cy.request("/api/user/").then(u => {
-        cy.request({
-          method: "PATCH",
-          url: `/api/user/${u.body.results[0].id}/`,
-          body: userDefaults,
-          headers: { Authorization: `Bearer ${t.body.access}` },
-        });
+    const auth = Cypress.env("users").admin;
+    cy.request({ url: "/api/user/", auth }).then(response => {
+      cy.request({
+        method: "PATCH",
+        url: `/api/user/${response.body.results[0].id}/`,
+        body: userDefaults,
+        auth,
       });
     });
   }
@@ -132,7 +129,7 @@ export class UserSettingsPage extends CommonActions {
 
   defaultDateTimeRulesDisplayedCorrectly() {
     cy.get("h4")
-      .contains("Set date & time parsing rules")
+      .contains(i18n.settings.configdatetime)
       .parent()
       .within(() => {
         this.defaultDateTimeRules.forEach((rule, index) => this.expectedRuleAtIndex(index, rule.id));
@@ -142,6 +139,7 @@ export class UserSettingsPage extends CommonActions {
   private expectedRuleAtIndex(index: number, id: number) {
     const rule = this.defaultDateTimeRules.find(r => r.id === id)!;
     const ignoreRuleProps = ["name", "id", "rule_type", "transform_tz", "is_default"];
+    const expectedLabel = `${i18n.rules.rule_type.replace("{{rule}}", rule.rule_type)}`;
 
     cy.get("table > tbody > tr")
       .eq(index)
@@ -149,7 +147,7 @@ export class UserSettingsPage extends CommonActions {
       .first()
       .within(() => {
         cy.get("strong").should("contain.text", rule.name);
-        cy.get("div").should("contain.text", `Rule Type: ${rule.rule_type}`);
+        cy.get("div").should("contain.text", expectedLabel);
 
         /**
          * Checking for extra props that **should** be present programmatically is difficult because of labels are translated
@@ -160,5 +158,15 @@ export class UserSettingsPage extends CommonActions {
           cy.get("div").should("not.contain.text", `${prop}:`);
         });
       });
+  }
+
+  private populateProperties() {
+    this.properties[i18n.settings.sceneconfidence] = PropTypes.RADIO;
+    this.properties[i18n.settings.semanticsearchheader] = PropTypes.RADIO;
+    this.properties[i18n.settings.sync] = PropTypes.RADIO;
+    this.properties[i18n.settings.favoriteminimum] = PropTypes.RADIO;
+    this.properties[i18n.defaulttimezone] = PropTypes.SELECT;
+    this.properties[i18n.settings.inferredfacesconfidence] = PropTypes.INPUT;
+    this.properties[i18n.settings.transcodevideo] = PropTypes.SWITCH;
   }
 }

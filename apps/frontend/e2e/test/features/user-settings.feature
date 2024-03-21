@@ -5,8 +5,8 @@ Feature: User Settings
     And user has default settings
     And I navigate to user settings
     When I change properties to:
-      | Scene Confidence                              | Low             |
-      | Semantic Search Max Results                   | Top 50          |
+      | Scene confidence                              | Low             |
+      | Semantic search max results                   | Top 50          |
       | Synchronize metadata to disk                  | Save to sidecar |
       | Minimum image rating to interpret as favorite | 5               |
       | Default timezone                              | US/Pacific      |
@@ -15,8 +15,8 @@ Feature: User Settings
     And I save changes
     Then I should see update success notification
     And properties should be:
-      | Scene Confidence                              | Low             |
-      | Semantic Search Max Results                   | Top 50          |
+      | Scene confidence                              | Low             |
+      | Semantic search max results                   | Top 50          |
       | Synchronize metadata to disk                  | Save to sidecar |
       | Minimum image rating to interpret as favorite | 5               |
       | Default timezone                              | US/Pacific      |
@@ -28,8 +28,8 @@ Feature: User Settings
     And user has default settings
     And I navigate to user settings
     When I change properties to:
-      | Scene Confidence                              | Low             |
-      | Semantic Search Max Results                   | Top 50          |
+      | Scene confidence                              | Low             |
+      | Semantic search max results                   | Top 50          |
       | Synchronize metadata to disk                  | Save to sidecar |
       | Minimum image rating to interpret as favorite | 5               |
       | Default timezone                              | US/Pacific      |
@@ -37,8 +37,8 @@ Feature: User Settings
       | Always transcode videos                       | on              |
     And I cancel saving changes
     Then properties should be:
-      | Scene Confidence                              | Standard        |
-      | Semantic Search Max Results                   | Disabled        |
+      | Scene confidence                              | Standard        |
+      | Semantic search max results                   | Disabled        |
       | Synchronize metadata to disk                  | Off             |
       | Minimum image rating to interpret as favorite | 4               |
       | Default timezone                              | UTC             |

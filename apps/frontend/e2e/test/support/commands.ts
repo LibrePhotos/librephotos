@@ -11,7 +11,17 @@ Cypress.Commands.add("enterInputValue", (label: string, value: string) => {
 
 Cypress.Commands.add("switch", (label: string, state: "on" | "off") => {
   const selector = state === "on" ? `input[type="checkbox"]:not(:checked)` : `input[type="checkbox"]:checked`;
-  cy.get("label").contains(label).parentsUntil(".mantine-Switch-root").find(selector).parent().click().wait(500);
+  // first find the input that belongs to the label
+  cy.get("label")
+    .contains(label)
+    .parentsUntil(".mantine-Switch-root")
+    .find(selector)
+    // then go back again to the checkbox element root and click the label
+    .parentsUntil(".mantine-Switch-root")
+    .find("label")
+    .contains(label)
+    .click()
+    .wait(500);
 });
 
 Cypress.Commands.add("selectRadio", (label: string, value: string) => {

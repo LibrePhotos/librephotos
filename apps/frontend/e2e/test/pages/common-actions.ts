@@ -1,5 +1,6 @@
+/* eslint-disable class-methods-use-this */
 /// <reference types="cypress" />
-/// <reference path="../../support/commands.ts" />
+/// <reference path="../support/commands.ts" />
 
 export abstract class CommonActions {
   abstract path: string;

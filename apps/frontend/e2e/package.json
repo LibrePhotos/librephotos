@@ -1,0 +1,20 @@
+{
+  "name": "librephotos-e2e",
+  "version": "0.0.0-dev",
+  "license": "MIT",
+  "scripts": {
+    "test": "cypress run",
+    "start": "cypress open",
+    "postinstall": "cp ../src/locales/en/translation.json ./test/support/i18n.json"
+  },
+  "dependencies": {
+    "@badeball/cypress-cucumber-preprocessor": "^20.0.2",
+    "@cypress/browserify-preprocessor": "^3.0.2",
+    "@cucumber/messages": "^24.0.1",
+    "cypress": "^13.7.0"
+  },
+  "cypress-cucumber-preprocessor": {
+    "nonGlobalStepDefinitions": true,
+    "stepDefinitions": "test/step_definitions/**/*.ts"
+  }
+}

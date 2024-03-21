@@ -1,3 +1,4 @@
+/* eslint-disable class-methods-use-this */
 import { CommonActions } from "./common-actions";
 
 export class LoginPage extends CommonActions {

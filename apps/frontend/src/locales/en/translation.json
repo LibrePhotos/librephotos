@@ -158,7 +158,7 @@
     "on": "On",
     "off": "Off",
     "experimentalupdate": "Update",
-    "configdatetime": " Set date and time parsing rules",
+    "configdatetime": "Set date and time parsing rules",
     "password": {
       "errormustmatch": "Passwords must match",
       "errorcannotbeblank": "Password cannot be blank",
