@@ -2,7 +2,6 @@ networks:
   e2e:
 
 volumes:
-  e2e_db:
   e2e_cache:
   e2e_logs:
   e2e_protected_media:
@@ -41,7 +40,7 @@ services:
       - POSTGRES_PASSWORD=${dbPass}
       - POSTGRES_DB=${dbName}
     volumes:
-      - e2e_db:/var/lib/postgresql/data
+      - ${e2e_bootstrap_dir:-./e2e}/init.sql.gz:/docker-entrypoint-initdb.d/init.sql.gz
     healthcheck:
       test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
       interval: 5s
@@ -83,7 +82,9 @@ services:
       args:
         DEBUG: 1
     restart: unless-stopped
+    entrypoint: /e2e/entrypoint.sh
     volumes:
+      - ${e2e_bootstrap_dir:-./e2e}:/e2e
       - ${codedir}/librephotos:/code
       - e2e_scan_directory:/data
       - e2e_protected_media:/protected_media
@@ -92,7 +93,7 @@ services:
     environment:
       - SECRET_KEY=${shhhhKey:-}
       - BACKEND_HOST=e2e-backend
-      - ADMIN_EMAIL=${adminEmail:-admin@localhost}
+      - ADMIN_EMAIL=${adminEmail:-admin@local.host}
       - ADMIN_USERNAME=${userName:-admin}
       - ADMIN_PASSWORD=${userPass:-admin}
       - DB_BACKEND=postgresql
