@@ -45,7 +45,7 @@
             "standard": "मानक"
         },
         "albumoptions": "एल्बम विकल्प",
-        "configdatetime": " दिनांक और समय पार्सिंग नियम निर्धारित करें",
+        "configdatetime": "दिनांक और समय पार्सिंग नियम निर्धारित करें",
         "password": {
             "titlechangepassword": "पासवर्ड बदलें",
             "errormustmatch": "पासवर्ड मेल खाने चाहिए",
