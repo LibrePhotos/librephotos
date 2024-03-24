@@ -39,7 +39,7 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
-import { deleteMissingPhotos, generateEventAlbumTitles, updateUser } from "../../actions/utilActions";
+import { deleteMissingPhotos, updateUser } from "../../actions/utilActions";
 import { useGenerateAutoAlbumsMutation } from "../../api_client/albums/auto";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
@@ -345,7 +345,8 @@ export function Library() {
               <Grid.Col span={2}>
                 <Button
                   onClick={() => {
-                    dispatch(generateEventAlbumTitles());
+                    dispatch(api.endpoints.generateAutoAlbumTitle.initiate());
+                    notification.regenerateEventAlbums();
                   }}
                   disabled={!workerAvailability}
                   leftIcon={<RefreshDot />}

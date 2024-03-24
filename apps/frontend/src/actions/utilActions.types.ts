@@ -26,7 +26,7 @@ export const GenerateEventAlbumsResponse = z.object({
   // To-Do: Why is it not a number?!?!
   job_id: z.string().optional(),
 });
-
+export type IGenerateEventAlbumsTitlesResponse = z.infer<typeof GenerateEventAlbumsTitlesResponse>;
 export const GenerateEventAlbumsTitlesResponse = z.object({
   status: z.boolean(),
   // To-Do: Why is it not a number?!?!

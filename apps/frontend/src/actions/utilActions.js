@@ -60,31 +60,3 @@ export function deleteMissingPhotos() {
       });
   };
 }
-
-export function generateEventAlbumTitles() {
-  return function cb(dispatch) {
-    dispatch({ type: "GENERATE_EVENT_ALBUMS_TITLES" });
-    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-    dispatch({
-      type: "SET_WORKER_RUNNING_JOB",
-      payload: { job_type_str: "Regenerate Event Titles" },
-    });
-
-    Server.get("autoalbumtitlegen/")
-      .then(response => {
-        const data = GenerateEventAlbumsTitlesResponse.parse(response.data);
-        notification.regenerateEventAlbums();
-
-        dispatch({
-          type: "GENERATE_EVENT_ALBUMS_TITLES_FULFILLED",
-          payload: data,
-        });
-      })
-      .catch(err => {
-        dispatch({
-          type: "GENERATE_EVENT_ALBUMS_TITLES_REJECTED",
-          payload: err,
-        });
-      });
-  };
-}

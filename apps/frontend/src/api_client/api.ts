@@ -4,6 +4,7 @@ import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
+import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
 import type {
   IApiDeleteUserPost,
   IApiLoginPost,
@@ -37,6 +38,8 @@ import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 // eslint-disable-next-line import/no-cycle
 import { Server } from "./apiClient";
 
+// Import the missing type declaration
+
 export enum Endpoints {
   login = "login",
   signUp = "signUp",
@@ -61,6 +64,7 @@ export enum Endpoints {
   fetchServerStats = "fetchServerStats",
   fetchStorageStats = "fetchStorageStats",
   fetchImageTag = "fetchImageTag",
+  generateAutoAlbumTitle = "generateAutoAlbumTitle",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -220,6 +224,11 @@ export const api = createApi({
     [Endpoints.rescanFaces]: builder.query<IScanFacesResponse, void>({
       query: () => ({
         url: "/scanfaces",
+      }),
+    }),
+    [Endpoints.generateAutoAlbumTitle]: builder.query<IGenerateEventAlbumsTitlesResponse, void>({
+      query: () => ({
+        url: "/autoalbumtitlegen",
       }),
     }),
     [Endpoints.trainFaces]: builder.mutation<ITrainFacesResponse, void>({
