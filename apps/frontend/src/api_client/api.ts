@@ -250,7 +250,6 @@ export const api = createApi({
         method: "POST",
         body: { person_name: personName, face_ids: faceIds },
       }),
-      invalidatesTags: ["Faces", "PeopleAlbums"],
     }),
     [Endpoints.fetchServerStats]: builder.query<ServerStatsResponseType, void>({
       query: () => ({
