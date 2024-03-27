@@ -266,36 +266,6 @@ export function deleteDuplicateImage(image_hash: string, path: string) {
   };
 }
 
-export const SET_PHOTOS_DELETED = "SET_PHOTOS_DELETED";
-export const SET_PHOTOS_DELETED_FULFILLED = "SET_PHOTOS_DELETED_FULFILLED";
-export const SET_PHOTOS_DELETED_REJECTED = "SET_PHOTOS_DELETED_REJECTED";
-
-export function setPhotosDeleted(image_hashes: string[], deleted: boolean) {
-  return function cb(dispatch: Dispatch<any>) {
-    dispatch({ type: SET_PHOTOS_DELETED });
-    Server.post(`photosedit/setdeleted/`, {
-      image_hashes,
-      deleted,
-    })
-      .then(response => {
-        const data = PhotosUpdatedResponseSchema.parse(response.data);
-        const updatedPhotos: Photo[] = data.updated;
-        dispatch({
-          type: SET_PHOTOS_DELETED_FULFILLED,
-          payload: {
-            image_hashes,
-            deleted,
-            updatedPhotos,
-          },
-        });
-        notification.togglePhotoDelete(deleted, image_hashes.length);
-      })
-      .catch(err => {
-        dispatch({ type: SET_PHOTOS_DELETED_REJECTED, payload: err });
-      });
-  };
-}
-
 export const SET_PHOTOS_HIDDEN_FULFILLED = "SET_PHOTOS_HIDDEN_FULFILLED";
 
 export function setPhotosHidden(image_hashes: string[], hidden: boolean) {

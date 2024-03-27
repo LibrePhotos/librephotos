@@ -3,7 +3,9 @@ import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icon
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { finalPhotosDeleted, setPhotosDeleted } from "../../actions/photosActions";
+import { finalPhotosDeleted } from "../../actions/photosActions";
+import { photoDetailsApi } from "../../api_client/photos/photoDetail";
+import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
@@ -25,12 +27,15 @@ export function TrashcanActions(props: Readonly<Props>) {
           <ActionIcon
             disabled={selectedItems.length === 0}
             onClick={() => {
+              const imageHashes = selectedItems.map(i => i.id);
+              const deleted = false;
               dispatch(
-                setPhotosDeleted(
-                  selectedItems.map(i => i.id),
-                  false
-                )
+                photoDetailsApi.endpoints.setPhotosDeleted.initiate({
+                  image_hashes: imageHashes,
+                  deleted,
+                })
               );
+              notification.togglePhotoDelete(deleted, imageHashes.length);
 
               updateSelectionState({
                 selectMode: false,

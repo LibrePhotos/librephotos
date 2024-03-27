@@ -18,16 +18,12 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  downloadPhotos,
-  setPhotosDeleted,
-  setPhotosFavorite,
-  setPhotosHidden,
-  setPhotosPublic,
-} from "../../actions/photosActions";
+import { downloadPhotos, setPhotosFavorite, setPhotosHidden, setPhotosPublic } from "../../actions/photosActions";
 import { UserAlbum } from "../../api_client/albums/types";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
+import { photoDetailsApi } from "../../api_client/photos/photoDetail";
+import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
 
@@ -246,12 +242,15 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<Trash />}
             disabled={selectedItems.length === 0}
             onClick={() => {
+              const imageHashes = selectedItems.map(i => i.id);
+              const deleted = true;
               dispatch(
-                setPhotosDeleted(
-                  selectedItems.map(i => i.id),
-                  true
-                )
+                photoDetailsApi.endpoints.setPhotosDeleted.initiate({
+                  image_hashes: imageHashes,
+                  deleted,
+                })
               );
+              notification.togglePhotoDelete(deleted, imageHashes.length);
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],
