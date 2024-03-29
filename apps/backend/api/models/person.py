@@ -28,6 +28,13 @@ class Person(models.Model):
     cover_photo = models.ForeignKey(
         Photo, related_name="person", on_delete=models.SET_NULL, blank=False, null=True
     )
+    cover_face = models.ForeignKey(
+        "Face",
+        related_name="face",
+        on_delete=models.SET_NULL,
+        blank=False,
+        null=True,
+    )
     face_count = models.IntegerField(default=0)
     cluster_owner = models.ForeignKey(
         User,
@@ -66,6 +73,7 @@ class Person(models.Model):
     def _set_default_cover_photo(self):
         if not self.cover_photo:
             self.cover_photo = self.faces.first().photo
+            self.cover_face = self.faces.first()
             self.save()
 
     def get_photos(self, owner):

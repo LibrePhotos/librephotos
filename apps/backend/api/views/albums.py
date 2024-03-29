@@ -112,14 +112,13 @@ class PersonViewSet(viewsets.ModelViewSet):
                 & ~Q(kind=Person.KIND_UNKNOWN)
                 & Q(cluster_owner=self.request.user)
             )
-            .select_related("cover_photo")
+            .select_related("cover_photo", "cover_face")
             .only(
-                "cover_photo__image_hash",
-                "cover_photo__video",
-                "cover_photo__faces",
                 "name",
                 "face_count",
                 "id",
+                "cover_face",
+                "cover_photo",
             )
         )
 
