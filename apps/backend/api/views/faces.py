@@ -1,6 +1,6 @@
 import uuid
 
-from django.db.models import Count, Q
+from django.db.models import Case, Count, IntegerField, Q, When
 from django_q.tasks import AsyncTask
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -107,28 +107,25 @@ class FaceIncompleteListViewSet(ListViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        inferred = False
-        conditional_filter = Q(faces__person_label_is_inferred=inferred) | Q(
-            faces__person__name=Person.UNKNOWN_PERSON_NAME
-        )
-        if (
-            self.request.query_params.get("inferred")
-            and self.request.query_params.get("inferred").lower() == "true"
-        ):
-            inferred = True
-            conditional_filter = Q(faces__person_label_is_inferred=inferred)
+        inferred = self.request.query_params.get("inferred", "").lower() == "true"
 
-        queryset = (
-            Person.objects.filter(Q(cluster_owner=self.request.user))
-            .annotate(
-                viewable_face_count=Count(
-                    "faces",
-                    filter=(conditional_filter),
+        queryset = Person.objects.filter(cluster_owner=self.request.user)
+
+        queryset = queryset.annotate(
+            viewable_face_count=Count(
+                Case(
+                    When(
+                        Q(faces__person_label_is_inferred=inferred)
+                        | Q(faces__person__name=Person.UNKNOWN_PERSON_NAME),
+                        then=1,
+                    ),
+                    output_field=IntegerField(),
                 )
             )
-            .filter(viewable_face_count__gt=0)
-            .order_by("name")
         )
+
+        queryset = queryset.filter(viewable_face_count__gt=0).order_by("name")
+
         return queryset
 
     @extend_schema(
