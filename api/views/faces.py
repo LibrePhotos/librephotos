@@ -111,20 +111,22 @@ class FaceIncompleteListViewSet(ListViewSet):
 
         queryset = Person.objects.filter(cluster_owner=self.request.user)
 
-        queryset = queryset.annotate(
-            viewable_face_count=Count(
-                Case(
-                    When(
-                        Q(faces__person_label_is_inferred=inferred)
-                        | Q(faces__person__name=Person.UNKNOWN_PERSON_NAME),
-                        then=1,
-                    ),
-                    output_field=IntegerField(),
+        queryset = (
+            queryset.annotate(
+                viewable_face_count=Count(
+                    Case(
+                        When(
+                            Q(faces__person_label_is_inferred=inferred)
+                            | Q(faces__person__name=Person.UNKNOWN_PERSON_NAME),
+                            then=1,
+                        ),
+                        output_field=IntegerField(),
+                    )
                 )
             )
+            .filter(viewable_face_count__gt=0)
+            .order_by("name")
         )
-
-        queryset = queryset.filter(viewable_face_count__gt=0).order_by("name")
 
         return queryset
 

@@ -22,7 +22,7 @@ class Person(models.Model):
         (KIND_UNKNOWN, "Unknown Person"),
     )
     name = models.CharField(
-        blank=False, max_length=128, validators=[MinLengthValidator(1)]
+        blank=False, max_length=128, validators=[MinLengthValidator(1)], db_index=True
     )
     kind = models.CharField(choices=KIND_CHOICES, max_length=10)
     cover_photo = models.ForeignKey(
