@@ -12,7 +12,6 @@ from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 from django_q.tasks import AsyncTask
 
-import api.models.album_thing
 import api.util as util
 from api.batch_jobs import create_batch_job
 from api.face_classify import cluster_all_faces
@@ -377,7 +376,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
         place365_instance.unload()
         util.logger.info("Scanned {} files in : {}".format(files_found, scan_directory))
-        api.models.album_thing.update()
+
         util.logger.info("Finished updating album things")
         exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
         paginator = Paginator(exisisting_photos, 5000)

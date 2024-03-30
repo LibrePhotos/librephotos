@@ -244,11 +244,10 @@ class Photo(models.Model):
 
             for hashtag in hashtags:
                 album_thing = api.models.album_thing.get_album_thing(
-                    title=hashtag, owner=self.owner
+                    title=hashtag, owner=self.owner, thing_type="hashtag_attribute"
                 )
                 if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
                     album_thing.photos.add(self)
-                    album_thing.thing_type = "hashtag_attribute"
                     album_thing.save()
 
             for album_thing in api.models.album_thing.AlbumThing.objects.filter(
@@ -286,6 +285,36 @@ class Photo(models.Model):
                 self.search_captions = " , ".join(
                     res_places365["categories"] + [res_places365["environment"]]
                 )
+
+            # Add to album things, when photo is not yet in any album thing with type places365_attribute or places365_category
+            if api.models.album_thing.AlbumThing.objects.filter(
+                Q(photos__in=[self.image_hash])
+                & (
+                    Q(thing_type="places365_attribute")
+                    or Q(thing_type="places365_category")
+                )
+                & Q(owner=self.owner)
+            ).exists():
+                return
+
+            for attribute in res_places365["attributes"]:
+                album_thing = api.models.album_thing.get_album_thing(
+                    title=attribute,
+                    owner=self.owner,
+                    thing_type="places365_attribute",
+                )
+                album_thing.photos.add(self)
+                album_thing.save()
+
+            for category in res_places365["categories"]:
+                album_thing = api.models.album_thing.get_album_thing(
+                    title=category,
+                    owner=self.owner,
+                    thing_type="places365_category",
+                )
+                album_thing.photos.add(self)
+                album_thing.save()
+
             if commit:
                 self.save()
             util.logger.info(
