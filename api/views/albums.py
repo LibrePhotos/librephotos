@@ -1,6 +1,6 @@
 import re
 
-from django.db.models import Case, Count, F, IntegerField, Prefetch, Q, When
+from django.db.models import Count, F, Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -185,13 +185,6 @@ class AlbumThingListViewSet(ListViewSet):
         queryset = (
             AlbumThing.objects.filter(owner=self.request.user)
             .prefetch_related("cover_photos")
-            .annotate(
-                photo_count=Count(
-                    Case(
-                        When(photos__hidden=False, then=1), output_field=IntegerField()
-                    )
-                )
-            )
             .filter(photo_count__gt=0)
             .order_by("-title")
         )
