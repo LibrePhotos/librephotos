@@ -171,7 +171,6 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
 
-# To-Do: Make album_cover an actual database field to improve performance
 # To-Do: Could be literally the list command in AlbumThingViewSet
 class AlbumThingListViewSet(ListViewSet):
     serializer_class = AlbumThingListSerializer
@@ -183,17 +182,9 @@ class AlbumThingListViewSet(ListViewSet):
         if self.request.user.is_anonymous:
             return AlbumThing.objects.none()
 
-        cover_photos_query = Photo.objects.filter(hidden=False).only(
-            "image_hash", "video"
-        )
-
         queryset = (
             AlbumThing.objects.filter(owner=self.request.user)
-            .prefetch_related(
-                Prefetch(
-                    "photos", queryset=cover_photos_query[:4], to_attr="cover_photos"
-                )
-            )
+            .prefetch_related("cover_photos")
             .annotate(
                 photo_count=Count(
                     Case(
