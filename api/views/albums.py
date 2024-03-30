@@ -21,7 +21,6 @@ from api.models import (
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
-    PhotoSummarySerializer,
 )
 from api.serializers.album_place import (
     AlbumPlaceListSerializer,
@@ -35,6 +34,7 @@ from api.serializers.album_thing import (
 )
 from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializer
 from api.serializers.person import GroupedPersonPhotosSerializer, PersonSerializer
+from api.serializers.photos import PhotoSummarySerializer
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
