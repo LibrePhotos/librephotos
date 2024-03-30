@@ -14,11 +14,11 @@ class AlbumThing(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.SET(get_deleted_user), default=None
     )
-
     shared_to = models.ManyToManyField(User, related_name="album_thing_shared_to")
     cover_photos = models.ManyToManyField(
         Photo, related_name="album_thing_cover_photos"
     )
+    photo_count = models.IntegerField(default=0)
 
     class Meta:
         constraints = [
@@ -39,6 +39,7 @@ class AlbumThing(models.Model):
 def update_default_cover_photo(sender, instance, action, **kwargs):
     if action == "post_add":
         instance._set_default_cover_photo()
+        instance.photo_count = instance.photos.filter(hidden=False).count()
         instance.save()
 
 
