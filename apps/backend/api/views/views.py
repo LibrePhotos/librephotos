@@ -16,7 +16,9 @@ from django.http import (
 )
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.vary import vary_on_cookie
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
@@ -201,6 +203,7 @@ class StorageStatsView(APIView):
 
 
 class ImageTagView(APIView):
+    @method_decorator(cache_page(60 * 60 * 2))
     def get(self, request, format=None):
         # Add an exception for the directory '/code'
         subprocess.run(
@@ -219,6 +222,8 @@ class ImageTagView(APIView):
 
 
 class SearchTermExamples(APIView):
+    @method_decorator(vary_on_cookie)
+    @method_decorator(cache_page(60 * 60 * 2))
     def get(self, request, format=None):
         search_term_examples = get_search_term_examples(request.user)
         return Response({"results": search_term_examples})
