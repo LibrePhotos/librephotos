@@ -6,7 +6,7 @@ class Migration(migrations.Migration):
         AlbumThing = apps.get_model("api", "AlbumThing")
 
         for thing in AlbumThing.objects.all():
-            if not thing.cover_photos and thing.photos.count() > 0:
+            if thing.photos.count() > 0:
                 thing.cover_photos.add(*thing.photos.all()[:4])
                 thing.save()
 
