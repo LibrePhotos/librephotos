@@ -1,8 +1,6 @@
-from django.core.paginator import Paginator
 from rest_framework import serializers
 
 from api.models import AlbumDate
-from api.serializers.photos import PhotoSummarySerializer
 
 
 class IncompleteAlbumDateSerializer(serializers.ModelSerializer):
@@ -66,22 +64,16 @@ class AlbumDateSerializer(serializers.ModelSerializer):
         else:
             return None
 
-    def get_items(self, obj) -> PhotoSummarySerializer(many=True):
-        page_size = self.context["request"].query_params.get("size") or 100
-        paginator = Paginator(obj.photos.all(), page_size)
-        page_number = self.context["request"].query_params.get("page") or 1
-        photos = paginator.page(page_number)
-        serializer = PhotoSummarySerializer(photos, many=True)
-        return serializer.data
+    def get_items(self, obj) -> dict:
+        # This method is removed as we're directly including paginated photos in the response.
+        pass
 
     def get_incomplete(self, obj) -> bool:
         return False
 
     def get_number_of_items(self, obj) -> int:
-        if obj and obj.photo_count:
-            return obj.photo_count
-        else:
-            return 0
+        # this will also get added in the response
+        pass
 
     def get_location(self, obj) -> str:
         if obj and obj.location:

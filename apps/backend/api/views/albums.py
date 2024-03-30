@@ -1,5 +1,6 @@
 import re
 
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Count, F, Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
@@ -20,6 +21,7 @@ from api.models import (
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
+    PhotoSummarySerializer,
 )
 from api.serializers.album_place import (
     AlbumPlaceListSerializer,
@@ -301,61 +303,38 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
-        albumDateFilter = []
         photoFilter = []
         photoFilter.append(Q(aspect_ratio__isnull=False))
-        albumDateFilter.append(Q(photos__aspect_ratio__isnull=False))
 
         if not self.request.user.is_anonymous:
             photoFilter.append(Q(owner=self.request.user))
-            albumDateFilter.append(Q(photos__owner=self.request.user))
-
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
-            albumDateFilter.append(Q(photos__rating__gte=min_rating))
             photoFilter.append(Q(rating__gte=min_rating))
 
         if self.request.query_params.get("public"):
             if self.request.query_params.get("username"):
                 username = self.request.query_params.get("username")
-                albumDateFilter.append(Q(owner__username=username))
                 photoFilter.append(Q(owner__username=username))
             photoFilter.append(Q(public=True))
-            albumDateFilter.append(Q(photos__public=True))
 
         if self.request.query_params.get("hidden"):
-            albumDateFilter.append(Q(photos__hidden=True))
             photoFilter.append(Q(hidden=True))
         else:
-            albumDateFilter.append(Q(photos__hidden=False))
             photoFilter.append(Q(hidden=False))
 
         if self.request.query_params.get("video"):
-            albumDateFilter.append(Q(photos__video=True))
             photoFilter.append(Q(video=True))
 
         if self.request.query_params.get("photo"):
-            albumDateFilter.append(Q(photos__video=False))
             photoFilter.append(Q(video=False))
 
         if self.request.query_params.get("deleted"):
-            albumDateFilter.append(Q(photos__deleted=True))
             photoFilter.append(Q(deleted=True))
         else:
-            albumDateFilter.append(Q(photos__deleted=False))
             photoFilter.append(Q(deleted=False))
 
         if self.request.query_params.get("person"):
-            albumDateFilter.append(
-                Q(photos__faces__person__id=self.request.query_params.get("person"))
-            )
-            albumDateFilter.append(
-                Q(
-                    photos__faces__person_label_probability__gte=F(
-                        "photos__faces__photo__owner__confidence_person"
-                    )
-                )
-            )
             photoFilter.append(
                 Q(faces__person__id=self.request.query_params.get("person"))
             )
@@ -367,49 +346,52 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 )
             )
 
-        photo_qs = Photo.objects.filter(*photoFilter)
-        qs = AlbumDate.objects.filter(*albumDateFilter)
+        albumDate = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
 
-        # Todo: Make this more performant by only using the photo queryset
-        # That will be a breaking change, but will improve performance
-        qs = (
-            qs.annotate(photo_count=Count("photos"))
-            .filter(Q(photo_count__gt=0))
-            .order_by("-date")
+        photo_qs = (
+            albumDate.photos.filter(*photoFilter)
             .prefetch_related(
                 Prefetch(
-                    "photos",
-                    queryset=photo_qs.order_by("-exif_timestamp")
-                    .only(
-                        "image_hash",
-                        "aspect_ratio",
-                        "video",
-                        "main_file",
-                        "search_location",
-                        "dominant_color",
-                        "public",
-                        "rating",
-                        "hidden",
-                        "exif_timestamp",
-                        "owner",
-                        "video_length",
-                    )
-                    .distinct(),
-                ),
-                Prefetch(
-                    "photos__owner",
+                    "owner",
                     queryset=User.objects.only(
                         "id", "username", "first_name", "last_name"
                     ),
                 ),
                 Prefetch(
-                    "photos__main_file__embedded_media",
+                    "main_file__embedded_media",
                     queryset=File.objects.only("hash"),
                 ),
             )
+            .order_by("-exif_timestamp")
+            .only(
+                "image_hash",
+                "aspect_ratio",
+                "video",
+                "main_file",
+                "search_location",
+                "dominant_color",
+                "public",
+                "rating",
+                "hidden",
+                "exif_timestamp",
+                "owner",
+                "video_length",
+            )
         )
 
-        return qs
+        # Paginate photo queryset
+        page_size = self.request.query_params.get("size") or 100
+        paginator = Paginator(photo_qs, page_size)
+        page = self.request.query_params.get("page")
+
+        try:
+            photos = paginator.page(page)
+        except PageNotAnInteger:
+            photos = paginator.page(1)
+        except EmptyPage:
+            photos = paginator.page(paginator.num_pages)
+
+        return albumDate, photos, paginator.count
 
     def get_permissions(self):
         if self.request.query_params.get("public"):
@@ -431,12 +413,14 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         description="Returns the actual images, for a given day in chunks of 100 images.",
     )
     def retrieve(self, *args, **kwargs):
-        queryset = self.get_queryset()
-        albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
-        serializer = AlbumDateSerializer(
-            queryset.filter(id=albumid).first(), context={"request": self.request}
-        )
-        return Response({"results": serializer.data})
+        album_date, photos, count = self.get_queryset()
+        serializer = AlbumDateSerializer(album_date, context={"request": self.request})
+        serializer_data = serializer.data
+        serializer_data["items"] = PhotoSummarySerializer(
+            photos, many=True
+        ).data  # Assuming you have a PhotoSerializer
+        serializer_data["numberOfItems"] = count
+        return Response({"results": serializer_data})
 
 
 # To-Do: Could be the summary command in AlbumDateViewSet
