@@ -106,7 +106,7 @@
     "react-i18next": "13.5.0",
     "react-image-lightbox": "npm:librephotos-react-image-lightbox@^1.0.0",
     "react-keydown": "1.9.12",
-    "react-lazyload": "3.2.0",
+    "react-lazyload": "3.2.1",
     "react-leaflet": "^1.9.1",
     "react-leaflet-markercluster": "^1.1.8",
     "react-player": "2.13.0",
