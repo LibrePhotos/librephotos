@@ -69,7 +69,7 @@
     "calendar-months": "1.0.1",
     "crypto-js": "4.2.0",
     "cypress": "^13.0.0",
-    "d3": "7.8.5",
+    "d3": "7.9.0",
     "d3-hierarchy": "3.1.2",
     "d3-shape": "3.2.0",
     "dayjs": "1.11.10",
