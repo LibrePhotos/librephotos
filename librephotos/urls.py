@@ -86,84 +86,92 @@ class TokenRefreshView(TokenRefreshView):
 router = routers.DefaultRouter()
 
 router.register(r"api/user", user.UserViewSet, basename="user")
-router.register(r"api/manage/user", user.ManageUserViewSet)
-router.register(r"api/delete/user", user.DeleteUserViewSet)
+router.register(r"api/manage/user", user.ManageUserViewSet, basename="manage_user")
+router.register(r"api/delete/user", user.DeleteUserViewSet, basename="delete_user")
 
 router.register(
-    r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto"
+    r"api/albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto_list"
 )
 router.register(
-    r"api/albums/date/list", albums.AlbumDateListViewSet, basename="album_date"
+    r"api/albums/date/list", albums.AlbumDateListViewSet, basename="album_date_list"
 )
 router.register(
-    r"api/albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing"
+    r"api/albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing_list"
 )
 router.register(
-    r"api/albums/place/list", albums.AlbumPlaceListViewSet, basename="album_place"
+    r"api/albums/place/list", albums.AlbumPlaceListViewSet, basename="album_place_list"
 )
 router.register(
-    r"api/albums/user/list", albums.AlbumUserListViewSet, basename="album_user"
+    r"api/albums/user/list", albums.AlbumUserListViewSet, basename="album_user_list"
 )
 
 router.register(
-    r"api/albums/user/edit", views.AlbumUserEditViewSet, basename="album_user"
+    r"api/albums/user/edit", views.AlbumUserEditViewSet, basename="edit_album_user"
 )
 
 router.register(
     r"api/albums/user/shared/tome",
     sharing.SharedToMeAlbumUserListViewSet,
-    basename="album_user",
+    basename="share_to_me_album_user",
 )
 router.register(
     r"api/albums/user/shared/fromme",
     sharing.SharedFromMeAlbumUserListViewSet,
-    basename="album_user",
+    basename="share_from_me_album_user",
 )
 
 router.register(r"api/albums/auto", album_auto.AlbumAutoViewSet, basename="album_auto")
-router.register(r"api/albums/person", albums.AlbumPersonViewSet, basename="person")
+router.register(
+    r"api/albums/person", albums.AlbumPersonViewSet, basename="album_person"
+)
 router.register(r"api/albums/date", albums.AlbumDateViewSet, basename="album_date")
 router.register(r"api/albums/thing", albums.AlbumThingViewSet, basename="album_thing")
 router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_place")
 router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")
 
-router.register(r"api/persons", albums.PersonViewSet, basename="person")
+router.register(r"api/persons", albums.PersonViewSet, basename="persons")
 
 router.register(
     r"api/photos/shared/tome",
     sharing.SharedToMePhotoSuperSimpleListViewSet,
-    basename="photo",
+    basename="shared_to_me_photo",
 )
 router.register(
     r"api/photos/shared/fromme",
     sharing.SharedFromMePhotoSuperSimpleListViewSet,
-    basename="photo",
+    basename="shared_from_me_photo",
 )
 
 router.register(
     r"api/photos/notimestamp",
     photos.NoTimestampPhotoViewSet,
-    basename="photo",
+    basename="photos_no_timestamp",
 )
 
-router.register(r"api/photos/edit", photos.PhotoEditViewSet, basename="photo")
+router.register(r"api/photos/edit", photos.PhotoEditViewSet, basename="photo_edit")
 
 router.register(
-    r"api/photos/recentlyadded", photos.RecentlyAddedPhotoListViewSet, basename="photo"
+    r"api/photos/recentlyadded",
+    photos.RecentlyAddedPhotoListViewSet,
+    basename="recently_added_photo",
 )
-router.register(r"api/photos/searchlist", search.SearchListViewSet, basename="photo")
+router.register(
+    r"api/photos/searchlist", search.SearchListViewSet, basename="photo_search"
+)
 
-router.register(r"api/photos", photos.PhotoViewSet, basename="photo")
+router.register(r"api/photos", photos.PhotoViewSet, basename="photos")
 
 router.register(
-    r"api/faces/incomplete", faces.FaceIncompleteListViewSet, basename="face"
+    r"api/faces/incomplete",
+    faces.FaceIncompleteListViewSet,
+    basename="incomplete_faces",
 )
 
-router.register(r"api/faces", faces.FaceListView, basename="face")
+router.register(r"api/faces", faces.FaceListView, basename="faces")
 
-router.register(r"api/exists", upload.UploadPhotoExists, basename="exists")
+router.register(r"api/exists", upload.UploadPhotoExists, basename="photo_exists")
 
-router.register(r"api/jobs", jobs.LongRunningJobViewSet)
+router.register(r"api/jobs", jobs.LongRunningJobViewSet, basename="jobs")
 urlpatterns = [
     re_path(r"^", include(router.urls)),
     re_path(r"^api/django-admin/", admin.site.urls),
