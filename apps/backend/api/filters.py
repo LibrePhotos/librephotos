@@ -4,7 +4,6 @@ from functools import reduce
 
 from django.db.models import Q
 from rest_framework import filters
-from rest_framework.compat import distinct
 
 import api.util as util
 from api.image_similarity import search_similar_embedding
@@ -20,7 +19,8 @@ class SemanticSearchFilter(filters.SearchFilter):
             return queryset
 
         orm_lookups = [
-            self.construct_search(str(search_field)) for search_field in search_fields
+            self.construct_search(str(search_field), queryset=queryset)
+            for search_field in search_fields
         ]
 
         if request.user.semantic_search_topk > 0:
@@ -37,7 +37,6 @@ class SemanticSearchFilter(filters.SearchFilter):
             )
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info("search similar embedding - took %.2f seconds" % (elapsed))
-        base = queryset
         conditions = []
         for search_term in search_terms:
             queries = [Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups]
@@ -53,5 +52,5 @@ class SemanticSearchFilter(filters.SearchFilter):
             # call queryset.distinct() in order to avoid duplicate items
             # in the resulting queryset.
             # We try to avoid this if possible, for performance reasons.
-            queryset = distinct(queryset, base)
+            queryset = queryset.distinct()
         return queryset
