@@ -1,6 +1,8 @@
-import subprocess
-
 from django.core.management.base import BaseCommand
+from django_q.models import Schedule
+from django_q.tasks import schedule
+
+from api.services import SERVICES, start_service
 
 
 class Command(BaseCommand):
@@ -13,59 +15,21 @@ class Command(BaseCommand):
             type=str,
             help="The service to start",
             choices=[
-                "image_similarity",
-                "thumbnail",
-                "face_recognition",
-                "clip_embeddings",
-                "image_captioning",
-                "llm",
+                SERVICES.keys(),
+                "all",
             ],
         )
 
     def handle(self, *args, **kwargs):
         service = kwargs["service"]
-
-        if service == "image_similarity":
-            subprocess.Popen(
-                [
-                    "python",
-                    "image_similarity/main.py",
-                    "2>&1 | tee /logs/image_similarity.log",
-                ]
-            )
-        elif service == "thumbnail":
-            subprocess.Popen(
-                [
-                    "python",
-                    "service/thumbnail/main.py",
-                    "2>&1 | tee /logs/thumbnail.log",
-                ]
-            )
-        elif service == "face_recognition":
-            subprocess.Popen(
-                [
-                    "python",
-                    "service/face_recognition/main.py",
-                    "2>&1 | tee /logs/face_recognition.log",
-                ]
-            )
-        elif service == "clip_embeddings":
-            subprocess.Popen(
-                [
-                    "python",
-                    "service/clip_embeddings/main.py",
-                    "2>&1 | tee /logs/clip_embeddings.log",
-                ]
-            )
-        elif service == "image_captioning":
-            subprocess.Popen(
-                [
-                    "python",
-                    "service/image_captioning/main.py",
-                    "2>&1 | tee /logs/image_captioning.log",
-                ]
-            )
-        elif service == "llm":
-            subprocess.Popen(
-                ["python", "service/llm/main.py", "2>&1 | tee /logs/llm.log"]
-            )
+        if service == "all":
+            for svc in SERVICES.keys():
+                start_service(svc)
+            if not Schedule.objects.filter(func="api.services.check_services").exists():
+                schedule(
+                    "api.services.check_services",
+                    schedule_type=Schedule.MINUTES,
+                    minutes=1,
+                )
+        else:
+            start_service(service)
