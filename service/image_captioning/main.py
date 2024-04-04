@@ -64,6 +64,11 @@ def export_onnx():
     return "", 200
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    return "OK", 200
+
+
 def check_inactivity():
     global last_request_time
     idle_threshold = 120
