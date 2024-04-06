@@ -86,7 +86,7 @@ def download_model(model):
     if model["type"] == MlTypes.LLM:
         util.logger.info("Downloading LLM model")
         model_to_download = site_config.LLM_MODEL
-        if model_to_download is None:
+        if not model_to_download and model_to_download != "none":
             util.logger.info("No LLM model selected")
             return
         util.logger.info(f"Model to download: {model_to_download}")
