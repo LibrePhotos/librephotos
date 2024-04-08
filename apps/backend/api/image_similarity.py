@@ -62,6 +62,10 @@ def search_similar_image(user, photo, threshold=27):
 
 def build_image_similarity_index(user):
     logger.info("building similarity index for user {}".format(user.username))
+    requests.delete(
+        settings.IMAGE_SIMILARITY_SERVER + "/build/",
+        json={"user_id": user.id},
+    )
     start = datetime.now()
     photos = (
         Photo.objects.filter(Q(hidden=False) & Q(owner=user))
