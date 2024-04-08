@@ -25,6 +25,14 @@ class BuildIndex(Resource):
 
         return jsonify({"status": True, "index_size": index.indices[user_id].ntotal})
 
+    def delete(self):
+        user_id = json.loads(request.data)["user_id"]
+        if user_id not in index.indices:
+            return jsonify({"status": True})
+        del index.indices[user_id]
+        del index.image_hashes[user_id]
+        return jsonify({"status": True})
+
 
 class SearchIndex(Resource):
     def post(self):
