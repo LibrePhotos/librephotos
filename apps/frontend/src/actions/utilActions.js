@@ -3,11 +3,11 @@ import { Server } from "../api_client/apiClient";
 import { notification } from "../service/notifications";
 import { UserSchema } from "../store/user/user.zod";
 import { userActions } from "../store/user/userSlice";
-import { DeleteMissingPhotosResponse, GenerateEventAlbumsTitlesResponse } from "./utilActions.types";
+import { DeleteMissingPhotosResponse } from "./utilActions.types";
 
 export function updateAvatar(user, form_data) {
   return function cb(dispatch) {
-    Server.patch(`user/${user.id}/`, form_data)
+    Server.patch(`user/${user.id}/`, form_data, { headers: { "Content-Type": "multipart/form-data" } })
       .then(response => {
         const data = UserSchema.parse(response.data);
         dispatch(userActions.updateRules(data));
