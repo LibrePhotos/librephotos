@@ -6,7 +6,7 @@ sidebar_position: 5
 
 ## How does it work
 
-The job system manages all long-running jobs. It gives information, which job is running, which job is in the queue, how far it progressed and when it started and stopped. At the moment, there are eight long-running jobs:
+The job system gives you information about the long-running jobs, including which job is running, in a queue, how far it progressed and when it started and stopped. At the moment, there are nine long-running jobs:
 
 ### Scan Photos
 
@@ -40,14 +40,14 @@ Looks for faces in the images and save them to the database
 
 Clusters the faces into known and unknown groups.
 
-## Where to manage the jobs
+### Download Models
+
+This downloads the needed machine learning models to data/protected_media/data_models/.
+
+## Where to get information about previous run jobs
 
 When you are logged in as an admin, click on the profile picture in the top right corner and then navigate to `Admin Area`. You should see the jobs at the bottom of the page in a table called `Worker Logs`
 
 ## What to do when a job gets stuck
 
 When a job gets stuck, that usually means, that it crashed, and we could not catch the error correctly. You can just remove the entry from the list to start another job.
-
-## Current Limitations
-
-Right now, queuing does not work. It forgets all jobs that are queued after a bit of time. Another recurring issue is that when a job crashes, it usually does not represent it correctly in the view.

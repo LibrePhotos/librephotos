@@ -14,8 +14,7 @@ You need an x86 or ARM64 processor, and it is recommended to have 4GBs of RAM. D
 
 ### Size
 
-You will need at least 10 GB of HDD Space for the docker images. It needs that space because of the machine learning
-models. Librephotos will also create a database and thumbnails, which will need additional space.
+You will need at least 10 GB of HDD Space for the docker images, thumbnails, database and machine learning models.
 
 ### 🚀 Installation
 

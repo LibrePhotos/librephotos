@@ -25,11 +25,12 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 
 ## What does it use?
 
-- **Image Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick)
+- **Image Conversion:** [libvips](https://github.com/libvips/libvips)
+- **RAW Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick)
 - **Video Conversion:** [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - **EXIF Support:** [ExifTool](https://github.com/exiftool/exiftool)
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition)
 - **Face classification/clusterization:** scikit-learn
-- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt),
+- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt)
 - **Scene classification** [places365](http://places.csail.mit.edu/)
-- **Reverse geocoding:** [Mapbox](https://www.mapbox.com/): You need to have an API key. The first 50,000 geocode lookups are free every month.
+- **Reverse geocoding:**: [photon](https://photon.komoot.io/) and other providers

@@ -69,9 +69,7 @@ Here you can find our API implemented. They are separated, similar to the models
 
 #### serializer
 
-You have your python model and want to somehow convert that to JSON. That's what the serializer does! There are two different types of serializers: normal ones and serpy serializer. Serpy serializer is faster, and we sometimes need it if we need to serialize a lot of data. The package is no longer maintained, though, and we are looking for a replacement or for refactoring to serialize fewer data at once.
-
-We are currently in the process of splitting them up, similar to how we did it in views.
+You have your python model and want to somehow convert that to JSON. That's what the serializer does!
 
 ### Machine Learning
 
