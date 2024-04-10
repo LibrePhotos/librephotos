@@ -1,7 +1,7 @@
 ---
 title: "👷‍♂️ Installation"
 excerpt: "How to install LibrePhotos for Developers"
-last_modified_at: 2021-05-31
+last_modified_at: 2024-04-10
 category: 1
 ---
 
@@ -11,7 +11,8 @@ category: 1
 
 :::info
 
-Do not use a relative path, because the sudo command usually starts in the root folder and does not represent the actual folder you are in.
+- Do not use a relative path, because the sudo command usually starts in the root folder and does not represent the actual folder you are in.
+- When using docker compose v2, replace command ```docker-compose``` with ```docker compose``` in the following instructions.
 
 :::
 
@@ -47,8 +48,7 @@ git clone https://github.com/LibrePhotos/librephotos-docker.git
 ```
 
 ### Configuring the environment
-
-Set the needed variables in .env (take librephotos.env as model). Make sure you set the `codedir` variable that tells
+Go to the ```librephotos-docker``` directory you just cloned. Create a new file .env (take librephotos.env as a reference) and set the needed variables in it. Make sure you set the `codedir` variable that tells
 docker, where your source folders are. This should be the same path as used to clone your repos.
 
 Run `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d`
