@@ -172,7 +172,7 @@
     "prettier": "3.2.5",
     "rimraf": "5.0.5",
     "source-map-loader": "4.0.2",
-    "ts-loader": "9.4.4",
+    "ts-loader": "9.5.1",
     "typescript": "5.2.2"
   },
   "resolutions": {
