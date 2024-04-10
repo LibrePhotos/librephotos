@@ -36,7 +36,7 @@ scikit-learn<1.4.3
 seaborn==0.13.2
 sentence_transformers==2.2.2
 timezonefinder==6.4.1
-tqdm==4.65.2
+tqdm==4.66.2
 gevent==23.9.1
 python-magic==0.4.27
 Wand==0.6.13
