@@ -120,7 +120,7 @@
         "swedish": "瑞典语（Svenska）",
         "japanese": "日语（Japanese）",
         "russian": "俄语（Русский）",
-        "configdatetime": " 设置日期和时间解析规则",
+        "configdatetime": "设置日期和时间解析规则",
         "metadata": "元数据选项",
         "sync": "将元数据同步到硬盘",
         "polish": "波兰语",
@@ -185,9 +185,19 @@
             "veryhigh": "非常大",
             "off": "关闭"
         },
-        "min_cluster_size_help": "更改群集的形成方式。值越小，形成的簇越多。",
+        "min_cluster_size_help": "更改聚类的形成方式。值越小，形成的簇越多。",
         "unknown_faces_confidence_help": "输入介于 0 和 1 之间的置信水平。如果置信度高于此值，则将来自“未知 - 其他”中的人脸与其他人匹配。0 表示禁用此功能。",
-        "min_samples": "最小样本数"
+        "min_samples": "最小样本数",
+        "hindi": "印地语",
+        "face_options": "人脸识别选项",
+        "unknown_faces_confidence": "匹配陌生人脸时的置信度 - 其他人脸",
+        "llm": "大语言模型设置",
+        "enablellm": "启用大语言模型进行图像理解",
+        "addlocation": "添加地点到图像描述中",
+        "addperson": "添加人物到图像理解中",
+        "cluster_selection_epsilon": "聚类参数Epsilon",
+        "cluster_selection_epsilon_help": "决定哪些簇将会被合并。值越大，将合并越多的簇。",
+        "min_samples_help": "更改聚类的收敛程度。值越小，越不收敛。"
     },
     "modalnextcloud": {
         "setdirectory": "设置Nextcloud扫描目录",
@@ -251,7 +261,8 @@
         "youshared": "我共享的",
         "sharedwithyou": "共享给我的",
         "facerecognition": "人脸",
-        "dataviz": "数据可视化"
+        "dataviz": "数据可视化",
+        "videos": "视频"
     },
     "selectionbar": {
         "selected": "已选择",
@@ -317,7 +328,8 @@
         "favorite": "喜爱的照片",
         "addedon": "添加于 ",
         "photos": "照片",
-        "deleted": "回收站"
+        "deleted": "回收站",
+        "videos": "视频"
     },
     "login": {
         "name": "LibrePhotos",
@@ -365,7 +377,9 @@
         "titledeleteuser": "删除用户",
         "cannotdeleteadmin": "无法删除管理员用户",
         "addnewuser": "添加新用户",
-        "delete": "删除"
+        "delete": "删除",
+        "download": "下载",
+        "downloadserverstats": "下载服务统计"
     },
     "joblist": {
         "workerlogs": "操作日志",
@@ -381,7 +395,8 @@
         "started": "开始于",
         "duration": "耗时",
         "startedby": "执行用户",
-        "itemsadded": "已添加文件"
+        "itemsadded": "已添加文件",
+        "waiting": "等待中"
     },
     "modalscandirectoryedit": {
         "header": "设置扫描目录，仅作用于用户",
@@ -406,7 +421,14 @@
         "skippatterns": " 用逗号分隔欲忽略的模式列表（例如：群晖设备上的“@eaDir,#recycle”）",
         "heavyweight": "将扫描图片的工作线程数提高至 1 以上，每个额外的工作线程需要 800 MB 的内存。",
         "headerheavyweight": "高负荷处理",
-        "headerskippatterns": "忽略模式"
+        "headerskippatterns": "忽略模式",
+        "captioning_model_header": "图像理解模型",
+        "heavyweight_process_warning": "大计算量处理并发数超过3将使用超过16GB的内存。设置前请三思。",
+        "blip_warning": "该处理将额外需要3GB内存。启动前请三思。",
+        "llm_model_header": "大语言模型",
+        "captioning_model_description": "选择进行图像理解的模型。",
+        "llm_model_description": "选择用于图像描述后处理的大语言模型。",
+        "ram_warning_header": "可能需要较大内存占用量"
     },
     "countstats": {
         "photos": "照片"
@@ -568,7 +590,10 @@
         "deleteuser": "{{username}}已删除",
         "deleteusertitle": "删除用户",
         "savecaptions": "图片描述已更新",
-        "captionupdate": "更新描述"
+        "captionupdate": "更新描述",
+        "downloadcomplete": "文件下载成功",
+        "downloadstart": "下载开始",
+        "downloaderror": "下载过程出现错误"
     },
     "rules": {
         "1": "提取 EXIF 中的 DATE_TIME_ORIGINAL 作为本地时间",
@@ -578,7 +603,7 @@
         "source_tz": "从{{rule}}中转换过来",
         "report_tz": "转换到 {{rule}}",
         "rule_type": "规则类型：{{rule}}",
-        "exif_tag": "使用EXIF标签 {{rule}}",
+        "exif_tag": "使用Exif标签 {{rule}}",
         "file_property": "使用文件属性：{{rule}}",
         "5": "从 WhatsApp 文件名中提取日期",
         "predefined_regexp": "使用预定义的正则表达式：{{rule}}",
@@ -647,5 +672,19 @@
     "locationstimeline": {
         "fromto": "{{location}} 从 {{start}} 至 {{end}}"
     },
-    "docs": "说明文档"
+    "docs": "说明文档",
+    "Generate Event Albums": "生成事件专辑",
+    "Regenerate Event Titles": "重新生成事件标题",
+    "Scan Faces": "扫描人脸",
+    "Calculate Clip Embeddings": "计算CLIP的语义表征",
+    "Find Similar Faces": "寻找相似人脸",
+    "Download Selected Photos": "下载选择的图片",
+    "Download Models": "下载模型",
+    "storagetooltip": "{{totalstorage}} 中的{{usedstorage}} 已使用",
+    "deletealbumexplanation": "该操作将永久删除此专辑。该删除无法撤销。",
+    "Scan Photos": "扫描图片",
+    "Delete Missing Photos": "删除丢失的照片",
+    "version": "版本：{{version}}",
+    "Train Faces": "训练人脸识别",
+    "storage": "存储"
 }
