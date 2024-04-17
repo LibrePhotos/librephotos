@@ -18,7 +18,7 @@ Flask==3.0.3
 Flask-Cors==4.0.0
 Flask-RESTful==0.3.10
 geopy==2.4.1
-gunicorn==21.2.0
+gunicorn==22.0.0
 hdbscan==0.8.33
 matplotlib==3.8.3
 networkx==3.2.1
