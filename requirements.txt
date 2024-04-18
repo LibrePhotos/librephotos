@@ -21,7 +21,7 @@ geopy==2.4.1
 gunicorn==22.0.0
 hdbscan==0.8.33
 matplotlib==3.8.3
-networkx==3.2.1
+networkx==3.3
 nltk==3.8.1
 markupsafe==2.1.5
 Pillow==10.3.0
