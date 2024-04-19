@@ -120,7 +120,7 @@
         "experimentaloptions": "Experimentele instellingen",
         "off": "Uit",
         "experimentalupdate": "Bijwerken",
-        "configdatetime": " Datum- en tijdregels instellen",
+        "configdatetime": "Datum- en tijdregels instellen",
         "eventsalbumsdescription": "De backendserver zal eerst trachten foto's te groepen op basis van tijdstippen. Als twee opeenvolgende foto's binnen twaalf uur na elkaar zijn genomen, dan worden ze bestempeld als behorende bij dezelfde gebeurtenis. Na het groeperen wordt er automatisch een albumnaam samengesteld.",
         "missingphotosdescription": "LibrePhotos zal tijdens elke scan controleren of de bestanden nog op dezelfde locatie aanwezig zijn of verplaatst. Als ze ontbreken, dan worden ze als dusdanig aangemerkt.",
         "eventalbumsregeneratedescription": "Automatisch samengestelde albumnamen bevatten persoonsnamen. Als u de gezichtsherkenning getraind hebt na het samenstellen van gebeurtenisalbums, dan kunt u nieuwe namen genereren voor reeds bestaande albums om ze te koppelen aan de gezichten op de foto's.",
