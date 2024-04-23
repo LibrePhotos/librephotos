@@ -12,6 +12,6 @@ coverage==7.1.0
 Faker==17.6.0
 isort==5.12.0
 setuptools==67.6.1
-black==24.3.0
+black==24.4.0
 pyfakefs==5.2.0
 pytest==7.3.1
