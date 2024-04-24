@@ -130,7 +130,7 @@
     "vite": "^5.0.12",
     "vite-tsconfig-paths": "^4.3.1",
     "vitest": "^1.2.1",
-    "zod": "3.22.4"
+    "zod": "3.23.4"
   },
   "devDependencies": {
     "@babel/eslint-parser": "7.24.1",
