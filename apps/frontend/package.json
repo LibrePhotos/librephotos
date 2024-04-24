@@ -120,7 +120,7 @@
     "react-vis": "1.12.1",
     "react-visibility-sensor": "5.1.1",
     "redux": "4.2.1",
-    "redux-first-history": "5.1.1",
+    "redux-first-history": "5.2.0",
     "redux-persist": "6.0.0",
     "redux-persist-transform-filter": "0.0.22",
     "redux-thunk": "2.4.2",

@@ -10056,10 +10056,10 @@ rechoir@^0.6.2:
   dependencies:
     resolve "^1.1.6"
 
-redux-first-history@5.1.1:
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/redux-first-history/-/redux-first-history-5.1.1.tgz#6aec4a3eaa52dbaaf2683776324d9219b182fab4"
-  integrity sha512-ujVHv+y9wC2rqavS5tLiSu6zkw+VYrEea+/ggwVTRuutadEtwxSRlaK19ry/PTLSQtFuUF1Xu+plL5erD4roVw==
+redux-first-history@5.2.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/redux-first-history/-/redux-first-history-5.2.0.tgz#2cd9d84652a1cb7e485ebe9b2dc348ac8c88fedf"
+  integrity sha512-7kLqtSXGPZIgvEhl3B+3wRvzePvvZggpVqg+jpR2ZVqu2ESGj9DF6hMHpoEP7bGHqddljjKYjnRmtSetYEiG2Q==
 
 redux-persist-transform-filter@0.0.22:
   version "0.0.22"
