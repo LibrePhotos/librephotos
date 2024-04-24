@@ -47,7 +47,7 @@
     "@mantine/tiptap": "6.0.21",
     "@popperjs/core": "2.11.8",
     "@reduxjs/toolkit": "1.9.7",
-    "@tabler/icons-react": "^2.44.0",
+    "@tabler/icons-react": "^3.0.0",
     "@tiptap/extension-document": "^2.1.13",
     "@tiptap/extension-link": "^2.1.13",
     "@tiptap/extension-mention": "^2.1.13",
