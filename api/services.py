@@ -14,10 +14,14 @@ SERVICES = {
     "image_captioning": 8007,
 }
 
+running_processes = {}
+
 
 def check_services():
-    for service in SERVICES.keys():
+    for service in running_processes.keys():
         if not is_healthy(service):
+            process = running_processes.pop(service)
+            process.terminate()
             logger.info(f"Starting {service}")
             start_service(service)
 
@@ -34,7 +38,7 @@ def is_healthy(service):
 
 def start_service(service):
     if service == "image_similarity":
-        subprocess.Popen(
+        process = subprocess.Popen(
             [
                 "python",
                 "image_similarity/main.py",
@@ -42,7 +46,7 @@ def start_service(service):
             ]
         )
     elif service in SERVICES.keys():
-        subprocess.Popen(
+        process = subprocess.Popen(
             [
                 "python",
                 f"service/{service}/main.py",
@@ -51,3 +55,19 @@ def start_service(service):
         )
     else:
         logger.warning("Unknown service:", service)
+        return False
+
+    running_processes[service] = process
+    logger.info(f"Service '{service}' started successfully")
+    return True
+
+
+def stop_service(service):
+    if service in running_processes:
+        process = running_processes.pop(service)
+        process.terminate()
+        logger.info(f"Service '{service}' stopped successfully")
+        return True
+    else:
+        logger.warning(f"Service '{service}' is not running")
+        return False
