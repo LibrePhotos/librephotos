@@ -60,6 +60,7 @@ class Photo(models.Model):
 
     aspect_ratio = models.FloatField(blank=True, null=True)
 
+    moved_to_trash_on = models.DateTimeField(null=False, blank=False, db_index=True)
     added_on = models.DateTimeField(null=False, blank=False, db_index=True)
 
     exif_gps_lat = models.FloatField(blank=True, null=True)
