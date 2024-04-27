@@ -13,5 +13,5 @@ Faker==17.6.0
 isort==5.13.2
 setuptools==67.6.1
 black==24.4.2
-pyfakefs==5.2.0
+pyfakefs==5.4.1
 pytest==7.4.4
