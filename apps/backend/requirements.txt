@@ -31,7 +31,7 @@ pytz==2023.4
 tzdata==2023.4
 PyExifTool==0.4.9
 PyJWT==2.8.0
-pyvips==2.2.1
+pyvips==2.2.3
 scikit-learn<1.4.3
 seaborn==0.13.2
 sentence_transformers==2.2.2
