@@ -50,7 +50,6 @@ RUN apt-get update && \
 		pkg-config \ 
 		rustc \
 		cargo \
-		libtinfo5 \
 		libjxl-dev \
 		libvips-dev \
 		swig && \
