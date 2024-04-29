@@ -1,4 +1,4 @@
-FROM ubuntu:lunar
+FROM ubuntu:noble
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
