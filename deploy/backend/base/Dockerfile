@@ -48,8 +48,6 @@ RUN apt-get update && \
 		libwebp-dev \
 		libxrender-dev \
 		pkg-config \ 
-		rustc \
-		cargo \
 		libjxl-dev \
 		libvips-dev \
 		swig && \
