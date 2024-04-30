@@ -684,5 +684,6 @@
     "Delete Missing Photos": "Fehlende Fotos löschen",
     "Calculate Clip Embeddings": "Berechnen von Clip-Einbettungen",
     "storage": "Speicherplatz",
-    "storagetooltip": "{{usedstorage}} von{{totalstorage}} belegt"
+    "storagetooltip": "{{usedstorage}} von{{totalstorage}} belegt",
+    "deletealbumexplanation": "Diese Aktion löscht das Album unwiederbringlich. Diese Aktion kann nicht rückgängig gemacht werden."
 }
