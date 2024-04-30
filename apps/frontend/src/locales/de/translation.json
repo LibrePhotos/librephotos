@@ -120,7 +120,7 @@
         "japanese": "Japanisch",
         "russian": "Russisch",
         "swedish": "Schwedisch",
-        "configdatetime": " Analyseregeln für Datumsangaben festlegen",
+        "configdatetime": "Analyseregeln für Datumsangaben festlegen",
         "sync": "Synchronisiere Metadaten auf Festplatte",
         "metadata": "Metadaten-Optionen",
         "polish": "Polnisch",
@@ -191,7 +191,7 @@
             "cnn": "CNN"
         },
         "min_samples": "Minimale Samples",
-        "cluster_selection_epsilon_help": "Bestimmt, welche Cluster kombiniert werden. Je höher der Wert, desto mehr Cluster werden kombiniert.",
+        "cluster_selection_epsilon_help": "Bestimmt, welche Cluster zusammengeführt werden. Ein höherer Wert bedeutet, dass mehr Cluster zusammengeführt werden.",
         "hindi": "Hindi",
         "llm": "Large Language Model Einstellungen",
         "enablellm": "Aktiviere Large Language Model für Beschreibungen",
@@ -426,7 +426,8 @@
         "ram_warning_header": "Hohe RAM-Größe möglich",
         "llm_model_description": "Wähle ein Model für die Nachbearbeitung von Beschreibungen mit Hilfe eines Large Language Models.",
         "heavyweight_process_warning": "Bitte beachten, dass eine Anzahl schwergewichtiger Prozesse von über 3 mehr als 16GB RAM verbrauchen kann.",
-        "blip_warning": "Bitte beachten, dass dieses Feature zusätzliche 3GB RAM benötigt, um zu funktionieren."
+        "blip_warning": "Bitte beachten, dass dieses Feature zusätzliche 3GB RAM benötigt, um zu funktionieren.",
+        "captioning_model_header": "Modell für Untertitel"
     },
     "countstats": {
         "photos": "Fotos"
@@ -589,7 +590,10 @@
         "removefacestoperson": "{{numberOfFaces}} Gesichter zurückgesetzt auf 'Unknown - Other'",
         "removefacestopersontitle": "Gesichter aus Person entfernen",
         "savecaptions": "Bildunterschrift erfolgreich aktualisiert",
-        "captionupdate": "Bildunterschrift aktualisieren"
+        "captionupdate": "Bildunterschrift aktualisieren",
+        "downloadstart": "Download gestartet",
+        "downloaderror": "Während des Downloads ist ein Fehler aufgetreten",
+        "downloadcomplete": "Dateien erfolgreich heruntergeladen"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden: {{rule}}",
@@ -668,5 +672,17 @@
     },
     "save": "Speichern",
     "modify": "Bearbeiten",
-    "docs": "Dokumentation"
+    "docs": "Dokumentation",
+    "Generate Event Albums": "Ereignisalben generieren",
+    "Regenerate Event Titles": "Ereignistitel Neu Generieren",
+    "Train Faces": "Gesichter Trainieren",
+    "Scan Faces": "Gesichter Scannen",
+    "Find Similar Faces": "Ähnliche Gesichter finden",
+    "Download Selected Photos": "Ausgewählte Fotos herunterladen",
+    "version": "Version: {{version}}",
+    "Scan Photos": "Fotos Scannen",
+    "Delete Missing Photos": "Fehlende Fotos löschen",
+    "Calculate Clip Embeddings": "Berechnen von Clip-Einbettungen",
+    "storage": "Speicherplatz",
+    "storagetooltip": "{{usedstorage}} von{{totalstorage}} belegt"
 }
