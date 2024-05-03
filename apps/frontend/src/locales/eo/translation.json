@@ -1,1 +1,335 @@
-{}
+{
+    "rename": "Ŝanĝi nomon",
+    "delete": "Forviŝi",
+    "confirm": "Konfirmi",
+    "save": "Konservi",
+    "things": "Aĵoj",
+    "loading": "Ŝargante…",
+    "docs": "Dokumentaro",
+    "modify": "Modifi",
+    "adminarea": {
+        "remove": "Forigi",
+        "delete": "Forviŝi",
+        "download": "Elŝuti",
+        "titledeleteuser": "Forviŝi uzanton",
+        "username": "Salutnomo",
+        "users": "Uzantoj"
+    },
+    "joblist": {
+        "reload": "Reŝargi",
+        "status": "Stato",
+        "progress": "Progreso",
+        "started": "Komencita",
+        "queued": "Envicigita",
+        "jobtype": "Speco de tasko",
+        "duration": "Daŭro",
+        "delete": "Forviŝi",
+        "running": "kuranta",
+        "waiting": "atendante"
+    },
+    "modalscandirectoryedit": {
+        "update": "Ĝisdatigi"
+    },
+    "countstats": {
+        "photos": "Fotoj"
+    },
+    "personalbum": {
+        "nameplaceholder": "Nomo",
+        "numberofpeople": "{{peoplelength}} homoj",
+        "personalreadyexists": "La homo {{name}} jam ekzistas."
+    },
+    "facesdashboard": {
+        "sortbydate": "Dato",
+        "sortby": "Ordigi laŭ",
+        "personscounter_one": "{{count}} homo",
+        "facescounter_one": "{{count}} vizaĝo",
+        "numberoffaces": "{{number}} vizaĝoj",
+        "personscounter_other": "{{count}} homoj",
+        "facescounter_other": "{{count}} vizaĝoj"
+    },
+    "scan": "Skani",
+    "settings": {
+        "thumbnailsize": "Grando de miniaturoj",
+        "albumoptions": "Opcioj pri albumo",
+        "semanticsearch": {
+            "top100": "Supraj 100",
+            "top50": "Supraj 50",
+            "top10": "Supraj 10",
+            "top0": "Malŝaltita"
+        },
+        "metadata": "Opcioj pri metadatenoj",
+        "experimentaloptions": "Eksperimentaj opcioj",
+        "password": {
+            "titlechangepassword": "Ŝanĝi la pasvorton",
+            "titlesetpassword": "Agordi la pasvorton",
+            "errormustretype": "Vi retajpu la pasvorton"
+        },
+        "face_options": "Opcioj pri vizaĝoj",
+        "size": {
+            "veryhigh": "Grandega",
+            "normal": "Ordinara",
+            "auto": "Aŭtomata",
+            "small": "Malgranda",
+            "off": "Malŝaltita",
+            "high": "Granda"
+        },
+        "uploadheader": "Alŝuti novan avataron",
+        "image": "Elekti bildon",
+        "firstname": "Persona nomo",
+        "firstnameplaceholder": "Persona nomo",
+        "lastname": "Familia nomo",
+        "email": "Retpoŝto",
+        "simplifiedchinese": "Ĉina (simpligita)",
+        "polish": "Pola",
+        "dutch": "Nederlanda",
+        "finnish": "Finna",
+        "portuguese": "Portugala",
+        "basque": "Eŭska",
+        "czech": "Ĉeĥa",
+        "ukrainian": "Ukraina",
+        "portuguesebr": "Brazilportugala",
+        "cancel": "Nuligi",
+        "credentials": "Akreditiloj",
+        "scandirectory": "Skani dosierujon",
+        "colorscheme": {
+            "title": "Kolorskemo",
+            "dark": "Malhela",
+            "light": "Hela"
+        },
+        "helptranslating": "Helpi traduki",
+        "statusscanphotostrue": "Skanante fotojn",
+        "rescanphotosdescription": "Reskani ĉiujn dosierojn",
+        "missingphotos": "Mankantaj fotoj",
+        "eventsalbums": "Eventaj albumoj",
+        "people": "Homoj",
+        "facesbutton": "Trejni",
+        "unknown": "Nekonata",
+        "rescanfaces": "Reskani",
+        "rescanfacestitle": "Reskani vizaĝojn",
+        "scanoptions": "Opcioj pri skanado",
+        "confidence": {
+            "standard": "Norma",
+            "low": "Malalta",
+            "none": "Nenio",
+            "high": "Alta"
+        },
+        "off": "Malŝaltita",
+        "header": "Agordoj",
+        "profile": "Profilo",
+        "account": "Konto",
+        "avatar": "Publika avataro",
+        "upload": "Alŝuti",
+        "accountinformation": "Informoj pri konto",
+        "lastnameplaceholder": "Familia nomo",
+        "emailplaceholder": "Retpoŝto",
+        "language": "Elektu lingvon",
+        "english": "Angla",
+        "german": "Germana",
+        "french": "Franca",
+        "norwegianbokmal": "Dannorvega",
+        "spanish": "Hispana",
+        "italian": "Itala",
+        "russian": "Rusa",
+        "japanese": "Japana",
+        "traditionalchinese": "Ĉina (tradicia)",
+        "swedish": "Sveda",
+        "vietnamese": "Vjetnama",
+        "arabic": "Araba",
+        "hindi": "Hindia",
+        "korean": "Korea",
+        "slovak": "Slovaka",
+        "hungarian": "Hungara",
+        "urdu": "Urduo",
+        "change": "Ŝanĝi",
+        "nextcloudheader": "Nextcloud",
+        "serveradress": "Adreso de la servilo",
+        "serveradressplaceholder": "https://",
+        "nextcloudnotloggedin": "Malkonektite",
+        "nextcloudusername": "Salutnomo",
+        "nextcloudusernameplaceholder": "Salutnomo",
+        "nextcloudcancel": "Nuligi",
+        "nextcloudconnecting": "Konektante",
+        "nextcloudloggedin": "Konektite",
+        "nextcloudchange": "Ŝanĝi",
+        "security": "Sekureco",
+        "appearance": "Aspekto",
+        "big": "Granda",
+        "statusrescanphotostrue": "Reskanante",
+        "small": "Malgranda",
+        "library": "Biblioteko",
+        "photos": "Fotoj",
+        "statusscanphotosfalse": "Skani",
+        "statusrescanphotosfalse": "Reskani",
+        "scannextcloudphotos": "Skani",
+        "faces": "Vizaĝoj",
+        "facessmall": "vizaĝoj",
+        "favoriteupdate": "Ĝisdatigi",
+        "favoritesyncoptions": {
+            "off": "Malŝaltita"
+        },
+        "semanticsearchupdate": "Ĝisdatigi",
+        "on": "Ŝaltita",
+        "experimentalupdate": "Ĝisdatigi"
+    },
+    "modalalbum": {
+        "newalbum": "Nova albumo",
+        "items": "{{count}} ero(j)",
+        "title": "Enalbumigi",
+        "placeholder": "Titolo de albumo",
+        "create": "Krei"
+    },
+    "modalphotosshare": {
+        "search": "Serĉi uzanton",
+        "name": "Nomo de homo",
+        "share": "Kunhavigi",
+        "unshare": "Malkunhavigi",
+        "joined": "Aliĝinta"
+    },
+    "modalalbumsshare": {
+        "search": "Serĉi uzanton",
+        "name": "Nomo de homo",
+        "joined": "Aliĝinta"
+    },
+    "metadata": "Opcioj pri metadatenoj",
+    "defaulttimezone": "Implicita horzono",
+    "sidemenu": {
+        "myalbums": "Miaj albumoj",
+        "placetree": "Arbo de lokoj",
+        "wordclouds": "Vortnuboj",
+        "name": "LibrePhotos",
+        "mypublicphotos": "Miaj publikaj fotoj",
+        "facerecognition": "Vizaĝoj",
+        "sharing": "Kunhavigo",
+        "publicphotos": "Publikaj fotoj",
+        "albums": "Albumoj",
+        "hidden": "Kaŝita",
+        "videos": "Filmoj",
+        "photos": "Fotoj",
+        "people": "Homoj",
+        "places": "Lokoj",
+        "things": "Aĵoj",
+        "library": "Biblioteko",
+        "datavizsmall": "Datenoj"
+    },
+    "selectionactions": {
+        "removephotos": "Forigi fotojn",
+        "hide": "Kaŝi",
+        "download": "Elŝuti",
+        "makeprivate": "Privatigi",
+        "unhide": "Malkaŝi",
+        "selected": "elektita",
+        "album": "Albumo"
+    },
+    "exif": {
+        "otherversions": "Aliaj versioj",
+        "filepath": "Loko de dosiero"
+    },
+    "login": {
+        "confirmpasswordplaceholder": "Konfirmi pasvorton",
+        "signup": "Registri vin",
+        "login": "Saluti",
+        "usernameplaceholder": "Salutnomo",
+        "usernamelabel": "Salutnomo",
+        "confirmpassword": "Konfirmi pasvorton",
+        "name": "LibrePhotos",
+        "password": "Pasvorto",
+        "passwordplaceholder": "Pasvorto"
+    },
+    "modaluseredit": {
+        "createheader": "Krei uzanton",
+        "header": "Modifi uzanton"
+    },
+    "autoalbumgallery": {
+        "day": "Tago {{day}}"
+    },
+    "useralbum": {
+        "renamealbum": "Ŝanĝi nomon de albumo",
+        "albumplaceholder": "Nomo de albumo",
+        "albumalreadyexists": "La albumo {{name}} jam ekzistas."
+    },
+    "personedit": {
+        "newperson": "Nova homo",
+        "personname": "Nomo de homo"
+    },
+    "Download Models": "Elŝuti modelojn",
+    "numberofphotos": "{{number}} fotoj",
+    "toasts": {
+        "createalbumtitle": "Krei albumon",
+        "scanphotostitle": "Skani fotojn",
+        "viewalbum": "Vidi albumon",
+        "deleteusertitle": "Forviŝi uzanton",
+        "setdeletetitle": "Forviŝi bildojn",
+        "addtoalbumtitle": "Enalbumigi",
+        "finaldeletephototitle": "Forviŝi bildojn"
+    },
+    "topmenu": {
+        "loggedin": "Salutinta kiel",
+        "logout": "Adiaŭi",
+        "settings": "Agordoj",
+        "profile": "Profilo",
+        "library": "Biblioteko"
+    },
+    "rules": {
+        "rule_type": "Speco de regulo: {{rule}}"
+    },
+    "sitesettings": {
+        "llm_model_header": "Granda lingva modelo",
+        "noallow": "Ne permesi",
+        "allow": "Permesi"
+    },
+    "defaultheader": {
+        "gettingstarted": "Modifi uzanton",
+        "loading": "Ŝargante…",
+        "days": "tagoj",
+        "photos": "fotoj"
+    },
+    "lightbox": {
+        "sidebar": {
+            "filepath": "Loko de dosiero",
+            "generate": "Generi",
+            "cancel": "Nuligi",
+            "categories": "Kategorioj",
+            "similarphotos": "Similaj fotoj",
+            "submit": "Submeti",
+            "details": "Detaloj",
+            "location": "Loko",
+            "people": "Homoj",
+            "scene": "Sceno",
+            "attributes": "Atributoj"
+        }
+    },
+    "photos": {
+        "hidden": "Kaŝitaj fotoj",
+        "deleted": "Rubujo",
+        "photos": "Fotoj",
+        "videos": "Filmoj"
+    },
+    "search": {
+        "default": "Serĉi…",
+        "search": "Serĉi",
+        "loading": "Ŝargante…"
+    },
+    "Scan Photos": "Skani fotojn",
+    "Train Faces": "Trejni pri vizaĝoj",
+    "Scan Faces": "Skani vizaĝojn",
+    "faces": "Vizaĝoj",
+    "wordclouds": "Vortnuboj",
+    "days": "Tagoj",
+    "events": "Eventoj",
+    "people": "Homoj",
+    "myalbums": "Miaj albumoj",
+    "places": "Lokoj",
+    "cancel": "Nuligi",
+    "version": "Versio: {{version}}",
+    "modalnextcloud": {
+        "browse": "Foliumi",
+        "update": "Ĝisdatigi",
+        "cancel": "Nuligi"
+    },
+    "favoritesyncoptions": {
+        "off": "Malŝaltita"
+    },
+    "selectionbar": {
+        "selected": "elektita"
+    }
+}
