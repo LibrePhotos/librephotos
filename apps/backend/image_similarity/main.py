@@ -1,6 +1,5 @@
 import json
 
-import gevent
 from flask import Flask, jsonify, request
 from flask_restful import Api, Resource
 from gevent.pywsgi import WSGIServer
@@ -59,11 +58,21 @@ class SearchIndex(Resource):
             return jsonify({"status": False, "result": []}), 500
 
 
+class Health(Resource):
+    def get(self):
+        return jsonify({"status": True})
+
+
 api.add_resource(BuildIndex, "/build/")
 api.add_resource(SearchIndex, "/search/")
+api.add_resource(Health, "/health/")
+
+
+def start_server():
+    logger.info("Starting server")
+    server = WSGIServer(("0.0.0.0", 8002), app)
+    server.serve_forever()
+
 
 if __name__ == "__main__":
-    logger.info("starting server")
-    server = WSGIServer(("0.0.0.0", 8002), app)
-    server_thread = gevent.spawn(server.serve_forever)
-    gevent.joinall([server_thread])
+    start_server()

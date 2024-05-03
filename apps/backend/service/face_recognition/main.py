@@ -48,6 +48,11 @@ def create_face_locations():
     return {"face_locations": face_locations}, 201
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    return "OK", 200
+
+
 if __name__ == "__main__":
     log("service starting")
     server = WSGIServer(("0.0.0.0", 8005), app)

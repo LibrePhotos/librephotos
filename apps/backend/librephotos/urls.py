@@ -33,6 +33,7 @@ from api.views import (
     jobs,
     photos,
     search,
+    services,
     sharing,
     timezone,
     upload,
@@ -170,8 +171,9 @@ router.register(
 router.register(r"api/faces", faces.FaceListView, basename="faces")
 
 router.register(r"api/exists", upload.UploadPhotoExists, basename="photo_exists")
-
 router.register(r"api/jobs", jobs.LongRunningJobViewSet, basename="jobs")
+router.register(r"api/services", services.ServiceViewSet, basename="service")
+
 urlpatterns = [
     re_path(r"^", include(router.urls)),
     re_path(r"^api/django-admin/", admin.site.urls),
