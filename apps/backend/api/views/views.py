@@ -19,7 +19,7 @@ from django.utils.encoding import iri_to_uri
 from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.vary import vary_on_cookie
-from django_q.tasks import AsyncTask
+from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -31,9 +31,8 @@ from rest_framework_simplejwt.tokens import AccessToken
 from api.all_tasks import create_download_job, delete_zip_file
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
-from api.batch_jobs import create_batch_job
 from api.directory_watcher import scan_photos
-from api.ml_models import do_all_models_exist
+from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
@@ -117,7 +116,7 @@ class SiteSettingsView(APIView):
         if "llm_model" in request.data.keys():
             site_config.LLM_MODEL = request.data["llm_model"]
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            AsyncTask(download_models, User.objects.get(id=request.user)).run()
 
         return self.get(request, format=format)
 
@@ -232,13 +231,15 @@ class SearchTermExamples(APIView):
 # long running jobs
 class ScanPhotosView(APIView):
     def get(self, request, format=None):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            AsyncTask(
+            chain.append(
                 scan_photos, request.user, False, job_id, request.user.scan_directory
-            ).run()
+            )
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -248,18 +249,20 @@ class ScanPhotosView(APIView):
 # To-Do: Allow for custom paths
 class SelectiveScanPhotosView(APIView):
     def get(self, request, format=None):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         # To-Do: Sanatize the scan_directory
         try:
             job_id = uuid.uuid4()
-            AsyncTask(
+            chain.append(
                 scan_photos,
                 request.user,
                 False,
                 job_id,
                 os.path.join(request.user.scan_directory, "uploads", "web"),
-            ).run()
+            )
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -268,13 +271,15 @@ class SelectiveScanPhotosView(APIView):
 
 class FullScanPhotosView(APIView):
     def get(self, request, format=None):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            AsyncTask(
+            chain.append(
                 scan_photos, request.user, True, job_id, request.user.scan_directory
-            ).run()
+            )
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")

@@ -1,17 +1,16 @@
 import uuid
 
 from django.db.models import Case, Count, IntegerField, Q, When
-from django_q.tasks import AsyncTask
+from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.batch_jobs import create_batch_job
 from api.directory_watcher import scan_faces
 from api.face_classify import cluster_all_faces
-from api.ml_models import do_all_models_exist
-from api.models import Face, LongRunningJob
+from api.ml_models import do_all_models_exist, download_models
+from api.models import Face
 from api.models.person import Person, get_or_create_person
 from api.serializers.face import (
     FaceListSerializer,
@@ -35,11 +34,13 @@ class ScanFacesView(APIView):
         return self._scan_faces(request)
 
     def _scan_faces(self, request, format=None):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            AsyncTask(scan_faces, request.user, job_id).run()
+            chain.append(scan_faces, request.user, job_id)
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")

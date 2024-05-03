@@ -13,7 +13,7 @@ from django.db.models import Q, QuerySet
 from django_q.tasks import AsyncTask
 
 import api.util as util
-from api.batch_jobs import create_batch_job
+from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
 from api.models import File, LongRunningJob, Photo
 from api.models.file import (
@@ -384,7 +384,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_files()
         util.logger.info("Finished checking paths")
-        create_batch_job(LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, user)
+        AsyncTask(batch_calculate_clip_embedding, user).run()
     except Exception:
         util.logger.exception("An error occurred: ")
         lrj.failed = True
