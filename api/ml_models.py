@@ -1,6 +1,7 @@
 import math
 import os
 import tarfile
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -145,8 +146,14 @@ def download_model(model):
         os.remove(target_dir)
 
 
-def download_models(job_id):
-    lrj = LongRunningJob.objects.get(job_id=job_id)
+def download_models(user):
+    job_id = uuid.uuid4()
+    lrj = LongRunningJob.objects.create(
+        started_by=user,
+        job_id=job_id,
+        queued_at=datetime.now().replace(tzinfo=pytz.utc),
+        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,
+    )
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
     lrj.result = {"progress": {"current": 0, "target": len(ML_MODELS)}}
     lrj.save()

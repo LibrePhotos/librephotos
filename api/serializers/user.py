@@ -2,12 +2,13 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django_q.tasks import Chain
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from api.batch_jobs import create_batch_job
-from api.ml_models import do_all_models_exist
-from api.models import LongRunningJob, Photo, User
+from api.batch_jobs import batch_calculate_clip_embedding
+from api.ml_models import do_all_models_exist, download_models
+from api.models import Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import logger
 
@@ -151,15 +152,13 @@ class UserSerializer(serializers.ModelSerializer):
             new_semantic_search_topk = validated_data.pop("semantic_search_topk")
 
             if instance.semantic_search_topk == 0 and new_semantic_search_topk > 0:
+                chain = Chain()
                 if not do_all_models_exist():
-                    create_batch_job(
-                        LongRunningJob.JOB_DOWNLOAD_MODELS,
-                        User.objects.get(id=instance.id),
-                    )
-                create_batch_job(
-                    LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
-                    User.objects.get(id=instance.id),
+                    chain.append(download_models, User.objects.get(id=instance.id))
+                chain.append(
+                    batch_calculate_clip_embedding, User.objects.get(id=instance.id)
                 )
+                chain.run()
 
             instance.semantic_search_topk = new_semantic_search_topk
             instance.save()
