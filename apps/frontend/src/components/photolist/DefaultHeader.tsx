@@ -1,4 +1,4 @@
-import { Button, Group, Loader, Menu, Text, Title } from "@mantine/core";
+import { Button, Group, Loader, Menu, Stack, Text, Title } from "@mantine/core";
 import {
   IconCalendar as Calendar,
   IconChevronDown as ChevronDown,
@@ -63,58 +63,12 @@ export function DefaultHeader(props: Props) {
 
   const { loading, numPhotosetItems, icon, numPhotos, title, additionalSubHeader, date, dayHeaderPrefix } = props;
 
-  function getHeaderContents() {
-    if (
-      !loading &&
-      auth.access &&
-      isScanView() &&
-      auth.access.is_admin &&
-      !user.scan_directory &&
-      numPhotosetItems < 1
-    ) {
-      return (
-        <div>
-          <p>{t("defaultheader.setup")}</p>
-          <Button
-            color="green"
-            onClick={() => {
-              setUserToEdit({ ...user });
-              setModalOpen(true);
-            }}
-          >
-            {t("defaultheader.gettingstarted")}
-          </Button>
-          <ModalUserEdit
-            onRequestClose={() => {
-              setModalOpen(false);
-            }}
-            userToEdit={userToEdit}
-            isOpen={modalOpen}
-            updateAndScan
-            userList={userList}
-            createNew={false}
-            firstTimeSetup
-          />
-        </div>
-      );
-    }
-
-    if (loading) {
-      return t("defaultheader.loading");
-    }
-
-    if (numPhotosetItems < 1) {
-      return t("defaultheader.noimages");
-    }
-
-    return null;
-  }
-
   function getPhotoCounter() {
     if (loading || numPhotosetItems < 1) {
       return (
         <Text align="left" color="dimmed">
-          {getHeaderContents()}
+          {loading ? t("defaultheader.loading") : null}
+          {numPhotosetItems < 1 ? t("defaultheader.noimages") : null}
           {loading ? <Loader size={20} /> : null}
         </Text>
       );
@@ -129,13 +83,41 @@ export function DefaultHeader(props: Props) {
     );
   }
 
+  if (!loading && auth.access && isScanView() && auth.access.is_admin && !user.scan_directory && numPhotosetItems < 1) {
+    return (
+      <Stack align="center">
+        <Title order={3}>{t("defaultheader.setup")}</Title>
+        <Button
+          color="green"
+          onClick={() => {
+            setUserToEdit({ ...user });
+            setModalOpen(true);
+          }}
+        >
+          {t("defaultheader.gettingstarted")}
+        </Button>
+        <ModalUserEdit
+          onRequestClose={() => {
+            setModalOpen(false);
+          }}
+          userToEdit={userToEdit}
+          isOpen={modalOpen}
+          updateAndScan
+          userList={userList}
+          createNew={false}
+          firstTimeSetup
+        />
+      </Stack>
+    );
+  }
+
   return (
     <div>
       <Group position="apart">
         <Group position="left">
           {icon}
           <div>
-            {auth.access && isMenuView() ? (
+            {auth.access && isMenuView() && auth.access.is_admin ? (
               <Menu>
                 <Menu.Target>
                   <Title style={{ minWidth: 200 }} align="left" order={2}>
