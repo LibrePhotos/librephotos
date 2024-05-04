@@ -21,9 +21,9 @@ import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
 
-import { updateAvatar, updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { useUpdateAvatarMutation, useUpdateUserMutation } from "../../api_client/user";
 import { PasswordEntry } from "../../components/settings/PasswordEntry";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
@@ -35,6 +35,8 @@ export function Profile() {
   const auth = useAppSelector(state => state.auth);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const { t, i18n } = useTranslation();
+  const [updateAvatar] = useUpdateAvatarMutation();
+  const [updateUser] = useUpdateUserMutation();
 
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const dark = colorScheme === "dark";
@@ -46,11 +48,11 @@ export function Profile() {
 
   let dropzoneRef = React.useRef<DropzoneRef>();
 
-  const urlToFile = (url, filename, mimeType) => {
+  const urlToFile = async (url: string, filename: string, mimeType = undefined) => {
     const type = mimeType || (url.match(/^data:([^;]+);/) || "")[1];
-    return fetch(url)
-      .then(res => res.arrayBuffer())
-      .then(buf => new File([buf], filename, { type }));
+    const res = await fetch(url);
+    const buf = await res.arrayBuffer();
+    return new File([buf], filename, { type });
   };
 
   const onPasswordValidate = (pass: string, valid: boolean) => {
@@ -140,17 +142,15 @@ export function Profile() {
                 <Button
                   size="sm"
                   color="green"
-                  onClick={() => {
+                  onClick={async () => {
                     const formData = new FormData();
-                    // @ts-ignore
-                    urlToFile(
+                    const file = await urlToFile(
                       // @ts-ignore
                       editorRef.getImageScaledToCanvas().toDataURL(),
                       `${userSelfDetails.first_name}avatar.png`
-                    ).then(file => {
-                      formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
-                      dispatch(updateAvatar(userSelfDetails, formData));
-                    });
+                    );
+                    formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
+                    updateAvatar({ id: userSelfDetails.id, data: formData });
                   }}
                 >
                   <Upload />
@@ -400,7 +400,7 @@ export function Profile() {
                 const newUserData = userSelfDetails;
                 delete newUserData.scan_directory;
                 delete newUserData.avatar;
-                updateUser(newUserData, dispatch);
+                updateUser(newUserData);
                 setIsOpenUpdateDialog(false);
               }}
             >

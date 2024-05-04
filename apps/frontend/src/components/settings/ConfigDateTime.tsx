@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 import { Button, CloseButton, Group, ScrollArea, Table, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";

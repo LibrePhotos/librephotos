@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 import { ActionIcon, Modal, ScrollArea, Table, Text, TextInput, Title } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";

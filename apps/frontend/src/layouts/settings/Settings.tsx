@@ -18,8 +18,8 @@ import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { updateUser } from "../../actions/utilActions";
 import { api } from "../../api_client/api";
+import { useUpdateUserMutation } from "../../api_client/user";
 import { useFetchTimezonesQuery } from "../../api_client/util";
 import { ConfigDateTime } from "../../components/settings/ConfigDateTime";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -32,6 +32,7 @@ export function Settings() {
   const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
+  const [updateUser] = useUpdateUserMutation();
 
   // open update dialog, when user was edited
   useEffect(() => {
@@ -331,7 +332,7 @@ export function Settings() {
               const newUserData = userSelfDetails;
               delete newUserData.scan_directory;
               delete newUserData.avatar;
-              updateUser(newUserData, dispatch);
+              updateUser(newUserData);
               setIsOpenUpdateDialog(false);
             }}
           >

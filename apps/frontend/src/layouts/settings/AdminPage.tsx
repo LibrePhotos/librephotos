@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 import { ActionIcon, Button, Card, Container, Flex, Group, Loader, Space, Stack, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {

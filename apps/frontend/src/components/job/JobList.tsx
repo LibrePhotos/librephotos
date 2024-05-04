@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 import { Alert, Card, Flex, Loader, Pagination, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";

@@ -113,7 +113,7 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["UserList", "FirstTimeSetup", "Faces", "PeopleAlbums"],
+  tagTypes: ["UserList", "FirstTimeSetup", "Faces", "PeopleAlbums", "UserSelfDetails"],
   endpoints: builder => ({
     [Endpoints.signUp]: builder.mutation<UserSignupResponse, UserSignupRequest>({
       query: body => ({
@@ -167,6 +167,7 @@ export const api = createApi({
     [Endpoints.fetchUserSelfDetails]: builder.query<IUser, string>({
       query: userId => `/user/${userId}/`,
       transformResponse: (response: string) => UserSchema.parse(response),
+      providesTags: (result, error, id) => [{ type: "UserSelfDetails" as const, id }],
     }),
     [Endpoints.fetchUserList]: builder.query<UserList, void>({
       query: () => ({

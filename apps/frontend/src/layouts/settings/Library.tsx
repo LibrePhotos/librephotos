@@ -39,11 +39,12 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
-import { deleteMissingPhotos, updateUser } from "../../actions/utilActions";
+import { deleteMissingPhotos } from "../../actions/utilActions";
 import { useGenerateAutoAlbumsMutation } from "../../api_client/albums/auto";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
+import { useUpdateUserMutation } from "../../api_client/user";
 import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../../api_client/util";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
@@ -101,6 +102,7 @@ export function Library() {
   const { classes } = useStyles();
   const [generateAutoAlbums] = useGenerateAutoAlbumsMutation();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
+  const [updateUser] = useUpdateUserMutation();
 
   const onPhotoScanButtonClick = () => {
     dispatch(scanPhotos());
@@ -556,8 +558,7 @@ export function Library() {
                 const newUserData = userSelfDetails;
                 delete newUserData.scan_directory;
                 delete newUserData.avatar;
-                updateUser(newUserData, dispatch);
-                dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
+                updateUser(newUserData);
                 setIsOpenUpdateDialog(false);
               }}
             >
