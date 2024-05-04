@@ -68,7 +68,7 @@ export function DefaultHeader(props: Props) {
       return (
         <Text align="left" color="dimmed">
           {loading ? t("defaultheader.loading") : null}
-          {numPhotosetItems < 1 ? t("defaultheader.noimages") : null}
+          {!loading && numPhotosetItems < 1 ? t("defaultheader.noimages") : null}
           {loading ? <Loader size={20} /> : null}
         </Text>
       );
