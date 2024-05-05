@@ -20,7 +20,8 @@
             "item9": "Yüzleri veritabanından ortaya çıkar.",
             "item6": "Fotoğrafların açıklamalarını oluştur",
             "item7": "Exif bilgisini ortaya çıkar",
-            "item11": "Fotoğrafların eksik veya taşınmış olup olmadığını denetle."
+            "item11": "Fotoğrafların eksik veya taşınmış olup olmadığını denetle.",
+            "item10": "Nesne ve yer albümlerine fotoğraf ekle."
         },
         "language": "Dil seçin",
         "norwegianbokmal": "Bokmål Norveççe",
@@ -130,12 +131,18 @@
         },
         "inferredfacesconfidencehelp": "0 ile 1 arasında bir güven düzeyi girin. Bir kişiyi gösteren albümler için, bu değerden daha yüksek bir güven düzeyine sahip çıkarım yapılan yüzler görünecektir.",
         "semanticsearch": {
-            "top0": "Devre dışı"
+            "top0": "Devre dışı",
+            "top50": "En iyi 50",
+            "top10": "En iyi 10",
+            "placeholder": "Anlamsal arama sonuçları",
+            "top100": "En iyi 100"
         },
         "semanticsearchupdate": "Güncelle",
         "metadata": "Üst Veri Seçenekleri",
         "favoritesyncoptions": {
-            "off": "Kapalı"
+            "off": "Kapalı",
+            "sidecar": "Yan dosyaya kaydet",
+            "mediafile": "Ortam dosyasına kaydet"
         },
         "favoriteupdate": "Güncelle",
         "experimentaloptions": "Deneysel seçenekler",
@@ -169,7 +176,26 @@
         "albumoptions": "Albüm Seçenekleri",
         "sync": "Üst verileri diske eşzamanla",
         "savechanges": "Değişiklikler kaydedilsin mi?",
-        "face_recognition_model_help": "Yüz tanıma için kullanılan modeli değiştirir. CNN modeli HOG modeline göre daha doğru ancak daha yavaştır."
+        "face_recognition_model_help": "Yüz tanıma için kullanılan modeli değiştirir. CNN modeli HOG modeline göre daha doğru ancak daha yavaştır.",
+        "hindi": "Hintçe",
+        "min_samples": "En Düşük Örnekler",
+        "min_samples_help": "Kümelerin ne kadar koruyucu olduğunu değiştirir. Daha küçük bir değer daha az koruyucu anlamına gelir.",
+        "cluster_selection_epsilon": "Küme Seçimi Eğilimi",
+        "cluster_selection_epsilon_help": "Hangi kümelerin birleştirileceğini belirler. Daha yüksek bir değer, daha fazla kümenin birleştirileceği anlamına gelir.",
+        "unknown_faces_confidence_help": "0 ile 1 arasında bir güven düzeyi girin. Güven düzeyi bu değerden yüksekse, 'Bilinmeyen - Diğer' yüzler diğer kişilerle eşleştirilecektir. 0 bu özelliğin devre dışı olduğu anlamına gelir.",
+        "favorite": "Beğenilen seçenekleri",
+        "sceneconfidence": "Sahne güveni",
+        "semanticsearchheader": "Anlamsal arama en fazla sonuç",
+        "favoriteminimum": "Beğenilen olması için en düşük fotoğraf değerlendirmesi",
+        "favoriteoption": {
+            "placeholder": "En düşük değerlendirme"
+        },
+        "transcodevideo": "Videoları her zaman dönüştür",
+        "configdatetime": "Tarih ve saat ayrıştırma kurallarını ayarla",
+        "public_sharing": "Herkese açık paylaşım",
+        "min_cluster_size": "En Düşük Küme Boyutu",
+        "min_cluster_size_help": "Kümelerin nasıl oluştuğunu değiştirir. Daha küçük bir değer daha fazla küme oluşmasına neden olur.",
+        "unknown_faces_confidence": "Bilinmeyen - Diğer Yüzleri Eşleştirirken Güven"
     },
     "modalalbum": {
         "alreadyexists": "{{title}} albümü zaten var.",
@@ -177,7 +203,9 @@
         "placeholder": "Albüm başlığı",
         "create": "Oluştur",
         "items": "{{count}} Öge",
-        "title": "Albüme Ekle"
+        "title": "Albüme Ekle",
+        "updated": "Güncellendi: {{duration}}",
+        "selectedimages": "Seçilen {{count}} fotoğrafı şuraya ekle…"
     },
     "modalnextcloud": {
         "setdirectory": "Nextcloud tarama dizininizi ayarlayın",
@@ -192,12 +220,14 @@
         "search": "Kullanıcı Ara",
         "name": "Kişi adı",
         "unshare": "Paylaşmayı durdur",
-        "share": "Paylaş"
+        "share": "Paylaş",
+        "joined": "Katıldı"
     },
     "modalalbumsshare": {
         "title": "Albümü Paylaş",
         "search": "Kullanıcı Ara",
-        "name": "Kişi adı"
+        "name": "Kişi adı",
+        "joined": "Katıldı"
     },
     "topmenu": {
         "logout": "Oturumu kapat",
@@ -205,14 +235,19 @@
         "profile": "Profil",
         "library": "Kütüphane",
         "adminarea": "Yönetici Alanı",
-        "busy": "Meşgul..."
+        "busy": "Meşgul...",
+        "loggedin": "Oturum açıldı",
+        "available": "İşleyici kullanılabilir! Daha fazla fotoğraf taramaya başlayabilir, yüz etiketlerini belirleyebilir, otomatik etkinlik albümleri oluşturabilir veya otomatik etkinlik albümü başlıklarını yeniden oluşturabilirsiniz.",
+        "running": "Çalışıyor"
     },
     "metadata": "Üst Veri Seçenekleri",
     "defaulttimezone": "Öntanımlı saat dilimi",
     "timezoneexplain": "Bu saat dilimi, zaman damgalarını kullanıcının öntanımlı saat dilimine dönüştürmek için kullanılır",
     "sync": "Üst verileri diske eşzamanla",
     "favoritesyncoptions": {
-        "off": "Kapalı"
+        "off": "Kapalı",
+        "mediafile": "Ortam dosyasına kaydet",
+        "sidecar": "Yan dosyaya kaydet"
     },
     "sidemenu": {
         "name": "LibrePhotos",
@@ -234,7 +269,16 @@
         "youshared": "Paylaştınız",
         "sharedwithyou": "Sizinle paylaşıldı",
         "hidden": "Gizli",
-        "people": "Kişiler"
+        "people": "Kişiler",
+        "wordclouds": "Sözcük Bulutları",
+        "publicphotos": "Herkese açık fotoğraflar",
+        "recentlyadded": "Son Eklenenler",
+        "favorites": "Beğenilenler",
+        "places": "Yerler",
+        "things": "Nesneler",
+        "placetree": "Yer Ağacı",
+        "dashboards": "Gösterge Panoları",
+        "mypublicphotos": "Herkese Açık Fotoğraflarım"
     },
     "selectionbar": {
         "selected": "seçildi",
@@ -266,7 +310,10 @@
         "removephotos": "Fotoğrafları Kaldır",
         "album": "Albüm",
         "albumcoverdescription": "Geçerli albüm için albüm kapağını ayarlayın",
-        "albumsharingdescription": "Geçerli albüm için paylaşım panelini aç"
+        "albumsharingdescription": "Geçerli albüm için paylaşım panelini aç",
+        "favorite": "Beğenilenlere Ekle",
+        "unfavorite": "Beğenilenlerden Kaldır",
+        "makepublic": "Herkese Açık Yap"
     },
     "lightbox": {
         "sidebar": {
@@ -286,7 +333,8 @@
             "withouttimestamp": "Zaman damgası olmadan",
             "removetimestamp": "Zaman damgasını kaldır",
             "undotimestampmodification": "Zaman damgası değişikliğini geri al",
-            "invalidtimestamp": "Geçersiz zaman damgası"
+            "invalidtimestamp": "Geçersiz zaman damgası",
+            "scene": "Sahne"
         }
     },
     "exif": {
@@ -296,14 +344,20 @@
         "deleteduplicatetitle": "Yineleneni Sil",
         "deleteduplicate": "Bu yinelenen silinsin mi?",
         "otherversions": "Diğer Sürümler",
-        "duplicates": "Yinelenenler"
+        "duplicates": "Yinelenenler",
+        "subjectdistance": "Nesne Uzaklığı",
+        "focallengthin35mmfilm": "Odak Uzaklığı 35mm Eş Değeri",
+        "digitalzoomratio": "Dijital Yakınlaştırma Oranı"
     },
     "photos": {
         "photos": "Fotoğraflar",
         "notimestamp": "Zaman Damgası Olmayan Fotoğraflar",
         "hidden": "Gizli Fotoğraflar",
         "videos": "Videolar",
-        "deleted": "Çöp Kutusu"
+        "deleted": "Çöp Kutusu",
+        "recentlyadded": "Son Eklenenler",
+        "addedon": "Eklendi: ",
+        "favorite": "Beğenilen Fotoğraflar"
     },
     "login": {
         "name": "LibrePhotos",
@@ -315,7 +369,8 @@
         "confirmpasswordplaceholder": "Parolayı Doğrula",
         "signup": "Kaydol",
         "error": {
-            "token_not_valid": "Oturumun süresi doldu. Lütfen tekrar oturum açın."
+            "token_not_valid": "Oturumun süresi doldu. Lütfen tekrar oturum açın.",
+            "token": "Belirteç sorunu"
         },
         "usernamelabel": "Kullanıcı adı",
         "password": "Parola",
@@ -324,7 +379,8 @@
         "tagline": "Fotoğraflarınız için rahat bir yer.",
         "errorusername": "Kullanıcı adı boş olamaz!",
         "errorbackend": "Arka uç sunucusuna bağlantı yok, birkaç dakika içinde tekrar deneyin.",
-        "erroremail": "Geçerli bir e-posta adresi girin."
+        "erroremail": "Geçerli bir e-posta adresi girin.",
+        "firsttimesetup": "İlk kurulum"
     },
     "adminarea": {
         "username": "Kullanıcı adı",
@@ -341,7 +397,12 @@
         "users": "Kullanıcılar",
         "remove": "Kaldır",
         "delete": "Sil",
-        "downloadserverstats": "Sunucu İstatistiklerini İndir"
+        "downloadserverstats": "Sunucu İstatistiklerini İndir",
+        "minimumconfidence": "En Düşük Güven",
+        "scandirectory": "Dizini Tara",
+        "joined": "Katıldı",
+        "sitesettings": "Site ayarları",
+        "notset": "Ayarlanmadı"
     },
     "search": {
         "search": "Ara",
@@ -424,7 +485,14 @@
         "jobfinished": "{{job}} tamamlandı.",
         "deletejob": "{{id}} işi silindi.",
         "sharingalbumtitle": "Albümü paylaş",
-        "unsharingalbumtitle": "Albümün paylaşımını kaldır"
+        "unsharingalbumtitle": "Albümün paylaşımını kaldır",
+        "setpublicphotostitle": "Herkese açık fotoğrafları ayarla",
+        "unfavoritephoto": "{{numberOfPhotos}} fotoğraf beğenilenlerinizden kaldırıldı.",
+        "setfavoritestitle": "Beğenilenleri ayarla",
+        "removefacestoperson": "{{numberOfFaces}} yüz 'Bilinmeyen - Diğer' bölümüne taşındı",
+        "favoritephoto": "{{numberOfPhotos}} fotoğraf beğenilenlerinize eklendi.",
+        "addpublicphoto": "{{numberOfPhotos}} fotoğraf herkese açık fotoğraflarınıza eklendi. Fotoğrafların bağlantıları panoya kopyalandı.",
+        "removepublicphoto": "{{numberOfPhotos}} fotoğraf herkese açık fotoğraflarınızdan kaldırıldı."
     },
     "joblist": {
         "reload": "Yeniden yükle",
@@ -436,7 +504,11 @@
         "duration": "Süre",
         "delete": "Sil",
         "waiting": "bekliyor",
-        "running": "çalışıyor"
+        "running": "çalışıyor",
+        "workerlogs": "İşleyici Günlükleri",
+        "startedby": "Başlatan",
+        "removeexplanation": "Bir girdiyi kaldırmak aslında işi durdurmaz - yalnızca veri tabanından kaldırılır. Yalnızca, günlükleri inceleyerek vs. bir işin normal olmayan bir şekilde başarısız olduğunu bildiğiniz durumlarda kullanın.",
+        "itemsadded": "Eklenen varlık(lar)"
     },
     "modaluseredit": {
         "header": "Kullanıcı Düzenle",
@@ -468,7 +540,14 @@
         "map_api_key_header": "Harita Sağlayıcı için API anahtarı",
         "map_api_key_description": "API anahtarınızı {{url}} adresinden alın",
         "map_api_provider_header": "Harita Sağlayıcı",
-        "captioning_model_header": "Açıklama Modeli"
+        "captioning_model_header": "Açıklama Modeli",
+        "headerskippatterns": "Desenleri atla",
+        "headerheavyweight": "Yoğun İşlemler",
+        "heavyweight": "Resim tarama işleyicilerinin sayısını 1'den fazla artırın, ancak her bir ek işleyici için 800 MB bellek kullanmaya hazır olun.",
+        "blip_warning": "Bu özelliğin düzgün çalışması için ek 3 GB RAM'e ihtiyaç vardır. Lütfen devam etmeden önce bunu göz önünde bulundurun.",
+        "skippatterns": " Yok sayılacak desenlerin virgülle ayrılan listesi (örn. Synology aygıtları için '@eaDir,#recycle')",
+        "ram_warning_header": "Büyük RAM boyutu kullanılabilir",
+        "heavyweight_process_warning": "Yoğun işlem sayısını 3'ten fazla olarak ayarlamak büyük olasılıkla 16 GB'tan fazla RAM gerektirecektir. Lütfen devam etmeden önce bunu göz önünde bulundurun."
     },
     "autoalbum": {
         "delete": "Otomatik Albümü Sil",
@@ -489,7 +568,8 @@
         "numberofpeople": "{{peoplelength}} Kişi"
     },
     "placealbum": {
-        "maploading": "Harita yükleniyor..."
+        "maploading": "Harita yükleniyor...",
+        "showingplaces": "Haritada {{number}} yer gösteriliyor"
     },
     "useralbum": {
         "renamealbum": "Albümü Yeniden Adlandır",
@@ -521,7 +601,12 @@
         "sortby": "Sıralama ölçütü",
         "personscounter_other": "{{count}} Kişi",
         "assumedpersonscounter_other": "{{count}} Çıkarım yapılan kişi",
-        "unknownfacescounter_one": "{{count}} Bilinmeyen Yüz"
+        "unknownfacescounter_one": "{{count}} Bilinmeyen Yüz",
+        "notthisperson": "Yüzleri 'Bilinmeyen - Diğer'e geri taşı",
+        "clusterscounter_one": "{{count}} Küme",
+        "clusterscounter_other": "{{count}} Küme",
+        "clusteredfacescounter_other": "{{count}} Kümelenen yüz",
+        "clusteredfacescounter_one": "{{count}} Kümelenen yüz"
     },
     "Scan Photos": "Fotoğrafları Tara",
     "Generate Event Albums": "Etkinlik Albümleri Oluştur",
@@ -555,7 +640,22 @@
         "exif_tag": "Exif etiketi kullan: {{rule}}",
         "file_property": "Dosya özelliği kullan: {{rule}}",
         "source_tz": "{{rule}} kuralından dönüştür",
-        "rule_type": "Kural türü: {{rule}}"
+        "rule_type": "Kural türü: {{rule}}",
+        "4": "Video UTC - yerel saati UTC cinsinden bildir (gerçek saat dilimini belirleyemez)",
+        "5": "WhatsApp dosya adını kullanarak tarihi belirle",
+        "8": "UTC saat diliminde dosya değiştirilme zamanı",
+        "9": "Kullanıcının öntanımlı saat diliminde dosya oluşturulma zamanı",
+        "11": "Composite:GPSDateTime etiketini kullan ve GPS koordinatlarını kullanarak saat dilimini belirle",
+        "7": "Kullanıcının öntanımlı saat diliminde dosya değiştirilme zamanı",
+        "13": "Composite:GPSDateTime etiketini UTC saat diliminde kullan (gerçek saat dilimini belirleyemez)",
+        "15": "EXIF:DateTime Exif etiketinden yerel saat",
+        "14": "Kullanıcı tarafından ayarlanan zaman damgası",
+        "2": "Video oluşturma etiketini UTC olarak al ve GPS koordinatlarını kullanarak saat dilimini belirle",
+        "3": "Zamanın yerel olduğunu varsayarak dosya adını kullan",
+        "6": "UTC zaman diliminde video oluşturma tarihi (gerçek saat dilimini belirleyemez)",
+        "10": "UTC saat diliminde dosya oluşturulma zamanı",
+        "12": "Composite:GPSDateTime etiketini kullanıcının öntanımlı saat diliminde kullan (gerçek saat dilimini belirleyemez)",
+        "1": "DATE_TIME_ORIGINAL Exif etiketinden yerel saat"
     },
     "countstats": {
         "photos": "Fotoğraflar"
@@ -569,5 +669,17 @@
     "faces": "Yüzler",
     "days": "Günler",
     "delete": "Sil",
-    "myalbums": "Albümlerim"
+    "myalbums": "Albümlerim",
+    "wordclouds": "Sözcük Bulutları",
+    "things": "Nesneler",
+    "faceclusterexplanation": "Benzer yüzlere sahip kişiler bu grafikte birbirine daha yakın gruplanmalıdır (Etiketi görmek için bir noktaya tıklayın).",
+    "placetree": "Yer Ağacı",
+    "places": "Yerler",
+    "Calculate Clip Embeddings": "Kırpma Yerleştirmelerini Hesapla",
+    "locationstimeline": {
+        "fromto": "{{location}}: {{start}} ile {{end}} arası"
+    },
+    "thingalbum": {
+        "showingthings": "En iyi {{number}} nesne gösteriliyor"
+    }
 }
