@@ -1,5 +1,6 @@
 import "./wdyr";
 
+import "@mantine/core/styles.css";
 import "font-awesome/css/font-awesome.min.css";
 import React from "react";
 // css

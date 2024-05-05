@@ -1,33 +1,50 @@
-import { createStyles } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
 import type { TFunction } from "i18next";
 import React from "react";
 
 import type { DateTimeRule } from "./date-time.zod";
 
-export const useDateTimeSettingsStyles = createStyles(theme => ({
+export const useDateTimeSettingsStyles = createStyles((theme, _, u) => ({
   table: {
     width: "100%",
   },
 
   rule_type: {
     fontSize: "0.9rem",
-    color: theme.colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
+    [u.dark]: {
+      color: theme.colors.gray[6],
+    },
+    [u.light]: {
+      color: theme.colors.dark[3],
+    },
   },
 
   rule_extra_info: {
     fontSize: "0.8rem",
-    color: theme.colorScheme === "dark" ? theme.colors.gray[4] : theme.colors.dark[6],
+    [u.dark]: {
+      color: theme.colors.gray[4],
+    },
+    [u.light]: {
+      color: theme.colors.dark[6],
+    },
   },
 
   item: {
-    backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white,
-    "&:hover": {
-      backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[9] : theme.colors.gray[1],
+    [u.dark]: {
+      backgroundColor: theme.colors.dark[7],
+      "&:hover": {
+        backgroundColor: theme.colors.dark[9],
+      },
+    },
+    [u.light]: {
+      backgroundColor: theme.white,
+      "&:hover": {
+        backgroundColor: theme.colors.gray[1],
+      },
     },
   },
 
   dragHandle: {
-    ...theme.fn.focusStyles(),
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

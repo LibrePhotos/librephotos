@@ -20,8 +20,8 @@ import {
   Text,
   TextInput,
   Title,
-  createStyles,
 } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBook as Book,
@@ -56,7 +56,7 @@ import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { IUser } from "../../store/user/user.zod";
 
-const useStyles = createStyles(theme => ({
+const useStyles = createStyles((theme, _, u) => ({
   button: {
     borderTopRightRadius: 0,
     borderBottomRightRadius: 0,
@@ -66,7 +66,12 @@ const useStyles = createStyles(theme => ({
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
     border: 0,
-    borderLeft: `1px solid ${theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.white}`,
+    [u.dark]: {
+      borderLeft: `1px solid ${theme.colors.dark[7]}`,
+    },
+    [u.light]: {
+      borderLeft: `1px solid ${theme.white}`,
+    },
   },
 }));
 

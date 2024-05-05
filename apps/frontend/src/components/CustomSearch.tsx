@@ -1,5 +1,6 @@
-import { Autocomplete, Avatar, Group, Text, createStyles } from "@mantine/core";
+import { Autocomplete, Avatar, Group, Text } from "@mantine/core";
 import type { AutocompleteItem } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
 import { useInterval, useViewportSize } from "@mantine/hooks";
 import {
   IconAlbum as Album,
