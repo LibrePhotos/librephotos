@@ -1,6 +1,7 @@
-import { Box, Group } from "@mantine/core";
-import { useScrollLock, useViewportSize } from "@mantine/hooks";
-import _ from "lodash";
+import { Box, Group, RemoveScroll } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
+import { useViewportSize } from "@mantine/hooks";
+import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -50,6 +51,37 @@ type SelectionState = {
   selectMode: boolean;
 };
 
+const useStyles = createStyles((theme, _, u) => ({
+  container: {
+    boxSizing: "border-box",
+    cursor: "pointer",
+    padding: 6,
+    position: "sticky",
+    textAlign: "center",
+    top: 45,
+    width: "100%",
+    zIndex: 10,
+    [u.dark]: {
+      backgroundColor: theme.colors.dark[6],
+    },
+    [u.light]: {
+      backgroundColor: theme.colors.gray[0],
+    },
+  },
+  innerContainer: {
+    textAlign: "center",
+    cursor: "pointer",
+    borderRadius: 10,
+    padding: 4,
+    [u.dark]: {
+      backgroundColor: theme.colors.dark[7],
+    },
+    [u.light]: {
+      backgroundColor: theme.colors.gray[2],
+    },
+  },
+}));
+
 function PhotoListViewComponent(props: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<Pig>(null);
@@ -63,10 +95,10 @@ function PhotoListViewComponent(props: Props) {
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const gridHeight = useRef(200);
-  const setScrollLocked = useScrollLock(false)[1];
+  const [scrollLocked, setScrollLocked] = useState(false);
   const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
   const [setPersonAlbumCover] = useSetPersonAlbumCoverMutation();
-
+  const { classes } = useStyles();
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
   const {
@@ -98,13 +130,13 @@ function PhotoListViewComponent(props: Props) {
   }, [idx2hash]);
 
   const throttledUpdateGroups = useCallback(
-    _.throttle(visibleItems => updateGroups(visibleItems), 500),
+    throttle(visibleItems => updateGroups(visibleItems), 500),
     []
   );
 
   /* eslint-disable react-hooks/exhaustive-deps */
   const throttledUpdateItems = useCallback(
-    _.throttle(visibleItems => updateItems(visibleItems), 500),
+    throttle(visibleItems => updateItems(visibleItems), 500),
     []
   );
 
@@ -237,22 +269,8 @@ function PhotoListViewComponent(props: Props) {
   }
 
   return (
-    <div>
-      <Box
-        sx={theme => ({
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-          textAlign: "center",
-          cursor: "pointer",
-          position: "sticky",
-        })}
-        style={{
-          width: "100%",
-          zIndex: 10,
-          boxSizing: "border-box",
-          top: 45,
-          padding: 6,
-        }}
-      >
+    <RemoveScroll enabled={scrollLocked}>
+      <Box className={classes.container}>
         {header || (
           <DefaultHeader
             // @ts-ignore
@@ -270,22 +288,12 @@ function PhotoListViewComponent(props: Props) {
           />
         )}
         {!loading && !isPublic && getNumPhotos() > 0 && (
-          <Box
-            sx={theme => ({
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
-              textAlign: "center",
-              cursor: "pointer",
-              borderRadius: 10,
-            })}
-            style={{
-              padding: 4,
-            }}
-          >
+          <Box className={classes.innerContainer}>
             <Group
               style={{
                 paddingLeft: 10,
               }}
-              position="apart"
+              align="apart"
             >
               <SelectionBar
                 selectMode={selectionState.selectMode}
@@ -293,7 +301,7 @@ function PhotoListViewComponent(props: Props) {
                 idx2hash={idx2hash}
                 updateSelectionState={updateSelectionState}
               />
-              <Group position="right">
+              <Group align="right">
                 {!route.location.pathname.startsWith("/deleted") && (
                   <SelectionActions
                     selectedItems={selectionState.selectedItems}
@@ -431,7 +439,7 @@ function PhotoListViewComponent(props: Props) {
           albumID={params?.albumID ?? ""}
         />
       )}
-    </div>
+    </RemoveScroll>
   );
 }
 

@@ -1,4 +1,4 @@
-import { Button, Grid, Group, Header, Image } from "@mantine/core";
+import { Button, Grid, Group, Image } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconMenu2 as Menu2 } from "@tabler/icons-react";
 import React, { useEffect } from "react";
@@ -40,15 +40,15 @@ export function TopMenuPublic() {
   }, [auth.access, dispatch]);
 
   return (
-    <Header height={45}>
+    <Group h={45}>
       <Grid justify="space-between" grow style={{ padding: 5 }}>
         {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
         <Grid.Col span={1}>
-          <Group position="right">
+          <Group align="right">
             <Button onClick={() => dispatch(push("/login"))}>Login</Button>
           </Group>
         </Grid.Col>
       </Grid>
-    </Header>
+    </Group>
   );
 }

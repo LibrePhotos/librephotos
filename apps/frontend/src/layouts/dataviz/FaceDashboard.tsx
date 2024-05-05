@@ -1,6 +1,6 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
-import { Stack } from "@mantine/core";
-import { useElementSize, useScrollLock } from "@mantine/hooks";
+import { RemoveScroll, Stack } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
@@ -36,7 +36,7 @@ export function FaceDashboard() {
   const [lightboxShow, setLightboxShow] = useState(false);
 
   const [scrollTo, setScrollTo] = useState<number | null>(null);
-  const setScrollLocked = useScrollLock(false)[1];
+  const [scrollLocked, setScrollLocked] = useState(false);
 
   const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
   const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true }).isFetching;
@@ -318,88 +318,94 @@ export function FaceDashboard() {
   };
 
   return (
-    <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
-      <Stack>
-        <TabComponent
-          width={width}
-          fetchingLabeledFacesList={fetchingLabeledFacesList}
-          fetchingInferredFacesList={fetchingInferredFacesList}
-        />
-        <ButtonHeaderGroup
-          selectMode={selectMode}
+    <RemoveScroll enabled={scrollLocked}>
+      <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
+        <Stack>
+          <TabComponent
+            width={width}
+            fetchingLabeledFacesList={fetchingLabeledFacesList}
+            fetchingInferredFacesList={fetchingInferredFacesList}
+          />
+          <ButtonHeaderGroup
+            selectMode={selectMode}
+            selectedFaces={selectedFaces}
+            changeSelectMode={changeSelectMode}
+            addFaces={addFaces}
+            deleteFaces={deleteSelectedFaces}
+            notThisPerson={notThisPersonFunc}
+          />
+        </Stack>
+        <div ref={ref} style={{ flexGrow: 1 }}>
+          <AutoSizer>
+            {({ height, width: gridWidth }) => (
+              <ScrollScrubber
+                scrollPositions={dataForScrollIndicator}
+                scrollToY={setScrollTo}
+                targetHeight={gridHeight}
+                type={ScrollerType.enum.alphabet}
+              >
+                <Grid
+                  ref={gridRef}
+                  className="scrollscrubbertarget"
+                  style={{ overflowX: "hidden" }}
+                  disableHeader={false}
+                  cellRenderer={cellRenderer}
+                  columnWidth={entrySquareSize}
+                  columnCount={numEntrySquaresPerRow}
+                  rowHeight={entrySquareSize}
+                  onSectionRendered={onSectionRendered}
+                  height={height}
+                  width={gridWidth}
+                  rowCount={
+                    activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length
+                  }
+                  scrollTop={tabs[activeTab].scrollPosition}
+                  onScroll={handleGridScroll}
+                />
+              </ScrollScrubber>
+            )}
+          </AutoSizer>
+        </div>
+        <ModalPersonEdit
+          isOpen={modalPersonEditOpen}
+          onRequestClose={() => {
+            setModalPersonEditOpen(false);
+            setSelectedFaces([]);
+          }}
+          resetGroups={() => {
+            // Reset groups to force refetch of faces when adding faces to a person
+            setGroups([]);
+          }}
           selectedFaces={selectedFaces}
-          changeSelectMode={changeSelectMode}
-          addFaces={addFaces}
-          deleteFaces={deleteSelectedFaces}
-          notThisPerson={notThisPersonFunc}
         />
-      </Stack>
-      <div ref={ref} style={{ flexGrow: 1 }}>
-        <AutoSizer>
-          {({ height, width: gridWidth }) => (
-            <ScrollScrubber
-              scrollPositions={dataForScrollIndicator}
-              scrollToY={setScrollTo}
-              targetHeight={gridHeight}
-              type={ScrollerType.enum.alphabet}
-            >
-              <Grid
-                ref={gridRef}
-                className="scrollscrubbertarget"
-                style={{ overflowX: "hidden" }}
-                disableHeader={false}
-                cellRenderer={cellRenderer}
-                columnWidth={entrySquareSize}
-                columnCount={numEntrySquaresPerRow}
-                rowHeight={entrySquareSize}
-                onSectionRendered={onSectionRendered}
-                height={height}
-                width={gridWidth}
-                rowCount={
-                  activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length
-                }
-                scrollTop={tabs[activeTab].scrollPosition}
-                onScroll={handleGridScroll}
-              />
-            </ScrollScrubber>
-          )}
-        </AutoSizer>
+        {lightboxShow && (
+          <LightBox
+            isPublic={false}
+            idx2hash={idx2hash}
+            lightboxImageIndex={lightboxImageIndex}
+            lightboxImageId={lightboxImageId}
+            onCloseRequest={() => {
+              setLightboxShow(false);
+              setScrollLocked(false);
+            }}
+            onImageLoad={() => {
+              getPhotoDetails(idx2hash[lightboxImageIndex].id);
+            }}
+            onMovePrevRequest={() => {
+              const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
+              setLightboxImageIndex(prevIndex);
+              setLightboxImageId(idx2hash[prevIndex].id);
+              getPhotoDetails(idx2hash[prevIndex].id);
+            }}
+            onMoveNextRequest={() => {
+              const nextIndex = (lightboxImageIndex + idx2hash.length + 1) % idx2hash.length;
+              setLightboxImageIndex(nextIndex);
+              setLightboxImageId(idx2hash[nextIndex].id);
+              getPhotoDetails(idx2hash[nextIndex].id);
+            }}
+          />
+        )}
       </div>
-      <ModalPersonEdit
-        isOpen={modalPersonEditOpen}
-        onRequestClose={() => {
-          setModalPersonEditOpen(false);
-          setSelectedFaces([]);
-        }}
-        selectedFaces={selectedFaces}
-      />
-      {lightboxShow && (
-        <LightBox
-          isPublic={false}
-          idx2hash={idx2hash}
-          lightboxImageIndex={lightboxImageIndex}
-          lightboxImageId={lightboxImageId}
-          onCloseRequest={() => {
-            setLightboxShow(false);
-            setScrollLocked(false);
-          }}
-          onImageLoad={() => {
-            getPhotoDetails(idx2hash[lightboxImageIndex].id);
-          }}
-          onMovePrevRequest={() => {
-            const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
-            setLightboxImageIndex(prevIndex);
-            setLightboxImageId(idx2hash[prevIndex].id);
-            getPhotoDetails(idx2hash[prevIndex].id);
-          }}
-          onMoveNextRequest={() => {
-            const nextIndex = (lightboxImageIndex + idx2hash.length + 1) % idx2hash.length;
-            setLightboxImageIndex(nextIndex);
-            setLightboxImageId(idx2hash[nextIndex].id);
-            getPhotoDetails(idx2hash[nextIndex].id);
-          }}
-        />
-      )}
-    </div>
+    </RemoveScroll>
   );
 }
