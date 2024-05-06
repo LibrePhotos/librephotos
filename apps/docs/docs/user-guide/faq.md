@@ -71,3 +71,24 @@ You can set the scan directory as read-only, but then a couple of features will 
 - Deleting images
 
 This is not yet handled gracefully, which means, you will probably just get non-descriptive errors, when you are trying to use these features.
+
+## Videos are not playing and showing a 404 error
+
+### Reason 1:
+The video may be encoded in h.265 format, which is not supported by your browser. You can enable "Always transcode videos" under Experimental Settings to resolve this issue. On the other hand, this will be quite CPU heavy.
+
+### Reason 2:
+The issue could be caused by incorrect file permissions. You can resolve this by adjusting the permissions using the following commands:
+
+```
+find . -type d -exec chmod 755 {} +
+find . -type f -exec chmod 644 {} +
+```
+
+These commands will ensure that directories have permissions set to 755 and files have permissions set to 644, which should resolve any permission-related issues causing the 404 error.
+
+
+
+
+
+
