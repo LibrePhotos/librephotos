@@ -14,8 +14,6 @@ export const Server = axios.create({
   },
   withCredentials: true,
   timeout: 30000,
-  xsrfHeaderName: "X-CSRFToken",
-  xsrfCookieName: "csrftoken",
 });
 
 Server.interceptors.request.use(

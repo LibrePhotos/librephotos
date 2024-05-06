@@ -2,7 +2,6 @@ import type { BaseQueryResult } from "@reduxjs/toolkit/dist/query/baseQueryTypes
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { Cookies } from "react-cookie";
 
 import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
 import type {
@@ -72,8 +71,6 @@ const baseQuery = fetchBaseQuery({
   credentials: "include",
 
   prepareHeaders: (headers, { getState, endpoint }) => {
-    const cookies = new Cookies();
-    headers.set("X-CSRFToken", cookies.get("csrftoken"));
     const { user } = getState() as RootState;
     const { access } = (getState() as RootState).auth;
     if (access !== null && user && endpoint !== "refresh") {

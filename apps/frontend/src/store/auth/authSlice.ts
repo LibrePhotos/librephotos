@@ -29,7 +29,6 @@ const authSlice = createSlice({
     }),
     logout: () => {
       const cookies = new Cookies();
-      cookies.remove("csrftoken");
       cookies.remove("test");
       cookies.remove("jwt");
       return initialState;
