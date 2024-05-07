@@ -17,7 +17,6 @@ from django.http import (
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.cache import cache_page
-from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.vary import vary_on_cookie
 from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
@@ -84,7 +83,6 @@ class SiteSettingsView(APIView):
 
         return super(SiteSettingsView, self).get_permissions()
 
-    @method_decorator(ensure_csrf_cookie)
     def get(self, request, format=None):
         out = {}
         out["allow_registration"] = site_config.ALLOW_REGISTRATION
