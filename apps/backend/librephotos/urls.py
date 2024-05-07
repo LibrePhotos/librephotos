@@ -66,8 +66,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        response.set_cookie("jwt", response.data["access"])
-        response.set_cookie("test", "obtain")
         response["Access-Control-Allow-Credentials"] = 'true'
         return response
 
@@ -76,8 +74,6 @@ class CustomTokenRefreshView(TokenRefreshView):
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        response.set_cookie("jwt", response.data["access"])
-        response.set_cookie("test", "refresh")
         response["Access-Control-Allow-Credentials"] = 'true'
         return response
 
