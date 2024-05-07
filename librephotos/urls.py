@@ -43,7 +43,7 @@ from api.views import (
 from nextcloud import views as nextcloud_views
 
 
-class TokenObtainPairSerializer(TokenObtainPairSerializer):
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super(TokenObtainPairSerializer, cls).get_token(user)
@@ -57,30 +57,28 @@ class TokenObtainPairSerializer(TokenObtainPairSerializer):
         token["semantic_search_topk"] = user.semantic_search_topk
         token["nextcloud_server_address"] = user.nextcloud_server_address
         token["nextcloud_username"] = user.nextcloud_username
-        # ...
 
         return token
 
 
-class TokenObtainPairView(TokenObtainPairView):
-    serializer_class = TokenObtainPairSerializer
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        response = super(TokenObtainPairView, self).post(request, *args, **kwargs)
+        response = super().post(request, *args, **kwargs)
         response.set_cookie("jwt", response.data["access"])
         response.set_cookie("test", "obtain")
-        response["Access-Control-Allow-Credentials"] = True
+        response["Access-Control-Allow-Credentials"] = 'true'
         return response
 
-
-class TokenRefreshView(TokenRefreshView):
-    serializer_class = TokenRefreshSerializer
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
-        response = super(TokenRefreshView, self).post(request, *args, **kwargs)
+        response = super().post(request, *args, **kwargs)
         response.set_cookie("jwt", response.data["access"])
         response.set_cookie("test", "refresh")
-        response["Access-Control-Allow-Credentials"] = True
+        response["Access-Control-Allow-Credentials"] = 'true'
         return response
 
 
@@ -216,8 +214,8 @@ urlpatterns = [
     re_path(r"^api/locclust", dataviz.LocationClustersView.as_view()),
     re_path(r"^api/photomonthcounts", dataviz.PhotoMonthCountsView.as_view()),
     re_path(r"^api/wordcloud", dataviz.SearchTermWordCloudView.as_view()),
-    re_path(r"^api/auth/token/obtain/$", TokenObtainPairView.as_view()),
-    re_path(r"^api/auth/token/refresh/$", TokenRefreshView.as_view()),
+    re_path(r"^api/auth/token/obtain/$", CustomTokenObtainPairView.as_view()),
+    re_path(r"^api/auth/token/refresh/$", CustomTokenRefreshView.as_view()),
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
         views.MediaAccessFullsizeOriginalView.as_view(),
