@@ -66,15 +66,16 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        response["Access-Control-Allow-Credentials"] = 'true'
+        response["Access-Control-Allow-Credentials"] = "true"
         return response
 
+
 class CustomTokenRefreshView(TokenRefreshView):
-    serializer_class = CustomTokenRefreshSerializer
+    serializer_class = TokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
-        response["Access-Control-Allow-Credentials"] = 'true'
+        response["Access-Control-Allow-Credentials"] = "true"
         return response
 
 
