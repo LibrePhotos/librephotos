@@ -17,8 +17,16 @@ export const Server = axios.create({
 });
 
 Server.interceptors.request.use(
-  request => request,
-  () => {}
+  config => {
+    const { auth } = store.getState();
+    const accessToken = auth.access.token;
+    if (accessToken) {
+      // eslint-disable-next-line no-param-reassign
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return config;
+  },
+  error => Promise.reject(error)
 );
 
 Server.interceptors.response.use(
