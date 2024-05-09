@@ -163,7 +163,6 @@ class Photo(models.Model):
     def _generate_captions_im2txt(self, commit=True):
         image_path = self.thumbnail_big.path
         captions = self.captions_json
-        search_captions = self.search_captions
         try:
             from constance import config as site_config
 
@@ -206,8 +205,7 @@ class Photo(models.Model):
 
             captions["im2txt"] = caption
             self.captions_json = captions
-            # todo: handle duplicate captions
-            self.search_captions = search_captions + caption
+            self._recreate_search_captions()
             if commit:
                 self.save()
             util.logger.info(
@@ -223,17 +221,16 @@ class Photo(models.Model):
 
     def _save_captions(self, commit=True, caption=None):
         image_path = self.thumbnail_big.path
-        search_captions = self.search_captions
         try:
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
             self.captions_json["user_caption"] = caption
-            self.search_captions = caption
+            self._recreate_search_captions()
             if commit:
                 self.save(update_fields=["captions_json", "search_captions"])
 
             util.logger.info(
-                "saved captions for image %s. caption: %s. search_captions: %s. captions_json: %s."
-                % (image_path, caption, search_captions, self.captions_json)
+                "saved captions for image %s. caption: %s. captions_json: %s."
+                % (image_path, caption, self.captions_json)
             )
 
             hashtags = [
@@ -260,42 +257,54 @@ class Photo(models.Model):
                     album_thing.save()
             return True
         except Exception:
-            util.logger.warning("could not save captions for image %s" % image_path)
+            util.logger.exception("could not save captions for image %s" % image_path)
             return False
+
+    def _recreate_search_captions(self):
+        search_captions = ""
+        places365_captions = self.captions_json.get("places365", {})
+
+        attributes = places365_captions.get("attributes", [])
+        search_captions += " ".join(attributes) + " "
+
+        categories = places365_captions.get("categories", [])
+        search_captions += " ".join(categories) + " "
+
+        environment = places365_captions.get("environment", "")
+        search_captions += environment + " "
+
+        user_caption = self.captions_json.get("user_caption", "")
+        search_captions += user_caption + " "
+
+        self.search_captions = search_captions.strip()  # Remove trailing space
+        util.logger.debug(
+            "Recreated search captions for image %s." % (self.thumbnail_big.path)
+        )
+        self.save()
 
     def _generate_captions(self, commit):
         try:
             image_path = self.thumbnail_big.path
-            captions = {}
             confidence = self.owner.confidence
             res_places365 = place365_instance.inference_places365(
                 image_path, confidence
             )
-            captions["places365"] = res_places365
-            self.captions_json = captions
-            if self.search_captions:
-                self.search_captions = (
-                    self.search_captions
-                    + " , "
-                    + " , ".join(
-                        res_places365["categories"] + [res_places365["environment"]]
-                    )
-                )
-            else:
-                self.search_captions = " , ".join(
-                    res_places365["categories"] + [res_places365["environment"]]
-                )
+            if res_places365 is None:
+                return
 
-            # Add to album things, when photo is not yet in any album thing with type places365_attribute or places365_category
-            if api.models.album_thing.AlbumThing.objects.filter(
+            self.captions_json["places365"] = res_places365
+            self._recreate_search_captions()
+            # Remove from all places365_attribute and places365_category albums
+            for album_thing in api.models.album_thing.AlbumThing.objects.filter(
                 Q(photos__in=[self.image_hash])
                 & (
                     Q(thing_type="places365_attribute")
                     or Q(thing_type="places365_category")
                 )
                 & Q(owner=self.owner)
-            ).exists():
-                return
+            ).all():
+                album_thing.photos.remove(self)
+                album_thing.save()
 
             for attribute in res_places365["attributes"]:
                 album_thing = api.models.album_thing.get_album_thing(
