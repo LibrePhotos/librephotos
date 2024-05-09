@@ -136,11 +136,6 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
             return AlbumThing.objects.none()
         return (
             AlbumThing.objects.filter(Q(owner=self.request.user))
-            .annotate(
-                photo_count=Count(
-                    "photos", filter=Q(photos__hidden=False), distinct=True
-                )
-            )
             .filter(Q(photo_count__gt=0))
             .prefetch_related(
                 Prefetch(
