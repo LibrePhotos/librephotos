@@ -7,7 +7,7 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 ENV CLI_WIDTH 80
 RUN git clone https://github.com/LibrePhotos/librephotos-frontend /usr/src/app
-RUN yarn install
+RUN yarn install --network-timeout 1000000
 RUN yarn run build
 RUN git rev-parse --short HEAD > /usr/src/app/dist/git_hash.txt
 
