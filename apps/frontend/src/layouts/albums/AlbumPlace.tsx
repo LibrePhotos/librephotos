@@ -33,8 +33,8 @@ export function AlbumPlace({ height }: Props) {
     const ne = map.getBounds().getNorthEast();
     const sw = map.getBounds().getSouthWest();
     const markers = locations.filter(loc => {
-      const markerLat = loc[0];
-      const markerLng = loc[1];
+      const markerLng = loc[0];
+      const markerLat = loc[1];
       return markerLat < ne.lat && markerLat > sw.lat && markerLng < ne.lng && markerLng > sw.lng;
     });
 
