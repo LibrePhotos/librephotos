@@ -6,6 +6,14 @@ from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
 
 
+def update_default_cover_photo(instance):
+    if instance.cover_photos.count() < 4:
+        photos_to_add = instance.photos.filter(hidden=False)[
+            : 4 - instance.cover_photos.count()
+        ]
+        instance.cover_photos.add(*photos_to_add)
+
+
 class AlbumThing(models.Model):
     title = models.CharField(max_length=512, db_index=True)
     photos = models.ManyToManyField(Photo)
@@ -27,20 +35,24 @@ class AlbumThing(models.Model):
             )
         ]
 
-    def _set_default_cover_photo(self):
-        if self.cover_photos.count() < 4:
-            self.cover_photos.add(*self.photos.all()[:4])
+    def save(self, *args, **kwargs):
+        # Update default cover photos whenever the AlbumThing is saved
+        self.update_default_cover_photo()
+        super().save(*args, **kwargs)
+
+    def update_default_cover_photo(self):
+        update_default_cover_photo(self)
 
     def __str__(self):
         return "%d: %s" % (self.id, self.title)
 
 
 @receiver(m2m_changed, sender=AlbumThing.photos.through)
-def update_default_cover_photo(sender, instance, action, **kwargs):
-    if action == "post_add":
-        instance._set_default_cover_photo()
-        instance.photo_count = instance.photos.filter(hidden=False).count()
-        instance.save()
+def update_photo_count(sender, instance, action, reverse, model, pk_set, **kwargs):
+    if action == "post_add" or (action == "post_remove" and not reverse):
+        count = instance.photos.filter(hidden=False).count()
+        instance.photo_count = count
+        instance.save(update_fields=["photo_count"])
 
 
 def get_album_thing(title, owner, thing_type=None):
