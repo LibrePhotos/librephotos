@@ -18,7 +18,6 @@ class SearchListViewSet(ListViewSet):
         "search_captions",
         "search_location",
         "exif_timestamp",
-        "lens",
     ]
 
     def get_queryset(self):
