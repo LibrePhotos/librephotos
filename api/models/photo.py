@@ -276,6 +276,15 @@ class Photo(models.Model):
         user_caption = self.captions_json.get("user_caption", "")
         search_captions += user_caption + " "
 
+        for face in api.models.face.Face.objects.filter(photo=self).all():
+            search_captions += face.person.name + " "
+
+        for file in self.files.all():
+            search_captions += file.path + " "
+
+        if self.video:
+            search_captions += "type: video "
+
         self.search_captions = search_captions.strip()  # Remove trailing space
         util.logger.debug(
             "Recreated search captions for image %s." % (self.thumbnail_big.path)

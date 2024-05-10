@@ -171,6 +171,7 @@ class SetFacePersonLabel(APIView):
                 not_updated.append(FaceListSerializer(face).data)
         person._calculate_face_count()
         person._set_default_cover_photo()
+        face.photo._recreate_search_captions()
         return Response(
             {
                 "status": True,
