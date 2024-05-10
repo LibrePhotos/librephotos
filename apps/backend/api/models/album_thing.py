@@ -44,7 +44,7 @@ class AlbumThing(models.Model):
         update_default_cover_photo(self)
 
     def __str__(self):
-        return "%d: %s" % (self.id, self.title)
+        return "%d: %s" % (self.id or 0, self.title)
 
 
 @receiver(m2m_changed, sender=AlbumThing.photos.through)
