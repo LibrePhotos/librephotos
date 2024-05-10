@@ -17,13 +17,8 @@ class SearchListViewSet(ListViewSet):
     search_fields = [
         "search_captions",
         "search_location",
-        # To-Do: Leads to exceptionally slow queries with large datasets
-        # "faces__person__name",
         "exif_timestamp",
         "lens",
-        # To-Do: Leads to exceptionally slow queries with large datasets
-        # "main_file__path",
-        # To-Do: Allow searching for videos
     ]
 
     def get_queryset(self):
