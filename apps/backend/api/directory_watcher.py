@@ -248,6 +248,7 @@ def rescan_image(user, path, job_id):
             photo._extract_rating(True)
             photo._extract_video_length(True)
             photo._get_dominant_color()
+            photo._recreate_search_captions()
 
     except Exception as e:
         try:
