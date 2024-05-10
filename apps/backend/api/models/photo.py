@@ -285,6 +285,9 @@ class Photo(models.Model):
         if self.video:
             search_captions += "type: video "
 
+        search_captions += self.camera + " "
+        search_captions += self.lens + " "
+
         self.search_captions = search_captions.strip()  # Remove trailing space
         util.logger.debug(
             "Recreated search captions for image %s." % (self.thumbnail_big.path)
