@@ -291,6 +291,8 @@ class Photo(models.Model):
             )
             if res_places365 is None:
                 return
+            if self.captions_json is None:
+                self.captions_json = {}
 
             self.captions_json["places365"] = res_places365
             self._recreate_search_captions()
