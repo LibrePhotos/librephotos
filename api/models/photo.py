@@ -285,8 +285,10 @@ class Photo(models.Model):
         if self.video:
             search_captions += "type: video "
 
-        search_captions += self.camera + " "
-        search_captions += self.lens + " "
+        if self.camera:
+            search_captions += self.camera + " "
+        if self.lens:
+            search_captions += self.lens + " "
 
         self.search_captions = search_captions.strip()  # Remove trailing space
         util.logger.debug(
@@ -319,24 +321,24 @@ class Photo(models.Model):
             ).all():
                 album_thing.photos.remove(self)
                 album_thing.save()
-
-            for attribute in res_places365["attributes"]:
-                album_thing = api.models.album_thing.get_album_thing(
-                    title=attribute,
-                    owner=self.owner,
-                    thing_type="places365_attribute",
-                )
-                album_thing.photos.add(self)
-                album_thing.save()
-
-            for category in res_places365["categories"]:
-                album_thing = api.models.album_thing.get_album_thing(
-                    title=category,
-                    owner=self.owner,
-                    thing_type="places365_category",
-                )
-                album_thing.photos.add(self)
-                album_thing.save()
+            if "attributes" in res_places365:
+                for attribute in res_places365["attributes"]:
+                    album_thing = api.models.album_thing.get_album_thing(
+                        title=attribute,
+                        owner=self.owner,
+                        thing_type="places365_attribute",
+                    )
+                    album_thing.photos.add(self)
+                    album_thing.save()
+            if "categories" in res_places365:
+                for category in res_places365["categories"]:
+                    album_thing = api.models.album_thing.get_album_thing(
+                        title=category,
+                        owner=self.owner,
+                        thing_type="places365_category",
+                    )
+                    album_thing.photos.add(self)
+                    album_thing.save()
 
             if commit:
                 self.save()

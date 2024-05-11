@@ -221,6 +221,14 @@ def handle_new_image(user, path, job_id, photo=None):
             util.logger.info(
                 "job {}: image processed: {}, elapsed: {}".format(job_id, path, elapsed)
             )
+            photo._recreate_search_captions()
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: seach caption recreated: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+
     except Exception as e:
         try:
             util.logger.exception(
