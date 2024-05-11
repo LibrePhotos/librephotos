@@ -262,19 +262,21 @@ class Photo(models.Model):
 
     def _recreate_search_captions(self):
         search_captions = ""
-        places365_captions = self.captions_json.get("places365", {})
 
-        attributes = places365_captions.get("attributes", [])
-        search_captions += " ".join(attributes) + " "
+        if self.captions_json:
+            places365_captions = self.captions_json.get("places365", {})
 
-        categories = places365_captions.get("categories", [])
-        search_captions += " ".join(categories) + " "
+            attributes = places365_captions.get("attributes", [])
+            search_captions += " ".join(attributes) + " "
 
-        environment = places365_captions.get("environment", "")
-        search_captions += environment + " "
+            categories = places365_captions.get("categories", [])
+            search_captions += " ".join(categories) + " "
 
-        user_caption = self.captions_json.get("user_caption", "")
-        search_captions += user_caption + " "
+            environment = places365_captions.get("environment", "")
+            search_captions += environment + " "
+
+            user_caption = self.captions_json.get("user_caption", "")
+            search_captions += user_caption + " "
 
         for face in api.models.face.Face.objects.filter(photo=self).all():
             search_captions += face.person.name + " "
@@ -287,6 +289,7 @@ class Photo(models.Model):
 
         if self.camera:
             search_captions += self.camera + " "
+
         if self.lens:
             search_captions += self.lens + " "
 
@@ -310,7 +313,7 @@ class Photo(models.Model):
 
             self.captions_json["places365"] = res_places365
             self._recreate_search_captions()
-            # Remove from all places365_attribute and places365_category albums
+
             for album_thing in api.models.album_thing.AlbumThing.objects.filter(
                 Q(photos__in=[self.image_hash])
                 & (
@@ -321,6 +324,7 @@ class Photo(models.Model):
             ).all():
                 album_thing.photos.remove(self)
                 album_thing.save()
+
             if "attributes" in res_places365:
                 for attribute in res_places365["attributes"]:
                     album_thing = api.models.album_thing.get_album_thing(
@@ -330,6 +334,7 @@ class Photo(models.Model):
                     )
                     album_thing.photos.add(self)
                     album_thing.save()
+
             if "categories" in res_places365:
                 for category in res_places365["categories"]:
                     album_thing = api.models.album_thing.get_album_thing(
