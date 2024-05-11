@@ -36,8 +36,6 @@ class AlbumThing(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        # Update default cover photos whenever the AlbumThing is saved
-        self.update_default_cover_photo()
         super().save(*args, **kwargs)
 
     def update_default_cover_photo(self):
@@ -53,6 +51,7 @@ def update_photo_count(sender, instance, action, reverse, model, pk_set, **kwarg
         count = instance.photos.filter(hidden=False).count()
         instance.photo_count = count
         instance.save(update_fields=["photo_count"])
+        instance.update_default_cover_photo()
 
 
 def get_album_thing(title, owner, thing_type=None):
