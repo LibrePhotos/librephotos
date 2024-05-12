@@ -695,7 +695,6 @@ class ZipListPhotosView_V2(APIView):
 
 class DeleteZipView(APIView):
     def delete(self, request, fname):
-        print("hello")
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
