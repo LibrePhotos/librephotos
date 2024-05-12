@@ -82,31 +82,31 @@ class OpenCageLocation:
 class TestGeocodeParsers(TestCase):
     def test_mapbox_parser(self):
         for index, raw in enumerate(mapbox_responses):
-            self.assertEquals(
+            self.assertEqual(
                 parse_mapbox(MapboxLocation(raw)), mapbox_expectations[index]
             )
 
     def test_tomtom_parser(self):
         for index, raw in enumerate(tomtom_responses):
-            self.assertEquals(
+            self.assertEqual(
                 parse_tomtom(TomTomLocation(raw)), tomtom_expectations[index]
             )
 
     def test_photon_parser(self):
         for index, raw in enumerate(photon_responses):
-            self.assertEquals(
+            self.assertEqual(
                 parse_photon(PhotonLocation(raw)), photon_expectations[index]
             )
 
     def test_nominatim_parser(self):
         for index, raw in enumerate(nominatim_responses):
-            self.assertEquals(
+            self.assertEqual(
                 parse_nominatim(NominatimLocation(raw)), nominatim_expectations[index]
             )
 
     def test_opencage_parser(self):
         for index, raw in enumerate(opencage_responses):
-            self.assertEquals(
+            self.assertEqual(
                 parse_opencage(OpenCageLocation(raw)), opencage_expectations[index]
             )
 
@@ -138,11 +138,11 @@ class TestGeocoder(TestCase):
     def test_reverse_geocode(self, get_geocoder_for_service_mock):
         get_geocoder_for_service_mock.return_value = fake_geocoder(mapbox_responses[1])
         result = reverse_geocode(0, 0)
-        self.assertEquals(result, mapbox_expectations[1])
+        self.assertEqual(result, mapbox_expectations[1])
 
     @override_config(MAP_API_PROVIDER="mapbox")
     @override_config(MAP_API_KEY="")
     def test_reverse_geocode_no_api_key(self):
         result = reverse_geocode(0, 0)
         print(result)
-        self.assertEquals(result, {})
+        self.assertEqual(result, {})
