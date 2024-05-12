@@ -1,5 +1,6 @@
 import re
 
+from django.conf import settings
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Count, F, Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
@@ -281,14 +282,26 @@ class AlbumUserListViewSet(ListViewSet):
     def get_queryset(self):
         if self.request.user.is_anonymous:
             return AlbumUser.objects.none()
+
+        if settings.SHARED_ALBUM_ALL_ADD:
+            query = AlbumUser.objects.filter(
+                Q(owner=self.request.user) | Q(shared_to__id__exact=self.request.user.id)
+            )
+        else:
+            query = AlbumUser.objects.filter(owner=self.request.user)
+
         return (
-            AlbumUser.objects.filter(owner=self.request.user)
+            query
             .annotate(
                 photo_count=Count(
                     "photos", filter=Q(photos__hidden=False), distinct=True
                 )
             )
-            .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
+            .filter(
+                Q(photo_count__gt=0),
+                # TODO: Filtering again needed?
+                Q(owner=self.request.user) | Q(shared_to__id__exact=self.request.user.id)
+            )
             .order_by("title")
         )
 

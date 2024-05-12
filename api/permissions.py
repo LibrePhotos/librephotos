@@ -1,7 +1,10 @@
+from typing import Optional
+
+from django.conf import settings
 from constance import config as site_config
 from rest_framework import permissions
 
-from api.models import User
+from api.models import User, Photo
 
 
 class IsAdminOrSelf(permissions.BasePermission):
@@ -54,23 +57,41 @@ class IsUserOrReadOnly(permissions.BasePermission):
         return obj == request.user
 
 
+def user_has_photo_permission(user: Optional[User], photo: Photo) -> bool:
+    """
+    Checks if user has photo permissions.
+    """
+    # Everybody allowed to see
+    if photo.public:
+        return True
+
+    # No user and not public
+    if user is None:
+        return False
+
+    # Allowed for owner
+    if user == photo.owner or user in photo.shared_to.all():
+        return True
+
+    for album in photo.albumuser_set.only("shared_to"):
+        # Photo not owned by album owner
+        # TODO: site_config?
+        if settings.SHARED_ALBUM_ALL_ADD and user == album.owner:
+            return True
+        # Album shared with user
+        if user in album.shared_to.all():
+            return True
+
+    return False
+
+
 class IsPhotoOrAlbumSharedTo(permissions.BasePermission):
     """
     Custom permission to only allow owners of an object to edit it.
     """
 
     def has_object_permission(self, request, view, obj):
-        if obj.public:
-            return True
-
-        if obj.owner == request.user or request.user in obj.shared_to.all():
-            return True
-
-        for album in obj.albumuser_set.only("shared_to"):
-            if request.user in album.shared_to.all():
-                return True
-
-        return False
+        return user_has_photo_permission(request.user, obj)
 
 
 class IsRegistrationAllowed(permissions.BasePermission):

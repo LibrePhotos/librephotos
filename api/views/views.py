@@ -33,6 +33,7 @@ from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
 from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
+from api.permissions import user_has_photo_permission
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
 from api.util import logger
@@ -70,7 +71,15 @@ class AlbumUserEditViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_anonymous:
             return AlbumUser.objects.none()
-        return AlbumUser.objects.filter(owner=self.request.user).order_by("title")
+
+        if settings.SHARED_ALBUM_ALL_ADD:
+            query = AlbumUser.objects.filter(
+                Q(owner=self.request.user) | Q(shared_to__id__exact=self.request.user.id)
+            )
+        else:
+            query = AlbumUser.objects.filter(owner=self.request.user)
+
+        return query.order_by("title")
 
 
 # API Views
@@ -305,17 +314,18 @@ class MediaAccessView(APIView):
     def get(self, request, path, fname, format=None):
         jwt = request.COOKIES.get("jwt")
         image_hash = fname.split(".")[0].split("_")[0]
+        ok_response = HttpResponse()
+        ok_response["Content-Type"] = "image/jpeg"
+        ok_response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
+
         try:
             photo = Photo.objects.get(image_hash=image_hash)
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
 
         # grant access if the requested photo is public
-        if photo.public:
-            response = HttpResponse()
-            response["Content-Type"] = "image/jpeg"
-            response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
-            return response
+        if user_has_photo_permission(None, photo):
+            return ok_response
 
         # forbid access if trouble with jwt
         if jwt is not None:
@@ -330,20 +340,10 @@ class MediaAccessView(APIView):
         # or the photo is shared with the user
         image_hash = fname.split(".")[0].split("_")[0]  # janky alert
         user = User.objects.filter(id=token["user_id"]).only("id").first()
-        if photo.owner == user or user in photo.shared_to.all():
-            response = HttpResponse()
-            response["Content-Type"] = "image/jpeg"
-            response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
-            return response
-        else:
-            for album in photo.albumuser_set.only("shared_to"):
-                if user in album.shared_to.all():
-                    response = HttpResponse()
-                    response["Content-Type"] = "image/jpeg"
-                    response["X-Accel-Redirect"] = self._get_protected_media_url(
-                        path, fname
-                    )
-                    return response
+
+        if user_has_photo_permission(user, photo):
+            return ok_response
+
         return HttpResponse(status=404)
 
 
@@ -536,7 +536,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                 return HttpResponse(status=404)
 
             # grant access if the requested photo is public
-            if photo.public:
+            if user_has_photo_permission(None, photo):
                 return self._generate_response(photo, path, fname, False)
 
             # forbid access if trouble with jwt
@@ -556,16 +556,12 @@ class MediaAccessFullsizeOriginalView(APIView):
                 .only("id", "transcode_videos")
                 .first()
             )
-            if photo.owner == user or user in photo.shared_to.all():
+
+            if user_has_photo_permission(user, photo):
                 return self._generate_response(
                     photo, path, fname, user.transcode_videos
                 )
-            else:
-                for album in photo.albumuser_set.only("shared_to"):
-                    if user in album.shared_to.all():
-                        return self._generate_response(
-                            photo, path, fname, user.transcode_videos
-                        )
+
             return HttpResponse(status=404)
         else:
             jwt = request.COOKIES.get("jwt")
@@ -589,15 +585,15 @@ class MediaAccessFullsizeOriginalView(APIView):
                 internal_path = None
 
             internal_path = quote(internal_path)
+            ok_response = HttpResponse()
+            mime = magic.Magic(mime=True)
+            filename = mime.from_file(photo.main_file.path)
+            ok_response["Content-Type"] = filename
+            ok_response["X-Accel-Redirect"] = internal_path
 
             # grant access if the requested photo is public
-            if photo.public:
-                response = HttpResponse()
-                mime = magic.Magic(mime=True)
-                filename = mime.from_file(photo.main_file.path)
-                response["Content-Type"] = filename
-                response["X-Accel-Redirect"] = internal_path
-                return response
+            if user_has_photo_permission(None, photo):
+                return ok_response
 
             # forbid access if trouble with jwt
             if jwt is not None:
@@ -614,11 +610,7 @@ class MediaAccessFullsizeOriginalView(APIView):
             user = User.objects.filter(id=token["user_id"]).only("id").first()
 
             if internal_path is not None:
-                response = HttpResponse()
-                mime = magic.Magic(mime=True)
-                filename = mime.from_file(photo.main_file.path)
-                response["Content-Type"] = filename
-                response["X-Accel-Redirect"] = internal_path
+                response = ok_response
             else:
                 try:
                     response = FileResponse(open(photo.main_file.path, "rb"))
@@ -631,12 +623,9 @@ class MediaAccessFullsizeOriginalView(APIView):
                 except Exception:
                     raise
 
-            if photo.owner == user or user in photo.shared_to.all():
+            if user_has_photo_permission(user, photo):
                 return response
-            else:
-                for album in photo.albumuser_set.only("shared_to"):
-                    if user in album.shared_to.all():
-                        return response
+
             return HttpResponse(status=404)
 
 
