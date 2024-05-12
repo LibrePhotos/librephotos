@@ -1,3 +1,4 @@
+import logging
 from unittest import skip
 
 from django.test import TestCase
@@ -5,6 +6,9 @@ from rest_framework.test import APIClient
 
 from api.models import Photo
 from api.tests.utils import create_test_photos, create_test_user, share_test_photos
+
+
+logger = logging.getLogger(__name__)
 
 
 class SharePhotosTest(TestCase):
@@ -20,7 +24,7 @@ class SharePhotosTest(TestCase):
 
         payload = {
             "image_hashes": image_hashes,
-            "shared": True,
+            "val_shared": True,
             "target_user_id": self.user2.id,
         }
         headers = {"Content-Type": "application/json"}
@@ -45,7 +49,7 @@ class SharePhotosTest(TestCase):
 
         payload = {
             "image_hashes": image_hashes,
-            "shared": False,
+            "val_shared": False,
             "target_user_id": self.user2.id,
         }
         headers = {"Content-Type": "application/json"}
@@ -70,7 +74,7 @@ class SharePhotosTest(TestCase):
 
         payload = {
             "image_hashes": image_hashes,
-            "shared": True,
+            "val_shared": True,
             "target_user_id": self.user1.id,
         }
         headers = {"Content-Type": "application/json"}
