@@ -62,7 +62,7 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(0, len(data["updated"]))
         self.assertEqual(2, len(data["not_updated"]))
 
-    @patch("api.util.logger.warning", autospec=True)
+    @patch("api.views.photos.logger.warning", autospec=True)
     def test_tag_for_removal_nonexistent_photo(self, logger):
         payload = {"image_hashes": ["nonexistent_photo"], "deleted": True}
         headers = {"Content-Type": "application/json"}

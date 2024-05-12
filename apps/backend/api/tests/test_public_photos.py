@@ -1,9 +1,14 @@
+import logging
+import unittest.mock
 from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.tests.utils import create_test_photos, create_test_user
+
+
+logger = logging.getLogger(__name__)
 
 
 class PublicPhotosTest(TestCase):
@@ -61,19 +66,20 @@ class PublicPhotosTest(TestCase):
         self.assertEqual(0, len(data["updated"]))
         self.assertEqual(2, len(data["not_updated"]))
 
-    @patch("api.util.logger.warning", autospec=True)
-    def test_tag_nonexistent_photo_as_favorite(self, logger):
+    @patch("api.views.photos.logger.warning", autospec=True)
+    def test_tag_nonexistent_photo_as_favorite(self, logger_ext: unittest.mock.Mock):
         payload = {"image_hashes": ["nonexistent_photo"], "val_public": True}
         headers = {"Content-Type": "application/json"}
         response = self.client.post(
             "/api/photosedit/makepublic/", format="json", data=payload, headers=headers
         )
         data = response.json()
+        logger.debug(data)
 
         self.assertTrue(data["status"])
         self.assertEqual(0, len(data["results"]))
         self.assertEqual(0, len(data["updated"]))
         self.assertEqual(0, len(data["not_updated"]))
-        logger.assert_called_with(
+        logger_ext.assert_called_with(
             "Could not set photo nonexistent_photo to public. It does not exist."
         )
