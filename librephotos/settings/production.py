@@ -280,3 +280,7 @@ CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
 IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
+SHARED_ALBUM_ALL_ADD = os.environ.get(
+    "SHARED_ALBUM_ALL_ADD", "FALSE"
+).upper() == "TRUE"
+""" Allow non-owners to add photos to shared albums """
