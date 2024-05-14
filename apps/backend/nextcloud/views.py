@@ -50,14 +50,14 @@ def valid_url(url):
 
 class ScanPhotosView(APIView):
     def post(self, request, format=None):
-        self._scan_photos(request)
+        return self._scan_photos(request)
 
     @extend_schema(
         deprecated=True,
         description="Use POST method instead",
     )
     def get(self, request, format=None):
-        self._scan_photos(request)
+        return self._scan_photos(request)
 
     def _scan_photos(self, request):
         try:
