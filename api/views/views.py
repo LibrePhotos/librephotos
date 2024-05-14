@@ -228,7 +228,17 @@ class SearchTermExamples(APIView):
 
 # long running jobs
 class ScanPhotosView(APIView):
+    def post(self, request, format=None):
+        self._scan_photos(request)
+
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method instead",
+    )
     def get(self, request, format=None):
+        self._scan_photos(request)
+
+    def _scan_photos(self, request):
         chain = Chain()
         if not do_all_models_exist():
             chain.append(download_models, request.user)
@@ -268,7 +278,17 @@ class SelectiveScanPhotosView(APIView):
 
 
 class FullScanPhotosView(APIView):
+    def post(self, request, format=None):
+        self._scan_photos(request)
+
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method instead",
+    )
     def get(self, request, format=None):
+        self._scan_photos(request)
+
+    def _scan_photos(self, request):
         chain = Chain()
         if not do_all_models_exist():
             chain.append(download_models, request.user)
