@@ -7,7 +7,6 @@ from rest_framework.test import APIClient
 from api.models import Photo
 from api.tests.utils import create_test_photos, create_test_user, share_test_photos
 
-
 logger = logging.getLogger(__name__)
 
 
