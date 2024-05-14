@@ -9,7 +9,6 @@ from rest_framework.test import APIClient
 from api.models import User
 from api.tests.utils import create_test_user, create_user_details
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -105,7 +104,7 @@ class UserTest(TestCase):
             for key in user:
                 self.assertTrue(
                     key in self.private_user_properties,
-                    f"user has superfluous key: {key}"
+                    f"user has superfluous key: {key}",
                 )
 
             self.assertEqual(len(self.private_user_properties), len(user.keys()))
