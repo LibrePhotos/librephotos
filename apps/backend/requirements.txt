@@ -28,7 +28,7 @@ Pillow==10.3.0
 psycopg==3.1.19
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2024.1
-tzdata==2023.4
+tzdata==2024.1
 PyExifTool==0.4.9
 PyJWT==2.8.0
 pyvips==2.2.3
