@@ -305,7 +305,17 @@ class FullScanPhotosView(APIView):
 
 
 class DeleteMissingPhotosView(APIView):
+    def post(self, request, format=None):
+        return self._delete_missing_photos(request, format)
+
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method instead",
+    )
     def get(self, request, format=None):
+        return self._delete_missing_photos(request, format)
+
+    def _delete_missing_photos(self, request, format=None):
         try:
             job_id = uuid.uuid4()
             delete_missing_photos(request.user, job_id)
