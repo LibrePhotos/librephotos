@@ -13,24 +13,25 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 
-import { editPhoto } from "../../actions/photosActions";
+import { Photo } from "../../actions/photosActions.types";
+import { useUpdatePhotoMutation } from "../../api_client/photos/photoDetail";
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppDispatch } from "../../store/store";
 
 type Props = Readonly<{
-  photoDetail: any;
+  photoDetail: Partial<Photo>;
   isPublic: boolean;
 }>;
 
 export function TimestampItem({ photoDetail, isPublic }: Props) {
   const [timestamp, setTimestamp] = useState(
-    photoDetail.exif_timestamp === null ? null : new Date(photoDetail.exif_timestamp)
+    photoDetail.exif_timestamp === null ? null : new Date(photoDetail.exif_timestamp!)
   );
 
   // savedTimestamp is used to cancel timestamp modification
   const [savedTimestamp, setSavedTimestamp] = useState(timestamp);
   const [previousSavedTimestamp, setPreviousSavedTimestamp] = useState(timestamp);
   const [editMode, setEditMode] = useState(false);
+  const [updatePhoto] = useUpdatePhotoMutation();
 
   const { t } = useTranslation();
   const lang = i18nResolvedLanguage();
@@ -38,8 +39,6 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
     /* @vite-ignore */
     `dayjs/locale/${lang}.js`
   );
-
-  const dispatch = useAppDispatch();
 
   const onChangeDate = (date: Date) => {
     if (date && timestamp) {
@@ -62,7 +61,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   const onSaveDateTime = () => {
     // To-Do: Use the user defined timezone
     const differentJson = { exif_timestamp: timestamp === null ? null : timestamp.toISOString() };
-    dispatch(editPhoto(photoDetail.image_hash, differentJson));
+    updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
     setEditMode(false);
   };
 
@@ -100,7 +99,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
 
   const onUndoChangedTimestamp = () => {
     const differentJson = { exif_timestamp: savedTimestamp === null ? null : savedTimestamp.toISOString() };
-    dispatch(editPhoto(photoDetail.image_hash, differentJson));
+    updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
     setTimestamp(savedTimestamp);
   };
 

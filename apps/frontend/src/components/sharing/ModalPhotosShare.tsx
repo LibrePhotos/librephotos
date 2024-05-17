@@ -4,11 +4,11 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { setPhotosShared } from "../../actions/photosActions";
 import { useFetchUserListQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { useUpdatePhotoSharingMutation } from "../../api_client/photos/sharing";
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppSelector } from "../../store/store";
 import classes from "./ModalAlbumShare.module.css";
 import filterUsers from "./utils";
 
@@ -23,8 +23,8 @@ export function ModalPhotosShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
   const { data: users = [], isFetching: isUsersLoading, isSuccess: isUsersLoaded } = useFetchUserListQuery();
   const { auth } = useAppSelector(store => store);
-  const dispatch = useAppDispatch();
   const { selectedImageHashes, isOpen, onRequestClose } = props;
+  const [updatePhotoSharing] = useUpdatePhotoSharingMutation();
 
   const selectedImageSrcs = selectedImageHashes.map(
     (image_hash: string) => `${serverAddress}/media/square_thumbnails/${image_hash}`
@@ -82,7 +82,11 @@ export function ModalPhotosShare(props: Props) {
                     <Group>
                       <ActionIcon
                         onClick={() => {
-                          dispatch(setPhotosShared(selectedImageHashes, true, item));
+                          updatePhotoSharing({
+                            image_hashes: selectedImageHashes,
+                            val_shared: true,
+                            target_user: item,
+                          });
                         }}
                         color="green"
                       >
@@ -90,7 +94,11 @@ export function ModalPhotosShare(props: Props) {
                       </ActionIcon>
                       <ActionIcon
                         onClick={() => {
-                          dispatch(setPhotosShared(selectedImageHashes, false, item));
+                          updatePhotoSharing({
+                            image_hashes: selectedImageHashes,
+                            val_shared: false,
+                            target_user: item,
+                          });
                         }}
                         color="red"
                       >

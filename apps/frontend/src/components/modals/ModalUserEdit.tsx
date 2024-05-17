@@ -7,10 +7,10 @@ import { useTranslation } from "react-i18next";
 import SortableTree from "react-sortable-tree";
 import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 
-import { scanPhotos } from "../../actions/photosActions";
 import { useManageUpdateUserMutation, useSignUpMutation } from "../../api_client/api";
 import type { DirTree } from "../../api_client/dir-tree";
 import { useLazyFetchDirsQuery } from "../../api_client/dir-tree";
+import { useScanPhotosMutation } from "../../api_client/photos/scan";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { IUser } from "../../store/user/user.zod";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
@@ -66,6 +66,7 @@ export function ModalUserEdit(props: Props) {
   const [signup] = useSignUpMutation();
   const [updateUser] = useManageUpdateUserMutation();
   const [fetchDirectoryTree, { data: directoryTree }] = useLazyFetchDirsQuery();
+  const [scanPhotos] = useScanPhotosMutation();
 
   const validateUsername = (username: string) => {
     if (!username) {
@@ -213,7 +214,7 @@ export function ModalUserEdit(props: Props) {
     if (updateAndScan) {
       updateUser(newUserData).then(() => {
         if (newUserData.scan_directory) {
-          dispatch(scanPhotos());
+          scanPhotos();
         }
       });
     } else {

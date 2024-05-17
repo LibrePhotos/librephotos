@@ -2,7 +2,7 @@ import { IconClock as Clock } from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchRecentlyAddedPhotos } from "../../actions/photosActions";
+import { useLazyFetchRecentlyAddedPhotosQuery } from "../../api_client/photos/recent";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
@@ -14,10 +14,11 @@ export function RecentlyAddedPhotos() {
   );
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const [fetchRecentlyAddedPhotos] = useLazyFetchRecentlyAddedPhotosQuery();
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.RECENTLY_ADDED) {
-      fetchRecentlyAddedPhotos(dispatch);
+      fetchRecentlyAddedPhotos();
     }
   }, [dispatch]); // Only run on first render
 

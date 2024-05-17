@@ -10,8 +10,9 @@ import {
 } from "@tabler/icons-react";
 import React from "react";
 
-import { setPhotosFavorite, setPhotosHidden, setPhotosPublic } from "../../actions/photosActions";
 import { shareAddress } from "../../api_client/apiClient";
+import { useSetFavoritePhotosMutation } from "../../api_client/photos/favorite";
+import { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/visibility";
 import { playerActions } from "../../store/player/playerSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
@@ -28,6 +29,9 @@ export function Toolbar(props: Props) {
   const { favorite_min_rating: favoriteMinRating } = useAppSelector(store => store.user.userSelfDetails);
   const { photosDetail, isPublic, lightboxSidebarShow, closeSidepanel } = props;
   const { playing: playerPlaying, loading: playerLoading } = useAppSelector(store => store.player);
+  const [setPhotosHidden] = useSetPhotosHiddenMutation();
+  const [setPhotosPublic] = useSetPhotosPublicMutation();
+  const [setFavoritePhotos] = useSetFavoritePhotosMutation();
 
   function playButton(photo) {
     if (!photo || photo.embedded_media.length === 0) {
@@ -71,7 +75,7 @@ export function Toolbar(props: Props) {
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !photosDetail.hidden;
-            dispatch(setPhotosHidden([imageHash], val));
+            setPhotosHidden({ image_hashes: [imageHash], hidden: val });
           }}
         >
           {photosDetail.hidden ? <EyeOff color="red" /> : <Eye color="grey" />}
@@ -82,7 +86,7 @@ export function Toolbar(props: Props) {
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !(photosDetail.rating >= favoriteMinRating);
-            dispatch(setPhotosFavorite([imageHash], val));
+            setFavoritePhotos({ image_hashes: [imageHash], favorite: val });
           }}
         >
           <Star color={photosDetail.rating >= favoriteMinRating ? "yellow" : "grey"} />
@@ -93,7 +97,7 @@ export function Toolbar(props: Props) {
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !photosDetail.public;
-            dispatch(setPhotosPublic([imageHash], val));
+            setPhotosPublic({ image_hashes: [imageHash], val_public: val });
             copyToClipboard(
               // edited from serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
               // as above removed the domain and just left /media/thumbnails_big/" + image_hash + ".jpg"  *DW 12/9/20

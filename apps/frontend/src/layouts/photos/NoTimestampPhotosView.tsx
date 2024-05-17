@@ -2,29 +2,29 @@ import { IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import { fetchNoTimestampPhotoPaginated } from "../../actions/photosActions";
+import { useLazyFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/list";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import type { PhotosState } from "../../reducers/photosReducer";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppSelector } from "../../store/store";
 
 export function NoTimestampPhotosView() {
   const { fetchedPhotosetType, numberOfPhotos, photosFlat } = useAppSelector(state => state.photos as PhotosState);
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const [fetchPhotos] = useLazyFetchPhotosWithoutTimestampQuery();
 
   useEffect(() => {
     if (fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP) {
-      fetchNoTimestampPhotoPaginated(dispatch, 1);
+      fetchPhotos(1);
     }
-  }, [dispatch]); // Only run on first render
+  }, []);
 
   const getImages = (visibleItems: any) => {
     if (visibleItems.filter((i: any) => i.isTemp).length > 0) {
       const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
       const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
       if (page > 1) {
-        fetchNoTimestampPhotoPaginated(dispatch, page);
+        fetchPhotos(page);
       }
     }
   };

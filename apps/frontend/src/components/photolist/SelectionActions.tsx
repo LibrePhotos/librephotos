@@ -18,13 +18,14 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { downloadPhotos, setPhotosFavorite, setPhotosHidden, setPhotosPublic } from "../../actions/photosActions";
 import { UserAlbum } from "../../api_client/albums/types";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
-import { notification } from "../../service/notifications";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useMarkPhotosDeletedMutation } from "../../api_client/photos/delete";
+import { useLazyDownloadPhotosQuery } from "../../api_client/photos/download";
+import { useSetFavoritePhotosMutation } from "../../api_client/photos/favorite";
+import { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/visibility";
+import { useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
 
 type Props = {
@@ -40,9 +41,13 @@ type Props = {
 
 export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
   const route = useAppSelector(store => store.router);
   const [removePhotosFromAlbum] = useRemovePhotoFromUserAlbumMutation();
+  const [setPhotosHidden] = useSetPhotosHiddenMutation();
+  const [setPhotosPublic] = useSetPhotosPublicMutation();
+  const [setFavoritePhotos] = useSetFavoritePhotosMutation();
+  const [setPhotosDeleted] = useMarkPhotosDeletedMutation();
+  const [downloadPhotoArchive] = useLazyDownloadPhotosQuery();
 
   const {
     selectedItems,
@@ -95,12 +100,10 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<Star />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              dispatch(
-                setPhotosFavorite(
-                  selectedItems.map(i => i.id),
-                  true
-                )
-              );
+              setFavoritePhotos({
+                image_hashes: selectedItems.map(i => i.id),
+                favorite: true,
+              });
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],
@@ -114,12 +117,10 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<StarOff />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              dispatch(
-                setPhotosFavorite(
-                  selectedItems.map(i => i.id),
-                  false
-                )
-              );
+              setFavoritePhotos({
+                image_hashes: selectedItems.map(i => i.id),
+                favorite: false,
+              });
 
               updateSelectionState({
                 selectMode: false,
@@ -136,12 +137,10 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<EyeOff />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              dispatch(
-                setPhotosHidden(
-                  selectedItems.map(i => i.id),
-                  true
-                )
-              );
+              setPhotosHidden({
+                image_hashes: selectedItems.map(i => i.id),
+                hidden: true,
+              });
 
               updateSelectionState({
                 selectMode: false,
@@ -156,12 +155,10 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<Eye />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              dispatch(
-                setPhotosHidden(
-                  selectedItems.map(i => i.id),
-                  false
-                )
-              );
+              setPhotosHidden({
+                image_hashes: selectedItems.map(i => i.id),
+                hidden: false,
+              });
 
               updateSelectionState({
                 selectMode: false,
@@ -178,12 +175,10 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<Globe />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              dispatch(
-                setPhotosPublic(
-                  selectedItems.map(i => i.id),
-                  true
-                )
-              );
+              setPhotosPublic({
+                image_hashes: selectedItems.map(i => i.id),
+                val_public: true,
+              });
               const linksToCopy = selectedItems
                 .map(i => i.id)
                 .map(ih => `${serverAddress}/media/photos/${ih}.jpg`)
@@ -203,12 +198,10 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<Key />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              dispatch(
-                setPhotosPublic(
-                  selectedItems.map(i => i.id),
-                  false
-                )
-              );
+              setPhotosPublic({
+                image_hashes: selectedItems.map(i => i.id),
+                val_public: false,
+              });
 
               updateSelectionState({
                 selectMode: false,
@@ -225,7 +218,7 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<Download />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              dispatch(downloadPhotos(selectedItems.map(i => i.id)));
+              downloadPhotoArchive({ image_hashes: selectedItems.map(i => i.id) });
 
               updateSelectionState({
                 selectMode: false,
@@ -242,15 +235,7 @@ export function SelectionActions(props: Readonly<Props>) {
             icon={<Trash />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              const imageHashes = selectedItems.map(i => i.id);
-              const deleted = true;
-              dispatch(
-                photoDetailsApi.endpoints.setPhotosDeleted.initiate({
-                  image_hashes: imageHashes,
-                  deleted,
-                })
-              );
-              notification.togglePhotoDelete(deleted, imageHashes.length);
+              setPhotosDeleted({ image_hashes: selectedItems.map(i => i.id), deleted: true });
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],

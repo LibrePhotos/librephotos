@@ -3,10 +3,8 @@ import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icon
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { finalPhotosDeleted } from "../../actions/photosActions";
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
-import { notification } from "../../service/notifications";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/delete";
+import { useAppSelector } from "../../store/store";
 
 type Props = {
   selectedItems: any[];
@@ -15,28 +13,23 @@ type Props = {
 
 export function TrashcanActions(props: Readonly<Props>) {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const dispatch = useAppDispatch();
   const { selectedItems, updateSelectionState } = props;
   const { t } = useTranslation();
   const route = useAppSelector(store => store.router);
+  const [markPhotosDeleted] = useMarkPhotosDeletedMutation();
+  const [purgeDeletedPhotos] = usePurgeDeletedPhotosMutation();
+
   return (
     <Group>
-      {
-        // @ts-ignore
-        route.location.pathname.startsWith("/deleted") && (
+      {route.location.pathname.startsWith("/deleted") && (
+        <>
           <ActionIcon
             disabled={selectedItems.length === 0}
             onClick={() => {
-              const imageHashes = selectedItems.map(i => i.id);
-              const deleted = false;
-              dispatch(
-                photoDetailsApi.endpoints.setPhotosDeleted.initiate({
-                  image_hashes: imageHashes,
-                  deleted,
-                })
-              );
-              notification.togglePhotoDelete(deleted, imageHashes.length);
-
+              markPhotosDeleted({
+                image_hashes: selectedItems.map(i => i.id),
+                deleted: false,
+              });
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],
@@ -45,11 +38,6 @@ export function TrashcanActions(props: Readonly<Props>) {
           >
             <ArrowBackUp />
           </ActionIcon>
-        )
-      }
-      {
-        // @ts-ignore
-        route.location.pathname.startsWith("/deleted") && (
           <ActionIcon
             disabled={selectedItems.length === 0}
             onClick={() => {
@@ -58,8 +46,8 @@ export function TrashcanActions(props: Readonly<Props>) {
           >
             <Trash color="red" />
           </ActionIcon>
-        )
-      }
+        </>
+      )}
       <Modal opened={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} title="Delete images">
         <Group position="center">
           <Button
@@ -73,8 +61,7 @@ export function TrashcanActions(props: Readonly<Props>) {
           <Button
             color="red"
             onClick={() => {
-              dispatch(finalPhotosDeleted(selectedItems.map(i => i.id)));
-
+              purgeDeletedPhotos({ image_hashes: selectedItems.map(i => i.id) });
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],

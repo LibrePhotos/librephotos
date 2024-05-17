@@ -38,12 +38,16 @@ import {
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { scanAllPhotos, scanNextcloudPhotos, scanPhotos } from "../../actions/photosActions";
-import { deleteMissingPhotos } from "../../actions/utilActions";
 import { useGenerateAutoAlbumsMutation } from "../../api_client/albums/auto";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
+import { useDeleteMissingPhotosMutation } from "../../api_client/photos/delete";
+import {
+  useRescanPhotosMutation,
+  useScanNextcloudPhotosMutation,
+  useScanPhotosMutation,
+} from "../../api_client/photos/scan";
 import { useUpdateUserMutation } from "../../api_client/user";
 import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../../api_client/util";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
@@ -103,14 +107,10 @@ export function Library() {
   const [generateAutoAlbums] = useGenerateAutoAlbumsMutation();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
   const [updateUser] = useUpdateUserMutation();
-
-  const onPhotoScanButtonClick = () => {
-    dispatch(scanPhotos());
-  };
-
-  const onPhotoFullScanButtonClick = () => {
-    dispatch(scanAllPhotos());
-  };
+  const [scanPhotos] = useScanPhotosMutation();
+  const [rescanPhotos] = useRescanPhotosMutation();
+  const [scanNextcloudPhotos] = useScanNextcloudPhotosMutation();
+  const [deleteMissingPhotos] = useDeleteMissingPhotosMutation();
 
   const onGenerateEventAlbumsButtonClick = () => {
     dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
@@ -122,7 +122,7 @@ export function Library() {
   };
 
   const onDeleteMissingPhotosButtonClick = () => {
-    dispatch(deleteMissingPhotos());
+    deleteMissingPhotos();
     close();
   };
 
@@ -224,7 +224,7 @@ export function Library() {
               <Grid.Col span={2}>
                 <Group noWrap spacing={0}>
                   <Button
-                    onClick={onPhotoScanButtonClick}
+                    onClick={() => scanPhotos()}
                     disabled={!workerAvailability}
                     leftIcon={<Refresh />}
                     variant="filled"
@@ -242,7 +242,7 @@ export function Library() {
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item icon={<Refresh size="1rem" />} onClick={onPhotoFullScanButtonClick}>
+                      <Menu.Item icon={<Refresh size="1rem" />} onClick={() => rescanPhotos()}>
                         {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
                         {statusPhotoScan.added
                           ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${
@@ -511,7 +511,7 @@ export function Library() {
             <Grid.Col span={2}>
               <Button
                 onClick={() => {
-                  dispatch(scanNextcloudPhotos());
+                  scanNextcloudPhotos();
                 }}
                 disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
                 variant="filled"

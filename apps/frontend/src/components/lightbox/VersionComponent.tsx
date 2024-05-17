@@ -3,10 +3,9 @@ import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { deleteDuplicateImage } from "../../actions/photosActions";
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppDispatch } from "../../store/store";
+import { useDeleteDuplicatePhotoMutation } from "../../api_client/photos/delete";
 import { FileInfoComponent } from "./FileInfoComponent";
 
 export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPublic: boolean }>) {
@@ -18,14 +17,13 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
   const [imageHash, setImageHash] = useState("");
   const [path, setPath] = useState("");
   const { t } = useTranslation();
+  const [deleteDuplicatePhoto] = useDeleteDuplicatePhotoMutation();
 
   const openDeleteDialog = (hash, filePath) => {
     setOpenDeleteDialogState(true);
     setImageHash(hash);
     setPath(filePath);
   };
-
-  const dispatch = useAppDispatch();
 
   const duplicates = photoDetail.image_path.slice(1);
 
@@ -138,7 +136,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
           <Button
             color="red"
             onClick={() => {
-              dispatch(deleteDuplicateImage(imageHash, path));
+              deleteDuplicatePhoto({ image_hash: imageHash, path });
               setOpenDeleteDialogState(false);
             }}
           >
