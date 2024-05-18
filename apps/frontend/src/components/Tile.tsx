@@ -1,7 +1,6 @@
+import { Image } from "@mantine/core";
 import type { CSSProperties, MouseEventHandler } from "react";
 import React from "react";
-
-import { Image } from "@mantine/core";
 
 import { serverAddress } from "../api_client/apiClient";
 

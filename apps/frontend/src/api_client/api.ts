@@ -1,7 +1,7 @@
-import type { BaseQueryResult } from "@reduxjs/toolkit/dist/query/baseQueryTypes";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import sessionStorage from "redux-persist/es/storage/session";
 
 import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
 import type {
@@ -11,9 +11,7 @@ import type {
   UserSignupRequest,
   UserSignupResponse,
 } from "../store/auth/auth.zod";
-import { UserSignupResponseSchema } from "../store/auth/auth.zod";
-// eslint-disable-next-line import/no-cycle
-import { tokenReceived } from "../store/auth/authSlice";
+import { ApiLoginResponseSchema, UserSignupResponseSchema } from "../store/auth/auth.zod";
 import type {
   IClusterFacesResponse,
   IDeleteFacesRequest,
@@ -27,17 +25,12 @@ import type {
   ISetFacesLabelResponse,
   ITrainFacesResponse,
 } from "../store/faces/facesActions.types";
-import type { RootState } from "../store/store";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
 import type { IManageUser, IUser, UserList } from "../store/user/user.zod";
 import { ApiUserListResponseSchema, ManageUser, UserSchema } from "../store/user/user.zod";
 import type { ImageTagResponseType, ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
 import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
-// eslint-disable-next-line import/no-cycle
-import { Server } from "./apiClient";
-
-// Import the missing type declaration
 
 export enum Endpoints {
   login = "login",
@@ -68,13 +61,10 @@ export enum Endpoints {
 
 const baseQuery = fetchBaseQuery({
   baseUrl: "/api/",
-  credentials: "include",
-
-  prepareHeaders: (headers, { getState, endpoint }) => {
-    const { user } = getState() as RootState;
-    const { access } = (getState() as RootState).auth;
-    if (access !== null && user && endpoint !== "refresh") {
-      headers.set("Authorization", `Bearer ${access.token}`);
+  prepareHeaders: async (headers, { endpoint }) => {
+    const accessToken = await sessionStorage.getItem("access");
+    if (accessToken !== null && endpoint !== "refresh") {
+      headers.set("Authorization", `Bearer ${accessToken}`);
     }
     return headers;
   },
@@ -89,16 +79,15 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
 
   if (result.error && result.error.status === 401) {
     // try to get a new token
-    const refreshToken: string = (api.getState() as RootState).auth?.refresh?.token;
+    const refreshToken = await sessionStorage.getItem("refresh");
     if (refreshToken) {
-      const refreshResult = await baseQuery(
+      const refreshResult = (await baseQuery(
         { url: "/auth/token/refresh/", method: "POST", body: { refresh: refreshToken } },
         api,
         extraOptions
-      );
+      )) as { data: { access: string } };
       if (refreshResult.data) {
-        // store the new token
-        api.dispatch(tokenReceived(refreshResult.data));
+        sessionStorage.setItem("access", refreshResult.data.access);
         // retry the initial query
         result = await baseQuery(args, api, extraOptions);
       }
@@ -144,9 +133,11 @@ export const api = createApi({
         method: "POST",
         body,
       }),
-      transformResponse: (result: BaseQueryResult<any>) => {
-        Server.defaults.headers.common.Authorization = `Bearer ${result.access}`;
-        return result;
+      transformResponse: (response: IApiLoginResponse) => {
+        const data = ApiLoginResponseSchema.parse(response);
+        sessionStorage.setItem("access", data.access);
+        sessionStorage.setItem("refresh", data.refresh);
+        return data;
       },
     }),
     [Endpoints.isFirstTimeSetup]: builder.query<boolean, void>({
