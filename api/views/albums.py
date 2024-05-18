@@ -301,7 +301,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         photoFilter = []
         photoFilter.append(Q(aspect_ratio__isnull=False))
 
-        if not self.request.user.is_anonymous:
+        if not self.request.user.is_anonymous and not self.request.query_params.get(
+            "public"
+        ):
             photoFilter.append(Q(owner=self.request.user))
         if self.request.query_params.get("favorite"):
             min_rating = self.request.user.favorite_min_rating
@@ -443,7 +445,9 @@ class AlbumDateListViewSet(ListViewSet):
         else:
             filter.append(Q(photos__deleted=False))
 
-        if not self.request.user.is_anonymous:
+        if not self.request.user.is_anonymous and not self.request.query_params.get(
+            "public"
+        ):
             filter.append(Q(owner=self.request.user))
             filter.append(Q(photos__owner=self.request.user))
 
