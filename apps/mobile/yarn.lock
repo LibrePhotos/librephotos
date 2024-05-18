@@ -2843,14 +2843,14 @@
     metro-react-native-babel-preset "^0.64.0"
 
 "@tsconfig/react-native@^3.0.0":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@tsconfig/react-native/-/react-native-3.0.2.tgz#f7db242eee4820f5a3d0edcc86c920bb7d9ec0f2"
-  integrity sha512-F7IoHEqf741lut4Z2K+IkWQRvXAhBiZMeY5L7BysG7Z2Z3MlIyFR+AagD8jQ/CqC1vowGnRwfLjeuwIpaeoJxA==
+  version "3.0.5"
+  resolved "https://registry.yarnpkg.com/@tsconfig/react-native/-/react-native-3.0.5.tgz#c4971b1eca2e8cdf7b0d25f40193a782039c1abd"
+  integrity sha512-0+pmYzHccvwWpFz2Tv5AJxp6UroLALmAy+SX34tKlwaCie1mNbtCv6uOJp7x8pKchgNA9/n6BGrx7uLQvw8p9A==
 
 "@types/babel__core@^7.1.14":
-  version "7.20.3"
-  resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.3.tgz#d5625a50b6f18244425a1359a858c73d70340778"
-  integrity sha512-54fjTSeSHwfan8AyHWrKbfBWiEUrNTZsUwPTDSNaaP1QDQIZbeNUg3a59E9D+375MzUw/x1vx2/0F5LBz+AeYA==
+  version "7.20.5"
+  resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.5.tgz#3df15f27ba85319caa07ba08d0721889bb39c017"
+  integrity sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==
   dependencies:
     "@babel/parser" "^7.20.7"
     "@babel/types" "^7.20.7"
