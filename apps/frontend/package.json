@@ -57,7 +57,7 @@
     "@visx/hierarchy": "3.3.0",
     "@visx/shape": "3.5.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
-    "@welldone-software/why-did-you-render": "^7.0.1",
+    "@welldone-software/why-did-you-render": "^8.0.0",
     "crypto-js": "4.2.0",
     "d3": "7.9.0",
     "d3-hierarchy": "3.1.2",
