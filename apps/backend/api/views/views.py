@@ -648,6 +648,9 @@ class MediaAccessFullsizeOriginalView(APIView):
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
                 response["Content-Type"] = filename
+                response["Content-Disposition"] = 'inline; filename="{}"'.format(
+                    photo.main_file.path.split("/")[-1]
+                )
                 response["X-Accel-Redirect"] = internal_path
             else:
                 try:
