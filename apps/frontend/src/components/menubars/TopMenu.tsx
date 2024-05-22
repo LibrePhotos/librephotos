@@ -7,12 +7,12 @@ import {
   IconSettings as Settings,
   IconUser as User,
 } from "@tabler/icons-react";
-import React, { useEffect } from "react";
+import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
 import { toggleSidebar } from "../../actions/uiActions";
-import { api } from "../../api_client/api";
+import { api, useFetchUserSelfDetailsQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { logout } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -22,18 +22,12 @@ import { CustomSearch } from "../CustomSearch";
 import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
 
-export function TopMenu() {
+export function TopMenu(): React.ReactNode {
   const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
-  const userSelfDetails = useAppSelector(state => state.user.userSelfDetails);
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
-
-  useEffect(() => {
-    if (auth.access) {
-      dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
-    }
-  }, [auth.access, dispatch]);
+  const auth = useAppSelector(state => state.auth);
+  const { data: user } = useFetchUserSelfDetailsQuery(auth.access.user_id);
 
   return (
     <Group h={TOP_MENU_HEIGHT} px={10}>
@@ -51,11 +45,7 @@ export function TopMenu() {
               <Menu.Target>
                 <Group m="xs" style={{ cursor: "pointer" }}>
                   <Avatar
-                    src={
-                      userSelfDetails && userSelfDetails.avatar_url
-                        ? serverAddress + userSelfDetails.avatar_url
-                        : "/unknown_user.jpg"
-                    }
+                    src={user && user.avatar_url ? serverAddress + user.avatar_url : "/unknown_user.jpg"}
                     size={25}
                     alt="it's me"
                     radius="xl"
