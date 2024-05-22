@@ -121,6 +121,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "choices": (
                 ("none", "None"),
                 ("mistral-7b-v0.1.Q5_K_M", "Mistral 7B v0.1 Q5 K M"),
+                ("mistral-7b-instruct-v0.2.Q5_K_M", "Mistral 7B Instruct v0.2 Q5 K M"),
             ),
         },
     ],
