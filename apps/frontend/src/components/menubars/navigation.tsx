@@ -37,7 +37,7 @@ type MenuItem = {
   label: string;
   link: string;
   icon: ForwardRefExoticComponent<Omit<IconProps, "ref"> & RefAttributes<Icon>>;
-  color: string;
+  color?: string;
   display?: boolean;
   submenu?: Array<Partial<SubmenuItem>>;
 };
@@ -48,12 +48,11 @@ export function getNavigationItems(
   canAccess: boolean
 ): Array<MenuItem> {
   return [
-    { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
+    { label: t("sidemenu.photos"), link: "/", icon: Photo },
     {
       label: t("sidemenu.albums"),
       link: "/people",
       icon: Album,
-      color: "blue",
       submenu: [
         { header: t("sidemenu.albums") },
         { label: t("sidemenu.people"), link: "/people", icon: Users },
@@ -68,7 +67,6 @@ export function getNavigationItems(
       label: t("sidemenu.datavizsmall"),
       link: "/placetree",
       icon: ChartLine,
-      color: "yellow",
       submenu: [
         { header: t("sidemenu.dataviz") },
         { label: t("sidemenu.placetree"), link: "/placetree", icon: VectorTriangle },
@@ -78,39 +76,40 @@ export function getNavigationItems(
         { label: t("sidemenu.facecluster"), link: "/facescatter", icon: MoodSmile },
       ],
     },
-    { label: t("sidemenu.facerecognition"), link: "/faces", icon: FaceId, color: "orange" },
+    { label: t("sidemenu.facerecognition"), link: "/faces", icon: FaceId },
     {
       label: t("sidemenu.sharing"),
       link: "/users/",
       display: isAuthenticated,
       icon: Users,
-      color: "red",
       submenu: [
         { header: t("sidemenu.sharing") },
         { label: t("sidemenu.publicphotos"), link: "/users/", icon: World, disabled: !canAccess },
-        { label: t("sidemenu.youshared"), link: "/shared/fromme/photos/", icon: Upload, color: "red" },
-        { label: t("sidemenu.sharedwithyou"), link: "/shared/tome/photos/", icon: Download, color: "green" },
+        { label: t("sidemenu.youshared"), link: "/shared/fromme/photos/", icon: Upload },
+        { label: t("sidemenu.sharedwithyou"), link: "/shared/tome/photos/", icon: Download },
       ],
     },
-    { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "black" },
+    { label: t("photos.deleted"), link: "/deleted", icon: Trash },
   ];
 }
 
 export const navigationStyles = createStyles((theme, _, u) => ({
-  header: {
-    paddingBottom: theme.spacing.md,
-    marginBottom: `calc(${theme.spacing.md} * 1.5)`,
-    [u.dark]: {
-      borderBottom: `1px solid ${theme.colors.dark[4]}`,
-    },
-    [u.light]: {
-      borderBottom: `1px solid ${theme.colors.gray[2]}`,
-    },
+  navbar: {
+    backgroundColor: theme.colors.body,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    height: "100vh",
   },
 
-  footer: {
-    paddingTop: theme.spacing.md,
-    marginTop: theme.spacing.md,
+  navbarLinks: {
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+    alignItems: "start",
+  },
+
+  navbarFooter: {
+    paddingBottom: theme.spacing.sm,
     [u.dark]: {
       borderTop: `1px solid ${theme.colors.dark[4]}`,
     },
@@ -131,23 +130,15 @@ export const navigationStyles = createStyles((theme, _, u) => ({
     padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
     borderRadius: theme.radius.sm,
     fontWeight: 500,
-    [u.dark]: {
-      backgroundColor: theme.colors.dark[1],
-    },
-    [u.light]: {
-      backgroundColor: theme.colors.gray[7],
-    },
   },
 
   hover: {
     "&:hover": {
       [u.dark]: {
         backgroundColor: theme.colors.dark[6],
-        color: theme.white,
       },
       [u.light]: {
         backgroundColor: theme.colors.gray[0],
-        color: theme.black,
       },
     },
   },
@@ -161,20 +152,18 @@ export const navigationStyles = createStyles((theme, _, u) => ({
     borderRadius: theme.radius.sm,
     fontWeight: 500,
     [u.dark]: {
-      backgroundColor: theme.colors.dark[1],
+      color: theme.colors.gray[3],
     },
     [u.light]: {
-      backgroundColor: theme.colors.gray[7],
+      color: theme.colors.dark[9],
     },
 
     "&:hover": {
       [u.dark]: {
         backgroundColor: theme.colors.dark[6],
-        color: theme.white,
       },
       [u.light]: {
-        backgroundColor: theme.colors.gray[0],
-        color: theme.black,
+        backgroundColor: theme.colors.gray[2],
       },
     },
   },
