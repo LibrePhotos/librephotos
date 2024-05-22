@@ -7,7 +7,7 @@ import {
   Stack,
   TextInput,
   Title,
-  useMantineColorScheme,
+  useComputedColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
@@ -17,10 +17,12 @@ import { useNavigate } from "react-router-dom";
 
 import { useSignUpMutation } from "../../api_client/api";
 import { EMAIL_REGEX } from "../../util/util";
+import { AppShellSimple } from "../AppShellSimple";
 
 export function SignupPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const colorScheme = useComputedColorScheme("light");
 
   const validateUsername = (username: string) => {
     let error = "";
@@ -47,9 +49,6 @@ export function SignupPage(): JSX.Element {
   });
   const [signup, { isSuccess }] = useSignUpMutation();
 
-  const { colorScheme } = useMantineColorScheme();
-  const dark = colorScheme === "dark";
-
   useEffect(() => {
     if (isSuccess) {
       navigate("/");
@@ -57,21 +56,10 @@ export function SignupPage(): JSX.Element {
   }, [navigate, isSuccess]);
 
   return (
-    <div
-      style={{
-        paddingTop: 150,
-        position: "fixed",
-        left: 0,
-        top: 0,
-        width: "100%",
-        height: "100%",
-        overflowY: "auto",
-        backgroundSize: "cover",
-      }}
-    >
-      <Stack align="center" justify="flex-end">
+    <AppShellSimple>
+      <Stack align="center" justify="flex-end" pt={150}>
         <Group>
-          <Image height={80} width={80} fit="contain" src={dark ? "/logo-white.png" : "/logo.png"} />
+          <Image height={80} width={80} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} />
           <span style={{ paddingLeft: 5, fontSize: 18 }}>
             <b>{t("login.name")}</b>
           </span>
@@ -95,41 +83,41 @@ export function SignupPage(): JSX.Element {
                 <Stack>
                   <TextInput
                     required
-                    icon={<User />}
+                    leftSection={<User />}
                     placeholder={t("login.usernameplaceholder")}
                     name="username"
                     {...form.getInputProps("username")}
                   />
                   <TextInput
                     required
-                    icon={<Mail />}
+                    leftSection={<Mail />}
                     placeholder={t("settings.emailplaceholder")}
                     name="email"
                     {...form.getInputProps("email")}
                   />
                   <TextInput
                     required
-                    icon={<User />}
+                    leftSection={<User />}
                     placeholder={t("settings.firstnameplaceholder")}
                     name="firstname"
                     {...form.getInputProps("first_name")}
                   />
                   <TextInput
                     required
-                    icon={<User />}
+                    leftSection={<User />}
                     placeholder={t("settings.lastnameplaceholder")}
                     name="lastname"
                     {...form.getInputProps("last_name")}
                   />
                   <PasswordInput
-                    icon={<Lock />}
+                    leftSection={<Lock />}
                     placeholder={t("login.passwordplaceholder")}
                     name="password"
                     {...form.getInputProps("password")}
                   />
                   <PasswordInput
                     required
-                    icon={<Lock />}
+                    leftSection={<Lock />}
                     placeholder={t("login.confirmpasswordplaceholder")}
                     name="passwordConfirm"
                     {...form.getInputProps("passwordConfirm")}
@@ -144,6 +132,6 @@ export function SignupPage(): JSX.Element {
           </Card>
         </div>
       </Stack>
-    </div>
+    </AppShellSimple>
   );
 }
