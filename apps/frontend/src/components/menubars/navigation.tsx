@@ -1,6 +1,6 @@
 import { rgba } from "@mantine/core";
 import { createStyles } from "@mantine/emotion";
-import type { Icon } from "@tabler/icons-react";
+import type { Icon, IconProps } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
   IconBookmark as Bookmark,
@@ -21,6 +21,7 @@ import {
   IconWand as Wand,
   IconWorld as World,
 } from "@tabler/icons-react";
+import { ForwardRefExoticComponent, RefAttributes } from "react";
 
 type SubmenuItem = {
   label: string;
@@ -35,7 +36,7 @@ type SubmenuItem = {
 type MenuItem = {
   label: string;
   link: string;
-  icon: Icon;
+  icon: ForwardRefExoticComponent<Omit<IconProps, "ref"> & RefAttributes<Icon>>;
   color: string;
   display?: boolean;
   submenu?: Array<Partial<SubmenuItem>>;
