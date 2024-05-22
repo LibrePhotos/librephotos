@@ -79,6 +79,14 @@ ML_MODELS = [
         "unpack-command": None,
         "target-dir": "mistral-7b-v0.1.Q5_K_M.gguf",
     },
+    {
+        "id": 8,
+        "name": "mistral-7b-instruct-v0.2.Q5_K_M",
+        "url": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q5_K_M.gguf?download=true",
+        "type": MlTypes.LLM,
+        "unpack-command": None,
+        "target-dir": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
+    },
 ]
 
 
@@ -175,6 +183,9 @@ def do_all_models_exist():
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     for model in ML_MODELS:
         target_dir = model_folder / model["target-dir"]
+        if model["type"] == MlTypes.LLM:
+            if not model and model != "none":
+                continue
         if not target_dir.exists():
             return False
     return True
