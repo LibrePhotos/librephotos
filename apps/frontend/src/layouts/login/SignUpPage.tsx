@@ -17,7 +17,6 @@ import { useNavigate } from "react-router-dom";
 
 import { useSignUpMutation } from "../../api_client/api";
 import { EMAIL_REGEX } from "../../util/util";
-import { AppShellSimple } from "../AppShellSimple";
 
 export function SignupPage(): JSX.Element {
   const { t } = useTranslation();
@@ -56,82 +55,80 @@ export function SignupPage(): JSX.Element {
   }, [navigate, isSuccess]);
 
   return (
-    <AppShellSimple>
-      <Stack align="center" justify="flex-end" pt={150}>
-        <Group>
-          <Image height={80} width={80} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} />
-          <span style={{ paddingLeft: 5, fontSize: 18 }}>
-            <b>{t("login.name")}</b>
-          </span>
-        </Group>
+    <Stack align="center" justify="flex-end" pt={150}>
+      <Group>
+        <Image height={80} width={80} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} />
+        <span style={{ paddingLeft: 5, fontSize: 18 }}>
+          <b>{t("login.name")}</b>
+        </span>
+      </Group>
 
-        <div className="login-form">
-          <Card>
-            <Stack>
-              <Title order={3}>{t("login.signup")}</Title>
-              <form
-                onSubmit={form.onSubmit(values => {
-                  const result = form.validate();
-                  if (result.hasErrors) {
-                    return;
-                  }
-                  const { email, first_name: firstName, last_name: lastName, password } = values;
-                  const username = values.username.toLowerCase();
-                  signup({ email, first_name: firstName, last_name: lastName, username, password });
-                })}
-              >
-                <Stack>
-                  <TextInput
-                    required
-                    leftSection={<User />}
-                    placeholder={t("login.usernameplaceholder")}
-                    name="username"
-                    {...form.getInputProps("username")}
-                  />
-                  <TextInput
-                    required
-                    leftSection={<Mail />}
-                    placeholder={t("settings.emailplaceholder")}
-                    name="email"
-                    {...form.getInputProps("email")}
-                  />
-                  <TextInput
-                    required
-                    leftSection={<User />}
-                    placeholder={t("settings.firstnameplaceholder")}
-                    name="firstname"
-                    {...form.getInputProps("first_name")}
-                  />
-                  <TextInput
-                    required
-                    leftSection={<User />}
-                    placeholder={t("settings.lastnameplaceholder")}
-                    name="lastname"
-                    {...form.getInputProps("last_name")}
-                  />
-                  <PasswordInput
-                    leftSection={<Lock />}
-                    placeholder={t("login.passwordplaceholder")}
-                    name="password"
-                    {...form.getInputProps("password")}
-                  />
-                  <PasswordInput
-                    required
-                    leftSection={<Lock />}
-                    placeholder={t("login.confirmpasswordplaceholder")}
-                    name="passwordConfirm"
-                    {...form.getInputProps("passwordConfirm")}
-                  />
+      <div className="login-form">
+        <Card>
+          <Stack>
+            <Title order={3}>{t("login.signup")}</Title>
+            <form
+              onSubmit={form.onSubmit(values => {
+                const result = form.validate();
+                if (result.hasErrors) {
+                  return;
+                }
+                const { email, first_name: firstName, last_name: lastName, password } = values;
+                const username = values.username.toLowerCase();
+                signup({ email, first_name: firstName, last_name: lastName, username, password });
+              })}
+            >
+              <Stack>
+                <TextInput
+                  required
+                  leftSection={<User />}
+                  placeholder={t("login.usernameplaceholder")}
+                  name="username"
+                  {...form.getInputProps("username")}
+                />
+                <TextInput
+                  required
+                  leftSection={<Mail />}
+                  placeholder={t("settings.emailplaceholder")}
+                  name="email"
+                  {...form.getInputProps("email")}
+                />
+                <TextInput
+                  required
+                  leftSection={<User />}
+                  placeholder={t("settings.firstnameplaceholder")}
+                  name="firstname"
+                  {...form.getInputProps("first_name")}
+                />
+                <TextInput
+                  required
+                  leftSection={<User />}
+                  placeholder={t("settings.lastnameplaceholder")}
+                  name="lastname"
+                  {...form.getInputProps("last_name")}
+                />
+                <PasswordInput
+                  leftSection={<Lock />}
+                  placeholder={t("login.passwordplaceholder")}
+                  name="password"
+                  {...form.getInputProps("password")}
+                />
+                <PasswordInput
+                  required
+                  leftSection={<Lock />}
+                  placeholder={t("login.confirmpasswordplaceholder")}
+                  name="passwordConfirm"
+                  {...form.getInputProps("passwordConfirm")}
+                />
 
-                  <Button variant="gradient" gradient={{ from: "#D38312", to: "#A83279" }} type="submit">
-                    {t("login.signup")}
-                  </Button>
-                </Stack>
-              </form>
-            </Stack>
-          </Card>
-        </div>
-      </Stack>
-    </AppShellSimple>
+                <Button variant="gradient" gradient={{ from: "#D38312", to: "#A83279" }} type="submit">
+                  {t("login.signup")}
+                </Button>
+              </Stack>
+            </form>
+          </Stack>
+        </Card>
+      </div>
+    </Stack>
   );
 }

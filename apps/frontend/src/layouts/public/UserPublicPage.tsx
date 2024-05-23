@@ -8,7 +8,6 @@ import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppSelector } from "../../store/store";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-import { AppShellPublic } from "../AppShellPublic";
 import type { PhotoGroup } from "../photos/common";
 
 export function UserPublicPage() {
@@ -45,22 +44,20 @@ export function UserPublicPage() {
   };
 
   return (
-    <AppShellPublic>
-      <PhotoListView
-        // To-Do: Translate this
-        title={
-          auth.access && auth.access.name === params.username
-            ? "Your public photos"
-            : `Public photos of ${params.username}`
-        }
-        loading={isLoading}
-        icon={<Globe size={50} />}
-        photoset={photosGroupedByDate ?? []}
-        idx2hash={photosFlat}
-        isPublic={auth.access === null || auth.access.name !== params.username}
-        updateGroups={getAlbums}
-        selectable
-      />
-    </AppShellPublic>
+    <PhotoListView
+      // To-Do: Translate this
+      title={
+        auth.access && auth.access.name === params.username
+          ? "Your public photos"
+          : `Public photos of ${params.username}`
+      }
+      loading={isLoading}
+      icon={<Globe size={50} />}
+      photoset={photosGroupedByDate ?? []}
+      idx2hash={photosFlat}
+      isPublic={auth.access === null || auth.access.name !== params.username}
+      updateGroups={getAlbums}
+      selectable
+    />
   );
 }

@@ -7,7 +7,6 @@ import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_clien
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-import { AppShellProtected } from "../AppShellProtected";
 import type { PhotoGroup } from "./common";
 
 export function TimestampPhotos() {
@@ -39,16 +38,14 @@ export function TimestampPhotos() {
   };
 
   return (
-    <AppShellProtected>
-      <PhotoListView
-        title={t("photos.photos")}
-        loading={isLoading}
-        icon={<Photo size={50} />}
-        photoset={photosGroupedByDate ?? []}
-        idx2hash={photosFlat}
-        updateGroups={getAlbums}
-        selectable
-      />
-    </AppShellProtected>
+    <PhotoListView
+      title={t("photos.photos")}
+      loading={isLoading}
+      icon={<Photo size={50} />}
+      photoset={photosGroupedByDate ?? []}
+      idx2hash={photosFlat}
+      updateGroups={getAlbums}
+      selectable
+    />
   );
 }

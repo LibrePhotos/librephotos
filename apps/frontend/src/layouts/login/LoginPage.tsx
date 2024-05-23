@@ -22,7 +22,6 @@ import { useGetSettingsQuery } from "../../api_client/site-settings";
 import { selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { authActions } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { AppShellSimple } from "../AppShellSimple";
 
 export function LoginPage(): JSX.Element {
   const navigate = useNavigate();
@@ -57,58 +56,56 @@ export function LoginPage(): JSX.Element {
   }
 
   return (
-    <AppShellSimple>
-      <Stack align="center" justify="flex-end" pt={150}>
-        <Group>
-          <Image height={80} width={80} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} />
-          <span style={{ paddingLeft: 5, fontSize: 18 }}>
-            <b>{t("login.name")}</b>
-          </span>
-        </Group>
-        <div className="login-form">
-          <Card>
-            <Stack>
-              <Title order={3}>{t("login.login")}</Title>
+    <Stack align="center" justify="flex-end" pt={150}>
+      <Group>
+        <Image height={80} width={80} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} />
+        <span style={{ paddingLeft: 5, fontSize: 18 }}>
+          <b>{t("login.name")}</b>
+        </span>
+      </Group>
+      <div className="login-form">
+        <Card>
+          <Stack>
+            <Title order={3}>{t("login.login")}</Title>
 
-              <form onSubmit={onSubmit}>
-                <Stack>
-                  <TextInput
-                    required
-                    leftSection={<User />}
-                    placeholder={t("login.usernameplaceholder")}
-                    name="username"
-                    /* eslint-disable-next-line react/jsx-props-no-spreading */
-                    {...form.getInputProps("username")}
-                  />
-                  <PasswordInput
-                    required
-                    leftSection={<Lock />}
-                    placeholder={t("login.passwordplaceholder")}
-                    name="password"
-                    /* eslint-disable-next-line react/jsx-props-no-spreading */
-                    {...form.getInputProps("password")}
-                  />
-                  <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
-                    {t("login.login")}
+            <form onSubmit={onSubmit}>
+              <Stack>
+                <TextInput
+                  required
+                  leftSection={<User />}
+                  placeholder={t("login.usernameplaceholder")}
+                  name="username"
+                  /* eslint-disable-next-line react/jsx-props-no-spreading */
+                  {...form.getInputProps("username")}
+                />
+                <PasswordInput
+                  required
+                  leftSection={<Lock />}
+                  placeholder={t("login.passwordplaceholder")}
+                  name="password"
+                  /* eslint-disable-next-line react/jsx-props-no-spreading */
+                  {...form.getInputProps("password")}
+                />
+                <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
+                  {t("login.login")}
+                </Button>
+                {siteSettings && siteSettings.allow_registration && (
+                  <Button
+                    disabled={!siteSettings.allow_registration || isLoading}
+                    component="a"
+                    href="/signup"
+                    variant="gradient"
+                    gradient={{ from: "#D38312", to: "#A83279" }}
+                  >
+                    {t("login.signup")}
                   </Button>
-                  {siteSettings && siteSettings.allow_registration && (
-                    <Button
-                      disabled={!siteSettings.allow_registration || isLoading}
-                      component="a"
-                      href="/signup"
-                      variant="gradient"
-                      gradient={{ from: "#D38312", to: "#A83279" }}
-                    >
-                      {t("login.signup")}
-                    </Button>
-                  )}
-                </Stack>
-              </form>
-            </Stack>
-          </Card>
-        </div>
-        <Center>{t("login.tagline")}</Center>
-      </Stack>
-    </AppShellSimple>
+                )}
+              </Stack>
+            </form>
+          </Stack>
+        </Card>
+      </div>
+      <Center>{t("login.tagline")}</Center>
+    </Stack>
   );
 }

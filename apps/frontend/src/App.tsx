@@ -8,7 +8,9 @@ import "./App.css";
 import { CountStats } from "./components/statistics";
 import { Login } from "./containers/login";
 import "./i18n";
-import { ProtectedRoutes } from "./layouts/PrivateRoute";
+import { AppShellProtected } from "./layouts/AppShellProtected";
+import { AppShellPublicWithHeader } from "./layouts/AppShellPublicWithHeader";
+import { AppShellPublicWithoutHeader } from "./layouts/AppShellPublicWithoutHeader";
 import { SearchView } from "./layouts/SearchView";
 import { AlbumAuto } from "./layouts/albums/AlbumAuto";
 import { AlbumAutoGalleryView } from "./layouts/albums/AlbumAutoGalleryView";
@@ -51,12 +53,18 @@ export function App() {
         <MantineEmotionProvider>
           <Notifications autoClose={3000} zIndex={1001} />
           <Routes>
-            <Route path="login" element={<Login />} />
-            <Route path="signup" element={<SignupPage />} />
-            <Route path="public/:username" element={<UserPublicPage />} />
-            <Route path="users" element={<PublicUserList />} />
-            <Route path="user/:username" element={<UserPublicPage />} />
-            <Route element={<ProtectedRoutes />}>
+            <Route element={<AppShellPublicWithoutHeader />}>
+              <Route path="login" element={<Login />} />
+              <Route path="signup" element={<SignupPage />} />
+            </Route>
+
+            <Route element={<AppShellPublicWithHeader />}>
+              <Route path="public/:username" element={<UserPublicPage />} />
+              <Route path="users" element={<PublicUserList />} />
+              <Route path="user/:username" element={<UserPublicPage />} />
+            </Route>
+
+            <Route element={<AppShellProtected />}>
               <Route index element={<TimestampPhotos />} />
               <Route path="things" element={<AlbumThing />} />
               <Route path="recent" element={<RecentlyAddedPhotos />} />
