@@ -971,62 +971,62 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@mantine/core@^7.9.0":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/core/-/core-7.9.2.tgz#aea01216910a3ae9af836f8c93d278b47c61d035"
-  integrity sha512-ARNEiREF70tikW6at8QwFFcDbtennPjnhPOifaDL1sQurO3ORN/iOUFxiH1npWoqNydUZHxhsfFVpte8NNf/oQ==
+"@mantine/core@^7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/core/-/core-7.10.0.tgz#bfaafc92cf2346e5a6cbb49289f577ce3f7c05f7"
+  integrity sha512-hNqhdn/+4x8+FDWzR5fu1eMgnG1Mw4fZHw4WjIYjKrSv0NeKHY263RiesZz8RwcUQ8r7LlD95/2tUOMnKVTV5Q==
   dependencies:
     "@floating-ui/react" "^0.26.9"
-    clsx "2.1.0"
+    clsx "^2.1.1"
     react-number-format "^5.3.1"
     react-remove-scroll "^2.5.7"
     react-textarea-autosize "8.5.3"
     type-fest "^4.12.0"
 
-"@mantine/dates@^7.9.0":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/dates/-/dates-7.9.2.tgz#e08c44dd1976290abea7afb12d1b3a73da624e9f"
-  integrity sha512-jbSHNuaZk0Fn/TfVFDM/l9cW1pt4kdGPCOD17SkTwuvSnlMjj7TTjp8I5UCrnNTbmrlUR451HrOGPD0j6vBSFg==
+"@mantine/dates@^7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/dates/-/dates-7.10.0.tgz#0c2a02883d5fb4a36b40a578b26ef5a697c333e5"
+  integrity sha512-LBBh1U/RzxFQKGA6sSYxbCwYEMoM5lNIhwofY6g8zOTAZuRQqo5FIWItmB9I9ltT+M2o75SADeP6ZBLi4ec8ZA==
   dependencies:
-    clsx "2.1.0"
+    clsx "^2.1.1"
 
-"@mantine/emotion@^7.9.0":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/emotion/-/emotion-7.9.2.tgz#8970929269582ee51583c0078ce64bf0fc7b7b8b"
-  integrity sha512-6p9/O/1lyilcrVAoS3sx/SPlLRl8hh/B/0bbKiEWxHqCCPMbBSjnrVNW5uVoW72uWBG3+j8V0dseHgBfV4GMDA==
+"@mantine/emotion@^7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/emotion/-/emotion-7.10.0.tgz#0dc43465816bfb59d788cec7da4dc9391d4019f9"
+  integrity sha512-Wl7P0OyZTsWmJkIAkwv3X3+f+pqNj5vI7pwaIl9npilzKg/v/zGlY0o2zh30Q1gd5MnazorbVaklebxOEHMrvw==
   dependencies:
     html-react-parser "^5.1.10"
 
-"@mantine/form@^7.9.0":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/form/-/form-7.9.2.tgz#0b38342bed8ce66d96b7fb83076d4d48e4c4e4fb"
-  integrity sha512-G3n4VcK8LksJG9NncOwROXwxIJPXhpFF5FNemU+mCyuqzYI2bj8qsLh12e3wf9m1eZ2kmYjK4UpqP/AOptHHCQ==
+"@mantine/form@^7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/form/-/form-7.10.0.tgz#3e8e3fb836948becb13b89412c74016b50bac3d3"
+  integrity sha512-ChAtqdQCAZrnH6iiCivumyMuMsev+tFWIgsCCgAmbP2sOyMtjbNtypKrcwBwI/PzAH9N4jSJlsmJsnRdXNeEkQ==
   dependencies:
     fast-deep-equal "^3.1.3"
     klona "^2.0.6"
 
-"@mantine/hooks@^7.9.0":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/hooks/-/hooks-7.9.2.tgz#5cb2abc5b293b6571456443cee858f98503cc7c5"
-  integrity sha512-qT8vvHZ8K/qFXSSIyq/NHpKgtEs1Vas4Z2tPPtMTN7oyibjsel09XebPAt59nkJS/SACQbja0GZ4lUXI2+AFFw==
+"@mantine/hooks@^7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/hooks/-/hooks-7.10.0.tgz#10a259e204a8af29df6aeeb24090c1e2c6debca0"
+  integrity sha512-fnalwYS2WQEFS4wmhmAetDZ/VdJPLNeUXPX9t+S21o3p/dRTX1xhU2mS7yWaQUKM0hPD1TcujqXGlP2M2g/A9A==
 
-"@mantine/notifications@^7.9.0":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/notifications/-/notifications-7.9.2.tgz#dd1aa2f5d635b7c305d9c9738eb161bfaae12895"
-  integrity sha512-ERgmPLkiVPOqPjCVfSSK2QcRb/2W9wJVPpIlkSyMNYUWosceAH9uPhZCtnWxyRqH/PLhYtOOflxq2i4hiArEJQ==
+"@mantine/notifications@^7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/notifications/-/notifications-7.10.0.tgz#aa638b8bb6c3d6bfb34d518a49ef8a8b6ab499e4"
+  integrity sha512-3a0mmM9Kr3nPP+8VHsIuly507nda6ciu2aB/xSxb7gFIKHw3GqSu77pxXa+5l4Y6AQKKvP9360K4KjH6+rOBWw==
   dependencies:
-    "@mantine/store" "7.9.2"
+    "@mantine/store" "7.10.0"
     react-transition-group "4.4.5"
 
-"@mantine/store@7.9.2":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/store/-/store-7.9.2.tgz#1b20ba4acff3c085660e28e2daa11705ae1ddcba"
-  integrity sha512-oqCjse3cAp0DQI1fT5AWLW+Me6Mu4b2DVPpoRRwm7Ptw8gzUEmxb/9Brx2rkhaAym+S9sGe8IdEpNVLXaZyGXw==
+"@mantine/store@7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/store/-/store-7.10.0.tgz#68368c6ca5b75cfb331220e06a3235be753df055"
+  integrity sha512-B6AyUX0cA97/hI9v0att7eJJnQTcUG7zBlTdWhOsptBV5UoDNrzdv3DDWIFxrA8h+nhNKGBh6Dif5HWh1+QLeA==
 
-"@mantine/tiptap@^7.9.0":
-  version "7.9.2"
-  resolved "https://registry.yarnpkg.com/@mantine/tiptap/-/tiptap-7.9.2.tgz#5aff230e5b2345fc72445529aa14a3e156a563d2"
-  integrity sha512-E32/0/2kSLZItXEgadK5el5YY3E7uCnFFc19qL18XSI6RLytrJhDyw0aoIxfeRxkkfFZjSUkrtec7XNWo4hUQQ==
+"@mantine/tiptap@^7.10.0":
+  version "7.10.0"
+  resolved "https://registry.yarnpkg.com/@mantine/tiptap/-/tiptap-7.10.0.tgz#77926f0a2d81c05e3f4084e65786778d5227fa56"
+  integrity sha512-C8wURpoh1dduWPgGgyknVc+E9/gDZVOMIyPxZXNx/r74/OoaE8tu8tgF/T21t8DtCQ4jter0PEGZFDB9hIXuag==
 
 "@nicolo-ribaudo/eslint-scope-5-internals@5.1.1-v1":
   version "5.1.1-v1"
@@ -2690,15 +2690,15 @@ clone@^1.0.2:
   resolved "https://registry.yarnpkg.com/clone/-/clone-1.0.4.tgz#da309cc263df15994c688ca902179ca3c7cd7c7e"
   integrity sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==
 
-clsx@2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/clsx/-/clsx-2.1.0.tgz#e851283bcb5c80ee7608db18487433f7b23f77cb"
-  integrity sha512-m3iNNWpd9rl3jvvcBnu70ylMdrXt8Vlq4HYadnU5fwcOtvkSQWPmj7amUcDT2qYI7risszBjI5AUIUox9D16pg==
-
 clsx@^1.0.4:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/clsx/-/clsx-1.2.1.tgz#0ddc4a20a549b59c93a4116bb26f5294ca17dc12"
   integrity sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==
+
+clsx@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/clsx/-/clsx-2.1.1.tgz#eed397c9fd8bd882bfb18deab7102049a2f32999"
+  integrity sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==
 
 co@^4.6.0:
   version "4.6.0"
