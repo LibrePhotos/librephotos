@@ -1,4 +1,4 @@
-import { Button, Grid, Group, Image } from "@mantine/core";
+import { Button, Group, Image } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconMenu2 as Menu2 } from "@tabler/icons-react";
 import React, { useEffect } from "react";
@@ -15,16 +15,14 @@ type Props = Readonly<{
 
 export function TopMenuCommon({ onToggleSidebar }: Props) {
   return (
-    <Grid.Col span={1}>
-      <Group>
-        <Menu2 onClick={onToggleSidebar} />
-        <Link to="/">
-          <Button color="dark" style={{ padding: 2 }}>
-            <Image height={30} width={30} src="/logo-white.png" />
-          </Button>
-        </Link>
-      </Group>
-    </Grid.Col>
+    <Group>
+      <Menu2 onClick={onToggleSidebar} />
+      <Link to="/">
+        <Button color="dark" style={{ padding: 2 }}>
+          <Image height={30} width={30} src="/logo-white.png" />
+        </Button>
+      </Link>
+    </Group>
   );
 }
 
@@ -40,15 +38,11 @@ export function TopMenuPublic() {
   }, [auth.access, dispatch]);
 
   return (
-    <Group h={45}>
-      <Grid justify="space-between" grow style={{ padding: 5 }}>
-        {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
-        <Grid.Col span={1}>
-          <Group align="right">
-            <Button onClick={() => dispatch(push("/login"))}>Login</Button>
-          </Group>
-        </Grid.Col>
-      </Grid>
+    <Group justify="space-between" px={15}>
+      {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
+      <Group align="right">
+        <Button onClick={() => dispatch(push("/login"))}>Login</Button>
+      </Group>
     </Group>
   );
 }
