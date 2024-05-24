@@ -56,7 +56,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
               <Camera />
               <div>
                 <Text weight={800}>{photoDetail.camera?.toString()}</Text>
-                <Group spacing="xs">
+                <Group gap="xs">
                   <FileInfoComponent info={photoDetail.lens?.toString()} />
                   <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
                   <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />

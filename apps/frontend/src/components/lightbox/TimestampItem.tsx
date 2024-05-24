@@ -147,7 +147,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
               }
               onActivateEditMode();
             }}
-            rightIcon={!isPublic && <Edit size={17} />}
+            rightSection={!isPublic && <Edit size={17} />}
           >
             {getDateTimeLabel()}
           </Button>

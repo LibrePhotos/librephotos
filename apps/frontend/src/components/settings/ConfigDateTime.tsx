@@ -105,14 +105,14 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
       </Title>
 
       <Group>
-        <Button color="green" leftIcon={<CodePlus />} onClick={open} style={{ marginBottom: 10 }}>
+        <Button color="green" leftSection={<CodePlus />} onClick={open} style={{ marginBottom: 10 }}>
           {t("settings.add_rule")}
         </Button>
 
         <Button
           color={resetButtonDisabled ? "gray" : "red"}
           disabled={resetButtonDisabled}
-          leftIcon={<ArrowBackUp />}
+          leftSection={<ArrowBackUp />}
           onClick={() => resetToDefaultRules()}
           style={{ marginBottom: 10 }}
         >

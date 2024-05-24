@@ -107,7 +107,7 @@ export function AlbumAutoGalleryView() {
           zIndex: 500,
         }}
       >
-        <Button color={showMap ? "blue" : "grey"} onClick={toggleMap} rightIcon={<Map2 />}>
+        <Button color={showMap ? "blue" : "grey"} onClick={toggleMap} rightSection={<Map2 />}>
           {showMap ? t("autoalbumgallery.hidemap") : t("autoalbumgallery.showmap")}
         </Button>
       </div>

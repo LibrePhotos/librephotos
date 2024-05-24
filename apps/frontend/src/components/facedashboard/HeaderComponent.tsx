@@ -89,7 +89,7 @@ export function HeaderComponent({
 
   return (
     <Stack
-      spacing="xs"
+      gap="xs"
       style={{
         ...style,
         width,

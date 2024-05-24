@@ -18,9 +18,9 @@ export function CountStats() {
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
   return (
-    <Group grow spacing="xs" align="stretch">
+    <Group grow gap="xs" align="stretch">
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group position="left" gap="xs">
           <Photo size={64} strokeWidth={1} />
           <div>
             <Text color="dimmed">{t("countstats.photos")}</Text>
@@ -30,7 +30,7 @@ export function CountStats() {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group position="left" gap="xs">
           <Users size={64} strokeWidth={1} />
           <div>
             <Text color="dimmed"> {t("people")}</Text>
@@ -42,7 +42,7 @@ export function CountStats() {
       <Card withBorder p="xs">
         <HoverCard width={300} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
-            <Group position="left" spacing="xs">
+            <Group position="left" gap="xs">
               <FaceId size={64} strokeWidth={1} />
               <div>
                 <Text color="dimmed">{t("faces")}</Text>
@@ -53,7 +53,7 @@ export function CountStats() {
           <HoverCard.Dropdown>
             <Grid>
               <Grid.Col span={9}>
-                <Stack spacing={0}>
+                <Stack gap={0}>
                   <Text>
                     <Trans i18nKey="settings.inferred">Inferred</Trans>
                   </Text>
@@ -66,7 +66,7 @@ export function CountStats() {
                 </Flex>
               </Grid.Col>
               <Grid.Col span={9}>
-                <Stack spacing={0}>
+                <Stack gap={0}>
                   <Text>
                     <Trans i18nKey="settings.labeled">Labeled</Trans>
                   </Text>
@@ -79,7 +79,7 @@ export function CountStats() {
                 </Flex>
               </Grid.Col>
               <Grid.Col span={9}>
-                <Stack spacing={0}>
+                <Stack gap={0}>
                   <Text>
                     <Trans i18nKey="settings.unknown">Unknown</Trans>
                   </Text>
@@ -97,7 +97,7 @@ export function CountStats() {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group position="left" gap="xs">
           <SettingsAutomation size={64} strokeWidth={1} />
           <div>
             <Text color="dimmed">{t("events")}</Text>
@@ -107,7 +107,7 @@ export function CountStats() {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group position="left" gap="xs">
           <Calendar size={64} strokeWidth={1} />
           <div>
             <Text color="dimmed">{t("days")}</Text>

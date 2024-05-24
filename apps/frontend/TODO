@@ -1,4 +1,6 @@
 - refactor site search with combobox
 - burger button toggle menu work
 - fix public user list and public photos for authenticated user
+- fix icon property on elements (convert to left/right section)
+- replace tag property color= to c=
 

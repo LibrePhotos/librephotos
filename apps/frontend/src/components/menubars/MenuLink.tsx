@@ -46,7 +46,7 @@ export function MainLink({ icon, color, label = "", to = "" }: Readonly<MainLink
           }
         }}
       >
-        <Stack align="center" spacing="xs">
+        <Stack align="center" gap="xs">
           <ThemeIcon size="lg" variant="light" color={color}>
             {icon}
           </ThemeIcon>

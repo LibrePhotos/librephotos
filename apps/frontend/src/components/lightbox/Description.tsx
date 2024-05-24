@@ -98,7 +98,7 @@ export function Description(props: Props) {
             editMode &&
             !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
               <div>
-                <Group spacing="sm" style={{ paddingBottom: 12 }}>
+                <Group gap="sm" style={{ paddingBottom: 12 }}>
                   <Wand color="grey" size={20} />
                   <Text size="sm" color="dimmed">
                     Suggestion

@@ -65,7 +65,7 @@ export function ButtonHeaderGroup({
   return (
     <div>
       <Group position="apart">
-        <Group spacing="xs">
+        <Group gap="xs">
           <Switch
             label={t("facesdashboard.selectedfaces", {
               number: selectedFaces.length,

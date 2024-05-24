@@ -253,7 +253,7 @@ export function ModalUserEdit(props: Props) {
             paddingBottom: theme.spacing.md,
           })}
         >
-          <SimpleGrid cols={2} spacing="xs" breakpoints={[{ maxWidth: 600, cols: 1, spacing: "sm" }]}>
+          <SimpleGrid cols={2} gap="xs" breakpoints={[{ maxWidth: 600, cols: 1, spacing: "sm" }]}>
             <TextInput
               required
               label={t("login.usernamelabel")}

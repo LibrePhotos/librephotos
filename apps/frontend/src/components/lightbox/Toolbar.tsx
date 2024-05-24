@@ -1,4 +1,5 @@
 import { ActionIcon, Group, Loader } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
 import {
   IconEye as Eye,
   IconEyeOff as EyeOff,
@@ -17,6 +18,25 @@ import { playerActions } from "../../store/player/playerSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
 
+const useStyles = createStyles((theme, _, u) => ({
+  button: {
+    [u.light]: {
+      color: theme.colors.dark[0],
+    },
+    [u.dark]: {
+      color: theme.colors.black,
+    },
+    "&:hover": {
+      [u.light]: {
+        color: theme.colors.grey[3],
+      },
+      [u.dark]: {
+        color: theme.colors.white,
+      },
+    },
+  },
+}));
+
 type Props = Readonly<{
   photosDetail: any;
   isPublic: boolean;
@@ -32,6 +52,7 @@ export function Toolbar(props: Props) {
   const [setPhotosHidden] = useSetPhotosHiddenMutation();
   const [setPhotosPublic] = useSetPhotosPublicMutation();
   const [setFavoritePhotos] = useSetFavoritePhotosMutation();
+  const { classes } = useStyles();
 
   function playButton(photo) {
     if (!photo || photo.embedded_media.length === 0) {
@@ -45,9 +66,9 @@ export function Toolbar(props: Props) {
       }
     }
     return (
-      <ActionIcon onClick={() => togglePlay()}>
+      <ActionIcon className={classes.icon} onClick={() => togglePlay()} variant="transparent">
         {playerLoading && <Loader color="grey" />}
-        {!playerLoading && playerPlaying ? <PlayerPause color="grey" /> : <PlayerPlay color="grey" />}
+        {!playerLoading && playerPlaying ? <PlayerPause /> : <PlayerPlay />}
       </ActionIcon>
     );
   }
@@ -55,23 +76,24 @@ export function Toolbar(props: Props) {
   return (
     <Group style={{ paddingBottom: 10, paddingRight: 5 }}>
       {!photosDetail && !isPublic && (
-        <ActionIcon loading>
+        <ActionIcon loading variant="transparent">
           <Eye color="grey" />
         </ActionIcon>
       )}
       {!photosDetail && !isPublic && (
-        <ActionIcon loading>
+        <ActionIcon loading variant="transparent">
           <Star color="grey" />
         </ActionIcon>
       )}
       {!photosDetail && !isPublic && (
-        <ActionIcon loading>
+        <ActionIcon loading variant="transparent">
           <Globe color="grey" />
         </ActionIcon>
       )}
       {playButton(photosDetail)}
       {photosDetail && !isPublic && (
         <ActionIcon
+          variant="transparent"
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !photosDetail.hidden;
@@ -83,6 +105,7 @@ export function Toolbar(props: Props) {
       )}
       {photosDetail && !isPublic && (
         <ActionIcon
+          variant="transparent"
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !(photosDetail.rating >= favoriteMinRating);
@@ -94,6 +117,7 @@ export function Toolbar(props: Props) {
       )}
       {photosDetail && !isPublic && (
         <ActionIcon
+          variant="transparent"
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !photosDetail.public;
@@ -110,7 +134,7 @@ export function Toolbar(props: Props) {
           <Globe color={photosDetail.public ? "green" : "grey"} />
         </ActionIcon>
       )}
-      <ActionIcon onClick={() => closeSidepanel()}>
+      <ActionIcon onClick={() => closeSidepanel()} variant="transparent">
         <InfoCircle color={lightboxSidebarShow ? "white" : "grey"} />
       </ActionIcon>
     </Group>

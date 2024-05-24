@@ -53,7 +53,7 @@ export function Settings() {
 
   return (
     <Container>
-      <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+      <Group gap="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
         <SettingIcon size={35} />
         <Title order={1}>{t("settings.header")}</Title>
       </Group>

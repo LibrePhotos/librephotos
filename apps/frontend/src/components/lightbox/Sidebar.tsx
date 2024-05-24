@@ -122,10 +122,10 @@ export function Sidebar(props: Props) {
                 <Title order={4}>{t("lightbox.sidebar.people")}</Title>
               </Group>
               {photoDetail.people.map(nc => (
-                <Group position="center" spacing="xs" key={`${nc.name}`}>
+                <Group position="center" gap="xs" key={`${nc.name}`}>
                   <Button
                     variant="subtle"
-                    leftIcon={<Avatar radius="xl" src={serverAddress + nc.face_url} />}
+                    leftSection={<Avatar radius="xl" src={serverAddress + nc.face_url} />}
                     onClick={() => {
                       if (isPublic) {
                         return;
@@ -172,7 +172,7 @@ export function Sidebar(props: Props) {
                 <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
               </Group>
               <Text>
-                <Group spacing="xs">
+                <Group gap="xs">
                   {photoDetail.similar_photos.slice(0, 30).map(el => (
                     <Tile video={el.type.includes("video")} height={85} width={85} image_hash={el.image_hash} />
                   ))}
