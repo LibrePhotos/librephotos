@@ -163,7 +163,7 @@ export function Description(props: Props) {
           </RichTextEditor>
         </div>
         {editMode && (
-          <Group position="center">
+          <Group justify="center">
             <Tooltip label={t("lightbox.sidebar.cancel")}>
               <ActionIcon
                 variant="light"

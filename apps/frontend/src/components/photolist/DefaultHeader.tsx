@@ -113,8 +113,8 @@ export function DefaultHeader(props: Props) {
 
   return (
     <div>
-      <Group position="apart">
-        <Group position="left">
+      <Group justify="apart">
+        <Group justify="left">
           {icon}
           <div>
             {auth.access && isMenuView() && auth.access.is_admin ? (
@@ -175,7 +175,7 @@ export function DefaultHeader(props: Props) {
             {getPhotoCounter()}
           </div>
         </Group>
-        <Group position="right">
+        <Group justify="right">
           <Text>
             <b>
               {dayHeaderPrefix}

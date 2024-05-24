@@ -100,7 +100,7 @@ export function Profile() {
             User
           </Title>
           <Title order={5}>{t("settings.avatar")}</Title>
-          <Group position="center" align="self-start" grow mb="lg">
+          <Group justify="center" align="self-start" grow mb="lg">
             <div>
               <Dropzone
                 noClick

@@ -20,7 +20,7 @@ export function CountStats() {
   return (
     <Group grow gap="xs" align="stretch">
       <Card withBorder p="xs">
-        <Group position="left" gap="xs">
+        <Group justify="left" gap="xs">
           <Photo size={64} strokeWidth={1} />
           <div>
             <Text c="dimmed">{t("countstats.photos")}</Text>
@@ -30,7 +30,7 @@ export function CountStats() {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" gap="xs">
+        <Group justify="left" gap="xs">
           <Users size={64} strokeWidth={1} />
           <div>
             <Text c="dimmed"> {t("people")}</Text>
@@ -42,7 +42,7 @@ export function CountStats() {
       <Card withBorder p="xs">
         <HoverCard width={300} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
-            <Group position="left" gap="xs">
+            <Group justify="left" gap="xs">
               <FaceId size={64} strokeWidth={1} />
               <div>
                 <Text c="dimmed">{t("faces")}</Text>
@@ -97,7 +97,7 @@ export function CountStats() {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" gap="xs">
+        <Group justify="left" gap="xs">
           <SettingsAutomation size={64} strokeWidth={1} />
           <div>
             <Text c="dimmed">{t("events")}</Text>
@@ -107,7 +107,7 @@ export function CountStats() {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" gap="xs">
+        <Group justify="left" gap="xs">
           <Calendar size={64} strokeWidth={1} />
           <div>
             <Text c="dimmed">{t("days")}</Text>

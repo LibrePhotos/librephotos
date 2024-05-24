@@ -2,8 +2,9 @@
 - burger button toggle menu work
 - fix public user list and public photos for authenticated user
 - tag properties
-  - position=
   - align=
   - weight= to fw=
   - icon= to left/right Section
   - withinPortal
+  - onTabChange (tabs)
+  - sx property (Group, ...?)

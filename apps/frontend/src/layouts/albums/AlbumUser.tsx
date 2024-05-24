@@ -190,7 +190,7 @@ export function AlbumUser() {
       <Modal opened={isDeleteDialogOpen} onClose={hideDeleteDialog}>
         <Stack>
           {t("deletealbumexplanation")}
-          <Group position="center">
+          <Group justify="center">
             <Button color="blue" onClick={hideDeleteDialog}>
               {t("cancel")}
             </Button>

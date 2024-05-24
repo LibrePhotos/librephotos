@@ -76,7 +76,7 @@ export function LocationLink({
 
   return (
     <div style={{ padding: 10 }}>
-      <Group position="center">
+      <Group justify="center">
         <NativeSelect
           label="Layout"
           onChange={d => setLayout(d.currentTarget.value)}

@@ -27,7 +27,7 @@ export function AlbumViewer() {
         subtitle="Explore your photos."
       />
 
-      <Group position="apart">
+      <Group justify="apart">
         <Title order={3}>{t("myalbums")}</Title>
         <Button variant="subtle" component={Link} to="/useralbums/">
           View all
@@ -48,7 +48,7 @@ export function AlbumViewer() {
         ))}
       </Group>
 
-      <Group position="apart">
+      <Group justify="apart">
         <Title order={3}>{t("events")}</Title>
         <Button variant="subtle" component={Link} to="/events/">
           View all

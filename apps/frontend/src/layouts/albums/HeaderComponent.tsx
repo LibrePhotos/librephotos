@@ -11,7 +11,7 @@ type Props = {
 export function HeaderComponent(props: Readonly<Props>) {
   const { icon, title, fetching, subtitle } = props;
   return (
-    <Group position="left">
+    <Group justify="left">
       {icon}
       <div>
         <Title style={{ minWidth: 200 }} align="left" order={2}>

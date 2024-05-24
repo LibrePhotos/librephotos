@@ -68,7 +68,7 @@ export function ModalPhotosShare(props: Props) {
                 }
                 const avatar = item.avatar ? item.avatar_url : "/unknown_user.jpg";
                 return (
-                  <Group position="apart" key={item.id}>
+                  <Group justify="apart" key={item.id}>
                     <Group>
                       <Avatar radius="xl" size={50} src={avatar} />
                       <div>

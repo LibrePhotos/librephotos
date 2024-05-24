@@ -75,7 +75,7 @@ export function Sidebar(props: Props) {
     >
       {photoDetail && (
         <Stack>
-          <Group position="apart">
+          <Group justify="apart">
             <Title order={3}>Details</Title>
             <ActionIcon
               onClick={() => {
@@ -122,7 +122,7 @@ export function Sidebar(props: Props) {
                 <Title order={4}>{t("lightbox.sidebar.people")}</Title>
               </Group>
               {photoDetail.people.map(nc => (
-                <Group position="center" gap="xs" key={`${nc.name}`}>
+                <Group justify="center" gap="xs" key={`${nc.name}`}>
                   <Button
                     variant="subtle"
                     leftSection={<Avatar radius="xl" src={serverAddress + nc.face_url} />}

@@ -100,7 +100,7 @@ export function AlbumPeople() {
           </div>
         </div>
         <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-          <Group position="apart">
+          <Group justify="apart">
             <div>
               <b>{album.text}</b> <br />
               {t("numberofphotos", {

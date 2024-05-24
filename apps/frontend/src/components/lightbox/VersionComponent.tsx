@@ -30,8 +30,8 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
   return (
     <div>
       <Stack align="left">
-        <Group position="apart">
-          <Group position="left">
+        <Group justify="apart">
+          <Group justify="left">
             <Photo />
             <div>
               <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
@@ -51,8 +51,8 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
           </Group>
         </Group>
         {photoDetail.camera && (
-          <Group position="apart">
-            <Group position="left">
+          <Group justify="apart">
+            <Group justify="left">
               <Camera />
               <div>
                 <Text weight={800}>{photoDetail.camera?.toString()}</Text>

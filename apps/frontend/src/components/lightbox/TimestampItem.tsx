@@ -120,7 +120,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
               value={timestamp?.toString()}
               onChange={event => onChangeTime(new Date(event.target.value))}
             />
-            <Group position="center">
+            <Group justify="center">
               <Tooltip label={t("lightbox.sidebar.cancel")}>
                 <ActionIcon variant="light" onClick={onCancelDateTime} color="red">
                   <X />

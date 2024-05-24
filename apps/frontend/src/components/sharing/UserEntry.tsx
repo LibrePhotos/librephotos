@@ -35,7 +35,7 @@ export function UserEntry(props: UserEntryProps) {
   const [shareUserAlbum] = useShareUserAlbumMutation();
 
   return (
-    <Group position="apart" key={user.id}>
+    <Group justify="apart" key={user.id}>
       <Group>
         <Avatar radius="xl" size={50} src={getAvatar(user)} />
         <div>

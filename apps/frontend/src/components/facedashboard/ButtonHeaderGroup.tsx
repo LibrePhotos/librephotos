@@ -64,7 +64,7 @@ export function ButtonHeaderGroup({
 
   return (
     <div>
-      <Group position="apart">
+      <Group justify="apart">
         <Group gap="xs">
           <Switch
             label={t("facesdashboard.selectedfaces", {
@@ -139,7 +139,7 @@ export function ButtonHeaderGroup({
       <Modal opened={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} title={<h3>{t("deleteface")}</h3>}>
         <Stack>
           {t("deletefaceexplanation")}
-          <Group position="center">
+          <Group justify="center">
             <Button
               color="blue"
               onClick={() => {
