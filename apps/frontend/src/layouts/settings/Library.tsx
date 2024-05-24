@@ -312,13 +312,7 @@ export function Library() {
                 </List.Item>
               </List>
             </Collapse>
-            <Divider
-              labelProps={{ fw: "bold" }}
-              labelPosition="left"
-              label={t("settings.eventsalbums")}
-              mt={20}
-              mb={10}
-            />
+            <Divider labelPosition="left" label={<Text fw="bold">{t("settings.eventsalbums")}</Text>} mt={20} mb={10} />
             <Grid>
               <Grid.Col span={10}>
                 <Stack gap={0}>
@@ -365,9 +359,12 @@ export function Library() {
             </Grid>
           </Stack>
           <Divider
-            labelProps={{ fw: "bold" }}
             labelPosition="left"
-            label={`${t("settings.faces")} & ${t("settings.people")}`}
+            label={
+              <Text fw="bold">
+                {t("settings.faces")} & ${t("settings.people")}
+              </Text>
+            }
             mt={20}
             mb={10}
           />
@@ -417,7 +414,7 @@ export function Library() {
               </Button>
             </Grid.Col>
           </Grid>
-          <Divider labelProps={{ fw: "bold" }} labelPosition="left" label="Nextcloud" mt={20} mb={10} />
+          <Divider labelPosition="left" label={<Text fw="bold">Nextcloud</Text>} mt={20} mb={10} />
           <Grid>
             <Grid.Col span={10}>
               <Stack gap={0}>

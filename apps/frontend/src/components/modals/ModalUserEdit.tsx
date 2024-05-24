@@ -301,8 +301,7 @@ export function ModalUserEdit(props: Props) {
             <Grid grow>
               <Grid.Col span={9}>
                 <TextInput
-                  label={t("modalscandirectoryedit.currentdirectory")}
-                  labelProps={{ style: { fontWeight: "bold" } }}
+                  label={<Text fw="bold">{t("modalscandirectoryedit.currentdirectory")}</Text>}
                   ref={inputRef}
                   required={firstTimeSetup}
                   placeholder={scanDirectoryPlaceholder}
