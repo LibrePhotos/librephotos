@@ -22,7 +22,7 @@ export function PublicUserList() {
             <User />
             Users
           </Group>
-          <Text color="dimmed">Showing {publicUsers(users).length} users</Text>
+          <Text c="dimmed">Showing {publicUsers(users).length} users</Text>
         </div>
       </Title>
       {publicUsers(users).map(el => {
@@ -45,7 +45,7 @@ export function PublicUserList() {
           >
             <div>
               <Text left="left">{displayName}</Text>
-              <Text size="sm" color="dimmed">
+              <Text size="sm" c="dimmed">
                 {el.public_photo_count} public photos
               </Text>
             </div>

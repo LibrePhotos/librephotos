@@ -40,7 +40,7 @@ export function UserEntry(props: UserEntryProps) {
         <Avatar radius="xl" size={50} src={getAvatar(user)} />
         <div>
           <Title order={4}>{getDisplayName(user)}</Title>
-          <Text size="sm" color="dimmed">
+          <Text size="sm" c="dimmed">
             {t("modalphotosshare.joined")}{" "}
             {DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
           </Text>

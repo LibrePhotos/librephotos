@@ -29,7 +29,7 @@ export function SharedByMe() {
       <Group>
         <div>
           <Title order={2}> {which === "photos" ? "Photos" : "Albums"} you shared</Title>
-          <Text color="dimmed" size="sm">
+          <Text c="dimmed" size="sm">
             {getSubHeader(which)}
           </Text>
         </div>

@@ -167,7 +167,7 @@ export function SiteSettings() {
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.headerskippatterns")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.skippatterns")}
                 </Text>
               </Stack>
@@ -187,7 +187,7 @@ export function SiteSettings() {
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.map_api_provider_header")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.map_api_provider_description", {
                     url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
                   })}
@@ -213,7 +213,7 @@ export function SiteSettings() {
                 <Grid.Col span={8}>
                   <Stack gap={0}>
                     <Text>{t("sitesettings.map_api_key_header")}</Text>
-                    <Text fz="sm" color="dimmed">
+                    <Text fz="sm" c="dimmed">
                       {t("sitesettings.map_api_key_description", {
                         url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
                       })}
@@ -237,7 +237,7 @@ export function SiteSettings() {
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.captioning_model_header")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.captioning_model_description")}
                 </Text>
               </Stack>
@@ -259,7 +259,7 @@ export function SiteSettings() {
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.llm_model_header")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.llm_model_description")}
                 </Text>
               </Stack>
@@ -281,7 +281,7 @@ export function SiteSettings() {
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.headerheavyweight")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.heavyweight")}
                 </Text>
               </Stack>

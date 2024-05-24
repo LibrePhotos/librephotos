@@ -157,7 +157,7 @@ export function AlbumAutoGalleryView() {
                       {t("autoalbumgallery.day", { day: i + 1 })} -{" "}
                       {DateTime.fromISO(v[0]).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)}
                     </Title>
-                    <Text color="dimmed">
+                    <Text c="dimmed">
                       <Breadcrumbs separator="/">{uniqueLocations}</Breadcrumbs>
                     </Text>
                   </div>

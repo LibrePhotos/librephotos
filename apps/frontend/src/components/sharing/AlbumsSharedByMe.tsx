@@ -136,7 +136,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
             />
           </Anchor>
           <Text weight={700}>{cell.title}</Text>
-          <Text size="sm" color="dimmed">
+          <Text size="sm" c="dimmed">
             {cell.photo_count} photo(s)
           </Text>
         </div>

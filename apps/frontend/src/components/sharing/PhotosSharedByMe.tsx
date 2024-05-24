@@ -44,7 +44,7 @@ function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
           <Text size="md" weight="bold">
             {getUserName(group.userId)}
           </Text>
-          <Text size="xs" color="dimmed" style={{ display: "flex", alignItems: "center" }}>
+          <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
             <Polaroid size={16} style={{ marginRight: 5 }} />
             {isSharedToMe
               ? `shared ${group.photos.length} photos with you`

@@ -58,7 +58,7 @@ export function FaceClusterGraph({ height }: Props) {
       <Stack ref={observeChange}>
         <div>
           <Title order={3}> {t("facecluster")} </Title>
-          <Text color="dimmed">{t("faceclusterexplanation")}</Text>
+          <Text c="dimmed">{t("faceclusterexplanation")}</Text>
         </div>
         <XYPlot width={width - 30} height={height}>
           <HorizontalGridLines />
@@ -87,7 +87,7 @@ export function FaceClusterGraph({ height }: Props) {
     <Stack>
       <div>
         <Title order={3}>{t("facecluster")}</Title>
-        <Text color="dimmed">{t("faceclusterexplanation")}</Text>
+        <Text c="dimmed">{t("faceclusterexplanation")}</Text>
       </div>
       <Text>{t("nofaces")}</Text>
     </Stack>

@@ -63,7 +63,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
       }}
     >
       <Stack>
-        <Text color="dimmed">
+        <Text c="dimmed">
           {t("personedit.numberselected", {
             number: selectedFaces.length,
           })}
@@ -150,7 +150,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                     >
                       {item.text}
                     </Title>
-                    <Text size="sm" color="dimmed">
+                    <Text size="sm" c="dimmed">
                       {t("numberofphotos", {
                         number: item.face_count,
                       })}

@@ -293,7 +293,7 @@ export function ModalUserEdit(props: Props) {
         {!createNew && (
           <>
             <Title order={5}>{t("modalscandirectoryedit.header")} </Title>
-            <Text size="sm" color="dimmed">
+            <Text size="sm" c="dimmed">
               {t("modalscandirectoryedit.explanation1")} &quot;
               {form.values.username ? form.values.username : "\u2026"}&quot; {t("modalscandirectoryedit.explanation2")}
             </Text>

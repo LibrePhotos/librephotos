@@ -66,7 +66,7 @@ export function DefaultHeader(props: Props) {
   function getPhotoCounter() {
     if (loading || numPhotosetItems < 1) {
       return (
-        <Text align="left" color="dimmed">
+        <Text align="left" c="dimmed">
           {loading ? t("defaultheader.loading") : null}
           {!loading && numPhotosetItems < 1 ? t("defaultheader.noimages") : null}
           {loading ? <Loader size={20} /> : null}
@@ -75,7 +75,7 @@ export function DefaultHeader(props: Props) {
     }
 
     return (
-      <Text align="left" color="dimmed">
+      <Text align="left" c="dimmed">
         {numPhotosetItems !== numPhotos ? `${numPhotosetItems} ${t("defaultheader.days")}, ` : ""}
         {numPhotos} {t("defaultheader.photos")}
         {additionalSubHeader}

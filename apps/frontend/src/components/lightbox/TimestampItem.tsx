@@ -82,7 +82,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
       return (
         <div>
           {date}{" "}
-          <Text size="xs" color="dimmed">
+          <Text size="xs" c="dimmed">
             {dayOfWeek}, {time}
           </Text>
         </div>

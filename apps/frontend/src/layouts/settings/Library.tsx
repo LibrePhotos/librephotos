@@ -221,7 +221,7 @@ export function Library() {
                       <QuestionMark onClick={() => setIsOpenNextcloudHelp(!isOpenNextcloudHelp)} />
                     </ActionIcon>
                   </Group>
-                  <Text fz="sm" color="dimmed">
+                  <Text fz="sm" c="dimmed">
                     {t("settings.scanphotosdescription")}
                   </Text>
                 </Stack>
@@ -317,7 +317,7 @@ export function Library() {
               <Grid.Col span={10}>
                 <Stack gap={0}>
                   <Text>{t("settings.eventalbumsgenerate")}</Text>
-                  <Text fz="sm" color="dimmed">
+                  <Text fz="sm" c="dimmed">
                     {t("settings.eventsalbumsdescription")}
                   </Text>
                 </Stack>
@@ -338,7 +338,7 @@ export function Library() {
               <Grid.Col span={10}>
                 <Stack gap={0}>
                   <Text>{t("settings.eventalbumsregenerate")}</Text>
-                  <Text fz="sm" color="dimmed">
+                  <Text fz="sm" c="dimmed">
                     {t("settings.eventalbumsregeneratedescription")}
                   </Text>
                 </Stack>
@@ -372,7 +372,7 @@ export function Library() {
             <Grid.Col span={10}>
               <Stack gap={0}>
                 <Text>{t("settings.trainfacestitle")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("settings.trainfacesdescription")}
                 </Text>
               </Stack>
@@ -395,7 +395,7 @@ export function Library() {
             <Grid.Col span={10}>
               <Stack gap={0}>
                 <Text>{t("settings.rescanfacestitle")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("settings.rescanfacesdescription")}
                 </Text>
               </Stack>
@@ -471,7 +471,7 @@ export function Library() {
               <Stack gap={0}>
                 <Trans i18nKey="settings.nextcloudpassword" />
 
-                <Text size="sm" color="dimmed">
+                <Text size="sm" c="dimmed">
                   {t("settings.credentialspopup")}
                 </Text>
               </Stack>
@@ -490,7 +490,7 @@ export function Library() {
               <Stack gap={0}>
                 <Trans i18nKey="settings.nextcloudscandirectory" />
 
-                <Text size="sm" color="dimmed">
+                <Text size="sm" c="dimmed">
                   {userSelfDetails.nextcloud_scan_directory
                     ? userSelfDetails.nextcloud_scan_directory
                     : "Choose the folder to process from the nextcloud instance"}

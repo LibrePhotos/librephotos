@@ -126,7 +126,7 @@ export function HeaderComponent({
             </Menu.Dropdown>
           </Menu>
         )}
-        <Text color="dimmed">
+        <Text c="dimmed">
           {t("facesdashboard.numberoffaces", {
             number: cell.faces.length,
           })}

@@ -17,7 +17,7 @@ export function HeaderComponent(props: Readonly<Props>) {
         <Title style={{ minWidth: 200 }} align="left" order={2}>
           {title} {fetching ? <Loader size={20} /> : null}
         </Title>
-        <Text align="left" color="dimmed">
+        <Text align="left" c="dimmed">
           {subtitle}
         </Text>
       </div>

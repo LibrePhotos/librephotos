@@ -100,7 +100,7 @@ export function Description(props: Props) {
               <div>
                 <Group gap="sm" style={{ paddingBottom: 12 }}>
                   <Wand color="grey" size={20} />
-                  <Text size="sm" color="dimmed">
+                  <Text size="sm" c="dimmed">
                     Suggestion
                   </Text>
                 </Group>

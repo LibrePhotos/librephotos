@@ -44,7 +44,7 @@ export function ModalAlbumEdit(props: Props) {
       }}
     >
       <Stack>
-        <Text color="dimmed">{t("modalalbum.selectedimages", { count: selectedImages.length })}</Text>
+        <Text c="dimmed">{t("modalalbum.selectedimages", { count: selectedImages.length })}</Text>
         <Group>
           {selectedImages.map(image => (
             <Tile
@@ -113,7 +113,7 @@ export function ModalAlbumEdit(props: Props) {
                   />
                   <div>
                     <Title order={4}>{item.title}</Title>
-                    <Text size="sm" color="dimmed">
+                    <Text size="sm" c="dimmed">
                       {t("modalalbum.items", { count: item.photo_count })}
                       <br />
                       {t("modalalbum.updated", {
