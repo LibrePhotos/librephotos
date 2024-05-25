@@ -249,7 +249,7 @@ export function ModalUserEdit(props: Props) {
     >
       <form onSubmit={onSubmit}>
         <Box pb="md">
-          <SimpleGrid cols={2} spacing="xs" breakpoints={[{ maxWidth: 600, cols: 1, spacing: "sm" }]}>
+          <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
             <TextInput
               required
               label={t("login.usernamelabel")}
@@ -284,7 +284,9 @@ export function ModalUserEdit(props: Props) {
               {...form.getInputProps("last_name")}
             />
           </SimpleGrid>
-          <PasswordEntry createNew={createNew} onValidate={onPasswordValidate} closing={closing} />
+          <Box mt="sm">
+            <PasswordEntry createNew={createNew} onValidate={onPasswordValidate} closing={closing} />
+          </Box>
         </Box>
         {!createNew && (
           <>
