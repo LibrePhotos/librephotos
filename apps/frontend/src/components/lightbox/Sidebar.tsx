@@ -133,7 +133,7 @@ export function Sidebar(props: Props) {
                       dispatch(push(`/search/${nc.name}`));
                     }}
                   >
-                    <Text align="center" size="sm">
+                    <Text ta="center" size="sm">
                       {nc.name}
                     </Text>
                   </Button>

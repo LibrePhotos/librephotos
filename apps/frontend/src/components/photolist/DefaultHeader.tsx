@@ -66,7 +66,7 @@ export function DefaultHeader(props: Props) {
   function getPhotoCounter() {
     if (loading || numPhotosetItems < 1) {
       return (
-        <Text align="left" c="dimmed">
+        <Text ta="left" c="dimmed">
           {loading ? t("defaultheader.loading") : null}
           {!loading && numPhotosetItems < 1 ? t("defaultheader.noimages") : null}
           {loading ? <Loader size={20} /> : null}
@@ -75,7 +75,7 @@ export function DefaultHeader(props: Props) {
     }
 
     return (
-      <Text align="left" c="dimmed">
+      <Text ta="left" c="dimmed">
         {numPhotosetItems !== numPhotos ? `${numPhotosetItems} ${t("defaultheader.days")}, ` : ""}
         {numPhotos} {t("defaultheader.photos")}
         {additionalSubHeader}
@@ -120,7 +120,7 @@ export function DefaultHeader(props: Props) {
             {auth.access && isMenuView() && auth.access.is_admin ? (
               <Menu>
                 <Menu.Target>
-                  <Title style={{ minWidth: 200 }} align="left" order={2}>
+                  <Title style={{ minWidth: 200 }} ta="left" order={2}>
                     {title} <ChevronDown size={20} />
                   </Title>
                 </Menu.Target>
@@ -174,7 +174,7 @@ export function DefaultHeader(props: Props) {
                 </Menu.Dropdown>
               </Menu>
             ) : (
-              <Title align="left" order={2}>
+              <Title ta="left" order={2}>
                 {title}
               </Title>
             )}
