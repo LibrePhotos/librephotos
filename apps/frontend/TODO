@@ -2,5 +2,3 @@
 - burger button toggle menu work
 - fix public user list and public photos for authenticated user
 - refactor tree with latest mantine tree (and remove existing one)
-- tag properties
-  - gap=
