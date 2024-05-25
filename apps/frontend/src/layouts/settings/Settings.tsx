@@ -151,7 +151,7 @@ export function Settings() {
             min={0}
             max={1.0}
             placeholder="0.90"
-            precision={2}
+            decimalScale={2}
             value={userSelfDetails.confidence_person}
             hideControls
             onChange={value => {
@@ -232,7 +232,7 @@ export function Settings() {
             min={0}
             max={1.0}
             placeholder="0.50"
-            precision={2}
+            decimalScale={2}
             value={userSelfDetails.confidence_unknown_face}
             hideControls
             onChange={value => {

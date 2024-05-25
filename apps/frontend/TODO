@@ -4,4 +4,3 @@
 - refactor tree with latest mantine tree (and remove existing one)
 - tag properties
   - gap=
-  - precision= (NumberInput)
