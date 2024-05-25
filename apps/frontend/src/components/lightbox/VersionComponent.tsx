@@ -35,7 +35,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
             <Photo />
             <div>
               <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-                <Text weight={800} lineClamp={1} style={{ maxWidth: 225 }}>
+                <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
                   {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
                 </Text>
               </Anchor>
@@ -55,7 +55,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
             <Group justify="left">
               <Camera />
               <div>
-                <Text weight={800}>{photoDetail.camera?.toString()}</Text>
+                <Text fw={800}>{photoDetail.camera?.toString()}</Text>
                 <Group gap="xs">
                   <FileInfoComponent info={photoDetail.lens?.toString()} />
                   <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
@@ -89,13 +89,13 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
               // To-Do: Show if there is a jpeg to the raw file
               // To-Do: Differentiate XMPs and duplicates in the backend
             }
-            {otherVersions.length > 0 && <Text weight={800}>{t("exif.otherversions")}</Text>}
+            {otherVersions.length > 0 && <Text fw={800}>{t("exif.otherversions")}</Text>}
             {
               // To-Do: If there is more then one version, show them here
               // To-Do: If it is serial images, show a thumbnail, type and file path. Should be selectable as the current version
               // To-Do: Same goes for stable diffusion images or upressed images
             }
-            {duplicates.length > 0 && <Text weight={800}>{t("exif.duplicates")}</Text>}
+            {duplicates.length > 0 && <Text fw={800}>{t("exif.duplicates")}</Text>}
             {duplicates.map(element => (
               <Stack>
                 <FileInfoComponent description={t("exif.filepath")} info={`${element}`} />

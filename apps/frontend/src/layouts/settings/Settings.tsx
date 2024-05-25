@@ -320,7 +320,7 @@ export function Settings() {
         size="lg"
         radius="md"
       >
-        <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
+        <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
           {t("settings.savechanges")}
         </Text>
 

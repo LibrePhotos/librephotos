@@ -3,7 +3,6 @@
 - fix public user list and public photos for authenticated user
 - refactor tree with latest mantine tree (and remove existing one)
 - tag properties
-  - weight= to fw=
   - withinPortal
   - onTabChange (tabs)
   - sx property (Group, ...?)

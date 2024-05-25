@@ -195,7 +195,7 @@ export function Description(props: Props) {
               <Tags />
               <Title order={4}>{t("lightbox.sidebar.scene")}</Title>
             </Group>
-            <Text weight={700}>{t("lightbox.sidebar.attributes")}</Text>
+            <Text fw={700}>{t("lightbox.sidebar.attributes")}</Text>
             <Group>
               {photoDetail.captions_json.places365.attributes.map(nc => (
                 <Badge
@@ -210,7 +210,7 @@ export function Description(props: Props) {
               ))}
             </Group>
 
-            <Text weight={700}>{t("lightbox.sidebar.categories")}</Text>
+            <Text fw={700}>{t("lightbox.sidebar.categories")}</Text>
             <Group>
               {photoDetail.captions_json.places365.categories.map(nc => (
                 <Badge

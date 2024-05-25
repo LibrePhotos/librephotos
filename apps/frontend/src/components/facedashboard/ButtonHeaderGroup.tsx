@@ -74,7 +74,7 @@ export function ButtonHeaderGroup({
             onChange={changeSelectMode}
           />
           <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-          <Text size="sm" weight={500} mb={3}>
+          <Text size="sm" fw={500} mb={3}>
             {t("facesdashboard.sortby")}
           </Text>
           <SegmentedControl

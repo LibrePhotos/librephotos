@@ -129,7 +129,7 @@ export function AlbumUser() {
         <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
           <Group>
             {isShared(album) && <SharedWith album={album} />}
-            <Text weight="bold" lineClamp={1}>
+            <Text fw="bold" lineClamp={1}>
               {album.title}
             </Text>
           </Group>

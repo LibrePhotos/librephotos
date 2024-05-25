@@ -548,7 +548,7 @@ export function Library() {
           size="lg"
           radius="md"
         >
-          <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
+          <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
             Save Changes?
           </Text>
 
