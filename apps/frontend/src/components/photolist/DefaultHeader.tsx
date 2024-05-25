@@ -126,40 +126,46 @@ export function DefaultHeader(props: Props) {
                 </Menu.Target>
 
                 <Menu.Dropdown>
-                  <Menu.Item icon={<Calendar color="green" size={14} />} onClick={() => dispatch(push("/"))}>
+                  <Menu.Item leftSection={<Calendar color="green" size={14} />} onClick={() => dispatch(push("/"))}>
                     {t("sidemenu.withtimestamp")}
                   </Menu.Item>
 
-                  <Menu.Item icon={<Calendar color="red" size={14} />} onClick={() => dispatch(push("/notimestamp"))}>
+                  <Menu.Item
+                    leftSection={<Calendar color="red" size={14} />}
+                    onClick={() => dispatch(push("/notimestamp"))}
+                  >
                     {t("sidemenu.withouttimestamp")}
                   </Menu.Item>
 
                   <Menu.Divider />
 
-                  <Menu.Item icon={<Clock size={14} />} onClick={() => dispatch(push("/recent"))}>
+                  <Menu.Item leftSection={<Clock size={14} />} onClick={() => dispatch(push("/recent"))}>
                     {t("sidemenu.recentlyadded")}
                   </Menu.Item>
 
                   <Menu.Divider />
 
-                  <Menu.Item icon={<EyeOff color="red" size={14} />} onClick={() => dispatch(push("/hidden"))}>
+                  <Menu.Item leftSection={<EyeOff color="red" size={14} />} onClick={() => dispatch(push("/hidden"))}>
                     {t("sidemenu.hidden")}
                   </Menu.Item>
 
-                  <Menu.Item icon={<Star color="yellow" size={14} />} onClick={() => dispatch(push("/favorites"))}>
+                  <Menu.Item
+                    leftSection={<Star color="yellow" size={14} />}
+                    onClick={() => dispatch(push("/favorites"))}
+                  >
                     {t("sidemenu.favorites")}
                   </Menu.Item>
 
-                  <Menu.Item icon={<Photo color="blue" size={14} />} onClick={() => dispatch(push("/photos"))}>
+                  <Menu.Item leftSection={<Photo color="blue" size={14} />} onClick={() => dispatch(push("/photos"))}>
                     {t("sidemenu.photos")}
                   </Menu.Item>
 
-                  <Menu.Item icon={<Video color="pink" size={14} />} onClick={() => dispatch(push("/videos"))}>
+                  <Menu.Item leftSection={<Video color="pink" size={14} />} onClick={() => dispatch(push("/videos"))}>
                     {t("sidemenu.videos")}
                   </Menu.Item>
 
                   <Menu.Item
-                    icon={<Globe color="green" size={14} />}
+                    leftSection={<Globe color="green" size={14} />}
                     disabled={!auth.access}
                     onClick={() => dispatch(push(auth.access ? `/user/${auth.access.name}` : "/"))}
                   >

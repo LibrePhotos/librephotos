@@ -113,13 +113,13 @@ export function AlbumUser() {
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(`${album.id}`, album.title)}>
+                <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(`${album.id}`, album.title)}>
                   {t("rename")}
                 </Menu.Item>
-                <Menu.Item icon={<Share />} onClick={() => openShareDialog(`${album.id}`, album.title)}>
+                <Menu.Item leftSection={<Share />} onClick={() => openShareDialog(`${album.id}`, album.title)}>
                   {t("sidemenu.sharing")}
                 </Menu.Item>
-                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(`${album.id}`, album.title)}>
+                <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(`${album.id}`, album.title)}>
                   {t("delete")}
                 </Menu.Item>
               </Menu.Dropdown>

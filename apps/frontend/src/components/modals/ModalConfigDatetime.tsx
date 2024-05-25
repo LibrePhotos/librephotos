@@ -76,7 +76,7 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
         <TextInput
           placeholder="Find rules by name or type..."
           mb="md"
-          icon={<Search size={14} />}
+          leftSection={<Search size={14} />}
           value={filter}
           onChange={e => handleFilterRules(e)}
         />

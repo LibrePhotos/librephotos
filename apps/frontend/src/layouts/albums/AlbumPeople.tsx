@@ -89,10 +89,10 @@ export function AlbumPeople() {
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(album.key, album.text)}>
+                <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(album.key, album.text)}>
                   {t("rename")}
                 </Menu.Item>
-                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(album.key)}>
+                <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(album.key)}>
                   {t("delete")}
                 </Menu.Item>
               </Menu.Dropdown>

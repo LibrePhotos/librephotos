@@ -257,7 +257,7 @@ export function ModalUserEdit(props: Props) {
             <TextInput
               required
               label={t("login.usernamelabel")}
-              icon={<User />}
+              leftSection={<User />}
               placeholder={t("login.usernameplaceholder")}
               name="username"
               /* eslint-disable-next-line react/jsx-props-no-spreading */
@@ -265,7 +265,7 @@ export function ModalUserEdit(props: Props) {
             />
             <TextInput
               label={t("settings.email")}
-              icon={<Mail />}
+              leftSection={<Mail />}
               placeholder={t("settings.emailplaceholder")}
               name="email"
               /* eslint-disable-next-line react/jsx-props-no-spreading */
@@ -273,7 +273,7 @@ export function ModalUserEdit(props: Props) {
             />
             <TextInput
               label={t("settings.firstname")}
-              icon={<User />}
+              leftSection={<User />}
               placeholder={t("settings.firstnameplaceholder")}
               name="first_name"
               /* eslint-disable-next-line react/jsx-props-no-spreading */
@@ -281,7 +281,7 @@ export function ModalUserEdit(props: Props) {
             />
             <TextInput
               label={t("settings.lastname")}
-              icon={<User />}
+              leftSection={<User />}
               placeholder={t("settings.lastnameplaceholder")}
               name="last_name"
               /* eslint-disable-next-line react/jsx-props-no-spreading */

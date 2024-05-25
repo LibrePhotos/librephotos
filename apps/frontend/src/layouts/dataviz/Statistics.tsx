@@ -26,19 +26,19 @@ export function Statistics() {
 
       <Tabs defaultValue="placetree">
         <Tabs.List position="apart">
-          <Tabs.Tab value="placetree" icon={<Sitemap />}>
+          <Tabs.Tab value="placetree" leftSection={<Sitemap />}>
             {t("placetree")}
           </Tabs.Tab>
-          <Tabs.Tab value="wordclouds" icon={<Cloud />}>
+          <Tabs.Tab value="wordclouds" leftSection={<Cloud />}>
             {t("wordclouds")}
           </Tabs.Tab>
-          <Tabs.Tab value="timeline" icon={<ChartArea />}>
+          <Tabs.Tab value="timeline" leftSection={<ChartArea />}>
             {t("timeline")}
           </Tabs.Tab>
-          <Tabs.Tab value="socialgraph" icon={<Share />}>
+          <Tabs.Tab value="socialgraph" leftSection={<Share />}>
             {t("socialgraph")}
           </Tabs.Tab>
-          <Tabs.Tab value="facecluster" icon={<User />}>
+          <Tabs.Tab value="facecluster" leftSection={<User />}>
             {t("facecluster")}
           </Tabs.Tab>
         </Tabs.List>

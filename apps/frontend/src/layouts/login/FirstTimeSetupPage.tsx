@@ -102,14 +102,14 @@ export function FirstTimeSetupPage(): JSX.Element {
                 <Stack>
                   <TextInput
                     required
-                    icon={<User />}
+                    leftSection={<User />}
                     placeholder={t("login.usernameplaceholder")}
                     name="username"
                     {...form.getInputProps("username")}
                   />
                   <TextInput
                     required
-                    icon={<Mail />}
+                    leftSection={<Mail />}
                     placeholder={t("settings.emailplaceholder")}
                     name="email"
                     {...form.getInputProps("email")}
@@ -117,14 +117,14 @@ export function FirstTimeSetupPage(): JSX.Element {
                   <Group grow>
                     <TextInput
                       required
-                      icon={<User />}
+                      leftSection={<User />}
                       placeholder={t("settings.firstnameplaceholder")}
                       name="firstname"
                       {...form.getInputProps("firstName")}
                     />
                     <TextInput
                       required
-                      icon={<User />}
+                      leftSection={<User />}
                       placeholder={t("settings.lastnameplaceholder")}
                       name="firstname"
                       {...form.getInputProps("lastName")}
@@ -132,14 +132,14 @@ export function FirstTimeSetupPage(): JSX.Element {
                   </Group>
                   <Group grow>
                     <PasswordInput
-                      icon={<Lock />}
+                      leftSection={<Lock />}
                       placeholder={t("login.passwordplaceholder")}
                       name="password"
                       {...form.getInputProps("password")}
                     />
                     <PasswordInput
                       required
-                      icon={<Lock />}
+                      leftSection={<Lock />}
                       placeholder={t("login.confirmpasswordplaceholder")}
                       name="passwordConfirm"
                       {...form.getInputProps("passwordConfirm")}

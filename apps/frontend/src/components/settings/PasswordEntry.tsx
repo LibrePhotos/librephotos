@@ -72,7 +72,7 @@ export function PasswordEntry(props: Props): JSX.Element {
       </Title>
 
       <PasswordInput
-        icon={<Lock />}
+        leftSection={<Lock />}
         placeholder={t("login.passwordplaceholder")}
         name="password"
         disabled={!editPasswordMode && !createNew}
@@ -85,7 +85,7 @@ export function PasswordEntry(props: Props): JSX.Element {
         }}
       />
       <PasswordInput
-        icon={<Lock />}
+        leftSection={<Lock />}
         placeholder={t("login.confirmpasswordplaceholder")}
         name="passwordConfirm"
         disabled={!editPasswordMode && !createNew}

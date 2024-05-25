@@ -1,10 +1,10 @@
 - refactor site search with combobox
 - burger button toggle menu work
 - fix public user list and public photos for authenticated user
+- refactor tree with latest mantine tree (and remove existing one)
 - tag properties
   - align=
   - weight= to fw=
-  - icon= to left/right Section
   - withinPortal
   - onTabChange (tabs)
   - sx property (Group, ...?)

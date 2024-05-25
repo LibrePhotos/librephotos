@@ -117,10 +117,10 @@ export function HeaderComponent({
             </Menu.Target>
 
             <Menu.Dropdown>
-              <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
+              <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
                 {t("rename")}
               </Menu.Item>
-              <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
+              <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
                 {t("delete")}
               </Menu.Item>
             </Menu.Dropdown>

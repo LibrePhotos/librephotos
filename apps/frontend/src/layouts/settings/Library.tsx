@@ -247,7 +247,7 @@ export function Library() {
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item icon={<Refresh size="1rem" />} onClick={() => rescanPhotos()}>
+                      <Menu.Item leftSection={<Refresh size="1rem" />} onClick={() => rescanPhotos()}>
                         {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
                         {statusPhotoScan.added
                           ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${
