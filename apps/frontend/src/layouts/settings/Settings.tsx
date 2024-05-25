@@ -53,13 +53,13 @@ export function Settings() {
 
   return (
     <Container>
-      <Group gap="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+      <Group gap="xs" mt={40} mb={20}>
         <SettingIcon size={35} />
         <Title order={1}>{t("settings.header")}</Title>
       </Group>
       <Stack>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             <Trans i18nKey="settings.scanoptions">Scan Options</Trans>
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
@@ -96,7 +96,7 @@ export function Settings() {
           </Flex>
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             <Trans i18nKey="settings.metadata">Metadata</Trans>
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
@@ -142,7 +142,7 @@ export function Settings() {
           </Flex>
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             {t("settings.albumoptions")}
           </Title>
           <NumberInput
@@ -160,7 +160,7 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             {t("settings.face_options")}
           </Title>
           <Radio.Group
@@ -249,7 +249,7 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
           </Title>
           <Switch
@@ -265,7 +265,7 @@ export function Settings() {
         </Card>
         <Card shadow="md">
           <Stack>
-            <Title order={4} sx={{ marginBottom: 16 }}>
+            <Title order={4} mb={16}>
               <Trans i18nKey="settings.llm">Large Language Model Settings</Trans>
             </Title>
             <Switch

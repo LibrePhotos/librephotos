@@ -188,7 +188,7 @@ export function AdminPage() {
     <Container>
       <Stack>
         <Flex align="baseline" justify="space-between">
-          <Group gap="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+          <Group gap="xs" mt={40} mb={20}>
             <Adjustments size={35} />
             <Title order={1}>{t("adminarea.header")}</Title>
           </Group>

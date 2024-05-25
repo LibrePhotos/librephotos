@@ -1,4 +1,5 @@
 import { Box, Stack, Text, ThemeIcon, UnstyledButton } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
 import React from "react";
 import { push } from "redux-first-history";
 
@@ -11,35 +12,57 @@ interface MainLinkProps {
   to?: string;
 }
 
+const useStyle = createStyles((theme, _, u) => ({
+  container: {
+    display: "block",
+    width: "100%",
+    padding: theme.spacing.xs,
+    borderRadius: theme.radius.xs,
+    [u.light]: {
+      color: theme.black,
+    },
+    [u.dark]: {
+      color: theme.colors.dark[0],
+    },
+    "&:hover": {
+      [u.light]: {
+        backgroundColor: theme.colors.gray[0],
+      },
+      [u.dark]: {
+        backgroundColor: theme.colors.dark[6],
+      },
+    },
+  },
+  button: {
+    width: 60,
+    display: "block",
+    padding: theme.spacing.xs,
+    borderRadius: theme.radius.xs,
+    [u.light]: {
+      color: theme.black,
+    },
+    [u.dark]: {
+      color: theme.colors.dark[0],
+    },
+    "&:hover": {
+      [u.light]: {
+        backgroundColor: theme.colors.gray[0],
+      },
+      [u.dark]: {
+        backgroundColor: theme.colors.dark[6],
+      },
+    },
+  },
+}));
+
 export function MainLink({ icon, color, label = "", to = "" }: Readonly<MainLinkProps>) {
   const dispatch = useAppDispatch();
+  const { classes } = useStyle();
+
   return (
-    <Box
-      sx={theme => ({
-        display: "block",
-        width: "100%",
-        padding: theme.spacing.xs,
-        borderRadius: theme.radius.xs,
-        color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.black,
-
-        "&:hover": {
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-        },
-      })}
-    >
+    <Box className={classes.container}>
       <UnstyledButton
-        style={{ width: 60 }}
-        sx={theme => ({
-          display: "block",
-
-          padding: theme.spacing.xs,
-          borderRadius: theme.radius.xs,
-          color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.black,
-
-          "&:hover": {
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-          },
-        })}
+        className={classes.button}
         onClick={() => {
           if (to) {
             dispatch(push(to));

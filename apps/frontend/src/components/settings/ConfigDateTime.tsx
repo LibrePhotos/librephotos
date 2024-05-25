@@ -100,7 +100,7 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
 
   return (
     <>
-      <Title order={4} sx={{ marginBottom: 16 }}>
+      <Title order={4} mb="xs">
         {t("settings.configdatetime")}
       </Title>
 

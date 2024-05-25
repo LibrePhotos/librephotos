@@ -148,7 +148,7 @@ export function SiteSettings() {
 
       <Card shadow="md" mb={10}>
         <Stack>
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             {t("adminarea.sitesettings")}
           </Title>
 

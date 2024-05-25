@@ -90,7 +90,7 @@ export function Profile() {
   }
   return (
     <Container>
-      <Group gap="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+      <Group gap="xs" mt={40} mb={20}>
         <User size={35} />
         <Title order={1}>{t("settings.profile")}</Title>
       </Group>

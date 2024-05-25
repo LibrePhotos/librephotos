@@ -3,4 +3,6 @@
 - fix public user list and public photos for authenticated user
 - refactor tree with latest mantine tree (and remove existing one)
 - tag properties
-  - sx property (Group, ...?)
+  - gap=
+  - precision= (NumberInput)
+  - compact (Button)

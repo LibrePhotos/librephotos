@@ -248,11 +248,7 @@ export function ModalUserEdit(props: Props) {
       title={<Title order={4}>{createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}</Title>}
     >
       <form onSubmit={onSubmit}>
-        <Box
-          sx={theme => ({
-            paddingBottom: theme.spacing.md,
-          })}
-        >
+        <Box pb="md">
           <SimpleGrid cols={2} gap="xs" breakpoints={[{ maxWidth: 600, cols: 1, spacing: "sm" }]}>
             <TextInput
               required

@@ -1,4 +1,5 @@
 import { ActionIcon, Avatar, Box, Center, Indicator } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useState } from "react";
@@ -17,6 +18,12 @@ type Props = Readonly<{
   handleShowClick: (e: any, cell: any) => void;
 }>;
 
+const useStyle = createStyles(theme => ({
+  container: {
+    borderRadius: theme.radius.md,
+  },
+}));
+
 export function FaceComponent({
   cell,
   isScrollingFast,
@@ -26,6 +33,7 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
+  const { classes } = useStyle();
   const calculateProbabiltyColor = (labelProbability: number) => {
     if (labelProbability > 0.9) return "green";
     if (labelProbability > 0.8) return "yellow";
@@ -54,18 +62,18 @@ export function FaceComponent({
   }
   return (
     <Box
-      sx={theme => ({
+      className={classes.container}
+      style={{
         display: "block",
         backgroundColor: isSelected ? "rgba(174, 214, 241, 0.7)" : "transparent",
         alignContent: "center",
-        borderRadius: theme.radius.md,
         padding,
         marginRight: 10,
         cursor: "pointer",
         "&:hover": {
           backgroundColor: isSelected ? "rgba(174, 214, 241, 0.95)" : "rgba(174, 214, 241, 0.7)",
         },
-      })}
+      }}
     >
       <Center>
         <FaceTooltip tooltipOpened={tooltipOpened} cell={cell}>

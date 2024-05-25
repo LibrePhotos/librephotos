@@ -174,7 +174,7 @@ export function Library() {
   return (
     <Container>
       <Flex align="baseline" justify="space-between">
-        <Group gap="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+        <Group gap="xs" mt={40} mb={20}>
           <Book size={35} />
           <Title order={1}>{t("settings.library")}</Title>
         </Group>
@@ -184,12 +184,12 @@ export function Library() {
         <CountStats />
         <Card shadow="md">
           <Stack>
-            <Title order={4} sx={{ marginBottom: 16 }}>
+            <Title order={4} mb={16}>
               <Trans i18nKey="settings.photos">Photos</Trans>
               {countStats.num_missing_photos > 0 && (
                 <HoverCard width={280} shadow="md">
                   <HoverCard.Target>
-                    <Badge onClick={open} color="red" sx={{ marginLeft: 10 }}>
+                    <Badge onClick={open} color="red" ml={10}>
                       {countStats.num_missing_photos} <Trans i18nKey="settings.missingphotos">Missing photos</Trans>
                     </Badge>
                   </HoverCard.Target>
