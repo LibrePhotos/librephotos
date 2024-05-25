@@ -197,9 +197,7 @@ export function SiteSettings() {
             <Grid.Col span={4}>
               <Select
                 searchable
-                withinPortal
                 data={MAP_API_PROVIDERS}
-                dropdownPosition="bottom"
                 value={mapApiProvider}
                 onChange={provider => {
                   const value = provider || "";
@@ -245,9 +243,7 @@ export function SiteSettings() {
             <Grid.Col span={4}>
               <Select
                 searchable
-                withinPortal
                 data={CAPTIONING_MODELS}
-                dropdownPosition="bottom"
                 value={captioningModel}
                 onChange={model => {
                   const value = model ?? "";
@@ -267,9 +263,7 @@ export function SiteSettings() {
             <Grid.Col span={4}>
               <Select
                 searchable
-                withinPortal
                 data={LLM_MODELS}
-                dropdownPosition="bottom"
                 value={llmModel}
                 onChange={model => {
                   const value = model ?? "";
