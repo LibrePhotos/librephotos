@@ -114,7 +114,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
             ))}
           </Stack>
         )}
-        <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="xs" compact>
+        <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="compact-xs">
           {showMore ? t("exif.showless") : t("exif.showmore")}
         </Button>
       </Stack>
