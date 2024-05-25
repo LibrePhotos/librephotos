@@ -34,7 +34,7 @@ export function SharedByMe() {
           </Text>
         </div>
       </Group>
-      <Tabs defaultValue={which} onTabChange={value => navigate(`/shared/fromme/${value}/`)}>
+      <Tabs defaultValue={which} onChange={value => navigate(`/shared/fromme/${value}/`)}>
         <Tabs.List>
           <Tabs.Tab value="photos">Photos</Tabs.Tab>
           <Tabs.Tab value="albums">Albums</Tabs.Tab>
