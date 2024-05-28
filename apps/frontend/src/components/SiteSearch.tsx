@@ -1,15 +1,6 @@
-import {
-  CloseButton,
-  Combobox,
-  Group,
-  InputBase,
-  Loader,
-  Text,
-  useCombobox,
-  useComputedColorScheme,
-} from "@mantine/core";
+import { Combobox, Group, InputBase, Loader, Text, useCombobox } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import { IconAlbum, IconMap, IconSearch, IconTag, IconUser } from "@tabler/icons-react";
+import { IconAlbum, IconMap, IconSearch, IconTag, IconUser, IconX } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
@@ -43,14 +34,12 @@ export function SiteSearch() {
   const dispatch = useAppDispatch();
   const searchWidth = width ? width - width / 1.8 : 200;
   const [value, setValue] = React.useState("");
-  const theme = useComputedColorScheme();
 
   function getSearchRightIcon() {
-    const color = theme === "dark" ? "white" : "black";
-    if (isLoading) return <Loader color={color} size="xs" type="dots" />;
+    if (isLoading) return <Loader size="xs" type="dots" />;
     if (value) {
       return (
-        <CloseButton
+        <IconX
           size="sm"
           onMouseDown={event => event.preventDefault()}
           onClick={() => {
@@ -58,7 +47,6 @@ export function SiteSearch() {
             filterOptions("");
           }}
           aria-label="Clear value"
-          color={color}
         />
       );
     }
