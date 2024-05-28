@@ -4,3 +4,4 @@
 - refactor tree with latest mantine tree (and remove existing one)
 - fix faces rendering
 - fix triple-dots menu
+- fix semantic search

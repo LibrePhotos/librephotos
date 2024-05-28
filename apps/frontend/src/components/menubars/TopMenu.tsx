@@ -17,7 +17,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { logout } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
-import { CustomSearch } from "../CustomSearch";
+import { SiteSearch } from "../SiteSearch";
 import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
 
@@ -32,7 +32,7 @@ export function TopMenu(): React.ReactNode {
     <Group justify="space-between" h="100%" px={15}>
       {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
       <Group>
-        <CustomSearch />
+        <SiteSearch />
       </Group>
 
       <Group>
