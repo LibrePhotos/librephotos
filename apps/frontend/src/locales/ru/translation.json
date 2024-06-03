@@ -169,7 +169,8 @@
         "korean": "Корейский",
         "nextcloudconnecting": "Подключение",
         "trainfacestitle": "Тренировка лиц",
-        "hindi": "Хинди"
+        "hindi": "Хинди",
+        "face_recognition_model": "Модель распознавания лиц"
     },
     "modalalbum": {
         "title": "Добавить в Альбом",
