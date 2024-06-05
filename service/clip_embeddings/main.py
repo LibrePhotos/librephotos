@@ -1,7 +1,9 @@
+import time
+
 import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
-from semantic_search.semantic_search import semantic_search_instance
+from semantic_search.semantic_search import SemanticSearch
 
 app = Flask(__name__)
 
@@ -10,8 +12,16 @@ def log(message):
     print("clip embeddings: {}".format(message))
 
 
+semantic_search_instance = None
+last_request_time = None
+
+
 @app.route("/clip-embeddings", methods=["POST"])
 def create_clip_embeddings():
+    global last_request_time
+    # Update last request time
+    last_request_time = time.time()
+
     try:
         data = request.get_json()
         imgs = data["imgs"]
@@ -19,6 +29,12 @@ def create_clip_embeddings():
     except Exception as e:
         print(str(e))
         return "", 400
+
+    global semantic_search_instance
+
+    if semantic_search_instance is None:
+        semantic_search_instance = SemanticSearch()
+
     imgs_emb, magnitudes = semantic_search_instance.calculate_clip_embeddings(
         imgs, model
     )
@@ -30,6 +46,10 @@ def create_clip_embeddings():
 
 @app.route("/query-embeddings", methods=["POST"])
 def calculate_query_embeddings():
+    global last_request_time
+    # Update last request time
+    last_request_time = time.time()
+
     try:
         data = request.get_json()
         query = data["query"]
@@ -37,13 +57,18 @@ def calculate_query_embeddings():
     except Exception as e:
         print(str(e))
         return "", 400
+    global semantic_search_instance
+
+    if semantic_search_instance is None:
+        semantic_search_instance = SemanticSearch()
+
     emb, magnitude = semantic_search_instance.calculate_query_embeddings(query, model)
     return {"emb": emb, "magnitude": magnitude}, 201
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    return "OK", 200
+    return {"last_request_time": last_request_time}, 200
 
 
 if __name__ == "__main__":
