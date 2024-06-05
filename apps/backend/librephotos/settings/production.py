@@ -81,9 +81,11 @@ Q_CLUSTER = {
     "name": "DjangORM",
     "workers": HEAVYWEIGHT_PROCESS,
     "queue_limit": 50,
+    "recycle": 50,
     "timeout": 10000000,
     "retry": 20000000,
     "orm": "default",
+    "poll": 1,
 }
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
