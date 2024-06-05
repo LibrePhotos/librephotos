@@ -1,3 +1,5 @@
+import time
+
 import face_recognition
 import gevent
 import numpy as np
@@ -7,6 +9,8 @@ from gevent.pywsgi import WSGIServer
 
 app = Flask(__name__)
 
+last_request_time = None
+
 
 def log(message):
     print("face_recognition: {}".format(message))
@@ -14,6 +18,10 @@ def log(message):
 
 @app.route("/face-encodings", methods=["POST"])
 def create_face_encodings():
+    global last_request_time
+    # Update last request time
+    last_request_time = time.time()
+
     try:
         data = request.get_json()
         source = data["source"]
@@ -35,6 +43,10 @@ def create_face_encodings():
 
 @app.route("/face-locations", methods=["POST"])
 def create_face_locations():
+    global last_request_time
+    # Update last request time
+    last_request_time = time.time()
+
     try:
         data = request.get_json()
         source = data["source"]
@@ -50,7 +62,7 @@ def create_face_locations():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return "OK", 200
+    return {"last_request_time": last_request_time}, 200
 
 
 if __name__ == "__main__":
