@@ -24,7 +24,6 @@ from api.models.file import (
     is_valid_media,
     is_video,
 )
-from api.places365.places365 import place365_instance
 
 
 def should_skip(path):
@@ -149,6 +148,10 @@ def handle_new_image(user, path, job_id, photo=None):
         start = datetime.datetime.now()
         if photo is None:
             photo = create_new_image(user, path)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: save image: {}, elapsed: {}".format(job_id, path, elapsed)
+            )
         if photo:
             util.logger.info("job {}: handling image {}".format(job_id, path))
             photo._generate_thumbnail(True)
@@ -162,6 +165,13 @@ def handle_new_image(user, path, job_id, photo=None):
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 "job {}: calculate aspect ratio: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._extract_exif_data(True)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract exif data: {}, elapsed: {}".format(
                     job_id, path, elapsed
                 )
             )
@@ -191,26 +201,6 @@ def handle_new_image(user, path, job_id, photo=None):
                     job_id, path, elapsed
                 )
             )
-            photo._extract_exif_data(True)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract exif data: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
-
-            photo._extract_rating(True)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract rating: {}, elapsed: {}".format(job_id, path, elapsed)
-            )
-            photo._extract_video_length(True)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract video length: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
             photo._extract_faces()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
@@ -219,12 +209,14 @@ def handle_new_image(user, path, job_id, photo=None):
             photo._get_dominant_color()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: image processed: {}, elapsed: {}".format(job_id, path, elapsed)
+                "job {}: get dominant color: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
             )
             photo._recreate_search_captions()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: seach caption recreated: {}, elapsed: {}".format(
+                "job {}: search caption recreated: {}, elapsed: {}".format(
                     job_id, path, elapsed
                 )
             )
@@ -383,7 +375,6 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         for photo in all:
             photo_scanner(*photo)
 
-        place365_instance.unload()
         util.logger.info("Scanned {} files in : {}".format(files_found, scan_directory))
 
         util.logger.info("Finished updating album things")
@@ -394,6 +385,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
                 existing_photo._check_files()
         util.logger.info("Finished checking paths")
         AsyncTask(batch_calculate_clip_embedding, user).run()
+
     except Exception:
         util.logger.exception("An error occurred: ")
         lrj.failed = True
