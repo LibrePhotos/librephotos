@@ -6,6 +6,7 @@ from sentence_transformers import SentenceTransformer
 
 
 class SemanticSearch:
+    model = None
     model_is_loaded = False
 
     def load(self, model):
@@ -14,6 +15,7 @@ class SemanticSearch:
         pass
 
     def unload(self):
+        del self.model
         self.model = None
         gc.collect()
         self.model_is_loaded = False
@@ -77,6 +79,3 @@ class SemanticSearch:
         magnitude = np.linalg.norm(query_emb)
 
         return query_emb, magnitude
-
-
-semantic_search_instance = SemanticSearch()
