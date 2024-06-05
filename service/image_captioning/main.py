@@ -1,4 +1,3 @@
-import threading
 import time
 
 import gevent
@@ -10,7 +9,7 @@ from api.im2txt.sample import Im2txt
 app = Flask(__name__)
 
 im2txt_instance = None
-last_request_time = time.time()
+last_request_time = None
 
 
 def log(message):
@@ -66,22 +65,7 @@ def export_onnx():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return "OK", 200
-
-
-def check_inactivity():
-    global last_request_time
-    idle_threshold = 120
-
-    while True:
-        time.sleep(1)
-        idle_time = time.time() - last_request_time
-        if idle_time > idle_threshold and im2txt_instance is not None:
-            print("Unloading model due to inactivity")
-            unload_model()
-
-
-threading.Thread(target=check_inactivity).start()
+    return {"last_request_time": last_request_time}, 200
 
 
 if __name__ == "__main__":

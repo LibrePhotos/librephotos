@@ -33,7 +33,7 @@ def create_thumbnail():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return "OK", 200
+    return {"status": "OK"}, 200
 
 
 if __name__ == "__main__":
