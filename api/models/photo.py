@@ -6,6 +6,7 @@ from io import BytesIO
 
 import numpy as np
 import PIL
+import requests
 from django.contrib.postgres.fields import ArrayField
 from django.core.files.base import ContentFile
 from django.db import models
@@ -24,7 +25,6 @@ from api.image_captioning import generate_caption
 from api.llm import generate_prompt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
-from api.places365.places365 import place365_instance
 from api.thumbnails import (
     createAnimatedThumbnail,
     createThumbnail,
@@ -303,9 +303,14 @@ class Photo(models.Model):
         try:
             image_path = self.thumbnail_big.path
             confidence = self.owner.confidence
-            res_places365 = place365_instance.inference_places365(
-                image_path, confidence
-            )
+            json = {
+                "image_path": image_path,
+                "confidence": confidence,
+            }
+            res_places365 = requests.post(
+                "http://localhost:8011/generate-tags", json=json
+            ).json()["tags"]
+
             if res_places365 is None:
                 return
             if self.captions_json is None:
@@ -469,6 +474,7 @@ class Photo(models.Model):
 
     def _calculate_aspect_ratio(self, commit=True):
         try:
+            # Relies on big thumbnail for correct aspect ratio, which is weird
             height, width = get_metadata(
                 self.thumbnail_big.path,
                 tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
@@ -602,21 +608,6 @@ class Photo(models.Model):
         # Safe geolocation_json
         album_date.save()
 
-    def _extract_video_length(self, commit=True):
-        if not self.video:
-            return
-        (video_length,) = get_metadata(
-            self.main_file.path, tags=[Tags.QUICKTIME_DURATION], try_sidecar=True
-        )
-        logger.debug(
-            f"Extracted video length for {self.main_file.path}: {video_length}"
-        )
-        if video_length and isinstance(video_length, numbers.Number):
-            self.video_length = video_length
-
-        if commit:
-            self.save()
-
     def _extract_exif_data(self, commit=True):
         (
             size,
@@ -631,6 +622,8 @@ class Photo(models.Model):
             focalLength35Equivalent,
             subjectDistance,
             digitalZoomRatio,
+            video_length,
+            rating,
         ) = get_metadata(  # noqa: E501
             self.main_file.path,
             tags=[
@@ -646,6 +639,8 @@ class Photo(models.Model):
                 Tags.FOCAL_LENGTH_35MM,
                 Tags.SUBJECT_DISTANCE,
                 Tags.DIGITAL_ZOOM_RATIO,
+                Tags.QUICKTIME_DURATION,
+                Tags.RATING,
             ],
             try_sidecar=True,
         )
@@ -675,19 +670,13 @@ class Photo(models.Model):
             self.subjectDistance = subjectDistance
         if digitalZoomRatio and isinstance(digitalZoomRatio, numbers.Number):
             self.digitalZoomRatio = digitalZoomRatio
+        if video_length and isinstance(video_length, numbers.Number):
+            self.video_length = video_length
+        if rating and isinstance(rating, numbers.Number):
+            self.rating = rating
+
         if commit:
             self.save()
-
-    def _extract_rating(self, commit=True):
-        (rating,) = get_metadata(
-            self.main_file.path, tags=[Tags.RATING], try_sidecar=True
-        )
-        if rating is not None:
-            # Only change rating if the tag was found
-            logger.debug(f"Extracted rating for {self.main_file.path}: {rating}")
-            self.rating = rating
-            if commit:
-                self.save(save_metadata=False)
 
     def _extract_faces(self, second_try=False):
         unknown_cluster: api.models.cluster.Cluster = (
