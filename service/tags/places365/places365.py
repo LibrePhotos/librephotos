@@ -4,26 +4,31 @@
 import os
 
 import numpy as np
+import places365.wideresnet as wideresnet
 import torch
-from django.conf import settings
 from PIL import Image
 from torch.autograd import Variable as V
 from torch.nn import functional as F
 from torchvision import transforms as trn
 
-import api.places365.wideresnet as wideresnet
-from api.util import logger
-
 # import warnings
 
 torch.nn.Module.dump_patches = True
-dir_places365_model = settings.PLACES365_ROOT
+dir_places365_model = os.path.join(
+    "/", "protected_media", "data_models", "places365", "model"
+)
 
 
 class Places365:
     labels_and_model_are_load = False
 
     def unload(self):
+        del self.model
+        del self.classes
+        del self.W_attribute
+        del self.labels_IO
+        del self.labels_attribute
+        del self.labels_and_model_are_load
         self.model = None
         self.classes = None
         self.W_attribute = None
@@ -184,8 +189,5 @@ class Places365:
 
             return res
         except Exception as e:
-            logger.error("Error in Places365 inference")
+            print("tags: {}".format("Error in Places365 inference"))
             raise e
-
-
-place365_instance = Places365()

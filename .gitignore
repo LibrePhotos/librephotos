@@ -164,7 +164,6 @@ densecap/data/models/densecap/densecap-pretrained-vgg16.t7
 thumbnails
 media
 samplephotos
-tags
 Conv2d.patch
 Linear.patch
 Sequential.patch
