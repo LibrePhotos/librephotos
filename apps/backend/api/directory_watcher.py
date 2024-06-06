@@ -245,8 +245,6 @@ def rescan_image(user, path, job_id):
             photo._extract_exif_data(True)
             photo._extract_date_time_from_exif(True)
             photo._add_location_to_album_dates()
-            photo._extract_rating(True)
-            photo._extract_video_length(True)
             photo._get_dominant_color()
             photo._recreate_search_captions()
 
