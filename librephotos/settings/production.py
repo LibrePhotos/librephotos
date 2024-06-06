@@ -85,6 +85,7 @@ Q_CLUSTER = {
     "timeout": 10000000,
     "retry": 20000000,
     "orm": "default",
+    "max_rss": 300000,
     "poll": 1,
 }
 
