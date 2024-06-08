@@ -5,37 +5,24 @@ from datetime import datetime
 import pytz
 from constance import config as site_config
 from django.db.models import Q
-from django_q.tasks import AsyncTask
 
 import api.util as util
 from api.image_similarity import build_image_similarity_index
-from api.ml_models import download_models
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.semantic_search import create_clip_embeddings
 
 
-def create_batch_job(job_type, user):
+def batch_calculate_clip_embedding(user):
+    import torch
+
     job_id = uuid.uuid4()
     lrj = LongRunningJob.objects.create(
         started_by=user,
         job_id=job_id,
         queued_at=datetime.now().replace(tzinfo=pytz.utc),
-        job_type=job_type,
+        job_type=LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
     )
-
-    if job_type == LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS:
-        AsyncTask(batch_calculate_clip_embedding, job_id, user).run()
-    if job_type == LongRunningJob.JOB_DOWNLOAD_MODELS:
-        AsyncTask(download_models, job_id).run()
-
-    lrj.save()
-
-
-def batch_calculate_clip_embedding(job_id, user):
-    import torch
-
-    lrj = LongRunningJob.objects.get(job_id=job_id)
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
 
     count = Photo.objects.filter(

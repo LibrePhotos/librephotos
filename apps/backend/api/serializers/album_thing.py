@@ -41,7 +41,14 @@ class AlbumThingListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AlbumThing
-        fields = ("id", "cover_photos", "title", "photo_count", "thing_type")
+        fields = (
+            "id",
+            "cover_photos",
+            "title",
+            "photo_count",
+            "thing_type",
+            "cover_photos",
+        )
 
     def get_photo_count(self, obj) -> int:
         return obj.photo_count

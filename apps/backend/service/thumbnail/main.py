@@ -31,6 +31,11 @@ def create_thumbnail():
     return {"thumbnail": destination}, 201
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    return {"status": "OK"}, 200
+
+
 if __name__ == "__main__":
     log("service starting")
     server = WSGIServer(("0.0.0.0", 8003), app)

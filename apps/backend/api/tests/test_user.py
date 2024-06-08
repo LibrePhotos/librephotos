@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import patch
 
 from constance.test import override_config
@@ -7,6 +8,8 @@ from rest_framework.test import APIClient
 
 from api.models import User
 from api.tests.utils import create_test_user, create_user_details
+
+logger = logging.getLogger(__name__)
 
 
 def delete_all_users():
@@ -58,6 +61,7 @@ class UserTest(TestCase):
         "confidence_unknown_face",
         "min_samples",
         "cluster_selection_epsilon",
+        "llm_settings",
     ]
 
     def setUp(self):
@@ -70,7 +74,7 @@ class UserTest(TestCase):
     def test_public_user_list_count(self):
         response = self.client.get("/api/user/")
         data = response.json()
-        self.assertEquals(
+        self.assertEqual(
             len(User.objects.filter(public_sharing=True)), len(data["results"])
         )
 
@@ -86,16 +90,24 @@ class UserTest(TestCase):
         self.client.force_authenticate(user=self.user1)
         response = self.client.get("/api/user/")
         data = response.json()
-        self.assertEquals(len(User.objects.all()), len(data["results"]))
+        self.assertEqual(len(User.objects.all()), len(data["results"]))
 
     def test_authenticated_user_list_properties(self):
         self.client.force_authenticate(user=self.user1)
         response = self.client.get("/api/user/")
         data = response.json()
+        logger.debug(data)
+
         for user in data["results"]:
-            self.assertEqual(len(self.private_user_properties), len(user.keys()))
             for key in self.private_user_properties:
                 self.assertTrue(key in user, f"user does not have key: {key}")
+            for key in user:
+                self.assertTrue(
+                    key in self.private_user_properties,
+                    f"user has superfluous key: {key}",
+                )
+
+            self.assertEqual(len(self.private_user_properties), len(user.keys()))
 
     def test_user_update_self(self):
         self.client.force_authenticate(user=self.user1)

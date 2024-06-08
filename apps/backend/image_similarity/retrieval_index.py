@@ -20,8 +20,10 @@ class RetrievalIndex(object):
             )
         )
         start = datetime.datetime.now()
-        self.indices[user_id] = faiss.IndexFlatIP(embedding_size)
-        self.image_hashes[user_id] = []
+        if not self.indices.get(user_id):
+            self.indices[user_id] = faiss.IndexFlatIP(embedding_size)
+        if not self.image_hashes.get(user_id):
+            self.image_hashes[user_id] = []
 
         for h, e in zip(image_hashes, image_embeddings):
             self.image_hashes[user_id].append(h)

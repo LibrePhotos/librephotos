@@ -2,9 +2,10 @@ import math
 import os
 
 import torch.nn as nn
-from django.conf import settings
 
-model_path = os.path.join(settings.MEDIA_ROOT, "data_models", "resnet18-5c106cde.pth")
+model_path = os.path.join(
+    "/", "protected_media", "data_models", "resnet18-5c106cde.pth"
+)
 
 
 def conv3x3(in_planes, out_planes, stride=1):

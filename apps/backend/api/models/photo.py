@@ -6,6 +6,7 @@ from io import BytesIO
 
 import numpy as np
 import PIL
+import requests
 from django.contrib.postgres.fields import ArrayField
 from django.core.files.base import ContentFile
 from django.db import models
@@ -24,7 +25,6 @@ from api.image_captioning import generate_caption
 from api.llm import generate_prompt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
-from api.places365.places365 import place365_instance
 from api.thumbnails import (
     createAnimatedThumbnail,
     createThumbnail,
@@ -163,7 +163,6 @@ class Photo(models.Model):
     def _generate_captions_im2txt(self, commit=True):
         image_path = self.thumbnail_big.path
         captions = self.captions_json
-        search_captions = self.search_captions
         try:
             from constance import config as site_config
 
@@ -206,8 +205,7 @@ class Photo(models.Model):
 
             captions["im2txt"] = caption
             self.captions_json = captions
-            # todo: handle duplicate captions
-            self.search_captions = search_captions + caption
+            self._recreate_search_captions()
             if commit:
                 self.save()
             util.logger.info(
@@ -223,17 +221,16 @@ class Photo(models.Model):
 
     def _save_captions(self, commit=True, caption=None):
         image_path = self.thumbnail_big.path
-        search_captions = self.search_captions
         try:
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
             self.captions_json["user_caption"] = caption
-            self.search_captions = caption
+            self._recreate_search_captions()
             if commit:
                 self.save(update_fields=["captions_json", "search_captions"])
 
             util.logger.info(
-                "saved captions for image %s. caption: %s. search_captions: %s. captions_json: %s."
-                % (image_path, caption, search_captions, self.captions_json)
+                "saved captions for image %s. caption: %s. captions_json: %s."
+                % (image_path, caption, self.captions_json)
             )
 
             hashtags = [
@@ -244,11 +241,10 @@ class Photo(models.Model):
 
             for hashtag in hashtags:
                 album_thing = api.models.album_thing.get_album_thing(
-                    title=hashtag, owner=self.owner
+                    title=hashtag, owner=self.owner, thing_type="hashtag_attribute"
                 )
                 if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
                     album_thing.photos.add(self)
-                    album_thing.thing_type = "hashtag_attribute"
                     album_thing.save()
 
             for album_thing in api.models.album_thing.AlbumThing.objects.filter(
@@ -261,31 +257,99 @@ class Photo(models.Model):
                     album_thing.save()
             return True
         except Exception:
-            util.logger.warning("could not save captions for image %s" % image_path)
+            util.logger.exception("could not save captions for image %s" % image_path)
             return False
+
+    def _recreate_search_captions(self):
+        search_captions = ""
+
+        if self.captions_json:
+            places365_captions = self.captions_json.get("places365", {})
+
+            attributes = places365_captions.get("attributes", [])
+            search_captions += " ".join(attributes) + " "
+
+            categories = places365_captions.get("categories", [])
+            search_captions += " ".join(categories) + " "
+
+            environment = places365_captions.get("environment", "")
+            search_captions += environment + " "
+
+            user_caption = self.captions_json.get("user_caption", "")
+            search_captions += user_caption + " "
+
+        for face in api.models.face.Face.objects.filter(photo=self).all():
+            search_captions += face.person.name + " "
+
+        for file in self.files.all():
+            search_captions += file.path + " "
+
+        if self.video:
+            search_captions += "type: video "
+
+        if self.camera:
+            search_captions += self.camera + " "
+
+        if self.lens:
+            search_captions += self.lens + " "
+
+        self.search_captions = search_captions.strip()  # Remove trailing space
+        util.logger.debug(
+            "Recreated search captions for image %s." % (self.thumbnail_big.path)
+        )
+        self.save()
 
     def _generate_captions(self, commit):
         try:
             image_path = self.thumbnail_big.path
-            captions = {}
             confidence = self.owner.confidence
-            res_places365 = place365_instance.inference_places365(
-                image_path, confidence
-            )
-            captions["places365"] = res_places365
-            self.captions_json = captions
-            if self.search_captions:
-                self.search_captions = (
-                    self.search_captions
-                    + " , "
-                    + " , ".join(
-                        res_places365["categories"] + [res_places365["environment"]]
+            json = {
+                "image_path": image_path,
+                "confidence": confidence,
+            }
+            res_places365 = requests.post(
+                "http://localhost:8011/generate-tags", json=json
+            ).json()["tags"]
+
+            if res_places365 is None:
+                return
+            if self.captions_json is None:
+                self.captions_json = {}
+
+            self.captions_json["places365"] = res_places365
+            self._recreate_search_captions()
+
+            for album_thing in api.models.album_thing.AlbumThing.objects.filter(
+                Q(photos__in=[self.image_hash])
+                & (
+                    Q(thing_type="places365_attribute")
+                    or Q(thing_type="places365_category")
+                )
+                & Q(owner=self.owner)
+            ).all():
+                album_thing.photos.remove(self)
+                album_thing.save()
+
+            if "attributes" in res_places365:
+                for attribute in res_places365["attributes"]:
+                    album_thing = api.models.album_thing.get_album_thing(
+                        title=attribute,
+                        owner=self.owner,
+                        thing_type="places365_attribute",
                     )
-                )
-            else:
-                self.search_captions = " , ".join(
-                    res_places365["categories"] + [res_places365["environment"]]
-                )
+                    album_thing.photos.add(self)
+                    album_thing.save()
+
+            if "categories" in res_places365:
+                for category in res_places365["categories"]:
+                    album_thing = api.models.album_thing.get_album_thing(
+                        title=category,
+                        owner=self.owner,
+                        thing_type="places365_category",
+                    )
+                    album_thing.photos.add(self)
+                    album_thing.save()
+
             if commit:
                 self.save()
             util.logger.info(
@@ -410,6 +474,7 @@ class Photo(models.Model):
 
     def _calculate_aspect_ratio(self, commit=True):
         try:
+            # Relies on big thumbnail for correct aspect ratio, which is weird
             height, width = get_metadata(
                 self.thumbnail_big.path,
                 tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
@@ -543,21 +608,6 @@ class Photo(models.Model):
         # Safe geolocation_json
         album_date.save()
 
-    def _extract_video_length(self, commit=True):
-        if not self.video:
-            return
-        (video_length,) = get_metadata(
-            self.main_file.path, tags=[Tags.QUICKTIME_DURATION], try_sidecar=True
-        )
-        logger.debug(
-            f"Extracted video length for {self.main_file.path}: {video_length}"
-        )
-        if video_length and isinstance(video_length, numbers.Number):
-            self.video_length = video_length
-
-        if commit:
-            self.save()
-
     def _extract_exif_data(self, commit=True):
         (
             size,
@@ -572,6 +622,8 @@ class Photo(models.Model):
             focalLength35Equivalent,
             subjectDistance,
             digitalZoomRatio,
+            video_length,
+            rating,
         ) = get_metadata(  # noqa: E501
             self.main_file.path,
             tags=[
@@ -587,6 +639,8 @@ class Photo(models.Model):
                 Tags.FOCAL_LENGTH_35MM,
                 Tags.SUBJECT_DISTANCE,
                 Tags.DIGITAL_ZOOM_RATIO,
+                Tags.QUICKTIME_DURATION,
+                Tags.RATING,
             ],
             try_sidecar=True,
         )
@@ -616,19 +670,13 @@ class Photo(models.Model):
             self.subjectDistance = subjectDistance
         if digitalZoomRatio and isinstance(digitalZoomRatio, numbers.Number):
             self.digitalZoomRatio = digitalZoomRatio
+        if video_length and isinstance(video_length, numbers.Number):
+            self.video_length = video_length
+        if rating and isinstance(rating, numbers.Number):
+            self.rating = rating
+
         if commit:
             self.save()
-
-    def _extract_rating(self, commit=True):
-        (rating,) = get_metadata(
-            self.main_file.path, tags=[Tags.RATING], try_sidecar=True
-        )
-        if rating is not None:
-            # Only change rating if the tag was found
-            logger.debug(f"Extracted rating for {self.main_file.path}: {rating}")
-            self.rating = rating
-            if commit:
-                self.save(save_metadata=False)
 
     def _extract_faces(self, second_try=False):
         unknown_cluster: api.models.cluster.Cluster = (

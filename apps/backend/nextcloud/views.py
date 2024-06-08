@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 import owncloud as nextcloud
 from django_q.tasks import AsyncTask
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -48,7 +49,17 @@ def valid_url(url):
 
 
 class ScanPhotosView(APIView):
+    def post(self, request, format=None):
+        return self._scan_photos(request)
+
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method instead",
+    )
     def get(self, request, format=None):
+        return self._scan_photos(request)
+
+    def _scan_photos(self, request):
         try:
             job_id = uuid.uuid4()
             AsyncTask(scan_photos, request.user, job_id).run()

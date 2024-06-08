@@ -3,6 +3,7 @@ import os
 import os.path
 
 import exiftool
+import requests
 from django.conf import settings
 
 logger = logging.getLogger("ownphotos")
@@ -91,33 +92,18 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
     tag was not found.
 
     """
-    et = None
-    if struct:
-        et = exiftool.ExifTool(common_args=["-struct"])
-    else:
-        et = exiftool.ExifTool()
-    terminate_et = False
-    if not et.running:
-        et.start()
-        terminate_et = True
 
     files_by_reverse_priority = _get_existing_metadata_files_reversed(
         media_file, try_sidecar
     )
 
-    values = []
-    try:
-        for tag in tags:
-            value = None
-            for file in files_by_reverse_priority:
-                retrieved_value = et.get_tag(tag, file)
-                if retrieved_value is not None:
-                    value = retrieved_value
-            values.append(value)
-    finally:
-        if terminate_et:
-            et.terminate()
-    return values
+    json = {
+        "tags": tags,
+        "files_by_reverse_priority": files_by_reverse_priority,
+        "struct": struct,
+    }
+    response = requests.post("http://localhost:8010/get-tags", json=json).json()
+    return response["values"]
 
 
 def write_metadata(media_file, tags, use_sidecar=True):

@@ -2,7 +2,7 @@ from django.db.models import Prefetch, Q
 from rest_framework.response import Response
 
 from api.filters import SemanticSearchFilter
-from api.models import Photo, User
+from api.models import File, Photo, User
 from api.serializers.photos import GroupedPhotosSerializer, PhotoSummarySerializer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.views.custom_api_view import ListViewSet
@@ -17,11 +17,7 @@ class SearchListViewSet(ListViewSet):
     search_fields = [
         "search_captions",
         "search_location",
-        "faces__person__name",
         "exif_timestamp",
-        "lens",
-        "main_file__path",
-        # To-Do: Allow searching for videos
     ]
 
     def get_queryset(self):
@@ -40,21 +36,58 @@ class SearchListViewSet(ListViewSet):
                             "id", "username", "first_name", "last_name"
                         ),
                     ),
+                    Prefetch(
+                        "main_file__embedded_media",
+                        queryset=File.objects.only("hash"),
+                    ),
                 )
                 .order_by("-exif_timestamp")
+                .only(
+                    "image_hash",
+                    "aspect_ratio",
+                    "video",
+                    "main_file",
+                    "search_location",
+                    "dominant_color",
+                    "public",
+                    "rating",
+                    "hidden",
+                    "exif_timestamp",
+                    "owner",
+                    "video_length",
+                )
             )
             grouped_photos = get_photos_ordered_by_date(queryset)
             serializer = GroupedPhotosSerializer(grouped_photos, many=True)
             return Response({"results": serializer.data})
         else:
             queryset = self.filter_queryset(
-                Photo.visible.filter(Q(owner=self.request.user)).prefetch_related(
+                Photo.visible.filter(Q(owner=self.request.user))
+                .prefetch_related(
                     Prefetch(
                         "owner",
                         queryset=User.objects.only(
                             "id", "username", "first_name", "last_name"
                         ),
                     ),
+                    Prefetch(
+                        "main_file__embedded_media",
+                        queryset=File.objects.only("hash"),
+                    ),
+                )
+                .only(
+                    "image_hash",
+                    "aspect_ratio",
+                    "video",
+                    "main_file",
+                    "search_location",
+                    "dominant_color",
+                    "public",
+                    "rating",
+                    "hidden",
+                    "exif_timestamp",
+                    "owner",
+                    "video_length",
                 )
             )
             serializer = PhotoSummarySerializer(queryset, many=True)

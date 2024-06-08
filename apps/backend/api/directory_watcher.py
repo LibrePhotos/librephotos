@@ -12,9 +12,8 @@ from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 from django_q.tasks import AsyncTask
 
-import api.models.album_thing
 import api.util as util
-from api.batch_jobs import create_batch_job
+from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
 from api.models import File, LongRunningJob, Photo
 from api.models.file import (
@@ -25,7 +24,6 @@ from api.models.file import (
     is_valid_media,
     is_video,
 )
-from api.places365.places365 import place365_instance
 
 
 def should_skip(path):
@@ -132,15 +130,15 @@ def create_new_image(user, path) -> Optional[Photo]:
         return None
 
 
-def handle_new_image(user, path, job_id, photo):
+def handle_new_image(user, path, job_id, photo=None):
     """
     Handles the creation and all the processing of the photo.
 
     Args:
         user: The owner of the photo.
         path: The file path of the image.
-        job_id: The long running job id, which gets updated when the task runs
-        photo: An optional paramater, where you can input a photo instead of creating a new one. Used for uploading.
+        job_id: The long-running job id, which gets updated when the task runs
+        photo: An optional parameter, where you can input a photo instead of creating a new one. Used for uploading.
 
     Note:
         This function is used, when uploading a picture, because rescanning does not perform machine learning tasks
@@ -150,6 +148,10 @@ def handle_new_image(user, path, job_id, photo):
         start = datetime.datetime.now()
         if photo is None:
             photo = create_new_image(user, path)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: save image: {}, elapsed: {}".format(job_id, path, elapsed)
+            )
         if photo:
             util.logger.info("job {}: handling image {}".format(job_id, path))
             photo._generate_thumbnail(True)
@@ -163,6 +165,13 @@ def handle_new_image(user, path, job_id, photo):
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 "job {}: calculate aspect ratio: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+            photo._extract_exif_data(True)
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: extract exif data: {}, elapsed: {}".format(
                     job_id, path, elapsed
                 )
             )
@@ -192,26 +201,6 @@ def handle_new_image(user, path, job_id, photo):
                     job_id, path, elapsed
                 )
             )
-            photo._extract_exif_data(True)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract exif data: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
-
-            photo._extract_rating(True)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract rating: {}, elapsed: {}".format(job_id, path, elapsed)
-            )
-            photo._extract_video_length(True)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract video length: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
             photo._extract_faces()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
@@ -220,8 +209,18 @@ def handle_new_image(user, path, job_id, photo):
             photo._get_dominant_color()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: image processed: {}, elapsed: {}".format(job_id, path, elapsed)
+                "job {}: get dominant color: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
             )
+            photo._recreate_search_captions()
+            elapsed = (datetime.datetime.now() - start).total_seconds()
+            util.logger.info(
+                "job {}: search caption recreated: {}, elapsed: {}".format(
+                    job_id, path, elapsed
+                )
+            )
+
     except Exception as e:
         try:
             util.logger.exception(
@@ -246,9 +245,8 @@ def rescan_image(user, path, job_id):
             photo._extract_exif_data(True)
             photo._extract_date_time_from_exif(True)
             photo._add_location_to_album_dates()
-            photo._extract_rating(True)
-            photo._extract_video_length(True)
             photo._get_dominant_color()
+            photo._recreate_search_captions()
 
     except Exception as e:
         try:
@@ -375,9 +373,8 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         for photo in all:
             photo_scanner(*photo)
 
-        place365_instance.unload()
         util.logger.info("Scanned {} files in : {}".format(files_found, scan_directory))
-        api.models.album_thing.update()
+
         util.logger.info("Finished updating album things")
         exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
         paginator = Paginator(exisisting_photos, 5000)
@@ -385,7 +382,8 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_files()
         util.logger.info("Finished checking paths")
-        create_batch_job(LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS, user)
+        AsyncTask(batch_calculate_clip_embedding, user).run()
+
     except Exception:
         util.logger.exception("An error occurred: ")
         lrj.failed = True

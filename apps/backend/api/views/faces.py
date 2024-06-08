@@ -1,17 +1,16 @@
 import uuid
 
-from django.db.models import Count, Q
-from django_q.tasks import AsyncTask
+from django.db.models import Case, Count, IntegerField, Q, When
+from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.batch_jobs import create_batch_job
 from api.directory_watcher import scan_faces
 from api.face_classify import cluster_all_faces
-from api.ml_models import do_all_models_exist
-from api.models import Face, LongRunningJob
+from api.ml_models import do_all_models_exist, download_models
+from api.models import Face
 from api.models.person import Person, get_or_create_person
 from api.serializers.face import (
     FaceListSerializer,
@@ -35,11 +34,13 @@ class ScanFacesView(APIView):
         return self._scan_faces(request)
 
     def _scan_faces(self, request, format=None):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            AsyncTask(scan_faces, request.user, job_id).run()
+            chain.append(scan_faces, request.user, job_id)
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -107,28 +108,27 @@ class FaceIncompleteListViewSet(ListViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        inferred = False
-        conditional_filter = Q(faces__person_label_is_inferred=inferred) | Q(
-            faces__person__name=Person.UNKNOWN_PERSON_NAME
-        )
-        if (
-            self.request.query_params.get("inferred")
-            and self.request.query_params.get("inferred").lower() == "true"
-        ):
-            inferred = True
-            conditional_filter = Q(faces__person_label_is_inferred=inferred)
+        inferred = self.request.query_params.get("inferred", "").lower() == "true"
+
+        queryset = Person.objects.filter(cluster_owner=self.request.user)
 
         queryset = (
-            Person.objects.filter(Q(cluster_owner=self.request.user))
-            .annotate(
+            queryset.annotate(
                 viewable_face_count=Count(
-                    "faces",
-                    filter=(conditional_filter),
+                    Case(
+                        When(
+                            Q(faces__person_label_is_inferred=inferred)
+                            | Q(faces__person__name=Person.UNKNOWN_PERSON_NAME),
+                            then=1,
+                        ),
+                        output_field=IntegerField(),
+                    )
                 )
             )
             .filter(viewable_face_count__gt=0)
             .order_by("name")
         )
+
         return queryset
 
     @extend_schema(
@@ -171,6 +171,7 @@ class SetFacePersonLabel(APIView):
                 not_updated.append(FaceListSerializer(face).data)
         person._calculate_face_count()
         person._set_default_cover_photo()
+        face.photo._recreate_search_captions()
         return Response(
             {
                 "status": True,
