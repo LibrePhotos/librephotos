@@ -1,6 +1,7 @@
 import math
 import os
 import tarfile
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -78,6 +79,14 @@ ML_MODELS = [
         "unpack-command": None,
         "target-dir": "mistral-7b-v0.1.Q5_K_M.gguf",
     },
+    {
+        "id": 8,
+        "name": "mistral-7b-instruct-v0.2.Q5_K_M",
+        "url": "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q5_K_M.gguf?download=true",
+        "type": MlTypes.LLM,
+        "unpack-command": None,
+        "target-dir": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
+    },
 ]
 
 
@@ -86,7 +95,7 @@ def download_model(model):
     if model["type"] == MlTypes.LLM:
         util.logger.info("Downloading LLM model")
         model_to_download = site_config.LLM_MODEL
-        if model_to_download is None:
+        if not model_to_download and model_to_download != "none":
             util.logger.info("No LLM model selected")
             return
         util.logger.info(f"Model to download: {model_to_download}")
@@ -145,8 +154,14 @@ def download_model(model):
         os.remove(target_dir)
 
 
-def download_models(job_id):
-    lrj = LongRunningJob.objects.get(job_id=job_id)
+def download_models(user):
+    job_id = uuid.uuid4()
+    lrj = LongRunningJob.objects.create(
+        started_by=user,
+        job_id=job_id,
+        queued_at=datetime.now().replace(tzinfo=pytz.utc),
+        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,
+    )
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
     lrj.result = {"progress": {"current": 0, "target": len(ML_MODELS)}}
     lrj.save()
@@ -168,6 +183,9 @@ def do_all_models_exist():
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     for model in ML_MODELS:
         target_dir = model_folder / model["target-dir"]
+        if model["type"] == MlTypes.LLM:
+            if not model and model != "none":
+                continue
         if not target_dir.exists():
             return False
     return True

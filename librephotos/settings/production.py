@@ -81,9 +81,12 @@ Q_CLUSTER = {
     "name": "DjangORM",
     "workers": HEAVYWEIGHT_PROCESS,
     "queue_limit": 50,
+    "recycle": 50,
     "timeout": 10000000,
     "retry": 20000000,
     "orm": "default",
+    "max_rss": 300000,
+    "poll": 1,
 }
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
@@ -121,6 +124,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "choices": (
                 ("none", "None"),
                 ("mistral-7b-v0.1.Q5_K_M", "Mistral 7B v0.1 Q5 K M"),
+                ("mistral-7b-instruct-v0.2.Q5_K_M", "Mistral 7B Instruct v0.2 Q5 K M"),
             ),
         },
     ],
@@ -180,7 +184,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -230,6 +233,8 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
         "HOST": os.environ.get("DB_HOST", "db"),
         "PORT": os.environ.get("DB_PORT", "5432"),
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
     },
 }
 

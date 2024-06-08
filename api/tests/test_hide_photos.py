@@ -62,7 +62,7 @@ class FavoritePhotosTest(TestCase):
         self.assertEqual(0, len(data["updated"]))
         self.assertEqual(2, len(data["not_updated"]))
 
-    @patch("api.util.logger.warning", autospec=True)
+    @patch("api.views.photos.logger.warning", autospec=True)
     def test_tag_nonexistent_photo_as_favorite(self, logger):
         payload = {"image_hashes": ["nonexistent_photo"], "hidden": True}
         headers = {"Content-Type": "application/json"}

@@ -16,8 +16,9 @@ from django.http import (
 )
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
-from django.views.decorators.csrf import ensure_csrf_cookie
-from django_q.tasks import AsyncTask
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -29,9 +30,8 @@ from rest_framework_simplejwt.tokens import AccessToken
 from api.all_tasks import create_download_job, delete_zip_file
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
-from api.batch_jobs import create_batch_job
 from api.directory_watcher import scan_photos
-from api.ml_models import do_all_models_exist
+from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
@@ -83,7 +83,6 @@ class SiteSettingsView(APIView):
 
         return super(SiteSettingsView, self).get_permissions()
 
-    @method_decorator(ensure_csrf_cookie)
     def get(self, request, format=None):
         out = {}
         out["allow_registration"] = site_config.ALLOW_REGISTRATION
@@ -115,7 +114,7 @@ class SiteSettingsView(APIView):
         if "llm_model" in request.data.keys():
             site_config.LLM_MODEL = request.data["llm_model"]
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            AsyncTask(download_models, User.objects.get(id=request.user)).run()
 
         return self.get(request, format=format)
 
@@ -201,11 +200,27 @@ class StorageStatsView(APIView):
 
 
 class ImageTagView(APIView):
+    @method_decorator(cache_page(60 * 60 * 2))
     def get(self, request, format=None):
-        return Response({"image_tag": os.environ.get("IMAGE_TAG", "")})
+        # Add an exception for the directory '/code'
+        subprocess.run(
+            ["git", "config", "--global", "--add", "safe.directory", "/code"]
+        )
+
+        # Get the current commit hash
+        git_hash = (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+            .strip()
+            .decode("utf-8")
+        )
+        return Response(
+            {"image_tag": os.environ.get("IMAGE_TAG", ""), "git_hash": git_hash}
+        )
 
 
 class SearchTermExamples(APIView):
+    @method_decorator(vary_on_cookie)
+    @method_decorator(cache_page(60 * 60 * 2))
     def get(self, request, format=None):
         search_term_examples = get_search_term_examples(request.user)
         return Response({"results": search_term_examples})
@@ -213,14 +228,26 @@ class SearchTermExamples(APIView):
 
 # long running jobs
 class ScanPhotosView(APIView):
+    def post(self, request, format=None):
+        return self._scan_photos(request)
+
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method instead",
+    )
     def get(self, request, format=None):
+        return self._scan_photos(request)
+
+    def _scan_photos(self, request):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            AsyncTask(
+            chain.append(
                 scan_photos, request.user, False, job_id, request.user.scan_directory
-            ).run()
+            )
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -230,18 +257,20 @@ class ScanPhotosView(APIView):
 # To-Do: Allow for custom paths
 class SelectiveScanPhotosView(APIView):
     def get(self, request, format=None):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         # To-Do: Sanatize the scan_directory
         try:
             job_id = uuid.uuid4()
-            AsyncTask(
+            chain.append(
                 scan_photos,
                 request.user,
                 False,
                 job_id,
                 os.path.join(request.user.scan_directory, "uploads", "web"),
-            ).run()
+            )
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -249,14 +278,26 @@ class SelectiveScanPhotosView(APIView):
 
 
 class FullScanPhotosView(APIView):
+    def post(self, request, format=None):
+        return self._scan_photos(request)
+
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method instead",
+    )
     def get(self, request, format=None):
+        return self._scan_photos(request)
+
+    def _scan_photos(self, request):
+        chain = Chain()
         if not do_all_models_exist():
-            create_batch_job(LongRunningJob.JOB_DOWNLOAD_MODELS, request.user)
+            chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            AsyncTask(
+            chain.append(
                 scan_photos, request.user, True, job_id, request.user.scan_directory
-            ).run()
+            )
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
@@ -264,7 +305,17 @@ class FullScanPhotosView(APIView):
 
 
 class DeleteMissingPhotosView(APIView):
+    def post(self, request, format=None):
+        return self._delete_missing_photos(request, format)
+
+    @extend_schema(
+        deprecated=True,
+        description="Use POST method instead",
+    )
     def get(self, request, format=None):
+        return self._delete_missing_photos(request, format)
+
+    def _delete_missing_photos(self, request, format=None):
         try:
             job_id = uuid.uuid4()
             delete_missing_photos(request.user, job_id)
@@ -597,6 +648,9 @@ class MediaAccessFullsizeOriginalView(APIView):
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
                 response["Content-Type"] = filename
+                response["Content-Disposition"] = 'inline; filename="{}"'.format(
+                    photo.main_file.path.split("/")[-1]
+                )
                 response["X-Accel-Redirect"] = internal_path
             else:
                 try:
@@ -674,7 +728,6 @@ class ZipListPhotosView_V2(APIView):
 
 class DeleteZipView(APIView):
     def delete(self, request, fname):
-        print("hello")
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
