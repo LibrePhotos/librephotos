@@ -191,7 +191,12 @@
         "cluster_selection_epsilon": "Epsilon de seleção de grupos",
         "min_samples_help": "Altera o quão conservador os grupos são. Quanto menor for o valor, menos conservador é.",
         "cluster_selection_epsilon_help": "Determina quais grupos são mesclados. Um valor alto significa que mais grupos serão mesclados.",
-        "unknown_faces_confidence_help": "Insira um nível de confiança entre 0 e 1. Rostos de 'Desconhecido - Outro' serão atribuídos a outras pessoas se o nível de confiança for maior que esse valor. 0 significa que essa funcionalidade está desabilitada."
+        "unknown_faces_confidence_help": "Insira um nível de confiança entre 0 e 1. Rostos de 'Desconhecido - Outro' serão atribuídos a outras pessoas se o nível de confiança for maior que esse valor. 0 significa que essa funcionalidade está desabilitada.",
+        "hindi": "Hindi",
+        "enablellm": "Habilitar Modelo de Linguagem Grande para Legendas",
+        "addperson": "Adicionar Pessoas às Legendas",
+        "addlocation": "Adicionar Local às Legendas",
+        "llm": "Configuração de modelo de linguagem grande"
     },
     "topmenu": {
         "logout": "Desconectar",
@@ -307,7 +312,8 @@
         "people": "Pessoas",
         "dataviz": "Dados",
         "places": "Lugares",
-        "things": "Coisas"
+        "things": "Coisas",
+        "videos": "Vídeos"
     },
     "selectionbar": {
         "selected": "selecionadas",
@@ -322,7 +328,8 @@
         "recentlyadded": "Recém adicionadas",
         "favorite": "Fotos Favoritas",
         "notimestamp": "Fotos sem registro de data/hora",
-        "hidden": "Fotos Ocultas"
+        "hidden": "Fotos Ocultas",
+        "videos": "Vídeos"
     },
     "lightbox": {
         "sidebar": {
@@ -381,12 +388,14 @@
         "titledeleteuser": "Excluir usuário",
         "cannotbeundone": "Esta ação não pode ser desfeita.",
         "addnewuser": "Adicionar Usuário",
-        "delete": "Remover"
+        "delete": "Remover",
+        "download": "Baixar",
+        "downloadserverstats": "Baixar estatísticas do servidor"
     },
     "joblist": {
         "status": "Status",
         "reload": "Recarregar",
-        "workerlogs": "Registros de processos",
+        "workerlogs": "Logs de processos",
         "progress": "Progresso",
         "jobtype": "Descrição do processo",
         "queued": "Na fila",
