@@ -16,4 +16,5 @@ module.exports = {
     project: "./tsconfig.eslint.json",
     tsconfigRootDir: __dirname,
   },
+  ignorePatterns: [".eslintrc.js", "prettier.config.js", "proxy.js", "node_modules/*"],
 };
