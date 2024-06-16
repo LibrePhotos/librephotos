@@ -32,7 +32,7 @@ tzdata==2024.1
 PyExifTool==0.4.9
 PyJWT==2.8.0
 pyvips==2.2.3
-scikit-learn<1.4.3
+scikit-learn<1.5.1
 seaborn==0.13.2
 sentence_transformers==2.2.2
 timezonefinder==6.5.1
