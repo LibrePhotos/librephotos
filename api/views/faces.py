@@ -1,13 +1,13 @@
 import uuid
 
 from django.db.models import Case, Count, IntegerField, Q, When
-from django_q.tasks import AsyncTask, Chain
+from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.directory_watcher import scan_faces
+from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.face_classify import cluster_all_faces
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Face
@@ -50,9 +50,14 @@ class ScanFacesView(APIView):
 class TrainFaceView(APIView):
     @staticmethod
     def _train_faces(request):
+        chain = Chain()
+        if not do_all_models_exist():
+            chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            AsyncTask(cluster_all_faces, request.user, job_id).run()
+            chain.append(generate_face_embeddings, request.user, uuid.uuid4())
+            chain.append(cluster_all_faces, request.user, job_id)
+            chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception()

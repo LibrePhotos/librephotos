@@ -18,7 +18,6 @@ import api.face_extractor as face_extractor
 import api.models
 import api.util as util
 from api.exif_tags import Tags
-from api.face_recognition import get_face_encodings
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.image_captioning import generate_caption
@@ -106,6 +105,7 @@ class Photo(models.Model):
         models.FloatField(blank=True, null=True), size=512, null=True
     )
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
+    last_modified = models.DateTimeField(auto_now=True)
 
     objects = models.Manager()
     visible = VisiblePhotoManager()
@@ -300,6 +300,13 @@ class Photo(models.Model):
         self.save()
 
     def _generate_captions(self, commit):
+        if (
+            self.captions_json is not None
+            and self.captions_json.get("places365") is not None
+            or self.thumbnail_big.name is None
+        ):
+            return
+
         try:
             image_path = self.thumbnail_big.path
             confidence = self.owner.confidence
@@ -594,6 +601,10 @@ class Photo(models.Model):
     def _add_location_to_album_dates(self):
         if not self.geolocation_json:
             return
+        if len(self.geolocation_json["places"]) < 2:
+            logger.info(self.geolocation_json)
+            return
+
         album_date = self._find_album_date()
         city_name = self.geolocation_json["places"][-2]
         if album_date.location and len(album_date.location) > 0:
@@ -692,13 +703,7 @@ class Photo(models.Model):
             if len(face_locations) == 0:
                 return
 
-            face_encodings = get_face_encodings(
-                self.thumbnail_big.path, known_face_locations=face_locations
-            )
-            for idx_face, face in enumerate(zip(face_encodings, face_locations)):
-                face_encoding = face[0]
-                face_location = face[1]
-
+            for idx_face, face_location in enumerate(face_locations):
                 top, right, bottom, left, person_name = face_location
                 if person_name:
                     person = api.models.person.get_or_create_person(
@@ -735,7 +740,7 @@ class Photo(models.Model):
                     location_right=right,
                     location_bottom=bottom,
                     location_left=left,
-                    encoding=face_encoding.tobytes().hex(),
+                    encoding="",
                     person=person,
                     cluster=unknown_cluster,
                 )
@@ -811,7 +816,7 @@ class Photo(models.Model):
             return
         try:
             # Resize image to speed up processing
-            img = PIL.Image.open(self.thumbnail_big.path)
+            img = PIL.Image.open(self.square_thumbnail_small.path)
             img.thumbnail((100, 100))
 
             # Reduce colors (uses k-means internally)

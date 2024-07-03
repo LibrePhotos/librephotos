@@ -40,7 +40,8 @@ def regenerate_event_titles(user, job_id):
             au._generate_title()
             au.save()
 
-            lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
+            lrj.progress_current = idx + 1
+            lrj.progress_target = target_count
             lrj.save()
 
         lrj.finished = True
@@ -172,7 +173,8 @@ def generate_event_albums(user, job_id):
                     )
                     continue
 
-            lrj.result = {"progress": {"current": idx + 1, "target": target_count}}
+            lrj.progress_current = idx + 1
+            lrj.progress_target = target_count
             lrj.save()
 
         lrj.finished = True

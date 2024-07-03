@@ -34,7 +34,7 @@ def zip_photos_task(job_id, user, photos, filename):
     lrj = LongRunningJob.objects.get(job_id=job_id)
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
     count = len(photos)
-    lrj.result = {"progress": {"current": 0, "target": count}}
+    lrj.progress_target = count
     lrj.save()
     output_directory = os.path.join(settings.MEDIA_ROOT, "zip")
     zip_file_name = filename
@@ -55,7 +55,8 @@ def zip_photos_task(job_id, user, photos, filename):
                 photos_name[photo_name] = 1
             with zipfile.ZipFile(mf, mode="a", compression=zipfile.ZIP_DEFLATED) as zf:
                 zf.write(photo.main_file.path, arcname=photo_name)
-            lrj.result = {"progress": {"current": done_count, "target": count}}
+            lrj.progress_current = done_count
+            lrj.progress_target = count
             lrj.save()
         with open(os.path.join(output_directory, zip_file_name), "wb") as output_file:
             output_file.write(mf.getvalue())

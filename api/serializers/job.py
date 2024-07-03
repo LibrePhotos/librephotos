@@ -20,7 +20,8 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
             "job_type_str",
             "job_type",
             "started_by",
-            "result",
+            "progress_current",
+            "progress_target",
             "id",
         )
 

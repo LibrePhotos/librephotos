@@ -11,7 +11,7 @@ class RuleTypes:
     DLIB = "dlib"
 
 
-def extract_from_exif(image_path, big_thumbnail_image):
+def extract_from_exif(image_path, big_thumbnail_image_path):
     (region_info, orientation) = get_metadata(
         image_path,
         tags=[Tags.REGION_INFO, Tags.ORIENTATION],
@@ -30,7 +30,7 @@ def extract_from_exif(image_path, big_thumbnail_image):
 
         area = region.get("Area")
         applied_to_dimensions = region.get("AppliedToDimensions")
-        big_thumbnail_image = np.array(PIL.Image.open(big_thumbnail_image))
+        big_thumbnail_image = np.array(PIL.Image.open(big_thumbnail_image_path))
         if (area and area.get("Unit") == "normalized") or (
             applied_to_dimensions and applied_to_dimensions.get("Unit") == "pixel"
         ):
@@ -93,10 +93,10 @@ def extract_from_exif(image_path, big_thumbnail_image):
     return face_locations
 
 
-def extract_from_dlib(image_path, big_thumbnail_image, owner):
+def extract_from_dlib(image_path, big_thumbnail_path, owner):
     try:
         face_locations = get_face_locations(
-            big_thumbnail_image,
+            big_thumbnail_path,
             model=owner.face_recognition_model.lower(),
         )
     except Exception as e:
@@ -108,8 +108,8 @@ def extract_from_dlib(image_path, big_thumbnail_image, owner):
     return face_locations
 
 
-def extract(image_path, big_thumbnail_image, owner):
-    exif = extract_from_exif(image_path, big_thumbnail_image)
+def extract(image_path, big_thumbnail_path, owner):
+    exif = extract_from_exif(image_path, big_thumbnail_path)
     if not exif:
-        return extract_from_dlib(image_path, big_thumbnail_image, owner)
+        return extract_from_dlib(image_path, big_thumbnail_path, owner)
     return exif

@@ -163,7 +163,7 @@ def download_models(user):
         job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,
     )
     lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
-    lrj.result = {"progress": {"current": 0, "target": len(ML_MODELS)}}
+    lrj.progress_target = len(ML_MODELS)
     lrj.save()
 
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"

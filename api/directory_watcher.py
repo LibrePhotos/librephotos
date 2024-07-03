@@ -3,19 +3,21 @@ import os
 import stat
 import uuid
 from typing import Optional
+from uuid import UUID
 
 import pytz
 from constance import config as site_config
 from django import db
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
+from django.utils import timezone
 from django_q.tasks import AsyncTask
 
 import api.util as util
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
-from api.models import File, LongRunningJob, Photo
+from api.models import Face, File, LongRunningJob, Photo
 from api.models.file import (
     calculate_hash,
     extract_embedded_media,
@@ -132,7 +134,7 @@ def create_new_image(user, path) -> Optional[Photo]:
 
 def handle_new_image(user, path, job_id, photo=None):
     """
-    Handles the creation and all the processing of the photo.
+    Handles the creation and all the processing of the photo needed for it to be displayed.
 
     Args:
         user: The owner of the photo.
@@ -175,36 +177,13 @@ def handle_new_image(user, path, job_id, photo=None):
                     job_id, path, elapsed
                 )
             )
-            photo._generate_captions(False)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: generate caption: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
-            photo._geolocate(True)
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: geolocate: {}, elapsed: {}".format(job_id, path, elapsed)
-            )
+
             photo._extract_date_time_from_exif(True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 "job {}: extract date time: {}, elapsed: {}".format(
                     job_id, path, elapsed
                 )
-            )
-            photo._add_location_to_album_dates()
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: add location to album dates: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
-            )
-            photo._extract_faces()
-            elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: extract faces: {}, elapsed: {}".format(job_id, path, elapsed)
             )
             photo._get_dominant_color()
             elapsed = (datetime.datetime.now() - start).total_seconds()
@@ -220,33 +199,6 @@ def handle_new_image(user, path, job_id, photo=None):
                     job_id, path, elapsed
                 )
             )
-
-    except Exception as e:
-        try:
-            util.logger.exception(
-                "job {}: could not load image {}. reason: {}".format(
-                    job_id, path, str(e)
-                )
-            )
-        except Exception:
-            util.logger.exception(
-                "job {}: could not load image {}".format(job_id, path)
-            )
-
-
-def rescan_image(user, path, job_id):
-    update_scan_counter(job_id)
-    try:
-        if is_valid_media(path):
-            photo = Photo.objects.filter(Q(files__path=path)).get()
-            photo._generate_thumbnail(True)
-            photo._calculate_aspect_ratio(False)
-            photo._geolocate(True)
-            photo._extract_exif_data(True)
-            photo._extract_date_time_from_exif(True)
-            photo._add_location_to_album_dates()
-            photo._get_dominant_color()
-            photo._recreate_search_captions()
 
     except Exception as e:
         try:
@@ -285,46 +237,36 @@ def _file_was_modified_after(filepath, time):
     return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
 
 
-def update_scan_counter(job_id):
-    with db.connection.cursor() as cursor:
-        cursor.execute(
-            """
-                    update api_longrunningjob
-                    set result = jsonb_set(result,'{"progress","current"}',
-                        ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
-                    ) where job_id = %(job_id)s""",
-            {"job_id": str(job_id)},
-        )
-        cursor.execute(
-            """
-                update api_longrunningjob
-                set finished = true, finished_at = now()
-                where job_id = %(job_id)s and
-                        (result->'progress'->>'current')::int = (result->'progress'->>'target')::int
-            """,
-            {"job_id": str(job_id)},
-        )
+def update_scan_counter(job_id, failed=False):
+    # Increment the current progress
+    LongRunningJob.objects.filter(job_id=job_id).update(
+        progress_current=F("progress_current") + 1
+    )
+
+    # Mark the job as finished if the current progress equals the target
+    LongRunningJob.objects.filter(
+        job_id=job_id, progress_current=F("progress_target")
+    ).update(finished=True, finished_at=timezone.now())
+
+    # Mark the job as failed if the failed flag is set
+    if failed:
+        LongRunningJob.objects.filter(job_id=job_id).update(failed=True)
 
 
 def photo_scanner(user, last_scan, full_scan, path, job_id):
-    if Photo.objects.filter(files__path=path).exists():
-        files_to_check = [path]
-        files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
-        if (
-            full_scan
-            or not last_scan
-            or any(
-                [
-                    _file_was_modified_after(p, last_scan.finished_at)
-                    for p in files_to_check
-                ]
-            )
-        ):
-            AsyncTask(rescan_image, user, path, job_id).run()
-        else:
-            update_scan_counter(job_id)
-    else:
+    files_to_check = [path]
+    files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
+    if (
+        not Photo.objects.filter(files__path=path).exists()
+        or full_scan
+        or not last_scan
+        or any(
+            [_file_was_modified_after(p, last_scan.finished_at) for p in files_to_check]
+        )
+    ):
         AsyncTask(handle_new_image, user, path, job_id).run()
+    else:
+        update_scan_counter(job_id)
 
 
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
@@ -366,7 +308,8 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         for path in photo_list:
             all.append((user, last_scan, full_scan, path, job_id))
 
-        lrj.result = {"progress": {"current": 0, "target": files_found}}
+        lrj.progress_current = 0
+        lrj.progress_target = files_found
         lrj.save()
         db.connections.close_all()
 
@@ -382,7 +325,11 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_files()
         util.logger.info("Finished checking paths")
+
+        AsyncTask(generate_tags, user, uuid.uuid4()).run()
+        AsyncTask(add_geolocation, user, uuid.uuid4()).run()
         AsyncTask(batch_calculate_clip_embedding, user).run()
+        AsyncTask(scan_faces, user, uuid.uuid4(), full_scan).run()
 
     except Exception:
         util.logger.exception("An error occurred: ")
@@ -391,51 +338,133 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     added_photo_count = Photo.objects.count() - photo_count_before
     util.logger.info("Added {} photos".format(added_photo_count))
 
-    cluster_job_id = uuid.uuid4()
-    AsyncTask(cluster_all_faces, user, cluster_job_id).run()
+
+def generate_face_embeddings(user, job_id: UUID):
+    if Face.objects.filter(encoding="").count == 0:
+        return
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS,
+        )
+    lrj.save()
+
+    try:
+        faces = Face.objects.filter(encoding="")
+        lrj.progress_target = faces.count()
+        lrj.save()
+        db.connections.close_all()
+
+        for face in faces:
+            failed = False
+            try:
+                face.generate_encoding()
+            except Exception as err:
+                util.logger.exception("An error occurred: ")
+                print("[ERR]: {}".format(err))
+                failed = True
+            update_scan_counter(job_id, failed)
+
+    except Exception as err:
+        util.logger.exception("An error occurred: ")
+        print("[ERR]: {}".format(err))
+        lrj.failed = True
 
 
-def face_scanner(photo: Photo, job_id):
-    AsyncTask(face_scan_job, photo, job_id).run()
+def generate_tags(user, job_id: UUID):
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_GENERATE_TAGS,
+        )
+    lrj.save()
+
+    try:
+        existing_photos = Photo.objects.filter(
+            Q(owner=user.id)
+            & Q(captions_json__isnull=True)
+            & Q(captions_json__places365__isnull=True)
+        )
+        lrj.progress_target = existing_photos.count()
+        lrj.save()
+        db.connections.close_all()
+
+        for photo in existing_photos:
+            AsyncTask(generate_tag_job, photo, job_id).run()
+
+    except Exception as err:
+        util.logger.exception("An error occurred: ")
+        print("[ERR]: {}".format(err))
+        lrj.failed = True
 
 
-def face_scan_job(photo: Photo, job_id):
+def generate_tag_job(photo: Photo, job_id: str):
     failed = False
     try:
-        photo._extract_faces()
+        photo.refresh_from_db()
+        photo._generate_captions(True)
+    except Exception as err:
+        util.logger.exception("An error occurred: %s", photo.image_hash)
+
+        print("[ERR]: {}".format(err))
+        failed = True
+    update_scan_counter(job_id, failed)
+
+
+def add_geolocation(user, job_id: UUID):
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_ADD_GEOLOCATION,
+        )
+    lrj.save()
+
+    try:
+        existing_photos = Photo.objects.filter(owner=user.id)
+        lrj.progress_target = existing_photos.count()
+        lrj.save()
+        db.connections.close_all()
+
+        for photo in existing_photos:
+            AsyncTask(geolocation_job, photo, job_id).run()
+
+    except Exception as err:
+        util.logger.exception("An error occurred: ")
+        print("[ERR]: {}".format(err))
+        lrj.failed = True
+
+
+def geolocation_job(photo: Photo, job_id: UUID):
+    failed = False
+    try:
+        photo.refresh_from_db()
+        photo._geolocate()
+        photo._add_location_to_album_dates()
     except Exception:
         util.logger.exception("An error occurred: ")
         failed = True
-    with db.connection.cursor() as cursor:
-        cursor.execute(
-            """
-                update api_longrunningjob
-                set result = jsonb_set(result,'{"progress","current"}',
-                      ((jsonb_extract_path(result,'progress','current')::int + 1)::text)::jsonb
-                ) where job_id = %(job_id)s""",
-            {"job_id": str(job_id)},
-        )
-        cursor.execute(
-            """
-                update api_longrunningjob
-                set finished = true
-                where job_id = %(job_id)s and
-                        (result->'progress'->>'current')::int = (result->'progress'->>'target')::int
-            """,
-            {"job_id": str(job_id)},
-        )
-        if failed:
-            cursor.execute(
-                """
-                    update api_longrunningjob
-                    set failed = %(failed)s
-                    where job_id = %(job_id)s
-                """,
-                {"job_id": str(job_id), "failed": failed},
-            )
+    update_scan_counter(job_id, failed)
 
 
-def scan_faces(user, job_id):
+def scan_faces(user, job_id: UUID, full_scan=False):
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -449,21 +478,38 @@ def scan_faces(user, job_id):
         )
     lrj.save()
 
-    try:
-        existing_photos = Photo.objects.filter(owner=user.id)
-        all = [(photo, job_id) for photo in existing_photos]
+    last_scan = (
+        LongRunningJob.objects.filter(finished=True)
+        .filter(job_type=7)
+        .filter(started_by=user)
+        .order_by("-finished_at")
+        .first()
+    )
 
-        lrj.result = {"progress": {"current": 0, "target": existing_photos.count()}}
+    try:
+        existing_photos = Photo.objects.filter(
+            Q(owner=user.id) & Q(thumbnail_big__isnull=False)
+        )
+
+        lrj.progress_target = existing_photos.count()
         lrj.save()
         db.connections.close_all()
 
-        for photo in all:
-            face_scanner(*photo)
-
+        for photo in existing_photos:
+            failed = False
+            if full_scan or not last_scan:
+                try:
+                    photo._extract_faces()
+                except Exception:
+                    util.logger.exception("An error occurred: ")
+                    failed = True
+                update_scan_counter(job_id, failed)
+            else:
+                update_scan_counter(job_id)
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print("[ERR]: {}".format(err))
         lrj.failed = True
 
-    cluster_job_id = uuid.uuid4()
-    AsyncTask(cluster_all_faces, user, cluster_job_id).run()
+    generate_face_embeddings(user, uuid.uuid4())
+    cluster_all_faces(user, uuid.uuid4())

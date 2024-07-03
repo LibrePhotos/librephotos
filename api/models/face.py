@@ -4,6 +4,7 @@ import numpy as np
 from django.db import models
 from django.dispatch import receiver
 
+from api.face_recognition import get_face_encodings
 from api.models.cluster import Cluster
 from api.models.person import Person, get_unknown_person
 from api.models.photo import Photo
@@ -42,6 +43,24 @@ class Face(models.Model):
 
     def __str__(self):
         return "%d" % self.id
+
+    def generate_encoding(self):
+        self.encoding = (
+            get_face_encodings(
+                self.photo.thumbnail_big.path,
+                [
+                    (
+                        self.location_top,
+                        self.location_right,
+                        self.location_bottom,
+                        self.location_left,
+                    )
+                ],
+            )[0]
+            .tobytes()
+            .hex()
+        )
+        self.save()
 
     def get_encoding_array(self):
         return np.frombuffer(bytes.fromhex(self.encoding))
