@@ -28,7 +28,7 @@ def batch_calculate_clip_embedding(user):
     count = Photo.objects.filter(
         Q(owner=user) & Q(clip_embeddings__isnull=True)
     ).count()
-    lrj.result = {"progress": {"current": 0, "target": count}}
+    lrj.progress_target = count
     lrj.save()
     if not torch.cuda.is_available():
         num_threads = max(1, site_config.HEAVYWEIGHT_PROCESS)
@@ -69,7 +69,9 @@ def batch_calculate_clip_embedding(user):
                 obj.save()
         except Exception as e:
             util.logger.error("Error calculating clip embeddings: {}".format(e))
-        lrj.result = {"progress": {"current": done_count, "target": count}}
+
+        lrj.progress_current = done_count
+        lrj.progress_target = count
         lrj.save()
 
     build_image_similarity_index(user)

@@ -332,7 +332,7 @@ class Migration(migrations.Migration):
                 (
                     "result",
                     django.contrib.postgres.fields.jsonb.JSONField(
-                        default=api.models.long_running_job.get_default_longrunningjob_result
+                        default={"progress": {"target": 0, "current": 0}}
                     ),
                 ),
                 (

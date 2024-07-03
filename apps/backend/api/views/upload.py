@@ -11,7 +11,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django_q.tasks import AsyncTask
+from django_q.tasks import Chain
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
@@ -141,8 +141,15 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
             chunked_upload.delete(delete_file=True)
+            chain = Chain()
             photo = create_new_image(user, photo_path)
-            AsyncTask(handle_new_image, user, photo_path, image_hash, photo).run()
+            chain.append(handle_new_image, user, photo_path, image_hash, photo)
+            chain.append(photo._generate_captions, True)
+            chain.append(photo._geolocate)
+            chain.append(photo._add_location_to_album_dates)
+            chain.append(photo._extract_faces)
+            chain.run()
+
         else:
             util.logger.info(
                 "Photo {} duplicated with hash {} ".format(filename, image_hash)

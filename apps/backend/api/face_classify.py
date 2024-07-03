@@ -77,7 +77,7 @@ def cluster_all_faces(user, job_id) -> bool:
             started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
             job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES,
         )
-    lrj.result = {"progress": {"current": 0, "target": 1}}
+    lrj.progress_target = 1
     lrj.save()
 
     try:
@@ -89,7 +89,8 @@ def cluster_all_faces(user, job_id) -> bool:
         lrj.finished = True
         lrj.failed = False
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.result = {"progress": {"current": target_count, "target": target_count}}
+        lrj.progress_current = target_count
+        lrj.progress_target = target_count
         lrj.save()
 
         train_job_id = uuid.uuid4()
@@ -186,13 +187,16 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             count = count + 1
             face_id = data["all"]["id"][i]
             face_id_list.append(face_id)
-        face_array = Face.objects.filter(pk__in=face_id_list)
+        face_array = Face.objects.filter(
+            Q(pk__in=face_id_list) & Q(encoding__isnull=False)
+        )
         new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
             user, clusterId, face_array, maxLen
         )
 
         if commit_time < datetime.datetime.now() and lrj is not None:
-            lrj.result = {"progress": {"current": count, "target": target_count}}
+            lrj.progress_current = count
+            lrj.progress_target = target_count
             lrj.save()
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
 
@@ -245,7 +249,8 @@ def train_faces(user: User, job_id) -> bool:
             started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
             job_type=LongRunningJob.JOB_TRAIN_FACES,
         )
-    lrj.result = {"progress": {"current": 1, "target": 2}}
+    lrj.progress_current = 1
+    lrj.progress_target = 2
     lrj.save()
     unknown_person: Person = get_unknown_person(owner=user)
     try:
@@ -254,9 +259,9 @@ def train_faces(user: User, job_id) -> bool:
         data_unknown = {"encoding": [], "id": []}
         # First, sort all faces into known and unknown ones
         face: Face
-        for face in Face.objects.filter(Q(photo__owner=user)).prefetch_related(
-            "person"
-        ):
+        for face in Face.objects.filter(
+            Q(photo__owner=user) & Q(encoding__isnull=False)
+        ).prefetch_related("person"):
             person: Person = face.person
             unknown = (
                 face.person_label_is_inferred is not False
@@ -284,7 +289,8 @@ def train_faces(user: User, job_id) -> bool:
             logger.info("No labeled faces found")
             lrj.finished = True
             lrj.failed = False
-            lrj.result = {"progress": {"current": 2, "target": 2}}
+            lrj.progress_current = 2
+            lrj.progress_target = 2
             lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
         else:
@@ -358,9 +364,8 @@ def train_faces(user: User, job_id) -> bool:
 
                         face_stack.append(face)
                         if commit_time < datetime.datetime.now():
-                            lrj.result = {
-                                "progress": {"current": idx + 1, "target": target_count}
-                            }
+                            lrj.progress_current = idx + 1
+                            lrj.progress_target = target_count
                             lrj.save()
                             commit_time = datetime.datetime.now() + datetime.timedelta(
                                 seconds=5
@@ -373,7 +378,8 @@ def train_faces(user: User, job_id) -> bool:
 
             lrj.finished = True
             lrj.failed = False
-            lrj.result = {"progress": {"current": target_count, "target": target_count}}
+            lrj.progress_current = target_count
+            lrj.progress_target = target_count
             lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
             return True
