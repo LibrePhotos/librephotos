@@ -66,8 +66,8 @@ export function JobList() {
               <td>{t(job.job_type_str)}</td>
               <td>
                 <JobProgress
-                  target={job.result.progress.target}
-                  current={job.result.progress.current}
+                  target={job.progress_target}
+                  current={job.progress_current}
                   error={job.error}
                   finished={job.finished}
                 />

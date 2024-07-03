@@ -13,14 +13,12 @@ type IWorkerIndicator = Readonly<{
 function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
   const { t } = useTranslation();
 
-  if (workerRunningJob && workerRunningJob.result && workerRunningJob.result.progress) {
+  if (workerRunningJob) {
     return (
       <Stack>
-        <Progress
-          value={(+workerRunningJob.result.progress.current.toFixed(2) / workerRunningJob.result.progress.target) * 100}
-        />
+        <Progress value={(+workerRunningJob.progress_current.toFixed(2) / workerRunningJob.progress_target) * 100} />
         <Text size="sm" align="center">
-          {workerRunningJob.result.progress.current} / {workerRunningJob.result.progress.target}
+          {workerRunningJob.progress_current} / {workerRunningJob.progress_target}
         </Text>
         <Text size="sm" align="center">
           {t("topmenu.running")} {workerRunningJob.job_type_str} ...

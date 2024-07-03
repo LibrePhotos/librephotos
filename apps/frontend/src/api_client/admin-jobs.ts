@@ -19,12 +19,8 @@ export const JobSchema = z.object({
   job_type_str: z.string(),
   started_by: SimpleUser,
   error: z.any().optional(),
-  result: z.object({
-    progress: z.object({
-      current: z.number().optional(),
-      target: z.number().optional(),
-    }),
-  }),
+  progress_current: z.number().optional(),
+  progress_target: z.number().optional(),
   id: z.number(),
 });
 
