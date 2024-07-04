@@ -171,7 +171,7 @@ def download_models(user):
 
     for model in ML_MODELS:
         download_model(model)
-        lrj.result["progress"]["current"] += 1
+        lrj.progress_current += 1
         lrj.save()
 
     lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
