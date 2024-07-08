@@ -340,7 +340,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
 
 def generate_face_embeddings(user, job_id: UUID):
-    if Face.objects.filter(encoding="").count == 0:
+    if Face.objects.filter(encoding="").count() == 0:
         return
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
@@ -371,6 +371,9 @@ def generate_face_embeddings(user, job_id: UUID):
                 failed = True
             update_scan_counter(job_id, failed)
 
+        lrj.finished = True
+        lrj.save()
+
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print("[ERR]: {}".format(err))
@@ -378,6 +381,13 @@ def generate_face_embeddings(user, job_id: UUID):
 
 
 def generate_tags(user, job_id: UUID):
+    existing_photos = Photo.objects.filter(
+        Q(owner=user.id)
+        & Q(captions_json__isnull=True)
+        & Q(captions_json__places365__isnull=True)
+    )
+    if existing_photos.count() == 0:
+        return
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -392,11 +402,6 @@ def generate_tags(user, job_id: UUID):
     lrj.save()
 
     try:
-        existing_photos = Photo.objects.filter(
-            Q(owner=user.id)
-            & Q(captions_json__isnull=True)
-            & Q(captions_json__places365__isnull=True)
-        )
         lrj.progress_target = existing_photos.count()
         lrj.save()
         db.connections.close_all()
