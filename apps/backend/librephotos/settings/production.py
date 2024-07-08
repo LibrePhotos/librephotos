@@ -49,7 +49,9 @@ ALLOWED_HOSTS = ["localhost", os.environ.get("BACKEND_HOST", "backend")]
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(days=int(os.environ.get("REFRESH_TOKEN_DAYS", "7"))),
+    "REFRESH_TOKEN_LIFETIME": datetime.timedelta(
+        days=int(os.environ.get("REFRESH_TOKEN_DAYS", "7"))
+    ),
 }
 
 INSTALLED_APPS = [
@@ -71,10 +73,10 @@ INSTALLED_APPS = [
     "django_q",
 ]
 
-# Must be less or equal of nb core CPU ( Nearly 2GB per process)
-HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", "1")
+# Defaults to number of cores of the host system
+HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", None)
 HEAVYWEIGHT_PROCESS = (
-    int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else 1
+    int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else None
 )
 
 Q_CLUSTER = {
