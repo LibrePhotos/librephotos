@@ -39,7 +39,7 @@ class ScanFacesView(APIView):
             chain.append(download_models, request.user)
         try:
             job_id = uuid.uuid4()
-            chain.append(scan_faces, request.user, job_id)
+            chain.append(scan_faces, request.user, job_id, True)
             chain.run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
