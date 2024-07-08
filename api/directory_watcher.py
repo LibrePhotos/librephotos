@@ -502,7 +502,7 @@ def scan_faces(user, job_id: UUID, full_scan=False):
 
         for photo in existing_photos:
             failed = False
-            if full_scan or not last_scan:
+            if full_scan or not last_scan or last_scan.started_at < photo.added_on:
                 try:
                     photo._extract_faces()
                 except Exception:
