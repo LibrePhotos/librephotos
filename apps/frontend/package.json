@@ -145,7 +145,7 @@
     "jsdom": "^24.0.0",
     "lint-staged": "14.0.1",
     "prettier": "3.3.2",
-    "rimraf": "5.0.7",
+    "rimraf": "5.0.9",
     "source-map-loader": "4.0.2",
     "ts-loader": "9.5.1",
     "typescript": "5.4.5"
