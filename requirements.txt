@@ -46,7 +46,7 @@ py-cpuinfo==9.0.0
 psutil==5.9.8
 onnxruntime==1.18.1
 # Dependencies for blip
-timm==0.4.12
+timm==0.9.16
 transformers==4.38.0
 # Dependencies for mistral quantized
 llama-cpp-python==0.2.82
