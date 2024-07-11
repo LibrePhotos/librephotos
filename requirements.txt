@@ -47,6 +47,6 @@ psutil==5.9.8
 onnxruntime==1.18.1
 # Dependencies for blip
 timm==0.9.16
-transformers==4.42.3
+transformers==4.42.4
 # Dependencies for mistral quantized
 llama-cpp-python==0.2.82
