@@ -15,12 +15,8 @@ export const JobDetailSchema = z.object({
     first_name: z.string(),
     last_name: z.string(),
   }),
-  result: z.object({
-    progress: z.object({
-      target: z.number(),
-      current: z.number(),
-    }),
-  }),
+  progress_target: z.number(),
+  progress_current: z.number(),
 })
 
 export const WorkerAvailabilityResponse = z.object({
