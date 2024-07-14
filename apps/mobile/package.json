@@ -16,7 +16,7 @@
     "@dudigital/react-native-zoomable-view": "^1.1.4",
     "@react-native-async-storage/async-storage": "^1.17.11",
     "@react-native-camera-roll/camera-roll": "^6.0.0",
-    "@react-native-community/cli-platform-android": "12.0.0",
+    "@react-native-community/cli-platform-android": "12.3.7",
     "@react-native-community/masked-view": "^0.1.11",
     "@react-native-community/progress-view": "^1.4.0-beta.0",
     "@react-native-cookies/cookies": "^6.2.1",
