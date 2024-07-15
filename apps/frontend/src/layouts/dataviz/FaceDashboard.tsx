@@ -54,7 +54,7 @@ export function FaceDashboard() {
 
   // Filter the Person "Unknown - Other" from the inferredFacesList
   // To-Do: This should not be in that list...
-  const inferredFacesList = nonCleanInferredFacesList.filter(person => person.name !== "Unknown - Other");
+  const inferredFacesList = nonCleanInferredFacesList.filter(person => person.kind === "CLUSTER");
 
   const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
 
