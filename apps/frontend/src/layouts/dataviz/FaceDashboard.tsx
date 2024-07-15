@@ -50,10 +50,11 @@ export function FaceDashboard() {
     }[]
   >([]);
 
-  const { inferredFacesList, labeledFacesList } = useAppSelector(
-    store => store.face,
-    (prev, next) => prev.inferredFacesList === next.inferredFacesList && prev.labeledFacesList === next.labeledFacesList
-  );
+  const { inferredFacesList: nonCleanInferredFacesList, labeledFacesList } = useAppSelector(store => store.face);
+
+  // Filter the Person "Unknown - Other" from the inferredFacesList
+  // To-Do: This should not be in that list...
+  const inferredFacesList = nonCleanInferredFacesList.filter(person => person.name !== "Unknown - Other");
 
   const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
 
@@ -89,29 +90,24 @@ export function FaceDashboard() {
 
   const { orderBy } = useAppSelector(store => store.face);
 
-  useEffect(() => {
-    if (groups) {
-      groups.forEach(element => {
-        let force = false;
-        const currentList = element.inferred ? labeledFacesList : inferredFacesList;
-        const personIndex = currentList.findIndex(person => person.id === element.person);
-        // Force refetch for persons that have more than 100 faces as we can't be sure all faces were loaded when changing orderBy
-        if (personIndex !== -1 && currentList[personIndex].face_count > 100) force = true;
-        dispatch(
-          api.endpoints.fetchFaces.initiate(
-            {
-              person: element.person,
-              page: element.page,
-              inferred: element.inferred,
-              orderBy,
-            },
-            { forceRefetch: force }
-          )
-        );
-      });
-    }
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [activeTab, groups, orderBy]);
+  groups.forEach(element => {
+    let force = false;
+    const currentList = element.inferred ? labeledFacesList : inferredFacesList;
+    const personIndex = currentList.findIndex(person => person.id === element.person);
+    // Force refetch for persons that have more than 100 faces as we can't be sure all faces were loaded when changing orderBy
+    if (personIndex !== -1 && currentList[personIndex].face_count > 100) force = true;
+    dispatch(
+      api.endpoints.fetchFaces.initiate(
+        {
+          person: element.person,
+          page: element.page,
+          inferred: element.inferred,
+          orderBy,
+        },
+        { forceRefetch: force }
+      )
+    );
+  });
 
   const handleGridScroll = (params: any) => {
     const { scrollTop } = params;
@@ -160,12 +156,6 @@ export function FaceDashboard() {
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [scrollTo]);
 
-  useEffect(() => {
-    if (fetchingInferredFacesList || fetchingLabeledFacesList) {
-      setGroups([]);
-    }
-  }, [fetchingInferredFacesList, fetchingLabeledFacesList]);
-
   // ensure that the endpoint is not undefined
   const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
     if (cellContents[rowStopIndex][columnStopIndex]) {
@@ -196,6 +186,8 @@ export function FaceDashboard() {
     const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => `${e.page} ${e.person}`);
     if (uniqueGroups.length > 0) {
       setGroups(uniqueGroups);
+    } else {
+      setGroups([]);
     }
   };
 
@@ -378,10 +370,6 @@ export function FaceDashboard() {
         onRequestClose={() => {
           setModalPersonEditOpen(false);
           setSelectedFaces([]);
-        }}
-        resetGroups={() => {
-          // Reset groups to force refetch of faces when adding faces to a person
-          setGroups([]);
         }}
         selectedFaces={selectedFaces}
       />
