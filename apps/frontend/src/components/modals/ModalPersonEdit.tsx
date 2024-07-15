@@ -29,7 +29,7 @@ type Props = Readonly<{
   selectedFaces: any[];
 }>;
 
-export function ModalPersonEdit(props: Props) {
+export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGroups = () => {} }: Props) {
   const [newPersonName, setNewPersonName] = useState("");
 
   const matches = useMediaQuery("(min-width: 700px)");
@@ -38,7 +38,7 @@ export function ModalPersonEdit(props: Props) {
 
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const { isOpen, onRequestClose, selectedFaces, resetGroups } = props;
+
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
@@ -164,7 +164,3 @@ export function ModalPersonEdit(props: Props) {
     </Modal>
   );
 }
-
-ModalPersonEdit.defaultProps = {
-  resetGroups: () => {},
-};

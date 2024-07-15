@@ -35,22 +35,15 @@ type Props = Readonly<{
 
 const STEP_PERCENT = 0.5;
 
-export function LocationLink(props: Props) {
+export function LocationLink({
+  width,
+  height,
+  margin = { top: 0, left: 0, right: 0, bottom: 0 }, // Default value for margin
+}: Props) {
   const [layout, setLayout] = useState("cartesian");
   const [orientation, setOrientation] = useState("horizontal");
   const [linkType, setLinkType] = useState("diagonal");
   const { data: locationSunburst, isFetching } = useFetchLocationTreeQuery();
-
-  const {
-    width,
-    height,
-    margin = {
-      top: 20,
-      left: 100,
-      right: 100,
-      bottom: 20,
-    },
-  } = props;
 
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -229,12 +222,3 @@ export function LocationLink(props: Props) {
     </div>
   );
 }
-
-LocationLink.defaultProps = {
-  margin: {
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-};

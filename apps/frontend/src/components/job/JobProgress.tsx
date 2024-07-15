@@ -9,7 +9,7 @@ type IJobProgress = Readonly<{
   error: unknown;
 }>;
 
-export function JobProgress({ target, current, finished, error }: IJobProgress) {
+export function JobProgress({ target = 0, current = 0, finished, error }: IJobProgress) {
   const { t } = useTranslation();
 
   if (target && current && target !== 0 && !finished) {
@@ -37,8 +37,3 @@ export function JobProgress({ target, current, finished, error }: IJobProgress) 
     </div>
   );
 }
-
-JobProgress.defaultProps = {
-  target: 0,
-  current: 0,
-};

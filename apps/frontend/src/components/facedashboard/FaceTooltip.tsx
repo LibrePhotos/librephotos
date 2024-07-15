@@ -12,7 +12,7 @@ type Props = Readonly<{
   children?: React.ReactNode;
 }>;
 
-export function FaceTooltip({ tooltipOpened, cell, children }: Props) {
+export function FaceTooltip({ tooltipOpened, cell, children = null }: Props) {
   const { activeTab } = useAppSelector(store => store.face);
 
   const confidencePercentageLabel =
@@ -43,7 +43,3 @@ export function FaceTooltip({ tooltipOpened, cell, children }: Props) {
     </Tooltip>
   );
 }
-
-FaceTooltip.defaultProps = {
-  children: null,
-};

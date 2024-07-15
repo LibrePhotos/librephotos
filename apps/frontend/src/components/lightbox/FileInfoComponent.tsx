@@ -1,9 +1,10 @@
 import { Group, Text } from "@mantine/core";
 import React from "react";
 
-export function FileInfoComponent(props: Readonly<{ description?: string; info: string | undefined }>) {
-  const { description, info } = props;
-
+export function FileInfoComponent({
+  description = "",
+  info,
+}: Readonly<{ description?: string; info: string | undefined }>) {
   if (!info || info.includes("undefined") || info.includes("null") || info.includes("0 mm")) return null;
   if (!description) {
     return (
@@ -21,7 +22,3 @@ export function FileInfoComponent(props: Readonly<{ description?: string; info: 
     </Group>
   );
 }
-
-FileInfoComponent.defaultProps = {
-  description: "",
-};
