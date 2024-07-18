@@ -1,4 +1,3 @@
-import jest from 'eslint-plugin-jest'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import js from '@eslint/js'
@@ -16,16 +15,6 @@ const compat = new FlatCompat({
 export default [
   ...fixupConfigRules(compat.extends('@react-native')),
   {
-    plugins: {
-      jest: jest, // Correctly setting jest as an object
-    },
-
-    languageOptions: {
-      globals: {
-        ...jest.environments.globals.globals,
-      },
-    },
-
     settings: {
       'import/resolver': {
         'babel-module': {},
