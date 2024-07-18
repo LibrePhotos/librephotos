@@ -11,7 +11,7 @@ const SiteSettingsSchema = z.object({
   allow_registration: z.boolean(),
   allow_upload: z.boolean(),
   skip_patterns: z.string(),
-  heavyweight_process: z.number(),
+  heavyweight_process: z.number().nullable(),
   map_api_key: z.string(),
 })
 

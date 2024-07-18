@@ -2,6 +2,7 @@ import jest from 'eslint-plugin-jest'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import js from '@eslint/js'
+import { fixupConfigRules } from '@eslint/compat'
 import { FlatCompat } from '@eslint/eslintrc'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -13,7 +14,7 @@ const compat = new FlatCompat({
 })
 
 export default [
-  ...compat.extends('@react-native'),
+  ...fixupConfigRules(compat.extends('@react-native')),
   {
     plugins: {
       jest,
