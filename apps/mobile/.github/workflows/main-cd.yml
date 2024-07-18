@@ -65,6 +65,8 @@ jobs:
         alias: ${{ secrets.ANDROID_SIGNING_ALIAS }}
         keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
         keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+      env:
+          BUILD_TOOLS_VERSION: "34.0.0"
 
     - name: Rename Android App APK
       run: cp $SIGNED_FILE librephotos-latest-signed.apk
