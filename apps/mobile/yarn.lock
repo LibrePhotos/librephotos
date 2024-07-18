@@ -3306,9 +3306,9 @@
     pretty-format "^29.0.0"
 
 "@types/json-schema@^7.0.9":
-  version "7.0.14"
-  resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.14.tgz#74a97a5573980802f32c8e47b663530ab3b6b7d1"
-  integrity sha512-U3PUjAudAdJBeC2pgN8uTIKgxrb4nlDF3SF0++EldXQvQBGkpFZMSnwQiIoDU77tv45VgNkl/L4ouD+rEomujw==
+  version "7.0.15"
+  resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.15.tgz#596a1747233694d50f6ad8a7869fcb6f56cf5841"
+  integrity sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==
 
 "@types/json5@^0.0.29":
   version "0.0.29"
@@ -3375,9 +3375,9 @@
     csstype "^3.0.2"
 
 "@types/semver@^7.3.12":
-  version "7.5.4"
-  resolved "https://registry.yarnpkg.com/@types/semver/-/semver-7.5.4.tgz#0a41252ad431c473158b22f9bfb9a63df7541cff"
-  integrity sha512-MMzuxN3GdFwskAnb6fz0orFvhfqi752yjaXylr0Rp4oDg5H0Zn1IuyRhDVvYOwAXoJirx2xuS16I3WjxnAIHiQ==
+  version "7.5.8"
+  resolved "https://registry.yarnpkg.com/@types/semver/-/semver-7.5.8.tgz#8268a8c57a3e4abd25c165ecd36237db7948a55e"
+  integrity sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==
 
 "@types/stack-utils@^2.0.0":
   version "2.0.3"
@@ -5333,14 +5333,7 @@ eslint-plugin-import@^2.29.1:
     semver "^6.3.1"
     tsconfig-paths "^3.15.0"
 
-eslint-plugin-jest@^27.2.1:
-  version "27.6.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-27.6.0.tgz#e5c0cf735b3c8cad0ef9db5b565b2fc99f5e55ed"
-  integrity sha512-MTlusnnDMChbElsszJvrwD1dN3x6nZl//s4JD23BxB6MgR66TZlL064su24xEIS3VACfAoHV1vgyMgPw8nkdng==
-  dependencies:
-    "@typescript-eslint/utils" "^5.10.0"
-
-eslint-plugin-jest@^27.9.0:
+eslint-plugin-jest@^27.2.1, eslint-plugin-jest@^27.9.0:
   version "27.9.0"
   resolved "https://registry.yarnpkg.com/eslint-plugin-jest/-/eslint-plugin-jest-27.9.0.tgz#7c98a33605e1d8b8442ace092b60e9919730000b"
   integrity sha512-QIT7FH7fNmd9n4se7FFKHbsLKGQiw885Ds6Y/sxKgCZ6natwCsXdgPOADnYVxN2QrRweF0FZWbJ6S7Rsn7llug==
@@ -10299,17 +10292,17 @@ semver@^7.0.0:
   dependencies:
     lru-cache "^6.0.0"
 
-semver@^7.3.7, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4:
+semver@^7.3.7, semver@^7.6.0:
+  version "7.6.3"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.3.tgz#980f7b5550bc175fb4dc09403085627f9eb33143"
+  integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
+
+semver@^7.5.2, semver@^7.5.3, semver@^7.5.4:
   version "7.5.4"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.5.4.tgz#483986ec4ed38e1c6c48c34894a9182dbff68a6e"
   integrity sha512-1bCSESV6Pv+i21Hvpxp3Dx+pSD8lIPt8uVjRrxAUt/nbswYc+tK6Y2btiULjd4+fnq15PX+nqQDC7Oft7WkwcA==
   dependencies:
     lru-cache "^6.0.0"
-
-semver@^7.6.0:
-  version "7.6.3"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.3.tgz#980f7b5550bc175fb4dc09403085627f9eb33143"
-  integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
 
 send@0.18.0:
   version "0.18.0"
