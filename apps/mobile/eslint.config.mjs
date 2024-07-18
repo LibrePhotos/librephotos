@@ -16,9 +16,7 @@ const compat = new FlatCompat({
 export default [
   ...fixupConfigRules(compat.extends('@react-native')),
   {
-    plugins: {
-      jest,
-    },
+    plugins: ['jest'],
 
     languageOptions: {
       globals: {
