@@ -22,6 +22,7 @@ export default [
         'babel-module': {},
       },
     },
+    files: ['**/*.js', '**/*.mjs'],
     languageOptions: {
       parser: babelParser,
       globals: {
