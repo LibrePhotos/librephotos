@@ -20,7 +20,9 @@ export default [
         'babel-module': {},
       },
     },
-
+    env: {
+      'jest/globals': true,
+    },
     rules: {
       semi: ['error', 'never'],
       'object-curly-spacing': ['error', 'always'],
