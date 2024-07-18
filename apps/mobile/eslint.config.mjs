@@ -26,6 +26,7 @@ export default [
         ...jest.environments.globals.globals,
       },
     },
+    ignores: ['.eslint.config.mjs'],
     rules: {
       semi: ['error', 'never'],
       'object-curly-spacing': ['error', 'always'],
