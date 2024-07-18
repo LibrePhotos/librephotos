@@ -1,3 +1,4 @@
+import jest from 'eslint-plugin-jest'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import js from '@eslint/js'
@@ -20,8 +21,10 @@ export default [
         'babel-module': {},
       },
     },
-    env: {
-      'jest/globals': true,
+    languageOptions: {
+      globals: {
+        ...jest.environments.globals.globals,
+      },
     },
     rules: {
       semi: ['error', 'never'],
