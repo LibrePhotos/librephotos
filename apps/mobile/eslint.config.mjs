@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import js from '@eslint/js'
 import { fixupConfigRules } from '@eslint/compat'
 import { FlatCompat } from '@eslint/eslintrc'
+import babelParser from '@babel/eslint-parser'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -22,6 +23,7 @@ export default [
       },
     },
     languageOptions: {
+      parser: babelParser,
       globals: {
         ...jest.environments.globals.globals,
       },
