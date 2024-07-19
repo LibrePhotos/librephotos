@@ -5,11 +5,22 @@
         "allow": "Baimendu",
         "skippatterns": " zerrendatu eta banatu koma bidez (adibidez: '@eaDir,#recycle' synology galuetarako)",
         "headerskippatterns": "Kontuan ez hartzeko patroiak",
-        "heavyweight": "Prozesu kopurua, argazkiak aztertzerakoan. Ezarpen honek eragin handia izan dezake RAM memoriaren erabileran. Prozesu bakoitzak 800MB RAM behar ditu. Aldatu nahi bezala. Lehenetsitakoa 1 da.",
+        "heavyweight": "Handitu argazkiak aztertzeko prozesu-kopurua 1 edo gehiagora, baina presta zaitez 800 MB memoria erabiltzeko handitzen duzun maila bakoitzeko.",
         "noallow": "Galarazi",
         "headerapikey": "Mapboxen API gakoa",
         "headerheavyweight": "Prozesu astunak",
-        "headerupload": "Baimendu fitxategiak igotzea"
+        "headerupload": "Baimendu fitxategiak igotzea",
+        "captioning_model_description": "Hautatu irudiaren testua sortuko duen eredua.",
+        "map_api_key_description": "Lortu zure API gakoa {{url}} estekan",
+        "blip_warning": "Ezaugarri honek 3GB RAM gehiago behar ditu behar bezala ibiltzeko. Aztertu aukera aurrera egin baino lehen.",
+        "llm_model_description": "Hautatu eredu bat irudi-testuak Hizkuntza Eredu Handiekin postprozesatzeko.",
+        "llm_model_header": "Hizkuntza Eredu Handia",
+        "map_api_key_header": "Mapa hornitzailearen API gakoa",
+        "captioning_model_header": "Irudi-testuaren eredua",
+        "map_api_provider_header": "Mapa hornitzailea",
+        "map_api_provider_description": "Irudien GPS metadatuetatik tokiaren izena lortzeko.",
+        "heavyweight_process_warning": "Prozesu-astunen kopurua 3 baino gehiagora ezarriz gero, 16 GB RAM baino gehiago beharko dira ziurrenik. Aztertu aukera aurrera egin baino lehen.",
+        "ram_warning_header": "RAM kopuru handia behar lezake"
     },
     "rules": {
         "6": "Bideoaren sorrera-data UTC ordu-eremuan (ezin izan dugu tokiko ordu-eremua aurkitu)",
@@ -24,7 +35,7 @@
         "10": "Fitxategiaren ordu-eremua UTCkoenarenean sortu da",
         "12": "Erabili Composite:GPSDateTime etiketa erabiltzailearen lehenetsitako ordu-eremuan (ezin izan da benetako ordu-eremua aurkitu)",
         "13": "Erabili Composite:GPSDateTime etiketa UTC ordu-eremuan (ezin izan da benetako ordu-eremua aurkitu)",
-        "14": "Denbora-zigilua erabiltzaileak ezarria",
+        "14": "Erabiltzaileak ezarritako denbora-zigilua",
         "15": "Tokiko ordua EXIF:DateTime EXIF etiketatik aterata",
         "report_tz": "Aldatu {{rule}} araura",
         "predefined_regexp": "Erabili aldez-aurretik ezarritako adierazpena: {{rule}}",
@@ -70,7 +81,7 @@
         "dutch": "Nederlandera",
         "updateaccountinformation": "Eguneratu profilaren ezarpenak",
         "cancel": "Utzi",
-        "scandirectory": "Aztertu direktorioa",
+        "scandirectory": "Arakatu direktorioa",
         "change": "Aldatu",
         "nextcloudheader": "Nextcloud",
         "credentialspopup": "Erabili programaren pasahitza",
@@ -92,14 +103,14 @@
         "small": "Txikia",
         "library": "Liburutegia",
         "photos": "Argazkiak",
-        "statusscanphotostrue": "Argazkiak aztertzen (filesystem)",
-        "statusscanphotosfalse": "Aztertu argazkiak (filesystem)",
-        "scannextcloudphotos": "Aztertu argazkiak (Nextcloud)",
+        "statusscanphotostrue": "Argazkiak aztertzen",
+        "statusscanphotosfalse": "Aztertu",
+        "scannextcloudphotos": "Aztertu",
         "nextcloudscandirectory": "Arakatuko den Nextcloud direktorioa",
-        "statusrescanphotostrue": "Argazki guztiak berraztertzen (filesystem)",
-        "statusrescanphotosfalse": "Berraztertu argazki guztiak (filesystem)",
+        "statusrescanphotostrue": "Berraztertzen",
+        "statusrescanphotosfalse": "Berraztertu",
         "missingphotosbutton": "Kendu falta diren argazkiak",
-        "missingphotosdescription": "Azterketa bakoitzean LibrePhotosek fitxategiak lehengo tokian dauden edo mugitu diren egiaztatuko du. Faltan badaude, marka baten bidez jakinaraziko da.",
+        "missingphotosdescription": "Azterketa bakoitzean LibrePhotosek fitxategiak lehengo tokian dauden edo mugitu diren egiaztatuko du. Falta badira, marka baten bidez jakinaraziko da.",
         "faces": "Aurpegiak",
         "eventsalbums": "Momentuen albumak",
         "eventalbumsgenerate": "Sortu momentuen albumak",
@@ -130,7 +141,7 @@
         "experimentaloptions": "Aukera esperimentalak",
         "transcodevideo": "Beti transkodetu bideoak",
         "on": "Piztuta",
-        "configdatetime": " Ezarri data aztertzeko arauak",
+        "configdatetime": "Ezarri data aztertzeko arauak",
         "off": "Itzalita",
         "experimentalupdate": "Eguneratu",
         "avatar": "Avatar publikoa",
@@ -157,7 +168,7 @@
         "facessmall": "aurpegiak",
         "people": "Jendea",
         "labeled": "Etiketatuak",
-        "rescanfaces": "Berraztertu aurpegiak",
+        "rescanfaces": "Berraztertu",
         "semanticsearchheader": "Bilaketa semantikoaren gehienezko emaitzak",
         "favorite": "Gogokoen aukerak",
         "semanticsearchupdate": "Eguneratu",
@@ -175,8 +186,8 @@
         },
         "portuguese": "Portugalera",
         "togglecolorscheme": "Aldatu koloreak",
-        "inferredfacesconfidence": "Ondorioztatutako aurpegien konfidantza",
-        "inferredfacesconfidencehelp": "Sartu 0 eta bat arteko konfidantza maila bat. Albumek pertsona bat erakus dezaten ondorioztatutako aurpegien konfidantza balio hau baino altuago denean agertuko da.",
+        "inferredfacesconfidence": "Ondorioztatutako aurpegien konfiantza",
+        "inferredfacesconfidencehelp": "Sartu 0 eta bat arteko konfiantza maila bat. Albumek pertsona bat erakuts dezaten ondorioztatutako aurpegien konfiantza balio hau baino altuago denean agertuko da.",
         "public_sharing": "Partekatu publikoki",
         "add_rule": "Gehitu araua",
         "finnish": "Finlandiera",
@@ -223,8 +234,15 @@
         },
         "min_cluster_size": "Multzoaren gutxieneko neurria",
         "min_cluster_size_help": "Multzoak nola sortzen diren aldatzen du. Zenbaki txikiago bat ezarriz gero multzo gehiago sortuko dira.",
-        "unknown_faces_confidence": "Confidence when Matching Unknown - Other Faces",
-        "cluster_selection_epsilon": "Epsilon multzo-hautatzailea"
+        "unknown_faces_confidence": "Konfiantza Ezezaguna - Beste aurpegiak identifikatzerakoan",
+        "cluster_selection_epsilon": "Epsilon multzo-hautatzailea",
+        "hindi": "Hindia",
+        "llm": "Hizkuntza Eredu Handien ezarpenak",
+        "enablellm": "Gaitu Hizkuntza Eredu Handiak irudi-testuetarako",
+        "addperson": "Gehitu pertsonak irudi-testuetara",
+        "addlocation": "Gehitu tokiak irudi-testuetara",
+        "unknown_faces_confidence_help": "Sartu 0 eta bat arteko konfiantza maila bat. 'Ezezaguna - Besteak' albumeko aurpegiak beste pertsona batzuekin identifikatuko dira konfiantza balio hau baino altuago denean. '0'k ezaugarria ezgaituta dagoela esan nahi du.",
+        "min_samples_help": "Klusterrak zenbaterainoko kontserbadore diren aldatzen du. Balore txikiagoek kontserbadore-maila txikiagoa esan nahi dute."
     },
     "topmenu": {
         "available": "Argazki gehiago aztertzen has zaitezke, aurpegiak etiketatzen, momentuen albumak automatikoki sortzen, edo automatikoki sortutako albumen tituluak birsortzen.",
@@ -276,7 +294,8 @@
         "sharing": "Partekatzen",
         "facecluster": "Aurpegi-pilaketak",
         "datavizsmall": "Datuak",
-        "sharedwithyou": "Zurekin partekatutakoak"
+        "sharedwithyou": "Zurekin partekatutakoak",
+        "videos": "Bideoak"
     },
     "selectionbar": {
         "toggle": "Irauli aukeraketa modua",
@@ -334,12 +353,13 @@
         "notimestamp": "Data-zigilurik ez duten argazkiak",
         "hidden": "Ezkutatutako argazkiak",
         "deleted": "Zakarrontzia",
-        "favorite": "Gogoko argazkiak"
+        "favorite": "Gogoko argazkiak",
+        "videos": "Bideoak"
     },
     "login": {
         "name": "LibrePhotos",
         "errorbackend": "Ez dago konexiorik zerbitzariarekin; saia zaitez minutu batzuk geroago.",
-        "erroremail": "Idatzi benetako ePosta helbide bat.",
+        "erroremail": "Sartu baliozko ePosta helbidea.",
         "signup": "Eman izena",
         "errorpassword": "Pasahitza ezin da hutsik utzi!",
         "errorusername": "Erabiltzaile-izena ezin da hutsik utzi!",
@@ -378,7 +398,8 @@
         "workerlogs": "Prozesuen historia",
         "removeexplanation": "Ez du prozesua geldiaraziko, datubasetik sarrera kenduko baino. Prozesuak kale egin duela dakizunean bakarrik erabili, historia etab. ikuskatuz.",
         "running": "exekutatzen",
-        "itemsadded": "Aktiboa(k) gehituta"
+        "itemsadded": "Aktiboa(k) gehituta",
+        "waiting": "zain"
     },
     "adminarea": {
         "joined": "Bat egin zuen",
@@ -390,7 +411,7 @@
         "minimumconfidence": "Konfiantza minimoa",
         "notset": "Ezarri gabe",
         "users": "Erabiltzaileak",
-        "scandirectory": "Aztertu direktorioa",
+        "scandirectory": "Arakatu direktorioa",
         "cannotbeundone": "Ekintza hau ezin da desegin.",
         "admintools": "Administrari tresnak",
         "deleteallautoalbums": "Ezabatu automatikoki sortutako album guztiak",
@@ -398,7 +419,9 @@
         "addnewuser": "Gehitu erabiltzaile berria",
         "titledeleteuser": "Ezabatu erabiltzailea",
         "deleteuserconfirmexplanation": "Hurrengo erabiltzailea ezabatuko duzu: {{username}}. Honek erlazionatutako informazio guztia ezabatuko du.",
-        "delete": "Borratu"
+        "delete": "Borratu",
+        "download": "Jaitsi",
+        "downloadserverstats": "Jaitsi zerbitzariaren estatistikak"
     },
     "modalscandirectoryedit": {
         "header": "Ezarri erabiltzailearentzat arakatzeko direktorioa",
@@ -442,7 +465,7 @@
         "explanationtraining": "Identifikatu antzeko aurpegiak eta saiatu bat datozenak aurkitzen",
         "notthisperson": "Eraman aurpegiak 'Ezezagunak - Besteak' taldera",
         "sortby": "Taldekatu honen arabera",
-        "sortbyconfidence": "Konfidantza",
+        "sortbyconfidence": "Konfiantza",
         "sortbydate": "Data",
         "personscounter_one": "Pertsona {{count}}",
         "personscounter_other": "{{count}} pertsona",
@@ -554,7 +577,10 @@
         "deleteuser": "{{username}} ezabatu da",
         "removefacestoperson": "{{numberOfFaces}} aurpegia(k) \"Ezezaguna - Bestelakoa\" aukerara eraman dira",
         "savecaptions": "Irudiaren testua eguneratu da",
-        "captionupdate": "Eguneratu testua"
+        "captionupdate": "Eguneratu testua",
+        "downloadstart": "Jaisten hasi da",
+        "downloaderror": "Errorea jaitsieran",
+        "downloadcomplete": "Fitxategiak arazorik gabe jaitsi dira"
     },
     "nosocialgraph": "Ez dago jendearen grafikorik",
     "fetchingsocialgraph": "Jendearen grafikoa eskuratzen…",
@@ -565,10 +591,10 @@
     "dataviz": "Datuen bistaratzea",
     "timeline": "Denbora-lerroa",
     "modalnextcloud": {
-        "currentdirectory": "Uneko Nextcloud-eko azterketa-direktorioa",
+        "currentdirectory": "Uneko Nextcloud-eko araketa-direktorioa",
         "choosedirectory": "Aukeratu hauetako direktorio bat",
         "notset": "ezarri gabe",
-        "setdirectory": "Ezarri Nextcloud-eko azterketa-direktorioa",
+        "setdirectory": "Ezarri Nextclouden arakatzeko direktorioa",
         "update": "Eguneratu",
         "cancel": "Utzi",
         "browse": "Arakatu"
@@ -647,5 +673,19 @@
     "locationstimeline": {
         "fromto": "{{location}} {{start}} - tik {{end}}- raino"
     },
-    "docs": "Dokumentazioa"
+    "docs": "Dokumentazioa",
+    "deletealbumexplanation": "Ekintza honek betiko ezabatuko du albuma. Ekintza hau ezin da desegin.",
+    "Delete Missing Photos": "Ezabatu falta diren argazkiak",
+    "Scan Photos": "Aztertu argazkiak",
+    "Generate Event Albums": "Sortu momentuen albumak",
+    "Find Similar Faces": "Aurkitu antzeko aurpegiak",
+    "version": "Bertsioa: {{version}}",
+    "Regenerate Event Titles": "Birsortu momentuen tituluak",
+    "Train Faces": "Trebatu aurpegiak",
+    "Scan Faces": "Aztertu aurpegiak",
+    "Calculate Clip Embeddings": "Kalkulatu sekuentzien txertaketa",
+    "Download Selected Photos": "Jaitsi hautatutako argazkiak",
+    "Download Models": "Jaitsi ereduak",
+    "storage": "Biltegiratzea",
+    "storagetooltip": "{{totalstorage}}(e)tik {{usedstorage}} erabili d(ir)a"
 }
