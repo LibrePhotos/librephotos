@@ -86,7 +86,7 @@ const SearchBar = ({ showMenu = false }) => {
             py={2}
             px={2}
             InputLeftElement={
-              <Icon size="md" ml={2} as={<Ionicons name="ios-search" />} />
+              <Icon size="md" ml={2} as={<Ionicons name="search" />} />
             }
           />
         </Center>
