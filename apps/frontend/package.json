@@ -108,7 +108,7 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "7.24.7",
+    "@babel/eslint-parser": "7.24.8",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.7.0",
     "@trivago/prettier-plugin-sort-imports": "4.3.0",
