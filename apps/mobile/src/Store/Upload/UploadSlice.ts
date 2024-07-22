@@ -181,7 +181,6 @@ const uploadChunk = async (
   const result = await Server.post('upload/', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
-      'X-CSRFToken': cookies.csrftoken.value,
       'Content-Range': `bytes ${offset}-${
         offset + currentChunkSize - 1
       }/${file_size}`,
