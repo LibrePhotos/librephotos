@@ -12,7 +12,7 @@ import {
   FormControl,
   Text,
 } from 'native-base'
-import Ionicons from 'react-native-vector-icons/Ionicons'
+import FeatherIcon from 'react-native-vector-icons/Feather'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/Theme'
 import { Brand } from '@/Components'
@@ -134,14 +134,14 @@ const IndexLoginContainer = () => {
                         <Spinner color="blue.500" />
                       ) : isValidServer ? (
                         <Icon
-                          as={<Ionicons name="checkmark" />}
+                          as={<FeatherIcon name="check" />}
                           size="md"
                           m={2}
                           color="green"
                         />
                       ) : (
                         <Icon
-                          as={<Ionicons name="alert-circle-outline" />}
+                          as={<FeatherIcon name="alert-triangle" />}
                           size="md"
                           m={2}
                           color="red"

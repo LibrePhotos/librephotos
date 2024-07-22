@@ -57,7 +57,7 @@ const AlbumContainer = () => {
           }
         >
           <PreviewTile
-            icon="people"
+            icon="users"
             heading="People"
             subHeading={`about ${albumPeople?.length} people`}
             albums={albumPeopleMapper(albumPeople)}
@@ -72,7 +72,7 @@ const AlbumContainer = () => {
           albums={albumPeopleMapper(albumPeople)}
         /> */}
           <PreviewTile
-            icon="library"
+            icon="book"
             heading="Things"
             subHeading={`about ${albumThings?.length} things`}
             albums={albumThingsMapper(albumThings)}

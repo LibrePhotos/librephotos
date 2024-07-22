@@ -2,6 +2,8 @@ import axios from 'axios'
 
 export default async serverName => {
   // TODO: Create a dedicated endpoint to test connection
+  console.log('Checking server...')
+  console.log('Server:', serverName)
   const server = serverName
   const res = await axios
     .post(

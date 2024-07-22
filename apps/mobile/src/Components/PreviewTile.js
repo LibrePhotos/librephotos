@@ -2,7 +2,7 @@ import React from 'react'
 import { FlatList, View, Pressable } from 'react-native'
 import { useSelector } from 'react-redux'
 import { Box, Image, Text, HStack } from 'native-base'
-import Ionicons from 'react-native-vector-icons/Ionicons'
+import Feather from 'react-native-vector-icons/Feather'
 import { useTheme } from '@/Theme'
 import { useNavigation } from '@react-navigation/native'
 
@@ -78,11 +78,7 @@ const PreviewTile = ({
         <HStack style={[Gutters.regularLPadding]}>
           {icon && (
             <View style={[Layout.center]}>
-              <Ionicons
-                name={icon + iconSuffix}
-                size={35}
-                color={Colors.text}
-              />
+              <Feather name={icon + iconSuffix} size={35} color={Colors.text} />
             </View>
           )}
           <View
@@ -100,7 +96,7 @@ const PreviewTile = ({
             </Text>
           </View>
           <View style={[Layout.center]}>
-            <Ionicons name={'chevron-forward'} size={35} color={Colors.text} />
+            <Feather name={'chevron-right'} size={35} color={Colors.text} />
           </View>
         </HStack>
       </Pressable>

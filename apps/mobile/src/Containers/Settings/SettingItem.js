@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, HStack, VStack, Switch } from 'native-base'
 import { useTheme } from '@/Theme'
-import Ionicons from 'react-native-vector-icons/Ionicons'
+import Feather from 'react-native-vector-icons/Feather'
 
 export const SettingItem = ({
   title,
@@ -19,7 +19,7 @@ export const SettingItem = ({
       <HStack space={3}>
         {icon && (
           <View flex={0.15} style={[Gutters.tinyHMargin, Layout.center]}>
-            <Ionicons name={icon} size={35} color={Colors.text} />
+            <Feather name={icon} size={35} color={Colors.text} />
           </View>
         )}
 

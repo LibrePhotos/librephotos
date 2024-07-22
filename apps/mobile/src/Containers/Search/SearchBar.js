@@ -10,7 +10,7 @@ import {
   StatusBar,
   Center,
 } from 'native-base'
-import Ionicons from 'react-native-vector-icons/Ionicons'
+import Feather from 'react-native-vector-icons/Feather'
 import { useTheme } from '@/Theme'
 import FindPhotos from '../../Store/Search/FindPhotos'
 import UpdateQuery from '../../Store/Search/UpdateQuery'
@@ -60,7 +60,7 @@ const SearchBar = ({ showMenu = false }) => {
               icon={
                 <Icon
                   size="sm"
-                  as={<Ionicons name="arrow-back" />}
+                  as={<Feather name="arrow-back" />}
                   color={Colors.text}
                 />
               }
@@ -86,7 +86,7 @@ const SearchBar = ({ showMenu = false }) => {
             py={2}
             px={2}
             InputLeftElement={
-              <Icon size="md" ml={2} as={<Ionicons name="search" />} />
+              <Icon size="md" ml={2} as={<Feather name="search" />} />
             }
           />
         </Center>

@@ -1,7 +1,7 @@
 import React from 'react'
 import { View } from 'react-native'
 import { Icon, Text } from 'native-base'
-import Ionicon from 'react-native-vector-icons/Ionicons'
+import FeatherIcon from 'react-native-vector-icons/Feather'
 import { useTheme } from '@/Theme'
 
 const StartSearch = ({ height, width, mode }) => {
@@ -9,11 +9,7 @@ const StartSearch = ({ height, width, mode }) => {
 
   return (
     <View style={[Layout.fullSize, Layout.center, Common.backgroundDefault]}>
-      <Icon
-        size="3xl"
-        as={<Ionicon name="flashlight-outline" />}
-        color={Colors.text}
-      />
+      <Icon size="3xl" as={<FeatherIcon name="search" />} color={Colors.text} />
       <Text
         color={Colors.textMuted}
         textAlign={'center'}

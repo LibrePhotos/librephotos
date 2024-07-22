@@ -129,7 +129,7 @@ export const loadLocalImages = createAsyncThunk(
     // load images from CameraRoll
     while (page_info.has_next_page && !page_info.no_valid_photos) {
       page_info = await CameraRoll.getPhotos({
-        first: 100,
+        first: 1000,
         after: page_info.end_cursor,
         // only load images that are newer than the last fetch
         // To-Do: This broken somehow

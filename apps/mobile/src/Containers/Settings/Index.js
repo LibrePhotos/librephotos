@@ -93,7 +93,7 @@ const SettingsContainer = () => {
         <View style={[Layout.fill]}>
           <SettingSubHeader subHeading={'App'} />
           <VStack divider={<Divider bg={Colors.textMuted} />}>
-            <OptionButton title="Account" subTitle={user?.name} icon="person" />
+            <OptionButton title="Account" subTitle={user?.name} icon="user" />
             <OptionButton title="Server" subTitle={baseurl} />
             <OptionMultiSelect
               title="Dark Mode"
