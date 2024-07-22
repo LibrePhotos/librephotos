@@ -6,7 +6,6 @@ import { api } from '../api'
 import { FileSystem } from 'react-native-file-access'
 import ReactNativeBlobUtil from 'react-native-blob-util'
 import Server from '../../Services'
-import CookieManager from '@react-native-cookies/cookies'
 import { localImageSynced } from '../LocalImages/LocalImagesSlice'
 
 /**
@@ -161,8 +160,6 @@ const uploadChunk = async (
   if (uploadId) {
     formData.append('upload_id', uploadId)
   }
-  // To-Do: cookies should be in server file
-  const cookies = await CookieManager.get(baseurl)
 
   formData.append('file', {
     uri: 'file://' + chunk._ref,
