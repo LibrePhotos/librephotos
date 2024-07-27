@@ -53,20 +53,3 @@ docker-compose down
 docker-compose pull
 docker-compose up -d
 ```
-
-## Docker
-
-Overview of the folders that can be mounted as volumes:
-
-- `/var/lib/librephotos/photos/` your actual photos
-- `/var/lib/librephotos/data/protected_media/` thumbnails
-- `/var/log/librephotos/` logs
-- `/var/lib/postgresql/data/` database
-
-Replace the first part that is in brackets with the actual location of the folder:
-
-```sh
-sudo docker run -v <photos>:/var/lib/librephotos/photos/ -v <thumbnails>:/var/lib/librephotos/data/protected_media -v <logs>:/var/log/librephotos/ -v <db>:/var/lib/postgresql/data -p 3000:80 -d reallibrephotos/singleton
-```
-
-If you run into any permission issue, add `-e FIXPERMISSIONS=true` or change the permission to allow read/write/execute your photo folder to other users.

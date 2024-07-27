@@ -4,10 +4,6 @@ excerpt: "How to install LibrePhotos on Unraid using Docker Compose."
 sidebar_position: 3
 ---
 
-## Community App
-
-We are now also a [community app](https://unraid.net/community/apps?q=LibrePhotos#r) based on the singleton image.
-
 ## Docker Compose
 
 You have to download docker-compose. You can add the following to your /boot/config/go file to make sure it's always available:
