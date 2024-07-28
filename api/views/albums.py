@@ -342,6 +342,10 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                     )
                 )
             )
+        if self.request.query_params.get("last_modified"):
+            photoFilter.append(
+                Q(last_modified__gte=self.request.query_params.get("last_modified"))
+            )
 
         albumDate = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
 
@@ -474,6 +478,14 @@ class AlbumDateListViewSet(ListViewSet):
                 Q(
                     photos__faces__person_label_probability__gte=F(
                         "photos__faces__photo__owner__confidence_person"
+                    )
+                )
+            )
+        if self.request.query_params.get("last_modified"):
+            filter.append(
+                Q(
+                    photos__last_modified__gte=self.request.query_params.get(
+                        "last_modified"
                     )
                 )
             )
