@@ -410,6 +410,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             OpenApiParameter("video", OpenApiTypes.BOOL),
             OpenApiParameter("username", OpenApiTypes.STR),
             OpenApiParameter("person", OpenApiTypes.INT),
+            OpenApiParameter("last_modified", OpenApiTypes.DATE),
         ],
         description="Returns the actual images, for a given day in chunks of 100 images.",
     )
@@ -515,6 +516,7 @@ class AlbumDateListViewSet(ListViewSet):
             OpenApiParameter("video", OpenApiTypes.BOOL),
             OpenApiParameter("username", OpenApiTypes.STR),
             OpenApiParameter("person", OpenApiTypes.INT),
+            OpenApiParameter("last_modified", OpenApiTypes.DATE),
         ],
         description="Gives you a list of days with the number of elements. This is not paginated and can be large.",
     )
