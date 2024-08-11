@@ -1,7 +1,7 @@
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import sessionStorage from "redux-persist/es/storage/session";
+import { Cookies } from "react-cookie";
 
 import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
 import type {
@@ -62,12 +62,14 @@ export enum Endpoints {
 const baseQuery = fetchBaseQuery({
   baseUrl: "/api/",
   prepareHeaders: async (headers, { endpoint }) => {
-    const accessToken = await sessionStorage.getItem("access");
-    if (accessToken !== null && endpoint !== "refresh") {
+    const cookies = new Cookies();
+    const accessToken = cookies.get("access");
+    if (accessToken && endpoint !== "refresh") {
       headers.set("Authorization", `Bearer ${accessToken}`);
     }
     return headers;
   },
+  credentials: "include",
 });
 
 export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
@@ -78,8 +80,9 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
+    const cookies = new Cookies();
     // try to get a new token
-    const refreshToken = await sessionStorage.getItem("refresh");
+    const refreshToken = cookies.get("refresh");
     if (refreshToken) {
       const refreshResult = (await baseQuery(
         { url: "/auth/token/refresh/", method: "POST", body: { refresh: refreshToken } },
@@ -87,7 +90,7 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
         extraOptions
       )) as { data: { access: string } };
       if (refreshResult.data) {
-        sessionStorage.setItem("access", refreshResult.data.access);
+        cookies.set("access", refreshResult.data.access);
         // retry the initial query
         result = await baseQuery(args, api, extraOptions);
       }
@@ -135,8 +138,9 @@ export const api = createApi({
       }),
       transformResponse: (response: IApiLoginResponse) => {
         const data = ApiLoginResponseSchema.parse(response);
-        sessionStorage.setItem("access", data.access);
-        sessionStorage.setItem("refresh", data.refresh);
+        const cookies = new Cookies();
+        cookies.set("access", data.access);
+        cookies.set("refresh", data.refresh);
         return data;
       },
     }),

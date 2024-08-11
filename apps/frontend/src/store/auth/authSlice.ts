@@ -1,18 +1,23 @@
 import { createSlice } from "@reduxjs/toolkit";
 import jwtDecode from "jwt-decode";
 import { Cookies } from "react-cookie";
-import { persistReducer } from "redux-persist";
-import { createFilter } from "redux-persist-transform-filter";
-import storage from "redux-persist/es/storage";
+import { push } from "redux-first-history";
 
 // eslint-disable-next-line import/no-cycle
 import { api } from "../../api_client/api";
 import { AuthErrorSchema } from "./auth.zod";
 import type { IAuthState, IToken } from "./auth.zod";
 
+const cookies = new Cookies();
+
 const initialState: IAuthState = {
-  access: null,
-  refresh: null,
+  access: cookies.get("access") ? { ...jwtDecode<IToken>(cookies.get("access")), token: cookies.get("access") } : null,
+  refresh: cookies.get("access")
+    ? {
+        ...jwtDecode<IToken>(cookies.get("refresh")),
+        token: cookies.get("refresh"),
+      }
+    : null,
   error: null,
 };
 
@@ -28,9 +33,11 @@ const authSlice = createSlice({
       },
     }),
     logout: () => {
-      const cookies = new Cookies();
+      cookies.remove("access");
+      cookies.remove("refresh");
+      cookies.remove("csrftoken");
       cookies.remove("jwt");
-      sessionStorage.clear();
+      push("/login");
       return initialState;
     },
     clearError: state => ({ ...state, error: null }),
@@ -61,17 +68,7 @@ const authSlice = createSlice({
   },
 });
 
-const persistedAccessToken = createFilter("access");
-const persistedRefreshToken = createFilter("refresh");
-export const authReducer = persistReducer(
-  {
-    key: "polls",
-    storage,
-    transforms: [persistedAccessToken, persistedRefreshToken],
-    whitelist: ["access", "refresh"],
-  },
-  authSlice.reducer
-);
+export const authReducer = authSlice.reducer;
 
 export const { actions: authActions } = authSlice;
 export const { logout, tokenReceived, clearError } = authActions;
