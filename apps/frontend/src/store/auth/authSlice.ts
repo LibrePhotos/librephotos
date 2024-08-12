@@ -12,7 +12,7 @@ const cookies = new Cookies();
 
 const initialState: IAuthState = {
   access: cookies.get("access") ? { ...jwtDecode<IToken>(cookies.get("access")), token: cookies.get("access") } : null,
-  refresh: cookies.get("access")
+  refresh: cookies.get("refresh")
     ? {
         ...jwtDecode<IToken>(cookies.get("refresh")),
         token: cookies.get("refresh"),

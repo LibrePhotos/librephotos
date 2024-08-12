@@ -90,7 +90,7 @@ export const deletePhotosApi = api.injectEndpoints({
     [Endpoints.deleteMissingPhotos]: builder.mutation<DeleteMissingPhotosResponse, void>({
       query: () => ({
         url: "deletemissingphotos",
-        methos: "POST",
+        method: "POST",
         body: {},
       }),
       async onQueryStarted(_, { queryFulfilled, dispatch }) {
