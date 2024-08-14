@@ -39,7 +39,9 @@ class VisiblePhotoManager(models.Manager):
         return (
             super()
             .get_queryset()
-            .filter(Q(hidden=False) & Q(aspect_ratio__isnull=False) & Q(deleted=False))
+            .filter(
+                Q(hidden=False) & Q(aspect_ratio__isnull=False) & Q(in_trashcan=False)
+            )
         )
 
 
@@ -77,7 +79,7 @@ class Photo(models.Model):
 
     timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
     rating = models.IntegerField(default=0, db_index=True)
-    deleted = models.BooleanField(default=False, db_index=True)
+    in_trashcan = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     video_length = models.TextField(blank=True, null=True)

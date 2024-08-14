@@ -64,7 +64,7 @@ class Person(models.Model):
         )
         self.face_count = self.faces.filter(
             photo__hidden=False,
-            photo__deleted=False,
+            photo__in_trashcan=False,
             photo__owner=self.cluster_owner.id,
             person_label_probability__gte=confidence_person,
         ).count()

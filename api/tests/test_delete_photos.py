@@ -30,7 +30,9 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(0, len(data["not_updated"]))
 
     def test_untag_my_photos_for_removal(self):
-        photos1 = create_test_photos(number_of_photos=1, owner=self.user1, deleted=True)
+        photos1 = create_test_photos(
+            number_of_photos=1, owner=self.user1, in_trashcan=True
+        )
         photos2 = create_test_photos(number_of_photos=2, owner=self.user1)
         image_hashes = [p.image_hash for p in photos1 + photos2]
 
@@ -81,7 +83,7 @@ class DeletePhotosTest(TestCase):
 
     def test_delete_tagged_photos_for_removal(self):
         photos_to_delete = create_test_photos(
-            number_of_photos=2, owner=self.user1, deleted=True
+            number_of_photos=2, owner=self.user1, in_trashcan=True
         )
         photos_to_not_delete = create_test_photos(number_of_photos=3, owner=self.user1)
         image_hashes = [p.image_hash for p in photos_to_delete + photos_to_not_delete]
@@ -100,7 +102,7 @@ class DeletePhotosTest(TestCase):
 
     def test_delete_tagged_photos_of_other_user_for_removal(self):
         photos_to_delete = create_test_photos(
-            number_of_photos=5, owner=self.user2, deleted=True
+            number_of_photos=5, owner=self.user2, in_trashcan=True
         )
         image_hashes = [p.image_hash for p in photos_to_delete]
 

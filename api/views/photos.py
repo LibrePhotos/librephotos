@@ -115,8 +115,8 @@ class SetPhotosDeleted(APIView):
                     )
                 )
                 continue
-            if photo.owner == request.user and photo.deleted != val_hidden:
-                photo.deleted = val_hidden
+            if photo.owner == request.user and photo.in_trashcan != val_hidden:
+                photo.in_trashcan = val_hidden
                 photo.save()
                 updated.append(PhotoSerializer(photo).data)
             else:
@@ -463,7 +463,7 @@ class DeletePhotos(APIView):
         deleted = []
         not_deleted = []
         for photo in photos.values():
-            if photo.owner == request.user and photo.deleted:
+            if photo.owner == request.user and photo.in_trashcan:
                 deleted.append(photo.image_hash)
                 photo.manual_delete()
             else:

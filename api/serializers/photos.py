@@ -104,6 +104,8 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
 
 
 class PhotoEditSerializer(serializers.ModelSerializer):
+    deleted = serializers.SerializerMethodField()
+
     class Meta:
         model = Photo
         fields = (
@@ -115,6 +117,9 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             "exif_timestamp",
             "timestamp",
         )
+
+    def get_deleted(self, obj) -> bool:
+        return obj.in_trashcan
 
     def update(self, instance, validated_data):
         # photo can only update the following
@@ -165,6 +170,7 @@ class PhotoSerializer(serializers.ModelSerializer):
     image_path = serializers.SerializerMethodField()
     owner = SimpleUserSerializer(many=False, read_only=True)
     embedded_media = serializers.SerializerMethodField()
+    deleted = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -205,6 +211,9 @@ class PhotoSerializer(serializers.ModelSerializer):
             "subjectDistance",
             "embedded_media",
         )
+
+    def get_deleted(self, obj) -> bool:
+        return obj.in_trashcan
 
     def get_similar_photos(self, obj) -> list:
         res = search_similar_image(obj.owner, obj, threshold=90)
