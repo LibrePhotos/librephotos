@@ -38,7 +38,7 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                             Face.objects.filter(
                                 person=OuterRef("pk"),
                                 photo__hidden=False,
-                                photo__deleted=False,
+                                photo__in_trashcan=False,
                                 photo__owner=self.request.user,
                             )
                             .order_by("id")
@@ -48,7 +48,7 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                             Photo.objects.filter(
                                 faces__person=OuterRef("pk"),
                                 hidden=False,
-                                deleted=False,
+                                in_trashcan=False,
                                 owner=self.request.user,
                             )
                             .order_by("added_on")
@@ -58,7 +58,7 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                             Photo.objects.filter(
                                 faces__person=OuterRef("pk"),
                                 hidden=False,
-                                deleted=False,
+                                in_trashcan=False,
                                 owner=self.request.user,
                             )
                             .order_by("added_on")

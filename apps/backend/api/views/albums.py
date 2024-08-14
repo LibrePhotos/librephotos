@@ -327,9 +327,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             photoFilter.append(Q(video=False))
 
         if self.request.query_params.get("deleted"):
-            photoFilter.append(Q(deleted=True))
+            photoFilter.append(Q(in_trashcan=True))
         else:
-            photoFilter.append(Q(deleted=False))
+            photoFilter.append(Q(in_trashcan=False))
 
         if self.request.query_params.get("person"):
             photoFilter.append(
@@ -446,9 +446,9 @@ class AlbumDateListViewSet(ListViewSet):
             filter.append(Q(photos__hidden=False))
 
         if self.request.query_params.get("deleted"):
-            filter.append(Q(photos__deleted=True))
+            filter.append(Q(photos__in_trashcan=True))
         else:
-            filter.append(Q(photos__deleted=False))
+            filter.append(Q(photos__in_trashcan=False))
 
         if not self.request.user.is_anonymous and not self.request.query_params.get(
             "public"
