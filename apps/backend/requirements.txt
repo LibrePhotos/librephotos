@@ -22,7 +22,7 @@ gunicorn==22.0.0
 hdbscan==0.8.38.post1
 matplotlib==3.9.2
 networkx==3.3
-nltk==3.8.2
+nltk==3.9
 markupsafe==2.1.5
 Pillow==10.4.0
 psycopg==3.2.1
