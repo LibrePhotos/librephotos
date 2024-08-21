@@ -326,8 +326,8 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get("photo"):
             photoFilter.append(Q(video=False))
 
-        if self.request.query_params.get("deleted"):
-            photoFilter.append(Q(in_trashcan=True))
+        if self.request.query_params.get("in_trashcan"):
+            photoFilter.append(Q(in_trashcan=True) & Q(removed=False))
         else:
             photoFilter.append(Q(in_trashcan=False))
 
@@ -343,6 +343,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 )
             )
         if self.request.query_params.get("last_modified"):
+            photoFilter = []
             photoFilter.append(
                 Q(last_modified__gte=self.request.query_params.get("last_modified"))
             )
@@ -405,7 +406,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         parameters=[
             OpenApiParameter("favorite", OpenApiTypes.BOOL),
             OpenApiParameter("public", OpenApiTypes.BOOL),
-            OpenApiParameter("deleted", OpenApiTypes.BOOL),
+            OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
             OpenApiParameter("hidden", OpenApiTypes.BOOL),
             OpenApiParameter("video", OpenApiTypes.BOOL),
             OpenApiParameter("username", OpenApiTypes.STR),
@@ -445,8 +446,8 @@ class AlbumDateListViewSet(ListViewSet):
         else:
             filter.append(Q(photos__hidden=False))
 
-        if self.request.query_params.get("deleted"):
-            filter.append(Q(photos__in_trashcan=True))
+        if self.request.query_params.get("in_trashcan"):
+            filter.append(Q(photos__in_trashcan=True) & Q(photos__removed=False))
         else:
             filter.append(Q(photos__in_trashcan=False))
 
@@ -483,6 +484,7 @@ class AlbumDateListViewSet(ListViewSet):
                 )
             )
         if self.request.query_params.get("last_modified"):
+            filter = []
             filter.append(
                 Q(
                     photos__last_modified__gte=self.request.query_params.get(
@@ -511,7 +513,7 @@ class AlbumDateListViewSet(ListViewSet):
         parameters=[
             OpenApiParameter("favorite", OpenApiTypes.BOOL),
             OpenApiParameter("public", OpenApiTypes.BOOL),
-            OpenApiParameter("deleted", OpenApiTypes.BOOL),
+            OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
             OpenApiParameter("hidden", OpenApiTypes.BOOL),
             OpenApiParameter("video", OpenApiTypes.BOOL),
             OpenApiParameter("username", OpenApiTypes.STR),

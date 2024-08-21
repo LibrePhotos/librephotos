@@ -79,7 +79,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     def get_type(self, obj) -> str:
         if obj.video:
             return "video"
-        if obj.main_file.embedded_media.count() > 0:
+        if obj.main_file and obj.main_file.embedded_media.count() > 0:
             return "motion_photo"
         return "image"
 
@@ -104,22 +104,18 @@ class GroupedPhotosSerializer(serializers.ModelSerializer):
 
 
 class PhotoEditSerializer(serializers.ModelSerializer):
-    deleted = serializers.SerializerMethodField()
-
     class Meta:
         model = Photo
         fields = (
             "image_hash",
             "hidden",
             "rating",
-            "deleted",
+            "in_trashcan",
+            "removed",
             "video",
             "exif_timestamp",
             "timestamp",
         )
-
-    def get_deleted(self, obj) -> bool:
-        return obj.in_trashcan
 
     def update(self, instance, validated_data):
         # photo can only update the following
@@ -170,7 +166,6 @@ class PhotoSerializer(serializers.ModelSerializer):
     image_path = serializers.SerializerMethodField()
     owner = SimpleUserSerializer(many=False, read_only=True)
     embedded_media = serializers.SerializerMethodField()
-    deleted = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -192,7 +187,8 @@ class PhotoSerializer(serializers.ModelSerializer):
             "rating",
             "hidden",
             "public",
-            "deleted",
+            "removed",
+            "in_trashcan",
             "shared_to",
             "similar_photos",
             "video",
@@ -211,9 +207,6 @@ class PhotoSerializer(serializers.ModelSerializer):
             "subjectDistance",
             "embedded_media",
         )
-
-    def get_deleted(self, obj) -> bool:
-        return obj.in_trashcan
 
     def get_similar_photos(self, obj) -> list:
         res = search_similar_image(obj.owner, obj, threshold=90)
