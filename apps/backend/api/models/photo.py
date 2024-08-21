@@ -80,6 +80,7 @@ class Photo(models.Model):
     timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
     rating = models.IntegerField(default=0, db_index=True)
     in_trashcan = models.BooleanField(default=False, db_index=True)
+    removed = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
     video_length = models.TextField(blank=True, null=True)
@@ -840,8 +841,11 @@ class Photo(models.Model):
                 logger.info("Removing photo {}".format(file.path))
                 os.remove(file.path)
                 file.delete()
+            self.files.set([])
+            self.main_file = None
+        self.removed = True
         # To-Do: Handle wrong file permissions
-        return self.delete()
+        return self.save()
 
     def delete_duplicate(self, duplicate_path):
         # To-Do: Handle wrong file permissions

@@ -1,8 +1,12 @@
 import subprocess
 import time
+from datetime import timedelta
 
 import requests
+from django.db.models import Q
+from django.utils import timezone
 
+from api.models import Photo
 from api.util import logger
 
 # Define all the services that can be started, with their respective ports
@@ -96,3 +100,11 @@ def stop_service(service):
     except Exception as e:
         logger.error(f"An error occurred while stopping service '{service}': {e}")
         return False
+
+
+def cleanup_deleted_photos():
+    deleted_photos = Photo.objects.filter(
+        Q(removed=True) & Q(last_modified__gte=timezone.now() - timedelta(days=30))
+    )
+    for photo in deleted_photos:
+        photo.delete()
