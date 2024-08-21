@@ -13,7 +13,7 @@ export enum PhotosetType {
   PHOTOS = "photos",
   HIDDEN = "hidden",
   RECENTLY_ADDED = "recentlyAdded",
-  DELETED = "deleted",
+  IN_TRASHCAN = "in_trashcan",
   SEARCH = "search",
   USER_ALBUM = "userAlbum",
   PERSON = "person",

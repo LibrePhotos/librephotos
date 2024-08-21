@@ -62,7 +62,8 @@ export const PhotoSchema = z.object({
   rating: z.number(),
   hidden: z.boolean(),
   public: z.boolean(),
-  deleted: z.boolean(),
+  in_trashcan: z.boolean(),
+  removed: z.boolean(),
   size: z.number(),
   shared_to: z.number().nullable().array(), // TODO: There are sometimes items in the array with value null. Why?!?
   similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(MediaType) }).array(),

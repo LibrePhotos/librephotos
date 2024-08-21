@@ -13,7 +13,7 @@ export function DeletedPhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
-  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({ photosetType: PhotosetType.DELETED });
+  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({ photosetType: PhotosetType.IN_TRASHCAN });
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -21,7 +21,7 @@ export function DeletedPhotos() {
 
   const [group, setGroup] = useState({} as PhotoGroup);
   useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: PhotosetType.DELETED },
+    { album_date_id: group.id, page: group.page, photosetType: PhotosetType.IN_TRASHCAN },
     { skip: !group.id }
   );
 
