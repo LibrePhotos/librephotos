@@ -344,6 +344,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             )
         if self.request.query_params.get("last_modified"):
             photoFilter = []
+            photoFilter.append(Q(owner=self.request.user))
             photoFilter.append(
                 Q(last_modified__gte=self.request.query_params.get("last_modified"))
             )
@@ -485,6 +486,8 @@ class AlbumDateListViewSet(ListViewSet):
             )
         if self.request.query_params.get("last_modified"):
             filter = []
+            filter.append(Q(owner=self.request.user))
+            filter.append(Q(photos__owner=self.request.user))
             filter.append(
                 Q(
                     photos__last_modified__gte=self.request.query_params.get(
