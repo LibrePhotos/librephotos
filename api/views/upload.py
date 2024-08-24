@@ -6,11 +6,10 @@ from chunked_upload.exceptions import ChunkedUploadError
 from chunked_upload.models import ChunkedUpload
 from chunked_upload.views import ChunkedUploadCompleteView, ChunkedUploadView
 from constance import config as site_config
-from django.utils.text import get_valid_filename
 from django.core.files.base import ContentFile
-from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
+from django.utils.text import get_valid_filename
 from django.views.decorators.csrf import csrf_exempt
 from django_q.tasks import Chain
 from rest_framework import viewsets
@@ -39,16 +38,24 @@ class UploadPhotosChunked(ChunkedUploadView):
 
     def check_permissions(self, request):
         if not site_config.ALLOW_UPLOAD:
-            return HttpResponseForbidden()
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail="Uploading is not allowed",
+            )
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
                 AccessToken(jwt)
             except TokenError:
-                return HttpResponseForbidden()
+                raise ChunkedUploadError(
+                    status=http_status.HTTP_403_FORBIDDEN,
+                    detail="Authentication credentials were invalid",
+                )
         else:
-            return HttpResponseForbidden()
-        # To-Do: make deactivatable
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail="Authentication credentials were not provided",
+            )
         # To-Do: Check if file is allowed type
         user = User.objects.filter(id=request.POST.get("user")).first()
         if not user or not user.is_authenticated:
@@ -74,16 +81,24 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
 
     def check_permissions(self, request):
         if not site_config.ALLOW_UPLOAD:
-            return HttpResponseForbidden()
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail="Uploading is not allowed",
+            )
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
                 AccessToken(jwt)
             except TokenError:
-                return HttpResponseForbidden()
+                raise ChunkedUploadError(
+                    status=http_status.HTTP_403_FORBIDDEN,
+                    detail="Authentication credentials were invalid",
+                )
         else:
-            return HttpResponseForbidden()
-
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail="Authentication credentials were not provided",
+            )
         user = User.objects.filter(id=request.POST.get("user")).first()
         if not user or not user.is_authenticated:
             raise ChunkedUploadError(
