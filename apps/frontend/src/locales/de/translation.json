@@ -196,7 +196,8 @@
         "llm": "Large Language Model Einstellungen",
         "enablellm": "Aktiviere Large Language Model für Beschreibungen",
         "addperson": "Personen zu Beschreibungen hinzufügen",
-        "addlocation": "Orte zu Beschreibungen hinzufügen"
+        "addlocation": "Orte zu Beschreibungen hinzufügen",
+        "cluster_selection_epsilon": "Gruppen Auswahl Schwellenwert"
     },
     "modalnextcloud": {
         "setdirectory": "Setze dein Nextcloud Scan Ordner",
