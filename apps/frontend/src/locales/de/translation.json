@@ -418,7 +418,7 @@
         "map_api_key_header": "Map API-Schlüssel",
         "headerheavyweight": "Schwergewichtige Prozesse",
         "skippatterns": " Durch Kommata getrennte Liste der zu ignorierenden Muster (z. B. '@eaDir,#recycle' für Synology-Geräte)",
-        "map_api_key_description": "Möchten Sie auf einer Karte sehen, wo alle Ihre Fotos aufgenommen wurden (wenn ein Ort in Ihren Fotos gespeichert ist). Holen Sie sich einen API-Schlüssel für die Kartenbox https://account.mapbox.com/auth/signup/",
+        "map_api_key_description": "Holen Sie sich einen API-Schlüssel unter {{url}}",
         "heavyweight": "Anzahl der Worker für Bildverarbeitung kann höher als 1 eingestellt werden, allerdings benötigt jeder zusätzliche Worker 800MB Arbeitsspeicher.",
         "map_api_provider_header": "Kartenanbieter",
         "map_api_provider_description": "Nötig, um Ortsnamen zu GPS Metadaten aus Bildern abzurufen.",
