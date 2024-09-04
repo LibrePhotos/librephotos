@@ -1,3 +1,4 @@
+import { fixupConfigRules } from "@eslint/compat";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import prettier from "eslint-plugin-prettier";
@@ -15,9 +16,9 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ["**/.eslintrc.js", "**/prettier.config.js", "**/proxy.js", "node_modules/*"],
+    ignores: ["**/eslint.config.mjs", "**/prettier.config.cjs", "**/proxy.js", "node_modules/*"],
   },
-  ...compat.extends("airbnb", "airbnb-typescript", "airbnb/hooks", "prettier"),
+  ...fixupConfigRules(compat.extends("airbnb", "airbnb-typescript", "airbnb/hooks", "prettier")),
   {
     plugins: {
       prettier,
@@ -35,12 +36,14 @@ export default [
 
       parserOptions: {
         project: "./tsconfig.eslint.json",
-        tsconfigRootDir: "/home/niaz/librephotos/librephotos-frontend",
+        tsconfigRootDir: __dirname,
       },
     },
 
     rules: {
       "import/prefer-default-export": "off",
+      "import/no-named-as-default": "off",
+      "import/no-named-as-default-member": "off",
       "import/no-cycle": "off",
       "react/jsx-props-no-spreading": "off",
       "react-hooks/exhaustive-deps": "off",
