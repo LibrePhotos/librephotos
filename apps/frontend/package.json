@@ -22,7 +22,7 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "yarn prettier --config ./prettier.config.cjs --write",
-      "yarn eslint --cache --quiet -c ./.eslint.config.mjs"
+      "yarn eslint --cache --quiet -c ./eslint.config.mjs"
     ],
     "*.{json,css,scss,md}": [
       "yarn prettier --config ./prettier.config.cjs  --write"

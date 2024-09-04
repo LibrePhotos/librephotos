@@ -75,7 +75,12 @@ export function SideMenuNarrow(): JSX.Element {
           }
         }}
       >
-        <ActionIcon component="span" className={classes.linkIcon} color={defaultIconColor} variant="transparent">
+        <ActionIcon
+          component="span"
+          className={classes.linkIcon}
+          color={item.color ? item.color : defaultIconColor}
+          variant="light"
+        >
           <item.icon />
         </ActionIcon>
         <span style={{ flexGrow: 2 }}>{item.label}</span>
@@ -103,7 +108,7 @@ export function SideMenuNarrow(): JSX.Element {
                 dispatch(push(subitem.link!));
               };
               const icon = (
-                <ActionIcon component="span" variant="transparent" color={defaultIconColor}>
+                <ActionIcon component="span" variant="light" color={subitem.color ? subitem.color : defaultIconColor}>
                   <subitem.icon />
                 </ActionIcon>
               );

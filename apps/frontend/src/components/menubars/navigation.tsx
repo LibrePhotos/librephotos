@@ -1,4 +1,4 @@
-import { rgba } from "@mantine/core";
+import { MantineColor, rgba } from "@mantine/core";
 import { createStyles } from "@mantine/emotion";
 import type { Icon, IconProps } from "@tabler/icons-react";
 import {
@@ -30,14 +30,14 @@ type SubmenuItem = {
   header: string;
   separator: boolean;
   disabled: boolean;
-  color: string;
+  color: MantineColor;
 };
 
 type MenuItem = {
   label: string;
   link: string;
   icon: ForwardRefExoticComponent<Omit<IconProps, "ref"> & RefAttributes<Icon>>;
-  color?: string;
+  color?: MantineColor;
   display?: boolean;
   submenu?: Array<Partial<SubmenuItem>>;
 };
@@ -48,11 +48,12 @@ export function getNavigationItems(
   canAccess: boolean
 ): Array<MenuItem> {
   return [
-    { label: t("sidemenu.photos"), link: "/", icon: Photo },
+    { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
     {
       label: t("sidemenu.albums"),
       link: "/people",
       icon: Album,
+      color: "blue",
       submenu: [
         { header: t("sidemenu.albums") },
         { label: t("sidemenu.people"), link: "/people", icon: Users },
@@ -67,6 +68,7 @@ export function getNavigationItems(
       label: t("sidemenu.datavizsmall"),
       link: "/placetree",
       icon: ChartLine,
+      color: "yellow",
       submenu: [
         { header: t("sidemenu.dataviz") },
         { label: t("sidemenu.placetree"), link: "/placetree", icon: VectorTriangle },
@@ -76,20 +78,21 @@ export function getNavigationItems(
         { label: t("sidemenu.facecluster"), link: "/facescatter", icon: MoodSmile },
       ],
     },
-    { label: t("sidemenu.facerecognition"), link: "/faces", icon: FaceId },
+    { label: t("sidemenu.facerecognition"), link: "/faces", icon: FaceId, color: "orange" },
     {
       label: t("sidemenu.sharing"),
       link: "/users/",
       display: isAuthenticated,
       icon: Users,
+      color: "red",
       submenu: [
         { header: t("sidemenu.sharing") },
         { label: t("sidemenu.publicphotos"), link: "/users/", icon: World, disabled: !canAccess },
-        { label: t("sidemenu.youshared"), link: "/shared/fromme/photos/", icon: Upload },
-        { label: t("sidemenu.sharedwithyou"), link: "/shared/tome/photos/", icon: Download },
+        { label: t("sidemenu.youshared"), link: "/shared/fromme/photos/", icon: Upload, color: "red" },
+        { label: t("sidemenu.sharedwithyou"), link: "/shared/tome/photos/", icon: Download, color: "green" },
       ],
     },
-    { label: t("photos.deleted"), link: "/deleted", icon: Trash },
+    { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "gray" },
   ];
 }
 
