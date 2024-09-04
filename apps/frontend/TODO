@@ -2,5 +2,4 @@
 - burger button toggle menu work
 - fix public user list and public photos for authenticated user
 - refactor tree with latest mantine tree (and remove existing one)
-- fix triple-dots menu
 - fix site search sections colors for dark theme
