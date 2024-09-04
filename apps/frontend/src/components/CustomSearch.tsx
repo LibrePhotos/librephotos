@@ -66,7 +66,7 @@ const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
   ({ icon = <Search />, value, ...rest }: SearchSuggestion, ref) => (
     /* eslint-disable react/jsx-props-no-spreading */
     <div ref={ref} {...rest}>
-      <Group noWrap>
+      <Group wrap="nowrap">
         {cloneElement(icon as React.ReactElement, { size: 20 })}
         <Text>{value}</Text>
       </Group>

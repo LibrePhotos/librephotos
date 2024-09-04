@@ -1,5 +1,5 @@
 - refactor site search with combobox
 - burger button toggle menu work
 - fix public user list and public photos for authenticated user
-- refactor tree with latest mantine tree (and remove existing one)
+- optional: refactor tree with latest mantine tree (and remove existing one)
 - highlight sidebar menu when children menu page is active
