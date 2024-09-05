@@ -11,7 +11,7 @@ pre-commit==3.8.0
 coverage==7.6.1
 Faker==26.3.0
 isort==5.13.2
-setuptools==71.1.0
+setuptools==74.1.2
 black==24.8.0
 pyfakefs==5.6.0
 pytest==8.3.2
