@@ -344,11 +344,7 @@ function PhotoListViewComponent(props: Props) {
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
         >
-          <div
-            style={{
-              padding: 10,
-            }}
-          >
+          <Box p={10}>
             <Pig
               ref={pigRef}
               className="scrollscrubbertarget"
@@ -367,7 +363,7 @@ function PhotoListViewComponent(props: Props) {
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
               bgColor="inherit"
             />
-          </div>
+          </Box>
         </ScrollScrubber>
       ) : (
         <div />
