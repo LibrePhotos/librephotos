@@ -25,6 +25,7 @@ export function AppShellProtected() {
       navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: !sidebarVisible } }}
       footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
       style={{ minWidth: MIN_VIEWPORT_WODTH }}
+      transitionDuration={0}
     >
       <AppShell.Header>
         <TopMenu toggleSidebar={toggleSidebar} />;
