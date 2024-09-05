@@ -4,6 +4,7 @@
 - remove the use of useMediaquery
 - rework mobile top menu for usability (upload, search, etc.)
 - fix lightbox, phtos and videos are not shown
+- fix album list view when toggling sidebar
 
 - optional: migrate from Emotion to css modules (performance improvement)
 - optional: refactor tree with latest mantine tree (and remove existing one)
