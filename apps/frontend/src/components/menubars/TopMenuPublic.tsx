@@ -3,7 +3,6 @@ import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
 
-import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
@@ -36,7 +35,9 @@ export function TopMenuPublic() {
 
   return (
     <Group justify="space-between" px={15}>
-      <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />
+      <Link to="/">
+        <Image height={30} width={30} src="/logo-white.png" />
+      </Link>
       <Group align="right">
         <Button onClick={() => dispatch(push("/login"))}>Login</Button>
       </Group>
