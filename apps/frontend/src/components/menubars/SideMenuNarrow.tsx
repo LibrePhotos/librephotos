@@ -4,6 +4,7 @@ import {
   Loader,
   Menu,
   Progress,
+  Text,
   Tooltip,
   useComputedColorScheme,
   useMantineTheme,
@@ -83,7 +84,7 @@ export function SideMenuNarrow(): JSX.Element {
         >
           <item.icon />
         </ActionIcon>
-        <span style={{ flexGrow: 2 }}>{item.label}</span>
+        <Text style={{ flexGrow: 2 }}>{item.label}</Text>
         {item.submenu && <ChevronRight size={16} />}
       </a>
     );
@@ -97,7 +98,11 @@ export function SideMenuNarrow(): JSX.Element {
             {item.submenu.map(subitem => {
               const idx = item.submenu?.indexOf(subitem);
               if (subitem.header) {
-                return <Menu.Label key={idx}>{subitem.header}</Menu.Label>;
+                return (
+                  <Menu.Label color="gray" key={idx}>
+                    {subitem.header}
+                  </Menu.Label>
+                );
               }
               if (subitem.separator) {
                 return <Menu.Divider key={idx} />;

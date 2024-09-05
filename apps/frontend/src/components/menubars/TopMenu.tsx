@@ -1,5 +1,4 @@
 import { Avatar, Group, Menu } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import {
   IconAdjustments as Adjustments,
   IconBook as Book,
@@ -11,7 +10,6 @@ import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
-import { toggleSidebar } from "../../actions/uiActions";
 import { api, useFetchUserSelfDetailsQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { logout } from "../../store/auth/authSlice";
@@ -21,16 +19,15 @@ import { SiteSearch } from "../SiteSearch";
 import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
 
-export function TopMenu(): React.ReactNode {
+export function TopMenu({ toggleSidebar }: { toggleSidebar: () => void }): React.ReactNode {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const matches = useMediaQuery("(min-width: 700px)");
   const auth = useAppSelector(state => state.auth);
   const { data: user } = useFetchUserSelfDetailsQuery(auth.access.user_id);
 
   return (
     <Group justify="space-between" h="100%" px={15}>
-      {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
+      <TopMenuCommon onToggleSidebar={toggleSidebar} />
       <Group>
         <SiteSearch />
       </Group>

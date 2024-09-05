@@ -1,6 +1,4 @@
-import { Button, Group, Image } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
-import { IconMenu2 as Menu2 } from "@tabler/icons-react";
+import { Burger, Button, Group, Image } from "@mantine/core";
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
@@ -15,8 +13,8 @@ type Props = Readonly<{
 
 export function TopMenuCommon({ onToggleSidebar }: Props) {
   return (
-    <Group>
-      <Menu2 onClick={onToggleSidebar} />
+    <Group visibleFrom="sm">
+      <Burger size="sm" onClick={onToggleSidebar} />
       <Link to="/">
         <Button color="dark" style={{ padding: 2 }}>
           <Image height={30} width={30} src="/logo-white.png" />
@@ -29,7 +27,6 @@ export function TopMenuCommon({ onToggleSidebar }: Props) {
 export function TopMenuPublic() {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(state => state.auth);
-  const matches = useMediaQuery("(min-width: 700px)");
 
   useEffect(() => {
     if (auth.access) {
@@ -39,7 +36,7 @@ export function TopMenuPublic() {
 
   return (
     <Group justify="space-between" px={15}>
-      {matches && <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />}
+      <TopMenuCommon onToggleSidebar={() => dispatch(toggleSidebar())} />
       <Group align="right">
         <Button onClick={() => dispatch(push("/login"))}>Login</Button>
       </Group>
