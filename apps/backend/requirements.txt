@@ -41,7 +41,7 @@ gevent==24.2.1
 python-magic==0.4.27
 Wand==0.6.13
 django-q2==1.6.2
-safetensors==0.4.4
+safetensors==0.4.5
 py-cpuinfo==9.0.0
 psutil==6.0.0
 onnxruntime==1.19.2
