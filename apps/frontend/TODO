@@ -5,7 +5,7 @@
 - rework mobile top menu for usability (upload, search, etc.)
 - fix lightbox, phtos and videos are not shown
 - recalculate width of photo list view when toggling sidebar
-- migrate from Emotion to css modules
 
+- optional: migrate from Emotion to css modules (performance improvement)
 - optional: refactor tree with latest mantine tree (and remove existing one)
 - optional: move color theme switch to top menu for convenience

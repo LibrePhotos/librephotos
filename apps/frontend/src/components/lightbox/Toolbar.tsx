@@ -28,7 +28,7 @@ const useStyles = createStyles((theme, _, u) => ({
     },
     "&:hover": {
       [u.light]: {
-        color: theme.colors.grey[3],
+        color: theme.colors.gray[3],
       },
       [u.dark]: {
         color: theme.colors.white,
