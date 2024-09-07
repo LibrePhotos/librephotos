@@ -5,7 +5,7 @@
 - rework mobile top menu for usability (upload, search, etc.)
 - fix logout to redirect to login page
 - fix photo list dropdown filter click area
-- fix faces tab click area
+- fix faces dashboard
 
 - optional: migrate from Emotion to css modules (performance improvement)
 - optional: refactor tree with latest mantine tree (and remove existing one)
