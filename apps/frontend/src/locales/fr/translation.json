@@ -110,7 +110,7 @@
         },
         "favoriteupdate": "Mettre à jour",
         "experimentaloptions": "Options expérimentales",
-        "transcodevideo": "Toujours transcoder les videos",
+        "transcodevideo": "Toujours transcoder les vidéos",
         "on": "Oui",
         "off": "Non",
         "experimentalupdate": "Mettre à jour",
@@ -120,7 +120,7 @@
         "japanese": "japonais",
         "swedish": "suédois",
         "russian": "russe",
-        "configdatetime": " Définir les règles d'analyse des dates et de l'heure",
+        "configdatetime": "Définir les règles d'analyse des dates et de l'heure",
         "metadata": "Options de métadonnées",
         "sync": "Synchronisation des métadonnées sur le disque",
         "polish": "polonais",
@@ -169,7 +169,35 @@
             "title": "Palette de couleurs"
         },
         "security": "Sécurité",
-        "korean": "Coréen"
+        "korean": "Coréen",
+        "hindi": "Hindi",
+        "models": {
+            "hog": "HGO",
+            "cnn": "RNC"
+        },
+        "min_cluster_size": "Taille minimale du cluster",
+        "size": {
+            "high": "Haut",
+            "veryhigh": "Très Haut",
+            "auto": "Auto",
+            "small": "Petit",
+            "normal": "Normal",
+            "off": "Désactivé"
+        },
+        "min_samples": "Minimum d'échantillons",
+        "cluster_selection_epsilon": "Niveau de sélection du cluster",
+        "addperson": "Ajouter personnes aux légendes",
+        "addlocation": "Ajouter les lieux aux légendes",
+        "min_samples_help": "Modifie le caractère conservateur des clusters. Une valeur plus petite signifie moins conservateur.",
+        "unknown_faces_confidence": "Confiance lors d'une correspondance visages inconnus - autres",
+        "unknown_faces_confidence_help": "Entrez un niveau de confiance entre 0 et 1. Les visages de « Inconnu - Autre » seront associés à d'autres personnes si le niveau de confiance est supérieur à cette valeur. 0 signifie que cette fonctionnalité est désactivée.",
+        "enablellm": "Activer un grand modèle de langage pour les légendes",
+        "cluster_selection_epsilon_help": "Détermine quels clusters seront fusionnés. Avec une valeur plus élevée, davantage de clusters seront fusionnés.",
+        "llm": "Paramètres du modèle de langage étendu",
+        "face_options": "Options de visage",
+        "face_recognition_model": "Modèle de reconnaissance de visage",
+        "face_recognition_model_help": "Modifie le modèle utilisé pour la reconnaissance faciale. Le modèle CNN est plus précis mais plus lent que le modèle HGO.",
+        "min_cluster_size_help": "Modifie la façon dont les clusters se forment. Une valeur plus petite forme un plus grand nombre de clusters."
     },
     "modalnextcloud": {
         "setdirectory": "Définir votre répertoire de scan Nextcloud",
@@ -233,7 +261,8 @@
         "sharing": "Partage",
         "publicphotos": "Photos publiques",
         "youshared": "Vous partagez",
-        "sharedwithyou": "Partagé avec vous"
+        "sharedwithyou": "Partagé avec vous",
+        "videos": "Vidéos"
     },
     "selectionbar": {
         "selected": "Sélectée(s)",
@@ -268,7 +297,7 @@
         "album": "Album",
         "albumcoverdescription": "Définir la couverture de l'album courant",
         "albumcover": "Couverture de l'album",
-        "deleted": "Supprimer"
+        "deleted": "Placer dans la corbeille"
     },
     "lightbox": {
         "sidebar": {
@@ -299,7 +328,8 @@
         "notimestamp": "Photos sans horodatage",
         "hidden": "Photos cachées",
         "favorite": "Photos favorites",
-        "deleted": "Corbeille"
+        "deleted": "Corbeille",
+        "videos": "Vidéos"
     },
     "login": {
         "name": "LibrePhotos",
@@ -346,7 +376,10 @@
         "deleteuserconfirmexplanation": "Vous êtes sur le point de supprimer l'utilisateur suivant : {{username}}. Ceci supprimera toutes les données associées.",
         "addnewuser": "Ajouter un nouvel utilisateur",
         "titledeleteuser": "Supprimer l'utilisateur",
-        "cannotbeundone": "Cette action ne peut pas être annulée."
+        "cannotbeundone": "Cette action ne peut pas être annulée.",
+        "delete": "Supprimer",
+        "download": "Télécharger",
+        "downloadserverstats": "Télécharger les statistiques du serveur"
     },
     "joblist": {
         "workerlogs": "Journaux d’activité",
@@ -361,8 +394,9 @@
         "delete": "Supprimer",
         "itemsprocessed": "Élément(s) traité(s)",
         "running": "en cours",
-        "removeexplanation": "N'arrête pas réellement le travail, mais supprime seulement cette entrée de la base de données. À n'utiliser que dans les cas où vous savez qu'un travail a échoué de manière non gracieuse, en inspectant les journaux, etc.",
-        "itemsadded": "Elément(s) ajouté.s"
+        "removeexplanation": "Supprimer une entrée n'arrête pas réellement le travail, mais la supprime seulement de la base de données. À n'utiliser que dans les cas où vous savez qu'un travail a échoué de manière disgracieuse, en inspectant les journaux, etc.",
+        "itemsadded": "Elément(s) ajouté.s",
+        "waiting": "en attente"
     },
     "modalscandirectoryedit": {
         "header": "Définir le répertoire de scan pour l’utilisateur",
@@ -391,7 +425,7 @@
         "header": "Autoriser l’enregistrement des utilisateurs",
         "allow": "Autoriser",
         "noallow": "Ne pas autoriser",
-        "skippatterns": " Liste délimitée par des virgules des modèles à ignorer (par exemple, « @eaDir #recycle » pour les périphériques de synologie)",
+        "skippatterns": " Liste délimitée par des virgules des modèles à ignorer (par ex., '@eaDir,#recycle' pour les NAS Synology)",
         "map_api_provider_header": "Fournisseur de carte",
         "map_api_provider_description": "Pour obtenir des noms d'emplacement à partir des métadonnées GPS de l'image.",
         "map_api_key_header": "Clé API pour le fournisseur de carte",
@@ -399,12 +433,18 @@
         "headerheavyweight": "Processus lourds",
         "headerupload": "Autoriser les téléversements",
         "headerskippatterns": "Ignorer les modèles",
-        "heavyweight": "Nombre de travailleurs, lors de la numérisation d'images. Ce paramètre peut affecter considérablement l'utilisation de la mémoire vive. Chaque travailleur a besoin de 800 Mo de mémoire vive. Changez à votre guise. La valeur par défaut est 1."
+        "heavyweight": "Nombre de travailleurs, lors de la numérisation d'images. Ce paramètre peut affecter considérablement l'utilisation de la mémoire vive. Chaque travailleur a besoin de 800 Mo de mémoire vive. Changez à votre guise. La valeur par défaut est 1.",
+        "captioning_model_header": "Modèle de description d'image",
+        "captioning_model_description": "Sélectionnez un modèle pour générer les descriptions d’images.",
+        "llm_model_header": "Grand Modèle de Langage",
+        "blip_warning": "Cette fonctionnalité nécessite 3 Go de RAM supplémentaires pour fonctionner correctement. Veuillez en tenir compte avant de continuer.",
+        "heavyweight_process_warning": "Définir le nombre de processus lourds à plus de 3 nécessitera probablement plus de 16 Go de RAM. Veuillez en tenir compte avant de continuer.",
+        "ram_warning_header": "Grande taille de RAM possible"
     },
     "autoalbum": {
         "subtitle": "Affichage des {{ autoalbumlength }} albums créés automatiquement",
         "delete": "Supprimer l'album automatique",
-        "deleteexplanation": "Ceci supprimera l'album automatique. Êtes-vous sûr·e ?"
+        "deleteexplanation": "Ceci supprimera l'album automatique. Êtes-vous sûr·e ?"
     },
     "countstats": {
         "photos": "Photos"
@@ -615,7 +655,7 @@
         "subjectdistance": "Distance du sujet",
         "digitalzoomratio": "Rapport du zoom numérique",
         "duplicates": "Doublons",
-        "deleteduplicate": "Êtes-vous sûr·e de vouloir supprimer ce doublon ?"
+        "deleteduplicate": "Êtes-vous sûr·e de vouloir supprimer ce doublon ?"
     },
     "modaluseredit": {
         "createheader": "Créer un utilisateur",
