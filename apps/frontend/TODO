@@ -1,3 +1,5 @@
+# Tasks related to upgrade to Mantine 7
+
 - high: fix faces dashboard
 - high: fix logout to redirect to login page
 - high: fix scrollscrubber
