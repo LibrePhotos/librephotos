@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "api",
     "nextcloud",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "chunked_upload",
     "django_extensions",
