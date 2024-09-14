@@ -13,8 +13,8 @@ import { push } from "redux-first-history";
 
 import { toggleSidebar } from "../../actions/uiActions";
 import { api } from "../../api_client/api";
+import { useLogoutMutation } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { logout } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { CustomSearch } from "../CustomSearch";
@@ -27,6 +27,7 @@ export function TopMenu() {
   const userSelfDetails = useAppSelector(state => state.user.userSelfDetails);
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
+  const [logout] = useLogoutMutation();
 
   useEffect(() => {
     if (auth.access) {
@@ -90,7 +91,7 @@ export function TopMenu() {
                 <Menu.Item
                   icon={<Logout />}
                   onClick={() => {
-                    dispatch(logout());
+                    logout();
                     dispatch(api.util.resetApiState());
                   }}
                 >

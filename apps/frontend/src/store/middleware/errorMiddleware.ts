@@ -4,7 +4,6 @@ import { isRejectedWithValue } from "@reduxjs/toolkit";
 import { Endpoints, api } from "../../api_client/api";
 import { notification } from "../../service/notifications";
 import { AuthErrorSchema } from "../auth/auth.zod";
-import { logout } from "../auth/authSlice";
 
 export const errorMiddleware: Middleware =
   ({ dispatch }: MiddlewareAPI) =>
@@ -19,8 +18,7 @@ export const errorMiddleware: Middleware =
           if (error.field === "code") {
             if (error.message === "token_not_valid") {
               notification.invalidToken();
-              dispatch(logout());
-              dispatch(api.util.resetApiState());
+              dispatch(api.endpoints.logout.initiate());
               return;
             }
           }

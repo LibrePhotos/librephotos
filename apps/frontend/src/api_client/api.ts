@@ -57,6 +57,7 @@ export enum Endpoints {
   fetchStorageStats = "fetchStorageStats",
   fetchImageTag = "fetchImageTag",
   generateAutoAlbumTitle = "generateAutoAlbumTitle",
+  logout = "logout",
 }
 
 const baseQuery = fetchBaseQuery({
@@ -143,6 +144,13 @@ export const api = createApi({
         cookies.set("refresh", data.refresh);
         return data;
       },
+    }),
+    [Endpoints.logout]: builder.mutation<void, void>({
+      query: () => ({
+        url: "/auth/token/blacklist/",
+        method: "POST",
+        body: { refresh: new Cookies().get("refresh") },
+      }),
     }),
     [Endpoints.isFirstTimeSetup]: builder.query<boolean, void>({
       query: () => ({
@@ -268,6 +276,7 @@ export const {
   useFetchIncompleteFacesQuery,
   useLoginMutation,
   useSignUpMutation,
+  useLogoutMutation,
   useWorkerQuery,
   useDeleteUserMutation,
   useManageUpdateUserMutation,
