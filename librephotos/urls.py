@@ -23,7 +23,11 @@ from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import (
+    TokenBlacklistView,
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
 from api.views import (
     album_auto,
@@ -215,6 +219,7 @@ urlpatterns = [
     re_path(r"^api/wordcloud", dataviz.SearchTermWordCloudView.as_view()),
     re_path(r"^api/auth/token/obtain/$", CustomTokenObtainPairView.as_view()),
     re_path(r"^api/auth/token/refresh/$", CustomTokenRefreshView.as_view()),
+    re_path(r"^api/auth/token/blacklist/", TokenBlacklistView.as_view()),
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
         views.MediaAccessFullsizeOriginalView.as_view(),
