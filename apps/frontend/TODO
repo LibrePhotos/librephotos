@@ -2,7 +2,6 @@
 
 - high: fix faces dashboard
 - high: fix logout to redirect to login page
-- high: fix scrollscrubber
 - medium: fix public user list and public photos for authenticated user
 - medium: highlight sidebar menu when children menu page is active
 - medium: remove the use of useMediaquery

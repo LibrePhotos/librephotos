@@ -337,6 +337,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           size="sm"
           style={{
             top: `${item.scrollerYPercent - halfMarkerHeightInPercent}%`,
+            width: "max-content",
             cursor: "pointer",
             backgroundColor: colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
             color: colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
@@ -387,6 +388,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
             style={{
               position: "absolute",
               right: "25px",
+              width: "max-content",
               backgroundColor: colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
               color: colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
               borderColor: colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3],
