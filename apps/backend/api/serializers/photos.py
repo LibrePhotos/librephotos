@@ -34,14 +34,21 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "video_length",
             "rating",
             "owner",
+            "exif_gps_lat",
+            "exif_gps_lon",
+            "removed",
+            "in_trashcan",
         )
 
+    # TODO: Rename this field to image_hash
     def get_id(self, obj) -> str:
         return obj.image_hash
 
+    # TODO: Rename this field to aspect_ratio
     def get_aspectRatio(self, obj) -> float:
         return obj.aspect_ratio
 
+    # TODO: Remove this field in the future
     def get_url(self, obj) -> str:
         return obj.image_hash
 
@@ -63,6 +70,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         else:
             return ""
 
+    # TODO: Remove this field in the future
     def get_birthTime(self, obj) -> str:
         if obj.exif_timestamp:
             return obj.exif_timestamp
