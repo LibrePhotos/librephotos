@@ -9,7 +9,7 @@ pylint-django==2.5.5
 flake8==7.1.1
 pre-commit==3.8.0
 coverage==7.6.1
-Faker==26.3.0
+Faker==29.0.0
 isort==5.13.2
 setuptools==75.1.0
 black==24.8.0
