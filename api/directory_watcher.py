@@ -126,6 +126,9 @@ def create_new_image(user, path) -> Optional[Photo]:
         file = File.create(path, user)
         photo = photos.first()
         photo.files.add(file)
+        if photo.removed:
+            photo.removed = False
+            photo.in_trashcan = False
         photo.save()
         photo._check_files()
         util.logger.warning("photo {} exists already".format(path))
