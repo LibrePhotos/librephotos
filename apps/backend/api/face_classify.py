@@ -14,15 +14,16 @@ from sklearn.neural_network import MLPClassifier
 
 from api.cluster_manager import ClusterManager
 from api.models import Face, LongRunningJob, Person
-from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster
-from api.models.person import get_unknown_person
+from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.user import User, get_deleted_user
 from api.util import logger
 
 FACE_CLASSIFY_COLUMNS = [
     "person",
-    "person_label_is_inferred",
-    "person_label_probability",
+    "classification_person",
+    "classification_probability",
+    "cluster_person",
+    "cluster_probability",
     "id",
     "cluster",
 ]
@@ -34,11 +35,11 @@ def cluster_faces(user, inferred=True):
     p2c = dict(zip(persons, sns.color_palette(n_colors=len(persons)).as_hex()))
 
     face_encoding = []
-    faces = Face.objects.filter(photo__owner=user)
+    faces = Face.objects.filter(photo__owner=user & Q(deleted=False))
     paginator = Paginator(faces, 5000)
     for page in range(1, paginator.num_pages + 1):
         for face in paginator.page(page).object_list:
-            if ((not face.person_label_is_inferred) or inferred) and face.encoding:
+            if ((not face.person) or inferred) and face.encoding:
                 face_encoding.append(face.get_encoding_array())
 
     pca = PCA(n_components=3)
@@ -48,10 +49,12 @@ def cluster_faces(user, inferred=True):
     for face, vis in zip(faces, vis_all):
         res.append(
             {
-                "person_id": face.person.id,
-                "person_name": face.person.name,
-                "person_label_is_inferred": face.person_label_is_inferred,
-                "color": p2c[face.person.id],
+                "person_id": face.person.id if face.person else UNKNOWN_CLUSTER_ID,
+                "person_name": face.person.name if face.person else "unknown",
+                "person_label_is_inferred": not face.person,
+                "color": (
+                    p2c[face.person.id] if face.person else p2c[UNKNOWN_CLUSTER_ID]
+                ),
                 "face_url": face.image.url,
                 "value": {"x": vis[0], "y": vis[1], "size": vis[2]},
             }
@@ -188,7 +191,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             face_id = data["all"]["id"][i]
             face_id_list.append(face_id)
         face_array = Face.objects.filter(
-            Q(pk__in=face_id_list) & Q(encoding__isnull=False)
+            Q(pk__in=face_id_list) & Q(encoding__isnull=False) & Q(deleted=False)
         )
         new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
             user, clusterId, face_array, maxLen
@@ -252,7 +255,6 @@ def train_faces(user: User, job_id) -> bool:
     lrj.progress_current = 1
     lrj.progress_target = 2
     lrj.save()
-    unknown_person: Person = get_unknown_person(owner=user)
     try:
         # Use two array, so that the first one gets thrown out, if it is no longer used.
         data_known = {"encoding": [], "id": []}
@@ -260,20 +262,14 @@ def train_faces(user: User, job_id) -> bool:
         # First, sort all faces into known and unknown ones
         face: Face
         for face in Face.objects.filter(
-            Q(photo__owner=user) & Q(encoding__isnull=False)
+            Q(photo__owner=user) & Q(encoding__isnull=False) & Q(deleted=False)
         ).prefetch_related("person"):
-            person: Person = face.person
-            unknown = (
-                face.person_label_is_inferred is not False
-                or person.kind == Person.KIND_CLUSTER
-                or person.kind == Person.KIND_UNKNOWN
-            )
-            if unknown:
+            if not face.person:
                 data_unknown["encoding"].append(face.get_encoding_array())
-                data_unknown["id"].append(face.id if unknown else face.person.id)
+                data_unknown["id"].append(face.id)
             else:
                 data_known["encoding"].append(face.get_encoding_array())
-                data_known["id"].append(face.id if unknown else face.person.id)
+                data_known["id"].append(face.person.id)
 
         # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
         # to predict the likelihood of other unknown faces belonging to those simulated clusters. For
@@ -281,7 +277,8 @@ def train_faces(user: User, job_id) -> bool:
         # can't be classified into another group, i.e. that it should be classified that way
         cluster: Cluster
         for cluster in Cluster.objects.filter(owner=user):
-            if cluster.person.kind == Person.KIND_CLUSTER:
+            if cluster.person and cluster.person.kind == Person.KIND_CLUSTER:
+                print(cluster.person)
                 data_known["encoding"].append(cluster.get_mean_encoding_array())
                 data_known["id"].append(cluster.person.id)
 
@@ -328,17 +325,35 @@ def train_faces(user: User, job_id) -> bool:
                         seconds=5
                     )
                     face_stack = []
+
+                    all_known_persons = Person.objects.filter(
+                        Q(cluster_owner=user) & Q(kind="USER")
+                    ).all()
+
+                    all_known_person_ids = set(
+                        all_known_persons.values_list("id", flat=True)
+                    )
+
+                    unknown_cluster: Cluster = get_unknown_cluster(user=user)
+
                     for idx, (face, probability_array) in enumerate(
                         zip(pages_of_faces, probs)
                     ):
-                        if (
-                            face.person is unknown_person
-                            or face.person.kind == Person.KIND_UNKNOWN
-                        ):
-                            face.person_label_is_inferred = False
-                        else:
-                            face.person_label_is_inferred = True
-                        probability: np.float64 = 0
+                        face.cluster_probability = 0.0  # Cluster probability
+                        face.classification_probability = (
+                            0.0  # Classification probability
+                        )
+                        classification_person = None
+                        classification_probability = 0.0
+
+                        # Find the person with the highest probability for classification
+                        for i, target in enumerate(clf.classes_):
+                            if (
+                                target in all_known_person_ids
+                                and probability_array[i] > classification_probability
+                            ):
+                                classification_person = target
+                                classification_probability = probability_array[i]
 
                         # Find the probability in the probability array corresponding to the person
                         # that we currently believe the face is, even a simulated "unknown" person
@@ -347,20 +362,18 @@ def train_faces(user: User, job_id) -> bool:
                         for i, target in enumerate(clf.classes_):
                             if highest_probability == probability_array[i]:
                                 highest_probability_person = target
-                            if target == face.person.id:
-                                probability = probability_array[i]
 
-                        face.person = Person.objects.get(id=highest_probability_person)
-                        if (
-                            probability > user.confidence_unknown_face
-                            or user.confidence_unknown_face == 0
-                        ) and face.person.id != unknown_person.id:
-                            face.person_label_is_inferred = True
-                            face.person_label_probability = highest_probability
-                        else:
-                            face.person = unknown_person
-                            face.person_label_is_inferred = False
-                            face.person_label_probability = probability
+                        if face.cluster != unknown_cluster:
+                            face.cluster_person = Person.objects.get(
+                                id=highest_probability_person
+                            )
+                            face.cluster_probability = highest_probability
+
+                        if classification_person:
+                            face.classification_person = Person.objects.get(
+                                id=classification_person
+                            )
+                            face.classification_probability = classification_probability
 
                         face_stack.append(face)
                         if commit_time < datetime.datetime.now():

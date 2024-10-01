@@ -67,10 +67,22 @@ class FaceDeduplication(admin.ModelAdmin):
         ).run()
 
 
+@admin.register(Face)
+class FaceAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "cluster_person",
+        "classification_person",
+        "cluster",
+        "photo",
+        "person",
+    )
+    list_filter = ("person", "cluster")
+
+
 # Register your models here.
 admin.site.register(Photo, FaceDeduplication)
 admin.site.register(Person)
-admin.site.register(Face)
 admin.site.register(AlbumAuto)
 admin.site.register(AlbumUser)
 admin.site.register(AlbumThing)
