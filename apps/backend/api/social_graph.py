@@ -6,17 +6,19 @@ from api.models import Person
 
 def build_social_graph(user):
     query = """
-        with face as (
-            select photo_id, person_id, name, owner_id
-            from api_face join api_person on api_person.id = person_id
-                          join api_photo on api_photo.image_hash = photo_id
-            where person_label_is_inferred = false
-                and owner_id = {}
+        WITH face AS (
+            SELECT photo_id, person_id, name, owner_id
+            FROM api_face
+            JOIN api_person ON api_person.id = person_id
+            JOIN api_photo ON api_photo.image_hash = photo_id
+            WHERE person_id IS NOT NULL
+                AND owner_id = {}
         )
-        select f1.name, f2.name
-        from face f1 join face f2 using (photo_id)
-        where f1.person_id != f2.person_id
-        group by f1.name, f2.name
+        SELECT f1.name, f2.name
+        FROM face f1
+        JOIN face f2 USING (photo_id)
+        WHERE f1.person_id != f2.person_id
+        GROUP BY f1.name, f2.name
     """.replace(
         "{}", str(user.id)
     )

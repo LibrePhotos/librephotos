@@ -337,7 +337,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             )
             photoFilter.append(
                 Q(
-                    faces__person_label_probability__gte=F(
+                    faces__cluster_probability__gte=F(
                         "faces__photo__owner__confidence_person"
                     )
                 )
@@ -479,7 +479,7 @@ class AlbumDateListViewSet(ListViewSet):
             )
             filter.append(
                 Q(
-                    photos__faces__person_label_probability__gte=F(
+                    photos__faces__cluster_probability__gte=F(
                         "photos__faces__photo__owner__confidence_person"
                     )
                 )
