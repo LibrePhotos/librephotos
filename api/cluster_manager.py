@@ -1,10 +1,8 @@
-import math
-
 import numpy as np
 
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.face import Face
-from api.models.person import Person, get_or_create_person, get_unknown_person
+from api.models.person import Person, get_or_create_person
 from api.models.user import User
 from api.util import logger
 
@@ -24,14 +22,9 @@ class ClusterManager:
         face: Face
         new_cluster: Cluster
         unknown_cluster: Cluster = get_unknown_cluster(user=user)
-        unknown_person: Person = get_unknown_person(owner=user)
         labelStr = str(cluster_id).zfill(padLen)
         for face in faces:
-            if (
-                face.person.name == "unknown"
-                or face.person.name == Person.UNKNOWN_PERSON_NAME
-                or face.person_label_is_inferred is True
-            ):
+            if not face.person:
                 unknown_faces.append(face)
                 unknown_ids.append(face.id)
             else:
@@ -45,8 +38,7 @@ class ClusterManager:
             logger.info("Adding known %d faces to unknown cluster" % len(known_faces))
             for face in unknown_faces:
                 face.cluster = unknown_cluster
-                face.person = unknown_person
-                face.person_label_is_inferred = False
+                face.cluster_person = None
                 face.save()
             for face in known_faces:
                 face.cluster = unknown_cluster
@@ -76,7 +68,8 @@ class ClusterManager:
                     face.get_encoding_array()
                 )
             Face.objects.filter(id__in=unknown_ids).update(
-                cluster=new_cluster, person=new_person, person_label_is_inferred=False
+                cluster=new_cluster,
+                cluster_person=new_person,
             )
         else:
             clusters_by_person: dict[int, Cluster] = dict()
@@ -100,7 +93,7 @@ class ClusterManager:
                 face_ids_by_cluster[new_cluster.id].append(face.id)
             for new_cluster in added_clusters:
                 Face.objects.filter(id__in=face_ids_by_cluster[new_cluster.id]).update(
-                    cluster=new_cluster, person_label_is_inferred=False
+                    cluster=new_cluster
                 )
 
             # Set initial metadata on the split clusters based on known faces
@@ -114,25 +107,10 @@ class ClusterManager:
             for new_cluster in added_clusters:
                 face_ids_by_cluster[new_cluster.id] = []
 
-            # Loop over all unknown faces and find the closest "known" cluster
-            for face in unknown_faces:
-                encoding = face.get_encoding_array()
-                closest_cluster: Cluster
-                min_distance: np.float64 = np.Infinity
-                for new_cluster in added_clusters:
-                    distance = math.dist(
-                        encoding, mean_encoding_by_cluster[new_cluster.id]
-                    )
-                    if distance < min_distance:
-                        closest_cluster = new_cluster
-                        min_distance = distance
-                face_ids_by_cluster[closest_cluster.id].append(face.id)
-                encoding_by_person[closest_cluster.person.id].append(encoding)
             for new_cluster in added_clusters:
                 Face.objects.filter(id__in=face_ids_by_cluster[new_cluster.id]).update(
                     cluster=new_cluster,
-                    person_label_is_inferred=True,
-                    person=new_cluster.person,
+                    cluster_person=new_cluster.person,
                 )
 
         # Update statistics again and save everything, since we've added more faces
