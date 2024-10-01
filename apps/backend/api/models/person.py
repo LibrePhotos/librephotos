@@ -66,7 +66,7 @@ class Person(models.Model):
             photo__hidden=False,
             photo__in_trashcan=False,
             photo__owner=self.cluster_owner.id,
-            person_label_probability__gte=confidence_person,
+            cluster_probability__gte=confidence_person,
         ).count()
         self.save()
 
@@ -105,6 +105,7 @@ class Person(models.Model):
         return photos
 
 
+# TODO: Should be removed in the future, as it is not used, only in migrations
 def get_unknown_person(owner: User = None):
     unknown_person: Person = Person.objects.get_or_create(
         name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner, kind=Person.KIND_UNKNOWN

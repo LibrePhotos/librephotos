@@ -6,7 +6,7 @@ from django.dispatch import receiver
 
 from api.face_recognition import get_face_encodings
 from api.models.cluster import Cluster
-from api.models.person import Person, get_unknown_person
+from api.models.person import Person
 from api.models.photo import Photo
 
 
@@ -17,8 +17,28 @@ class Face(models.Model):
     image = models.ImageField(upload_to="faces", null=True)
 
     person = models.ForeignKey(
-        Person, on_delete=models.DO_NOTHING, related_name="faces"
+        Person, on_delete=models.DO_NOTHING, related_name="faces", null=True
     )
+
+    classification_person = models.ForeignKey(
+        Person,
+        related_name="classification_faces",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    classification_probability = models.FloatField(default=0.0, db_index=True)
+
+    cluster_person = models.ForeignKey(
+        Person,
+        related_name="cluster_faces",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
+    cluster_probability = models.FloatField(default=0.0, db_index=True)
+
+    deleted = models.BooleanField(default=False)
 
     cluster = models.ForeignKey(
         Cluster,
@@ -27,14 +47,11 @@ class Face(models.Model):
         blank=True,
         null=True,
     )
-    person_label_is_inferred = models.BooleanField(default=False, db_index=True)
-    person_label_probability = models.FloatField(default=0.0, db_index=True)
 
     location_top = models.IntegerField()
     location_bottom = models.IntegerField()
     location_left = models.IntegerField()
     location_right = models.IntegerField()
-
     encoding = models.TextField()
 
     @property
@@ -68,7 +85,7 @@ class Face(models.Model):
 
 @receiver(models.signals.post_delete, sender=Person)
 def reset_person(sender, instance, **kwargs):
-    instance.faces.update(person=get_unknown_person(instance.cluster_owner))
+    instance.faces.update(person=None)
 
 
 # From: https://stackoverflow.com/questions/16041232/django-delete-filefield
