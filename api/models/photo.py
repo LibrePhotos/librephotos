@@ -714,7 +714,7 @@ class Photo(models.Model):
                     )
                     person.save()
                 else:
-                    person = api.models.person.get_unknown_person(owner=self.owner)
+                    person = None
 
                 face_image = big_thumbnail_image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)
@@ -746,6 +746,7 @@ class Photo(models.Model):
                     encoding="",
                     person=person,
                     cluster=unknown_cluster,
+                    owner=self.owner,
                 )
                 if person_name:
                     person._calculate_face_count()
