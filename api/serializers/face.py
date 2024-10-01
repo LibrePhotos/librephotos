@@ -5,6 +5,7 @@ from api.models import Face, Person
 
 class PersonFaceListSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
+    person_label_probability = serializers.SerializerMethodField()
 
     class Meta:
         model = Face
@@ -16,6 +17,9 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
             "timestamp",
             "person_label_probability",
         ]
+
+    def get_person_label_probability(self, obj):
+        return obj.cluster_probability
 
     def get_face_url(self, obj):
         return obj.image.url
@@ -38,6 +42,7 @@ class IncompletePersonFaceListSerializer(serializers.ModelSerializer):
 class FaceListSerializer(serializers.ModelSerializer):
     person_name = serializers.SerializerMethodField()
     face_url = serializers.SerializerMethodField()
+    person_label_probability = serializers.SerializerMethodField()
 
     class Meta:
         model = Face
@@ -51,6 +56,9 @@ class FaceListSerializer(serializers.ModelSerializer):
             "person_label_probability",
             "person_name",
         )
+
+    def get_person_label_probability(self, obj) -> float:
+        return obj.cluster_probability
 
     def get_face_url(self, obj) -> str:
         return obj.image.url

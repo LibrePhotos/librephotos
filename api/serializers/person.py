@@ -121,17 +121,17 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
         )
 
     def get_photo_count(self, obj) -> int:
-        return obj.filter(Q(person_label_is_inferred=False)).faces.count()
+        return obj.filter(Q(person__is_null=False)).faces.count()
 
     def get_cover_photo_url(self, obj) -> str:
-        first_face = obj.faces.filter(Q(person_label_is_inferred=False)).first()
+        first_face = obj.faces.filter(Q(personn__is_null=False)).first()
         if first_face:
             return first_face.photo.square_thumbnail.url
         else:
             return None
 
     def get_face_photo_url(self, obj) -> str:
-        first_face = obj.faces.filter(Q(person_label_is_inferred=False)).first()
+        first_face = obj.faces.filter(Q(person__is_null=False)).first()
         if first_face:
             return first_face.photo.image.url
         else:

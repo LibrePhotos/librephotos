@@ -73,24 +73,25 @@ class FaceListView(ListViewSet):
 
     def get_queryset(self):
         personid = self.request.query_params.get("person")
-        inferred = False
-        order_by = ["-person_label_probability", "id"]
-        conditional_filter = Q(person_label_is_inferred=inferred) | Q(
-            person__name=Person.UNKNOWN_PERSON_NAME
-        )
+        order_by = ["-cluster_probability", "id"]
+        conditional_filter = Q(person=personid)
         if (
             self.request.query_params.get("inferred")
             and self.request.query_params.get("inferred").lower() == "true"
         ):
-            inferred = True
-            conditional_filter = Q(person_label_is_inferred=inferred)
+            # To-Do Switch this between classification_person and cluster_person
+            conditional_filter = Q(cluster_person=personid)
         if self.request.query_params.get("order_by"):
             if self.request.query_params.get("order_by").lower() == "date":
-                order_by = ["photo__exif_timestamp", "-person_label_probability", "id"]
+                order_by = [
+                    "photo__exif_timestamp",
+                    "-cluster_probability",
+                    "id",
+                ]
         return (
             Face.objects.filter(
                 Q(photo__owner=self.request.user),
-                Q(person=personid),
+                Q(deleted=False),
                 conditional_filter,
             )
             .prefetch_related("photo")
@@ -116,20 +117,30 @@ class FaceIncompleteListViewSet(ListViewSet):
         inferred = self.request.query_params.get("inferred", "").lower() == "true"
 
         queryset = Person.objects.filter(cluster_owner=self.request.user)
-
-        queryset = (
-            queryset.annotate(
-                viewable_face_count=Count(
-                    Case(
-                        When(
-                            Q(faces__person_label_is_inferred=inferred)
-                            | Q(faces__person__name=Person.UNKNOWN_PERSON_NAME),
-                            then=1,
-                        ),
-                        output_field=IntegerField(),
-                    )
+        if inferred:
+            conditional_count = Count(
+                Case(
+                    When(
+                        Q(cluster_faces__deleted=False),
+                        then=1,
+                    ),
+                    output_field=IntegerField(),
                 )
             )
+        else:
+            queryset = queryset.filter(kind=Person.KIND_USER)
+            conditional_count = Count(
+                Case(
+                    When(
+                        Q(faces__deleted=False),
+                        then=1,
+                    ),
+                    output_field=IntegerField(),
+                )
+            )
+
+        queryset = (
+            queryset.annotate(viewable_face_count=conditional_count)
             .filter(viewable_face_count__gt=0)
             .order_by("name")
         )
@@ -152,11 +163,7 @@ class SetFacePersonLabel(APIView):
             # We do this to unlabel a face
             # TODO: this is a hack, we should have a better way to handle this
             #       maybe a separate endpoint for setting unknown person labels?
-            person = get_or_create_person(
-                name=data["person_name"],
-                owner=self.request.user,
-                kind=Person.KIND_UNKNOWN,
-            )
+            person = None
         else:
             person = get_or_create_person(
                 name=data["person_name"], owner=self.request.user, kind=Person.KIND_USER
@@ -168,8 +175,6 @@ class SetFacePersonLabel(APIView):
         for face in faces.values():
             if face.photo.owner == request.user:
                 face.person = person
-                face.person_label_is_inferred = False
-                face.person_label_probability = 1.0
                 face.save()
                 updated.append(FaceListSerializer(face).data)
             else:
@@ -197,7 +202,7 @@ class DeleteFaces(APIView):
         for face in faces.values():
             if face.photo.owner == request.user:
                 deleted.append(face.image.url)
-                face.delete()
+                face.deleted = True
             else:
                 not_deleted.append(face.image.url)
 
