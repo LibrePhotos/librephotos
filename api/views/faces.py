@@ -75,12 +75,15 @@ class FaceListView(ListViewSet):
         personid = self.request.query_params.get("person")
         order_by = ["-cluster_probability", "id"]
         conditional_filter = Q(person=personid)
+        analysis_method = self.request.query_params.get("analysis_method", "clustering")
         if (
             self.request.query_params.get("inferred")
             and self.request.query_params.get("inferred").lower() == "true"
         ):
-            # To-Do Switch this between classification_person and cluster_person
-            conditional_filter = Q(cluster_person=personid)
+            if analysis_method == "classification":
+                conditional_filter = Q(classification_person=personid)
+            if analysis_method == "clustering":
+                conditional_filter = Q(cluster_person=personid)
         if self.request.query_params.get("order_by"):
             if self.request.query_params.get("order_by").lower() == "date":
                 order_by = [
@@ -115,18 +118,30 @@ class FaceIncompleteListViewSet(ListViewSet):
 
     def get_queryset(self):
         inferred = self.request.query_params.get("inferred", "").lower() == "true"
+        analysis_method = self.request.query_params.get("analysis_method", "clustering")
 
         queryset = Person.objects.filter(cluster_owner=self.request.user)
         if inferred:
-            conditional_count = Count(
-                Case(
-                    When(
-                        Q(cluster_faces__deleted=False),
-                        then=1,
-                    ),
-                    output_field=IntegerField(),
+            if analysis_method == "classification":
+                conditional_count = Count(
+                    Case(
+                        When(
+                            Q(classification_faces__deleted=False),
+                            then=1,
+                        ),
+                        output_field=IntegerField(),
+                    )
                 )
-            )
+            if analysis_method == "clustering":
+                conditional_count = Count(
+                    Case(
+                        When(
+                            Q(cluster_faces__deleted=False),
+                            then=1,
+                        ),
+                        output_field=IntegerField(),
+                    )
+                )
         else:
             queryset = queryset.filter(kind=Person.KIND_USER)
             conditional_count = Count(
