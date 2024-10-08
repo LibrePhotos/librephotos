@@ -271,6 +271,22 @@ def train_faces(user: User, job_id) -> bool:
                 data_known["encoding"].append(face.get_encoding_array())
                 data_known["id"].append(face.person.id)
 
+        if len(data_known["id"]) == 0:
+            logger.info("No labeled faces found")
+            lrj.finished = True
+            lrj.failed = False
+            lrj.progress_current = 2
+            lrj.progress_target = 2
+            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+            lrj.save()
+            return True
+
+        logger.info("Before fitting")
+        classifier = MLPClassifier(
+            solver="adam", alpha=1e-5, random_state=1, max_iter=1000
+        ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
+        logger.info("After fitting")
+
         # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
         # to predict the likelihood of other unknown faces belonging to those simulated clusters. For
         # the "Unknown - Other"-type cluster, we can still try to predict the probability that the face
@@ -282,120 +298,113 @@ def train_faces(user: User, job_id) -> bool:
                 data_known["encoding"].append(cluster.get_mean_encoding_array())
                 data_known["id"].append(cluster.person.id)
 
-        if len(data_known["id"]) == 0:
-            logger.info("No labeled faces found")
+        # Fit the classifier based on the "known" faces, including the simulated clusters
+        logger.info("Before cluster fitting")
+        cluster_classifier = MLPClassifier(
+            solver="adam", alpha=1e-5, random_state=1, max_iter=1000
+        ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
+        logger.info("After cluster fitting")
+
+        # Collect the probabilities for each unknown face. The probabilities returned
+        # are arrays in the same order as the people IDs in the original training set
+        target_count = len(data_unknown["id"])
+        if target_count == 0:
+            logger.info("No clusters found")
             lrj.finished = True
             lrj.failed = False
             lrj.progress_current = 2
             lrj.progress_target = 2
             lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
-        else:
-            # Fit the classifier based on the "known" faces, including the simulated clusters
-            logger.info("Before fitting")
-            clf = MLPClassifier(
-                solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-            ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
-            logger.info("After fitting")
+            return True
+        logger.info("Number of Cluster: {}".format(target_count))
 
-            # Collect the probabilities for each unknown face. The probabilities returned
-            # are arrays in the same order as the people IDs in the original training set
-            target_count = len(data_unknown["id"])
-            logger.info("Number of Cluster: {}".format(target_count))
-            if target_count != 0:
-                # Hacky way to split arrays into smaller arrays
-                pages_encoding = [
-                    data_unknown["encoding"][i : i + 100]
-                    for i in range(0, len(data_unknown["encoding"]), 100)
-                ]
-                pages_id = [
-                    data_unknown["id"][i : i + 100]
-                    for i in range(0, len(data_unknown["encoding"]), 100)
-                ]
-                for idx, page in enumerate(pages_encoding):
-                    page_id = pages_id[idx]
-                    pages_of_faces = Face.objects.filter(id__in=page_id).all()
-                    # sort pages of faces by id by page_id
-                    pages_of_faces = sorted(
-                        pages_of_faces, key=lambda x: page_id.index(x.id)
+        # Hacky way to split arrays into smaller arrays
+        pages_encoding = [
+            data_unknown["encoding"][i : i + 100]
+            for i in range(0, len(data_unknown["encoding"]), 100)
+        ]
+        pages_id = [
+            data_unknown["id"][i : i + 100]
+            for i in range(0, len(data_unknown["encoding"]), 100)
+        ]
+        for idx, page in enumerate(pages_encoding):
+            page_id = pages_id[idx]
+            pages_of_faces = Face.objects.filter(id__in=page_id).all()
+            # sort pages of faces by id by page_id
+            pages_of_faces = sorted(pages_of_faces, key=lambda x: page_id.index(x.id))
+            face_encodings_unknown_np = np.array(page)
+            cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
+            classification_probs = classifier.predict_proba(face_encodings_unknown_np)
+            commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+            face_stack = []
+            unknown_cluster: Cluster = get_unknown_cluster(user=user)
+
+            for idx, (
+                face,
+                cluster_probabilities,
+                classification_probabilties,
+            ) in enumerate(zip(pages_of_faces, cluster_probs, classification_probs)):
+                face.cluster_probability = 0.0  # Cluster probability
+                face.classification_probability = 0.0  # Classification probability
+                classification_person = None
+                classification_probability = 0.0
+
+                highest_classification_probability = max(classification_probabilties)
+                highest_classification_person = 0
+
+                # Find the person with the highest probability for classification
+                for i, target in enumerate(classifier.classes_):
+                    if (
+                        highest_classification_probability
+                        == classification_probabilties[i]
+                    ):
+                        highest_classification_person = target
+
+                classification_person = highest_classification_person
+                classification_probability = highest_classification_probability
+
+                # Find the probability in the probability array corresponding to the person
+                # that we currently believe the face is, even a simulated "unknown" person
+                highest_probability = max(cluster_probabilities)
+                highest_probability_person = 0
+                for i, target in enumerate(cluster_classifier.classes_):
+                    if highest_probability == cluster_probabilities[i]:
+                        highest_probability_person = target
+
+                if face.cluster != unknown_cluster:
+                    face.cluster_person = Person.objects.get(
+                        id=highest_probability_person
                     )
-                    face_encodings_unknown_np = np.array(page)
-                    probs = clf.predict_proba(face_encodings_unknown_np)
+                    face.cluster_probability = highest_probability
+
+                if classification_person:
+                    face.classification_person = Person.objects.get(
+                        id=classification_person
+                    )
+                    face.classification_probability = classification_probability
+
+                face_stack.append(face)
+                if commit_time < datetime.datetime.now():
+                    lrj.progress_current = idx + 1
+                    lrj.progress_target = target_count
+                    lrj.save()
                     commit_time = datetime.datetime.now() + datetime.timedelta(
                         seconds=5
                     )
+                if len(face_stack) > 200:
+                    bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
                     face_stack = []
 
-                    all_known_persons = Person.objects.filter(
-                        Q(cluster_owner=user) & Q(kind="USER")
-                    ).all()
+            bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
 
-                    all_known_person_ids = set(
-                        all_known_persons.values_list("id", flat=True)
-                    )
-
-                    unknown_cluster: Cluster = get_unknown_cluster(user=user)
-
-                    for idx, (face, probability_array) in enumerate(
-                        zip(pages_of_faces, probs)
-                    ):
-                        face.cluster_probability = 0.0  # Cluster probability
-                        face.classification_probability = (
-                            0.0  # Classification probability
-                        )
-                        classification_person = None
-                        classification_probability = 0.0
-
-                        # Find the person with the highest probability for classification
-                        for i, target in enumerate(clf.classes_):
-                            if (
-                                target in all_known_person_ids
-                                and probability_array[i] > classification_probability
-                            ):
-                                classification_person = target
-                                classification_probability = probability_array[i]
-
-                        # Find the probability in the probability array corresponding to the person
-                        # that we currently believe the face is, even a simulated "unknown" person
-                        highest_probability = max(probability_array)
-                        highest_probability_person = 0
-                        for i, target in enumerate(clf.classes_):
-                            if highest_probability == probability_array[i]:
-                                highest_probability_person = target
-
-                        if face.cluster != unknown_cluster:
-                            face.cluster_person = Person.objects.get(
-                                id=highest_probability_person
-                            )
-                            face.cluster_probability = highest_probability
-
-                        if classification_person:
-                            face.classification_person = Person.objects.get(
-                                id=classification_person
-                            )
-                            face.classification_probability = classification_probability
-
-                        face_stack.append(face)
-                        if commit_time < datetime.datetime.now():
-                            lrj.progress_current = idx + 1
-                            lrj.progress_target = target_count
-                            lrj.save()
-                            commit_time = datetime.datetime.now() + datetime.timedelta(
-                                seconds=5
-                            )
-                        if len(face_stack) > 200:
-                            bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-                            face_stack = []
-
-                    bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-
-            lrj.finished = True
-            lrj.failed = False
-            lrj.progress_current = target_count
-            lrj.progress_target = target_count
-            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            lrj.save()
-            return True
+        lrj.finished = True
+        lrj.failed = False
+        lrj.progress_current = target_count
+        lrj.progress_target = target_count
+        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+        lrj.save()
+        return True
 
     except BaseException as err:
         logger.exception("An error occurred")
