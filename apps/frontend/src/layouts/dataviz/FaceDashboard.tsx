@@ -19,6 +19,7 @@ import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubb
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FacesTab } from "../../store/faces/facesActions.types";
+import { AnalysisMethod } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
@@ -26,7 +27,9 @@ export function FaceDashboard() {
   const { ref, width } = useElementSize();
   const gridRef = useRef<any>();
 
-  const { activeTab, tabs } = useAppSelector(store => store.face);
+  const { activeTab, tabs, analysisMethod } = useAppSelector(store => store.face);
+
+  console.log(analysisMethod);
 
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
@@ -39,7 +42,7 @@ export function FaceDashboard() {
   const setScrollLocked = useScrollLock(false)[1];
 
   const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
-  const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true }).isFetching;
+  const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true, method: analysisMethod }).isFetching;
   const dispatch = useAppDispatch();
 
   const [groups, setGroups] = useState<
@@ -47,14 +50,11 @@ export function FaceDashboard() {
       page: number;
       person: any;
       inferred: boolean;
+      method: AnalysisMethod;
     }[]
   >([]);
 
-  const { inferredFacesList: nonCleanInferredFacesList, labeledFacesList } = useAppSelector(store => store.face);
-
-  // Filter the Person "Unknown - Other" from the inferredFacesList
-  // To-Do: This should not be in that list...
-  const inferredFacesList = nonCleanInferredFacesList.filter(person => person.kind === "CLUSTER");
+  const { inferredFacesList, labeledFacesList } = useAppSelector(store => store.face);
 
   const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
 
@@ -103,6 +103,7 @@ export function FaceDashboard() {
           page: element.page,
           inferred: element.inferred,
           orderBy,
+          method: element.method,
         },
         { forceRefetch: force }
       )
@@ -181,7 +182,7 @@ export function FaceDashboard() {
       .filter((i: any) => i.isTemp)
       .map((i: any) => {
         const page = Math.ceil((parseInt(i.id, 10) + 1) / 100);
-        return { page, person: i.person, inferred: !(activeTab === FacesTab.enum.labeled) };
+        return { page, person: i.person, inferred: !(activeTab === FacesTab.enum.labeled), method: analysisMethod };
       });
     const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => `${e.page} ${e.person}`);
     if (uniqueGroups.length > 0) {
