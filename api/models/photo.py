@@ -282,7 +282,8 @@ class Photo(models.Model):
             search_captions += user_caption + " "
 
         for face in api.models.face.Face.objects.filter(photo=self).all():
-            search_captions += face.person.name + " "
+            if face.person:
+                search_captions += face.person.name + " "
 
         for file in self.files.all():
             search_captions += file.path + " "
