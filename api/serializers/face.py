@@ -19,7 +19,10 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
         ]
 
     def get_person_label_probability(self, obj):
-        return obj.cluster_probability
+        if obj.analysis_method == "clustering":
+            return obj.cluster_probability
+        else:
+            return obj.classification_probability
 
     def get_face_url(self, obj):
         return obj.image.url
