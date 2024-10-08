@@ -26,14 +26,14 @@ export function TabComponent({ width, fetchingLabeledFacesList, fetchingInferred
     <Group position="apart">
       <Tabs defaultValue={activeTab} style={{ width }} onTabChange={changeTab}>
         <Tabs.List>
-          <FacesCountersHoverCard tab={FacesTab.enum.labeled}>
-            <Tabs.Tab value={FacesTab.enum.labeled}>
-              {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
-            </Tabs.Tab>
-          </FacesCountersHoverCard>
           <FacesCountersHoverCard tab={FacesTab.enum.inferred}>
             <Tabs.Tab value={FacesTab.enum.inferred}>
               {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
+            </Tabs.Tab>
+          </FacesCountersHoverCard>
+          <FacesCountersHoverCard tab={FacesTab.enum.labeled}>
+            <Tabs.Tab value={FacesTab.enum.labeled}>
+              {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
             </Tabs.Tab>
           </FacesCountersHoverCard>
         </Tabs.List>
