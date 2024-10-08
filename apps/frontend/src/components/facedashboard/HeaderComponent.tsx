@@ -16,7 +16,6 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
-import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
@@ -76,7 +75,6 @@ export function HeaderComponent({
   const confirmFacesAssociation = () => {
     const facesToAddIDs = cell.faces.map(i => i.id);
     dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: facesToAddIDs, personName: cell.name }));
-    notification.addFacesToPerson(cell.name, facesToAddIDs.length);
   };
 
   useEffect(() => {

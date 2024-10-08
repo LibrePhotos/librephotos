@@ -96,7 +96,6 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                   personName: newPersonName,
                 })
               );
-              notification.addFacesToPerson(newPersonName, selectedFaceIDs.length);
               if (resetGroups) {
                 resetGroups();
               }
@@ -137,7 +136,6 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                       personName: item.text,
                     })
                   );
-                  notification.addFacesToPerson(item.text, selectedFaceIDs.length);
                   onRequestClose();
                 }}
               >

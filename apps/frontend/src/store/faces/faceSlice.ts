@@ -2,7 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import { api } from "../../api_client/api";
-import { FacesOrderOption, FacesTab } from "./facesActions.types";
+import { notification } from "../../service/notifications";
+import { FaceAnalysisMethod, FacesOrderOption, FacesTab } from "./facesActions.types";
 import type {
   ICompletePersonFace,
   ICompletePersonFaceList,
@@ -22,8 +23,9 @@ const initialState: IFacesState = {
   clustering: false,
   clustered: false,
   orderBy: FacesOrderOption.enum.confidence,
+  analysisMethod: FaceAnalysisMethod.enum.clustering,
   error: null,
-  activeTab: FacesTab.enum.labeled,
+  activeTab: FacesTab.enum.inferred,
   tabs: {
     labeled: { scrollPosition: 0 },
     inferred: { scrollPosition: 0 },
@@ -112,6 +114,9 @@ const faceSlice = createSlice({
       state.inferredFacesList.forEach(element => {
         sortFaces(element.faces, state.orderBy);
       });
+    },
+    changeShowType: (state, action: PayloadAction<FaceAnalysisMethod>) => {
+      state.analysisMethod = action.payload;
     },
   },
   extraReducers: builder => {
@@ -212,6 +217,7 @@ const faceSlice = createSlice({
         });
       })
       .addMatcher(api.endpoints.setFacesPersonLabel.matchFulfilled, (state, { payload }) => {
+        notification.addFacesToPerson(payload.results[0].person_name, payload.results.length);
         const facesToRemove = payload.results;
         const facesToAdd = payload.results;
         const newLabeledFacesList = state.labeledFacesList;
