@@ -1,6 +1,6 @@
 import uuid
 
-from django.db.models import Case, Count, IntegerField, Q, When
+from django.db.models import Case, CharField, Count, IntegerField, Q, Value, When
 from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -73,7 +73,7 @@ class FaceListView(ListViewSet):
 
     def get_queryset(self):
         personid = self.request.query_params.get("person")
-        order_by = ["-cluster_probability", "id"]
+
         conditional_filter = Q(person=personid)
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
         if (
@@ -81,22 +81,32 @@ class FaceListView(ListViewSet):
             and self.request.query_params.get("inferred").lower() == "true"
         ):
             if analysis_method == "classification":
-                conditional_filter = Q(classification_person=personid)
+                conditional_filter = Q(classification_person=personid) & Q(person=None)
+                order_by = ["-classification_probability", "id"]
             if analysis_method == "clustering":
-                conditional_filter = Q(cluster_person=personid)
+                conditional_filter = Q(cluster_person=personid) & Q(person=None)
+                order_by = ["-cluster_probability", "id"]
         if self.request.query_params.get("order_by"):
             if self.request.query_params.get("order_by").lower() == "date":
-                order_by = [
-                    "photo__exif_timestamp",
-                    "-cluster_probability",
-                    "id",
-                ]
+                if analysis_method == "classification":
+                    order_by = [
+                        "photo__exif_timestamp",
+                        "-classification_probability",
+                        "id",
+                    ]
+                if analysis_method == "clustering":
+                    order_by = [
+                        "photo__exif_timestamp",
+                        "-cluster_probability",
+                        "id",
+                    ]
         return (
             Face.objects.filter(
                 Q(photo__owner=self.request.user),
                 Q(deleted=False),
                 conditional_filter,
             )
+            .annotate(analysis_method=Value(analysis_method, output_field=CharField()))
             .prefetch_related("photo")
             .order_by(*order_by)
         )
@@ -126,7 +136,8 @@ class FaceIncompleteListViewSet(ListViewSet):
                 conditional_count = Count(
                     Case(
                         When(
-                            Q(classification_faces__deleted=False),
+                            Q(classification_faces__deleted=False)
+                            & Q(classification_faces__person=None),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -136,7 +147,8 @@ class FaceIncompleteListViewSet(ListViewSet):
                 conditional_count = Count(
                     Case(
                         When(
-                            Q(cluster_faces__deleted=False),
+                            Q(cluster_faces__deleted=False)
+                            & Q(cluster_faces__person=None),
                             then=1,
                         ),
                         output_field=IntegerField(),
