@@ -187,6 +187,9 @@ urlpatterns = [
     re_path(
         r"^api/photosedit/duplicate/delete", photos.DeleteDuplicatePhotos.as_view()
     ),
+    re_path(
+        r"^api/deletephotosaftermonth", photos.DeletePhotosOlderThanOneMonth.as_view()
+    ),
     re_path(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
     re_path(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
     re_path(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),

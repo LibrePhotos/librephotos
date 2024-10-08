@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db.models import Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
@@ -21,6 +23,38 @@ from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
+
+
+class DeletePhotosOlderThanOneMonth(APIView):
+    def delete(self, request):
+        data = dict(request.data)
+        photos = Photo.objects.in_bulk(data["image_hashes"])
+        current_date = datetime.now()
+
+        deleted = []
+        not_deleted = []
+        for photo in photos.values():
+            if (
+                photo.owner == request.user
+                and photo.deleted
+                and photo.moved_to_trash_on
+                and photo.moved_to_trash_on.year <= current_date.year
+                and photo.moved_to_trash_on.month < current_date.month
+                and photo.moved_to_trash_on.day <= current_date.day
+            ):
+                deleted.append(photo.image_hash)
+                photo.manual_delete()
+            else:
+                not_deleted.append(photo.image_hash)
+
+        return Response(
+            {
+                "status": True,
+                "results": deleted,
+                "not_deleted": not_deleted,
+                "deleted": deleted,
+            }
+        )
 
 
 class RecentlyAddedPhotoListViewSet(ListViewSet):
