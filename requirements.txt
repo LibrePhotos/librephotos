@@ -23,7 +23,7 @@ hdbscan==0.8.38.post2
 matplotlib==3.9.2
 networkx==3.3
 nltk==3.9.1
-markupsafe==3.0.0
+markupsafe==3.0.1
 Pillow==10.4.0
 psycopg==3.2.3
 https://github.com/owncloud/pyocclient/archive/master.zip
