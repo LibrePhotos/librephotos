@@ -206,14 +206,14 @@ export const api = createApi({
       }),
     }),
     [Endpoints.incompleteFaces]: builder.query<IIncompletePersonFaceListResponse, IIncompletePersonFaceListRequest>({
-      query: ({ inferred = false }) => ({
-        url: `faces/incomplete/?inferred=${inferred}`,
+      query: ({ inferred = false, method = "clustering" }) => ({
+        url: `faces/incomplete/?inferred=${inferred}${inferred ? `&analysis_method=${method}` : ""}`,
       }),
       providesTags: ["Faces"],
     }),
     [Endpoints.fetchFaces]: builder.query<IPersonFaceListResponse, IPersonFaceListRequest>({
-      query: ({ person, page = 0, inferred = false, orderBy = "confidence" }) => ({
-        url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}`,
+      query: ({ person, page = 0, inferred = false, orderBy = "confidence", method = "clustering" }) => ({
+        url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}${inferred ? `&analysis_method=${method}` : ""}`,
       }),
       providesTags: ["Faces"],
     }),
@@ -251,6 +251,7 @@ export const api = createApi({
         method: "POST",
         body: { person_name: personName, face_ids: faceIds },
       }),
+      invalidatesTags: ["PeopleAlbums"],
     }),
     [Endpoints.fetchServerStats]: builder.query<ServerStatsResponseType, void>({
       query: () => ({
