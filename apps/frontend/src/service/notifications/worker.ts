@@ -10,6 +10,15 @@ function jobFinished(title: string, job: string) {
   });
 }
 
+function requestFailed(title: string, message: string) {
+  showNotification({
+    message,
+    title,
+    color: "red",
+  });
+}
+
 export const worker = {
   jobFinished,
+  requestFailed,
 };
