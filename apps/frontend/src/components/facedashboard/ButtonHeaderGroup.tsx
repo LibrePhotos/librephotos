@@ -46,7 +46,7 @@ export function ButtonHeaderGroup({
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
   const { data: worker } = useWorkerQuery();
-  const { orderBy, show } = useAppSelector(store => store.face);
+  const { orderBy, analysisMethod, activeTab } = useAppSelector(store => store.face);
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
@@ -56,7 +56,7 @@ export function ButtonHeaderGroup({
   };
 
   const changeShowType = (value: string) => {
-    dispatch(faceActions.changeShowType(value as FaceAnalysisMethod));
+    dispatch(faceActions.changeAnalysisMethod(value as FaceAnalysisMethod));
   };
 
   useEffect(() => {
@@ -96,25 +96,29 @@ export function ButtonHeaderGroup({
               },
             ]}
           />
-          <Text size="sm" weight={500} mb={3}>
-            {t("facesdashboard.show")}
-          </Text>
-          <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-          <SegmentedControl
-            size="sm"
-            value={show}
-            onChange={changeShowType}
-            data={[
-              {
-                label: t("facesdashboard.clusters"),
-                value: FaceAnalysisMethod.enum.clustering,
-              },
-              {
-                label: t("facesdashboard.classifications"),
-                value: FaceAnalysisMethod.enum.classification,
-              },
-            ]}
-          />
+          {activeTab == "inferred" && (
+            <div style={{ display: "contents" }}>
+              <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
+              <Text size="sm" weight={500} mb={3}>
+                {t("facesdashboard.show")}
+              </Text>
+              <SegmentedControl
+                size="sm"
+                value={analysisMethod}
+                onChange={changeShowType}
+                data={[
+                  {
+                    label: t("facesdashboard.clusters"),
+                    value: FaceAnalysisMethod.enum.clustering,
+                  },
+                  {
+                    label: t("facesdashboard.classifications"),
+                    value: FaceAnalysisMethod.enum.classification,
+                  },
+                ]}
+              />
+            </div>
+          )}
         </Group>
         <Group>
           <Tooltip label={t("facesdashboard.explanationadding")}>

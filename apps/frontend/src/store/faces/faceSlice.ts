@@ -115,7 +115,7 @@ const faceSlice = createSlice({
         sortFaces(element.faces, state.orderBy);
       });
     },
-    changeShowType: (state, action: PayloadAction<FaceAnalysisMethod>) => {
+    changeAnalysisMethod: (state, action: PayloadAction<FaceAnalysisMethod>) => {
       state.analysisMethod = action.payload;
     },
   },

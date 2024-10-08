@@ -29,8 +29,6 @@ export function FaceDashboard() {
 
   const { activeTab, tabs, analysisMethod } = useAppSelector(store => store.face);
 
-  console.log(analysisMethod);
-
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
