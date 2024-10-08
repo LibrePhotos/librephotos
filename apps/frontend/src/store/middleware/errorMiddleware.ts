@@ -9,7 +9,15 @@ export const errorMiddleware: Middleware =
   ({ dispatch }: MiddlewareAPI) =>
   next =>
   action => {
+    console.log("action", action);
     if (isRejectedWithValue(action)) {
+      console.log("isRejectedWithValue", action);
+      if (action.payload.originalStatus === 500) {
+        notification.requestFailed(
+          `500 (Internal Server Error) for ${action.meta.arg.endpointName}`,
+          "Something went wrong on the server. Please open up the network tab in your browser's developer tools and report this issue on GitHub."
+        );
+      }
       if (action.meta.arg.endpointName in Endpoints) {
         const {
           data: { errors },
