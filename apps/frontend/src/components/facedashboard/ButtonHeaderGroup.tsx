@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
-import { FacesOrderOption } from "../../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesOrderOption } from "../../store/faces/facesActions.types";
 import type { IFacesOrderOption } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
@@ -46,13 +46,17 @@ export function ButtonHeaderGroup({
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
   const { data: worker } = useWorkerQuery();
-  const { orderBy } = useAppSelector(store => store.face);
+  const { orderBy, show } = useAppSelector(store => store.face);
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
 
   const setOrderBy = (value: string) => {
     dispatch(faceActions.changeFacesOrderBy(value as IFacesOrderOption));
+  };
+
+  const changeShowType = (value: string) => {
+    dispatch(faceActions.changeShowType(value as FaceAnalysisMethod));
   };
 
   useEffect(() => {
@@ -89,6 +93,25 @@ export function ButtonHeaderGroup({
               {
                 label: t("facesdashboard.sortbydate"),
                 value: FacesOrderOption.enum.date,
+              },
+            ]}
+          />
+          <Text size="sm" weight={500} mb={3}>
+            {t("facesdashboard.show")}
+          </Text>
+          <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
+          <SegmentedControl
+            size="sm"
+            value={show}
+            onChange={changeShowType}
+            data={[
+              {
+                label: t("facesdashboard.clusters"),
+                value: FaceAnalysisMethod.enum.clustering,
+              },
+              {
+                label: t("facesdashboard.classifications"),
+                value: FaceAnalysisMethod.enum.classification,
               },
             ]}
           />
