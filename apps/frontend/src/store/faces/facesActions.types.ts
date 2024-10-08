@@ -9,6 +9,7 @@ export type IFacesState = {
   clustering: boolean;
   clustered: boolean;
   orderBy: IFacesOrderOption;
+  analysisMethod: FaceAnalysisMethod;
   error: any;
   activeTab: IFacesTab;
   tabs: ITabSettingsArray;
@@ -27,6 +28,9 @@ export type ITabSettingsArray = z.infer<typeof TabSettingsArray>;
 export const FacesOrderOption = z.enum(["confidence", "date"]);
 export type IFacesOrderOption = z.infer<typeof FacesOrderOption>;
 
+export const FaceAnalysisMethod = z.enum(["clustering", "classification"]);
+export type FaceAnalysisMethod = z.infer<typeof FaceAnalysisMethod>;
+
 export const IncompletePersonFace = z.object({
   id: z.number(),
   name: z.string(),
@@ -39,6 +43,7 @@ export const IncompletePersonFaceListResponse = IncompletePersonFaceList;
 export type IIncompletePersonFaceListResponse = z.infer<typeof IncompletePersonFaceListResponse>;
 export const IncompletePersonFaceListRequest = z.object({
   inferred: z.boolean(),
+  method: FaceAnalysisMethod.optional(),
 });
 export type IIncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
 
@@ -66,6 +71,7 @@ export const PersonFaceListRequest = z.object({
   page: z.number(),
   inferred: z.boolean(),
   orderBy: FacesOrderOption,
+  method: FaceAnalysisMethod.optional(),
 });
 export type IPersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
 
