@@ -214,7 +214,9 @@ def get_search_term_examples(user):
             terms_time = [str(p.exif_timestamp.year)]
         terms_people = []
         if p.faces.count() > 0:
-            terms_people = [f.person.name.split(" ")[0] for f in faces]
+            terms_people = [
+                f.person.name.split(" ")[0] if f.person else "" for f in faces
+            ]
         terms_things = ""
         if p.captions_json and p.captions_json["places365"] is not None:
             terms_things = p.captions_json["places365"]["categories"]
