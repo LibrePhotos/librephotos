@@ -300,6 +300,19 @@ class PhotoSerializer(serializers.ModelSerializer):
                         else ("classification" if f.classification_person else "")
                     )
                 ),
+                "probability": (
+                    1
+                    if f.person
+                    else (
+                        f.cluster_probability
+                        if f.cluster_person
+                        else (
+                            f.classification_probability
+                            if f.classification_person
+                            else 0
+                        )
+                    )
+                ),
                 "face_url": f.image.url,
                 "face_id": f.id,
             }
