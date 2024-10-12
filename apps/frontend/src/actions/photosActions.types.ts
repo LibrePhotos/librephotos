@@ -42,7 +42,13 @@ export const PhotoHashSchema = z.object({
   video: z.boolean(),
 });
 
-export const PeopleSchema = z.object({ name: z.string(), face_url: z.string(), face_id: z.number() });
+export const PeopleSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  probability: z.number(),
+  face_url: z.string(),
+  face_id: z.number(),
+});
 
 export const PhotoSchema = z.object({
   camera: z.string().nullable(),

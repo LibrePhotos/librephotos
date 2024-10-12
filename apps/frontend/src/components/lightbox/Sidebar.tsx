@@ -1,8 +1,9 @@
-import { ActionIcon, Avatar, Box, Button, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Avatar, Box, Button, Group, Indicator, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 // only needs to be imported once
 import {
   IconEdit as Edit,
+  IconQuestionMark,
   IconMap2 as Map2,
   IconPhoto as Photo,
   IconUserOff as UserOff,
@@ -22,6 +23,8 @@ import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
+import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
+import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { Description } from "./Description";
 import { TimestampItem } from "./TimestampItem";
@@ -121,42 +124,60 @@ export function Sidebar(props: Props) {
                 <Users />
                 <Title order={4}>{t("lightbox.sidebar.people")}</Title>
               </Group>
-              {photoDetail.people.map(nc => (
-                <Group position="center" spacing="xs" key={`${nc.name}`}>
-                  <Button
-                    variant="subtle"
-                    leftIcon={<Avatar radius="xl" src={serverAddress + nc.face_url} />}
-                    onClick={() => {
-                      if (isPublic) {
-                        return;
+              {photoDetail.people.map(nc => {
+                const [tooltipOpened, setTooltipOpened] = useState(false);
+                return (
+                  <Group position="center" spacing="xs" key={`${nc.name}`}>
+                    <Button
+                      variant="subtle"
+                      leftIcon={
+                        <FaceTooltip tooltipOpened={tooltipOpened} probability={nc.probability}>
+                          <Indicator
+                            color={calculateProbabiltyColor(nc.probability)}
+                            disabled={nc.type == "user"}
+                            onMouseEnter={() => {
+                              if (nc.type != "user") {
+                                setTooltipOpened(true);
+                              }
+                            }}
+                            onMouseLeave={() => setTooltipOpened(false)}
+                          >
+                            <Avatar radius="xl" src={serverAddress + nc.face_url}></Avatar>
+                          </Indicator>
+                        </FaceTooltip>
                       }
-                      dispatch(push(`/search/${nc.name}`));
-                    }}
-                  >
-                    <Text align="center" size="sm">
-                      {nc.name}
-                    </Text>
-                  </Button>
-                  {!isPublic && (
-                    <ActionIcon
                       onClick={() => {
-                        setSelectedFaces([{ face_id: nc.face_id, face_url: nc.face_url }]);
-                        setPersonEditOpen(true);
+                        if (isPublic) {
+                          return;
+                        }
+                        dispatch(push(`/search/${nc.name}`));
                       }}
-                      variant="light"
                     >
-                      <Edit size={17} />
-                    </ActionIcon>
-                  )}
-                  {!isPublic && (
-                    <Tooltip label={t("facesdashboard.notthisperson")}>
-                      <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(nc.face_id)}>
-                        <UserOff />
+                      <Text align="center" size="sm">
+                        {nc.name}
+                      </Text>
+                    </Button>
+                    {!isPublic && (
+                      <ActionIcon
+                        onClick={() => {
+                          setSelectedFaces([{ face_id: nc.face_id, face_url: nc.face_url }]);
+                          setPersonEditOpen(true);
+                        }}
+                        variant="light"
+                      >
+                        <Edit size={17} />
                       </ActionIcon>
-                    </Tooltip>
-                  )}
-                </Group>
-              ))}
+                    )}
+                    {!isPublic && (
+                      <Tooltip label={t("facesdashboard.notthisperson")}>
+                        <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(nc.face_id)}>
+                          <UserOff />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+                  </Group>
+                );
+              })}
             </Stack>
           )}
 
