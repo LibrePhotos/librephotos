@@ -76,6 +76,7 @@ class FaceListView(ListViewSet):
 
         conditional_filter = Q(person=personid)
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
+        order_by = ["-id"]
         if (
             self.request.query_params.get("inferred")
             and self.request.query_params.get("inferred").lower() == "true"
