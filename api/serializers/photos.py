@@ -277,7 +277,32 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_people(self, obj) -> list:
         return [
-            {"name": f.person.name, "face_url": f.image.url, "face_id": f.id}
+            {
+                "name": (
+                    f.person.name
+                    if f.person
+                    else (
+                        f.cluster_person.name
+                        if f.cluster_person
+                        else (
+                            f.classification_person.name
+                            if f.classification_person
+                            else ""
+                        )
+                    )
+                ),
+                "type": (
+                    "user"
+                    if f.person
+                    else (
+                        "cluster"
+                        if f.cluster_person
+                        else ("classification" if f.classification_person else "")
+                    )
+                ),
+                "face_url": f.image.url,
+                "face_id": f.id,
+            }
             for f in obj.faces.all()
         ]
 
