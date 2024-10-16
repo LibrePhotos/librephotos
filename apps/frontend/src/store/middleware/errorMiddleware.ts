@@ -9,9 +9,7 @@ export const errorMiddleware: Middleware =
   ({ dispatch }: MiddlewareAPI) =>
   next =>
   action => {
-    console.log("action", action);
     if (isRejectedWithValue(action)) {
-      console.log("isRejectedWithValue", action);
       if (action.payload.originalStatus === 500) {
         notification.requestFailed(
           `500 (Internal Server Error) for ${action.meta.arg.endpointName}`,
