@@ -124,7 +124,7 @@ class AlbumPersonListSerializer(serializers.ModelSerializer):
         return obj.filter(Q(person__is_null=False)).faces.count()
 
     def get_cover_photo_url(self, obj) -> str:
-        first_face = obj.faces.filter(Q(personn__is_null=False)).first()
+        first_face = obj.faces.filter(Q(person__is_null=False)).first()
         if first_face:
             return first_face.photo.square_thumbnail.url
         else:
