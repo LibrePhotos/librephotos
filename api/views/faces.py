@@ -72,35 +72,29 @@ class FaceListView(ListViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
-        personid = self.request.query_params.get("person")
-
-        conditional_filter = Q(person=personid)
+        personid = self.request.query_params.get("person", None)
+        if personid == "None":
+            personid = None
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
-        order_by = ["-id"]
+
         if (
-            self.request.query_params.get("inferred")
-            and self.request.query_params.get("inferred").lower() == "true"
+            self.request.query_params.get("inferred", "").lower() == "false"
+            and personid
         ):
-            if analysis_method == "classification":
-                conditional_filter = Q(classification_person=personid) & Q(person=None)
-                order_by = ["-classification_probability", "id"]
-            if analysis_method == "clustering":
-                conditional_filter = Q(cluster_person=personid) & Q(person=None)
-                order_by = ["-cluster_probability", "id"]
-        if self.request.query_params.get("order_by"):
-            if self.request.query_params.get("order_by").lower() == "date":
-                if analysis_method == "classification":
-                    order_by = [
-                        "photo__exif_timestamp",
-                        "-classification_probability",
-                        "id",
-                    ]
-                if analysis_method == "clustering":
-                    order_by = [
-                        "photo__exif_timestamp",
-                        "-cluster_probability",
-                        "id",
-                    ]
+            analysis_method = None
+        if analysis_method == "classification":
+            print("classification")
+            conditional_filter = Q(classification_person=personid) & Q(person=None)
+            order_by = ["-classification_probability", "id"]
+        if analysis_method == "clustering":
+            conditional_filter = Q(cluster_person=personid) & Q(person=None)
+            order_by = ["-cluster_probability", "id"]
+        if not analysis_method:
+            conditional_filter = Q(person=personid)
+            order_by = ["-id"]
+        if self.request.query_params.get("order_by", "").lower() == "date":
+            order_by = ["photo__exif_timestamp", *order_by]
+        print(conditional_filter)
         return (
             Face.objects.filter(
                 Q(photo__owner=self.request.user),
