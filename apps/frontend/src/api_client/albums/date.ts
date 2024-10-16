@@ -43,7 +43,6 @@ export const dateAlbumsApi = api
         transformResponse: response => {
           const { results } = FetchDateAlbumsListResponseSchema.parse(response);
           addTempElementsToGroups(results);
-
           return results;
         },
       }),

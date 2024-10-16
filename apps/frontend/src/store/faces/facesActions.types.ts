@@ -1,32 +1,36 @@
+import { orderBy } from "lodash";
 import { z } from "zod";
 
-export type IFacesState = {
-  labeledFacesList: ICompletePersonFaceList;
-  inferredFacesList: ICompletePersonFaceList;
+import { faces } from "../../service/notifications/faces";
+
+export type FacesState = {
+  labeledFacesList: CompletePersonFaceList;
+  unknownFacesList: CompletePersonFaceList;
+  inferredFacesList: CompletePersonFaceList;
   facesVis: any[];
   training: boolean;
   trained: boolean;
   clustering: boolean;
   clustered: boolean;
-  orderBy: IFacesOrderOption;
+  orderBy: FacesOrderOption;
   analysisMethod: FaceAnalysisMethod;
   error: any;
-  activeTab: IFacesTab;
-  tabs: ITabSettingsArray;
+  activeTab: FacesTab;
+  tabs: TabSettingsArray;
 };
 
-export const FacesTab = z.enum(["labeled", "inferred"]);
-export type IFacesTab = z.infer<typeof FacesTab>;
+export const FacesTab = z.enum(["labeled", "inferred", "unknown"]);
+export type FacesTab = z.infer<typeof FacesTab>;
 
 export const TabSettings = z.object({
   scrollPosition: z.number(),
 });
-export type ITabSettings = z.infer<typeof TabSettings>;
+export type TabSettings = z.infer<typeof TabSettings>;
 export const TabSettingsArray = z.record(FacesTab, TabSettings);
-export type ITabSettingsArray = z.infer<typeof TabSettingsArray>;
+export type TabSettingsArray = z.infer<typeof TabSettingsArray>;
 
 export const FacesOrderOption = z.enum(["confidence", "date"]);
-export type IFacesOrderOption = z.infer<typeof FacesOrderOption>;
+export type FacesOrderOption = z.infer<typeof FacesOrderOption>;
 
 export const FaceAnalysisMethod = z.enum(["clustering", "classification"]);
 export type FaceAnalysisMethod = z.infer<typeof FaceAnalysisMethod>;
@@ -40,12 +44,13 @@ export const IncompletePersonFace = z.object({
 
 export const IncompletePersonFaceList = z.array(IncompletePersonFace);
 export const IncompletePersonFaceListResponse = IncompletePersonFaceList;
-export type IIncompletePersonFaceListResponse = z.infer<typeof IncompletePersonFaceListResponse>;
+export type IncompletePersonFaceListResponse = z.infer<typeof IncompletePersonFaceListResponse>;
 export const IncompletePersonFaceListRequest = z.object({
   inferred: z.boolean(),
   method: FaceAnalysisMethod.optional(),
+  orderBy: FacesOrderOption,
 });
-export type IIncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
+export type IncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
 
 export const PersonFace = z.object({
   id: z.number(),
@@ -56,24 +61,27 @@ export const PersonFace = z.object({
   isTemp: z.boolean().optional(),
   person: z.number().optional(),
   person_name: z.string().optional(),
-  timestamp: z.string().optional(),
+  timestamp: z.string().optional().nullable(),
 });
-export type IPersonFace = z.infer<typeof PersonFace>;
+export type PersonFace = z.infer<typeof PersonFace>;
+export type PersonFaceList = z.infer<typeof PersonFaceList>;
 
 export const PersonFaceListResponse = z.object({
-  data: z.object({
-    results: z.array(PersonFace),
-  }),
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  results: z.array(PersonFace),
 });
-export type IPersonFaceListResponse = z.infer<typeof CompletePersonFace>;
+export type PersonFaceListResponse = z.infer<typeof CompletePersonFace>;
 export const PersonFaceListRequest = z.object({
-  person: z.number(),
+  person: z.number().optional(),
   page: z.number(),
   inferred: z.boolean(),
   orderBy: FacesOrderOption,
   method: FaceAnalysisMethod.optional(),
 });
-export type IPersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
+
+export type PersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
 
 export const PersonFaceList = z.array(PersonFace);
 
@@ -84,9 +92,9 @@ export const CompletePersonFace = z.object({
   face_count: z.number(),
   faces: PersonFaceList,
 });
-export type ICompletePersonFace = z.infer<typeof CompletePersonFace>;
+export type CompletePersonFace = z.infer<typeof CompletePersonFace>;
 export const CompletePersonFaceList = z.array(CompletePersonFace);
-export type ICompletePersonFaceList = z.infer<typeof CompletePersonFaceList>;
+export type CompletePersonFaceList = z.infer<typeof CompletePersonFaceList>;
 
 export const Face = z.object({
   id: z.number(),
@@ -99,18 +107,18 @@ export const Face = z.object({
 
 export const FaceList = z.array(Face);
 
-export type INotThisPersonRequest = z.infer<typeof NotThisPersonRequest>;
+export type NotThisPersonRequest = z.infer<typeof NotThisPersonRequest>;
 export const NotThisPersonRequest = z.object({
   faceIds: z.array(z.number()),
 });
 
-export type ISetFacesLabelRequest = z.infer<typeof SetFacesLabelRequest>;
+export type SetFacesLabelRequest = z.infer<typeof SetFacesLabelRequest>;
 export const SetFacesLabelRequest = z.object({
   faceIds: z.array(z.number()),
   personName: z.string(),
 });
 
-export type ISetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
+export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
 export const SetFacesLabelResponse = z.object({
   status: z.boolean(),
   results: PersonFaceList,
@@ -118,12 +126,12 @@ export const SetFacesLabelResponse = z.object({
   not_updated: PersonFaceList,
 });
 
-export type IDeleteFacesRequest = z.infer<typeof DeleteFacesRequest>;
+export type DeleteFacesRequest = z.infer<typeof DeleteFacesRequest>;
 export const DeleteFacesRequest = z.object({
   faceIds: z.array(z.number()),
 });
 
-export type IDeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
+export type DeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
 // To-Do: Should be siilar to SetFacesLabelResponse
 export const DeleteFacesResponse = z.object({
   status: z.boolean(),
@@ -132,14 +140,14 @@ export const DeleteFacesResponse = z.object({
   not_deleted: z.array(z.string()),
 });
 
-export type ITrainFacesResponse = z.infer<typeof TrainFacesResponse>;
+export type TrainFacesResponse = z.infer<typeof TrainFacesResponse>;
 export const TrainFacesResponse = z.object({
   status: z.boolean(),
   // To-Do: Why is it not a number?!?!
   job_id: z.string().optional(),
 });
 
-export type IScanFacesResponse = z.infer<typeof ScanFacesResponse>;
+export type ScanFacesResponse = z.infer<typeof ScanFacesResponse>;
 export const ScanFacesResponse = z.object({
   status: z.boolean(),
   // To-Do: Why is it not a number?!?!
@@ -164,7 +172,7 @@ export const ClusterFaceDatapoint = z.object({
 
 export const ClusterFaces = z.array(ClusterFaceDatapoint);
 
-export type IClusterFacesResponse = z.infer<typeof ClusterFacesResponse>;
+export type ClusterFacesResponse = z.infer<typeof ClusterFacesResponse>;
 export const ClusterFacesResponse = z.object({
   status: z.boolean(),
   data: ClusterFaces,

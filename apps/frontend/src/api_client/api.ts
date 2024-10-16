@@ -12,18 +12,21 @@ import type {
   UserSignupResponse,
 } from "../store/auth/auth.zod";
 import { ApiLoginResponseSchema, UserSignupResponseSchema } from "../store/auth/auth.zod";
-import type {
-  IClusterFacesResponse,
-  IDeleteFacesRequest,
-  IDeleteFacesResponse,
-  IIncompletePersonFaceListRequest,
-  IIncompletePersonFaceListResponse,
-  IPersonFaceListRequest,
-  IPersonFaceListResponse,
-  IScanFacesResponse,
-  ISetFacesLabelRequest,
-  ISetFacesLabelResponse,
-  ITrainFacesResponse,
+import {
+  ClusterFacesResponse,
+  CompletePersonFace,
+  CompletePersonFaceList,
+  DeleteFacesRequest,
+  DeleteFacesResponse,
+  IncompletePersonFaceListRequest,
+  IncompletePersonFaceListResponse,
+  PersonFaceList,
+  PersonFaceListRequest,
+  PersonFaceListResponse,
+  ScanFacesResponse,
+  SetFacesLabelRequest,
+  SetFacesLabelResponse,
+  TrainFacesResponse,
 } from "../store/faces/facesActions.types";
 import type { IUploadOptions, IUploadResponse } from "../store/upload/upload.zod";
 import { UploadExistResponse, UploadResponse } from "../store/upload/upload.zod";
@@ -205,24 +208,70 @@ export const api = createApi({
         method: "GET",
       }),
     }),
-    [Endpoints.incompleteFaces]: builder.query<IIncompletePersonFaceListResponse, IIncompletePersonFaceListRequest>({
-      query: ({ inferred = false, method = "clustering" }) => ({
-        url: `faces/incomplete/?inferred=${inferred}${inferred ? `&analysis_method=${method}` : ""}`,
+    [Endpoints.incompleteFaces]: builder.query<CompletePersonFaceList, IncompletePersonFaceListRequest>({
+      query: ({ inferred = false, method = "clustering", orderBy = "confidence" }) => ({
+        url: `faces/incomplete/?inferred=${inferred}${inferred ? `&analysis_method=${method}&order_by=${orderBy}` : ""}`,
       }),
       providesTags: ["Faces"],
+      transformResponse: response => {
+        const payload = IncompletePersonFaceListResponse.parse(response);
+        const newFacesList: CompletePersonFaceList = payload.map(person => {
+          const completePersonFace: CompletePersonFace = { ...person, faces: [] };
+          for (let i = 0; i < person.face_count; i += 1) {
+            completePersonFace.faces.push({
+              id: i,
+              image: null,
+              face_url: null,
+              photo: "",
+              person_label_probability: 1,
+              person: person.id,
+              isTemp: true,
+            });
+          }
+          return completePersonFace;
+        });
+        return newFacesList;
+      },
     }),
-    [Endpoints.fetchFaces]: builder.query<IPersonFaceListResponse, IPersonFaceListRequest>({
-      query: ({ person, page = 0, inferred = false, orderBy = "confidence", method = "clustering" }) => ({
-        url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}${inferred ? `&analysis_method=${method}` : ""}`,
+    [Endpoints.fetchFaces]: builder.query<PersonFaceList, PersonFaceListRequest>({
+      query: ({ person, page = 0, inferred = false, orderBy = "confidence", method }) => ({
+        url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}${method ? `&analysis_method=${method}` : ""}`,
       }),
+      transformResponse: (response: any) => {
+        const parsedResponse = PersonFaceListResponse.parse(response);
+        return parsedResponse.results;
+      },
+      async onQueryStarted(options, { dispatch, queryFulfilled }) {
+        const { data } = await queryFulfilled;
+        dispatch(
+          api.util.updateQueryData(
+            Endpoints.incompleteFaces,
+            { method: options.method, orderBy: options.orderBy, inferred: options.inferred },
+            draft => {
+              const indexToReplace = draft.findIndex(group => group.id === options.person);
+              const groupToChange = draft[indexToReplace];
+              if (!groupToChange) return;
+
+              const { faces } = groupToChange;
+              groupToChange.faces = faces
+                .slice(0, (options.page - 1) * 100)
+                .concat(data)
+                .concat(faces.slice(options.page * 100));
+
+              // eslint-disable-next-line no-param-reassign
+              draft[indexToReplace] = groupToChange;
+            }
+          )
+        );
+      },
       providesTags: ["Faces"],
     }),
-    [Endpoints.clusterFaces]: builder.query<IClusterFacesResponse, void>({
+    [Endpoints.clusterFaces]: builder.query<ClusterFacesResponse, void>({
       query: () => ({
         url: "/clusterfaces",
       }),
     }),
-    [Endpoints.rescanFaces]: builder.query<IScanFacesResponse, void>({
+    [Endpoints.rescanFaces]: builder.query<ScanFacesResponse, void>({
       query: () => ({
         url: "/scanfaces",
       }),
@@ -232,20 +281,20 @@ export const api = createApi({
         url: "/autoalbumtitlegen",
       }),
     }),
-    [Endpoints.trainFaces]: builder.mutation<ITrainFacesResponse, void>({
+    [Endpoints.trainFaces]: builder.mutation<TrainFacesResponse, void>({
       query: () => ({
         url: "/trainfaces",
         method: "POST",
       }),
     }),
-    [Endpoints.deleteFaces]: builder.mutation<IDeleteFacesResponse, IDeleteFacesRequest>({
+    [Endpoints.deleteFaces]: builder.mutation<DeleteFacesResponse, DeleteFacesRequest>({
       query: ({ faceIds }) => ({
         url: "/deletefaces",
         method: "POST",
         body: { face_ids: faceIds },
       }),
     }),
-    [Endpoints.setFacesPersonLabel]: builder.mutation<ISetFacesLabelResponse, ISetFacesLabelRequest>({
+    [Endpoints.setFacesPersonLabel]: builder.mutation<SetFacesLabelResponse, SetFacesLabelRequest>({
       query: ({ faceIds, personName }) => ({
         url: "/labelfaces",
         method: "POST",
@@ -275,6 +324,7 @@ export const {
   useFetchUserListQuery,
   useFetchPredefinedRulesQuery,
   useFetchIncompleteFacesQuery,
+  useFetchFacesQuery,
   useLoginMutation,
   useSignUpMutation,
   useLogoutMutation,
