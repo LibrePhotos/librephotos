@@ -1,6 +1,6 @@
 import uuid
 
-from django.db.models import Case, Count, IntegerField, Q, When
+from django.db.models import Case, CharField, Count, IntegerField, Q, Value, When
 from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -72,27 +72,36 @@ class FaceListView(ListViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
-        personid = self.request.query_params.get("person")
-        inferred = False
-        order_by = ["-person_label_probability", "id"]
-        conditional_filter = Q(person_label_is_inferred=inferred) | Q(
-            person__name=Person.UNKNOWN_PERSON_NAME
-        )
+        personid = self.request.query_params.get("person", None)
+        if personid == "None":
+            personid = None
+        analysis_method = self.request.query_params.get("analysis_method", "clustering")
+
         if (
-            self.request.query_params.get("inferred")
-            and self.request.query_params.get("inferred").lower() == "true"
+            self.request.query_params.get("inferred", "").lower() == "false"
+            and personid
         ):
-            inferred = True
-            conditional_filter = Q(person_label_is_inferred=inferred)
-        if self.request.query_params.get("order_by"):
-            if self.request.query_params.get("order_by").lower() == "date":
-                order_by = ["photo__exif_timestamp", "-person_label_probability", "id"]
+            analysis_method = None
+        if analysis_method == "classification":
+            print("classification")
+            conditional_filter = Q(classification_person=personid) & Q(person=None)
+            order_by = ["-classification_probability", "id"]
+        if analysis_method == "clustering":
+            conditional_filter = Q(cluster_person=personid) & Q(person=None)
+            order_by = ["-cluster_probability", "id"]
+        if not analysis_method:
+            conditional_filter = Q(person=personid)
+            order_by = ["-id"]
+        if self.request.query_params.get("order_by", "").lower() == "date":
+            order_by = ["photo__exif_timestamp", *order_by]
+        print(conditional_filter)
         return (
             Face.objects.filter(
                 Q(photo__owner=self.request.user),
-                Q(person=personid),
+                Q(deleted=False),
                 conditional_filter,
             )
+            .annotate(analysis_method=Value(analysis_method, output_field=CharField()))
             .prefetch_related("photo")
             .order_by(*order_by)
         )
@@ -114,22 +123,46 @@ class FaceIncompleteListViewSet(ListViewSet):
 
     def get_queryset(self):
         inferred = self.request.query_params.get("inferred", "").lower() == "true"
+        analysis_method = self.request.query_params.get("analysis_method", "clustering")
 
         queryset = Person.objects.filter(cluster_owner=self.request.user)
-
-        queryset = (
-            queryset.annotate(
-                viewable_face_count=Count(
+        if inferred:
+            if analysis_method == "classification":
+                conditional_count = Count(
                     Case(
                         When(
-                            Q(faces__person_label_is_inferred=inferred)
-                            | Q(faces__person__name=Person.UNKNOWN_PERSON_NAME),
+                            Q(classification_faces__deleted=False)
+                            & Q(classification_faces__person=None),
                             then=1,
                         ),
                         output_field=IntegerField(),
                     )
                 )
+            if analysis_method == "clustering":
+                conditional_count = Count(
+                    Case(
+                        When(
+                            Q(cluster_faces__deleted=False)
+                            & Q(cluster_faces__person=None),
+                            then=1,
+                        ),
+                        output_field=IntegerField(),
+                    )
+                )
+        else:
+            queryset = queryset.filter(kind=Person.KIND_USER)
+            conditional_count = Count(
+                Case(
+                    When(
+                        Q(faces__deleted=False),
+                        then=1,
+                    ),
+                    output_field=IntegerField(),
+                )
             )
+
+        queryset = (
+            queryset.annotate(viewable_face_count=conditional_count)
             .filter(viewable_face_count__gt=0)
             .order_by("name")
         )
@@ -152,11 +185,7 @@ class SetFacePersonLabel(APIView):
             # We do this to unlabel a face
             # TODO: this is a hack, we should have a better way to handle this
             #       maybe a separate endpoint for setting unknown person labels?
-            person = get_or_create_person(
-                name=data["person_name"],
-                owner=self.request.user,
-                kind=Person.KIND_UNKNOWN,
-            )
+            person = None
         else:
             person = get_or_create_person(
                 name=data["person_name"], owner=self.request.user, kind=Person.KIND_USER
@@ -168,8 +197,6 @@ class SetFacePersonLabel(APIView):
         for face in faces.values():
             if face.photo.owner == request.user:
                 face.person = person
-                face.person_label_is_inferred = False
-                face.person_label_probability = 1.0
                 face.save()
                 updated.append(FaceListSerializer(face).data)
             else:
@@ -197,7 +224,7 @@ class DeleteFaces(APIView):
         for face in faces.values():
             if face.photo.owner == request.user:
                 deleted.append(face.image.url)
-                face.delete()
+                face.deleted = True
             else:
                 not_deleted.append(face.image.url)
 

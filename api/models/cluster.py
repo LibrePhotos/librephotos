@@ -2,7 +2,7 @@ import numpy as np
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import models
 
-from api.models.person import Person, get_unknown_person
+from api.models.person import Person
 from api.models.user import User, get_deleted_user
 from api.util import logger
 
@@ -57,12 +57,11 @@ class Cluster(models.Model):
 
 
 def get_unknown_cluster(user: User) -> Cluster:
-    unknown_person: Person = get_unknown_person(user)
     unknown_cluster: Cluster = Cluster.get_or_create_cluster_by_id(
         user, UNKNOWN_CLUSTER_ID
     )
-    if unknown_cluster.person is not unknown_person:
-        unknown_cluster.person = unknown_person
+    if unknown_cluster.person is not None:
+        unknown_cluster.person = None
         unknown_cluster.name = UNKNOWN_CLUSTER_NAME
         unknown_cluster.save()
     return unknown_cluster

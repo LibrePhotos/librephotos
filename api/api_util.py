@@ -214,7 +214,9 @@ def get_search_term_examples(user):
             terms_time = [str(p.exif_timestamp.year)]
         terms_people = []
         if p.faces.count() > 0:
-            terms_people = [f.person.name.split(" ")[0] for f in faces]
+            terms_people = [
+                f.person.name.split(" ")[0] if f.person else "" for f in faces
+            ]
         terms_things = ""
         if p.captions_json and p.captions_json["places365"] is not None:
             terms_things = p.captions_json["places365"]["categories"]
@@ -661,22 +663,16 @@ def get_count_stats(user):
         & Q(photo__owner=user)
     ).count()
     num_labeled_faces = Face.objects.filter(
-        Q(person_label_is_inferred=False)
-        & ~(
-            Q(person__name__exact="unknown")
-            | Q(person__name__exact=Person.UNKNOWN_PERSON_NAME)
-        )
-        & Q(photo__owner=user)
-        & Q(photo__hidden=False)
+        Q(person__isnull=False) & Q(photo__owner=user) & Q(photo__hidden=False)
     ).count()
     num_inferred_faces = Face.objects.filter(
-        Q(person_label_is_inferred=True) & Q(photo__owner=user) & Q(photo__hidden=False)
+        Q(person=True) & Q(photo__owner=user) & Q(photo__hidden=False)
     ).count()
     num_people = (
         Person.objects.filter(
             Q(faces__photo__hidden=False)
             & Q(faces__photo__owner=user)
-            & Q(faces__person_label_is_inferred=False)
+            & Q(faces__person__isnull=False)
         )
         .distinct()
         .annotate(viewable_face_count=Count("faces"))
