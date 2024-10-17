@@ -24,7 +24,7 @@ matplotlib==3.9.2
 networkx==3.4.1
 nltk==3.9.1
 markupsafe==3.0.1
-Pillow==10.4.0
+Pillow==11.0.0
 psycopg==3.2.3
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2024.2
