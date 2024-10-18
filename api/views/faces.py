@@ -6,6 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import status
 
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.face_classify import cluster_all_faces
@@ -72,9 +73,11 @@ class FaceListView(ListViewSet):
     pagination_class = RegularResultsSetPagination
 
     def get_queryset(self):
-        personid = self.request.query_params.get("person", None)
-        if personid == "None":
+        personid = self.request.query_params.get("person", "0")
+
+        if personid == "0":
             personid = None
+
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
 
         if (
@@ -83,7 +86,6 @@ class FaceListView(ListViewSet):
         ):
             analysis_method = None
         if analysis_method == "classification":
-            print("classification")
             conditional_filter = Q(classification_person=personid) & Q(person=None)
             order_by = ["-classification_probability", "id"]
         if analysis_method == "clustering":
@@ -94,7 +96,6 @@ class FaceListView(ListViewSet):
             order_by = ["-id"]
         if self.request.query_params.get("order_by", "").lower() == "date":
             order_by = ["photo__exif_timestamp", *order_by]
-        print(conditional_filter)
         return (
             Face.objects.filter(
                 Q(photo__owner=self.request.user),
@@ -175,7 +176,44 @@ class FaceIncompleteListViewSet(ListViewSet):
         ],
     )
     def list(self, *args, **kwargs):
-        return super(FaceIncompleteListViewSet, self).list(*args, **kwargs)
+        queryset = self.get_queryset()
+
+        serializer = self.get_serializer(queryset, many=True)
+        real_persons = serializer.data
+
+        if self.request.query_params.get("inferred", "").lower() == "true":
+            if (
+                self.request.query_params.get("analysis_method", "clustering")
+                == "classification"
+            ):
+                unknown_faces_count = Face.objects.filter(
+                    classification_person=None,
+                    deleted=False,
+                    person=None,
+                    photo__owner=self.request.user,
+                ).count()
+            else:
+                unknown_faces_count = Face.objects.filter(
+                    cluster_person=None,
+                    deleted=False,
+                    person=None,
+                    photo__owner=self.request.user,
+                ).count()
+        else:
+            unknown_faces_count = Face.objects.filter(
+                person=None, deleted=False, photo__owner=self.request.user
+            ).count()
+
+        if unknown_faces_count > 0:
+            unknown_person = {
+                "id": 0,
+                "name": "Unknown - Other",
+                "face_count": unknown_faces_count,
+                "kind": Person.UNKNOWN_PERSON_NAME,
+            }
+            real_persons.append(unknown_person)
+
+        return Response(real_persons, status=status.HTTP_200_OK)
 
 
 class SetFacePersonLabel(APIView):
