@@ -45,18 +45,17 @@ export function FaceDashboard() {
     orderBy: orderBy,
   });
 
-  const { data: inferredFacesList = [], isFetching: fetchingLabeledFacesList } = useFetchIncompleteFacesQuery({
-    inferred: true,
-    method: analysisMethod,
-    orderBy: orderBy,
-  });
-  // To-Do: For saninty, we should use the same data flow for unknown faces as we do for labeled and inferred faces
-  const { data: unknownFacesList = [], isFetching: fetchingUnknownFacesList } = useFetchFacesQuery({
-    person: "None",
-    page: 1,
-    method: analysisMethod,
-    orderBy: "confidence",
-  });
+  const { data: inferredFacesListUnfiltered = [], isFetching: fetchingLabeledFacesList } = useFetchIncompleteFacesQuery(
+    {
+      inferred: true,
+      method: analysisMethod,
+      orderBy: orderBy,
+    }
+  );
+
+  const unknownFacesList = inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other");
+  const inferredFacesList = inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other");
+
   const dispatch = useAppDispatch();
 
   const [groups, setGroups] = useState<
@@ -107,7 +106,7 @@ export function FaceDashboard() {
   groups.forEach(element => {
     dispatch(
       api.endpoints.fetchFaces.initiate({
-        person: element.person ? element.person : "None",
+        person: element.person ? element.person : 0,
         page: element.page,
         inferred: element.inferred,
         orderBy,
@@ -200,9 +199,8 @@ export function FaceDashboard() {
         const page = Math.ceil((parseInt(i.id, 10) + 1) / 100);
         return {
           page,
-          person: activeTab === FacesTab.enum.unknown ? "" : i.person,
-          // To-Do: this is also dumb
-          inferred: !(activeTab === FacesTab.enum.labeled || activeTab === FacesTab.enum.unknown),
+          person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
+          inferred: !(activeTab === FacesTab.enum.labeled),
           method: analysisMethod,
         };
       });
