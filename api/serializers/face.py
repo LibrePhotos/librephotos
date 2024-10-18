@@ -67,4 +67,7 @@ class FaceListSerializer(serializers.ModelSerializer):
         return obj.image.url
 
     def get_person_name(self, obj) -> str:
-        return obj.person.name
+        if obj.person:
+            return obj.person.name
+        else:
+            return "Unknown - Other"
