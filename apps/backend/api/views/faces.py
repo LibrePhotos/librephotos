@@ -219,15 +219,14 @@ class FaceIncompleteListViewSet(ListViewSet):
 class SetFacePersonLabel(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        if data["person_name"] == Person.UNKNOWN_PERSON_NAME:
-            # We do this to unlabel a face
-            # TODO: this is a hack, we should have a better way to handle this
-            #       maybe a separate endpoint for setting unknown person labels?
-            person = None
-        else:
+        person = None
+        cluster_person = None
+        classification_person = None
+        if data["person_name"] != Person.UNKNOWN_PERSON_NAME:
             person = get_or_create_person(
                 name=data["person_name"], owner=self.request.user, kind=Person.KIND_USER
             )
+
         faces = Face.objects.in_bulk(data["face_ids"])
 
         updated = []
@@ -235,12 +234,16 @@ class SetFacePersonLabel(APIView):
         for face in faces.values():
             if face.photo.owner == request.user:
                 face.person = person
+                if not person:
+                    face.cluster_person = cluster_person
+                    face.classification_person = classification_person
                 face.save()
                 updated.append(FaceListSerializer(face).data)
             else:
                 not_updated.append(FaceListSerializer(face).data)
-        person._calculate_face_count()
-        person._set_default_cover_photo()
+        if person:
+            person._calculate_face_count()
+            person._set_default_cover_photo()
         face.photo._recreate_search_captions()
         return Response(
             {
@@ -263,6 +266,7 @@ class DeleteFaces(APIView):
             if face.photo.owner == request.user:
                 deleted.append(face.image.url)
                 face.deleted = True
+                face.save()
             else:
                 not_deleted.append(face.image.url)
 
