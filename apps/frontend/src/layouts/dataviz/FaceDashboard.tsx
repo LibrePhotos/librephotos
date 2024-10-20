@@ -5,7 +5,7 @@ import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { api, useFetchFacesQuery, useFetchIncompleteFacesQuery } from "../../api_client/api";
+import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
@@ -27,7 +27,7 @@ export function FaceDashboard() {
   const { ref, width } = useElementSize();
   const gridRef = useRef<any>();
 
-  const { activeTab, tabs, analysisMethod } = useAppSelector(store => store.face);
+  const { activeTab, tabs, analysisMethod, orderBy } = useAppSelector(store => store.face);
 
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
@@ -38,12 +38,13 @@ export function FaceDashboard() {
 
   const [scrollTo, setScrollTo] = useState<number | null>(null);
   const setScrollLocked = useScrollLock(false)[1];
-  const { orderBy } = useAppSelector(store => store.face);
 
-  const { data: labeledFacesList = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery({
-    inferred: false,
-    orderBy: orderBy,
-  });
+  const { data: labeledFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery(
+    {
+      inferred: false,
+      orderBy: orderBy,
+    }
+  );
 
   const { data: inferredFacesListUnfiltered = [], isFetching: fetchingLabeledFacesList } = useFetchIncompleteFacesQuery(
     {
@@ -55,6 +56,7 @@ export function FaceDashboard() {
 
   const unknownFacesList = inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other");
   const inferredFacesList = inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other");
+  const labeledFacesList = labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other");
 
   const dispatch = useAppDispatch();
 
