@@ -212,7 +212,6 @@ export const api = createApi({
       query: ({ inferred = false, method = "clustering", orderBy = "confidence" }) => ({
         url: `faces/incomplete/?inferred=${inferred}${inferred ? `&analysis_method=${method}&order_by=${orderBy}` : ""}`,
       }),
-      providesTags: ["Faces"],
       transformResponse: response => {
         const payload = IncompletePersonFaceListResponse.parse(response);
         const newFacesList: CompletePersonFaceList = payload.map(person => {
@@ -232,6 +231,8 @@ export const api = createApi({
         });
         return newFacesList;
       },
+      providesTags: (result, error, { inferred, method, orderBy }) =>
+        result ? result.map(({ id }) => ({ type: "Faces", id })) : ["Faces"],
     }),
     [Endpoints.fetchFaces]: builder.query<PersonFaceList, PersonFaceListRequest>({
       query: ({ person, page = 0, inferred = false, orderBy = "confidence", method }) => ({
@@ -264,8 +265,51 @@ export const api = createApi({
           )
         );
       },
-      providesTags: ["Faces"],
+      providesTags: (result, error, { person }) => [{ type: "Faces", id: person }],
     }),
+    [Endpoints.deleteFaces]: builder.mutation<DeleteFacesResponse, DeleteFacesRequest>({
+      query: ({ faceIds }) => ({
+        url: "/deletefaces",
+        method: "POST",
+        body: { face_ids: faceIds },
+      }),
+      async onQueryStarted({ faceIds }, { dispatch, queryFulfilled, getState }) {
+        const { activeTab, analysisMethod, orderBy } = getState().face;
+        const incompleteFacesArgs = { inferred: activeTab !== "labeled", method: analysisMethod, orderBy: orderBy };
+
+        const patchIncompleteFaces = dispatch(
+          api.util.updateQueryData(Endpoints.incompleteFaces, incompleteFacesArgs, draft => {
+            draft.forEach(personGroup => {
+              personGroup.faces = personGroup.faces.filter(face => !faceIds.includes(face.id));
+            });
+            draft.forEach(personGroup => {
+              personGroup.face_count = personGroup.faces.length;
+            });
+
+            draft = draft.filter(personGroup => personGroup.faces.length > 0);
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchIncompleteFaces.undo();
+        }
+      },
+    }),
+    [Endpoints.setFacesPersonLabel]: builder.mutation<SetFacesLabelResponse, SetFacesLabelRequest>({
+      query: ({ faceIds, personName }) => ({
+        url: "/labelfaces",
+        method: "POST",
+        body: { person_name: personName, face_ids: faceIds },
+      }),
+      // To-Do: Handle optimistic updates by updating the cache. The issue is that there are multiple caches that need to be updated, where we need to remove the faces from the incomplete faces cache and add them to the labeled faces cache.
+      // This is surprisingly complex to do with the current API, so we will just invalidate the cache for now.
+      // To-Do: Invalidating faces is also broken, because we do not know, which faces have which person ids, we need to invalidate.
+      // Need to restructure, by providing the full face object when queried, so we can invalidate the cache properly.
+      invalidatesTags: ["Faces", "PeopleAlbums"],
+    }),
+
     [Endpoints.clusterFaces]: builder.query<ClusterFacesResponse, void>({
       query: () => ({
         url: "/clusterfaces",
@@ -286,21 +330,6 @@ export const api = createApi({
         url: "/trainfaces",
         method: "POST",
       }),
-    }),
-    [Endpoints.deleteFaces]: builder.mutation<DeleteFacesResponse, DeleteFacesRequest>({
-      query: ({ faceIds }) => ({
-        url: "/deletefaces",
-        method: "POST",
-        body: { face_ids: faceIds },
-      }),
-    }),
-    [Endpoints.setFacesPersonLabel]: builder.mutation<SetFacesLabelResponse, SetFacesLabelRequest>({
-      query: ({ faceIds, personName }) => ({
-        url: "/labelfaces",
-        method: "POST",
-        body: { person_name: personName, face_ids: faceIds },
-      }),
-      invalidatesTags: ["PeopleAlbums"],
     }),
     [Endpoints.fetchServerStats]: builder.query<ServerStatsResponseType, void>({
       query: () => ({
