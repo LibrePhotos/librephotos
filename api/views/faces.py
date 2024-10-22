@@ -4,9 +4,9 @@ from django.db.models import Case, CharField, Count, IntegerField, Q, Value, Whe
 from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import status
 
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.face_classify import cluster_all_faces
@@ -79,6 +79,7 @@ class FaceListView(ListViewSet):
             personid = None
 
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
+        min_confidence = float(self.request.query_params.get("min_confidence", 0))
 
         if (
             self.request.query_params.get("inferred", "").lower() == "false"
@@ -86,10 +87,29 @@ class FaceListView(ListViewSet):
         ):
             analysis_method = None
         if analysis_method == "classification":
-            conditional_filter = Q(classification_person=personid) & Q(person=None)
+            conditional_filter = Q(person=None)
+            if not personid:
+                conditional_filter = conditional_filter & Q(
+                    classification_probability__lte=min_confidence
+                )
+            else:
+                conditional_filter = (
+                    conditional_filter
+                    & Q(classification_person=personid)
+                    & Q(classification_probability__gte=min_confidence)
+                )
             order_by = ["-classification_probability", "id"]
         if analysis_method == "clustering":
-            conditional_filter = Q(cluster_person=personid) & Q(person=None)
+            if not personid:
+                conditional_filter = Q(person=None) & (
+                    Q(cluster_person=None) | Q(cluster_probability__lte=min_confidence)
+                )
+            else:
+                conditional_filter = (
+                    Q(cluster_person=personid)
+                    & Q(person=None)
+                    & Q(cluster_probability__gte=min_confidence)
+                )
             order_by = ["-cluster_probability", "id"]
         if not analysis_method:
             conditional_filter = Q(person=personid)
@@ -125,6 +145,7 @@ class FaceIncompleteListViewSet(ListViewSet):
     def get_queryset(self):
         inferred = self.request.query_params.get("inferred", "").lower() == "true"
         analysis_method = self.request.query_params.get("analysis_method", "clustering")
+        min_confidence = float(self.request.query_params.get("min_confidence", 0))
 
         queryset = Person.objects.filter(cluster_owner=self.request.user)
         if inferred:
@@ -133,7 +154,10 @@ class FaceIncompleteListViewSet(ListViewSet):
                     Case(
                         When(
                             Q(classification_faces__deleted=False)
-                            & Q(classification_faces__person=None),
+                            & Q(classification_faces__person=None)
+                            & Q(
+                                classification_faces__classification_probability__gte=min_confidence
+                            ),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -144,7 +168,8 @@ class FaceIncompleteListViewSet(ListViewSet):
                     Case(
                         When(
                             Q(cluster_faces__deleted=False)
-                            & Q(cluster_faces__person=None),
+                            & Q(cluster_faces__person=None)
+                            & Q(cluster_faces__cluster_probability__gte=min_confidence),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -181,23 +206,28 @@ class FaceIncompleteListViewSet(ListViewSet):
         serializer = self.get_serializer(queryset, many=True)
         real_persons = serializer.data
 
+        min_confidence = float(self.request.query_params.get("min_confidence", 0))
+
         if self.request.query_params.get("inferred", "").lower() == "true":
             if (
                 self.request.query_params.get("analysis_method", "clustering")
                 == "classification"
             ):
                 unknown_faces_count = Face.objects.filter(
-                    classification_person=None,
-                    deleted=False,
-                    person=None,
-                    photo__owner=self.request.user,
+                    Q(deleted=False)
+                    & Q(person=None)
+                    & Q(photo__owner=self.request.user)
+                    & Q(classification_probability__lte=min_confidence),
                 ).count()
             else:
                 unknown_faces_count = Face.objects.filter(
-                    cluster_person=None,
-                    deleted=False,
-                    person=None,
-                    photo__owner=self.request.user,
+                    (
+                        Q(cluster_person=None)
+                        | Q(cluster_probability__lte=min_confidence)
+                    )
+                    & Q(deleted=False)
+                    & Q(person=None)
+                    & Q(photo__owner=self.request.user),
                 ).count()
         else:
             unknown_faces_count = Face.objects.filter(

@@ -67,7 +67,7 @@ class Person(models.Model):
         self.save()
 
     def _set_default_cover_photo(self):
-        if not self.cover_photo:
+        if not self.cover_photo and self.faces.count() > 0:
             self.cover_photo = self.faces.first().photo
             self.cover_face = self.faces.first()
             self.save()

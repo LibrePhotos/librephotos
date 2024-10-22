@@ -50,8 +50,8 @@ class ReadFacesFromPhotosTest(TestCase):
         # os.system("cp " + "/protected_media/faces/" + str(photo.pk) + "_0.jpg" + " " + output_file)
 
         self.assertEqual(1, len(photo.faces.all()))
-        # Two Unknown Persons and one Niaz Faridani-Rad
-        self.assertEqual(3, len(Person.objects.all()))
+        # One Niaz Faridani-Rad
+        self.assertEqual(1, len(Person.objects.all()))
         # There has to be a face encoding
         self.assertIsNotNone(photo.faces.all()[0].encoding)
         self.assertEqual(

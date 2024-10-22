@@ -1,9 +1,11 @@
 import secrets
+from typing import Any, Optional
 
+import numpy as np
 from django.utils import timezone
 from faker import Faker
 
-from api.models import Face, File, Person, Photo, User
+from api.models import Cluster, Face, File, Person, Photo, User
 
 fake = Faker()
 
@@ -26,6 +28,66 @@ def create_user_details(is_admin=False):
         "password": create_password(),
         "is_superuser": is_admin,
     }
+
+
+def create_test_person(
+    name: Optional[str] = None,
+    kind: Optional[str] = Person.KIND_USER,
+    cover_photo: Optional[Photo] = None,
+    cover_face: Optional[Face] = None,
+    face_count: int = 0,
+    cluster_owner: Optional[User] = None,
+    **kwargs: Any,
+) -> Person:
+    """Create a test Person object with random data using Faker."""
+    return Person.objects.create(
+        name=name or fake.name(),
+        kind=kind,
+        cover_photo=cover_photo,
+        cover_face=cover_face,
+        face_count=face_count,
+        cluster_owner=cluster_owner,
+        **kwargs,
+    )
+
+
+def create_test_face(
+    photo: Optional[Photo] = None,
+    image: Optional[str] = "test.jpg",
+    person: Optional[Person] = None,
+    classification_person: Optional[Person] = None,
+    classification_probability: float = 0.0,
+    cluster_person: Optional[Person] = None,
+    cluster_probability: float = 0.0,
+    deleted: bool = False,
+    cluster: Optional[Cluster] = None,
+    location_top: int = 0,
+    location_bottom: int = 0,
+    location_left: int = 0,
+    location_right: int = 0,
+    encoding: Optional[str] = None,
+    **kwargs: Any,
+) -> Face:
+    """Create a test Face object with random data using Faker."""
+    return Face.objects.create(
+        photo=photo,
+        image=image,
+        person=person,
+        classification_person=classification_person,
+        classification_probability=classification_probability
+        or fake.pyfloat(min_value=0, max_value=1),
+        cluster_person=cluster_person,
+        cluster_probability=cluster_probability
+        or fake.pyfloat(min_value=0, max_value=1),
+        deleted=deleted,
+        cluster=cluster,
+        location_top=location_top or fake.random_int(min=0, max=500),
+        location_bottom=location_bottom or fake.random_int(min=501, max=1000),
+        location_left=location_left or fake.random_int(min=0, max=500),
+        location_right=location_right or fake.random_int(min=501, max=1000),
+        encoding=encoding or np.random.rand(128).tobytes().hex(),
+        **kwargs,
+    )
 
 
 def create_test_user(is_admin=False, public_sharing=False, **kwargs):
@@ -57,21 +119,6 @@ def create_test_photo(**kwargs):
 
 def create_test_photos(number_of_photos=1, **kwargs):
     return [create_test_photo(**kwargs) for _ in range(0, number_of_photos)]
-
-
-def create_test_face(**kwargs):
-    person = Person()
-    person.save()
-    face = Face(
-        person=person,
-        location_left=0,
-        location_right=1,
-        location_top=0,
-        location_bottom=1,
-        **kwargs,
-    )
-    face.save()
-    return face
 
 
 def create_test_photos_with_faces(number_of_photos=1, **kwargs):

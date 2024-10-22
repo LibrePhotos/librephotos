@@ -747,7 +747,6 @@ class Photo(models.Model):
                     encoding="",
                     person=person,
                     cluster=unknown_cluster,
-                    owner=self.owner,
                 )
                 if person_name:
                     person._calculate_face_count()
