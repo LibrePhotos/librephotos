@@ -19,14 +19,14 @@ class PhotoSummaryViewTest(TestCase):
 
         self.client.force_authenticate(user=regular_user)
         photo = create_test_photo(owner=regular_user)
-        url = reverse("photo-summary", kwargs={"pk": photo.image_hash})
+        url = reverse("photos-summary", kwargs={"pk": photo.image_hash})
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["processing"])
 
     def test_summary_view_existing_photo(self):
-        url = reverse("photo-summary", kwargs={"pk": self.photo.image_hash})
+        url = reverse("photos-summary", kwargs={"pk": self.photo.image_hash})
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -34,7 +34,7 @@ class PhotoSummaryViewTest(TestCase):
         self.assertFalse(response.data["processing"])
 
     def test_summary_view_nonexistent_photo(self):
-        url = reverse("photo-summary", kwargs={"pk": "nonexistent_hash"})
+        url = reverse("photos-summary", kwargs={"pk": "nonexistent_hash"})
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -44,7 +44,7 @@ class PhotoSummaryViewTest(TestCase):
         self.photo.aspect_ratio = None
         self.photo.save()
 
-        url = reverse("photo-summary", kwargs={"pk": self.photo.image_hash})
+        url = reverse("photos-summary", kwargs={"pk": self.photo.image_hash})
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
