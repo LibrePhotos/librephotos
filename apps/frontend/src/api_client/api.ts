@@ -4,6 +4,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Cookies } from "react-cookie";
 
 import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
+import { notification } from "../service/notifications";
 import type {
   IApiDeleteUserPost,
   IApiLoginPost,
@@ -209,8 +210,8 @@ export const api = createApi({
       }),
     }),
     [Endpoints.incompleteFaces]: builder.query<CompletePersonFaceList, IncompletePersonFaceListRequest>({
-      query: ({ inferred = false, method = "clustering", orderBy = "confidence" }) => ({
-        url: `faces/incomplete/?inferred=${inferred}${inferred ? `&analysis_method=${method}&order_by=${orderBy}` : ""}`,
+      query: ({ inferred = false, method = "clustering", orderBy = "confidence", minConfidence }) => ({
+        url: `faces/incomplete/?inferred=${inferred}${inferred ? `&analysis_method=${method}&order_by=${orderBy}` : ""}${minConfidence ? `&min_confidence=${minConfidence}` : ""}`,
       }),
       transformResponse: response => {
         const payload = IncompletePersonFaceListResponse.parse(response);
@@ -235,8 +236,8 @@ export const api = createApi({
         result ? result.map(({ id }) => ({ type: "Faces", id })) : ["Faces"],
     }),
     [Endpoints.fetchFaces]: builder.query<PersonFaceList, PersonFaceListRequest>({
-      query: ({ person, page = 0, inferred = false, orderBy = "confidence", method }) => ({
-        url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}${method ? `&analysis_method=${method}` : ""}`,
+      query: ({ person, page = 0, inferred = false, orderBy = "confidence", method, minConfidence }) => ({
+        url: `faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}${method ? `&analysis_method=${method}` : ""}${minConfidence ? `&min_confidence=${minConfidence}` : ""}`,
       }),
       transformResponse: (response: any) => {
         const parsedResponse = PersonFaceListResponse.parse(response);
@@ -247,7 +248,12 @@ export const api = createApi({
         dispatch(
           api.util.updateQueryData(
             Endpoints.incompleteFaces,
-            { method: options.method, orderBy: options.orderBy, inferred: options.inferred },
+            {
+              method: options.method,
+              orderBy: options.orderBy,
+              inferred: options.inferred,
+              minConfidence: options.minConfidence,
+            },
             draft => {
               const indexToReplace = draft.findIndex(group => group.id === options.person);
               const groupToChange = draft[indexToReplace];
@@ -273,6 +279,10 @@ export const api = createApi({
         method: "POST",
         body: { face_ids: faceIds },
       }),
+      transformResponse: response => {
+        const payload = DeleteFacesResponse.parse(response);
+        return payload;
+      },
       async onQueryStarted({ faceIds }, { dispatch, queryFulfilled, getState }) {
         const { activeTab, analysisMethod, orderBy } = getState().face;
         const incompleteFacesArgs = { inferred: activeTab !== "labeled", method: analysisMethod, orderBy: orderBy };
@@ -303,6 +313,11 @@ export const api = createApi({
         method: "POST",
         body: { person_name: personName, face_ids: faceIds },
       }),
+      transformResponse: response => {
+        const payload = SetFacesLabelResponse.parse(response);
+        notification.addFacesToPerson(payload.results[0].person_name, payload.results.length);
+        return payload;
+      },
       // To-Do: Handle optimistic updates by updating the cache. The issue is that there are multiple caches that need to be updated, where we need to remove the faces from the incomplete faces cache and add them to the labeled faces cache.
       // This is surprisingly complex to do with the current API, so we will just invalidate the cache for now.
       // To-Do: Invalidating faces is also broken, because we do not know, which faces have which person ids, we need to invalidate.

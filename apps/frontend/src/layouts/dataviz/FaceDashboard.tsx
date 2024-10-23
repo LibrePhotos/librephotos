@@ -27,7 +27,7 @@ export function FaceDashboard() {
   const { ref, width } = useElementSize();
   const gridRef = useRef<any>();
 
-  const { activeTab, tabs, analysisMethod, orderBy } = useAppSelector(store => store.face);
+  const { activeTab, tabs, analysisMethod, orderBy, minConfidence } = useAppSelector(store => store.face);
 
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
@@ -51,6 +51,7 @@ export function FaceDashboard() {
       inferred: true,
       method: analysisMethod,
       orderBy: orderBy,
+      minConfidence: minConfidence,
     }
   );
 
@@ -112,6 +113,7 @@ export function FaceDashboard() {
         page: element.page,
         inferred: element.inferred,
         orderBy,
+        minConfidence: element.inferred ? minConfidence : undefined,
         method: element.inferred ? element.method : undefined,
       })
     );

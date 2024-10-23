@@ -16,6 +16,7 @@ export type FacesState = {
   analysisMethod: FaceAnalysisMethod;
   error: any;
   activeTab: FacesTab;
+  minConfidence: number;
   tabs: TabSettingsArray;
 };
 
@@ -49,6 +50,7 @@ export const IncompletePersonFaceListRequest = z.object({
   inferred: z.boolean(),
   method: FaceAnalysisMethod.optional(),
   orderBy: FacesOrderOption,
+  minConfidence: z.number().optional(),
 });
 export type IncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
 
@@ -79,6 +81,7 @@ export const PersonFaceListRequest = z.object({
   inferred: z.boolean(),
   orderBy: FacesOrderOption,
   method: FaceAnalysisMethod.optional(),
+  minConfidence: z.number().optional(),
 });
 
 export type PersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;

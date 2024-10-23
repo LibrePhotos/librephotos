@@ -5,6 +5,7 @@ import {
   Group,
   Modal,
   SegmentedControl,
+  Slider,
   Stack,
   Switch,
   Text,
@@ -23,7 +24,6 @@ import { api, useWorkerQuery } from "../../api_client/api";
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FaceAnalysisMethod, FacesOrderOption } from "../../store/faces/facesActions.types";
-import type { IFacesOrderOption } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = Readonly<{
@@ -46,7 +46,7 @@ export function ButtonHeaderGroup({
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
   const { data: worker } = useWorkerQuery();
-  const { orderBy, analysisMethod, activeTab } = useAppSelector(store => store.face);
+  const { orderBy, analysisMethod, activeTab, minConfidence } = useAppSelector(store => store.face);
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
@@ -116,6 +116,25 @@ export function ButtonHeaderGroup({
                     value: FaceAnalysisMethod.enum.classification,
                   },
                 ]}
+              />
+              <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
+              <Text size="sm" weight={500} mb={3}>
+                {t("facesdashboard.minconfidence")}
+              </Text>
+              <Slider
+                value={minConfidence}
+                onChange={value => dispatch(faceActions.changeMinConfidence(value))}
+                label={minConfidence}
+                step={0.05}
+                min={0}
+                max={1}
+                defaultValue={0.5}
+                marks={[
+                  { value: 0, label: "0" },
+                  { value: 0.5, label: "0.5" },
+                  { value: 1, label: "1" },
+                ]}
+                style={{ width: "200px" }}
               />
             </div>
           )}
