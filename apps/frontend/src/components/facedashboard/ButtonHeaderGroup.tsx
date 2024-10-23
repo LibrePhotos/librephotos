@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Box,
   Button,
   Divider,
   Group,
@@ -7,12 +8,13 @@ import {
   SegmentedControl,
   Slider,
   Stack,
-  Switch,
   Text,
   Tooltip,
+  rem,
 } from "@mantine/core";
 import {
   IconBarbell as Barbell,
+  IconCheck as Check,
   IconPlus as Plus,
   IconTrash as Trash,
   IconUserOff as UserOff,
@@ -52,7 +54,7 @@ export function ButtonHeaderGroup({
   const dispatch = useAppDispatch();
 
   const setOrderBy = (value: string) => {
-    dispatch(faceActions.changeFacesOrderBy(value as IFacesOrderOption));
+    dispatch(faceActions.changeFacesOrderBy(value as FacesOrderOption));
   };
 
   const changeShowType = (value: string) => {
@@ -67,16 +69,28 @@ export function ButtonHeaderGroup({
   }, [worker]);
 
   return (
-    <div>
+    <Box
+      sx={theme => ({
+        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+        textAlign: "center",
+        cursor: "pointer",
+        borderRadius: 10,
+      })}
+      style={{
+        padding: 4,
+      }}
+    >
       <Group position="apart">
         <Group spacing="xs">
-          <Switch
-            label={t("facesdashboard.selectedfaces", {
-              number: selectedFaces.length,
-            })}
-            checked={selectMode}
-            onChange={changeSelectMode}
-          />
+          <Button
+            variant="light"
+            size="xs"
+            leftIcon={<Check color={selectMode ? "green" : "gray"} />}
+            color={selectMode ? "blue" : "gray"}
+            onClick={changeSelectMode}
+          >
+            {`${selectedFaces.length} ${t("selectionbar.selected")}`}
+          </Button>
           <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
           <Text size="sm" weight={500} mb={3}>
             {t("facesdashboard.sortby")}
@@ -121,21 +135,26 @@ export function ButtonHeaderGroup({
               <Text size="sm" weight={500} mb={3}>
                 {t("facesdashboard.minconfidence")}
               </Text>
-              <Slider
-                value={minConfidence}
-                onChange={value => dispatch(faceActions.changeMinConfidence(value))}
-                label={minConfidence}
-                step={0.05}
-                min={0}
-                max={1}
-                defaultValue={0.5}
-                marks={[
-                  { value: 0, label: "0" },
-                  { value: 0.5, label: "0.5" },
-                  { value: 1, label: "1" },
-                ]}
-                style={{ width: "200px" }}
-              />
+              <Box
+                style={{ width: 150, paddingTop: 10, paddingBottom: 10, paddingRight: 5, paddingLeft: 5 }}
+                sx={theme => ({
+                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[1],
+                  textAlign: "center",
+                  cursor: "pointer",
+                  borderRadius: 4,
+                })}
+              >
+                <Slider
+                  value={minConfidence}
+                  onChange={value => dispatch(faceActions.changeMinConfidence(value))}
+                  label={minConfidence}
+                  size={5}
+                  step={0.05}
+                  min={0}
+                  max={1}
+                  defaultValue={0.5}
+                />
+              </Box>
             </div>
           )}
         </Group>
@@ -206,6 +225,6 @@ export function ButtonHeaderGroup({
           </Group>
         </Stack>
       </Modal>
-    </div>
+    </Box>
   );
 }

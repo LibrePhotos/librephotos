@@ -519,7 +519,7 @@
     "show": "Show",
     "clusters": "Clusters",
     "classifications": "Classifications",
-    "minconfidence": "Minimum Confidence",
+    "minconfidence": "Confidence",
     "clusterscounter_one": "{{count}} Cluster",
     "clusterscounter_other": "{{count}} Clusters",
     "personscounter_one": "{{count}} Person",
