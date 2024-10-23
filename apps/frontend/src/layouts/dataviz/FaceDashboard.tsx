@@ -349,8 +349,8 @@ export function FaceDashboard() {
   };
 
   return (
-    <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
-      <Stack spacing="xl" style={{ padding: 10 }}>
+    <div style={{ display: "flex", flexFlow: "column", height: "100%", padding: 10 }}>
+      <Stack spacing="xl">
         <TabComponent
           width={width}
           fetchingLabeledFacesList={fetchingLabeledFacesList}
