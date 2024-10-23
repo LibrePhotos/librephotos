@@ -59,19 +59,15 @@ class Person(models.Model):
         )
 
     def _calculate_face_count(self):
-        confidence_person = (
-            User.objects.filter(id=self.cluster_owner.id).first().confidence_person
-        )
         self.face_count = self.faces.filter(
             photo__hidden=False,
             photo__in_trashcan=False,
             photo__owner=self.cluster_owner.id,
-            person_label_probability__gte=confidence_person,
         ).count()
         self.save()
 
     def _set_default_cover_photo(self):
-        if not self.cover_photo:
+        if not self.cover_photo and self.faces.count() > 0:
             self.cover_photo = self.faces.first().photo
             self.cover_face = self.faces.first()
             self.save()
@@ -105,6 +101,7 @@ class Person(models.Model):
         return photos
 
 
+# TODO: Should be removed in the future, as it is not used, only in migrations
 def get_unknown_person(owner: User = None):
     unknown_person: Person = Person.objects.get_or_create(
         name=Person.UNKNOWN_PERSON_NAME, cluster_owner=owner, kind=Person.KIND_UNKNOWN

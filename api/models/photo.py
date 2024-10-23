@@ -282,7 +282,8 @@ class Photo(models.Model):
             search_captions += user_caption + " "
 
         for face in api.models.face.Face.objects.filter(photo=self).all():
-            search_captions += face.person.name + " "
+            if face.person:
+                search_captions += face.person.name + " "
 
         for file in self.files.all():
             search_captions += file.path + " "
@@ -714,7 +715,7 @@ class Photo(models.Model):
                     )
                     person.save()
                 else:
-                    person = api.models.person.get_unknown_person(owner=self.owner)
+                    person = None
 
                 face_image = big_thumbnail_image[top:bottom, left:right]
                 face_image = PIL.Image.fromarray(face_image)

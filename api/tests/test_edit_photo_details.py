@@ -33,7 +33,7 @@ class EditPhotoDetailsTest(TestCase):
         self.assertIsNone(data["exif_timestamp"])
         self.assertEqual(0, data["rating"])
         self.assertFalse(data["hidden"])
-        self.assertFalse(data["deleted"])
+        self.assertFalse(data["in_trashcan"])
         self.assertFalse(data["video"])
         extract_date_time_from_exif_mock.assert_called()
 
@@ -45,8 +45,9 @@ class EditPhotoDetailsTest(TestCase):
             "timestamp": "1970-01-01T00:00:00.001Z",
             "image_hash": "BLAH-BLAH-BLAH-BLAH",
             "rating": 100,
-            "hidden": True,
             "deleted": True,
+            "hidden": True,
+            "in_trashcan": True,
             "video": True,
         }
         headers = {"Content-Type": "application/json"}
@@ -63,6 +64,6 @@ class EditPhotoDetailsTest(TestCase):
         self.assertNotEqual(payload["image_hash"], data["image_hash"])
         self.assertNotEqual(payload["rating"], data["rating"])
         self.assertNotEqual(payload["hidden"], data["hidden"])
-        self.assertNotEqual(payload["deleted"], data["deleted"])
+        self.assertNotEqual(payload["in_trashcan"], data["in_trashcan"])
         self.assertNotEqual(payload["video"], data["video"])
         extract_date_time_from_exif_mock.assert_not_called()
