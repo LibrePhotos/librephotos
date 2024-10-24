@@ -48,7 +48,7 @@ export function Explorer() {
           <Group>
             {peopleAlbums
               ?.slice(0, 19)
-              .map(album => albumTileLink(+album.key, album.face_photo_url, !!album.video, `/person/${album.key}/`))}
+              .map(album => albumTileLink(+album.id, album.face_photo_url, !!album.video, `/person/${album.id}/`))}
             <Box color="gray">{showMoreButton(navigate, "/people/")}</Box>
           </Group>
         </>

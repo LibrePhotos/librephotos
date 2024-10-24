@@ -136,7 +136,7 @@ export function HeaderComponent({
         <Group>
           <TextInput
             error={
-              albums?.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
+              albums?.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
                 ? t("personalbum.personalreadyexists", {
                     name: newPersonName.trim(),
                   })
@@ -152,7 +152,7 @@ export function HeaderComponent({
               renamePerson({ id: personID, personName, newPersonName });
               hideRenameDialog();
             }}
-            disabled={albums?.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
+            disabled={albums?.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
             type="submit"
           >
             {t("rename")}

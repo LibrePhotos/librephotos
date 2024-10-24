@@ -482,6 +482,7 @@
     "deleteperson": "Delete Person",
     "deletepersondescription": "Do you really want to delete this person?",
     "renameperson": "Rename Person",
+    "renamepersonheader": "What do you want to rename {{name}} to?",
     "personalreadyexists": "Person {{name}} already exists.",
     "nameplaceholder": "Name"
   },

@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Avatar, Button, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import {
+  Person,
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
@@ -23,8 +24,14 @@ import { HeaderComponent } from "./HeaderComponent";
 export function AlbumPeople() {
   const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
-  const [personID, setPersonID] = useState("");
-  const [personName, setPersonName] = useState("");
+  const [selectedAlbum, setSelectedAlbum] = useState<Person>({
+    id: "",
+    name: "",
+    video: false,
+    face_count: 0,
+    face_photo_url: "",
+    face_url: "",
+  });
   const [newPersonName, setNewPersonName] = useState("");
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchPeopleAlbumsQuery();
@@ -32,14 +39,13 @@ export function AlbumPeople() {
   const [renamePerson] = useRenamePersonAlbumMutation();
   const [deletePerson] = useDeletePersonAlbumMutation();
 
-  function openDeleteDialog(id: string) {
-    setPersonID(id);
+  function openDeleteDialog(album: Person) {
+    setSelectedAlbum(album);
     showDeleteDialog();
   }
 
-  function openRenameDialog(id: string, name: string) {
-    setPersonID(id);
-    setPersonName(name);
+  function openRenameDialog(album: Person) {
+    setSelectedAlbum(album);
     setNewPersonName("");
     showRenameDialog();
   }
@@ -89,10 +95,10 @@ export function AlbumPeople() {
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(album.key, album.text)}>
+                <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(album)}>
                   {t("rename")}
                 </Menu.Item>
-                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(album.key)}>
+                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(album)}>
                   {t("delete")}
                 </Menu.Item>
               </Menu.Dropdown>
@@ -102,7 +108,7 @@ export function AlbumPeople() {
         <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
           <Group position="apart">
             <div>
-              <b>{album.text}</b> <br />
+              <b>{album.name}</b> <br />
               {t("numberofphotos", {
                 number: album.face_count,
               })}
@@ -123,11 +129,16 @@ export function AlbumPeople() {
           peoplelength: (albums && albums.length) || 0,
         })}
       />
-      <Modal title={t("personalbum.renameperson")} onClose={hideRenameDialog} opened={renameDialogVisible}>
+      <Modal
+        title={t("personalbum.renamepersonheader", { name: selectedAlbum.name })}
+        onClose={hideRenameDialog}
+        opened={renameDialogVisible}
+      >
         <Group>
+          {selectedAlbum && <Avatar src={selectedAlbum.face_url} alt={selectedAlbum.name} radius="xl" />}
           <TextInput
             error={
-              albums && albums.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
+              albums && albums.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
                 ? t("personalbum.personalreadyexists", {
                     name: newPersonName.trim(),
                   })
@@ -136,15 +147,19 @@ export function AlbumPeople() {
             onChange={e => {
               setNewPersonName(e.currentTarget.value);
             }}
-            placeholder={t("personalbum.nameplaceholder")}
+            placeholder={selectedAlbum.name}
           />
           <Button
             onClick={() => {
-              renamePerson({ id: personID, personName, newPersonName });
               hideRenameDialog();
+              renamePerson({
+                id: selectedAlbum.id,
+                personName: selectedAlbum.name,
+                newPersonName: newPersonName,
+              });
             }}
             disabled={
-              albums && albums.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
+              albums && albums.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
             }
             type="submit"
           >
@@ -159,7 +174,7 @@ export function AlbumPeople() {
           <Button
             color="red"
             onClick={() => {
-              deletePerson(personID);
+              deletePerson(selectedAlbum.id);
               hideDeleteDialog();
             }}
           >

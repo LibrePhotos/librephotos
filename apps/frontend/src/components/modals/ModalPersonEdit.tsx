@@ -42,14 +42,14 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
-    filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.text));
+    filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.name));
   }
 
   const selectedImageIDs = selectedFaces.map(face => face.face_url);
   const selectedFaceIDs = selectedFaces.map(face => face.face_id);
 
   function personExist(name: string) {
-    return people?.map(person => person.text.toLowerCase().trim()).includes(name.toLowerCase().trim());
+    return people?.map(person => person.name.toLowerCase().trim()).includes(name.toLowerCase().trim());
   }
 
   return (
@@ -119,7 +119,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
             filteredPeopleList.length > 0 &&
             filteredPeopleList?.map(item => (
               <UnstyledButton
-                key={item.key}
+                key={item.id}
                 sx={theme => ({
                   display: "block",
                   borderRadius: theme.radius.xl,
@@ -133,20 +133,20 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                   dispatch(
                     api.endpoints.setFacesPersonLabel.initiate({
                       faceIds: selectedFaceIDs,
-                      personName: item.text,
+                      personName: item.name,
                     })
                   );
                   onRequestClose();
                 }}
               >
-                <Group key={item.key}>
+                <Group key={item.id}>
                   <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
                   <div>
                     <Title
                       style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
                       order={4}
                     >
-                      {item.text}
+                      {item.name}
                     </Title>
                     <Text size="sm" color="dimmed">
                       {t("numberofphotos", {
