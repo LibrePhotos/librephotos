@@ -63,7 +63,8 @@
             "item3": "Calcola un ID unico del file (MD5)",
             "item7": "Estrazione dei metadati EXIF",
             "item8": "Geolocalizzazione inversa per ottenere i nomi delle città dalle coordinate GPS",
-            "item11": "Controllo se le foto non ci sono o sono state spostate."
+            "item11": "Controllo se le foto non ci sono o sono state spostate.",
+            "item10": "Aggiungere foto agli album di cose e luoghi."
         },
         "profile": "Profilo",
         "dutch": "olandese",
@@ -167,7 +168,10 @@
         "semanticsearchupdate": "Aggiorna",
         "size": {
             "auto": "Auto"
-        }
+        },
+        "hindi": "Hindi",
+        "eventsalbums": "Album Eventi",
+        "eventsalbumsdescription": "Il server di backend raggrupperà le foto in base alla data. Se due foto consecutive sono state scattate entro 12 ore tra loro, le foto saranno considerate appartenenti allo stesso evento. Dopo che i gruppi sono stati formati, i titoli per gli album verranno generati automaticamente."
     },
     "joblist": {
         "queued": "In coda",
