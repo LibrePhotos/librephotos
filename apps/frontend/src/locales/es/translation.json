@@ -449,7 +449,8 @@
         "personalreadyexists": "La persona {{name}} ya existe.",
         "nameplaceholder": "Nombre",
         "deleteperson": "Eliminar persona",
-        "deletepersondescription": "¿Realmente quiere eliminar a esta persona?"
+        "deletepersondescription": "¿Realmente quiere eliminar a esta persona?",
+        "renamepersonheader": "¿Quieres cambiarle el nombre a {{name}} ?"
     },
     "placealbum": {
         "showingplaces": "Mostrando {{number}} lugares en el mapa",
@@ -497,7 +498,11 @@
         "assumedpersonscounter_other": "{{count}} personas deducidas",
         "facescounter_one": "{{count}} rostro",
         "clusteredfacescounter_one": "{{count}} grupos de caras",
-        "clusteredfacescounter_other": "{{count}} Caras agrupadas"
+        "clusteredfacescounter_other": "{{count}} Caras agrupadas",
+        "show": "Mostrar",
+        "classifications": "Clasificaciones",
+        "minconfidence": "Confianza",
+        "clusters": "Clúster"
     },
     "scan": "Detectar",
     "socialgraph": "Gráfico social",
