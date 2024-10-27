@@ -46,6 +46,7 @@ export const PeopleSchema = z.object({
   name: z.string(),
   type: z.string(),
   probability: z.number(),
+  location: z.object({ top: z.number(), bottom: z.number(), left: z.number(), right: z.number() }),
   face_url: z.string(),
   face_id: z.number(),
 });

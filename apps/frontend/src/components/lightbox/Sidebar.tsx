@@ -1,40 +1,29 @@
 import { ActionIcon, Avatar, Box, Button, Group, Indicator, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-// only needs to be imported once
-import {
-  IconEdit as Edit,
-  IconMap2 as Map2,
-  IconPhoto as Photo,
-  IconTrash as Trash,
-  IconUserCheck as UserCheck,
-  IconUserOff as UserOff,
-  IconUsers as Users,
-  IconX as X,
-} from "@tabler/icons-react";
+import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
-import { push } from "redux-first-history";
 
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { api } from "../../api_client/api";
-import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
+import { useAppSelector } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
-import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
-import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { Description } from "./Description";
+import { PersonDetail } from "./PersonDetailComponent";
 import { TimestampItem } from "./TimestampItem";
 import { VersionComponent } from "./VersionComponent";
 
 type Props = {
   isPublic: boolean;
-  photoDetail: PhotoType;
+  id: string;
   closeSidepanel: () => void;
+  setFaceLocation: (face: any) => void;
 };
 
 export function Sidebar(props: Props) {
@@ -42,8 +31,10 @@ export function Sidebar(props: Props) {
   const dispatch = useAppDispatch();
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
-  const { photoDetail, isPublic, closeSidepanel } = props;
+  const { isPublic, closeSidepanel, setFaceLocation } = props;
   const { width } = useViewportSize();
+
+  const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[props.id]);
 
   const SCROLLBAR_WIDTH = 15;
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
@@ -121,112 +112,20 @@ export function Sidebar(props: Props) {
 
           {photoDetail.people.length > 0 && (
             <Stack>
-              <Group>
-                <Users />
-                <Title order={4}>{t("lightbox.sidebar.people")}</Title>
-              </Group>
-              {[...photoDetail.people]
-                .sort((a, b) => {
-                  if (a.type == "user" && b.type != "user") {
-                    return -1;
-                  }
-                  if (a.type != "cluster" && b.type == "classification") {
-                    return -1;
-                  }
-                  return 0;
-                })
-                .map(nc => {
-                  const [tooltipOpened, setTooltipOpened] = useState(false);
-                  return (
-                    <Group position="center" spacing="xs" key={`${nc.name}`}>
-                      <Button
-                        variant="subtle"
-                        leftIcon={
-                          <FaceTooltip tooltipOpened={tooltipOpened} probability={nc.probability}>
-                            <Indicator
-                              color={calculateProbabiltyColor(nc.probability)}
-                              disabled={nc.type == "user"}
-                              onMouseEnter={() => {
-                                if (nc.type != "user") {
-                                  setTooltipOpened(true);
-                                }
-                              }}
-                              onMouseLeave={() => setTooltipOpened(false)}
-                            >
-                              <Avatar radius="xl" src={serverAddress + nc.face_url}></Avatar>
-                            </Indicator>
-                          </FaceTooltip>
-                        }
-                        onClick={() => {
-                          if (isPublic) {
-                            return;
-                          }
-                          dispatch(push(`/search/${nc.name}`));
-                        }}
-                      >
-                        <Text align="center" size="sm">
-                          {nc.name}
-                        </Text>
-                      </Button>
-                      {!isPublic && nc.type != "user" && (
-                        <Tooltip label={t("facesdashboard.explanationadding")}>
-                          <ActionIcon
-                            onClick={() => {
-                              dispatch(
-                                api.endpoints.setFacesPersonLabel.initiate({
-                                  faceIds: [nc.face_id],
-                                  personName: nc.name,
-                                })
-                              );
-                            }}
-                            variant="light"
-                            color="green"
-                          >
-                            <UserCheck />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      {!isPublic && (
-                        <Tooltip label={t("facesdashboard.explanationadding")}>
-                          <ActionIcon
-                            onClick={() => {
-                              setSelectedFaces([{ face_id: nc.face_id, face_url: nc.face_url }]);
-                              setPersonEditOpen(true);
-                            }}
-                            variant="light"
-                          >
-                            <Edit />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      {!isPublic && (
-                        <Tooltip label={t("facesdashboard.notthisperson")}>
-                          <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(nc.face_id)}>
-                            <UserOff />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      {!isPublic && nc.type != "user" && (
-                        <Tooltip label={t("facesdashboard.explanationdeleting")}>
-                          <ActionIcon
-                            variant="light"
-                            color="red"
-                            onClick={() => {
-                              dispatch(api.endpoints.deleteFaces.initiate({ faceIds: [nc.face_id] }));
-                              notification.deleteFaces(1);
-                              // refetch photo details
-                              dispatch(
-                                photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)
-                              ).refetch();
-                            }}
-                          >
-                            <Trash />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                    </Group>
-                  );
-                })}
+              <Title order={4}>People</Title>
+              {photoDetail.people.map(person => (
+                <PersonDetail
+                  key={person.name}
+                  person={person}
+                  isPublic={isPublic}
+                  setFaceLocation={setFaceLocation}
+                  onPersonEdit={(faceId, faceUrl) => {
+                    setSelectedFaces([{ face_id: faceId, face_url: faceUrl }]);
+                    setPersonEditOpen(true);
+                  }}
+                  notThisPerson={notThisPerson}
+                />
+              ))}
             </Stack>
           )}
 

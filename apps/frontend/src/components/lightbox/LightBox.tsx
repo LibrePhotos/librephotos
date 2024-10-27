@@ -1,7 +1,13 @@
+import { ActionIcon, Box, Group, Image, Modal, Overlay, Text } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import React, { useState } from "react";
-import Lightbox from "react-image-lightbox";
-import "react-image-lightbox/style.css";
+import {
+  IconArrowLeft as ArrowLeft,
+  IconArrowRight as ArrowRight,
+  IconX as X,
+  IconZoomIn as ZoomIn,
+  IconZoomOut as ZoomOut,
+} from "@tabler/icons-react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 
 import { serverAddress } from "../../api_client/apiClient";
@@ -23,12 +29,16 @@ type Props = Readonly<{
 export function LightBox(props: Props) {
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photoDetails);
-  const { playing: isPlayingEmbeddedContent } = useAppSelector(store => store.player);
   const { width: viewportWidth } = useViewportSize();
+  const [faceLocation, setFaceLocation] = useState<{ top: number; bottom: number; left: number; right: number } | null>(
+    null
+  );
+
   let LIGHTBOX_SIDEBAR_WIDTH = 320;
   if (viewportWidth < 600) {
     LIGHTBOX_SIDEBAR_WIDTH = viewportWidth;
   }
+
   const {
     lightboxImageId,
     lightboxImageIndex,
@@ -56,8 +66,6 @@ export function LightBox(props: Props) {
     return image ? image.id : undefined;
   };
 
-  const getPictureUrl = id => `${serverAddress}/media/thumbnails_big/${id}`;
-
   const isVideo = () => {
     if (getCurrentPhotodetail() === undefined || getCurrentPhotodetail().video === undefined) {
       return false;
@@ -72,68 +80,15 @@ export function LightBox(props: Props) {
     return getCurrentPhotodetail().embedded_media.length > 0;
   };
 
-  // To-Do: This is technically false, but we do not know the next and previous media types, which is why it would return null sometimes, which leads to the arrows not showing up
-  function getVideoComponent(id) {
-    if (isVideo()) {
-      return (
-        <ReactPlayer
-          width="100%"
-          height="100%"
-          playing
-          controls
-          url={`${serverAddress}/media/video/${id}`}
-          progressInterval={100}
-        />
-      );
-    }
-    if (isEmbeddedMedia()) {
-      return (
-        <ReactPlayer
-          width="100%"
-          height="100%"
-          config={{ file: { attributes: { poster: getPictureUrl(id) } } }}
-          loop
-          playing={isPlayingEmbeddedContent}
-          url={`${serverAddress}/media/embedded_media/${id}`}
-          progressInterval={100}
-        />
-      );
-    }
-    return null;
-  }
-
-  function getTransform({ x = 0, y = 0, zoom = 1, width, targetWidth }) {
-    let innerWidth = viewportWidth;
-    if (document.getElementsByClassName("ril-inner ril__inner")[0]) {
-      innerWidth = document.getElementsByClassName("ril-inner ril__inner")[0].clientWidth;
-    }
-
-    let nextX = x;
-    if (width > innerWidth) {
-      nextX += (innerWidth - width) / 2;
-    }
-    const scaleFactor = zoom * (targetWidth / width);
-    return {
-      transform: `translate3d(${nextX}px,${y}px,0) scale3d(${scaleFactor},${scaleFactor},1)`,
-    };
-  }
-
-  // override static function getTransform from react-image-lightbox
-  // @ts-ignore
-  Lightbox.getTransform = getTransform;
-
   return (
     <div>
-      <Lightbox
-        // @ts-ignore
-        mainSrc={!isVideo() ? getPictureUrl(lightboxImageId) : null}
-        nextSrc={!isVideo() ? getPictureUrl(getNextId()) : undefined}
-        prevSrc={!isVideo() ? getPictureUrl(getPreviousId()) : undefined}
-        mainCustomContent={getVideoComponent(lightboxImageId)}
-        nextCustomContent={getVideoComponent(getNextId())}
-        prevCustomContent={getVideoComponent(getPreviousId())}
-        imageLoadErrorMessage=""
-        discourageDownloads={false}
+      <ContentViewer
+        mainSrc={lightboxImageId}
+        nextSrc={getNextId()}
+        prevSrc={getPreviousId()}
+        type={isVideo() ? "video" : isEmbeddedMedia() ? "embedded" : "photo"}
+        onImageLoad={onImageLoad}
+        faceLocation={faceLocation ? faceLocation : undefined}
         toolbarButtons={[
           <Toolbar
             photosDetail={photoDetails[lightboxImageId]}
@@ -142,29 +97,192 @@ export function LightBox(props: Props) {
             isPublic={isPublic}
           />,
         ]}
-        enableZoom={!isVideo()}
+        enableZoom={!isVideo() && !isEmbeddedMedia()}
         onCloseRequest={onCloseRequest}
-        onAfterOpen={() => {
-          onImageLoad();
-        }}
         onMovePrevRequest={() => {
           onMovePrevRequest();
         }}
         onMoveNextRequest={() => {
           onMoveNextRequest();
         }}
-        reactModalStyle={{
-          content: {},
-          overlay: {
-            width: lightboxSidebarShow ? viewportWidth - LIGHTBOX_SIDEBAR_WIDTH : viewportWidth,
-          },
-        }}
+        sidebarWidth={lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0}
       />
       {lightboxSidebarShow ? (
-        <Sidebar photoDetail={getCurrentPhotodetail()} closeSidepanel={closeSidepanel} isPublic={isPublic} />
+        <Sidebar
+          id={lightboxImageId}
+          closeSidepanel={closeSidepanel}
+          isPublic={isPublic}
+          setFaceLocation={setFaceLocation}
+        />
       ) : (
         <div />
       )}
     </div>
   );
 }
+
+type ContentViewerProps = {
+  mainSrc: string | null;
+  nextSrc?: string;
+  prevSrc?: string;
+  type: string;
+  onCloseRequest: () => void;
+  onMovePrevRequest: () => void;
+  onMoveNextRequest: () => void;
+  onImageLoad: () => void;
+  onImageLoadError?: () => void;
+  sidebarWidth?: number;
+  toolbarButtons?: React.ReactNode[];
+  reactModalStyle?: any;
+  faceLocation?: { top: number; bottom: number; left: number; right: number };
+  reactModalProps?: any;
+  imagePadding?: number;
+  clickOutsideToClose?: boolean;
+  enableZoom?: boolean;
+};
+
+export const ContentViewer: React.FC<ContentViewerProps> = ({
+  mainSrc,
+  nextSrc,
+  prevSrc,
+  type,
+  onCloseRequest,
+  onMovePrevRequest,
+  onMoveNextRequest,
+  onImageLoad,
+  onImageLoadError,
+  toolbarButtons,
+  enableZoom = true,
+  sidebarWidth = 0,
+  faceLocation,
+}) => {
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [error, setError] = useState(false);
+
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+
+  const getRelativePosition = position => {
+    if (!position || !imageDimensions.width || !imageDimensions.height) return {};
+
+    const top = (position.top / imageDimensions.height) * 100;
+    const left = (position.left / imageDimensions.width) * 100;
+    const width = ((position.right - position.left) / imageDimensions.width) * 100;
+    const height = ((position.bottom - position.top) / imageDimensions.height) * 100;
+
+    return { top: `${top}%`, left: `${left}%`, width: `${width}%`, height: `${height}%` };
+  };
+
+  useEffect(() => {
+    if (onImageLoad) onImageLoad();
+  }, []);
+
+  const handleImageLoad = () => {
+    setError(false);
+    onImageLoad();
+  };
+
+  const handleImageError = () => {
+    setError(true);
+    if (onImageLoadError) onImageLoadError();
+  };
+
+  const toggleZoom = () => {
+    setIsZoomed(prev => !prev);
+  };
+  return (
+    <Modal.Root opened={true} onClose={onCloseRequest} fullScreen>
+      <Modal.Overlay blur={5} opacity={0.8} />
+      <Modal.Content style={{ background: "transparent" }}>
+        <Modal.Body
+          style={{
+            width: `calc(100vw - ${sidebarWidth}px)`,
+            height: "100vh",
+          }}
+        >
+          <Group position="right" style={{ background: "transparent" }}>
+            {toolbarButtons && toolbarButtons.length > 0 ? toolbarButtons : null}
+            {enableZoom && type === "photo" && (
+              <div style={{ marginBottom: 10 }}>
+                <ActionIcon onClick={toggleZoom}>{isZoomed ? <ZoomOut /> : <ZoomIn />}</ActionIcon>
+              </div>
+            )}
+            <div style={{ marginBottom: 10 }}>
+              <ActionIcon onClick={onCloseRequest}>
+                <X color="grey" />
+              </ActionIcon>
+            </div>
+          </Group>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            {/* Navigation Button on the Left */}
+            <ActionIcon onClick={onMovePrevRequest} disabled={!prevSrc} size="lg" mr="sm">
+              <ArrowLeft size={24} />
+            </ActionIcon>
+
+            {/* Main Content (Image or Video) */}
+            {error ? (
+              <Text color="red">{"Error loading image"}</Text>
+            ) : type === "video" && mainSrc ? (
+              <ReactPlayer
+                url={`${serverAddress}/media/video/${mainSrc}`}
+                width="100%"
+                height="92.5vh"
+                controls
+                playing
+                progressInterval={100}
+              />
+            ) : type === "embedded" ? (
+              <ReactPlayer
+                url={`${serverAddress}/media/embedded/${mainSrc}`}
+                width="100%"
+                height="92.5vh"
+                controls
+                playing
+                progressInterval={100}
+              />
+            ) : (
+              <div style={{ position: "relative", height: "92.5vh" }}>
+                <Image
+                  src={`${serverAddress}/media/thumbnails_big/${mainSrc}`}
+                  alt="Lightbox Main Content"
+                  onLoad={event => {
+                    const { naturalWidth, naturalHeight } = event.target;
+                    setImageDimensions({ width: naturalWidth, height: naturalHeight });
+                    handleImageLoad();
+                  }}
+                  onError={handleImageError}
+                  radius="lg"
+                  fit="contain"
+                  height="92.5vh"
+                ></Image>
+                {faceLocation && (
+                  <Box
+                    sx={theme => ({
+                      position: "absolute",
+                      border: `2px solid ${theme.colors.gray[4]}`, // Use Mantine's red color
+                      borderRadius: theme.radius.lg,
+                      ...getRelativePosition(faceLocation),
+                      boxShadow: theme.shadows.lg,
+                    })}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Navigation Button on the Right */}
+            <ActionIcon onClick={onMoveNextRequest} disabled={!nextSrc} size="lg" ml="sm">
+              <ArrowRight size={24} />
+            </ActionIcon>
+          </div>
+        </Modal.Body>
+      </Modal.Content>
+    </Modal.Root>
+  );
+};
+
+export default ContentViewer;
