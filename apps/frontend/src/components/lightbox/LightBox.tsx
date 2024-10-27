@@ -7,6 +7,8 @@ import {
   IconZoomIn as ZoomIn,
   IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
+import { useGesture } from "@use-gesture/react";
+import { set } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 
@@ -157,7 +159,9 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
   faceLocation,
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
+  const [scale, setScale] = useState(1);
   const [error, setError] = useState(false);
+  const [offset, setOffset] = useState({ x: 0, y: 0 }); // For dragging the image
 
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
@@ -171,6 +175,27 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
 
     return { top: `${top}%`, left: `${left}%`, width: `${width}%`, height: `${height}%` };
   };
+
+  const bind = useGesture({
+    onPinch: state => {
+      setScale(Math.max(1, Math.min(scale * state.offset[0], 4)));
+    },
+    onPinchEnd: () => {
+      if (scale < 1.5) {
+        setScale(1); 
+      } else {
+        setScale(Math.min(scale, 4));
+      }
+    },
+    onDrag: state => {
+      if (isZoomed) {
+        setOffset({
+          x: state.offset[0],
+          y: state.offset[1],
+        });
+      }
+    },
+  });
 
   useEffect(() => {
     if (onImageLoad) onImageLoad();
@@ -188,7 +213,14 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
 
   const toggleZoom = () => {
     setIsZoomed(prev => !prev);
+    setScale(isZoomed ? 1 : 2);
+    setOffset({ x: 0, y: 0 });
   };
+
+  const handleDragStart = event => {
+    event.preventDefault();
+  };
+
   return (
     <Modal.Root opened={true} onClose={onCloseRequest} fullScreen>
       <Modal.Overlay blur={5} opacity={0.8} />
@@ -247,24 +279,44 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
               />
             ) : (
               <div style={{ position: "relative", height: "92.5vh" }}>
-                <Image
-                  src={`${serverAddress}/media/thumbnails_big/${mainSrc}`}
-                  alt="Lightbox Main Content"
-                  onLoad={event => {
-                    const { naturalWidth, naturalHeight } = event.target;
-                    setImageDimensions({ width: naturalWidth, height: naturalHeight });
-                    handleImageLoad();
+                <div
+                  {...bind()} 
+                  style={{
+                    position: "relative",
+                    height: "92.5vh",
+                    overflow: "hidden", 
                   }}
-                  onError={handleImageError}
-                  radius="lg"
-                  fit="contain"
-                  height="92.5vh"
-                ></Image>
+                >
+                  <img
+                    src={`${serverAddress}/media/thumbnails_big/${mainSrc}`}
+                    alt="Lightbox Main Content"
+                    onLoad={event => {
+                      const { naturalWidth, naturalHeight } = event.target;
+                      setImageDimensions({ width: naturalWidth, height: naturalHeight });
+                      setScale(1);
+                      setOffset({ x: 0, y: 0 });
+                      handleImageLoad();
+                    }}
+                    onDragStart={handleDragStart} 
+                    onError={handleImageError}
+                    onDoubleClick={toggleZoom} 
+                    style={{
+                      transition: "transform 0.1s ease", 
+                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                      objectFit: "contain",
+                      height: "100%", 
+                      width: "auto",
+                      maxWidth: "100%", 
+                      display: "block",
+                      margin: "auto",
+                    }}
+                  />
+                </div>
                 {faceLocation && (
                   <Box
                     sx={theme => ({
                       position: "absolute",
-                      border: `2px solid ${theme.colors.gray[4]}`, // Use Mantine's red color
+                      border: `2px solid ${theme.colors.gray[4]}`,
                       borderRadius: theme.radius.lg,
                       ...getRelativePosition(faceLocation),
                       boxShadow: theme.shadows.lg,
