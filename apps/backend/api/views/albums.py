@@ -110,9 +110,7 @@ class PersonViewSet(viewsets.ModelViewSet):
             return Person.objects.none()
         qs = (
             Person.objects.filter(
-                ~Q(kind=Person.KIND_CLUSTER)
-                & ~Q(kind=Person.KIND_UNKNOWN)
-                & Q(cluster_owner=self.request.user)
+                Q(kind=Person.KIND_USER) & Q(cluster_owner=self.request.user)
             )
             .select_related("cover_photo", "cover_face")
             .only(
@@ -335,13 +333,6 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             photoFilter.append(
                 Q(faces__person__id=self.request.query_params.get("person"))
             )
-            photoFilter.append(
-                Q(
-                    faces__person_label_probability__gte=F(
-                        "faces__photo__owner__confidence_person"
-                    )
-                )
-            )
         if self.request.query_params.get("last_modified"):
             photoFilter = []
             photoFilter.append(Q(owner=self.request.user))
@@ -476,13 +467,6 @@ class AlbumDateListViewSet(ListViewSet):
         if self.request.query_params.get("person"):
             filter.append(
                 Q(photos__faces__person__id=self.request.query_params.get("person"))
-            )
-            filter.append(
-                Q(
-                    photos__faces__person_label_probability__gte=F(
-                        "photos__faces__photo__owner__confidence_person"
-                    )
-                )
             )
         if self.request.query_params.get("last_modified"):
             filter = []
