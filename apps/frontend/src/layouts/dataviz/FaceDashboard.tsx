@@ -19,6 +19,7 @@ import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubb
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FacesTab } from "../../store/faces/facesActions.types";
+import { FaceAnalysisMethod } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
@@ -26,7 +27,7 @@ export function FaceDashboard() {
   const { ref, width } = useElementSize();
   const gridRef = useRef<any>();
 
-  const { activeTab, tabs } = useAppSelector(store => store.face);
+  const { activeTab, tabs, analysisMethod, orderBy, minConfidence } = useAppSelector(store => store.face);
 
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
@@ -38,8 +39,26 @@ export function FaceDashboard() {
   const [scrollTo, setScrollTo] = useState<number | null>(null);
   const setScrollLocked = useScrollLock(false)[1];
 
-  const fetchingInferredFacesList = useFetchIncompleteFacesQuery({ inferred: false }).isFetching;
-  const fetchingLabeledFacesList = useFetchIncompleteFacesQuery({ inferred: true }).isFetching;
+  const { data: labeledFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery(
+    {
+      inferred: false,
+      orderBy: orderBy,
+    }
+  );
+
+  const { data: inferredFacesListUnfiltered = [], isFetching: fetchingLabeledFacesList } = useFetchIncompleteFacesQuery(
+    {
+      inferred: true,
+      method: analysisMethod,
+      orderBy: orderBy,
+      minConfidence: minConfidence,
+    }
+  );
+
+  const unknownFacesList = inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other");
+  const inferredFacesList = inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other");
+  const labeledFacesList = labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other");
+
   const dispatch = useAppDispatch();
 
   const [groups, setGroups] = useState<
@@ -47,19 +66,15 @@ export function FaceDashboard() {
       page: number;
       person: any;
       inferred: boolean;
+      method: FaceAnalysisMethod;
     }[]
   >([]);
-
-  const { inferredFacesList: nonCleanInferredFacesList, labeledFacesList } = useAppSelector(store => store.face);
-
-  // Filter the Person "Unknown - Other" from the inferredFacesList
-  // To-Do: This should not be in that list...
-  const inferredFacesList = nonCleanInferredFacesList.filter(person => person.kind === "CLUSTER");
 
   const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
 
   const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
   const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
+  const unknownCellContents = calculateFaceGridCells(unknownFacesList, numEntrySquaresPerRow).cellContents;
 
   const selectMode = selectedFaces.length > 0;
 
@@ -67,18 +82,21 @@ export function FaceDashboard() {
     dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image));
   };
 
-  const idx2hash =
-    activeTab === FacesTab.enum.labeled
-      ? labeledFacesList
-          .flatMap(person => person.faces)
-          .map(face => ({
-            id: face.photo,
-          }))
-      : inferredFacesList
-          .flatMap(person => person.faces)
-          .map(face => ({
-            id: face.photo,
-          }));
+  let idx2hash: { id: string }[] = [];
+
+  switch (activeTab) {
+    case FacesTab.enum.labeled:
+      idx2hash = labeledFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
+      break;
+    case FacesTab.enum.inferred:
+      idx2hash = inferredFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
+      break;
+    case FacesTab.enum.unknown:
+      idx2hash = unknownFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
+      break;
+    default:
+      [];
+  }
 
   const handleShowClick = (event: React.KeyboardEvent, item: any) => {
     const index = idx2hash.findIndex(image => image.id === item.photo);
@@ -88,24 +106,16 @@ export function FaceDashboard() {
     setScrollLocked(true);
   };
 
-  const { orderBy } = useAppSelector(store => store.face);
-
   groups.forEach(element => {
-    let force = false;
-    const currentList = element.inferred ? labeledFacesList : inferredFacesList;
-    const personIndex = currentList.findIndex(person => person.id === element.person);
-    // Force refetch for persons that have more than 100 faces as we can't be sure all faces were loaded when changing orderBy
-    if (personIndex !== -1 && currentList[personIndex].face_count > 100) force = true;
     dispatch(
-      api.endpoints.fetchFaces.initiate(
-        {
-          person: element.person,
-          page: element.page,
-          inferred: element.inferred,
-          orderBy,
-        },
-        { forceRefetch: force }
-      )
+      api.endpoints.fetchFaces.initiate({
+        person: element.person ? element.person : 0,
+        page: element.page,
+        inferred: element.inferred,
+        orderBy,
+        minConfidence: element.inferred ? minConfidence : undefined,
+        method: element.inferred ? element.method : undefined,
+      })
     );
   });
 
@@ -125,7 +135,12 @@ export function FaceDashboard() {
   };
 
   const getScrollPositions = () => {
-    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
+    const cellContents =
+      activeTab === FacesTab.enum.labeled
+        ? labeledCellContents
+        : activeTab === FacesTab.Enum.inferred
+          ? inferredCellContents
+          : unknownCellContents;
     let scrollPosition = 0;
     const scrollPositions: IScrollerData[] = [];
     cellContents.forEach(row => {
@@ -167,7 +182,12 @@ export function FaceDashboard() {
   const gridHeight = gridRef.current ? gridRef.current.getTotalRowsHeight() : 200;
 
   const onSectionRendered = (params: any) => {
-    const cellContents = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
+    const cellContents =
+      activeTab === FacesTab.enum.labeled
+        ? labeledCellContents
+        : activeTab === FacesTab.Enum.inferred
+          ? inferredCellContents
+          : unknownCellContents;
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     // flatten labeledCellContents and find the range of cells that are in the viewport
@@ -181,7 +201,12 @@ export function FaceDashboard() {
       .filter((i: any) => i.isTemp)
       .map((i: any) => {
         const page = Math.ceil((parseInt(i.id, 10) + 1) / 100);
-        return { page, person: i.person, inferred: !(activeTab === FacesTab.enum.labeled) };
+        return {
+          page,
+          person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
+          inferred: !(activeTab === FacesTab.enum.labeled),
+          method: analysisMethod,
+        };
       });
     const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => `${e.page} ${e.person}`);
     if (uniqueGroups.length > 0) {
@@ -223,8 +248,12 @@ export function FaceDashboard() {
       return;
     }
     if (e.shiftKey) {
-      const currentCellsInRowFormat = activeTab === FacesTab.enum.labeled ? labeledCellContents : inferredCellContents;
-
+      const currentCellsInRowFormat =
+        activeTab === FacesTab.enum.labeled
+          ? labeledCellContents
+          : activeTab === FacesTab.Enum.inferred
+            ? inferredCellContents
+            : unknownCellContents;
       const allFacesInCells = [] as any[];
       for (let i = 0; i < currentCellsInRowFormat.length; i++) {
         for (let j = 0; j < numEntrySquaresPerRow; j++) {
@@ -279,7 +308,9 @@ export function FaceDashboard() {
     const cell =
       activeTab === FacesTab.enum.labeled
         ? labeledCellContents[rowIndex][columnIndex]
-        : inferredCellContents[rowIndex][columnIndex];
+        : activeTab === FacesTab.Enum.inferred
+          ? inferredCellContents[rowIndex][columnIndex]
+          : unknownCellContents[rowIndex][columnIndex];
 
     if (cell) {
       if (cell.name) {
@@ -318,8 +349,8 @@ export function FaceDashboard() {
   };
 
   return (
-    <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
-      <Stack>
+    <div style={{ display: "flex", flexFlow: "column", height: "100%", padding: 10 }}>
+      <Stack spacing="xl">
         <TabComponent
           width={width}
           fetchingLabeledFacesList={fetchingLabeledFacesList}
@@ -356,7 +387,11 @@ export function FaceDashboard() {
                 height={height}
                 width={gridWidth}
                 rowCount={
-                  activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length
+                  activeTab === FacesTab.enum.labeled
+                    ? labeledCellContents.length
+                    : activeTab === FacesTab.enum.inferred
+                      ? inferredCellContents.length
+                      : unknownCellContents.length
                 }
                 scrollTop={tabs[activeTab].scrollPosition}
                 onScroll={handleGridScroll}

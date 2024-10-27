@@ -1,17 +1,20 @@
 import {
   ActionIcon,
+  Box,
   Button,
   Divider,
   Group,
   Modal,
   SegmentedControl,
+  Slider,
   Stack,
-  Switch,
   Text,
   Tooltip,
+  rem,
 } from "@mantine/core";
 import {
   IconBarbell as Barbell,
+  IconCheck as Check,
   IconPlus as Plus,
   IconTrash as Trash,
   IconUserOff as UserOff,
@@ -22,8 +25,7 @@ import { useTranslation } from "react-i18next";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
-import { FacesOrderOption } from "../../store/faces/facesActions.types";
-import type { IFacesOrderOption } from "../../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesOrderOption } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = Readonly<{
@@ -46,13 +48,17 @@ export function ButtonHeaderGroup({
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
   const { data: worker } = useWorkerQuery();
-  const { orderBy } = useAppSelector(store => store.face);
+  const { orderBy, analysisMethod, activeTab, minConfidence } = useAppSelector(store => store.face);
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
 
   const setOrderBy = (value: string) => {
-    dispatch(faceActions.changeFacesOrderBy(value as IFacesOrderOption));
+    dispatch(faceActions.changeFacesOrderBy(value as FacesOrderOption));
+  };
+
+  const changeShowType = (value: string) => {
+    dispatch(faceActions.changeAnalysisMethod(value as FaceAnalysisMethod));
   };
 
   useEffect(() => {
@@ -63,16 +69,28 @@ export function ButtonHeaderGroup({
   }, [worker]);
 
   return (
-    <div>
+    <Box
+      sx={theme => ({
+        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+        textAlign: "center",
+        cursor: "pointer",
+        borderRadius: 10,
+      })}
+      style={{
+        padding: 4,
+      }}
+    >
       <Group position="apart">
         <Group spacing="xs">
-          <Switch
-            label={t("facesdashboard.selectedfaces", {
-              number: selectedFaces.length,
-            })}
-            checked={selectMode}
-            onChange={changeSelectMode}
-          />
+          <Button
+            variant="light"
+            size="xs"
+            leftIcon={<Check color={selectMode ? "green" : "gray"} />}
+            color={selectMode ? "blue" : "gray"}
+            onClick={changeSelectMode}
+          >
+            {`${selectedFaces.length} ${t("selectionbar.selected")}`}
+          </Button>
           <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
           <Text size="sm" weight={500} mb={3}>
             {t("facesdashboard.sortby")}
@@ -92,6 +110,53 @@ export function ButtonHeaderGroup({
               },
             ]}
           />
+          {(activeTab == "inferred" || activeTab == "unknown") && (
+            <div style={{ display: "contents" }}>
+              <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
+              <Text size="sm" weight={500} mb={3}>
+                {t("facesdashboard.show")}
+              </Text>
+              <SegmentedControl
+                size="sm"
+                value={analysisMethod}
+                onChange={changeShowType}
+                data={[
+                  {
+                    label: t("facesdashboard.clusters"),
+                    value: FaceAnalysisMethod.enum.clustering,
+                  },
+                  {
+                    label: t("facesdashboard.classifications"),
+                    value: FaceAnalysisMethod.enum.classification,
+                  },
+                ]}
+              />
+              <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
+              <Text size="sm" weight={500} mb={3}>
+                {t("facesdashboard.minconfidence")}
+              </Text>
+              <Box
+                style={{ width: 150, paddingTop: 10, paddingBottom: 10, paddingRight: 5, paddingLeft: 5 }}
+                sx={theme => ({
+                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[1],
+                  textAlign: "center",
+                  cursor: "pointer",
+                  borderRadius: 4,
+                })}
+              >
+                <Slider
+                  value={minConfidence}
+                  onChange={value => dispatch(faceActions.changeMinConfidence(value))}
+                  label={minConfidence}
+                  size={5}
+                  step={0.05}
+                  min={0}
+                  max={1}
+                  defaultValue={0.5}
+                />
+              </Box>
+            </div>
+          )}
         </Group>
         <Group>
           <Tooltip label={t("facesdashboard.explanationadding")}>
@@ -160,6 +225,6 @@ export function ButtonHeaderGroup({
           </Group>
         </Stack>
       </Modal>
-    </div>
+    </Box>
   );
 }

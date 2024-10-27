@@ -5,7 +5,7 @@ import { useParams } from "react-router-dom";
 
 import { PigPhoto } from "../../actions/photosActions.types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/date";
-import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
+import { Person, useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -17,8 +17,8 @@ export function AlbumPersonGallery(): JSX.Element {
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { data: people } = useFetchPeopleAlbumsQuery();
 
-  const person = people?.filter((i: any) => i.key === albumID)[0];
-  const personname = person ? person.value : undefined;
+  const person = people?.filter((i: Person) => i.id === albumID)[0];
+  const personname = person ? person.name : undefined;
 
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
     photosetType: PhotosetType.PERSON,

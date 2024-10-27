@@ -17,6 +17,13 @@ type Props = Readonly<{
   handleShowClick: (e: any, cell: any) => void;
 }>;
 
+export const calculateProbabiltyColor = (labelProbability: number) => {
+  if (labelProbability > 0.9) return "green";
+  if (labelProbability > 0.8) return "yellow";
+  if (labelProbability > 0.7) return "orange";
+  return "red";
+};
+
 export function FaceComponent({
   cell,
   isScrollingFast,
@@ -26,13 +33,6 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
-  const calculateProbabiltyColor = (labelProbability: number) => {
-    if (labelProbability > 0.9) return "green";
-    if (labelProbability > 0.8) return "yellow";
-    if (labelProbability > 0.7) return "orange";
-    return "red";
-  };
-
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const [tooltipOpened, setTooltipOpened] = useState(false);
   const { activeTab } = useAppSelector(store => store.face);
@@ -68,7 +68,11 @@ export function FaceComponent({
       })}
     >
       <Center>
-        <FaceTooltip tooltipOpened={tooltipOpened} cell={cell}>
+        <FaceTooltip
+          tooltipOpened={tooltipOpened}
+          probability={cell.person_label_probability}
+          timestamp={cell.timestamp}
+        >
           <Indicator
             offset={offset}
             color={labelProbabilityColor}
