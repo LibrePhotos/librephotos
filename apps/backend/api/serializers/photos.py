@@ -313,6 +313,12 @@ class PhotoSerializer(serializers.ModelSerializer):
                         )
                     )
                 ),
+                "location": {
+                    "top": f.location_top,
+                    "bottom": f.location_bottom,
+                    "left": f.location_left,
+                    "right": f.location_right,
+                },
                 "face_url": f.image.url,
                 "face_id": f.id,
             }
