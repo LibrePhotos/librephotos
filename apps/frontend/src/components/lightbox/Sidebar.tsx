@@ -32,12 +32,8 @@ export function Sidebar(props: Props) {
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const { isPublic, closeSidepanel, setFaceLocation } = props;
-  const { width } = useViewportSize();
 
   const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[props.id]);
-
-  const SCROLLBAR_WIDTH = 15;
-  let LIGHTBOX_SIDEBAR_WIDTH = 320;
 
   const notThisPerson = faceId => {
     const ids = [faceId];
@@ -46,9 +42,6 @@ export function Sidebar(props: Props) {
     dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
   };
 
-  if (width < 600) {
-    LIGHTBOX_SIDEBAR_WIDTH = width - SCROLLBAR_WIDTH;
-  }
   return (
     <Box
       sx={theme => ({
@@ -56,13 +49,8 @@ export function Sidebar(props: Props) {
         padding: theme.spacing.sm,
       })}
       style={{
-        right: 0,
-        top: 0,
-        float: "right",
-        width: LIGHTBOX_SIDEBAR_WIDTH,
-        height: window.innerHeight,
-        whiteSpace: "normal",
-        position: "fixed",
+        width: "33%",
+        height: "100%",
         overflowY: "scroll",
         overflowX: "hidden",
         zIndex: 250,
@@ -99,7 +87,6 @@ export function Sidebar(props: Props) {
 
           <div
             style={{
-              width: LIGHTBOX_SIDEBAR_WIDTH - 70,
               whiteSpace: "normal",
               lineHeight: "normal",
             }}

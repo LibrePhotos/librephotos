@@ -29,17 +29,7 @@ type Props = Readonly<{
 }>;
 
 export function LightBox(props: Props) {
-  const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const { photoDetails } = useAppSelector(store => store.photoDetails);
-  const { width: viewportWidth } = useViewportSize();
-  const [faceLocation, setFaceLocation] = useState<{ top: number; bottom: number; left: number; right: number } | null>(
-    null
-  );
-
-  let LIGHTBOX_SIDEBAR_WIDTH = 320;
-  if (viewportWidth < 600) {
-    LIGHTBOX_SIDEBAR_WIDTH = viewportWidth;
-  }
 
   const {
     lightboxImageId,
@@ -51,10 +41,6 @@ export function LightBox(props: Props) {
     onMoveNextRequest,
     onImageLoad,
   } = props;
-
-  const closeSidepanel = () => {
-    setLightBoxSidebarShow(!lightboxSidebarShow);
-  };
 
   const getCurrentPhotodetail = () => photoDetails[lightboxImageId];
 
@@ -68,18 +54,20 @@ export function LightBox(props: Props) {
     return image ? image.id : undefined;
   };
 
-  const isVideo = () => {
-    if (getCurrentPhotodetail() === undefined || getCurrentPhotodetail().video === undefined) {
-      return false;
+  const getMediaType = () => {
+    if (
+      getCurrentPhotodetail() === undefined ||
+      (getCurrentPhotodetail().video === undefined && getCurrentPhotodetail().embedded_media.length === 0)
+    ) {
+      return "photo";
     }
-    return getCurrentPhotodetail().video;
-  };
-
-  const isEmbeddedMedia = () => {
-    if (getCurrentPhotodetail() === undefined || getCurrentPhotodetail().embedded_media.length === 0) {
-      return false;
+    if (getCurrentPhotodetail().video) {
+      return "video";
     }
-    return getCurrentPhotodetail().embedded_media.length > 0;
+    if (getCurrentPhotodetail().embedded_media.length > 0) {
+      return "embedded";
+    }
+    return "photo";
   };
 
   return (
@@ -88,18 +76,10 @@ export function LightBox(props: Props) {
         mainSrc={lightboxImageId}
         nextSrc={getNextId()}
         prevSrc={getPreviousId()}
-        type={isVideo() ? "video" : isEmbeddedMedia() ? "embedded" : "photo"}
+        isPublic={isPublic}
+        type={getMediaType()}
         onImageLoad={onImageLoad}
-        faceLocation={faceLocation ? faceLocation : undefined}
-        toolbarButtons={[
-          <Toolbar
-            photosDetail={photoDetails[lightboxImageId]}
-            lightboxSidebarShow={lightboxSidebarShow}
-            closeSidepanel={closeSidepanel}
-            isPublic={isPublic}
-          />,
-        ]}
-        enableZoom={!isVideo() && !isEmbeddedMedia()}
+        enableZoom={getMediaType() === "photo"}
         onCloseRequest={onCloseRequest}
         onMovePrevRequest={() => {
           onMovePrevRequest();
@@ -107,24 +87,13 @@ export function LightBox(props: Props) {
         onMoveNextRequest={() => {
           onMoveNextRequest();
         }}
-        sidebarWidth={lightboxSidebarShow ? LIGHTBOX_SIDEBAR_WIDTH : 0}
       />
-      {lightboxSidebarShow ? (
-        <Sidebar
-          id={lightboxImageId}
-          closeSidepanel={closeSidepanel}
-          isPublic={isPublic}
-          setFaceLocation={setFaceLocation}
-        />
-      ) : (
-        <div />
-      )}
     </div>
   );
 }
 
 type ContentViewerProps = {
-  mainSrc: string | null;
+  mainSrc: string;
   nextSrc?: string;
   prevSrc?: string;
   type: string;
@@ -133,14 +102,10 @@ type ContentViewerProps = {
   onMoveNextRequest: () => void;
   onImageLoad: () => void;
   onImageLoadError?: () => void;
-  sidebarWidth?: number;
-  toolbarButtons?: React.ReactNode[];
-  reactModalStyle?: any;
-  faceLocation?: { top: number; bottom: number; left: number; right: number };
-  reactModalProps?: any;
   imagePadding?: number;
   clickOutsideToClose?: boolean;
   enableZoom?: boolean;
+  isPublic: boolean;
 };
 
 export const ContentViewer: React.FC<ContentViewerProps> = ({
@@ -153,15 +118,19 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
   onMoveNextRequest,
   onImageLoad,
   onImageLoadError,
-  toolbarButtons,
   enableZoom = true,
-  sidebarWidth = 0,
-  faceLocation,
+  isPublic,
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
   const [error, setError] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 }); // For dragging the image
+  const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
+  const [faceLocation, setFaceLocation] = useState<{ top: number; bottom: number; left: number; right: number } | null>(
+    null
+  );
+
+  const { photoDetails } = useAppSelector(store => store.photoDetails);
 
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
 
@@ -182,7 +151,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
     },
     onPinchEnd: () => {
       if (scale < 1.5) {
-        setScale(1); 
+        setScale(1);
       } else {
         setScale(Math.min(scale, 4));
       }
@@ -227,110 +196,132 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
       <Modal.Content style={{ background: "transparent" }}>
         <Modal.Body
           style={{
-            width: `calc(100vw - ${sidebarWidth}px)`,
+            width: `100vw`,
             height: "100vh",
+            display: "flex",
+            alignItems: "stretch",
+            padding: 0,
           }}
         >
-          <Group position="right" style={{ background: "transparent" }}>
-            {toolbarButtons && toolbarButtons.length > 0 ? toolbarButtons : null}
-            {enableZoom && type === "photo" && (
+          <div style={{ width: `100%`, padding: 16 }}>
+            <Group position="right" style={{ background: "transparent" }}>
+              <Toolbar
+                photosDetail={photoDetails[mainSrc]}
+                lightboxSidebarShow={lightboxSidebarShow}
+                closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
+                isPublic={isPublic}
+              />
+              {enableZoom && type === "photo" && (
+                <div style={{ marginBottom: 10 }}>
+                  <ActionIcon onClick={toggleZoom}>{isZoomed ? <ZoomOut /> : <ZoomIn />}</ActionIcon>
+                </div>
+              )}
               <div style={{ marginBottom: 10 }}>
-                <ActionIcon onClick={toggleZoom}>{isZoomed ? <ZoomOut /> : <ZoomIn />}</ActionIcon>
+                <ActionIcon onClick={onCloseRequest}>
+                  <X color="grey" />
+                </ActionIcon>
               </div>
-            )}
-            <div style={{ marginBottom: 10 }}>
-              <ActionIcon onClick={onCloseRequest}>
-                <X color="grey" />
+            </Group>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              {/* Navigation Button on the Left */}
+              <ActionIcon onClick={onMovePrevRequest} disabled={!prevSrc} size="lg" mr="sm">
+                <ArrowLeft size={24} />
+              </ActionIcon>
+
+              {/* Main Content (Image or Video) */}
+              {error ? (
+                <Text color="red">{"Error loading image"}</Text>
+              ) : type === "video" && mainSrc ? (
+                <ReactPlayer
+                  url={`${serverAddress}/media/video/${mainSrc}`}
+                  width="100%"
+                  height="92.5vh"
+                  controls
+                  playing
+                  progressInterval={100}
+                />
+              ) : type === "embedded" ? (
+                <ReactPlayer
+                  url={`${serverAddress}/media/embedded/${mainSrc}`}
+                  width="100%"
+                  height="92.5vh"
+                  controls
+                  playing
+                  progressInterval={100}
+                />
+              ) : (
+                <div style={{ position: "relative", height: "92.5vh" }}>
+                  <div
+                    {...bind()}
+                    style={{
+                      position: "relative",
+                      height: "92.5vh",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <img
+                      src={`${serverAddress}/media/thumbnails_big/${mainSrc}`}
+                      alt="Lightbox Main Content"
+                      onLoad={event => {
+                        const { naturalWidth, naturalHeight } = event.target;
+                        setImageDimensions({ width: naturalWidth, height: naturalHeight });
+                        setScale(1);
+                        setOffset({ x: 0, y: 0 });
+                        setIsZoomed(false);
+                        handleImageLoad();
+                      }}
+                      onDragStart={handleDragStart}
+                      onError={handleImageError}
+                      onDoubleClick={toggleZoom}
+                      style={{
+                        transition: "transform 0.1s ease",
+                        transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+                        objectFit: "contain",
+                        height: "100%",
+                        width: "auto",
+                        maxWidth: "100%",
+                        display: "block",
+                        margin: "auto",
+                        borderRadius: 16,
+                      }}
+                    />
+                  </div>
+                  {faceLocation && (
+                    <Box
+                      sx={theme => ({
+                        position: "absolute",
+                        border: `2px solid ${theme.colors.gray[4]}`,
+                        borderRadius: theme.radius.lg,
+                        ...getRelativePosition(faceLocation),
+                        boxShadow: theme.shadows.lg,
+                      })}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Navigation Button on the Right */}
+              <ActionIcon onClick={onMoveNextRequest} disabled={!nextSrc} size="lg" ml="sm">
+                <ArrowRight size={24} />
               </ActionIcon>
             </div>
-          </Group>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            {/* Navigation Button on the Left */}
-            <ActionIcon onClick={onMovePrevRequest} disabled={!prevSrc} size="lg" mr="sm">
-              <ArrowLeft size={24} />
-            </ActionIcon>
-
-            {/* Main Content (Image or Video) */}
-            {error ? (
-              <Text color="red">{"Error loading image"}</Text>
-            ) : type === "video" && mainSrc ? (
-              <ReactPlayer
-                url={`${serverAddress}/media/video/${mainSrc}`}
-                width="100%"
-                height="92.5vh"
-                controls
-                playing
-                progressInterval={100}
-              />
-            ) : type === "embedded" ? (
-              <ReactPlayer
-                url={`${serverAddress}/media/embedded/${mainSrc}`}
-                width="100%"
-                height="92.5vh"
-                controls
-                playing
-                progressInterval={100}
-              />
-            ) : (
-              <div style={{ position: "relative", height: "92.5vh" }}>
-                <div
-                  {...bind()} 
-                  style={{
-                    position: "relative",
-                    height: "92.5vh",
-                    overflow: "hidden", 
-                  }}
-                >
-                  <img
-                    src={`${serverAddress}/media/thumbnails_big/${mainSrc}`}
-                    alt="Lightbox Main Content"
-                    onLoad={event => {
-                      const { naturalWidth, naturalHeight } = event.target;
-                      setImageDimensions({ width: naturalWidth, height: naturalHeight });
-                      setScale(1);
-                      setOffset({ x: 0, y: 0 });
-                      handleImageLoad();
-                    }}
-                    onDragStart={handleDragStart} 
-                    onError={handleImageError}
-                    onDoubleClick={toggleZoom} 
-                    style={{
-                      transition: "transform 0.1s ease", 
-                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-                      objectFit: "contain",
-                      height: "100%", 
-                      width: "auto",
-                      maxWidth: "100%", 
-                      display: "block",
-                      margin: "auto",
-                    }}
-                  />
-                </div>
-                {faceLocation && (
-                  <Box
-                    sx={theme => ({
-                      position: "absolute",
-                      border: `2px solid ${theme.colors.gray[4]}`,
-                      borderRadius: theme.radius.lg,
-                      ...getRelativePosition(faceLocation),
-                      boxShadow: theme.shadows.lg,
-                    })}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Navigation Button on the Right */}
-            <ActionIcon onClick={onMoveNextRequest} disabled={!nextSrc} size="lg" ml="sm">
-              <ArrowRight size={24} />
-            </ActionIcon>
           </div>
+          {lightboxSidebarShow ? (
+            <Sidebar
+              id={mainSrc}
+              closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
+              isPublic={isPublic}
+              setFaceLocation={setFaceLocation}
+            />
+          ) : (
+            <div />
+          )}
         </Modal.Body>
       </Modal.Content>
     </Modal.Root>
