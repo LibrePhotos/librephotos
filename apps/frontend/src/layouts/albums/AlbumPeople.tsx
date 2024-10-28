@@ -56,13 +56,13 @@ export function AlbumPeople() {
     }
     if (album.text === "unknown") {
       return (
-        <Link to={`/person/${album.key}`}>
+        <Link to={`/person/${album.id}`}>
           <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />
         </Link>
       );
     }
     return (
-      <Link to={`/person/${album.key}`}>
+      <Link to={`/person/${album.id}`}>
         <Tile
           video={album.video}
           height={entrySquareSize - 10}
