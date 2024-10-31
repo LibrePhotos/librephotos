@@ -245,6 +245,21 @@ def delete_clustered_people(user: User):
     Person.objects.filter(cluster_owner=None).delete()
     Person.objects.filter(cluster_owner=get_deleted_user()).delete()
 
+# Function to filter data based on a desired shape
+def filter_data(encodings, ids):
+    valid_encodings = []
+    valid_ids = []
+    expected_shape = len(encodings[0]) if encodings else 0  # Set expected shape from first entry
+
+    for i, (encoding, id_) in enumerate(zip(encodings, ids)):
+        if len(encoding) == expected_shape:  # Check if shape is consistent
+            valid_encodings.append(encoding)
+            valid_ids.append(id_)
+        else:
+            logger.error(f"Discarding entry {i}: ID={id_}, encoding shape={len(encoding)} (expected {expected_shape})")
+
+    return np.array(valid_encodings), np.array(valid_ids)
+
 
 def train_faces(user: User, job_id) -> bool:
     """Given existing Cluster records for all faces, determines the probability
@@ -312,11 +327,13 @@ def train_faces(user: User, job_id) -> bool:
                 data_known["encoding"].append(cluster.get_mean_encoding_array())
                 data_known["id"].append(cluster.person.id)
 
+        filtered_encodings, filtered_ids = filter_data(data_known["encoding"], data_known["id"])
+
         # Fit the classifier based on the "known" faces, including the simulated clusters
         logger.info("Before cluster fitting")
         cluster_classifier = MLPClassifier(
             solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-        ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
+        ).fit(filtered_encodings, filtered_ids)
         logger.info("After cluster fitting")
 
         # Collect the probabilities for each unknown face. The probabilities returned
