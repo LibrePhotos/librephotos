@@ -132,7 +132,7 @@ def create_new_image(user, path) -> Optional[Photo]:
         photo.save()
         photo._check_files()
         util.logger.warning("photo {} exists already".format(path))
-        return None
+        return photo
 
 
 def handle_new_image(user, path, job_id, photo=None):
