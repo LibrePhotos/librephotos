@@ -30,36 +30,50 @@ FACE_CLASSIFY_COLUMNS = [
 
 
 def cluster_faces(user, inferred=True):
-    # for front end cluster visualization
+    # Fetch distinct persons associated with the user's faces
     persons = [p.id for p in Person.objects.filter(faces__photo__owner=user).distinct()]
+
+    # Create a color mapping for each person
     p2c = dict(zip(persons, sns.color_palette(n_colors=len(persons)).as_hex()))
 
     face_encoding = []
-    faces = Face.objects.filter(photo__owner=user & Q(deleted=False))
+    # Fetch faces that belong to the user and are not deleted
+    faces = Face.objects.filter(Q(photo__owner=user) & Q(deleted=False))
     paginator = Paginator(faces, 5000)
+
     for page in range(1, paginator.num_pages + 1):
         for face in paginator.page(page).object_list:
             if ((not face.person) or inferred) and face.encoding:
                 face_encoding.append(face.get_encoding_array())
 
+    # Perform PCA for dimensionality reduction
     pca = PCA(n_components=3)
     vis_all = pca.fit_transform(face_encoding)
 
     res = []
     for face, vis in zip(faces, vis_all):
+        person_id = face.person.id if face.person else UNKNOWN_CLUSTER_ID
+        person_name = face.person.name if face.person else "unknown"
+
+        # Ensure UNKNOWN_CLUSTER_ID is in p2c
+        if person_id not in p2c:
+            # Assign a default color if not found
+            color = "#000000"  # Default to black or any fallback color
+        else:
+            color = p2c[person_id]
+
         res.append(
             {
-                "person_id": face.person.id if face.person else UNKNOWN_CLUSTER_ID,
-                "person_name": face.person.name if face.person else "unknown",
+                "person_id": person_id,
+                "person_name": person_name,
                 "person_label_is_inferred": not face.person,
-                "color": (
-                    p2c[face.person.id] if face.person else p2c[UNKNOWN_CLUSTER_ID]
-                ),
+                "color": color,
                 "face_url": face.image.url,
                 "value": {"x": vis[0], "y": vis[1], "size": vis[2]},
             }
         )
     return res
+
 
 
 def cluster_all_faces(user, job_id) -> bool:
