@@ -301,20 +301,13 @@ def train_faces(user: User, job_id) -> bool:
                 data_known["id"].append(face.person.id)
 
         if len(data_known["id"]) == 0:
-            logger.info("No labeled faces found")
-            lrj.finished = True
-            lrj.failed = False
-            lrj.progress_current = 2
-            lrj.progress_target = 2
-            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            lrj.save()
-            return True
-
-        logger.info("Before fitting")
-        classifier = MLPClassifier(
-            solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-        ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
-        logger.info("After fitting")
+            classifier = None
+        else:
+            logger.info("Before fitting")
+            classifier = MLPClassifier(
+                solver="adam", alpha=1e-5, random_state=1, max_iter=1000
+            ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
+            logger.info("After fitting")
 
         # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
         # to predict the likelihood of other unknown faces belonging to those simulated clusters. For
@@ -366,7 +359,10 @@ def train_faces(user: User, job_id) -> bool:
             pages_of_faces = sorted(pages_of_faces, key=lambda x: page_id.index(x.id))
             face_encodings_unknown_np = np.array(page)
             cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
-            classification_probs = classifier.predict_proba(face_encodings_unknown_np)
+            if classifier:
+                classification_probs = classifier.predict_proba(face_encodings_unknown_np)
+            else:
+                classification_probs = []
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
             face_stack = []
             unknown_cluster: Cluster = get_unknown_cluster(user=user)
@@ -385,15 +381,16 @@ def train_faces(user: User, job_id) -> bool:
                 highest_classification_person = 0
 
                 # Find the person with the highest probability for classification
-                for i, target in enumerate(classifier.classes_):
-                    if (
-                        highest_classification_probability
-                        == classification_probabilties[i]
-                    ):
-                        highest_classification_person = target
+                if classifier:
+                    for i, target in enumerate(classifier.classes_):
+                        if (
+                            highest_classification_probability
+                            == classification_probabilties[i]
+                        ):
+                            highest_classification_person = target
 
-                classification_person = highest_classification_person
-                classification_probability = highest_classification_probability
+                    classification_person = highest_classification_person
+                    classification_probability = highest_classification_probability
 
                 # Find the probability in the probability array corresponding to the person
                 # that we currently believe the face is, even a simulated "unknown" person
