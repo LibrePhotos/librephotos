@@ -285,14 +285,21 @@ def train_faces(user: User, job_id) -> bool:
                 data_known["encoding"].append(face.get_encoding_array())
                 data_known["id"].append(face.person.id)
 
-        if len(data_known["id"]) > 0:
-            logger.info("Before fitting")
-            classifier = MLPClassifier(
-                solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-            ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
-            logger.info("After fitting")
-        else:
-            classifier = None
+        if len(data_known["id"]) == 0:
+            logger.info("No labeled faces found")
+            lrj.finished = True
+            lrj.failed = False
+            lrj.progress_current = 2
+            lrj.progress_target = 2
+            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+            lrj.save()
+            return True
+
+        logger.info("Before fitting")
+        classifier = MLPClassifier(
+            solver="adam", alpha=1e-5, random_state=1, max_iter=1000
+        ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
+        logger.info("After fitting")
 
         # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
         # to predict the likelihood of other unknown faces belonging to those simulated clusters. For
@@ -342,10 +349,7 @@ def train_faces(user: User, job_id) -> bool:
             pages_of_faces = sorted(pages_of_faces, key=lambda x: page_id.index(x.id))
             face_encodings_unknown_np = np.array(page)
             cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
-            if classifier:
-                classification_probs = classifier.predict_proba(face_encodings_unknown_np)
-            else:
-                classification_probs = None
+            classification_probs = classifier.predict_proba(face_encodings_unknown_np)
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
             face_stack = []
             unknown_cluster: Cluster = get_unknown_cluster(user=user)
@@ -354,7 +358,7 @@ def train_faces(user: User, job_id) -> bool:
                 face,
                 cluster_probabilities,
                 classification_probabilties,
-            ) in enumerate(zip(pages_of_faces, cluster_probs, classification_probs  or [])):
+            ) in enumerate(zip(pages_of_faces, cluster_probs, classification_probs)):
                 face.cluster_probability = 0.0  # Cluster probability
                 face.classification_probability = 0.0  # Classification probability
                 classification_person = None
