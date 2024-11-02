@@ -1,5 +1,4 @@
-import { ActionIcon, Box, Group, Image, Modal, Overlay, Text } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
+import { ActionIcon, Box, Group, Modal } from "@mantine/core";
 import {
   IconArrowLeft as ArrowLeft,
   IconArrowRight as ArrowRight,
@@ -8,7 +7,6 @@ import {
   IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
 import { useGesture } from "@use-gesture/react";
-import { set } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import ReactPlayer from "react-player";
 
@@ -101,7 +99,6 @@ type ContentViewerProps = {
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
   onImageLoad: () => void;
-  onImageLoadError?: () => void;
   imagePadding?: number;
   clickOutsideToClose?: boolean;
   enableZoom?: boolean;
@@ -117,19 +114,20 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
   onMovePrevRequest,
   onMoveNextRequest,
   onImageLoad,
-  onImageLoadError,
   enableZoom = true,
   isPublic,
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
-  const [error, setError] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 }); // For dragging the image
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<{ top: number; bottom: number; left: number; right: number } | null>(
     null
   );
 
+  // To-Do: Handle loading of photoDetails and propagate to the ContentViewer
+  // The issue that occurs is that the react-player errors out when the details is not loaded for a couple of frames
+  // In order to fix this, migrate photoDetails to RTKQuery and handle the loading state
   const { photoDetails } = useAppSelector(store => store.photoDetails);
 
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -169,16 +167,6 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
   useEffect(() => {
     if (onImageLoad) onImageLoad();
   }, []);
-
-  const handleImageLoad = () => {
-    setError(false);
-    onImageLoad();
-  };
-
-  const handleImageError = () => {
-    setError(true);
-    if (onImageLoadError) onImageLoadError();
-  };
 
   const toggleZoom = () => {
     setIsZoomed(prev => !prev);
@@ -235,9 +223,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
               </ActionIcon>
 
               {/* Main Content (Image or Video) */}
-              {error ? (
-                <Text color="red">{"Error loading image"}</Text>
-              ) : type === "video" && mainSrc ? (
+              {type === "video" && mainSrc ? (
                 <ReactPlayer
                   url={`${serverAddress}/media/video/${mainSrc}`}
                   width="100%"
@@ -274,10 +260,8 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
                         setScale(1);
                         setOffset({ x: 0, y: 0 });
                         setIsZoomed(false);
-                        handleImageLoad();
                       }}
                       onDragStart={handleDragStart}
-                      onError={handleImageError}
                       onDoubleClick={toggleZoom}
                       style={{
                         transition: "transform 0.1s ease",
