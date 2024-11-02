@@ -75,7 +75,6 @@ def cluster_faces(user, inferred=True):
     return res
 
 
-
 def cluster_all_faces(user, job_id) -> bool:
     """Groups all faces into clusters for ease of labeling. It first deletes all
     existing clusters, then regenerates them all. It will split clusters that have
@@ -245,18 +244,23 @@ def delete_clustered_people(user: User):
     Person.objects.filter(cluster_owner=None).delete()
     Person.objects.filter(cluster_owner=get_deleted_user()).delete()
 
+
 # Function to filter data based on a desired shape
 def filter_data(encodings, ids):
     valid_encodings = []
     valid_ids = []
-    expected_shape = len(encodings[0]) if encodings else 0  # Set expected shape from first entry
+    expected_shape = (
+        len(encodings[0]) if encodings else 0
+    )  # Set expected shape from first entry
 
     for i, (encoding, id_) in enumerate(zip(encodings, ids)):
         if len(encoding) == expected_shape:  # Check if shape is consistent
             valid_encodings.append(encoding)
             valid_ids.append(id_)
         else:
-            logger.error(f"Discarding entry {i}: ID={id_}, encoding shape={len(encoding)} (expected {expected_shape})")
+            logger.error(
+                f"Discarding entry {i}: ID={id_}, encoding shape={len(encoding)} (expected {expected_shape})"
+            )
 
     return np.array(valid_encodings), np.array(valid_ids)
 
@@ -320,7 +324,9 @@ def train_faces(user: User, job_id) -> bool:
                 data_known["encoding"].append(cluster.get_mean_encoding_array())
                 data_known["id"].append(cluster.person.id)
 
-        filtered_encodings, filtered_ids = filter_data(data_known["encoding"], data_known["id"])
+        filtered_encodings, filtered_ids = filter_data(
+            data_known["encoding"], data_known["id"]
+        )
 
         # Fit the classifier based on the "known" faces, including the simulated clusters
         logger.info("Before cluster fitting")
@@ -360,9 +366,16 @@ def train_faces(user: User, job_id) -> bool:
             face_encodings_unknown_np = np.array(page)
             cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
             if classifier:
-                classification_probs = classifier.predict_proba(face_encodings_unknown_np)
+                classification_probs = classifier.predict_proba(
+                    face_encodings_unknown_np
+                )
             else:
                 classification_probs = []
+                while len(classification_probs) < len(cluster_probs):
+                    classification_probs.append(
+                        [0.0] * len(cluster_classifier.classes_)
+                    )
+
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
             face_stack = []
             unknown_cluster: Cluster = get_unknown_cluster(user=user)

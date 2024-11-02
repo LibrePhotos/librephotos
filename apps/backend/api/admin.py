@@ -56,17 +56,20 @@ def deduplicate_faces_function(queryset):
                     for similar_face in faces_without_person_label[1:]:
                         similar_face.delete()
 
+
 @admin.register(Face)
 class FaceAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "cluster_person",
+        "cluster_probability",
         "classification_person",
         "cluster",
         "photo",
         "person",
     )
     list_filter = ("person", "cluster")
+
 
 @admin.register(Photo)
 class PhotoAdmin(admin.ModelAdmin):
