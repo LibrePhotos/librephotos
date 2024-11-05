@@ -15,7 +15,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
-import { useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
+import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
 import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";
 import { useFetchThingsAlbumsQuery } from "../api_client/albums/things";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/user";
@@ -53,12 +53,12 @@ function toUserAlbumSuggestion(item: any) {
   return { value: item.title, icon: <Album />, type: SuggestionType.USER_ALBUM, id: item.id };
 }
 
-function toPeopleSuggestion(item: any) {
+function toPeopleSuggestion(item: Person) {
   return {
-    value: item.value,
-    icon: <Avatar src={item.face_url} alt={item.value} size="xl" />,
+    value: item.name,
+    icon: <Avatar src={item.face_url} alt={item.name} size="xl" />,
     type: SuggestionType.PEOPLE,
-    id: item.key,
+    id: item.id,
   };
 }
 
@@ -131,7 +131,7 @@ export function CustomSearch() {
           .slice(0, 2)
           .map(toUserAlbumSuggestion),
         ...people
-          .filter((item: any) => fuzzyMatch(query, item.value))
+          .filter((item: Person) => fuzzyMatch(query, item.name))
           .slice(0, 2)
           .map(toPeopleSuggestion),
       ]);

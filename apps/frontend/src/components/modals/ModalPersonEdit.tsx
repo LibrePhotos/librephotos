@@ -70,14 +70,14 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
   let filteredPeopleList = people;
 
   if (newPersonName.length > 0) {
-    filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.text));
+    filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.name));
   }
 
   const selectedImageIDs = selectedFaces.map(face => face.face_url);
   const selectedFaceIDs = selectedFaces.map(face => face.face_id);
 
   function personExist(name: string) {
-    return people?.map(person => person.text.toLowerCase().trim()).includes(name.toLowerCase().trim());
+    return people?.map(person => person.name.toLowerCase().trim()).includes(name.toLowerCase().trim());
   }
 
   return (
@@ -124,7 +124,6 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                   personName: newPersonName,
                 })
               );
-              notification.addFacesToPerson(newPersonName, selectedFaceIDs.length);
               if (resetGroups) {
                 resetGroups();
               }
@@ -154,14 +153,13 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                   dispatch(
                     api.endpoints.setFacesPersonLabel.initiate({
                       faceIds: selectedFaceIDs,
-                      personName: item.text,
+                      personName: item.name,
                     })
                   );
-                  notification.addFacesToPerson(item.text, selectedFaceIDs.length);
                   onRequestClose();
                 }}
               >
-                <Group key={item.key}>
+                <Group key={item.id}>
                   <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
                   <div>
                     <Title className={classes.title} order={4}>

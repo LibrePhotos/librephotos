@@ -15,19 +15,20 @@ export const PersonResponseSchema = z.object({
   cover_photo: z.string().optional(),
 });
 
-export const PeopleSchema = z
-  .object({
-    key: z.string(),
-    value: z.string(),
-    text: z.string(),
-    video: z.boolean(),
-    face_count: z.number(),
-    face_photo_url: z.string(),
-    face_url: z.string(),
-  })
-  .array();
+export const PersonSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  video: z.boolean(),
+  face_count: z.number(),
+  face_photo_url: z.string(),
+  face_url: z.string(),
+});
 
-type People = z.infer<typeof PeopleSchema>;
+export const PeopleSchema = PersonSchema.array();
+
+export type Person = z.infer<typeof PersonSchema>;
+
+export type People = z.infer<typeof PeopleSchema>;
 
 const PeopleResponseSchema = z.object({
   count: z.number(),
@@ -50,15 +51,14 @@ export const peopleAlbumsApi = api
         query: () => "persons/?page_size=1000",
         transformResponse: response => {
           const people = PeopleResponseSchema.parse(response).results.map(item => ({
-            key: item.id.toString(),
-            value: item.name,
-            text: item.name,
+            id: item.id.toString(),
+            name: item.name ?? "",
             video: !!item.video,
             face_count: item.face_count,
             face_photo_url: item.face_photo_url ?? "",
             face_url: item.face_url ?? "",
           }));
-          return _.orderBy(people, ["text", "face_count"], ["asc", "desc"]);
+          return _.orderBy(people, ["name", "face_count"], ["asc", "desc"]);
         },
       }),
       [Endpoints.renamePersonAlbum]: builder.mutation<void, { id: string; personName: string; newPersonName: string }>({

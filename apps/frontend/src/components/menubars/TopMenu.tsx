@@ -10,9 +10,10 @@ import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
+import { toggleSidebar } from "../../actions/uiActions";
 import { api, useFetchUserSelfDetailsQuery } from "../../api_client/api";
+import { useLogoutMutation } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { logout } from "../../store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { SiteSearch } from "../SiteSearch";
@@ -24,6 +25,8 @@ export function TopMenu({ toggleSidebar }: { toggleSidebar: () => void }): React
   const { t } = useTranslation();
   const auth = useAppSelector(state => state.auth);
   const { data: user } = useFetchUserSelfDetailsQuery(auth.access.user_id);
+  const matches = useMediaQuery("(min-width: 700px)");
+  const [logout] = useLogoutMutation();
 
   return (
     <Group justify="space-between" h="100%" px={15}>
@@ -73,18 +76,20 @@ export function TopMenu({ toggleSidebar }: { toggleSidebar: () => void }): React
               </Menu.Item>
             )}
 
-            <Menu.Item
-              leftSection={<Logout />}
-              onClick={() => {
-                dispatch(logout());
-                dispatch(api.util.resetApiState());
-              }}
-            >
-              {t("topmenu.logout")}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
-    </Group>
+                <Menu.Item
+                  icon={<Logout />}
+                  onClick={() => {
+                    logout();
+                    dispatch(api.util.resetApiState());
+                  }}
+                >
+                  {t("topmenu.logout")}
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
+        </Grid.Col>
+      </Grid>
+    </Header>
   );
 }

@@ -8,20 +8,23 @@ import { useAppSelector } from "../../store/store";
 
 type Props = Readonly<{
   tooltipOpened: boolean;
-  cell: any;
+  probability: number;
+  timestamp?: string;
   children?: React.ReactNode;
 }>;
 
-export function FaceTooltip({ tooltipOpened, cell, children = null }: Props) {
+export function FaceTooltip({ tooltipOpened, probability, timestamp, children = null }: Props) {
   const { activeTab } = useAppSelector(store => store.face);
 
   const confidencePercentageLabel =
     activeTab === "inferred"
-      ? t("settings.confidencepercentage", { percentage: (cell.person_label_probability * 100).toFixed(1) })
+      ? t("settings.confidencepercentage", { percentage: (probability * 100).toFixed(1) })
       : null;
 
-  const dateTimeLabel = DateTime.fromISO(cell.timestamp).isValid
-    ? DateTime.fromISO(cell.timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATETIME_MED)
+  const dateTimeLabel = DateTime.fromISO(timestamp ? timestamp : "undefined").isValid
+    ? DateTime.fromISO(timestamp ? timestamp : "undefined")
+        .setLocale(i18nResolvedLanguage())
+        .toLocaleString(DateTime.DATETIME_MED)
     : null;
 
   const tooltipIsEmpty = confidencePercentageLabel === null && dateTimeLabel === null;

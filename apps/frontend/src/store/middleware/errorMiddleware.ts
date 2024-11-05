@@ -4,13 +4,18 @@ import { isRejectedWithValue } from "@reduxjs/toolkit";
 import { Endpoints, api } from "../../api_client/api";
 import { notification } from "../../service/notifications";
 import { AuthErrorSchema } from "../auth/auth.zod";
-import { logout } from "../auth/authSlice";
 
 export const errorMiddleware: Middleware =
   ({ dispatch }: MiddlewareAPI) =>
   next =>
   action => {
     if (isRejectedWithValue(action)) {
+      if (action.payload.originalStatus === 500) {
+        notification.requestFailed(
+          `500 (Internal Server Error) for ${action.meta.arg.endpointName}`,
+          "Something went wrong on the server. Please open up the network tab in your browser's developer tools and report this issue on GitHub."
+        );
+      }
       if (action.meta.arg.endpointName in Endpoints) {
         const {
           data: { errors },
@@ -19,8 +24,7 @@ export const errorMiddleware: Middleware =
           if (error.field === "code") {
             if (error.message === "token_not_valid") {
               notification.invalidToken();
-              dispatch(logout());
-              dispatch(api.util.resetApiState());
+              dispatch(api.endpoints.logout.initiate());
               return;
             }
           }

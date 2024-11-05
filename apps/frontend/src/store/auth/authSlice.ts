@@ -32,14 +32,6 @@ const authSlice = createSlice({
         token: payload.access,
       },
     }),
-    logout: () => {
-      cookies.remove("access");
-      cookies.remove("refresh");
-      cookies.remove("csrftoken");
-      cookies.remove("jwt");
-      push("/login");
-      return initialState;
-    },
     clearError: state => ({ ...state, error: null }),
   },
   extraReducers: builder => {
@@ -64,11 +56,17 @@ const authSlice = createSlice({
         access: null,
         refresh: null,
         error: AuthErrorSchema.parse(payload),
-      }));
+      }))
+      .addMatcher(api.endpoints.logout.matchFulfilled, state => {
+        cookies.remove("access");
+        cookies.remove("refresh");
+        push("/login");
+        return { access: null, refresh: null, error: null };
+      });
   },
 });
 
 export const authReducer = authSlice.reducer;
 
 export const { actions: authActions } = authSlice;
-export const { logout, tokenReceived, clearError } = authActions;
+export const { tokenReceived, clearError } = authActions;

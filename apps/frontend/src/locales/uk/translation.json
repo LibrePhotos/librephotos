@@ -419,7 +419,8 @@
         "nameplaceholder": "Ім'я",
         "deletepersondescription": "Ви справді хочете видалити цю особу?",
         "renameperson": "Перейменувати особу",
-        "personalreadyexists": "Особа {{name}} вже існує."
+        "personalreadyexists": "Особа {{name}} вже існує.",
+        "renamepersonheader": "На що ви хочете перейменувати {{name}}?"
     },
     "wordclouds": "Хмари слів",
     "timeline": "Вісь часу",
@@ -620,7 +621,11 @@
         "facescounter_other": "{{count}} облич",
         "clusteredfacescounter_one": "{{count}} скупчення облич",
         "clusteredfacescounter_other": "{{count}} скупчень облич",
-        "unknownfacescounter_one": "{{count}} невідоме обличчя"
+        "unknownfacescounter_one": "{{count}} невідоме обличчя",
+        "clusters": "Кластери",
+        "classifications": "Класифікації",
+        "show": "Показати",
+        "minconfidence": "Впевненість"
     },
     "personedit": {
         "personname": "Ім'я особи",

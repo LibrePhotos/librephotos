@@ -16,7 +16,6 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
-import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
 type Props = {
@@ -76,7 +75,6 @@ export function HeaderComponent({
   const confirmFacesAssociation = () => {
     const facesToAddIDs = cell.faces.map(i => i.id);
     dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: facesToAddIDs, personName: cell.name }));
-    notification.addFacesToPerson(cell.name, facesToAddIDs.length);
   };
 
   useEffect(() => {
@@ -138,7 +136,7 @@ export function HeaderComponent({
         <Group>
           <TextInput
             error={
-              albums?.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
+              albums?.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())
                 ? t("personalbum.personalreadyexists", {
                     name: newPersonName.trim(),
                   })
@@ -154,7 +152,7 @@ export function HeaderComponent({
               renamePerson({ id: personID, personName, newPersonName });
               hideRenameDialog();
             }}
-            disabled={albums?.map(el => el.text.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
+            disabled={albums?.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
             type="submit"
           >
             {t("rename")}

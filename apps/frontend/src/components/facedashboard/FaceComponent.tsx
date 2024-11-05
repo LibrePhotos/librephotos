@@ -33,6 +33,7 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
+  
   const { classes } = useStyle();
   const calculateProbabiltyColor = (labelProbability: number) => {
     if (labelProbability > 0.9) return "green";
@@ -76,7 +77,11 @@ export function FaceComponent({
       }}
     >
       <Center>
-        <FaceTooltip tooltipOpened={tooltipOpened} cell={cell}>
+        <FaceTooltip
+          tooltipOpened={tooltipOpened}
+          probability={cell.person_label_probability}
+          timestamp={cell.timestamp}
+        >
           <Indicator
             offset={offset}
             color={labelProbabilityColor}

@@ -482,6 +482,7 @@
     "deleteperson": "Delete Person",
     "deletepersondescription": "Do you really want to delete this person?",
     "renameperson": "Rename Person",
+    "renamepersonheader": "What do you want to rename {{name}} to?",
     "personalreadyexists": "Person {{name}} already exists.",
     "nameplaceholder": "Name"
   },
@@ -516,6 +517,10 @@
     "sortby": "Sort by",
     "sortbyconfidence": "Confidence",
     "sortbydate": "Date",
+    "show": "Show",
+    "clusters": "Clusters",
+    "classifications": "Classifications",
+    "minconfidence": "Confidence",
     "clusterscounter_one": "{{count}} Cluster",
     "clusterscounter_other": "{{count}} Clusters",
     "personscounter_one": "{{count}} Person",
