@@ -324,7 +324,7 @@ export function Settings() {
           {t("settings.savechanges")}
         </Text>
 
-        <Group align="flex-end">
+        <Group justify="flex-end">
           <Button
             size="sm"
             color="green"

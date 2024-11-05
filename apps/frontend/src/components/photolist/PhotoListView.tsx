@@ -134,7 +134,6 @@ function PhotoListViewComponent(props: Props) {
     []
   );
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   const throttledUpdateItems = useCallback(
     throttle(visibleItems => updateItems(visibleItems), 500),
     []
@@ -293,7 +292,7 @@ function PhotoListViewComponent(props: Props) {
               style={{
                 paddingLeft: 10,
               }}
-              align="apart"
+              justify="space-between"
             >
               <SelectionBar
                 selectMode={selectionState.selectMode}
@@ -301,7 +300,7 @@ function PhotoListViewComponent(props: Props) {
                 idx2hash={idx2hash}
                 updateSelectionState={updateSelectionState}
               />
-              <Group align="right">
+              <Group justify="flex-end">
                 {!route.location.pathname.startsWith("/deleted") && (
                   <SelectionActions
                     selectedItems={selectionState.selectedItems}

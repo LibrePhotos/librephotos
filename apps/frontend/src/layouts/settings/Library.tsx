@@ -552,7 +552,7 @@ export function Library() {
             Save Changes?
           </Text>
 
-          <Group align="flex-end">
+          <Group justify="flex-end">
             <Button
               size="sm"
               color="green"

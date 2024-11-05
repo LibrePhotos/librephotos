@@ -24,6 +24,13 @@ const useStyle = createStyles(theme => ({
   },
 }));
 
+export const calculateProbabiltyColor = (labelProbability: number) => {
+  if (labelProbability > 0.9) return "green";
+  if (labelProbability > 0.8) return "yellow";
+  if (labelProbability > 0.7) return "orange";
+  return "red";
+};
+
 export function FaceComponent({
   cell,
   isScrollingFast,
@@ -33,14 +40,7 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
-  
   const { classes } = useStyle();
-  const calculateProbabiltyColor = (labelProbability: number) => {
-    if (labelProbability > 0.9) return "green";
-    if (labelProbability > 0.8) return "yellow";
-    if (labelProbability > 0.7) return "orange";
-    return "red";
-  };
 
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const [tooltipOpened, setTooltipOpened] = useState(false);

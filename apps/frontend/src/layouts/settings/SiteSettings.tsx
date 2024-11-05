@@ -163,7 +163,7 @@ export function SiteSettings() {
             checked={allowUpload}
           />
 
-          <Grid align="flex-end">
+          <Grid justify="flex-end">
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.headerskippatterns")}</Text>

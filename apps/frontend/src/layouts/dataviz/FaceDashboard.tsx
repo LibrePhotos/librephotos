@@ -18,8 +18,7 @@ import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberType
 import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
-import { FacesTab } from "../../store/faces/facesActions.types";
-import { FaceAnalysisMethod } from "../../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesTab } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
@@ -42,7 +41,7 @@ export function FaceDashboard() {
   const { data: labeledFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery(
     {
       inferred: false,
-      orderBy: orderBy,
+      orderBy,
     }
   );
 
@@ -50,8 +49,8 @@ export function FaceDashboard() {
     {
       inferred: true,
       method: analysisMethod,
-      orderBy: orderBy,
-      minConfidence: minConfidence,
+      orderBy,
+      minConfidence,
     }
   );
 
@@ -156,7 +155,6 @@ export function FaceDashboard() {
 
   useEffect(() => {
     setScrollTo(tabs[activeTab].scrollPosition);
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [activeTab]);
 
   useEffect(() => {
@@ -168,7 +166,6 @@ export function FaceDashboard() {
         })
       );
     }
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [scrollTo]);
 
   // ensure that the endpoint is not undefined
@@ -402,34 +399,30 @@ export function FaceDashboard() {
           onRequestClose={() => {
             setModalPersonEditOpen(false);
             setSelectedFaces([]);
-        }}
-        selectedFaces={selectedFaces}
-      />
-      {lightboxShow && (
-        <LightBox
-          isPublic={false}
-          idx2hash={idx2hash}
-          lightboxImageIndex={lightboxImageIndex}
-          lightboxImageId={lightboxImageId}
-          onCloseRequest={() => {
-            setLightboxShow(false);
-            setScrollLocked(false);
-          }}
-          onImageLoad={() => {
-            getPhotoDetails(idx2hash[lightboxImageIndex].id);
-          }}
-          onMovePrevRequest={() => {
-            const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
-            setLightboxImageIndex(prevIndex);
-            setLightboxImageId(idx2hash[prevIndex].id);
-            getPhotoDetails(idx2hash[prevIndex].id);
-          }}
-          resetGroups={() => {
-            // Reset groups to force refetch of faces when adding faces to a person
-            setGroups([]);
           }}
           selectedFaces={selectedFaces}
         />
+        {lightboxShow && (
+          <LightBox
+            isPublic={false}
+            idx2hash={idx2hash}
+            lightboxImageIndex={lightboxImageIndex}
+            lightboxImageId={lightboxImageId}
+            onCloseRequest={() => {
+              setLightboxShow(false);
+              setScrollLocked(false);
+            }}
+            onImageLoad={() => {
+              getPhotoDetails(idx2hash[lightboxImageIndex].id);
+            }}
+            onMovePrevRequest={() => {
+              const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
+              setLightboxImageIndex(prevIndex);
+              setLightboxImageId(idx2hash[prevIndex].id);
+              getPhotoDetails(idx2hash[prevIndex].id);
+            }}
+          />
+        )}
       </div>
     </RemoveScroll>
   );

@@ -64,7 +64,7 @@ export function SelectionActions(props: Readonly<Props>) {
     <Group>
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon disabled={selectedItems.length === 0}>
+          <ActionIcon variant="subtle" color="gray" disabled={selectedItems.length === 0}>
             <Plus />
           </ActionIcon>
         </Menu.Target>
@@ -84,7 +84,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon>
+          <ActionIcon variant="subtle" color="gray">
             <DotsVertical />
           </ActionIcon>
         </Menu.Target>

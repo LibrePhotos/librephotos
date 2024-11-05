@@ -18,7 +18,7 @@ export function CountStats() {
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
   return (
-    <Group grow gap="xs" align="stretch">
+    <Group grow gap="xs" justify="space-between">
       <Card withBorder p="xs">
         <Group justify="left" gap="xs">
           <Photo size={64} strokeWidth={1} />

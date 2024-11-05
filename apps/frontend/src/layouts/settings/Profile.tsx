@@ -115,9 +115,8 @@ export function Profile() {
                 }}
               >
                 {({ getRootProps, getInputProps }) => (
-                  // eslint-disable-next-line react/jsx-props-no-spreading
                   <div {...getRootProps()}>
-                    {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+                    {}
                     <input {...getInputProps()} />
                     <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
                   </div>
@@ -228,7 +227,7 @@ export function Profile() {
             </Group>
           </Radio.Group>
 
-          <Stack align="flex-start">
+          <Stack justify="flex-start">
             {auth.isAdmin ? (
               <TextInput
                 type="text"
@@ -252,7 +251,7 @@ export function Profile() {
             </Radio.Group>
           </Stack>
 
-          <Group align="end" mb={10} mt={10}>
+          <Group justify="flex-end" mb={10} mt={10}>
             <Select
               label={t("settings.language")}
               placeholder={t("settings.language")}
@@ -391,7 +390,7 @@ export function Profile() {
             Save Changes?
           </Text>
 
-          <Group align="flex-end">
+          <Group justify="flex-end">
             <Button
               size="sm"
               color="green"

@@ -1,5 +1,5 @@
-import { createStyles } from "@mantine/emotion";
 import { ActionIcon, Avatar, Box, Button, Group, Indicator, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { createStyles } from "@mantine/emotion";
 import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
@@ -10,8 +10,7 @@ import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { api } from "../../api_client/api";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { notification } from "../../service/notifications";
-import { useAppDispatch } from "../../store/store";
-import { useAppSelector } from "../../store/store";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
@@ -29,14 +28,6 @@ type Props = {
 
 const useStyle = createStyles((theme, _, u) => ({
   container: {
-    right: 0,
-    top: 0,
-    float: "right",
-    whiteSpace: "normal",
-    position: "fixed",
-    overflowY: "scroll",
-    overflowX: "hidden",
-    zIndex: 250,
     padding: theme.spacing.sm,
     [u.light]: {
       backgroundColor: theme.colors.gray[0],
@@ -71,14 +62,18 @@ export function Sidebar(props: Props) {
         height: "100%",
         overflowY: "scroll",
         overflowX: "hidden",
+        float: "right",
+        whiteSpace: "normal",
         zIndex: 250,
       }}
     >
       {photoDetail && (
         <Stack>
-          <Group justify="apart">
+          <Group justify="space-between">
             <Title order={3}>Details</Title>
             <ActionIcon
+              variant="subtle"
+              color="gray"
               onClick={() => {
                 closeSidepanel();
               }}

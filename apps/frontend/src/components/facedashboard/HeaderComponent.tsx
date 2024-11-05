@@ -109,7 +109,7 @@ export function HeaderComponent({
         {!(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && (
           <Menu position="bottom-end">
             <Menu.Target>
-              <ActionIcon>
+              <ActionIcon variant="subtle" color="gray">
                 <DotsVertical />
               </ActionIcon>
             </Menu.Target>

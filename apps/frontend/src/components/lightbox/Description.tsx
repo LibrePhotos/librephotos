@@ -145,7 +145,12 @@ export function Description(props: Props) {
             )}
         </Stack>
         <div
-          style={{ borderStyle: !editMode ? "none" : "solid", border: "0.0625rem #ced4da", borderRadius: "0.25rem" }}
+          style={{
+            position: "relative",
+            borderStyle: !editMode ? "none" : "solid",
+            border: "0.0625rem #ced4da",
+            borderRadius: "0.25rem",
+          }}
         >
           <RichTextEditor editor={editor} style={{ borderColor: "none" }}>
             <RichTextEditor.Content style={{ paddingRight: 10 }} />
@@ -154,6 +159,7 @@ export function Description(props: Props) {
                 style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
                 loading={generatingCaptionIm2txt}
                 variant="subtle"
+                color="gray"
                 onClick={() => {
                   generateImageToTextCaptions({ id: photoDetail.image_hash });
                 }}
@@ -167,6 +173,7 @@ export function Description(props: Props) {
                 style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
                 loading={generatingCaptionIm2txt}
                 variant="subtle"
+                color="gray"
                 onClick={() => {
                   setEditMode(true);
                   editor?.setEditable(true);

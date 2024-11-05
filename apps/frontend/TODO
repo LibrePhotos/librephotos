@@ -5,10 +5,10 @@
 - medium: fix public user list and public photos for authenticated user
 - medium: highlight sidebar menu when children menu page is active
 - medium: remove the use of useMediaquery
-- medium: photolist action menu styling, move actions to the right
 - low: fix photo list dropdown filter click area
 - low: rework mobile top menu for usability (upload, search, etc.)
 - low: fix warnings (in console) related to defaultProps (photo list view, etc.)
+- medium: fix lightbox editor caption
 
 - optional: refactor site search with combobox
 - optional: migrate from Emotion to css modules (performance improvement)
