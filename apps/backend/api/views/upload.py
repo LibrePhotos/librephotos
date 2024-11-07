@@ -45,7 +45,7 @@ class UploadPhotosChunked(ChunkedUploadView):
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
-                AccessToken(jwt)
+                token=AccessToken(jwt)
             except TokenError:
                 raise ChunkedUploadError(
                     status=http_status.HTTP_403_FORBIDDEN,
@@ -57,7 +57,7 @@ class UploadPhotosChunked(ChunkedUploadView):
                 detail="Authentication credentials were not provided",
             )
         # To-Do: Check if file is allowed type
-        user = User.objects.filter(id=request.POST.get("user")).first()
+        user = User.objects.filter(id=token["user_id"]).first()
         if not user or not user.is_authenticated:
             raise ChunkedUploadError(
                 status=http_status.HTTP_403_FORBIDDEN,
@@ -88,7 +88,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
-                AccessToken(jwt)
+                token=AccessToken(jwt)
             except TokenError:
                 raise ChunkedUploadError(
                     status=http_status.HTTP_403_FORBIDDEN,
@@ -99,7 +99,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 status=http_status.HTTP_403_FORBIDDEN,
                 detail="Authentication credentials were not provided",
             )
-        user = User.objects.filter(id=request.POST.get("user")).first()
+        user = User.objects.filter(id=token["user_id"]).first()
         if not user or not user.is_authenticated:
             raise ChunkedUploadError(
                 status=http_status.HTTP_403_FORBIDDEN,
@@ -107,7 +107,21 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             )
 
     def on_completion(self, uploaded_file, request):
-        user = User.objects.filter(id=request.POST.get("user")).first()
+        jwt = request.COOKIES.get("jwt")
+        if jwt is not None:
+            try:
+                token=AccessToken(jwt)
+            except TokenError:
+                raise ChunkedUploadError(
+                    status=http_status.HTTP_403_FORBIDDEN,
+                    detail="Authentication credentials were invalid",
+                )
+        else:
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail="Authentication credentials were not provided",
+            )
+        user = User.objects.filter(id=token["user_id"]).first()
         # Sanitize file name
         filename = get_valid_filename(request.POST.get("filename"))
 
