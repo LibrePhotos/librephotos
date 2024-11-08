@@ -604,7 +604,6 @@ class MediaAccessFullsizeOriginalView(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
-
             if photo.main_file.path.startswith("/nextcloud_media/"):
                 internal_path = photo.main_file.path.replace(
                     "/nextcloud_media/", "/nextcloud_original/"
@@ -617,15 +616,16 @@ class MediaAccessFullsizeOriginalView(APIView):
             else:
                 # If, for some reason, the file is in a weird place, handle that.
                 internal_path = None
-
             internal_path = quote(internal_path)
-
             # grant access if the requested photo is public
             if photo.public:
                 response = HttpResponse()
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
-                response["Content-Type"] = filename
+                if photo.video:
+                    response["Content-Type"] = filename
+                else:
+                    response["Content-Type"] = "image/webp"
                 response["X-Accel-Redirect"] = internal_path
                 return response
 
@@ -647,7 +647,10 @@ class MediaAccessFullsizeOriginalView(APIView):
                 response = HttpResponse()
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
-                response["Content-Type"] = filename
+                if photo.video:
+                    response["Content-Type"] = filename
+                else:
+                    response["Content-Type"] = "image/webp"
                 response["Content-Disposition"] = 'inline; filename="{}"'.format(
                     photo.main_file.path.split("/")[-1]
                 )
