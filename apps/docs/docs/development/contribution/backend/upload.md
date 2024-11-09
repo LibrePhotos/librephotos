@@ -24,7 +24,6 @@ On the first chunk leave `upload_id` empty, you will get a response with the `up
 
 - `file` - The chunk of the file, name is blob
 - `upload_id` - The id of the upload
-- `user` - The user id
 - `offset` - The offset of the chunk
 - `md5` - The md5 hash of the chunk (not used yet, you can leave it empty)
 
@@ -41,7 +40,6 @@ Combines the chunks of a file into a single file and moves it to the upload fold
 #### Form Data:
 
 - `upload_id` - The id of the upload
-- `user` - The user id
 - `md5` - Just the md5 hash of whole file
 - `filename` - The original filename
 
