@@ -74,17 +74,8 @@ INSTALLED_APPS = [
     "django_q",
 ]
 
-# Defaults to number of cores of the host system
-HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", None)
-HEAVYWEIGHT_PROCESS = (
-    int(HEAVYWEIGHT_PROCESS_ENV)
-    if (HEAVYWEIGHT_PROCESS_ENV and HEAVYWEIGHT_PROCESS_ENV.isnumeric())
-    else 0
-)
-
 Q_CLUSTER = {
     "name": "DjangORM",
-    "workers": HEAVYWEIGHT_PROCESS,
     "queue_limit": 50,
     "recycle": 50,
     "timeout": 10000000,
@@ -145,14 +136,6 @@ CONSTANCE_CONFIG = {
         os.environ.get("SKIP_PATTERNS", ""),
         "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",
         str,
-    ),
-    "HEAVYWEIGHT_PROCESS": (
-        HEAVYWEIGHT_PROCESS,
-        """
-        Number of workers, when scanning pictures. This setting can dramatically affect the ram usage.
-        Each worker needs 800MB of RAM. Change at your own will. Default is 1.
-        """,
-        int,
     ),
     "MAP_API_PROVIDER": (
         os.environ.get("MAP_API_PROVIDER", "photon"),

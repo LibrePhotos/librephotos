@@ -45,7 +45,7 @@ class UploadPhotosChunked(ChunkedUploadView):
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
-                token=AccessToken(jwt)
+                token = AccessToken(jwt)
             except TokenError:
                 raise ChunkedUploadError(
                     status=http_status.HTTP_403_FORBIDDEN,
@@ -88,7 +88,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
-                token=AccessToken(jwt)
+                token = AccessToken(jwt)
             except TokenError:
                 raise ChunkedUploadError(
                     status=http_status.HTTP_403_FORBIDDEN,
@@ -110,7 +110,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
             try:
-                token=AccessToken(jwt)
+                token = AccessToken(jwt)
             except TokenError:
                 raise ChunkedUploadError(
                     status=http_status.HTTP_403_FORBIDDEN,

@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime
 
 import pytz
-from constance import config as site_config
 from django.db.models import Q
 
 import api.util as util
@@ -31,7 +30,7 @@ def batch_calculate_clip_embedding(user):
     lrj.progress_target = count
     lrj.save()
     if not torch.cuda.is_available():
-        num_threads = max(1, site_config.HEAVYWEIGHT_PROCESS)
+        num_threads = 1
         torch.set_num_threads(num_threads)
         os.environ["OMP_NUM_THREADS"] = str(num_threads)
     else:

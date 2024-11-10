@@ -103,8 +103,6 @@ class SiteSettingsView(APIView):
             site_config.ALLOW_UPLOAD = request.data["allow_upload"]
         if "skip_patterns" in request.data.keys():
             site_config.SKIP_PATTERNS = request.data["skip_patterns"]
-        if "heavyweight_process" in request.data.keys():
-            site_config.HEAVYWEIGHT_PROCESS = 0
         if "map_api_provider" in request.data.keys():
             site_config.MAP_API_PROVIDER = request.data["map_api_provider"]
         if "map_api_key" in request.data.keys():
