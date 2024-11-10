@@ -77,7 +77,9 @@ INSTALLED_APPS = [
 # Defaults to number of cores of the host system
 HEAVYWEIGHT_PROCESS_ENV = os.environ.get("HEAVYWEIGHT_PROCESS", None)
 HEAVYWEIGHT_PROCESS = (
-    int(HEAVYWEIGHT_PROCESS_ENV) if HEAVYWEIGHT_PROCESS_ENV.isnumeric() else None
+    int(HEAVYWEIGHT_PROCESS_ENV)
+    if (HEAVYWEIGHT_PROCESS_ENV and HEAVYWEIGHT_PROCESS_ENV.isnumeric())
+    else None
 )
 
 Q_CLUSTER = {
