@@ -2,12 +2,11 @@
 # The .env file has everything you need to edit.
 # Run options:
 # 1. Use prebuilt images (preferred method):
-#   run cmd: docker-compose up -d
+#   run cmd: docker compose up -d
 # 2. Build images on your own machine:
-#   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
-#   run cmd: docker-compose up -d
+#   build cmd: docker compose build
+#   run cmd: docker compose up -d
 
-version: "3.8"
 services:
   proxy:
     image: reallibrephotos/librephotos-proxy:${tag}
@@ -17,7 +16,7 @@ services:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
     ports:
-      - ${httpPort}:80
+      - 3000:80
     depends_on:
       - backend
       - frontend
@@ -31,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=${dbPass}
       - POSTGRES_DB=${dbName}
     volumes:
-      - ${data}/db:/var/lib/postgresql/data
+      - ${data}/db8:/var/lib/postgresql/data
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
     healthcheck:
       test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
@@ -71,7 +70,15 @@ services:
       - ALLOW_UPLOAD=${allowUpload:-false}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
       - DEBUG=0
-      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS:-}
     depends_on:
       db:
         condition: service_healthy
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu

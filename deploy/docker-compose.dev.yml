@@ -13,9 +13,7 @@
 #   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
 #   run cmd: docker-compose up -d
 
-version: '3.8'
 services:
-
   proxy:
     tty: true
     build:
@@ -29,8 +27,8 @@ services:
   frontend:
     tty: true
     environment:
-    - DEBUG=1
-    - WDS_SOCKET_PORT=0 # needed for webpack-dev-server
+      - DEBUG=1
+      - WDS_SOCKET_PORT=0 # needed for webpack-dev-server
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
@@ -67,7 +65,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
     volumes:
-       - ${pgAdminLocation}/pgadmin:/root/.pgadmin
+      - ${pgAdminLocation}/pgadmin:/root/.pgadmin
     ports:
       - "3001:80"
     restart: unless-stopped

@@ -107,7 +107,6 @@ services:
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-true}
       - DEBUG=1
-      - HEAVYWEIGHT_PROCESS=${HEAVYWEIGHT_PROCESS:-1}
     healthcheck:
       test: curl -sI localhost:8001 | grep HTTP | grep 401
       interval: 5s
