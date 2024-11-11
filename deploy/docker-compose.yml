@@ -73,12 +73,3 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    runtime: nvidia
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities:
-                - gpu
