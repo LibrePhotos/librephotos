@@ -459,7 +459,8 @@
         "personalreadyexists": "Pessoa chamada {{name}} já existe.",
         "nameplaceholder": "Nome",
         "deleteperson": "Eliminar Pessoa",
-        "deletepersondescription": "De certeza que pretende eliminar esta pessoa?"
+        "deletepersondescription": "De certeza que pretende eliminar esta pessoa?",
+        "renamepersonheader": "Para que você deseja renomear {{name}}?"
     },
     "placealbum": {
         "showingplaces": "A mostrar {{number}} locais no mapa",
@@ -500,7 +501,11 @@
         "clusterscounter_one": "{{count}} Grupo",
         "assumedpersonscounter_one": "{{count}} Pessoa inferida",
         "unknownfacescounter_other": "{{count}} Caras desconhecidas",
-        "facescounter_one": "{{count}} cara"
+        "facescounter_one": "{{count}} cara",
+        "show": "Mostrar",
+        "classifications": "Classificações",
+        "minconfidence": "Confiança",
+        "clusters": "Aglomerados"
     },
     "scan": "Analisar",
     "socialgraph": "Gráfico social",
