@@ -67,7 +67,7 @@
         "change": "Zmeniť",
         "nextcloudheader": "Nextcloud",
         "credentials": "Prihlasovacie údaje",
-        "credentialspopup": "Zadajte heslo",
+        "credentialspopup": "Vaše prihlasovacie heslo do služby Nextcloud",
         "serveradress": "Adresa servera",
         "serveradressplaceholder": "https://",
         "nextcloudusername": "Používateľské meno",
@@ -139,7 +139,16 @@
         "statusrescanphotostrue": "Skenovanie všetkých fotografií (lokálne)",
         "missingphotosdescription": "Pri každom skenovaní LibrePhotos skontroluje, či sú súbory stále na tom istom mieste alebo či boli presunuté. Ak chýbajú, označia sa.",
         "eventsalbumsdescription": "Backendový server najprv zoskupí fotografie podľa času snímania. Ak sú dve po sebe idúce fotografie nasnímané v priebehu 12 hodín, považujú sa za fotografie z tej istej udalosti. Po takomto zoskupení automaticky vygeneruje názov tohto albumu.",
-        "slovak": "Slovenčina"
+        "slovak": "Slovenčina",
+        "hungarian": "Maďarčina",
+        "colorscheme": {
+            "dark": "Tmavá",
+            "title": "Farebná schéma",
+            "light": "Svetlá"
+        },
+        "nextcloudsetup": "Chýbajúce poverenia",
+        "security": "Bezpečnosť",
+        "nextcloudconnecting": "Pripájanie sa"
     },
     "sitesettings": {
         "map_api_provider_header": "Poskytovateľ máp",
