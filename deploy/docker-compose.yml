@@ -22,7 +22,7 @@ services:
       - frontend
 
   db:
-    image: postgres:17
+    image: pgautoupgrade/pgautoupgrade:latest
     container_name: db
     restart: unless-stopped
     environment:
