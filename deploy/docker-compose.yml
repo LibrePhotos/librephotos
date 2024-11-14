@@ -30,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=${dbPass}
       - POSTGRES_DB=${dbName}
     volumes:
-      - ${data}/db8:/var/lib/postgresql/data
+      - ${data}/db:/var/lib/postgresql/data
     command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c random_page_cost=1.0
     healthcheck:
       test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
