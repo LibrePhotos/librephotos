@@ -5,7 +5,6 @@ const initialState = {
     allow_registration: false,
     allow_upload: false,
     skip_patterns: "",
-    heavyweight_process: 1,
     map_api_key: "",
   },
   fetchingSiteSettings: false,
