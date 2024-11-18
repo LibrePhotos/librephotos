@@ -1,6 +1,5 @@
 import { Autocomplete, Avatar, Group, Text } from "@mantine/core";
 // import type { AutocompleteItem } from "@mantine/core";
-import { createStyles } from "@mantine/emotion";
 import { useInterval, useViewportSize } from "@mantine/hooks";
 import {
   IconAlbum as Album,
@@ -74,19 +73,8 @@ const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
   )
 );
 
-export const useStyles = createStyles(() => ({
-  clear: {
-    color: "#333",
-    cursor: "pointer",
-  },
-  icon: {
-    color: "#333",
-  },
-}));
-
 export function CustomSearch() {
   const { t } = useTranslation();
-  const { classes } = useStyles();
   const { width } = useViewportSize();
   const dispatch = useAppDispatch();
   const [value, setValue] = useState("");
@@ -182,7 +170,7 @@ export function CustomSearch() {
     <Autocomplete
       width={searchBarWidth}
       data={searchSuggestions}
-      leftSection={<Search size={14} className={classes.icon} />}
+      leftSection={<Search size={14} style={{ color: "#333" }} />}
       placeholder={searchPlaceholder}
       itemComponent={SearchSuggestionItem}
       limit={10}
@@ -193,7 +181,10 @@ export function CustomSearch() {
       rightSection={
         value ? (
           <X
-            className={classes.clear}
+            style={{
+              color: "#333",
+              cursor: "pointer",
+            }}
             size={13}
             onClick={() => {
               setValue("");

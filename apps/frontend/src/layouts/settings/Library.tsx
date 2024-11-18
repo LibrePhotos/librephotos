@@ -20,6 +20,7 @@ import {
   Text,
   TextInput,
   Title,
+  useMantineTheme,
 } from "@mantine/core";
 import { createStyles } from "@mantine/emotion";
 import { useDisclosure } from "@mantine/hooks";
@@ -56,25 +57,6 @@ import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { IUser } from "../../store/user/user.zod";
 
-const useStyles = createStyles((theme, _, u) => ({
-  button: {
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-
-  menuControl: {
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    border: 0,
-    [u.dark]: {
-      borderLeft: `1px solid ${theme.colors.dark[7]}`,
-    },
-    [u.light]: {
-      borderLeft: `1px solid ${theme.white}`,
-    },
-  },
-}));
-
 function BadgeIcon(details: IUser, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
   if (isSuccess && server) {
@@ -108,7 +90,7 @@ export function Library() {
     { isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError },
   ] = useLazyFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
-  const { classes } = useStyles();
+  const theme = useMantineTheme();
   const [generateAutoAlbums] = useGenerateAutoAlbumsMutation();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
   const [updateUser] = useUpdateUserMutation();
@@ -233,7 +215,7 @@ export function Library() {
                     disabled={!workerAvailability}
                     leftSection={<Refresh />}
                     variant="filled"
-                    className={classes.button}
+                    style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
                   >
                     {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
                     {statusPhotoScan.added
@@ -242,7 +224,20 @@ export function Library() {
                   </Button>
                   <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
                     <Menu.Target>
-                      <ActionIcon variant="filled" color="blue" size={36} className={classes.menuControl}>
+                      <ActionIcon
+                        variant="filled"
+                        color="blue"
+                        size={36}
+                        style={{
+                          borderTopLeftRadius: 0,
+                          borderBottomLeftRadius: 0,
+                          border: 0,
+                          borderLeft:
+                            theme.colorScheme === "dark"
+                              ? `1px solid ${theme.colors.dark[7]}`
+                              : `1px solid ${theme.white}`,
+                        }}
+                      >
                         <ChevronDown size="1rem" />
                       </ActionIcon>
                     </Menu.Target>

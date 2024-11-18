@@ -1,5 +1,4 @@
 import { ActionIcon, Group, Loader } from "@mantine/core";
-import { createStyles } from "@mantine/emotion";
 import {
   IconEye as Eye,
   IconEyeOff as EyeOff,
@@ -18,25 +17,6 @@ import { playerActions } from "../../store/player/playerSlice";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
 
-const useStyles = createStyles((theme, _, u) => ({
-  button: {
-    [u.light]: {
-      color: theme.colors.dark[0],
-    },
-    [u.dark]: {
-      color: theme.colors.black,
-    },
-    "&:hover": {
-      [u.light]: {
-        color: theme.colors.gray[3],
-      },
-      [u.dark]: {
-        color: theme.colors.white,
-      },
-    },
-  },
-}));
-
 type Props = Readonly<{
   photosDetail: any;
   isPublic: boolean;
@@ -52,7 +32,6 @@ export function Toolbar(props: Props) {
   const [setPhotosHidden] = useSetPhotosHiddenMutation();
   const [setPhotosPublic] = useSetPhotosPublicMutation();
   const [setFavoritePhotos] = useSetFavoritePhotosMutation();
-  const { classes } = useStyles();
 
   function playButton(photo) {
     if (!photo || photo.embedded_media.length === 0) {

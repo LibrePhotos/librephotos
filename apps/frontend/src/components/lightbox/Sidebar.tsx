@@ -1,6 +1,4 @@
-import { ActionIcon, Avatar, Box, Button, Group, Indicator, Stack, Text, Title, Tooltip } from "@mantine/core";
-import { createStyles } from "@mantine/emotion";
-import { useViewportSize } from "@mantine/hooks";
+import { ActionIcon, Box, Group, Stack, Text, Title, useMantineTheme } from "@mantine/core";
 import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,26 +24,15 @@ type Props = {
   setFaceLocation: (face: any) => void;
 };
 
-const useStyle = createStyles((theme, _, u) => ({
-  container: {
-    padding: theme.spacing.sm,
-    [u.light]: {
-      backgroundColor: theme.colors.gray[0],
-    },
-    [u.dark]: {
-      backgroundColor: theme.colors.dark[6],
-    },
-  },
-}));
-
 export function Sidebar(props: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const { isPublic, closeSidepanel, setFaceLocation } = props;
-  const { classes } = useStyle();
+
   const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[props.id]);
+  const theme = useMantineTheme();
 
   const notThisPerson = faceId => {
     const ids = [faceId];
@@ -56,7 +43,6 @@ export function Sidebar(props: Props) {
 
   return (
     <Box
-      className={classes.container}
       style={{
         width: "33%",
         height: "100%",
@@ -65,6 +51,8 @@ export function Sidebar(props: Props) {
         float: "right",
         whiteSpace: "normal",
         zIndex: 250,
+        padding: theme.spacing.sm,
+        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
       }}
     >
       {photoDetail && (

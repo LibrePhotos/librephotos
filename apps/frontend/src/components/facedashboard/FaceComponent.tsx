@@ -1,11 +1,11 @@
-import { ActionIcon, Avatar, Box, Center, Indicator } from "@mantine/core";
-import { createStyles } from "@mantine/emotion";
+import { ActionIcon, Avatar, Box, Center, Indicator, useMantineTheme } from "@mantine/core";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useState } from "react";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
+import "./FaceComponent.css";
 import { FaceTooltip } from "./FaceTooltip";
 
 type Props = Readonly<{
@@ -17,12 +17,6 @@ type Props = Readonly<{
   handleClick: (e: any, cell: any) => void;
   handleShowClick: (e: any, cell: any) => void;
 }>;
-
-const useStyle = createStyles(theme => ({
-  container: {
-    borderRadius: theme.radius.md,
-  },
-}));
 
 export const calculateProbabiltyColor = (labelProbability: number) => {
   if (labelProbability > 0.9) return "green";
@@ -40,7 +34,7 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
-  const { classes } = useStyle();
+  const theme = useMantineTheme();
 
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const [tooltipOpened, setTooltipOpened] = useState(false);
@@ -63,17 +57,13 @@ export function FaceComponent({
   }
   return (
     <Box
-      className={classes.container}
+      className={`box ${isSelected ? "selected" : ""}`}
       style={{
-        display: "block",
-        backgroundColor: isSelected ? "rgba(174, 214, 241, 0.7)" : "transparent",
         alignContent: "center",
         padding,
         marginRight: 10,
         cursor: "pointer",
-        "&:hover": {
-          backgroundColor: isSelected ? "rgba(174, 214, 241, 0.95)" : "rgba(174, 214, 241, 0.7)",
-        },
+        borderRadius: theme.radius.md,
       }}
     >
       <Center>

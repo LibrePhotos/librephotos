@@ -10,6 +10,7 @@
 - low: fix warnings (in console) related to defaultProps (photo list view, etc.)
 - medium: fix lightbox editor caption
 - medium: fix table in admin page
+- medium: Fix Modal Person Edit button and hover
 
 - optional: refactor site search with combobox
 - optional: migrate from Emotion to css modules (performance improvement)

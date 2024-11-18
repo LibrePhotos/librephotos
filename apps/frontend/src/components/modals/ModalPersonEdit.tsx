@@ -10,8 +10,8 @@ import {
   TextInput,
   Title,
   UnstyledButton,
+  useMantineTheme,
 } from "@mantine/core";
-import { createStyles } from "@mantine/emotion";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,7 +19,6 @@ import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 
@@ -30,38 +29,10 @@ type Props = Readonly<{
   selectedFaces: any[];
 }>;
 
-const useStyle = createStyles((theme, _, u) => ({
-  editButton: {
-    display: "block",
-    borderRadius: theme.radius.xl,
-    [u.light]: {
-      color: theme.black,
-    },
-    [u.dark]: {
-      color: theme.colors.dark[0],
-    },
-    "&:hover": {
-      [u.light]: {
-        backgroundColor: theme.colors.gray[0],
-      },
-      [u.dark]: {
-        backgroundColor: theme.colors.dark[6],
-      },
-    },
-  },
-  title: {
-    width: "250px",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-  },
-}));
-
 export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGroups = () => {} }: Props) {
   const [newPersonName, setNewPersonName] = useState("");
-  const { classes } = useStyle();
   const matches = useMediaQuery("(min-width: 700px)");
-
+  const theme = useMantineTheme();
   const { data: people } = useFetchPeopleAlbumsQuery();
 
   const dispatch = useAppDispatch();
@@ -147,8 +118,12 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
             filteredPeopleList.length > 0 &&
             filteredPeopleList?.map(item => (
               <UnstyledButton
-                key={item.key}
-                className={classes.editButton}
+                key={item.id}
+                style={{
+                  display: "block",
+                  borderRadius: theme.radius.xl,
+                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                }}
                 onClick={() => {
                   dispatch(
                     api.endpoints.setFacesPersonLabel.initiate({
@@ -162,8 +137,11 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                 <Group key={item.id}>
                   <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
                   <div>
-                    <Title className={classes.title} order={4}>
-                      {item.text}
+                    <Title
+                      style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
+                      order={4}
+                    >
+                      {item.name}
                     </Title>
                     <Text size="sm" c="dimmed">
                       {t("numberofphotos", {

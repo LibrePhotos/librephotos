@@ -1,5 +1,4 @@
 import { Box, Group, RemoveScroll, useMantineTheme } from "@mantine/core";
-import { createStyles } from "@mantine/emotion";
 import { useViewportSize } from "@mantine/hooks";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
