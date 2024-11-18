@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
   Tooltip,
-  rem,
+  useMantineTheme,
 } from "@mantine/core";
 import {
   IconBarbell as Barbell,
@@ -53,6 +53,8 @@ export function ButtonHeaderGroup({
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
 
+  const theme = useMantineTheme();
+
   const setOrderBy = (value: string) => {
     dispatch(faceActions.changeFacesOrderBy(value as FacesOrderOption));
   };
@@ -70,17 +72,21 @@ export function ButtonHeaderGroup({
 
   return (
     <Box
-      sx={theme => ({
+      style={{
+        padding: 4,
         backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
         textAlign: "center",
         cursor: "pointer",
         borderRadius: 10,
-      })}
-      style={{
-        padding: 4,
       }}
     >
-      <Group position="apart">
+      <Group
+        style={{
+          paddingLeft: 10,
+          paddingRight: 10,
+        }}
+        justify="space-between"
+      >
         <Group spacing="xs">
           <Button
             variant="light"

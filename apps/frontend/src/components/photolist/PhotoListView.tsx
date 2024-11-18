@@ -1,4 +1,4 @@
-import { Box, Group, RemoveScroll } from "@mantine/core";
+import { Box, Group, RemoveScroll, useMantineTheme } from "@mantine/core";
 import { createStyles } from "@mantine/emotion";
 import { useViewportSize } from "@mantine/hooks";
 import { throttle } from "lodash";
@@ -51,37 +51,6 @@ type SelectionState = {
   selectMode: boolean;
 };
 
-const useStyles = createStyles((theme, _, u) => ({
-  container: {
-    boxSizing: "border-box",
-    cursor: "pointer",
-    padding: 6,
-    position: "sticky",
-    textAlign: "center",
-    top: 45,
-    width: "100%",
-    zIndex: 10,
-    [u.dark]: {
-      backgroundColor: theme.colors.dark[6],
-    },
-    [u.light]: {
-      backgroundColor: theme.colors.gray[0],
-    },
-  },
-  innerContainer: {
-    textAlign: "center",
-    cursor: "pointer",
-    borderRadius: 10,
-    padding: 4,
-    [u.dark]: {
-      backgroundColor: theme.colors.dark[7],
-    },
-    [u.light]: {
-      backgroundColor: theme.colors.gray[2],
-    },
-  },
-}));
-
 function PhotoListViewComponent(props: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<Pig>(null);
@@ -98,7 +67,6 @@ function PhotoListViewComponent(props: Props) {
   const [scrollLocked, setScrollLocked] = useState(false);
   const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
   const [setPersonAlbumCover] = useSetPersonAlbumCoverMutation();
-  const { classes } = useStyles();
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
   const {
@@ -121,6 +89,7 @@ function PhotoListViewComponent(props: Props) {
   const isDateView = photoset !== idx2hash;
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
 
+  const theme = useMantineTheme();
   const idx2hashRef = useRef(idx2hash);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -269,7 +238,19 @@ function PhotoListViewComponent(props: Props) {
 
   return (
     <RemoveScroll enabled={scrollLocked}>
-      <Box className={classes.container}>
+      <Box
+        style={{
+          boxSizing: "border-box",
+          cursor: "pointer",
+          padding: 6,
+          position: "sticky",
+          textAlign: "center",
+          top: 45,
+          width: "100%",
+          zIndex: 10,
+          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+        }}
+      >
         {header || (
           <DefaultHeader
             // @ts-ignore
@@ -287,7 +268,15 @@ function PhotoListViewComponent(props: Props) {
           />
         )}
         {!loading && !isPublic && getNumPhotos() > 0 && (
-          <Box className={classes.innerContainer}>
+          <Box
+            style={{
+              padding: 4,
+              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+              textAlign: "center",
+              cursor: "pointer",
+              borderRadius: 10,
+            }}
+          >
             <Group
               style={{
                 paddingLeft: 10,
