@@ -1,4 +1,4 @@
-import { AppShell } from "@mantine/core";
+import { AppShell, useMantineTheme } from "@mantine/core";
 import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
@@ -11,6 +11,7 @@ import { useAppSelector } from "../store/store";
 import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, MIN_VIEWPORT_WODTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
 export function AppShellProtected() {
+  const theme = useMantineTheme();
   const isAuth = useAppSelector(selectIsAuthenticated);
   const { sidebarVisible, toggleSidebar } = useSidebarToggle(true);
   const { pathname } = useLocation();
@@ -33,7 +34,11 @@ export function AppShellProtected() {
       <AppShell.Navbar>
         <SideMenuNarrow />
       </AppShell.Navbar>
-      <AppShell.Main>
+      <AppShell.Main
+        style={{
+          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+        }}
+      >
         <Outlet />
       </AppShell.Main>
       <AppShell.Footer>
