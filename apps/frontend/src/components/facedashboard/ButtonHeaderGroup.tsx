@@ -85,7 +85,7 @@ export function ButtonHeaderGroup({
           <Button
             variant="light"
             size="xs"
-            leftIcon={<Check color={selectMode ? "green" : "gray"} />}
+            leftSection={<Check color={selectMode ? "green" : "gray"} />}
             color={selectMode ? "blue" : "gray"}
             onClick={changeSelectMode}
           >

@@ -101,7 +101,7 @@ export function FaceComponent({
           </Indicator>
         </FaceTooltip>
         <div style={{ left: 0, bottom: 0, position: "absolute" }}>
-          <ActionIcon variant="filled" onClick={(e: any) => handleShowClick(e, cell)}>
+          <ActionIcon variant="filled" color="gray" onClick={(e: any) => handleShowClick(e, cell)}>
             <Photo />
           </ActionIcon>
         </div>

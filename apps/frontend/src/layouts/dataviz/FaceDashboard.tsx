@@ -20,6 +20,7 @@ import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
 import { FaceAnalysisMethod, FacesTab } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
 export function FaceDashboard() {
@@ -347,7 +348,7 @@ export function FaceDashboard() {
 
   return (
     <RemoveScroll enabled={scrollLocked}>
-      <div style={{ display: "flex", flexFlow: "column", height: "100%" }}>
+      <div style={{ display: "flex", flexFlow: "column", height: `calc(100vh - ${TOP_MENU_HEIGHT}px)` }}>
         <Stack>
           <TabComponent
             width={width}
