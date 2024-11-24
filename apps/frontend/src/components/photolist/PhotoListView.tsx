@@ -1,4 +1,4 @@
-import { Box, Group, RemoveScroll, useMantineTheme } from "@mantine/core";
+import { Box, Group, RemoveScroll, useMantineColorScheme, useMantineTheme } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -89,6 +89,7 @@ function PhotoListViewComponent(props: Props) {
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
 
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const idx2hashRef = useRef(idx2hash);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -247,7 +248,7 @@ function PhotoListViewComponent(props: Props) {
           top: 45,
           width: "100%",
           zIndex: 10,
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+          backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
         }}
       >
         {header || (
@@ -270,7 +271,7 @@ function PhotoListViewComponent(props: Props) {
           <Box
             style={{
               padding: 4,
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+              backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
               textAlign: "center",
               cursor: "pointer",
               borderRadius: 10,

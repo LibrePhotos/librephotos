@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Stack, Text, Title, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Box, Group, Stack, Text, Title, useMantineColorScheme, useMantineTheme } from "@mantine/core";
 import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,6 +33,7 @@ export function Sidebar(props: Props) {
 
   const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[props.id]);
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
 
   const notThisPerson = faceId => {
     const ids = [faceId];
@@ -52,7 +53,7 @@ export function Sidebar(props: Props) {
         whiteSpace: "normal",
         zIndex: 250,
         padding: theme.spacing.sm,
-        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+        backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
       }}
     >
       {photoDetail && (

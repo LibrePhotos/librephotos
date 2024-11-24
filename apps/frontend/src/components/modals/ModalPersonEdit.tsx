@@ -10,6 +10,7 @@ import {
   TextInput,
   Title,
   UnstyledButton,
+  useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
@@ -33,6 +34,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
   const [newPersonName, setNewPersonName] = useState("");
   const matches = useMediaQuery("(min-width: 700px)");
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const { data: people } = useFetchPeopleAlbumsQuery();
 
   const dispatch = useAppDispatch();
@@ -122,7 +124,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                 style={{
                   display: "block",
                   borderRadius: theme.radius.xl,
-                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
                 }}
                 onClick={() => {
                   dispatch(

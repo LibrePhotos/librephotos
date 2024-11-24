@@ -1,14 +1,15 @@
-import { AppShell, useMantineTheme } from "@mantine/core";
+import { AppShell, useMantineColorScheme, useMantineTheme } from "@mantine/core";
 import React from "react";
 import { Outlet } from "react-router-dom";
 
 export function AppShellPublicWithoutHeader() {
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   return (
     <AppShell>
       <AppShell.Main
         style={{
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
+          backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
         }}
       >
         <Outlet />

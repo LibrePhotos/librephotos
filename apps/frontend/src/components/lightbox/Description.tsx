@@ -1,4 +1,15 @@
-import { ActionIcon, Badge, Group, Stack, Text, Title, Tooltip, UnstyledButton, useMantineTheme } from "@mantine/core";
+import {
+  ActionIcon,
+  Badge,
+  Group,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+  UnstyledButton,
+  useMantineColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand } from "@tabler/icons-react";
 import Document from "@tiptap/extension-document";
@@ -32,6 +43,7 @@ export function Description(props: Props) {
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
 
   const { photoDetail, isPublic } = props;
 
@@ -111,10 +123,10 @@ export function Description(props: Props) {
                     borderRadius: theme.radius.xl,
                     textDecoration: "none",
                     fontSize: theme.fontSizes.sm,
-                    color: theme.colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
-                    backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[1],
+                    color: colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
+                    backgroundColor: colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[1],
                     "&:hover": {
-                      backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[3],
+                      backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[3],
                     },
                   }}
                   onClick={() => {

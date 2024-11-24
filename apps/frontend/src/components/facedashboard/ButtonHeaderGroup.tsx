@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
   Tooltip,
+  useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import {
@@ -54,6 +55,7 @@ export function ButtonHeaderGroup({
   const dispatch = useAppDispatch();
 
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
 
   const setOrderBy = (value: string) => {
     dispatch(faceActions.changeFacesOrderBy(value as FacesOrderOption));
@@ -74,7 +76,7 @@ export function ButtonHeaderGroup({
     <Box
       style={{
         padding: 4,
-        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+        backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
         textAlign: "center",
         cursor: "pointer",
         borderRadius: 10,
@@ -116,7 +118,7 @@ export function ButtonHeaderGroup({
               },
             ]}
           />
-          {(activeTab == "inferred" || activeTab == "unknown") && (
+          {(activeTab === "inferred" || activeTab === "unknown") && (
             <div style={{ display: "contents" }}>
               <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
               <Text size="sm" weight={500} mb={3}>
@@ -142,13 +144,17 @@ export function ButtonHeaderGroup({
                 {t("facesdashboard.minconfidence")}
               </Text>
               <Box
-                style={{ width: 150, paddingTop: 10, paddingBottom: 10, paddingRight: 5, paddingLeft: 5 }}
-                sx={theme => ({
-                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[1],
+                style={{
+                  width: 150,
+                  paddingTop: 10,
+                  paddingBottom: 10,
+                  paddingRight: 5,
+                  paddingLeft: 5,
+                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[1],
                   textAlign: "center",
                   cursor: "pointer",
                   borderRadius: 4,
-                })}
+                }}
               >
                 <Slider
                   value={minConfidence}

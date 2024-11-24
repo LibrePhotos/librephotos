@@ -20,9 +20,9 @@ import {
   Text,
   TextInput,
   Title,
+  useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import { createStyles } from "@mantine/emotion";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconBook as Book,
@@ -91,6 +91,7 @@ export function Library() {
   ] = useLazyFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const [generateAutoAlbums] = useGenerateAutoAlbumsMutation();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
   const [updateUser] = useUpdateUserMutation();
@@ -233,9 +234,7 @@ export function Library() {
                           borderBottomLeftRadius: 0,
                           border: 0,
                           borderLeft:
-                            theme.colorScheme === "dark"
-                              ? `1px solid ${theme.colors.dark[7]}`
-                              : `1px solid ${theme.white}`,
+                            colorScheme === "dark" ? `1px solid ${theme.colors.dark[7]}` : `1px solid ${theme.white}`,
                         }}
                       >
                         <ChevronDown size="1rem" />
