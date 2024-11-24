@@ -60,15 +60,15 @@ import { IUser } from "../../store/user/user.zod";
 function BadgeIcon(details: IUser, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
   if (isSuccess && server) {
-    return <Check />;
+    return <Check size={20} />;
   }
   if (isError) {
-    return <X />;
+    return <X size={20} />;
   }
   if (isFetching) {
-    return <RefreshDot />;
+    return <RefreshDot size={20} />;
   }
-  return <QuestionMark />;
+  return <QuestionMark size={20} />;
 }
 
 export function Library() {
@@ -357,7 +357,7 @@ export function Library() {
             labelPosition="left"
             label={
               <Text fw="bold">
-                {t("settings.faces")} & ${t("settings.people")}
+                {t("settings.faces")} & {t("settings.people")}
               </Text>
             }
             mt={20}
@@ -418,9 +418,6 @@ export function Library() {
             </Grid.Col>
             <Grid.Col span={2}>
               <Badge
-                size="xs"
-                p={10}
-                style={{ marginLeft: -20 }}
                 leftSection={BadgeIcon(userSelfDetails, isNextcloudSuccess, isNextcloudError, isNextcloudFetching)}
                 variant="outline"
                 color={nextcloudStatusColor}

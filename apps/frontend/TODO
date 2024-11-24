@@ -11,7 +11,6 @@
 - medium: fix lightbox editor caption
 - medium: Fix Modal Person Edit button and hover
 - high: migrate from Emotion to css modules (performance improvement)
-
 - optional: refactor site search with combobox
 - optional: refactor tree with latest mantine tree (and remove existing one)
 - optional: move color theme switch to top menu for convenience

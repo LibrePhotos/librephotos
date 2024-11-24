@@ -51,8 +51,8 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
           {getRuleExtraInfo(rule, t)}
         </Table.Td>
         <Table.Td width={40}>
-          <ActionIcon onClick={() => appendRule(rule)}>
-            <CirclePlus color="green" />
+          <ActionIcon variant="subtle" color="green" onClick={() => appendRule(rule)}>
+            <CirclePlus />
           </ActionIcon>
         </Table.Td>
       </Table.Tr>

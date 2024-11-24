@@ -162,7 +162,7 @@ export function ChunkedUploadButton() {
   if (settings?.allow_upload) {
     return (
       <div style={{ width: "50px" }}>
-        <div {...getRootProps({ className: "dropzone" })}>
+        <div {...getRootProps({ className: "dropzone" })} style={{ alignContent: "center", display: "flex" }}>
           <input {...getInputProps()} />
           {currentSize / totalSize > 0.99 && (
             <ActionIcon color="gray" variant="light" loading={currentSize / totalSize < 1} onClick={open}>
