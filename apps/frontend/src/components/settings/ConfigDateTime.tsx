@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
 import { Button, CloseButton, Group, ScrollArea, Table, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
@@ -81,19 +80,23 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const items = userRules.map((rule, index) => (
     <Draggable key={rule.id} index={index} draggableId={rule.id.toString()}>
       {provided => (
-        // eslint-disable-next-line react/jsx-props-no-spreading
-        <tr className={classes.item} ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-          <td>
+        <Table.Tr
+          className={classes.item}
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+        >
+          <Table.Td>
             <strong>
               {rule.name} (ID:{rule.id})
             </strong>
             <div className={classes.rule_type}>{t("rules.rule_type", { rule: rule.rule_type })}</div>
             {getRuleExtraInfo(rule, t)}
-          </td>
-          <td width={40}>
+          </Table.Td>
+          <Table.Td width={40}>
             <CloseButton title="Delete rule" size="md" onClick={() => deleteRule(rule)} />
-          </td>
-        </tr>
+          </Table.Td>
+        </Table.Tr>
       )}
     </Draggable>
   ));
@@ -125,7 +128,6 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
           <Table>
             <Droppable droppableId="dnd-list" direction="vertical">
               {provided => (
-                // eslint-disable-next-line react/jsx-props-no-spreading
                 <tbody {...provided.droppableProps} ref={provided.innerRef}>
                   {items}
                   {provided.placeholder}

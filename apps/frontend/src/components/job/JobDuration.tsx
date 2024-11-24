@@ -1,3 +1,4 @@
+import { Table } from "@mantine/core";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -17,19 +18,19 @@ export function JobDuration({ matches, finished, finishedAt, startedAt }: IJobDu
   if (matches) {
     if (finished && finishedAt && startedAt) {
       return (
-        <td>
+        <Table.Td>
           {DateTime.fromISO(finishedAt)
             .diff(DateTime.fromISO(startedAt))
             .reconfigure({ locale: i18nResolvedLanguage() })
             .rescale()
             .toHuman()}
-        </td>
+        </Table.Td>
       );
     }
     if (startedAt) {
-      return <td>{t("joblist.running")}</td>;
+      return <Table.Td>{t("joblist.running")}</Table.Td>;
     }
   }
 
-  return <td>{t("joblist.waiting")}</td>;
+  return <Table.Td>{t("joblist.waiting")}</Table.Td>;
 }

@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
 import { ActionIcon, Modal, ScrollArea, Table, Text, TextInput, Title } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
@@ -43,20 +42,20 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
     .filter(searchRules(filter))
     .filter(ignoreSelectedRules)
     .map(rule => (
-      <tr key={rule.name} className={classes.item}>
-        <td>
+      <Table.Tr key={rule.name} className={classes.item}>
+        <Table.Td>
           <strong>
             {rule.name} (ID:{rule.id})
           </strong>
           <div className={classes.rule_type}>{t("rules.rule_type", { rule: rule.rule_type })}</div>
           {getRuleExtraInfo(rule, t)}
-        </td>
-        <td width={40}>
+        </Table.Td>
+        <Table.Td width={40}>
           <ActionIcon onClick={() => appendRule(rule)}>
             <CirclePlus color="green" />
           </ActionIcon>
-        </td>
-      </tr>
+        </Table.Td>
+      </Table.Tr>
     ));
 
   const handleFilterRules = (event: React.ChangeEvent<HTMLInputElement>) => {
