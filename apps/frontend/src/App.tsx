@@ -1,5 +1,4 @@
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
-import { MantineEmotionProvider } from "@mantine/emotion";
 import { Notifications } from "@mantine/notifications";
 import React from "react";
 import { Route, Routes } from "react-router-dom";
@@ -50,60 +49,58 @@ export function App() {
     <>
       <ColorSchemeScript defaultColorScheme="auto" />
       <MantineProvider defaultColorScheme="auto">
-        <MantineEmotionProvider>
-          <Notifications autoClose={3000} zIndex={1001} />
-          <Routes>
-            <Route element={<AppShellPublicWithoutHeader />}>
-              <Route path="login" element={<Login />} />
-              <Route path="signup" element={<SignupPage />} />
-            </Route>
+        <Notifications autoClose={3000} zIndex={1001} />
+        <Routes>
+          <Route element={<AppShellPublicWithoutHeader />}>
+            <Route path="login" element={<Login />} />
+            <Route path="signup" element={<SignupPage />} />
+          </Route>
 
-            <Route element={<AppShellPublicWithHeader />}>
-              <Route path="public/:username" element={<UserPublicPage />} />
-              <Route path="users" element={<PublicUserList />} />
-              <Route path="user/:username" element={<UserPublicPage />} />
-            </Route>
+          <Route element={<AppShellPublicWithHeader />}>
+            <Route path="public/:username" element={<UserPublicPage />} />
+            <Route path="users" element={<PublicUserList />} />
+            <Route path="user/:username" element={<UserPublicPage />} />
+          </Route>
 
-            <Route element={<AppShellProtected />}>
-              <Route index element={<TimestampPhotos />} />
-              <Route path="things" element={<AlbumThing />} />
-              <Route path="recent" element={<RecentlyAddedPhotos />} />
-              <Route path="favorites" element={<FavoritePhotos />} />
-              <Route path="photos" element={<OnlyPhotos />} />
-              <Route path="videos" element={<OnlyVideos />} />
-              <Route path="deleted" element={<DeletedPhotos />} />
-              <Route path="hidden" element={<HiddenPhotos />} />
-              <Route path="notimestamp" element={<NoTimestampPhotosView />} />
-              <Route path="useralbums" element={<AlbumUser />} />
-              <Route path="places" element={<AlbumPlace />} />
-              <Route path="people" element={<AlbumPeople />} />
-              <Route path="events" element={<AlbumAuto />} />
-              <Route path="statistics" element={<Statistics />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="library" element={<Library />} />
-              <Route path="faces" element={<FaceDashboard />} />
-              <Route path="search/:query" element={<SearchView />} />
-              <Route path="person/:albumID" element={<AlbumPersonGallery />} />
-              <Route path="place/:albumID" element={<AlbumPlaceGallery />} />
-              <Route path="thing/:albumID" element={<AlbumThingGallery />} />
-              <Route path="event/:albumID" element={<AlbumAutoGalleryView />} />
-              <Route path="explorer" element={<Explorer />} />
-              <Route path="albumviewer" element={<AlbumViewer />} />
-              <Route path="useralbum/:albumID" element={<AlbumUserGallery />} />
-              <Route path="shared/tome/:which" element={<SharedWithMe />} />
-              <Route path="shared/fromme/:which" element={<SharedByMe />} />
-              <Route path="admin" element={<AdminPage />} />
-              <Route path="map" element={<PhotoMap />} />
-              <Route path="placetree" element={<LocationTree />} />
-              <Route path="wordclouds" element={<WordClouds />} />
-              <Route path="timeline" element={<Timeline />} />
-              <Route path="socialgraph" element={<Graph />} />
-              <Route path="facescatter" element={<FaceScatter />} />
-              <Route path="countstats" element={<CountStats />} />
-            </Route>
-          </Routes>
-        </MantineEmotionProvider>
+          <Route element={<AppShellProtected />}>
+            <Route index element={<TimestampPhotos />} />
+            <Route path="things" element={<AlbumThing />} />
+            <Route path="recent" element={<RecentlyAddedPhotos />} />
+            <Route path="favorites" element={<FavoritePhotos />} />
+            <Route path="photos" element={<OnlyPhotos />} />
+            <Route path="videos" element={<OnlyVideos />} />
+            <Route path="deleted" element={<DeletedPhotos />} />
+            <Route path="hidden" element={<HiddenPhotos />} />
+            <Route path="notimestamp" element={<NoTimestampPhotosView />} />
+            <Route path="useralbums" element={<AlbumUser />} />
+            <Route path="places" element={<AlbumPlace />} />
+            <Route path="people" element={<AlbumPeople />} />
+            <Route path="events" element={<AlbumAuto />} />
+            <Route path="statistics" element={<Statistics />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="library" element={<Library />} />
+            <Route path="faces" element={<FaceDashboard />} />
+            <Route path="search/:query" element={<SearchView />} />
+            <Route path="person/:albumID" element={<AlbumPersonGallery />} />
+            <Route path="place/:albumID" element={<AlbumPlaceGallery />} />
+            <Route path="thing/:albumID" element={<AlbumThingGallery />} />
+            <Route path="event/:albumID" element={<AlbumAutoGalleryView />} />
+            <Route path="explorer" element={<Explorer />} />
+            <Route path="albumviewer" element={<AlbumViewer />} />
+            <Route path="useralbum/:albumID" element={<AlbumUserGallery />} />
+            <Route path="shared/tome/:which" element={<SharedWithMe />} />
+            <Route path="shared/fromme/:which" element={<SharedByMe />} />
+            <Route path="admin" element={<AdminPage />} />
+            <Route path="map" element={<PhotoMap />} />
+            <Route path="placetree" element={<LocationTree />} />
+            <Route path="wordclouds" element={<WordClouds />} />
+            <Route path="timeline" element={<Timeline />} />
+            <Route path="socialgraph" element={<Graph />} />
+            <Route path="facescatter" element={<FaceScatter />} />
+            <Route path="countstats" element={<CountStats />} />
+          </Route>
+        </Routes>
       </MantineProvider>
     </>
   );

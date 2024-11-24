@@ -7,6 +7,7 @@ import {
   Text,
   Tooltip,
   useComputedColorScheme,
+  useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
@@ -24,7 +25,7 @@ import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_clie
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
-import { getNavigationItems, navigationStyles } from "./navigation";
+import { getNavigationItems } from "./navigation";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return "0 Bytes";
@@ -42,7 +43,8 @@ export function SideMenuNarrow(): JSX.Element {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const canAccess = useAppSelector(selectAuthAccess);
   const dispatch = useAppDispatch();
-  const { classes } = navigationStyles();
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const [active, setActive] = useState("/");
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
   const { data: imageInfos } = useFetchImageTagQuery();
@@ -64,7 +66,19 @@ export function SideMenuNarrow(): JSX.Element {
 
     const link = (
       <a
-        className={classes.link}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          textDecoration: "none",
+          fontSize: theme.fontSizes.sm,
+          padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+          borderRadius: theme.radius.sm,
+          fontWeight: 500,
+          color: colorScheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
+          "&:hover": {
+            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+          },
+        }}
         data-active={item.link === active}
         href={item.link}
         key={item.label}
@@ -78,7 +92,7 @@ export function SideMenuNarrow(): JSX.Element {
       >
         <ActionIcon
           component="span"
-          className={classes.linkIcon}
+          style={{ marginRight: theme.spacing.sm }}
           color={item.color ? item.color : defaultIconColor}
           variant="light"
         >
@@ -134,12 +148,35 @@ export function SideMenuNarrow(): JSX.Element {
   });
 
   return (
-    <nav className={classes.navbar}>
-      <div className={classes.navbarLinks}>{links}</div>
+    <nav
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        height: "100vh",
+      }}
+    >
+      <div style={{ marginTop: theme.spacing.sm, marginBottom: theme.spacing.sm, alignItems: "start" }}>{links}</div>
 
-      <div className={classes.navbarFooter}>
-        <div className={classes.text} style={{ paddingBottom: 0 }}>
-          <ActionIcon className={classes.linkIcon} variant="transparent" color={defaultIconColor}>
+      <div
+        style={{
+          paddingBottom: theme.spacing.sm,
+          borderTop: colorScheme === "dark" ? `1px solid ${theme.colors.dark[4]}` : `1px solid ${theme.colors.gray[2]}`,
+        }}
+      >
+        <div
+          style={{
+            paddingBottom: 0,
+            display: "flex",
+            alignItems: "center",
+            textDecoration: "none",
+            fontSize: theme.fontSizes.sm,
+            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+            borderRadius: theme.radius.sm,
+            fontWeight: 500,
+          }}
+        >
+          <ActionIcon style={{ marginRight: theme.spacing.sm }} variant="transparent" color={defaultIconColor}>
             <Cloud />
           </ActionIcon>
           <span style={{ flexGrow: 2 }}>{t("storage")}</span>
@@ -163,21 +200,67 @@ export function SideMenuNarrow(): JSX.Element {
             />
           </Tooltip>
         )}
-        <div className={classes.text} style={{ paddingTop: 0, paddingBottom: 0 }}>
+        <div
+          style={{
+            paddingTop: 0,
+            paddingBottom: 0,
+            display: "flex",
+            alignItems: "center",
+            textDecoration: "none",
+            fontSize: theme.fontSizes.sm,
+            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+            borderRadius: theme.radius.sm,
+            fontWeight: 500,
+          }}
+        >
           <Tooltip label={`Backend Version: ${imageInfos?.git_hash}`}>
             <span style={{ flexGrow: 2 }}>
               {imageInfos?.image_tag ? t("version", { version: imageInfos?.image_tag }) : ""}
             </span>
           </Tooltip>
         </div>
-        <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
-          <ActionIcon className={classes.linkIcon} variant="transparent">
+        <a
+          href={DOCUMENTATION_LINK}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            textDecoration: "none",
+            fontSize: theme.fontSizes.sm,
+            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+            borderRadius: theme.radius.sm,
+            fontWeight: 500,
+            color: colorScheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
+            "&:hover": {
+              backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+            },
+          }}
+        >
+          <ActionIcon style={{ marginRight: theme.spacing.sm }} variant="transparent">
             <Book />
           </ActionIcon>
           <span style={{ flexGrow: 2 }}>{t("docs")}</span>
         </a>
-        <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={classes.link}>
-          <ActionIcon className={classes.linkIcon} variant="transparent" color="pink">
+        <a
+          href={SUPPORT_LINK}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            textDecoration: "none",
+            fontSize: theme.fontSizes.sm,
+            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
+            borderRadius: theme.radius.sm,
+            fontWeight: 500,
+            color: colorScheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
+            "&:hover": {
+              backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+            },
+          }}
+        >
+          <ActionIcon style={{ marginRight: theme.spacing.sm }} variant="transparent" color="pink">
             <Heart />
           </ActionIcon>
           <span style={{ flexGrow: 2 }}>{t("supportus")}</span>

@@ -10,7 +10,10 @@
 - low: fix warnings (in console) related to defaultProps (photo list view, etc.)
 - medium: fix lightbox editor caption
 - medium: Fix Modal Person Edit button and hover
-- high: migrate from Emotion to css modules (performance improvement)
+- low: select language and "help translating misaligned"
+- low: dark mode visibility text sidemenu
+- low: refactor sidebar with NavLink
+- low: notifications not visible
 - optional: refactor site search with combobox
 - optional: refactor tree with latest mantine tree (and remove existing one)
 - optional: move color theme switch to top menu for convenience
