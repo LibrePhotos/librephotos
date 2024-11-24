@@ -1,4 +1,13 @@
-import { Button, CloseButton, Group, ScrollArea, Table, Title } from "@mantine/core";
+import {
+  Button,
+  CloseButton,
+  Group,
+  ScrollArea,
+  Table,
+  Title,
+  useMantineColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
@@ -7,7 +16,7 @@ import { useTranslation } from "react-i18next";
 
 import { useFetchPredefinedRulesQuery } from "../../api_client/api";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
-import { getRuleExtraInfo, useDateTimeSettingsStyles } from "./date-time-settings";
+import { getRuleExtraInfo } from "./date-time-settings";
 import type { DateTimeRule } from "./date-time.zod";
 
 type ConfigDateTimeProps = Readonly<{
@@ -22,7 +31,8 @@ function cloneRules(rules: DateTimeRule[]): DateTimeRule[] {
 
 export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const { t } = useTranslation();
-  const { classes } = useDateTimeSettingsStyles();
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const { data: allRules } = useFetchPredefinedRulesQuery();
   const [userRules, setUserRules] = useState<DateTimeRule[]>([]);
   const [availableRules, setAvailableRules] = useState<DateTimeRule[]>([]);
@@ -80,17 +90,19 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const items = userRules.map((rule, index) => (
     <Draggable key={rule.id} index={index} draggableId={rule.id.toString()}>
       {provided => (
-        <Table.Tr
-          className={classes.item}
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-        >
+        <Table.Tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
           <Table.Td>
             <strong>
               {rule.name} (ID:{rule.id})
             </strong>
-            <div className={classes.rule_type}>{t("rules.rule_type", { rule: rule.rule_type })}</div>
+            <div
+              style={{
+                fontSize: "0.9rem",
+                color: colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
+              }}
+            >
+              {t("rules.rule_type", { rule: rule.rule_type })}
+            </div>
             {getRuleExtraInfo(rule, t)}
           </Table.Td>
           <Table.Td width={40}>
@@ -125,13 +137,13 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
 
       <ScrollArea>
         <DragDropContext onDragEnd={result => reorderRules(result.destination?.index || 0, result.source.index)}>
-          <Table>
+          <Table highlightOnHover>
             <Droppable droppableId="dnd-list" direction="vertical">
               {provided => (
-                <tbody {...provided.droppableProps} ref={provided.innerRef}>
+                <Table.Tbody {...provided.droppableProps} ref={provided.innerRef}>
                   {items}
                   {provided.placeholder}
-                </tbody>
+                </Table.Tbody>
               )}
             </Droppable>
           </Table>
