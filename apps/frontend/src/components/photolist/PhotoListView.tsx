@@ -50,7 +50,24 @@ type SelectionState = {
   selectMode: boolean;
 };
 
-function PhotoListViewComponent(props: Props) {
+const DEFAULT_PROPS: Props = {
+  title: "",
+  loading: true,
+  icon: null,
+  photoset: [],
+  idx2hash: [],
+  selectable: false,
+  isPublic: false,
+  numberOfItems: 0,
+  updateGroups: null,
+  updateItems: null,
+  date: null,
+  dayHeaderPrefix: null,
+  header: null,
+  additionalSubHeader: null,
+};
+
+function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const { height } = useViewportSize();
   const pigRef = useRef<Pig>(null);
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
@@ -426,17 +443,6 @@ function PhotoListViewComponent(props: Props) {
     </RemoveScroll>
   );
 }
-
-PhotoListViewComponent.defaultProps = {
-  isPublic: null,
-  numberOfItems: null,
-  updateItems: null,
-  date: null,
-  dayHeaderPrefix: null,
-  header: null,
-  additionalSubHeader: null,
-  updateGroups: null,
-};
 
 export const PhotoListView = React.memo(
   PhotoListViewComponent,
