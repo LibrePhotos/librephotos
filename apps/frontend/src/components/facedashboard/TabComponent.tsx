@@ -22,7 +22,7 @@ export function TabComponent({ width, fetchingLabeledFacesList, fetchingInferred
   const { t } = useTranslation();
 
   return (
-    <Group justify="apart">
+    <Group justify="apart" mt={30}>
       <Tabs defaultValue={activeTab} style={{ width }} onChange={changeTab}>
         <Tabs.List>
           <FacesCountersHoverCard tab={FacesTab.enum.inferred}>
