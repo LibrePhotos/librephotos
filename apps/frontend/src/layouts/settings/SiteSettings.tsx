@@ -1,27 +1,9 @@
-import {
-  Button,
-  Card,
-  Grid,
-  Group,
-  Modal,
-  NativeSelect,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/site-settings";
-
-const MAX_HEAVYWEIGHT_PROCESSES = 10;
-const heavyweightProcessOptions = Array(MAX_HEAVYWEIGHT_PROCESSES)
-  .fill("")
-  .map((_, i) => (i + 1).toString());
 
 const MAP_API_PROVIDERS = [
   { value: "mapbox", label: "Mapbox", data: { use_api_key: true, url: "https://www.mapbox.com/" } },
@@ -53,7 +35,6 @@ export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
   const [mapApiProvider, setMapApiProvider] = useState<string>("proton");
-  const [heavyweightProcess, setHeavyweightProcess] = useState(1);
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
@@ -65,11 +46,6 @@ export function SiteSettings() {
   const [opened, { open, close }] = useDisclosure(false);
 
   const saveSettingsWithValidation = (input: any) => {
-    if (input.heavyweight_process && input.heavyweight_process > 3) {
-      setWarning("heavyweight");
-      open();
-      return;
-    }
     if (input.captioning_model === "blip_base_capfilt_large") {
       setWarning("blip");
       open();
@@ -83,7 +59,6 @@ export function SiteSettings() {
       setSkipPatterns(settings.skip_patterns);
       setMapApiKey(settings.map_api_key);
       setMapApiProvider(settings.map_api_provider);
-      setHeavyweightProcess(settings.heavyweight_process);
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
       setCaptioningModel(settings.captioning_model);
@@ -100,28 +75,18 @@ export function SiteSettings() {
             setCaptioningModel("im2txt");
             saveSettings({ captioning_model: "im2txt" });
           }
-          if (warning === "heavyweight") {
-            setHeavyweightProcess(3);
-            saveSettings({ heavyweight_process: 3 });
-          }
           close();
         }}
         title={<Title order={4}>{t("sitesettings.ram_warning_header")}</Title>}
       >
         <Stack>
-          <Text>
-            {warning === "blip" ? t("sitesettings.blip_warning") : t("sitesettings.heavyweight_process_warning")}
-          </Text>
+          <Text>{t("sitesettings.blip_warning")}</Text>
           <Group>
             <Button
               onClick={() => {
                 if (warning === "blip") {
                   setCaptioningModel("im2txt");
                   saveSettings({ captioning_model: "im2txt" });
-                }
-                if (warning === "heavyweight") {
-                  setHeavyweightProcess(3);
-                  saveSettings({ heavyweight_process: 3 });
                 }
                 close();
               }}
@@ -132,9 +97,6 @@ export function SiteSettings() {
               onClick={() => {
                 if (warning === "blip") {
                   saveSettings({ captioning_model: captioningModel });
-                }
-                if (warning === "heavyweight") {
-                  saveSettings({ heavyweight_process: heavyweightProcess });
                 }
                 close();
               }}
@@ -269,31 +231,6 @@ export function SiteSettings() {
                   const value = model ?? "";
                   saveSettingsWithValidation({ llm_model: value });
                   setLlmModel(value);
-                }}
-              />
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <Stack gap={0}>
-                <Text>{t("sitesettings.headerheavyweight")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("sitesettings.heavyweight")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={4}>
-              <NativeSelect
-                data={heavyweightProcessOptions}
-                value={heavyweightProcess}
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
-                    saveSettingsWithValidation({ heavyweight_process: +e.currentTarget.value });
-                  }
-                }}
-                onChange={e => {
-                  if (/^([0-9\b]+)?$/.test(e.target.value)) {
-                    setHeavyweightProcess(+e.currentTarget.value);
-                    saveSettingsWithValidation({ heavyweight_process: +e.target.value });
-                  }
                 }}
               />
             </Grid.Col>
