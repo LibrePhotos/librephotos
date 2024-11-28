@@ -112,7 +112,7 @@ class SiteSettingsView(APIView):
         if "llm_model" in request.data.keys():
             site_config.LLM_MODEL = request.data["llm_model"]
         if not do_all_models_exist():
-            AsyncTask(download_models, User.objects.get(id=request.user)).run()
+            AsyncTask(download_models, User.objects.get(id=request.user.id)).run()
 
         return self.get(request, format=format)
 
