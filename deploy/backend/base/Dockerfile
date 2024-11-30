@@ -47,6 +47,18 @@ RUN apt-get update && \
 		libtool-bin \
 		libwebp-dev \
 		libxrender-dev \
+  		libpoppler-glib-dev \
+		libtiff-dev \
+		libfftw3-dev \
+		libpng-dev \
+		libcfitsio-dev \
+		libnifti-dev \
+		libopenslide-dev \
+		libopenexr-dev \
+		libmatio-dev \
+		libmagickcore-dev \
+		libmagickwand-dev \
+		libjxl-dev \
 		pkg-config \ 
 		libjxl-dev \
 		libvips-dev \
@@ -56,8 +68,8 @@ RUN apt-get update && \
 
 # Install ExifTool
 WORKDIR /tmp/exiftool
-RUN curl -SL https://exiftool.org/Image-ExifTool-12.77.tar.gz | tar -xz && \
-    cd Image-ExifTool-12.77 && \
+RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
+    cd Image-ExifTool-13.04 && \
     perl Makefile.PL && \
     make install && \
     rm -rf /tmp/exiftool
@@ -79,7 +91,7 @@ RUN git clone https://github.com/LibRaw/LibRaw && \
 
 #Build and install imagemagick to use current libraw
 WORKDIR /tmp/builds
-ARG IMAGEMAGICK_VERSION=7.1.1-8
+ARG IMAGEMAGICK_VERSION=7.1.1-41
 RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz | tar -xJf- && \
 	cd ImageMagick-${IMAGEMAGICK_VERSION} && \
 	./configure --with-modules && \
