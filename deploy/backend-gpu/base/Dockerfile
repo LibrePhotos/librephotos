@@ -7,7 +7,7 @@ RUN apt-get update \
 	&& apt-get install -y python3-pip python3-dev software-properties-common \
 	&& cd /usr/local/bin \
 	&& ln -s /usr/bin/python3 python \
-	&& pip3 install --upgrade pip \
+	&& pip3 install --upgrade --break-system-packages --ignore-installed pip \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
 
