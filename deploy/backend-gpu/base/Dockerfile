@@ -26,7 +26,6 @@ RUN apt-get update && \
 	libexpat-dev \
 	libexpat1-dev \ 
 	libgif-dev \
-	libgl1-mesa-glx \
 	libglib2.0-dev \
 	libgsf-1-dev \ 
 	libheif-dev \
@@ -63,7 +62,6 @@ RUN apt-get update && \
 	pkg-config \ 
 	rustc \
 	cargo \
-	libtinfo5 \
 	libvips-dev \
 	swig && \
 	apt-get clean && \
