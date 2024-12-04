@@ -98,7 +98,7 @@ export function SideMenuNarrow(): JSX.Element {
         >
           <item.icon />
         </ActionIcon>
-        <Text size="sm" c="rgb(73, 80, 87)" style={{ flexGrow: 2 }}>
+        <Text size="sm" style={{ flexGrow: 2 }}>
           {item.label}
         </Text>
         {item.submenu && <ChevronRight size={16} />}
