@@ -95,8 +95,21 @@ export function FaceDashboard() {
       idx2hash = unknownFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
       break;
     default:
-      [];
+      throw new Error("unknown tab", activeTab);
   }
+
+  const getCellContentsForTab = (tab: FacesTab) => {
+    if (tab === FacesTab.enum.labeled) {
+      return labeledCellContents;
+    }
+    if (tab === FacesTab.enum.inferred) {
+      return inferredCellContents;
+    }
+    if (tab === FacesTab.enum.unknown) {
+      return unknownCellContents;
+    }
+    throw new Error("unknown tab", tab);
+  };
 
   const handleShowClick = (event: React.KeyboardEvent, item: any) => {
     const index = idx2hash.findIndex(image => image.id === item.photo);
@@ -135,12 +148,7 @@ export function FaceDashboard() {
   };
 
   const getScrollPositions = () => {
-    const cellContents =
-      activeTab === FacesTab.enum.labeled
-        ? labeledCellContents
-        : activeTab === FacesTab.Enum.inferred
-          ? inferredCellContents
-          : unknownCellContents;
+    const cellContents = getCellContentsForTab(activeTab);
     let scrollPosition = 0;
     const scrollPositions: IScrollerData[] = [];
     cellContents.forEach(row => {
@@ -180,12 +188,7 @@ export function FaceDashboard() {
   const gridHeight = gridRef.current ? gridRef.current.getTotalRowsHeight() : 200;
 
   const onSectionRendered = (params: any) => {
-    const cellContents =
-      activeTab === FacesTab.enum.labeled
-        ? labeledCellContents
-        : activeTab === FacesTab.Enum.inferred
-          ? inferredCellContents
-          : unknownCellContents;
+    const cellContents = getCellContentsForTab(activeTab);
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     // flatten labeledCellContents and find the range of cells that are in the viewport
@@ -246,12 +249,7 @@ export function FaceDashboard() {
       return;
     }
     if (e.shiftKey) {
-      const currentCellsInRowFormat =
-        activeTab === FacesTab.enum.labeled
-          ? labeledCellContents
-          : activeTab === FacesTab.Enum.inferred
-            ? inferredCellContents
-            : unknownCellContents;
+      const currentCellsInRowFormat = getCellContentsForTab(activeTab);
       const allFacesInCells = [] as any[];
       for (let i = 0; i < currentCellsInRowFormat.length; i++) {
         for (let j = 0; j < numEntrySquaresPerRow; j++) {
@@ -303,12 +301,8 @@ export function FaceDashboard() {
   };
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    const cell =
-      activeTab === FacesTab.enum.labeled
-        ? labeledCellContents[rowIndex][columnIndex]
-        : activeTab === FacesTab.Enum.inferred
-          ? inferredCellContents[rowIndex][columnIndex]
-          : unknownCellContents[rowIndex][columnIndex];
+    const cellContents = getCellContentsForTab(activeTab);
+    const cell = cellContents[rowIndex][columnIndex];
 
     if (cell) {
       if (cell.name) {
@@ -385,9 +379,7 @@ export function FaceDashboard() {
                   onSectionRendered={onSectionRendered}
                   height={height}
                   width={gridWidth}
-                  rowCount={
-                    activeTab === FacesTab.enum.labeled ? labeledCellContents.length : inferredCellContents.length
-                  }
+                  rowCount={getCellContentsForTab(activeTab).length}
                   scrollTop={tabs[activeTab].scrollPosition}
                   onScroll={handleGridScroll}
                 />
