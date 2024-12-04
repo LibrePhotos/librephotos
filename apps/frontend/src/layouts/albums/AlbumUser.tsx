@@ -113,13 +113,13 @@ export function AlbumUser() {
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(`${album.id}`, album.title)}>
+                <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(`${album.id}`, album.title)}>
                   {t("rename")}
                 </Menu.Item>
-                <Menu.Item icon={<Share />} onClick={() => openShareDialog(`${album.id}`, album.title)}>
+                <Menu.Item leftSection={<Share />} onClick={() => openShareDialog(`${album.id}`, album.title)}>
                   {t("sidemenu.sharing")}
                 </Menu.Item>
-                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(`${album.id}`, album.title)}>
+                <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(`${album.id}`, album.title)}>
                   {t("delete")}
                 </Menu.Item>
               </Menu.Dropdown>
@@ -129,7 +129,7 @@ export function AlbumUser() {
         <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
           <Group>
             {isShared(album) && <SharedWith album={album} />}
-            <Text weight="bold" lineClamp={1}>
+            <Text fw="bold" lineClamp={1}>
               {album.title}
             </Text>
           </Group>
@@ -190,7 +190,7 @@ export function AlbumUser() {
       <Modal opened={isDeleteDialogOpen} onClose={hideDeleteDialog}>
         <Stack>
           {t("deletealbumexplanation")}
-          <Group position="center">
+          <Group justify="center">
             <Button color="blue" onClick={hideDeleteDialog}>
               {t("cancel")}
             </Button>

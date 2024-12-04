@@ -1,0 +1,12 @@
+.box {
+  display: block;
+  background-color: transparent;
+}
+
+.box.selected {
+  background-color: rgba(174, 214, 241, 0.7);
+}
+
+.box:hover {
+  background-color: rgba(174, 214, 241, 0.95);
+}

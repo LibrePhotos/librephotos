@@ -366,6 +366,7 @@ export const api = createApi({
 
 export const {
   useFetchUserListQuery,
+  useFetchUserSelfDetailsQuery,
   useFetchPredefinedRulesQuery,
   useFetchIncompleteFacesQuery,
   useFetchFacesQuery,

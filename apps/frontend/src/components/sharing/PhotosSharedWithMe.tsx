@@ -40,10 +40,10 @@ function GroupHeader({ group }: Readonly<GroupHeaderProps>) {
       <div style={{ display: "flex", textAlign: "left" }}>
         <User size={36} style={{ margin: 5 }} />
         <div>
-          <Text size="md" weight="bold">
+          <Text size="md" fw="bold">
             {getUserName(group.userId)}
           </Text>
-          <Text size="xs" color="dimmed" style={{ display: "flex", alignItems: "center" }}>
+          <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
             <Polaroid size={16} style={{ marginRight: 5 }} />
             {`shared ${group.photos.length} photos with you`}
           </Text>

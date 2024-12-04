@@ -1,4 +1,15 @@
-import { ActionIcon, Badge, Group, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import {
+  ActionIcon,
+  Badge,
+  Group,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+  UnstyledButton,
+  useMantineColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand } from "@tabler/icons-react";
 import Document from "@tiptap/extension-document";
@@ -30,8 +41,9 @@ export function Description(props: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
-
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
 
   const { photoDetail, isPublic } = props;
 
@@ -98,25 +110,25 @@ export function Description(props: Props) {
             editMode &&
             !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
               <div>
-                <Group spacing="sm" style={{ paddingBottom: 12 }}>
+                <Group gap="sm" style={{ paddingBottom: 12 }}>
                   <Wand color="grey" size={20} />
-                  <Text size="sm" color="dimmed">
+                  <Text size="sm" c="dimmed">
                     Suggestion
                   </Text>
                 </Group>
                 <UnstyledButton
-                  sx={theme => ({
+                  style={{
                     display: "block",
                     padding: theme.spacing.xs,
                     borderRadius: theme.radius.xl,
                     textDecoration: "none",
                     fontSize: theme.fontSizes.sm,
-                    color: theme.colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
-                    backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[1],
+                    color: colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
+                    backgroundColor: colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[1],
                     "&:hover": {
-                      backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[3],
+                      backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[3],
                     },
-                  })}
+                  }}
                   onClick={() => {
                     editor?.commands.setContent(photoDetail.captions_json.im2txt);
                     setImageCaption(photoDetail.captions_json.im2txt);
@@ -129,7 +141,12 @@ export function Description(props: Props) {
             )}
         </Stack>
         <div
-          style={{ borderStyle: !editMode ? "none" : "solid", border: "0.0625rem #ced4da", borderRadius: "0.25rem" }}
+          style={{
+            position: "relative",
+            borderStyle: !editMode ? "none" : "solid",
+            border: "0.0625rem #ced4da",
+            borderRadius: "0.25rem",
+          }}
         >
           <RichTextEditor editor={editor} style={{ borderColor: "none" }}>
             <RichTextEditor.Content style={{ paddingRight: 10 }} />
@@ -138,6 +155,7 @@ export function Description(props: Props) {
                 style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
                 loading={generatingCaptionIm2txt}
                 variant="subtle"
+                color="gray"
                 onClick={() => {
                   generateImageToTextCaptions({ id: photoDetail.image_hash });
                 }}
@@ -151,6 +169,7 @@ export function Description(props: Props) {
                 style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
                 loading={generatingCaptionIm2txt}
                 variant="subtle"
+                color="gray"
                 onClick={() => {
                   setEditMode(true);
                   editor?.setEditable(true);
@@ -163,7 +182,7 @@ export function Description(props: Props) {
           </RichTextEditor>
         </div>
         {editMode && (
-          <Group position="center">
+          <Group justify="center">
             <Tooltip label={t("lightbox.sidebar.cancel")}>
               <ActionIcon
                 variant="light"
@@ -195,7 +214,7 @@ export function Description(props: Props) {
               <Tags />
               <Title order={4}>{t("lightbox.sidebar.scene")}</Title>
             </Group>
-            <Text weight={700}>{t("lightbox.sidebar.attributes")}</Text>
+            <Text fw={700}>{t("lightbox.sidebar.attributes")}</Text>
             <Group>
               {photoDetail.captions_json.places365.attributes.map(nc => (
                 <Badge
@@ -210,7 +229,7 @@ export function Description(props: Props) {
               ))}
             </Group>
 
-            <Text weight={700}>{t("lightbox.sidebar.categories")}</Text>
+            <Text fw={700}>{t("lightbox.sidebar.categories")}</Text>
             <Group>
               {photoDetail.captions_json.places365.categories.map(nc => (
                 <Badge

@@ -49,7 +49,7 @@ export function TrashcanActions(props: Readonly<Props>) {
         </>
       )}
       <Modal opened={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} title="Delete images">
-        <Group position="center">
+        <Group justify="center">
           <Button
             color="blue"
             onClick={() => {

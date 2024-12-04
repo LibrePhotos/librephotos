@@ -111,10 +111,10 @@ export function AlbumsSharedWithMe({ showSidebar }: any) {
             <div style={{ display: "flex" }}>
               <User size={36} style={{ margin: 5 }} />
               <div>
-                <Text size="md" weight="bold">
+                <Text size="md" fw="bold">
                   {displayName}
                 </Text>
-                <Text size="xs" color="dimmed" style={{ display: "flex", alignItems: "center" }}>
+                <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
                   <Polaroid size={16} style={{ marginRight: 5 }} />
                   shared {cell.albums.length} albums with you
                 </Text>
@@ -135,8 +135,8 @@ export function AlbumsSharedWithMe({ showSidebar }: any) {
               video={cell.cover_photo.video}
             />
           </Anchor>
-          <Text weight={700}>{cell.title}</Text>
-          <Text size="sm" color="dimmed">
+          <Text fw={700}>{cell.title}</Text>
+          <Text size="sm" c="dimmed">
             {cell.photo_count} photo(s)
           </Text>
         </div>

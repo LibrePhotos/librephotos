@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Badge, Box, Group } from "@mantine/core";
+import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import _ from "lodash";
 import { DateTime } from "luxon";
@@ -36,6 +36,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const [offsetTop, setOffsetTop] = useState(0);
   const previousScrollPosition = useRef(NaN);
   const targetRef = useRef<Element | null>(null);
+  const theme = useMantineTheme();
+  const colorScheme = useComputedColorScheme();
 
   const targetYToScrollerY = (y: number): number => {
     if (targetHeight > 0) return Math.min((y * height) / (targetHeight - targetClientHeight), height);
@@ -335,13 +337,12 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           size="sm"
           style={{
             top: `${item.scrollerYPercent - halfMarkerHeightInPercent}%`,
+            width: "max-content",
             cursor: "pointer",
+            backgroundColor: colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
+            color: colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
+            borderColor: colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3],
           }}
-          sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-            color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
-            borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3],
-          })}
           onClick={() => {
             setCurrentScrollPosMarkerY(item.scrollerY);
             scrollToY(item.targetY);
@@ -361,11 +362,11 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         <Box
           key={`line-${item.label}`}
           className="scrollscrubber-marker-dot"
-          sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-            boxShadow: `0 0 0 2px ${theme.colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]}`,
-          })}
-          style={{ top: `${item.scrollerYPercent}%` }}
+          style={{
+            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+            boxShadow: `0 0 0 2px ${colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]}`,
+            top: `${item.scrollerYPercent}%`,
+          }}
         />
       ))
       .reduce((prev: ReactNode, curr: ReactNode) => [prev, " ", curr]);
@@ -387,22 +388,21 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
             style={{
               position: "absolute",
               right: "25px",
+              width: "max-content",
+              backgroundColor: colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
+              color: colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
+              borderColor: colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3],
             }}
-            sx={theme => ({
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1],
-              color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.colors.gray[7],
-              borderColor: theme.colorScheme === "dark" ? theme.colors.dark[3] : theme.colors.gray[3],
-            })}
           >
             {currentLabel}
           </Badge>
         )}
         <Box
           className="scrollscrubber-drag-position"
-          sx={theme => ({
-            backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-            boxShadow: `0 0 0 4px ${theme.colorScheme === "dark" ? theme.colors.gray[0] : theme.colors.dark[6]}`,
-          })}
+          style={{
+            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+            boxShadow: `0 0 0 4px ${colorScheme === "dark" ? theme.colors.gray[0] : theme.colors.dark[6]}`,
+          }}
         />
       </Group>
     );
@@ -413,11 +413,9 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     return (
       <Box
         className="scrollscrubber-current-position"
-        sx={theme => ({
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-          boxShadow: `0 0 0 4px ${theme.colors.green[6]}`,
-        })}
         style={{
+          backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+          boxShadow: `0 0 0 4px ${theme.colors.green[6]}`,
           top: currentScrollPosMarkerY,
         }}
       />
@@ -438,10 +436,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           opacity: scrollerIsVisible ? 0.9 : 0,
           top: `${offsetTop}px`,
           bottom: matches ? "0" : "50px",
+          backgroundColor: colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
         }}
-        sx={theme => ({
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0],
-        })}
       />
       <Box
         ref={ref}
@@ -451,12 +447,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
           cursor,
           top: `${offsetTop}px`,
           bottom: matches ? "0" : "50px",
-        }}
-        sx={theme => ({
           backgroundImage: `linear-gradient(${
-            theme.colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]
-          }, ${theme.colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]})`,
-        })}
+            colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]
+          }, ${colorScheme === "dark" ? theme.colors.dark[2] : theme.colors.gray[6]})`,
+        }}
         onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onClick={handleMouseClick}

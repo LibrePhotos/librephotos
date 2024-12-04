@@ -107,7 +107,7 @@ export function AlbumAutoGalleryView() {
           zIndex: 500,
         }}
       >
-        <Button color={showMap ? "blue" : "grey"} onClick={toggleMap} rightIcon={<Map2 />}>
+        <Button color={showMap ? "blue" : "grey"} onClick={toggleMap} rightSection={<Map2 />}>
           {showMap ? t("autoalbumgallery.hidemap") : t("autoalbumgallery.showmap")}
         </Button>
       </div>
@@ -157,7 +157,7 @@ export function AlbumAutoGalleryView() {
                       {t("autoalbumgallery.day", { day: i + 1 })} -{" "}
                       {DateTime.fromISO(v[0]).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)}
                     </Title>
-                    <Text color="dimmed">
+                    <Text c="dimmed">
                       <Breadcrumbs separator="/">{uniqueLocations}</Breadcrumbs>
                     </Text>
                   </div>

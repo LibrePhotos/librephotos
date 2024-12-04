@@ -18,22 +18,22 @@ export function CountStats() {
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
   return (
-    <Group grow spacing="xs" align="stretch">
+    <Group grow gap="xs" justify="space-between">
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group justify="left" gap="xs">
           <Photo size={64} strokeWidth={1} />
           <div>
-            <Text color="dimmed">{t("countstats.photos")}</Text>
+            <Text c="dimmed">{t("countstats.photos")}</Text>
             <Title order={3}>{countStats.num_photos}</Title>
           </div>
         </Group>
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group justify="left" gap="xs">
           <Users size={64} strokeWidth={1} />
           <div>
-            <Text color="dimmed"> {t("people")}</Text>
+            <Text c="dimmed"> {t("people")}</Text>
             <Title order={3}>{countStats.num_people}</Title>
           </div>
         </Group>
@@ -42,10 +42,10 @@ export function CountStats() {
       <Card withBorder p="xs">
         <HoverCard width={300} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
-            <Group position="left" spacing="xs">
+            <Group justify="left" gap="xs">
               <FaceId size={64} strokeWidth={1} />
               <div>
-                <Text color="dimmed">{t("faces")}</Text>
+                <Text c="dimmed">{t("faces")}</Text>
                 <Title order={3}>{countStats.num_faces}</Title>
               </div>
             </Group>
@@ -53,7 +53,7 @@ export function CountStats() {
           <HoverCard.Dropdown>
             <Grid>
               <Grid.Col span={9}>
-                <Stack spacing={0}>
+                <Stack gap={0}>
                   <Text>
                     <Trans i18nKey="settings.inferred">Inferred</Trans>
                   </Text>
@@ -66,7 +66,7 @@ export function CountStats() {
                 </Flex>
               </Grid.Col>
               <Grid.Col span={9}>
-                <Stack spacing={0}>
+                <Stack gap={0}>
                   <Text>
                     <Trans i18nKey="settings.labeled">Labeled</Trans>
                   </Text>
@@ -79,7 +79,7 @@ export function CountStats() {
                 </Flex>
               </Grid.Col>
               <Grid.Col span={9}>
-                <Stack spacing={0}>
+                <Stack gap={0}>
                   <Text>
                     <Trans i18nKey="settings.unknown">Unknown</Trans>
                   </Text>
@@ -97,20 +97,20 @@ export function CountStats() {
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group justify="left" gap="xs">
           <SettingsAutomation size={64} strokeWidth={1} />
           <div>
-            <Text color="dimmed">{t("events")}</Text>
+            <Text c="dimmed">{t("events")}</Text>
             <Title order={3}>{countStats.num_albumauto}</Title>
           </div>
         </Group>
       </Card>
 
       <Card withBorder p="xs">
-        <Group position="left" spacing="xs">
+        <Group justify="left" gap="xs">
           <Calendar size={64} strokeWidth={1} />
           <div>
-            <Text color="dimmed">{t("days")}</Text>
+            <Text c="dimmed">{t("days")}</Text>
             <Title order={3}>{countStats.num_albumdate}</Title>
           </div>
         </Group>

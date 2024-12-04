@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
 import { Alert, Card, Flex, Loader, Pagination, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
@@ -41,45 +40,45 @@ export function JobList() {
         {t("joblist.removeexplanation")}
       </Alert>
       <Table striped highlightOnHover verticalSpacing="xs">
-        <thead>
-          <tr>
-            <th> {t("joblist.status")}</th>
-            <th> {t("joblist.jobtype")}</th>
-            <th> {t("joblist.progress")}</th>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th> {t("joblist.status")}</Table.Th>
+            <Table.Th> {t("joblist.jobtype")}</Table.Th>
+            <Table.Th> {t("joblist.progress")}</Table.Th>
             {matches && (
               <>
-                <th> {t("joblist.queued")}</th>
-                <th> {t("joblist.started")}</th>
-                <th> {t("joblist.duration")}</th>
-                <th> {t("joblist.startedby")}</th>
+                <Table.Th> {t("joblist.queued")}</Table.Th>
+                <Table.Th> {t("joblist.started")}</Table.Th>
+                <Table.Th> {t("joblist.duration")}</Table.Th>
+                <Table.Th> {t("joblist.startedby")}</Table.Th>
               </>
             )}
-            <th> {t("joblist.delete")}</th>
-          </tr>
-        </thead>
-        <tbody>
+            <Table.Th> {t("joblist.delete")}</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
           {jobs?.results.map(job => (
-            <tr key={job.job_id}>
-              <td>
+            <Table.Tr key={job.job_id}>
+              <Table.Td>
                 <JobIndicator job={Object.create(job)} />
-              </td>
-              <td>{t(job.job_type_str)}</td>
-              <td>
+              </Table.Td>
+              <Table.Td>{t(job.job_type_str)}</Table.Td>
+              <Table.Td>
                 <JobProgress
                   target={job.progress_target}
                   current={job.progress_current}
                   error={job.error}
                   finished={job.finished}
                 />
-              </td>
+              </Table.Td>
               {matches && (
                 <>
-                  <td>{DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage()).toRelative()}</td>
-                  <td>
+                  <Table.Td>{DateTime.fromISO(job.queued_at).setLocale(i18nResolvedLanguage()).toRelative()}</Table.Td>
+                  <Table.Td>
                     {job.started_at
                       ? DateTime.fromISO(job.started_at!).setLocale(i18nResolvedLanguage()).toRelative()
                       : ""}
-                  </td>
+                  </Table.Td>
                 </>
               )}
 
@@ -89,13 +88,13 @@ export function JobList() {
                 finishedAt={job.finished_at}
                 startedAt={job.started_at}
               />
-              {matches && <td>{job.started_by.username}</td>}
-              <td>
+              {matches && <Table.Td>{job.started_by.username}</Table.Td>}
+              <Table.Td>
                 <DeleteJobButton job={job} />
-              </td>
-            </tr>
+              </Table.Td>
+            </Table.Tr>
           ))}
-        </tbody>
+        </Table.Tbody>
       </Table>
       <Flex justify="center" mt={20}>
         <Pagination

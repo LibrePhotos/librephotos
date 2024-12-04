@@ -48,7 +48,7 @@ export function LocationDurationStackedBar() {
     <Stack ref={observe}>
       <Title order={3}>{t("locationtimeline")}</Title>
       {!fetchedLocationTimeline && <Loader />}
-      {locationTimeline.length === 0 && fetchedLocationTimeline && <Text color="dimmed">{t("nodata")}</Text>}
+      {locationTimeline.length === 0 && fetchedLocationTimeline && <Text c="dimmed">{t("nodata")}</Text>}
       {fetchedLocationTimeline && (
         <div>
           <XYPlot width={width - 30} height={300} stackBy="x">

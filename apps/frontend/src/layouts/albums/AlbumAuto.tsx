@@ -70,7 +70,7 @@ export function AlbumAuto() {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item icon={<Trash />} onClick={() => deleteAlbum(album)}>
+              <Menu.Item leftSection={<Trash />} onClick={() => deleteAlbum(album)}>
                 {t("delete")}
               </Menu.Item>
             </Menu.Dropdown>

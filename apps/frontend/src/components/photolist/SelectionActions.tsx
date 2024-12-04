@@ -64,7 +64,7 @@ export function SelectionActions(props: Readonly<Props>) {
     <Group>
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon disabled={selectedItems.length === 0}>
+          <ActionIcon variant="subtle" color="gray" disabled={selectedItems.length === 0}>
             <Plus />
           </ActionIcon>
         </Menu.Target>
@@ -76,7 +76,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <Menu.Item icon={<Album />} onClick={() => selectedItems.length > 0 && onAddToAlbum()}>
+          <Menu.Item leftSection={<Album />} onClick={() => selectedItems.length > 0 && onAddToAlbum()}>
             {" Album"}
           </Menu.Item>
         </Menu.Dropdown>
@@ -84,7 +84,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
       <Menu width={200}>
         <Menu.Target>
-          <ActionIcon>
+          <ActionIcon variant="subtle" color="gray">
             <DotsVertical />
           </ActionIcon>
         </Menu.Target>
@@ -97,7 +97,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            icon={<Star />}
+            leftSection={<Star />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               setFavoritePhotos({
@@ -114,7 +114,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            icon={<StarOff />}
+            leftSection={<StarOff />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               setFavoritePhotos({
@@ -134,7 +134,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            icon={<EyeOff />}
+            leftSection={<EyeOff />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               setPhotosHidden({
@@ -152,7 +152,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            icon={<Eye />}
+            leftSection={<Eye />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               setPhotosHidden({
@@ -172,7 +172,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            icon={<Globe />}
+            leftSection={<Globe />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               setPhotosPublic({
@@ -195,7 +195,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            icon={<Key />}
+            leftSection={<Key />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               setPhotosPublic({
@@ -215,7 +215,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            icon={<Download />}
+            leftSection={<Download />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               downloadPhotoArchive({ image_hashes: selectedItems.map(i => i.id) });
@@ -232,7 +232,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            icon={<Trash />}
+            leftSection={<Trash />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               setPhotosDeleted({ image_hashes: selectedItems.map(i => i.id), deleted: true });
@@ -248,7 +248,7 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Divider />
 
           <Menu.Item
-            icon={<Share />}
+            leftSection={<Share />}
             disabled={selectedItems.length === 0}
             onClick={() => {
               if (selectedItems.length > 0) {
@@ -268,7 +268,7 @@ export function SelectionActions(props: Readonly<Props>) {
               (!route.location.pathname.startsWith("/person/") && !route.location.pathname.startsWith("/useralbum/")) ||
               selectedItems.length !== 1
             }
-            icon={<Photo />}
+            leftSection={<Photo />}
             onClick={() => {
               if (route.location.pathname.startsWith("/person/")) {
                 setAlbumCover("person");
@@ -286,7 +286,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            icon={<Share />}
+            leftSection={<Share />}
             disabled={!route.location.pathname.startsWith("/useralbum/")}
             onClick={onShareAlbum}
           >
@@ -294,7 +294,7 @@ export function SelectionActions(props: Readonly<Props>) {
           </Menu.Item>
 
           <Menu.Item
-            icon={<FileMinus />}
+            leftSection={<FileMinus />}
             disabled={!route.location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
             onClick={() => {
               removePhotosFromAlbum({

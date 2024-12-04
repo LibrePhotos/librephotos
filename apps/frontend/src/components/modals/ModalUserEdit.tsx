@@ -248,16 +248,12 @@ export function ModalUserEdit(props: Props) {
       title={<Title order={4}>{createNew ? t("modaluseredit.createheader") : t("modaluseredit.header")}</Title>}
     >
       <form onSubmit={onSubmit}>
-        <Box
-          sx={theme => ({
-            paddingBottom: theme.spacing.md,
-          })}
-        >
-          <SimpleGrid cols={2} spacing="xs" breakpoints={[{ maxWidth: 600, cols: 1, spacing: "sm" }]}>
+        <Box pb="md">
+          <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
             <TextInput
               required
               label={t("login.usernamelabel")}
-              icon={<User />}
+              leftSection={<User />}
               placeholder={t("login.usernameplaceholder")}
               name="username"
               /* eslint-disable-next-line react/jsx-props-no-spreading */
@@ -265,7 +261,7 @@ export function ModalUserEdit(props: Props) {
             />
             <TextInput
               label={t("settings.email")}
-              icon={<Mail />}
+              leftSection={<Mail />}
               placeholder={t("settings.emailplaceholder")}
               name="email"
               /* eslint-disable-next-line react/jsx-props-no-spreading */
@@ -273,7 +269,7 @@ export function ModalUserEdit(props: Props) {
             />
             <TextInput
               label={t("settings.firstname")}
-              icon={<User />}
+              leftSection={<User />}
               placeholder={t("settings.firstnameplaceholder")}
               name="first_name"
               /* eslint-disable-next-line react/jsx-props-no-spreading */
@@ -281,19 +277,21 @@ export function ModalUserEdit(props: Props) {
             />
             <TextInput
               label={t("settings.lastname")}
-              icon={<User />}
+              leftSection={<User />}
               placeholder={t("settings.lastnameplaceholder")}
               name="last_name"
               /* eslint-disable-next-line react/jsx-props-no-spreading */
               {...form.getInputProps("last_name")}
             />
           </SimpleGrid>
-          <PasswordEntry createNew={createNew} onValidate={onPasswordValidate} closing={closing} />
+          <Box mt="sm">
+            <PasswordEntry createNew={createNew} onValidate={onPasswordValidate} closing={closing} />
+          </Box>
         </Box>
         {!createNew && (
           <>
             <Title order={5}>{t("modalscandirectoryedit.header")} </Title>
-            <Text size="sm" color="dimmed">
+            <Text size="sm" c="dimmed">
               {t("modalscandirectoryedit.explanation1")} &quot;
               {form.values.username ? form.values.username : "\u2026"}&quot; {t("modalscandirectoryedit.explanation2")}
             </Text>
@@ -301,8 +299,7 @@ export function ModalUserEdit(props: Props) {
             <Grid grow>
               <Grid.Col span={9}>
                 <TextInput
-                  label={t("modalscandirectoryedit.currentdirectory")}
-                  labelProps={{ style: { fontWeight: "bold" } }}
+                  label={<Text fw="bold">{t("modalscandirectoryedit.currentdirectory")}</Text>}
                   ref={inputRef}
                   required={firstTimeSetup}
                   placeholder={scanDirectoryPlaceholder}

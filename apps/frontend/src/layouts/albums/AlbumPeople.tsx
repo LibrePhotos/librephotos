@@ -1,4 +1,5 @@
-import { ActionIcon, Avatar, Button, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
+
+import { ActionIcon, Avatar, Button, Flex, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
@@ -89,7 +90,7 @@ export function AlbumPeople() {
           <div style={{ position: "absolute", top: 10, right: 10 }}>
             <Menu position="bottom-end">
               <Menu.Target>
-                <ActionIcon>
+                <ActionIcon variant="subtle" color="gray">
                   <DotsVertical />
                 </ActionIcon>
               </Menu.Target>
@@ -105,16 +106,14 @@ export function AlbumPeople() {
             </Menu>
           </div>
         </div>
-        <div style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-          <Group position="apart">
-            <div>
-              <b>{album.name}</b> <br />
-              {t("numberofphotos", {
-                number: album.face_count,
-              })}
-            </div>
-          </Group>
-        </div>
+        <Group justify="apart">
+          <Flex gap={0} justify="left" direction="column" px={8}>
+            <Text size="sm" fw={500} lineClamp={1} title={album.name}>
+              {album.name}
+            </Text>
+            <Text size="xs">{t("numberofphotos", { number: album.face_count })}</Text>
+          </Flex>
+        </Group>
       </div>
     );
   }

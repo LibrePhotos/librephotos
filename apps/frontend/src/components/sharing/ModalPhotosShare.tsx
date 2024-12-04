@@ -68,12 +68,12 @@ export function ModalPhotosShare(props: Props) {
                 }
                 const avatar = item.avatar ? item.avatar_url : "/unknown_user.jpg";
                 return (
-                  <Group position="apart" key={item.id}>
+                  <Group justify="apart" key={item.id}>
                     <Group>
                       <Avatar radius="xl" size={50} src={avatar} />
                       <div>
                         <Title order={4}>{displayName}</Title>
-                        <Text size="sm" color="dimmed">
+                        <Text size="sm" c="dimmed">
                           {t("modalphotosshare.joined")}{" "}
                           {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
                         </Text>

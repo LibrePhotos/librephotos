@@ -90,7 +90,7 @@ export function Profile() {
   }
   return (
     <Container>
-      <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+      <Group gap="xs" mt={40} mb={20}>
         <User size={35} />
         <Title order={1}>{t("settings.profile")}</Title>
       </Group>
@@ -100,7 +100,7 @@ export function Profile() {
             User
           </Title>
           <Title order={5}>{t("settings.avatar")}</Title>
-          <Group position="center" align="self-start" grow mb="lg">
+          <Group justify="center" align="self-start" grow mb="lg">
             <div>
               <Dropzone
                 noClick
@@ -115,9 +115,8 @@ export function Profile() {
                 }}
               >
                 {({ getRootProps, getInputProps }) => (
-                  // eslint-disable-next-line react/jsx-props-no-spreading
                   <div {...getRootProps()}>
-                    {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+                    {}
                     <input {...getInputProps()} />
                     <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
                   </div>
@@ -228,7 +227,7 @@ export function Profile() {
             </Group>
           </Radio.Group>
 
-          <Stack align="flex-start">
+          <Stack justify="flex-start">
             {auth.isAdmin ? (
               <TextInput
                 type="text"
@@ -252,9 +251,8 @@ export function Profile() {
             </Radio.Group>
           </Stack>
 
-          <Group align="end" mb={10} mt={10}>
+          <Group justify="flex-end" mb={10} mt={10}>
             <Select
-              withinPortal
               label={t("settings.language")}
               placeholder={t("settings.language")}
               // @ts-ignore
@@ -388,11 +386,11 @@ export function Profile() {
           size="lg"
           radius="md"
         >
-          <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
+          <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
             Save Changes?
           </Text>
 
-          <Group align="flex-end">
+          <Group justify="flex-end">
             <Button
               size="sm"
               color="green"

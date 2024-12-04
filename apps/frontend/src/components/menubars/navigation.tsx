@@ -1,5 +1,5 @@
-import { createStyles } from "@mantine/core";
-import type { Icon } from "@tabler/icons-react";
+import { MantineColor } from "@mantine/core";
+import type { Icon, IconProps } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
   IconBookmark as Bookmark,
@@ -20,6 +20,7 @@ import {
   IconWand as Wand,
   IconWorld as World,
 } from "@tabler/icons-react";
+import { ForwardRefExoticComponent, RefAttributes } from "react";
 
 type SubmenuItem = {
   label: string;
@@ -28,14 +29,14 @@ type SubmenuItem = {
   header: string;
   separator: boolean;
   disabled: boolean;
-  color: string;
+  color: MantineColor;
 };
 
 type MenuItem = {
   label: string;
   link: string;
-  icon: Icon;
-  color: string;
+  icon: ForwardRefExoticComponent<Omit<IconProps, "ref"> & RefAttributes<Icon>>;
+  color?: MantineColor;
   display?: boolean;
   submenu?: Array<Partial<SubmenuItem>>;
 };
@@ -90,73 +91,6 @@ export function getNavigationItems(
         { label: t("sidemenu.sharedwithyou"), link: "/shared/tome/photos/", icon: Download, color: "green" },
       ],
     },
-    { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "black" },
+    { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "gray" },
   ];
 }
-
-export const navigationStyles = createStyles(theme => ({
-  header: {
-    paddingBottom: theme.spacing.md,
-    marginBottom: `calc(${theme.spacing.md} * 1.5)`,
-    borderBottom: `1px solid ${theme.colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[2]}`,
-  },
-
-  footer: {
-    paddingTop: theme.spacing.md,
-    marginTop: theme.spacing.md,
-    borderTop: `1px solid ${theme.colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[2]}`,
-  },
-
-  submenu: {
-    display: "block",
-  },
-
-  text: {
-    ...theme.fn.focusStyles(),
-    display: "flex",
-    alignItems: "center",
-    textDecoration: "none",
-    fontSize: theme.fontSizes.sm,
-    color: theme.colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
-    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-    borderRadius: theme.radius.sm,
-    fontWeight: 500,
-  },
-
-  hover: {
-    "&:hover": {
-      backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-      color: theme.colorScheme === "dark" ? theme.white : theme.black,
-    },
-  },
-
-  link: {
-    ...theme.fn.focusStyles(),
-    display: "flex",
-    alignItems: "center",
-    textDecoration: "none",
-    fontSize: theme.fontSizes.sm,
-    color: theme.colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
-    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-    borderRadius: theme.radius.sm,
-    fontWeight: 500,
-
-    "&:hover": {
-      backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-      color: theme.colorScheme === "dark" ? theme.white : theme.black,
-    },
-  },
-
-  linkIcon: {
-    marginRight: theme.spacing.sm,
-  },
-
-  linkActive: {
-    "&, &:hover": {
-      backgroundColor:
-        theme.colorScheme === "dark"
-          ? theme.fn.rgba(theme.colors[theme.primaryColor][8], 0.25)
-          : theme.colors[theme.primaryColor][0],
-    },
-  },
-}));

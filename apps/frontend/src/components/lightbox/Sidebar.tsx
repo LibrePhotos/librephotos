@@ -1,5 +1,4 @@
-import { ActionIcon, Avatar, Box, Button, Group, Indicator, Stack, Text, Title, Tooltip } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
+import { ActionIcon, Box, Group, Stack, Text, Title, useMantineColorScheme, useMantineTheme } from "@mantine/core";
 import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,8 +8,7 @@ import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { api } from "../../api_client/api";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { notification } from "../../service/notifications";
-import { useAppDispatch } from "../../store/store";
-import { useAppSelector } from "../../store/store";
+import { useAppDispatch, useAppSelector } from "../../store/store";
 import { LocationMap } from "../LocationMap";
 import { Tile } from "../Tile";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
@@ -34,6 +32,8 @@ export function Sidebar(props: Props) {
   const { isPublic, closeSidepanel, setFaceLocation } = props;
 
   const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[props.id]);
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
 
   const notThisPerson = faceId => {
     const ids = [faceId];
@@ -44,23 +44,25 @@ export function Sidebar(props: Props) {
 
   return (
     <Box
-      sx={theme => ({
-        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-        padding: theme.spacing.sm,
-      })}
       style={{
         width: "33%",
         height: "100%",
         overflowY: "scroll",
         overflowX: "hidden",
+        float: "right",
+        whiteSpace: "normal",
         zIndex: 250,
+        padding: theme.spacing.sm,
+        backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
       }}
     >
       {photoDetail && (
         <Stack>
-          <Group position="apart">
+          <Group justify="space-between">
             <Title order={3}>Details</Title>
             <ActionIcon
+              variant="subtle"
+              color="gray"
               onClick={() => {
                 closeSidepanel();
               }}
@@ -128,7 +130,7 @@ export function Sidebar(props: Props) {
                 <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
               </Group>
               <Text>
-                <Group spacing="xs">
+                <Group gap="xs">
                   {photoDetail.similar_photos.slice(0, 30).map(el => (
                     <Tile video={el.type.includes("video")} height={85} width={85} image_hash={el.image_hash} />
                   ))}

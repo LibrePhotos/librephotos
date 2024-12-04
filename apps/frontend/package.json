@@ -22,7 +22,7 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "yarn prettier --config ./prettier.config.cjs --write",
-      "yarn eslint --cache --quiet -c ./.eslint.config.mjs"
+      "yarn eslint --cache --quiet -c ./eslint.config.mjs"
     ],
     "*.{json,css,scss,md}": [
       "yarn prettier --config ./prettier.config.cjs  --write"
@@ -34,15 +34,19 @@
     "not op_mini all"
   ],
   "dependencies": {
-    "@emotion/react": "^11.11.4",
-    "@mantine/core": "6.0.22",
-    "@mantine/dates": "6.0.22",
-    "@mantine/form": "6.0.22",
-    "@mantine/hooks": "6.0.22",
-    "@mantine/notifications": "6.0.22",
-    "@mantine/tiptap": "6.0.22",
-    "@reduxjs/toolkit": "2.2.6",
-    "@tabler/icons-react": "^3.0.0",
+    "@dnd-kit/core": "6.1.0",
+    "@dnd-kit/sortable": "8.0.0",
+    "@dnd-kit/utilities": "3.2.2",
+    "@mantine/core": "^7.12.2",
+    "@mantine/dates": "^7.12.2",
+    "@mantine/form": "^7.12.2",
+    "@mantine/hooks": "^7.12.2",
+    "@mantine/notifications": "^7.12.2",
+    "@mantine/tiptap": "^7.12.2",
+    "@popperjs/core": "2.11.8",
+    "@reduxjs/toolkit": "1.9.7",
+    "@tabler/icons": "3.17.0",
+    "@tabler/icons-react": "2.47.0",
     "@tiptap/core": "^2.3.2",
     "@tiptap/extension-document": "^2.3.2",
     "@tiptap/extension-link": "^2.3.2",
@@ -57,7 +61,7 @@
     "@visx/group": "3.3.0",
     "@visx/hierarchy": "3.3.0",
     "@visx/shape": "3.5.0",
-    "@vitejs/plugin-react-swc": "^3.5.0",
+    "@vitejs/plugin-react-swc": "^3.7.1",
     "@welldone-software/why-did-you-render": "^8.0.0",
     "crypto-js": "4.2.0",
     "d3": "7.9.0",
@@ -102,13 +106,14 @@
     "rumble-charts": "5.0.0",
     "source-map-explorer": "2.5.3",
     "tippy.js": "^6.3.7",
-    "vite": "^5.0.12",
+    "vite": "^5.4.9",
     "vite-tsconfig-paths": "^4.3.1",
     "vitest": "^1.2.1",
     "zod": "3.23.8"
   },
   "devDependencies": {
     "@babel/eslint-parser": "7.24.8",
+    "@eslint/compat": "^1.1.1",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.7.0",
     "@trivago/prettier-plugin-sort-imports": "4.3.0",

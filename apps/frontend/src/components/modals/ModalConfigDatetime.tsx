@@ -1,11 +1,20 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
-import { ActionIcon, Modal, ScrollArea, Table, Text, TextInput, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Modal,
+  ScrollArea,
+  Table,
+  Text,
+  TextInput,
+  Title,
+  useMantineColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { fuzzyMatch } from "../../util/util";
-import { getRuleExtraInfo, useDateTimeSettingsStyles } from "../settings/date-time-settings";
+import { getRuleExtraInfo } from "../settings/date-time-settings";
 import type { DateTimeRule } from "../settings/date-time.zod";
 
 type Props = Readonly<{
@@ -23,7 +32,8 @@ function searchRules(query: string) {
 
 export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRules }: Props) {
   const { t } = useTranslation();
-  const { classes } = useDateTimeSettingsStyles();
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const [filter, setFilter] = useState("");
   const [rulesToAdd, setRulesToAdd] = useState<DateTimeRule[]>([]);
   const appendRule = rule => setRulesToAdd([...rulesToAdd, rule]);
@@ -43,20 +53,27 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
     .filter(searchRules(filter))
     .filter(ignoreSelectedRules)
     .map(rule => (
-      <tr key={rule.name} className={classes.item}>
-        <td>
+      <Table.Tr key={rule.name}>
+        <Table.Td>
           <strong>
             {rule.name} (ID:{rule.id})
           </strong>
-          <div className={classes.rule_type}>{t("rules.rule_type", { rule: rule.rule_type })}</div>
+          <div
+            style={{
+              fontSize: "0.9rem",
+              color: colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
+            }}
+          >
+            {t("rules.rule_type", { rule: rule.rule_type })}
+          </div>
           {getRuleExtraInfo(rule, t)}
-        </td>
-        <td width={40}>
-          <ActionIcon onClick={() => appendRule(rule)}>
-            <CirclePlus color="green" />
+        </Table.Td>
+        <Table.Td width={40}>
+          <ActionIcon variant="subtle" color="green" onClick={() => appendRule(rule)}>
+            <CirclePlus />
           </ActionIcon>
-        </td>
-      </tr>
+        </Table.Td>
+      </Table.Tr>
     ));
 
   const handleFilterRules = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,17 +88,17 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
       title={<Title order={3}>Choose a new rule to add</Title>}
       onClose={() => onClose()}
     >
-      <Text color="dimmed">Choose a rule, that will parse the date from a certain field or attribute.</Text>
+      <Text c="dimmed">Choose a rule, that will parse the date from a certain field or attribute.</Text>
       <ScrollArea>
         <TextInput
           placeholder="Find rules by name or type..."
           mb="md"
-          icon={<Search size={14} />}
+          leftSection={<Search size={14} />}
           value={filter}
           onChange={e => handleFilterRules(e)}
         />
-        <Table>
-          <tbody>{rules}</tbody>
+        <Table highlightOnHover>
+          <Table.Tbody>{rules}</Table.Tbody>
         </Table>
       </ScrollArea>
     </Modal>

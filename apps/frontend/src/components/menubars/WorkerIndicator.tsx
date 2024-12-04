@@ -17,10 +17,10 @@ function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
     return (
       <Stack>
         <Progress value={(+workerRunningJob.progress_current.toFixed(2) / workerRunningJob.progress_target) * 100} />
-        <Text size="sm" align="center">
+        <Text size="sm" ta="center">
           {workerRunningJob.progress_current} / {workerRunningJob.progress_target}
         </Text>
-        <Text size="sm" align="center">
+        <Text size="sm" ta="center">
           {t("topmenu.running")} {workerRunningJob.job_type_str} ...
         </Text>
       </Stack>

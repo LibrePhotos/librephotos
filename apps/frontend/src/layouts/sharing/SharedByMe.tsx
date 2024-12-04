@@ -29,12 +29,12 @@ export function SharedByMe() {
       <Group>
         <div>
           <Title order={2}> {which === "photos" ? "Photos" : "Albums"} you shared</Title>
-          <Text color="dimmed" size="sm">
+          <Text c="dimmed" size="sm">
             {getSubHeader(which)}
           </Text>
         </div>
       </Group>
-      <Tabs defaultValue={which} onTabChange={value => navigate(`/shared/fromme/${value}/`)}>
+      <Tabs defaultValue={which} onChange={value => navigate(`/shared/fromme/${value}/`)}>
         <Tabs.List>
           <Tabs.Tab value="photos">Photos</Tabs.Tab>
           <Tabs.Tab value="albums">Albums</Tabs.Tab>

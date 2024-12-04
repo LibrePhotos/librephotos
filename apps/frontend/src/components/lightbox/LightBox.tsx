@@ -7,7 +7,7 @@ import {
   IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
 import { useGesture } from "@use-gesture/react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import ReactPlayer from "react-player";
 
 import { serverAddress } from "../../api_client/apiClient";
@@ -179,8 +179,8 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
   };
 
   return (
-    <Modal.Root opened={true} onClose={onCloseRequest} fullScreen>
-      <Modal.Overlay blur={5} opacity={0.8} />
+    <Modal.Root opened onClose={onCloseRequest} fullScreen>
+      <Modal.Overlay blur={5} backgroundOpacity={0.8} />
       <Modal.Content style={{ background: "transparent" }}>
         <Modal.Body
           style={{
@@ -192,7 +192,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
           }}
         >
           <div style={{ width: `100%`, padding: 16 }}>
-            <Group position="right" style={{ background: "transparent" }}>
+            <Group justify="flex-end" style={{ background: "transparent" }}>
               <Toolbar
                 photosDetail={photoDetails[mainSrc]}
                 lightboxSidebarShow={lightboxSidebarShow}
@@ -200,13 +200,15 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
                 isPublic={isPublic}
               />
               {enableZoom && type === "photo" && (
-                <div style={{ marginBottom: 10 }}>
-                  <ActionIcon onClick={toggleZoom}>{isZoomed ? <ZoomOut /> : <ZoomIn />}</ActionIcon>
+                <div style={{ marginBottom: 5 }}>
+                  <ActionIcon variant="subtle" color="gray" onClick={toggleZoom}>
+                    {isZoomed ? <ZoomOut /> : <ZoomIn />}
+                  </ActionIcon>
                 </div>
               )}
-              <div style={{ marginBottom: 10 }}>
-                <ActionIcon onClick={onCloseRequest}>
-                  <X color="grey" />
+              <div style={{ marginBottom: 5 }}>
+                <ActionIcon variant="subtle" color="gray" onClick={onCloseRequest}>
+                  <X />
                 </ActionIcon>
               </div>
             </Group>
@@ -218,7 +220,14 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
               }}
             >
               {/* Navigation Button on the Left */}
-              <ActionIcon onClick={onMovePrevRequest} disabled={!prevSrc} size="lg" mr="sm">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={onMovePrevRequest}
+                disabled={!prevSrc}
+                size="lg"
+                mr="sm"
+              >
                 <ArrowLeft size={24} />
               </ActionIcon>
 
@@ -255,7 +264,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
                       src={`${serverAddress}/media/thumbnails_big/${mainSrc}`}
                       alt="Lightbox Main Content"
                       onLoad={event => {
-                        const { naturalWidth, naturalHeight } = event.target;
+                        const { naturalWidth, naturalHeight } = event.target as HTMLImageElement;
                         setImageDimensions({ width: naturalWidth, height: naturalHeight });
                         setScale(1);
                         setOffset({ x: 0, y: 0 });
@@ -278,7 +287,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
                   </div>
                   {faceLocation && (
                     <Box
-                      sx={theme => ({
+                      style={theme => ({
                         position: "absolute",
                         border: `2px solid ${theme.colors.gray[4]}`,
                         borderRadius: theme.radius.lg,
@@ -291,7 +300,14 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
               )}
 
               {/* Navigation Button on the Right */}
-              <ActionIcon onClick={onMoveNextRequest} disabled={!nextSrc} size="lg" ml="sm">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={onMoveNextRequest}
+                disabled={!nextSrc}
+                size="lg"
+                ml="sm"
+              >
                 <ArrowRight size={24} />
               </ActionIcon>
             </div>

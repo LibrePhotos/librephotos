@@ -10,6 +10,8 @@ import {
   TextInput,
   Title,
   UnstyledButton,
+  useMantineColorScheme,
+  useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
@@ -18,7 +20,6 @@ import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 
@@ -31,9 +32,9 @@ type Props = Readonly<{
 
 export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGroups = () => {} }: Props) {
   const [newPersonName, setNewPersonName] = useState("");
-
   const matches = useMediaQuery("(min-width: 700px)");
-
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const { data: people } = useFetchPeopleAlbumsQuery();
 
   const dispatch = useAppDispatch();
@@ -63,7 +64,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
       }}
     >
       <Stack>
-        <Text color="dimmed">
+        <Text c="dimmed">
           {t("personedit.numberselected", {
             number: selectedFaces.length,
           })}
@@ -120,15 +121,11 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
             filteredPeopleList?.map(item => (
               <UnstyledButton
                 key={item.id}
-                sx={theme => ({
+                style={{
                   display: "block",
                   borderRadius: theme.radius.xl,
-                  color: theme.colorScheme === "dark" ? theme.colors.dark[0] : theme.black,
-
-                  "&:hover": {
-                    backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-                  },
-                })}
+                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                }}
                 onClick={() => {
                   dispatch(
                     api.endpoints.setFacesPersonLabel.initiate({
@@ -148,7 +145,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                     >
                       {item.name}
                     </Title>
-                    <Text size="sm" color="dimmed">
+                    <Text size="sm" c="dimmed">
                       {t("numberofphotos", {
                         number: item.face_count,
                       })}

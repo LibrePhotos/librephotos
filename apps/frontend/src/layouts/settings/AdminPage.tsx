@@ -1,4 +1,3 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
 import { ActionIcon, Button, Card, Container, Flex, Group, Loader, Space, Stack, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import {
@@ -37,24 +36,24 @@ function UserTable() {
         {isFetching ? <Loader size="xs" /> : null}
       </Title>
       <Table striped highlightOnHover>
-        <thead>
-          <tr>
-            <th>Add/Modify/Delete</th>
-            <th>{t("adminarea.username")}</th>
-            <th>{t("adminarea.scandirectory")}</th>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Add/Modify/Delete</Table.Th>
+            <Table.Th>{t("adminarea.username")}</Table.Th>
+            <Table.Th>{t("adminarea.scandirectory")}</Table.Th>
             {matches && (
               <>
-                <th>{t("adminarea.minimumconfidence")}</th>
-                <th>{t("adminarea.photocount")}</th>
-                <th>{t("adminarea.joined")}</th>
+                <Table.Th>{t("adminarea.minimumconfidence")}</Table.Th>
+                <Table.Th>{t("adminarea.photocount")}</Table.Th>
+                <Table.Th>{t("adminarea.joined")}</Table.Th>
               </>
             )}
-          </tr>
-        </thead>
-        <tbody>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
           {userList?.map(user => (
-            <tr key={user.username}>
-              <td>
+            <Table.Tr key={user.username}>
+              <Table.Td>
                 <span style={{ display: "flex" }}>
                   <ActionIcon
                     variant="transparent"
@@ -83,22 +82,24 @@ function UserTable() {
                     <Trash />
                   </ActionIcon>
                 </span>
-              </td>
-              <td>{user.username}</td>
-              <td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</td>
-              {matches && <td>{user.confidence ? user.confidence : t("adminarea.notset")}</td>}
-              {matches && <td>{user.photo_count}</td>}
-              {matches && <td>{DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}</td>}
-            </tr>
+              </Table.Td>
+              <Table.Td>{user.username}</Table.Td>
+              <Table.Td>{user.scan_directory ? user.scan_directory : t("adminarea.notset")}</Table.Td>
+              {matches && <Table.Td>{user.confidence ? user.confidence : t("adminarea.notset")}</Table.Td>}
+              {matches && <Table.Td>{user.photo_count}</Table.Td>}
+              {matches && (
+                <Table.Td>{DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}</Table.Td>
+              )}
+            </Table.Tr>
           ))}
-        </tbody>
+        </Table.Tbody>
       </Table>
       <Flex justify="flex-end" mt={10}>
         <Button
           size="sm"
           color="green"
           variant="outline"
-          leftIcon={<Plus />}
+          leftSection={<Plus />}
           onClick={() => {
             setCreateNewUser(true);
             setUserToEdit({});
@@ -188,7 +189,7 @@ export function AdminPage() {
     <Container>
       <Stack>
         <Flex align="baseline" justify="space-between">
-          <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+          <Group gap="xs" mt={40} mb={20}>
             <Adjustments size={35} />
             <Title order={1}>{t("adminarea.header")}</Title>
           </Group>

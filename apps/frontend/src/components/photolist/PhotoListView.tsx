@@ -1,6 +1,6 @@
-import { Box, Group } from "@mantine/core";
-import { useScrollLock, useViewportSize } from "@mantine/hooks";
-import _ from "lodash";
+import { Box, Group, RemoveScroll, useMantineColorScheme, useMantineTheme } from "@mantine/core";
+import { useViewportSize } from "@mantine/hooks";
+import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -50,7 +50,24 @@ type SelectionState = {
   selectMode: boolean;
 };
 
-function PhotoListViewComponent(props: Props) {
+const DEFAULT_PROPS: Props = {
+  title: "",
+  loading: true,
+  icon: null,
+  photoset: [],
+  idx2hash: [],
+  selectable: false,
+  isPublic: false,
+  numberOfItems: 0,
+  updateGroups: null,
+  updateItems: null,
+  date: null,
+  dayHeaderPrefix: null,
+  header: null,
+  additionalSubHeader: null,
+};
+
+function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const { height } = useViewportSize();
   const pigRef = useRef<Pig>(null);
   const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
@@ -63,10 +80,9 @@ function PhotoListViewComponent(props: Props) {
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const gridHeight = useRef(200);
-  const setScrollLocked = useScrollLock(false)[1];
+  const [scrollLocked, setScrollLocked] = useState(false);
   const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
   const [setPersonAlbumCover] = useSetPersonAlbumCoverMutation();
-
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
   const {
@@ -89,6 +105,8 @@ function PhotoListViewComponent(props: Props) {
   const isDateView = photoset !== idx2hash;
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
 
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const idx2hashRef = useRef(idx2hash);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -98,13 +116,12 @@ function PhotoListViewComponent(props: Props) {
   }, [idx2hash]);
 
   const throttledUpdateGroups = useCallback(
-    _.throttle(visibleItems => updateGroups(visibleItems), 500),
+    throttle(visibleItems => updateGroups(visibleItems), 500),
     []
   );
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   const throttledUpdateItems = useCallback(
-    _.throttle(visibleItems => updateItems(visibleItems), 500),
+    throttle(visibleItems => updateItems(visibleItems), 500),
     []
   );
 
@@ -237,20 +254,18 @@ function PhotoListViewComponent(props: Props) {
   }
 
   return (
-    <div>
+    <RemoveScroll enabled={scrollLocked}>
       <Box
-        sx={theme => ({
-          backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-          textAlign: "center",
-          cursor: "pointer",
-          position: "sticky",
-        })}
         style={{
+          boxSizing: "border-box",
+          cursor: "pointer",
+          padding: 6,
+          position: "sticky",
+          textAlign: "center",
+          top: 45,
           width: "100%",
           zIndex: 10,
-          boxSizing: "border-box",
-          top: 45,
-          padding: 6,
+          backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
         }}
       >
         {header || (
@@ -271,21 +286,19 @@ function PhotoListViewComponent(props: Props) {
         )}
         {!loading && !isPublic && getNumPhotos() > 0 && (
           <Box
-            sx={theme => ({
-              backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+            style={{
+              padding: 4,
+              backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
               textAlign: "center",
               cursor: "pointer",
               borderRadius: 10,
-            })}
-            style={{
-              padding: 4,
             }}
           >
             <Group
               style={{
                 paddingLeft: 10,
               }}
-              position="apart"
+              justify="space-between"
             >
               <SelectionBar
                 selectMode={selectionState.selectMode}
@@ -293,7 +306,7 @@ function PhotoListViewComponent(props: Props) {
                 idx2hash={idx2hash}
                 updateSelectionState={updateSelectionState}
               />
-              <Group position="right">
+              <Group justify="flex-end">
                 {!route.location.pathname.startsWith("/deleted") && (
                   <SelectionActions
                     selectedItems={selectionState.selectedItems}
@@ -336,11 +349,7 @@ function PhotoListViewComponent(props: Props) {
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
         >
-          <div
-            style={{
-              padding: 10,
-            }}
-          >
+          <Box p={10}>
             <Pig
               ref={pigRef}
               className="scrollscrubbertarget"
@@ -359,7 +368,7 @@ function PhotoListViewComponent(props: Props) {
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
               bgColor="inherit"
             />
-          </div>
+          </Box>
         </ScrollScrubber>
       ) : (
         <div />
@@ -431,20 +440,9 @@ function PhotoListViewComponent(props: Props) {
           albumID={params?.albumID ?? ""}
         />
       )}
-    </div>
+    </RemoveScroll>
   );
 }
-
-PhotoListViewComponent.defaultProps = {
-  isPublic: null,
-  numberOfItems: null,
-  updateItems: null,
-  date: null,
-  dayHeaderPrefix: null,
-  header: null,
-  additionalSubHeader: null,
-  updateGroups: null,
-};
 
 export const PhotoListView = React.memo(
   PhotoListViewComponent,

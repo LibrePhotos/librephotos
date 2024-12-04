@@ -16,13 +16,13 @@ export function SharedWithMe() {
   const getSubHeader = (item = "photos") => {
     if (item === "photos") {
       return (
-        <Text color="dimmed">
+        <Text c="dimmed">
           {photos.flatMap(g => g.userId).length} user(s) shared {photos.length} photo(s) with you
         </Text>
       );
     }
     return (
-      <Text color="dimmed">
+      <Text c="dimmed">
         {albums.length} user(s) shared {albums.map(el => el.albums.length).reduce((a, b) => a + b, 0)} album(s) with you
       </Text>
     );
@@ -33,12 +33,12 @@ export function SharedWithMe() {
       <Group>
         <div>
           <Title order={2}> {which === "photos" ? "Photos" : "Albums"} others shared </Title>
-          <Text color="dimmed" size="sm">
+          <Text c="dimmed" size="sm">
             {getSubHeader(which)}
           </Text>
         </div>
       </Group>
-      <Tabs defaultValue={which} onTabChange={value => navigate(`/shared/tome/${value}/`)}>
+      <Tabs defaultValue={which} onChange={value => navigate(`/shared/tome/${value}/`)}>
         <Tabs.List>
           <Tabs.Tab value="photos">Photos</Tabs.Tab>
           <Tabs.Tab value="albums">Albums</Tabs.Tab>

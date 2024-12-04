@@ -48,7 +48,7 @@ export function PasswordEntry(props: Props): JSX.Element {
   }, [createNew, closing, editPasswordMode]);
 
   return (
-    <Stack style={{ display: "flex", alignContent: "stretch" }} spacing="xs">
+    <Stack style={{ display: "flex", alignContent: "stretch" }} gap="xs">
       <Title order={6}>
         {createNew ? (
           <Text>{t("settings.password.titlesetpassword")}</Text>
@@ -72,7 +72,7 @@ export function PasswordEntry(props: Props): JSX.Element {
       </Title>
 
       <PasswordInput
-        icon={<Lock />}
+        leftSection={<Lock />}
         placeholder={t("login.passwordplaceholder")}
         name="password"
         disabled={!editPasswordMode && !createNew}
@@ -85,7 +85,7 @@ export function PasswordEntry(props: Props): JSX.Element {
         }}
       />
       <PasswordInput
-        icon={<Lock />}
+        leftSection={<Lock />}
         placeholder={t("login.confirmpasswordplaceholder")}
         name="passwordConfirm"
         disabled={!editPasswordMode && !createNew}

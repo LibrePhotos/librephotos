@@ -22,7 +22,7 @@ export function PublicUserList() {
             <User />
             Users
           </Group>
-          <Text color="dimmed">Showing {publicUsers(users).length} users</Text>
+          <Text c="dimmed">Showing {publicUsers(users).length} users</Text>
         </div>
       </Title>
       {publicUsers(users).map(el => {
@@ -41,11 +41,11 @@ export function PublicUserList() {
               height: 42,
             }}
             onClick={() => navigate(`/user/${el.username}/`)}
-            leftIcon={<Avatar size={25} radius="xl" src="/unknown_user.jpg" />}
+            leftSection={<Avatar size={25} radius="xl" src="/unknown_user.jpg" />}
           >
             <div>
-              <Text align="left">{displayName}</Text>
-              <Text size="sm" color="dimmed">
+              <Text left="left">{displayName}</Text>
+              <Text size="sm" c="dimmed">
                 {el.public_photo_count} public photos
               </Text>
             </div>

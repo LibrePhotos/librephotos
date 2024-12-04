@@ -87,7 +87,7 @@ export function HeaderComponent({
 
   return (
     <Stack
-      spacing="xs"
+      gap="xs"
       style={{
         ...style,
         width,
@@ -109,22 +109,22 @@ export function HeaderComponent({
         {!(cell.kind === "CLUSTER" || cell.kind === "UNKNOWN") && (
           <Menu position="bottom-end">
             <Menu.Target>
-              <ActionIcon>
+              <ActionIcon variant="subtle" color="gray">
                 <DotsVertical />
               </ActionIcon>
             </Menu.Target>
 
             <Menu.Dropdown>
-              <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
+              <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(cell.id, cell.name)}>
                 {t("rename")}
               </Menu.Item>
-              <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
+              <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(cell.id)}>
                 {t("delete")}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
         )}
-        <Text color="dimmed">
+        <Text c="dimmed">
           {t("facesdashboard.numberoffaces", {
             number: cell.faces.length,
           })}

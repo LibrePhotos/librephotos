@@ -17,7 +17,7 @@ export function SelectionBar(props: Readonly<Props>) {
   const [openedSelect, setOpenedSelect] = useState(false);
 
   return (
-    <Group spacing="xs">
+    <Group gap="xs">
       <Popover opened={openedAll} withArrow withinPortal>
         <Popover.Target>
           <ActionIcon
@@ -55,7 +55,7 @@ export function SelectionBar(props: Readonly<Props>) {
               onMouseLeave={() => setOpenedSelect(false)}
               variant="light"
               size="xs"
-              leftIcon={<Check color={selectMode ? "green" : "gray"} />}
+              leftSection={<Check color={selectMode ? "green" : "gray"} />}
               color={selectMode ? "blue" : "gray"}
               onClick={() => {
                 updateSelectionState({

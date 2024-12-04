@@ -1,17 +1,4 @@
-import {
-  Button,
-  Card,
-  Grid,
-  Group,
-  Modal,
-  NativeSelect,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -123,7 +110,7 @@ export function SiteSettings() {
 
       <Card shadow="md" mb={10}>
         <Stack>
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             {t("adminarea.sitesettings")}
           </Title>
 
@@ -138,11 +125,11 @@ export function SiteSettings() {
             checked={allowUpload}
           />
 
-          <Grid align="flex-end">
+          <Grid justify="flex-end">
             <Grid.Col span={8}>
-              <Stack spacing={0}>
+              <Stack gap={0}>
                 <Text>{t("sitesettings.headerskippatterns")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.skippatterns")}
                 </Text>
               </Stack>
@@ -160,9 +147,9 @@ export function SiteSettings() {
               />
             </Grid.Col>
             <Grid.Col span={8}>
-              <Stack spacing={0}>
+              <Stack gap={0}>
                 <Text>{t("sitesettings.map_api_provider_header")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.map_api_provider_description", {
                     url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
                   })}
@@ -172,9 +159,7 @@ export function SiteSettings() {
             <Grid.Col span={4}>
               <Select
                 searchable
-                withinPortal
                 data={MAP_API_PROVIDERS}
-                dropdownPosition="bottom"
                 value={mapApiProvider}
                 onChange={provider => {
                   const value = provider || "";
@@ -186,9 +171,9 @@ export function SiteSettings() {
             {MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.use_api_key && (
               <>
                 <Grid.Col span={8}>
-                  <Stack spacing={0}>
+                  <Stack gap={0}>
                     <Text>{t("sitesettings.map_api_key_header")}</Text>
-                    <Text fz="sm" color="dimmed">
+                    <Text fz="sm" c="dimmed">
                       {t("sitesettings.map_api_key_description", {
                         url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
                       })}
@@ -210,9 +195,9 @@ export function SiteSettings() {
               </>
             )}
             <Grid.Col span={8}>
-              <Stack spacing={0}>
+              <Stack gap={0}>
                 <Text>{t("sitesettings.captioning_model_header")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.captioning_model_description")}
                 </Text>
               </Stack>
@@ -220,9 +205,7 @@ export function SiteSettings() {
             <Grid.Col span={4}>
               <Select
                 searchable
-                withinPortal
                 data={CAPTIONING_MODELS}
-                dropdownPosition="bottom"
                 value={captioningModel}
                 onChange={model => {
                   const value = model ?? "";
@@ -232,9 +215,9 @@ export function SiteSettings() {
               />
             </Grid.Col>
             <Grid.Col span={8}>
-              <Stack spacing={0}>
+              <Stack gap={0}>
                 <Text>{t("sitesettings.llm_model_header")}</Text>
-                <Text fz="sm" color="dimmed">
+                <Text fz="sm" c="dimmed">
                   {t("sitesettings.llm_model_description")}
                 </Text>
               </Stack>
@@ -242,9 +225,7 @@ export function SiteSettings() {
             <Grid.Col span={4}>
               <Select
                 searchable
-                withinPortal
                 data={LLM_MODELS}
-                dropdownPosition="bottom"
                 value={llmModel}
                 onChange={model => {
                   const value = model ?? "";

@@ -82,7 +82,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
       return (
         <div>
           {date}{" "}
-          <Text size="xs" color="dimmed">
+          <Text size="xs" c="dimmed">
             {dayOfWeek}, {time}
           </Text>
         </div>
@@ -120,7 +120,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
               value={timestamp?.toString()}
               onChange={event => onChangeTime(new Date(event.target.value))}
             />
-            <Group position="center">
+            <Group justify="center">
               <Tooltip label={t("lightbox.sidebar.cancel")}>
                 <ActionIcon variant="light" onClick={onCancelDateTime} color="red">
                   <X />
@@ -147,7 +147,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
               }
               onActivateEditMode();
             }}
-            rightIcon={!isPublic && <Edit size={17} />}
+            rightSection={!isPublic && <Edit size={17} />}
           >
             {getDateTimeLabel()}
           </Button>

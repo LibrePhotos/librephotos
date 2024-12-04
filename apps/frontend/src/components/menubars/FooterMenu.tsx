@@ -1,5 +1,4 @@
-import { ActionIcon, Divider, Footer, Group, Menu } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
+import { ActionIcon, Divider, Flex, Menu, useMantineTheme } from "@mantine/core";
 import { IconHeart as Heart } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -9,20 +8,15 @@ import { push } from "redux-first-history";
 import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { SUPPORT_LINK } from "../../ui-constants";
-import { getNavigationItems, navigationStyles } from "./navigation";
+import { getNavigationItems } from "./navigation";
 
 export function FooterMenu(): JSX.Element {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const canAccess = useAppSelector(selectAuthAccess);
   const dispatch = useAppDispatch();
-  const { classes } = navigationStyles();
-
-  const matches = useMediaQuery("(min-width: 700px)");
   const { t } = useTranslation();
 
-  if (matches) {
-    return <div />;
-  }
+  const theme = useMantineTheme();
 
   const navigationItems = getNavigationItems(t, isAuthenticated, canAccess);
 
@@ -35,7 +29,7 @@ export function FooterMenu(): JSX.Element {
       return null;
     }
 
-    const icon = <item.icon className={classes.linkIcon} size={33} style={{ margin: 0 }} />;
+    const icon = <item.icon size={33} style={{ margin: 0, marginRight: theme.spacing.sm }} />;
     const link = item.submenu ? (
       <ActionIcon variant="light" color={item.color} key={key}>
         {icon}
@@ -60,9 +54,9 @@ export function FooterMenu(): JSX.Element {
               if (subitem.separator) {
                 return <Divider key={subkey} />;
               }
-              const submenuIcon = <subitem.icon size={20} color={subitem.color} />;
+              const submenuIcon = <subitem.icon color={subitem.color} />;
               return (
-                <Menu.Item key={subkey} icon={submenuIcon} onClick={() => dispatch(push(subitem.link!))}>
+                <Menu.Item key={subkey} leftSection={submenuIcon} onClick={() => dispatch(push(subitem.link!))}>
                   {subitem.label}
                 </Menu.Item>
               );
@@ -76,8 +70,8 @@ export function FooterMenu(): JSX.Element {
   });
 
   return (
-    <Footer height={50} p="xs">
-      <Group position="apart">{links}</Group>
-    </Footer>
+    <Flex p="xs" justify="space-between">
+      {links}
+    </Flex>
   );
 }

@@ -53,13 +53,13 @@ export function Settings() {
 
   return (
     <Container>
-      <Group spacing="xs" sx={{ marginBottom: 20, marginTop: 40 }}>
+      <Group gap="xs" mt={40} mb={20}>
         <SettingIcon size={35} />
         <Title order={1}>{t("settings.header")}</Title>
       </Group>
       <Stack>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             <Trans i18nKey="settings.scanoptions">Scan Options</Trans>
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
@@ -96,7 +96,7 @@ export function Settings() {
           </Flex>
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             <Trans i18nKey="settings.metadata">Metadata</Trans>
           </Title>
           <Flex align="flex-start" direction="column" gap="md">
@@ -142,7 +142,7 @@ export function Settings() {
           </Flex>
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             {t("settings.albumoptions")}
           </Title>
           <NumberInput
@@ -151,7 +151,7 @@ export function Settings() {
             min={0}
             max={1.0}
             placeholder="0.90"
-            precision={2}
+            decimalScale={2}
             value={userSelfDetails.confidence_person}
             hideControls
             onChange={value => {
@@ -160,7 +160,7 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             {t("settings.face_options")}
           </Title>
           <Radio.Group
@@ -232,7 +232,7 @@ export function Settings() {
             min={0}
             max={1.0}
             placeholder="0.50"
-            precision={2}
+            decimalScale={2}
             value={userSelfDetails.confidence_unknown_face}
             hideControls
             onChange={value => {
@@ -249,7 +249,7 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
-          <Title order={4} sx={{ marginBottom: 16 }}>
+          <Title order={4} mb={16}>
             <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
           </Title>
           <Switch
@@ -265,7 +265,7 @@ export function Settings() {
         </Card>
         <Card shadow="md">
           <Stack>
-            <Title order={4} sx={{ marginBottom: 16 }}>
+            <Title order={4} mb={16}>
               <Trans i18nKey="settings.llm">Large Language Model Settings</Trans>
             </Title>
             <Switch
@@ -320,11 +320,11 @@ export function Settings() {
         size="lg"
         radius="md"
       >
-        <Text size="sm" style={{ marginBottom: 10 }} weight={500}>
+        <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
           {t("settings.savechanges")}
         </Text>
 
-        <Group align="flex-end">
+        <Group justify="flex-end">
           <Button
             size="sm"
             color="green"

@@ -1,6 +1,6 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
-import { Stack } from "@mantine/core";
-import { useElementSize, useScrollLock } from "@mantine/hooks";
+import { RemoveScroll, Stack } from "@mantine/core";
+import { useElementSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
@@ -18,9 +18,9 @@ import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberType
 import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
-import { FacesTab } from "../../store/faces/facesActions.types";
-import { FaceAnalysisMethod } from "../../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesTab } from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
+import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
 export function FaceDashboard() {
@@ -37,12 +37,12 @@ export function FaceDashboard() {
   const [lightboxShow, setLightboxShow] = useState(false);
 
   const [scrollTo, setScrollTo] = useState<number | null>(null);
-  const setScrollLocked = useScrollLock(false)[1];
+  const [scrollLocked, setScrollLocked] = useState(false);
 
   const { data: labeledFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery(
     {
       inferred: false,
-      orderBy: orderBy,
+      orderBy,
     }
   );
 
@@ -50,8 +50,8 @@ export function FaceDashboard() {
     {
       inferred: true,
       method: analysisMethod,
-      orderBy: orderBy,
-      minConfidence: minConfidence,
+      orderBy,
+      minConfidence,
     }
   );
 
@@ -95,8 +95,21 @@ export function FaceDashboard() {
       idx2hash = unknownFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
       break;
     default:
-      [];
+      throw new Error("unknown tab", activeTab);
   }
+
+  const getCellContentsForTab = (tab: FacesTab) => {
+    if (tab === FacesTab.enum.labeled) {
+      return labeledCellContents;
+    }
+    if (tab === FacesTab.enum.inferred) {
+      return inferredCellContents;
+    }
+    if (tab === FacesTab.enum.unknown) {
+      return unknownCellContents;
+    }
+    throw new Error("unknown tab", tab);
+  };
 
   const handleShowClick = (event: React.KeyboardEvent, item: any) => {
     const index = idx2hash.findIndex(image => image.id === item.photo);
@@ -135,12 +148,7 @@ export function FaceDashboard() {
   };
 
   const getScrollPositions = () => {
-    const cellContents =
-      activeTab === FacesTab.enum.labeled
-        ? labeledCellContents
-        : activeTab === FacesTab.Enum.inferred
-          ? inferredCellContents
-          : unknownCellContents;
+    const cellContents = getCellContentsForTab(activeTab);
     let scrollPosition = 0;
     const scrollPositions: IScrollerData[] = [];
     cellContents.forEach(row => {
@@ -156,7 +164,6 @@ export function FaceDashboard() {
 
   useEffect(() => {
     setScrollTo(tabs[activeTab].scrollPosition);
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [activeTab]);
 
   useEffect(() => {
@@ -168,7 +175,6 @@ export function FaceDashboard() {
         })
       );
     }
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [scrollTo]);
 
   // ensure that the endpoint is not undefined
@@ -182,12 +188,7 @@ export function FaceDashboard() {
   const gridHeight = gridRef.current ? gridRef.current.getTotalRowsHeight() : 200;
 
   const onSectionRendered = (params: any) => {
-    const cellContents =
-      activeTab === FacesTab.enum.labeled
-        ? labeledCellContents
-        : activeTab === FacesTab.Enum.inferred
-          ? inferredCellContents
-          : unknownCellContents;
+    const cellContents = getCellContentsForTab(activeTab);
     const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
     const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
     // flatten labeledCellContents and find the range of cells that are in the viewport
@@ -248,12 +249,7 @@ export function FaceDashboard() {
       return;
     }
     if (e.shiftKey) {
-      const currentCellsInRowFormat =
-        activeTab === FacesTab.enum.labeled
-          ? labeledCellContents
-          : activeTab === FacesTab.Enum.inferred
-            ? inferredCellContents
-            : unknownCellContents;
+      const currentCellsInRowFormat = getCellContentsForTab(activeTab);
       const allFacesInCells = [] as any[];
       for (let i = 0; i < currentCellsInRowFormat.length; i++) {
         for (let j = 0; j < numEntrySquaresPerRow; j++) {
@@ -305,12 +301,8 @@ export function FaceDashboard() {
   };
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    const cell =
-      activeTab === FacesTab.enum.labeled
-        ? labeledCellContents[rowIndex][columnIndex]
-        : activeTab === FacesTab.Enum.inferred
-          ? inferredCellContents[rowIndex][columnIndex]
-          : unknownCellContents[rowIndex][columnIndex];
+    const cellContents = getCellContentsForTab(activeTab);
+    const cell = cellContents[rowIndex][columnIndex];
 
     if (cell) {
       if (cell.name) {
@@ -349,92 +341,82 @@ export function FaceDashboard() {
   };
 
   return (
-    <div style={{ display: "flex", flexFlow: "column", height: "100%", padding: 10 }}>
-      <Stack spacing="xl">
-        <TabComponent
-          width={width}
-          fetchingLabeledFacesList={fetchingLabeledFacesList}
-          fetchingInferredFacesList={fetchingInferredFacesList}
-        />
-        <ButtonHeaderGroup
-          selectMode={selectMode}
+    <RemoveScroll enabled={scrollLocked}>
+      <div style={{ display: "flex", flexFlow: "column", height: `calc(100vh - ${TOP_MENU_HEIGHT}px)` }}>
+        <Stack>
+          <TabComponent
+            width={width}
+            fetchingLabeledFacesList={fetchingLabeledFacesList}
+            fetchingInferredFacesList={fetchingInferredFacesList}
+          />
+          <ButtonHeaderGroup
+            selectMode={selectMode}
+            selectedFaces={selectedFaces}
+            changeSelectMode={changeSelectMode}
+            addFaces={addFaces}
+            deleteFaces={deleteSelectedFaces}
+            notThisPerson={notThisPersonFunc}
+          />
+        </Stack>
+        <div ref={ref} style={{ flexGrow: 1 }}>
+          <AutoSizer>
+            {({ height, width: gridWidth }) => (
+              <ScrollScrubber
+                scrollPositions={dataForScrollIndicator}
+                scrollToY={setScrollTo}
+                targetHeight={gridHeight}
+                type={ScrollerType.enum.alphabet}
+              >
+                <Grid
+                  ref={gridRef}
+                  className="scrollscrubbertarget"
+                  style={{ overflowX: "hidden" }}
+                  disableHeader={false}
+                  cellRenderer={cellRenderer}
+                  columnWidth={entrySquareSize}
+                  columnCount={numEntrySquaresPerRow}
+                  rowHeight={entrySquareSize}
+                  onSectionRendered={onSectionRendered}
+                  height={height}
+                  width={gridWidth}
+                  rowCount={getCellContentsForTab(activeTab).length}
+                  scrollTop={tabs[activeTab].scrollPosition}
+                  onScroll={handleGridScroll}
+                />
+              </ScrollScrubber>
+            )}
+          </AutoSizer>
+        </div>
+        <ModalPersonEdit
+          isOpen={modalPersonEditOpen}
+          onRequestClose={() => {
+            setModalPersonEditOpen(false);
+            setSelectedFaces([]);
+          }}
           selectedFaces={selectedFaces}
-          changeSelectMode={changeSelectMode}
-          addFaces={addFaces}
-          deleteFaces={deleteSelectedFaces}
-          notThisPerson={notThisPersonFunc}
         />
-      </Stack>
-      <div ref={ref} style={{ flexGrow: 1 }}>
-        <AutoSizer>
-          {({ height, width: gridWidth }) => (
-            <ScrollScrubber
-              scrollPositions={dataForScrollIndicator}
-              scrollToY={setScrollTo}
-              targetHeight={gridHeight}
-              type={ScrollerType.enum.alphabet}
-            >
-              <Grid
-                ref={gridRef}
-                className="scrollscrubbertarget"
-                style={{ overflowX: "hidden" }}
-                disableHeader={false}
-                cellRenderer={cellRenderer}
-                columnWidth={entrySquareSize}
-                columnCount={numEntrySquaresPerRow}
-                rowHeight={entrySquareSize}
-                onSectionRendered={onSectionRendered}
-                height={height}
-                width={gridWidth}
-                rowCount={
-                  activeTab === FacesTab.enum.labeled
-                    ? labeledCellContents.length
-                    : activeTab === FacesTab.enum.inferred
-                      ? inferredCellContents.length
-                      : unknownCellContents.length
-                }
-                scrollTop={tabs[activeTab].scrollPosition}
-                onScroll={handleGridScroll}
-              />
-            </ScrollScrubber>
-          )}
-        </AutoSizer>
+        {lightboxShow && (
+          <LightBox
+            isPublic={false}
+            idx2hash={idx2hash}
+            lightboxImageIndex={lightboxImageIndex}
+            lightboxImageId={lightboxImageId}
+            onCloseRequest={() => {
+              setLightboxShow(false);
+              setScrollLocked(false);
+            }}
+            onImageLoad={() => {
+              getPhotoDetails(idx2hash[lightboxImageIndex].id);
+            }}
+            onMovePrevRequest={() => {
+              const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
+              setLightboxImageIndex(prevIndex);
+              setLightboxImageId(idx2hash[prevIndex].id);
+              getPhotoDetails(idx2hash[prevIndex].id);
+            }}
+          />
+        )}
       </div>
-      <ModalPersonEdit
-        isOpen={modalPersonEditOpen}
-        onRequestClose={() => {
-          setModalPersonEditOpen(false);
-          setSelectedFaces([]);
-        }}
-        selectedFaces={selectedFaces}
-      />
-      {lightboxShow && (
-        <LightBox
-          isPublic={false}
-          idx2hash={idx2hash}
-          lightboxImageIndex={lightboxImageIndex}
-          lightboxImageId={lightboxImageId}
-          onCloseRequest={() => {
-            setLightboxShow(false);
-            setScrollLocked(false);
-          }}
-          onImageLoad={() => {
-            getPhotoDetails(idx2hash[lightboxImageIndex].id);
-          }}
-          onMovePrevRequest={() => {
-            const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
-            setLightboxImageIndex(prevIndex);
-            setLightboxImageId(idx2hash[prevIndex].id);
-            getPhotoDetails(idx2hash[prevIndex].id);
-          }}
-          onMoveNextRequest={() => {
-            const nextIndex = (lightboxImageIndex + idx2hash.length + 1) % idx2hash.length;
-            setLightboxImageIndex(nextIndex);
-            setLightboxImageId(idx2hash[nextIndex].id);
-            getPhotoDetails(idx2hash[nextIndex].id);
-          }}
-        />
-      )}
-    </div>
+    </RemoveScroll>
   );
 }

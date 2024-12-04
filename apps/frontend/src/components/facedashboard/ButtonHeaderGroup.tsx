@@ -10,7 +10,8 @@ import {
   Stack,
   Text,
   Tooltip,
-  rem,
+  useMantineColorScheme,
+  useMantineTheme,
 } from "@mantine/core";
 import {
   IconBarbell as Barbell,
@@ -53,6 +54,9 @@ export function ButtonHeaderGroup({
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const dispatch = useAppDispatch();
 
+  const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
+
   const setOrderBy = (value: string) => {
     dispatch(faceActions.changeFacesOrderBy(value as FacesOrderOption));
   };
@@ -70,29 +74,33 @@ export function ButtonHeaderGroup({
 
   return (
     <Box
-      sx={theme => ({
-        backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
+      style={{
+        padding: 4,
+        backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
         textAlign: "center",
         cursor: "pointer",
         borderRadius: 10,
-      })}
-      style={{
-        padding: 4,
       }}
     >
-      <Group position="apart">
+      <Group
+        style={{
+          paddingLeft: 10,
+          paddingRight: 10,
+        }}
+        justify="space-between"
+      >
         <Group spacing="xs">
           <Button
             variant="light"
             size="xs"
-            leftIcon={<Check color={selectMode ? "green" : "gray"} />}
+            leftSection={<Check color={selectMode ? "green" : "gray"} />}
             color={selectMode ? "blue" : "gray"}
             onClick={changeSelectMode}
           >
             {`${selectedFaces.length} ${t("selectionbar.selected")}`}
           </Button>
           <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-          <Text size="sm" weight={500} mb={3}>
+          <Text size="sm" fw={500} mb={3}>
             {t("facesdashboard.sortby")}
           </Text>
           <SegmentedControl
@@ -110,7 +118,7 @@ export function ButtonHeaderGroup({
               },
             ]}
           />
-          {(activeTab == "inferred" || activeTab == "unknown") && (
+          {(activeTab === "inferred" || activeTab === "unknown") && (
             <div style={{ display: "contents" }}>
               <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
               <Text size="sm" weight={500} mb={3}>
@@ -136,13 +144,17 @@ export function ButtonHeaderGroup({
                 {t("facesdashboard.minconfidence")}
               </Text>
               <Box
-                style={{ width: 150, paddingTop: 10, paddingBottom: 10, paddingRight: 5, paddingLeft: 5 }}
-                sx={theme => ({
-                  backgroundColor: theme.colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[1],
+                style={{
+                  width: 150,
+                  paddingTop: 10,
+                  paddingBottom: 10,
+                  paddingRight: 5,
+                  paddingLeft: 5,
+                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[1],
                   textAlign: "center",
                   cursor: "pointer",
                   borderRadius: 4,
-                })}
+                }}
               >
                 <Slider
                   value={minConfidence}
@@ -204,7 +216,7 @@ export function ButtonHeaderGroup({
       <Modal opened={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} title={<h3>{t("deleteface")}</h3>}>
         <Stack>
           {t("deletefaceexplanation")}
-          <Group position="center">
+          <Group justify="center">
             <Button
               color="blue"
               onClick={() => {

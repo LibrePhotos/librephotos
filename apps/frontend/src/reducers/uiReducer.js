@@ -22,6 +22,10 @@ export default function reducer(state = initialState, action = DEFAULT_ACTION) {
       };
     }
 
+    case "SHOW_SIDEBAR": {
+      return { ...state, showSidebar: true };
+    }
+
     case "HIDE_SIDEBAR": {
       return { ...state, showSidebar: false };
     }

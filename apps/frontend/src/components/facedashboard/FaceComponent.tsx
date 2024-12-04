@@ -1,10 +1,11 @@
-import { ActionIcon, Avatar, Box, Center, Indicator } from "@mantine/core";
+import { ActionIcon, Avatar, Box, Center, Indicator, useMantineTheme } from "@mantine/core";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import _ from "lodash";
 import React, { useState } from "react";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
+import "./FaceComponent.css";
 import { FaceTooltip } from "./FaceTooltip";
 
 type Props = Readonly<{
@@ -33,6 +34,8 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
+  const theme = useMantineTheme();
+
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const [tooltipOpened, setTooltipOpened] = useState(false);
   const { activeTab } = useAppSelector(store => store.face);
@@ -54,18 +57,14 @@ export function FaceComponent({
   }
   return (
     <Box
-      sx={theme => ({
-        display: "block",
-        backgroundColor: isSelected ? "rgba(174, 214, 241, 0.7)" : "transparent",
+      className={`box ${isSelected ? "selected" : ""}`}
+      style={{
         alignContent: "center",
-        borderRadius: theme.radius.md,
         padding,
         marginRight: 10,
         cursor: "pointer",
-        "&:hover": {
-          backgroundColor: isSelected ? "rgba(174, 214, 241, 0.95)" : "rgba(174, 214, 241, 0.7)",
-        },
-      })}
+        borderRadius: theme.radius.md,
+      }}
     >
       <Center>
         <FaceTooltip
@@ -92,7 +91,7 @@ export function FaceComponent({
           </Indicator>
         </FaceTooltip>
         <div style={{ left: 0, bottom: 0, position: "absolute" }}>
-          <ActionIcon variant="filled" onClick={(e: any) => handleShowClick(e, cell)}>
+          <ActionIcon variant="filled" color="gray" onClick={(e: any) => handleShowClick(e, cell)}>
             <Photo />
           </ActionIcon>
         </div>

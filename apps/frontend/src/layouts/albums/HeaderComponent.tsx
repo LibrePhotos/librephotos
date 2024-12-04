@@ -11,13 +11,13 @@ type Props = {
 export function HeaderComponent(props: Readonly<Props>) {
   const { icon, title, fetching, subtitle } = props;
   return (
-    <Group position="left">
+    <Group justify="left">
       {icon}
       <div>
-        <Title style={{ minWidth: 200 }} align="left" order={2}>
+        <Title style={{ minWidth: 200 }} ta="left" order={2}>
           {title} {fetching ? <Loader size={20} /> : null}
         </Title>
-        <Text align="left" color="dimmed">
+        <Text ta="left" c="dimmed">
           {subtitle}
         </Text>
       </div>
