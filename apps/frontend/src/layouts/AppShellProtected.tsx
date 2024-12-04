@@ -30,7 +30,7 @@ export function AppShellProtected() {
       transitionDuration={0}
     >
       <AppShell.Header>
-        <TopMenu toggleSidebar={toggleSidebar} />;
+        <TopMenu toggleSidebar={toggleSidebar} />
       </AppShell.Header>
       <AppShell.Navbar>
         <SideMenuNarrow />
