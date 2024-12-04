@@ -1,6 +1,5 @@
 # Tasks related to upgrade to Mantine 7
 
-- high: fix faces dashboard
 - medium: fix logout to redirect to login page
 - medium: fix public user list and public photos for authenticated user
 - medium: highlight sidebar menu when children menu page is active
