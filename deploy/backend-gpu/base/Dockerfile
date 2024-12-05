@@ -76,7 +76,7 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
     make install && \
     rm -rf /tmp/exiftool
 
-# Install Python libraries
+# Install Python libraries and cmake
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision cmake
 
 # Build and install LibRaw
