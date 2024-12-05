@@ -63,7 +63,7 @@ jobs:
           context: ./backend-gpu
           build-args: |
             "IMAGE_TAG=dev"
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: reallibrephotos/librephotos-gpu:dev
 
