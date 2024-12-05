@@ -186,7 +186,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /usr/local/include /usr/local/include
 
 # Copy Python packages
-COPY --from=builder /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+COPY --from=builder /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/dist-packages
 
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib
