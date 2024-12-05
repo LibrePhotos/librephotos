@@ -22,6 +22,7 @@ export type SearchOption = {
   value: string;
   type: SearchOptionType;
   data: string | null;
+  thumbnail?: string;
 };
 
 function toExampleOption(item: string): SearchOption {
@@ -41,7 +42,7 @@ function toUserAlbumOption(item: any): SearchOption {
 }
 
 function toPersonOption(item: any): SearchOption {
-  return { value: item.value, type: SearchOptionType.PEOPLE, data: item.key };
+  return { value: item.name, type: SearchOptionType.PEOPLE, data: item.id, thumbnail: item.face_url };
 }
 
 export function useSearch() {
@@ -78,8 +79,8 @@ export function useSearch() {
           .slice(0, 2)
           .map(toUserAlbumOption),
         ...people
-          .filter((item: any) => fuzzyMatch(q, item.value))
-          .slice(0, 2)
+          .filter((item: any) => fuzzyMatch(q, item.name))
+          .slice(0, 9)
           .map(toPersonOption),
       ]);
     },
