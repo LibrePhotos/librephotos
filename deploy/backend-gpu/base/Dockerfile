@@ -3,22 +3,70 @@ FROM nvidia/cuda:12.6.2-cudnn-devel-ubuntu24.04 AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies
+# Install python
+RUN apt-get update \
+	&& apt-get install -y python3-pip python3-dev software-properties-common \
+	&& cd /usr/local/bin \
+	&& ln -s /usr/bin/python3 python \
+	&& pip3 install --upgrade --break-system-packages --ignore-installed pip \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
+
+# System packages installation
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3-pip python3-dev software-properties-common \
-    build-essential bzip2 brotli curl ffmpeg git libboost-all-dev \
-    libcfitsio-dev libexif-dev libexpat-dev libexpat1-dev libgif-dev \
-    libglib2.0-dev libgsf-1-dev libheif-dev libimage-exiftool-perl \
-    libimagequant-dev libjpeg-dev liblapack-dev liblcms2-dev libmagic1 \
-    libopenblas-dev libopenexr-dev liborc-dev libpng-dev libpq-dev \
-    librsvg2-dev libsm6 libtiff5-dev libtool libtool-bin libwebp-dev \
-    libxrender-dev libpoppler-glib-dev libtiff-dev libfftw3-dev \
-    libcfitsio-dev libnifti-dev libopenslide-dev libmatio-dev \
-    libmagickcore-dev libmagickwand-dev libjxl-dev pkg-config rustc cargo \
-    libvips-dev swig && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+	apt-get install -y --no-install-recommends \
+	build-essential \
+	bzip2 \
+	brotli \
+	curl \
+	ffmpeg \
+	git \
+	libboost-all-dev \
+	libcfitsio-dev \ 
+	libexif-dev \
+	libexpat-dev \
+	libexpat1-dev \ 
+	libgif-dev \
+	libglib2.0-dev \
+	libgsf-1-dev \ 
+	libheif-dev \
+	libimage-exiftool-perl \
+	libimagequant-dev \
+	libjpeg-dev \
+	liblapack-dev \
+	liblcms2-dev \
+	libmagic1 \
+	libopenblas-dev \
+	libopenexr-dev \ 
+	liborc-dev \
+	libpng-dev \
+	libpq-dev \
+	librsvg2-dev \
+	libsm6 \
+	libtiff5-dev \ 
+	libtool \ 
+	libtool-bin \
+	libwebp-dev \
+	libxrender-dev \
+	libpoppler-glib-dev \
+	libtiff-dev \
+	libfftw3-dev \
+	libpng-dev \
+	libcfitsio-dev \
+	libnifti-dev \
+	libopenslide-dev \
+	libopenexr-dev \
+	libmatio-dev \
+	libmagickcore-dev \
+	libmagickwand-dev \
+	libjxl-dev \
+	pkg-config \ 
+	rustc \
+	cargo \
+	libvips-dev \
+	swig && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
 
 # Install ExifTool
 WORKDIR /tmp/exiftool
@@ -67,18 +115,70 @@ ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
-# Install runtime dependencies
+# Install python
+RUN apt-get update \
+	&& apt-get install -y python3-pip python3-dev software-properties-common \
+	&& cd /usr/local/bin \
+	&& ln -s /usr/bin/python3 python \
+	&& pip3 install --upgrade --break-system-packages --ignore-installed pip \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
+
+# System packages installation
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3-pip python3-dev libboost-all-dev libcfitsio8 libexif12 \
-    libexpat1 libgif7 libglib2.0-0 libgsf-1-114 libheif1 libimagequant0 \
-    libjpeg-turbo8 liblapack3 liblcms2-2 libmagic1 libopenblas0 \
-    libopenexr25 liborc-0.4-0 libpng16-16 libpq5 librsvg2-2 libsm6 \
-    libtiff5 libwebp6 libxrender1 libpoppler-glib8 libfftw3-3 libcfitsio8 \
-    libnifti2 libopenslide0 libmatio9 libmagickcore-6.q16-6-extra \
-    libmagickwand-6.q16-6 libjxl0.7 libvips42 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+	apt-get install -y --no-install-recommends \
+	build-essential \
+	bzip2 \
+	brotli \
+	curl \
+	ffmpeg \
+	git \
+	libboost-all-dev \
+	libcfitsio-dev \ 
+	libexif-dev \
+	libexpat-dev \
+	libexpat1-dev \ 
+	libgif-dev \
+	libglib2.0-dev \
+	libgsf-1-dev \ 
+	libheif-dev \
+	libimage-exiftool-perl \
+	libimagequant-dev \
+	libjpeg-dev \
+	liblapack-dev \
+	liblcms2-dev \
+	libmagic1 \
+	libopenblas-dev \
+	libopenexr-dev \ 
+	liborc-dev \
+	libpng-dev \
+	libpq-dev \
+	librsvg2-dev \
+	libsm6 \
+	libtiff5-dev \ 
+	libtool \ 
+	libtool-bin \
+	libwebp-dev \
+	libxrender-dev \
+	libpoppler-glib-dev \
+	libtiff-dev \
+	libfftw3-dev \
+	libpng-dev \
+	libcfitsio-dev \
+	libnifti-dev \
+	libopenslide-dev \
+	libopenexr-dev \
+	libmatio-dev \
+	libmagickcore-dev \
+	libmagickwand-dev \
+	libjxl-dev \
+	pkg-config \ 
+	rustc \
+	cargo \
+	libvips-dev \
+	swig && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
 
 # Copy necessary binaries and libraries from the build stage
 COPY --from=builder /usr/local/lib /usr/local/lib
