@@ -1,4 +1,4 @@
-export const TOP_MENU_HEIGHT = 45; // don't change this
+export const TOP_MENU_HEIGHT = 55; // don't change this
 export const LEFT_MENU_WIDTH = 200; // don't change this
 export const FOOTER_HEIGHT = 50;
 export const MIN_VIEWPORT_WODTH = 350;

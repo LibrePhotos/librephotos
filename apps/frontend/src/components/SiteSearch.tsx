@@ -1,4 +1,4 @@
-import { Combobox, Group, InputBase, Loader, Text, useCombobox } from "@mantine/core";
+import { ActionIcon, Combobox, Group, Image, InputBase, Loader, Popover, Text, useCombobox } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconAlbum, IconMap, IconSearch, IconTag, IconUser, IconX } from "@tabler/icons-react";
 import React from "react";
@@ -7,6 +7,7 @@ import { push } from "redux-first-history";
 
 import { SearchOption, SearchOptionType, useSearch } from "../service/use-search";
 import { useAppDispatch } from "../store/store";
+import classes from "./SiteSearch.module.css";
 
 const ICON_SIZE = 20;
 
@@ -34,13 +35,14 @@ export function SiteSearch() {
   const dispatch = useAppDispatch();
   const searchWidth = width ? width - width / 1.8 : 200;
   const [value, setValue] = React.useState("");
+  const [personToBeSelected, setPersonToBeSelected] = React.useState<string | null>(null);
 
   function getSearchRightIcon() {
     if (isLoading) return <Loader size="xs" type="dots" />;
     if (value) {
       return (
         <IconX
-          size="sm"
+          className={classes.clearSearch}
           onMouseDown={event => event.preventDefault()}
           onClick={() => {
             setValue("");
@@ -51,6 +53,10 @@ export function SiteSearch() {
       );
     }
     return null;
+  }
+
+  function showPersonNameToBeSelected(name: string): boolean {
+    return name === personToBeSelected;
   }
 
   function search(query: string) {
@@ -77,26 +83,53 @@ export function SiteSearch() {
     }
   }
 
-  const searchOptions = options.map(item => (
-    <Combobox.Option value={item.value} key={item.value}>
-      <Group wrap="nowrap">
-        {getIconForItem(item)}
-        <Text>{item.value}</Text>
-      </Group>
-    </Combobox.Option>
-  ));
+  function onOptionSubmit(val: string) {
+    setValue(val);
+    search(val);
+    combobox.closeDropdown();
+  }
+
+  const searchOptionsDefault = options.filter(option => option.type !== SearchOptionType.PEOPLE);
+  const searchOptionsPeople = options.filter(option => option.type === SearchOptionType.PEOPLE);
+  const searchOptions = searchOptionsDefault
+    .map(item => (
+      <Combobox.Option value={item.value} key={item.value}>
+        <Group wrap="nowrap">
+          {getIconForItem(item)}
+          <Text>{item.value}</Text>
+        </Group>
+      </Combobox.Option>
+    ))
+    .concat([
+      <Combobox.Empty className={classes.people}>
+        <Group wrap="nowrap">
+          {searchOptionsPeople.map(person => (
+            <Popover withArrow opened={showPersonNameToBeSelected(person.value)}>
+              <Popover.Target>
+                <ActionIcon
+                  className={classes.person}
+                  onMouseEnter={() => setPersonToBeSelected(person.value)}
+                  onMouseLeave={() => setPersonToBeSelected(null)}
+                  size="xl"
+                  radius="xl"
+                  variant="transparent"
+                  onClick={() => onOptionSubmit(person.value)}
+                >
+                  <Image src={person.thumbnail} />
+                </ActionIcon>
+              </Popover.Target>
+              <Popover.Dropdown p="xs">
+                <Text size="xs">{person.value}</Text>
+              </Popover.Dropdown>
+            </Popover>
+          ))}
+        </Group>
+      </Combobox.Empty>,
+    ]);
 
   return (
     <div style={{ width: searchWidth }}>
-      <Combobox
-        store={combobox}
-        withinPortal
-        onOptionSubmit={val => {
-          setValue(val);
-          search(val);
-          combobox.closeDropdown();
-        }}
-      >
+      <Combobox store={combobox} withinPortal onOptionSubmit={option => onOptionSubmit(option)}>
         <Combobox.Target>
           <InputBase
             leftSection={<IconSearch size={16} />}

@@ -13,6 +13,5 @@
 - low: dark mode visibility text sidemenu
 - low: refactor sidebar with NavLink
 - low: notifications not visible
-- optional: refactor site search with combobox
 - optional: refactor tree with latest mantine tree (and remove existing one)
 - optional: move color theme switch to top menu for convenience
