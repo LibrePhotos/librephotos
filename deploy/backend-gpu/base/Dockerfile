@@ -57,12 +57,8 @@ RUN apt-get update && \
 	libopenslide-dev \
 	libopenexr-dev \
 	libmatio-dev \
-	libmagickcore-dev \
-	libmagickwand-dev \
 	libjxl-dev \
 	pkg-config \ 
-	rustc \
-	cargo \
 	libvips-dev \
 	swig && \
 	apt-get clean && \
@@ -127,56 +123,11 @@ RUN apt-get update \
 # System packages installation
 RUN apt-get update && \
 	apt-get install -y --no-install-recommends \
-	build-essential \
-	bzip2 \
 	brotli \
 	curl \
 	ffmpeg \
 	git \
-	libboost-all-dev \
-	libcfitsio-dev \ 
-	libexif-dev \
-	libexpat-dev \
-	libexpat1-dev \ 
-	libgif-dev \
-	libglib2.0-dev \
-	libgsf-1-dev \ 
-	libheif-dev \
-	libimage-exiftool-perl \
-	libimagequant-dev \
-	libjpeg-dev \
-	liblapack-dev \
-	liblcms2-dev \
-	libmagic1 \
-	libopenblas-dev \
-	libopenexr-dev \ 
-	liborc-dev \
-	libpng-dev \
-	libpq-dev \
-	librsvg2-dev \
-	libsm6 \
-	libtiff5-dev \ 
-	libtool \ 
-	libtool-bin \
-	libwebp-dev \
-	libxrender-dev \
-	libpoppler-glib-dev \
-	libtiff-dev \
-	libfftw3-dev \
-	libpng-dev \
-	libcfitsio-dev \
-	libnifti-dev \
-	libopenslide-dev \
-	libopenexr-dev \
-	libmatio-dev \
-	libmagickcore-dev \
-	libmagickwand-dev \
-	libjxl-dev \
-	pkg-config \ 
-	rustc \
-	cargo \
 	libvips-dev \
-	swig && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
