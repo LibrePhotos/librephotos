@@ -21,6 +21,7 @@ RUN apt-get update && \
 	curl \
 	ffmpeg \
 	git \
+ 	cmake \
 	libboost-all-dev \
 	libcfitsio-dev \ 
 	libexif-dev \
@@ -73,7 +74,7 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
     rm -rf /tmp/exiftool
 
 # Install Python libraries and cmake
-RUN pip3 install --no-cache-dir --break-system-packages torch torchvision cmake
+RUN pip3 install --no-cache-dir --break-system-packages torch torchvision
 
 # Build and install LibRaw
 WORKDIR /tmp/builds
