@@ -121,23 +121,30 @@ RUN apt-get update \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/*
 
-# System packages installation
+# Install minimal required libraries
 RUN apt-get update && \
-	apt-get install -y --no-install-recommends \
-	brotli \
-	curl \
-	ffmpeg \
-	git \
-	libvips-dev \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+    brotli \
+    curl \
+    ffmpeg \
+    git \
+    libvips-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libwebp-dev \
+    libraw-dev \
+    libboost-all-dev \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy necessary binaries and libraries from the build stage
-COPY --from=builder /usr/local/lib /usr/local/lib
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /usr/local/include /usr/local/include
-
-# Copy Python packages
+# Copy only required components from the builder stage
+COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
+COPY --from=builder /usr/local/lib/perl5 /usr/local/lib/  # For ExifTool
+COPY --from=builder /usr/local/bin/magick /usr/local/bin/
+COPY --from=builder /usr/local/bin/exiftool /usr/local/bin/
 COPY --from=builder /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/dist-packages
 
 # Update dynamic linker cache
