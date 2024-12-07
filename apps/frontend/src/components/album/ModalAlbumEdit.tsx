@@ -1,7 +1,7 @@
 import { Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -27,11 +27,6 @@ export function ModalAlbumEdit(props: Props) {
   const { data: albumsUserList = [] } = useFetchUserAlbumsQuery();
   const [createUserAlbum] = useCreateUserAlbumMutation();
   const [addPhotoToUserAlbum] = useAddPhotoToUserAlbumMutation();
-  const [filteredUserAlbumList, setFilteredUserAlbumList] = useState(albumsUserList);
-
-  useEffect(() => {
-    setFilteredUserAlbumList(albumsUserList.filter(el => fuzzyMatch(newAlbumTitle, el.title)));
-  }, [newAlbumTitle, albumsUserList]);
 
   return (
     <Modal
@@ -90,8 +85,9 @@ export function ModalAlbumEdit(props: Props) {
         </Group>
         <Divider />
         <Stack style={{ height: matches ? "50vh" : "25vh", overflowY: "scroll" }}>
-          {filteredUserAlbumList.length > 0 &&
-            filteredUserAlbumList.map(item => (
+          {albumsUserList
+            .filter(el => fuzzyMatch(newAlbumTitle, el.title))
+            .map(item => (
               <UnstyledButton
                 key={`ub-${item.id}`}
                 onClick={() => {
