@@ -45,7 +45,7 @@ export function Toolbar(props: Props) {
       }
     }
     return (
-      <ActionIcon className={classes.icon} onClick={() => togglePlay()} variant="transparent">
+      <ActionIcon onClick={() => togglePlay()} variant="transparent">
         {playerLoading && <Loader color="grey" />}
         {!playerLoading && playerPlaying ? <PlayerPause /> : <PlayerPlay />}
       </ActionIcon>
