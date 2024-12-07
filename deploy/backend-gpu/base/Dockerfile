@@ -65,9 +65,6 @@ RUN apt-get update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-# Install Python libraries and cmake
-RUN pip3 install --no-cache-dir --break-system-packages torch torchvision
-
 # Build and install LibRaw
 WORKDIR /tmp/builds
 RUN git clone https://github.com/LibRaw/LibRaw && \
@@ -106,7 +103,7 @@ WORKDIR /app
 
 # Install python
 RUN apt-get update \
-	&& apt-get install -y python3-pip python3-dev software-properties-common \
+	&& apt-get install -y python3-pip python3-dev\
 	&& cd /usr/local/bin \
 	&& ln -s /usr/bin/python3 python \
 	&& pip3 install --upgrade --break-system-packages --ignore-installed pip \
@@ -138,12 +135,14 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
     make install && \
     rm -rf /tmp/exiftool
 
+RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin/
-COPY --from=builder /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/dist-packages
+COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib /usr/local/lib/python3.12/dist-packages/dlib
 
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib
