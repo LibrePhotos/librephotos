@@ -65,14 +65,6 @@ RUN apt-get update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-# Install ExifTool
-WORKDIR /tmp/exiftool
-RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
-    cd Image-ExifTool-13.04 && \
-    perl Makefile.PL && \
-    make install && \
-    rm -rf /tmp/exiftool
-
 # Install Python libraries and cmake
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision
 
@@ -138,13 +130,19 @@ RUN apt-get update && \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install ExifTool
+WORKDIR /tmp/exiftool
+RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
+    cd Image-ExifTool-13.04 && \
+    perl Makefile.PL && \
+    make install && \
+    rm -rf /tmp/exiftool
+
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
-COPY --from=builder /usr/local/lib/perl5 /usr/local/lib/  # For ExifTool
 COPY --from=builder /usr/local/bin/magick /usr/local/bin/
-COPY --from=builder /usr/local/bin/exiftool /usr/local/bin/
 COPY --from=builder /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/dist-packages
 
 # Update dynamic linker cache
