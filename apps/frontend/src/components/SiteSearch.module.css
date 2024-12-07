@@ -1,0 +1,13 @@
+.clearSearch {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+}
+
+.person {
+  transition: transform 0.3s;
+
+  &:hover {
+    transform: scale(1.3);
+  }
+}
