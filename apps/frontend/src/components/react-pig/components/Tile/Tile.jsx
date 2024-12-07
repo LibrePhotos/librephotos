@@ -214,7 +214,7 @@ Tile.propTypes = {
   containerWidth: PropTypes.number.isRequired,
   containerOffsetTop: PropTypes.number.isRequired,
   getUrl: PropTypes.func.isRequired,
-  activeTileUrl: PropTypes.string.isRequired,
+  activeTileUrl: PropTypes.string,
   handleClick: PropTypes.func.isRequired,
   handleSelection: PropTypes.func.isRequired,
   selected: PropTypes.bool.isRequired,
