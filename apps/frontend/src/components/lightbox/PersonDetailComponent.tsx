@@ -1,10 +1,5 @@
 import { ActionIcon, Avatar, Button, Group, Indicator, Text, Tooltip } from "@mantine/core";
-import {
-  IconEdit as Edit,
-  IconTrash as Trash,
-  IconUserCheck as UserCheck,
-  IconUserOff as UserOff,
-} from "@tabler/icons-react";
+import { IconEdit, IconTrash, IconUserCheck, IconUserOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
@@ -16,7 +11,7 @@ import { useAppDispatch } from "../../store/store";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 
-type PersonDetailProps = {
+type Props = {
   person: any;
   isPublic: boolean;
   setFaceLocation: (face: any) => void;
@@ -24,28 +19,22 @@ type PersonDetailProps = {
   notThisPerson: (faceId: string) => void;
 };
 
-export const PersonDetail: React.FC<PersonDetailProps> = ({
-  person,
-  isPublic,
-  setFaceLocation,
-  onPersonEdit,
-  notThisPerson,
-}) => {
+export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson }: Props) {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [tooltipOpened, setTooltipOpened] = useState(false);
 
   return (
     <Group
-      position="center"
-      spacing="xs"
+      align="center"
+      gap="xs"
       key={person.name}
       onMouseEnter={() => setFaceLocation(person.location)}
       onMouseLeave={() => setFaceLocation(null)}
     >
       <Button
         variant="subtle"
-        leftIcon={
+        leftSection={
           <FaceTooltip tooltipOpened={tooltipOpened} probability={person.probability}>
             <Indicator
               color={calculateProbabiltyColor(person.probability)}
@@ -59,9 +48,7 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({
         }
         onClick={() => !isPublic && dispatch(push(`/search/${person.name}`))}
       >
-        <Text align="center" size="sm">
-          {person.name}
-        </Text>
+        <Text size="sm">{person.name}</Text>
       </Button>
       {!isPublic && person.type !== "user" && (
         <Tooltip label={t("facesdashboard.explanationadding")}>
@@ -74,21 +61,21 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({
             variant="light"
             color="green"
           >
-            <UserCheck />
+            <IconUserCheck />
           </ActionIcon>
         </Tooltip>
       )}
       {!isPublic && (
         <Tooltip label={t("facesdashboard.explanationadding")}>
           <ActionIcon onClick={() => onPersonEdit(person.face_id, person.face_url)} variant="light">
-            <Edit />
+            <IconEdit />
           </ActionIcon>
         </Tooltip>
       )}
       {!isPublic && (
         <Tooltip label={t("facesdashboard.notthisperson")}>
           <ActionIcon variant="light" color="orange" onClick={() => notThisPerson(person.face_id)}>
-            <UserOff />
+            <IconUserOff />
           </ActionIcon>
         </Tooltip>
       )}
@@ -102,10 +89,10 @@ export const PersonDetail: React.FC<PersonDetailProps> = ({
               notification.deleteFaces(1);
             }}
           >
-            <Trash />
+            <IconTrash />
           </ActionIcon>
         </Tooltip>
       )}
     </Group>
   );
-};
+}
