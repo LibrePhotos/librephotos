@@ -90,7 +90,10 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     mkdir dlib/build && \
     cd dlib/build && \
     cmake .. -DLIB_USE_CUDA=1 -DUSE_AVX_INSTRUCTIONS=0 -DLIB_NO_GUI_SUPPORT=0 && \
-    cmake --build .
+    cmake --build . && \
+    cd /tmp/builds/dlib && \
+    python3 setup.py install --no USE_AVX_INSTRUCTIONS --no USE_SSE4_INSTRUCTIONS && \
+    rm -rf /tmp/builds/*
 
 # Stage 2: Deployment Stage
 FROM ubuntu:24.04
@@ -138,12 +141,10 @@ RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extr
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
-COPY --from=builder /usr/local/bin/magick /usr/local/bin/
-COPY --from=builder /tmp/builds/dlib /tmp/dlib
+COPY --from=builder /usr/local/bin/magick /usr/local/bin
+COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg /usr/local/lib/python3.12/dist-packages/ 
 
-# Install dlib from the copied build folder
-WORKDIR /tmp/dlib
-RUN python3 setup.py install --no USE_AVX_INSTRUCTIONS --no USE_SSE4_INSTRUCTIONS
+RUN pip3 install --no-cache-dir --break-system-packages /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg
 
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib
