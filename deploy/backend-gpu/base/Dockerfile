@@ -144,5 +144,8 @@ COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin/
 COPY --from=builder /usr/local/lib/python3.12/dist-packages/*.egg /usr/local/lib/python3.12/dist-packages/
 
+# Install dlib
+RUN pip3 install /usr/local/lib/python3.12/dist-packages/*.egg
+
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib
