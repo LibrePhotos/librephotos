@@ -16,7 +16,7 @@ type Props = {
   isPublic: boolean;
   setFaceLocation: (face: any) => void;
   onPersonEdit: (faceId: string, faceUrl: string) => void;
-  notThisPerson: (faceId: string) => void;
+  notThisPerson: (faceId: number) => void;
 };
 
 export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson }: Props) {
