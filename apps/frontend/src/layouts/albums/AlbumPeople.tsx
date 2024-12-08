@@ -1,4 +1,3 @@
-
 import { ActionIcon, Avatar, Button, Flex, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -13,11 +12,11 @@ import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import {
-  Person,
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/people";
+import type { Person } from "../../api_client/albums/people";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";
@@ -51,11 +50,12 @@ export function AlbumPeople() {
     showRenameDialog();
   }
 
-  function getPersonIcon(album) {
+  function getPersonIcon(album: Person) {
     if (album.face_count === 0) {
       return <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />;
     }
-    if (album.text === "unknown") {
+    if (album.name === "unknown") {
+      // if (album.text === "unknown") {
       return (
         <Link to={`/person/${album.id}`}>
           <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />
@@ -96,10 +96,10 @@ export function AlbumPeople() {
               </Menu.Target>
 
               <Menu.Dropdown>
-                <Menu.Item icon={<Edit />} onClick={() => openRenameDialog(album)}>
+                <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(album)}>
                   {t("rename")}
                 </Menu.Item>
-                <Menu.Item icon={<Trash />} onClick={() => openDeleteDialog(album)}>
+                <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(album)}>
                   {t("delete")}
                 </Menu.Item>
               </Menu.Dropdown>
@@ -119,7 +119,7 @@ export function AlbumPeople() {
   }
 
   return (
-    <div>
+    <>
       <HeaderComponent
         icon={<Users size={50} />}
         title={t("people")}
@@ -128,6 +128,23 @@ export function AlbumPeople() {
           peoplelength: (albums && albums.length) || 0,
         })}
       />
+      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
+        {({ width }) => (
+          <Grid
+            style={{ outline: "none" }}
+            headerHeight={100}
+            disableHeader={false}
+            cellRenderer={props => renderCell(props)}
+            columnWidth={entrySquareSize}
+            columnCount={entriesPerRow}
+            height={gridHeight}
+            rowHeight={entrySquareSize + 60}
+            rowCount={numberOfRows}
+            width={width}
+          />
+        )}
+      </AutoSizer>
+
       <Modal
         title={t("personalbum.renamepersonheader", { name: selectedAlbum.name })}
         onClose={hideRenameDialog}
@@ -154,7 +171,7 @@ export function AlbumPeople() {
               renamePerson({
                 id: selectedAlbum.id,
                 personName: selectedAlbum.name,
-                newPersonName: newPersonName,
+                newPersonName,
               });
             }}
             disabled={
@@ -181,23 +198,6 @@ export function AlbumPeople() {
           </Button>
         </Group>
       </Modal>
-
-      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width }) => (
-          <Grid
-            style={{ outline: "none" }}
-            headerHeight={100}
-            disableHeader={false}
-            cellRenderer={props => renderCell(props)}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            height={gridHeight}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
-            width={width}
-          />
-        )}
-      </AutoSizer>
-    </div>
+    </>
   );
 }

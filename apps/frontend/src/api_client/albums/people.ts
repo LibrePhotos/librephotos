@@ -8,7 +8,7 @@ export const PersonResponseSchema = z.object({
   name: z.string(),
   face_url: z.string().nullable(),
   face_count: z.number(),
-  face_photo_url: z.string().nullable(),
+  face_photo_url: z.string(),
   video: z.boolean().optional(),
   id: z.number(),
   newPersonName: z.string().optional(),
@@ -67,7 +67,7 @@ export const peopleAlbumsApi = api
           method: "PATCH",
           body: { newPersonName },
         }),
-        transformResponse: (response, meta, query) => {
+        transformResponse: (_response, _meta, query) => {
           notification.renamePerson(query.personName, query.newPersonName);
         },
       }),
