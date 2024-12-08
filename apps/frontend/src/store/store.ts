@@ -1,4 +1,3 @@
-/* eslint-disable import/no-cycle */
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { createBrowserHistory } from "history";

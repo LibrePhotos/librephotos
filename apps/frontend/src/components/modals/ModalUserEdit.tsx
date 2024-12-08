@@ -256,7 +256,6 @@ export function ModalUserEdit(props: Props) {
               leftSection={<User />}
               placeholder={t("login.usernameplaceholder")}
               name="username"
-              /* eslint-disable-next-line react/jsx-props-no-spreading */
               {...form.getInputProps("username")}
             />
             <TextInput
@@ -264,7 +263,6 @@ export function ModalUserEdit(props: Props) {
               leftSection={<Mail />}
               placeholder={t("settings.emailplaceholder")}
               name="email"
-              /* eslint-disable-next-line react/jsx-props-no-spreading */
               {...form.getInputProps("email")}
             />
             <TextInput
@@ -272,7 +270,6 @@ export function ModalUserEdit(props: Props) {
               leftSection={<User />}
               placeholder={t("settings.firstnameplaceholder")}
               name="first_name"
-              /* eslint-disable-next-line react/jsx-props-no-spreading */
               {...form.getInputProps("first_name")}
             />
             <TextInput
@@ -280,7 +277,6 @@ export function ModalUserEdit(props: Props) {
               leftSection={<User />}
               placeholder={t("settings.lastnameplaceholder")}
               name="last_name"
-              /* eslint-disable-next-line react/jsx-props-no-spreading */
               {...form.getInputProps("last_name")}
             />
           </SimpleGrid>
@@ -304,7 +300,6 @@ export function ModalUserEdit(props: Props) {
                   required={firstTimeSetup}
                   placeholder={scanDirectoryPlaceholder}
                   name="scan_directory"
-                  /* eslint-disable-next-line react/jsx-props-no-spreading */
                   {...form.getInputProps("scan_directory")}
                 />
               </Grid.Col>

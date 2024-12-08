@@ -1,5 +1,4 @@
 import { Autocomplete, Avatar, Group, Text } from "@mantine/core";
-// import type { AutocompleteItem } from "@mantine/core";
 import { useInterval, useViewportSize } from "@mantine/hooks";
 import {
   IconAlbum as Album,
@@ -63,7 +62,6 @@ function toPeopleSuggestion(item: Person) {
 
 const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
   ({ icon = <Search />, value, ...rest }: SearchSuggestion, ref) => (
-    /* eslint-disable react/jsx-props-no-spreading */
     <div ref={ref} {...rest}>
       <Group wrap="nowrap">
         {cloneElement(icon as React.ReactElement, { size: 20 })}
