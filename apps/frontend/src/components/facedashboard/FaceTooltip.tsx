@@ -21,8 +21,8 @@ export function FaceTooltip({ tooltipOpened, probability, timestamp, children = 
       ? t("settings.confidencepercentage", { percentage: (probability * 100).toFixed(1) })
       : null;
 
-  const dateTimeLabel = DateTime.fromISO(timestamp ? timestamp : "undefined").isValid
-    ? DateTime.fromISO(timestamp ? timestamp : "undefined")
+  const dateTimeLabel = DateTime.fromISO(timestamp || "undefined").isValid
+    ? DateTime.fromISO(timestamp || "undefined")
         .setLocale(i18nResolvedLanguage())
         .toLocaleString(DateTime.DATETIME_MED)
     : null;
