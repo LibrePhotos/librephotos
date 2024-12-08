@@ -19,6 +19,7 @@ import {
   CompletePersonFaceList,
   DeleteFacesRequest,
   DeleteFacesResponse,
+  FacesTab,
   IncompletePersonFaceListRequest,
   IncompletePersonFaceListResponse,
   PersonFaceList,
@@ -171,7 +172,7 @@ export const api = createApi({
     [Endpoints.fetchUserSelfDetails]: builder.query<IUser, string>({
       query: userId => `/user/${userId}/`,
       transformResponse: (response: string) => UserSchema.parse(response),
-      providesTags: (result, error, id) => [{ type: "UserSelfDetails" as const, id }],
+      providesTags: (_result, _error, id) => [{ type: "UserSelfDetails" as const, id }],
     }),
     [Endpoints.fetchUserList]: builder.query<UserList, void>({
       query: () => ({
@@ -232,8 +233,7 @@ export const api = createApi({
         });
         return newFacesList;
       },
-      providesTags: (result, error, { inferred, method, orderBy }) =>
-        result ? result.map(({ id }) => ({ type: "Faces", id })) : ["Faces"],
+      providesTags: result => (result ? result.map(({ id }) => ({ type: "Faces", id })) : ["Faces"]),
     }),
     [Endpoints.fetchFaces]: builder.query<PersonFaceList, PersonFaceListRequest>({
       query: ({ person, page = 0, inferred = false, orderBy = "confidence", method, minConfidence }) => ({
@@ -271,7 +271,7 @@ export const api = createApi({
           )
         );
       },
-      providesTags: (result, error, { person }) => [{ type: "Faces", id: person }],
+      providesTags: (_result, _error, { person }) => [{ type: "Faces", id: person }],
     }),
     [Endpoints.deleteFaces]: builder.mutation<DeleteFacesResponse, DeleteFacesRequest>({
       query: ({ faceIds }) => ({
@@ -285,17 +285,18 @@ export const api = createApi({
       },
       async onQueryStarted({ faceIds }, { dispatch, queryFulfilled, getState }) {
         const { activeTab, analysisMethod, orderBy } = getState().face;
-        const incompleteFacesArgs = { inferred: activeTab !== "labeled", method: analysisMethod, orderBy: orderBy };
+        const incompleteFacesArgs = { inferred: activeTab !== FacesTab.enum.labeled, method: analysisMethod, orderBy };
 
         const patchIncompleteFaces = dispatch(
           api.util.updateQueryData(Endpoints.incompleteFaces, incompleteFacesArgs, draft => {
+            /* draft is wrapper with immer */
+            /* eslint-disable no-param-reassign */
             draft.forEach(personGroup => {
               personGroup.faces = personGroup.faces.filter(face => !faceIds.includes(face.id));
             });
             draft.forEach(personGroup => {
               personGroup.face_count = personGroup.faces.length;
             });
-
             draft = draft.filter(personGroup => personGroup.faces.length > 0);
           })
         );
@@ -315,7 +316,7 @@ export const api = createApi({
       }),
       transformResponse: response => {
         const payload = SetFacesLabelResponse.parse(response);
-        notification.addFacesToPerson(payload.results[0].person_name, payload.results.length);
+        notification.addFacesToPerson(payload.results[0].person_name ?? "unknown", payload.results.length);
         return payload;
       },
       // To-Do: Handle optimistic updates by updating the cache. The issue is that there are multiple caches that need to be updated, where we need to remove the faces from the incomplete faces cache and add them to the labeled faces cache.
