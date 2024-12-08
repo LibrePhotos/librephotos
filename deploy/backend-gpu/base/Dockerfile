@@ -142,6 +142,7 @@ COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin/
+COPY --from=builder /usr/local/lib/python3.12/dist-packages/*.egg /usr/local/lib/python3.12/dist-packages/
 
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib
