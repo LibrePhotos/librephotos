@@ -142,7 +142,7 @@ COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin
-COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg /usr/local/lib/python3.12/dist-packages/ 
+COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib* /usr/local/lib/python3.12/dist-packages/ 
 
 RUN pip3 install --no-cache-dir --break-system-packages /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg
 
