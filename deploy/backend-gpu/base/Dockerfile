@@ -96,7 +96,6 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     rm -rf /tmp/builds/*
 
 RUN ls -l /usr/local/lib/python3.12/dist-packages
-RUN ls -l /usr/local/lib/python3.12/site-packages
 
 # Stage 2: Deployment Stage
 FROM ubuntu:24.04
