@@ -115,8 +115,6 @@ RUN apt-get update \
 # Install minimal required libraries
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    brotli \
-    curl \
     ffmpeg \
     git \
     libvips-dev \
@@ -125,8 +123,6 @@ RUN apt-get update && \
     libpng-dev \
     libtiff5-dev \
     libwebp-dev \
-    libraw-dev \
-    libboost-all-dev \
     libopenblas-dev \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
