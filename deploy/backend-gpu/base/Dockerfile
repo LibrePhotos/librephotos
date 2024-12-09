@@ -128,6 +128,7 @@ RUN apt-get update && \
     libraw-dev \
     libboost-all-dev \
     libopenblas-dev \
+    cuda-runtime-12-6 \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
