@@ -127,6 +127,7 @@ RUN apt-get update && \
     libwebp-dev \
     libraw-dev \
     libboost-all-dev \
+    libopenblas-dev \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
