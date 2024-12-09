@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM nvidia/cuda:12.6.2-cudnn-devel-ubuntu24.04 AS builder
+FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04 AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -98,7 +98,7 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
 RUN ls -l /usr/local/lib/python3.12/dist-packages
 
 # Stage 2: Deployment Stage
-FROM nvidia/cuda:12.6.0-runtime-ubuntu24.04
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
