@@ -98,7 +98,7 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
 RUN ls -l /usr/local/lib/python3.12/dist-packages
 
 # Stage 2: Deployment Stage
-FROM ubuntu:24.04
+FROM nvidia/cuda:12.6.0-runtime-ubuntu24.04
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
@@ -128,7 +128,6 @@ RUN apt-get update && \
     libraw-dev \
     libboost-all-dev \
     libopenblas-dev \
-    cuda-runtime-12-6 \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
