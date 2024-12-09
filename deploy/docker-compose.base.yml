@@ -1,0 +1,78 @@
+# DO NOT EDIT
+# The .env file has everything you need to edit.
+# Run options:
+# 1. Use prebuilt images (preferred method):
+#   run cmd: docker compose up -d
+# 2. Build images on your own machine:
+#   build cmd: docker compose build
+#   run cmd: docker compose up -d
+
+services:
+  proxy:
+    image: reallibrephotos/librephotos-proxy:${tag}
+    container_name: proxy
+    restart: unless-stopped
+    volumes:
+      - ${scanDirectory}:/data
+      - ${data}/protected_media:/protected_media
+    ports:
+      - ${httpPort}:80
+    healthcheck:
+      test: curl --fail http://localhost:80
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  db:
+    image: pgautoupgrade/pgautoupgrade:latest
+    container_name: db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${dbUser}
+      - POSTGRES_PASSWORD=${dbPass}
+      - POSTGRES_DB=${dbName}
+    volumes:
+      - ${data}/db:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U ${dbUser} -d ${dbName}
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  frontend:
+    image: reallibrephotos/librephotos-frontend:${tag}
+    container_name: frontend
+    restart: unless-stopped
+
+  backend:
+    image: reallibrephotos/librephotos:${tag}
+    container_name: backend
+    restart: unless-stopped
+    volumes:
+      - ${scanDirectory}:/data
+      - ${data}/protected_media:/protected_media
+      - ${data}/logs:/logs
+      - ${data}/cache:/root/.cache
+    environment:
+      - SECRET_KEY=${shhhhKey:-}
+      - BACKEND_HOST=backend
+      - ADMIN_EMAIL=${adminEmail:-}
+      - ADMIN_USERNAME=${userName:-}
+      - ADMIN_PASSWORD=${userPass:-}
+      - DB_BACKEND=postgresql
+      - DB_NAME=${dbName}
+      - DB_USER=${dbUser}
+      - DB_PASS=${dbPass}
+      - DB_HOST=${dbHost}
+      - DB_PORT=5432
+      - MAPBOX_API_KEY=${mapApiKey:-}
+      - WEB_CONCURRENCY=${gunniWorkers:-1}
+      - SKIP_PATTERNS=${skipPatterns:-}
+      - ALLOW_UPLOAD=${allowUpload:-false}
+      - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
+      - DEBUG=0
+    healthcheck:
+      test: curl --fail http://localhost:8001/api/schema
+      interval: 3s
+      timeout: 3s
+      retries: 10
