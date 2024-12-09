@@ -122,6 +122,7 @@ RUN apt-get update && \
     git \
     libvips-dev \
     libjpeg-dev \
+    libgif-dev \
     libpng-dev \
     libtiff5-dev \
     libwebp-dev \
