@@ -115,6 +115,7 @@ RUN apt-get update \
 # Install minimal required libraries
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    curl \
     ffmpeg \
     git \
     libvips-dev \
