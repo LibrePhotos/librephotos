@@ -95,6 +95,8 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no USE_SSE4_INSTRUCTIONS && \
     rm -rf /tmp/builds/*
 
+RUN ls -l /usr/local/lib/python3.12/dist-packages
+
 # Stage 2: Deployment Stage
 FROM ubuntu:24.04
 ARG TARGETPLATFORM
