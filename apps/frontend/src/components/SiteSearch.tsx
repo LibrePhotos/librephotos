@@ -1,4 +1,4 @@
-import { ActionIcon, Combobox, Group, Image, InputBase, Loader, Popover, Text, useCombobox } from "@mantine/core";
+import { ActionIcon, Box, Combobox, Group, Image, InputBase, Loader, Popover, Text, useCombobox } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconAlbum, IconMap, IconSearch, IconTag, IconUser, IconX } from "@tabler/icons-react";
 import React from "react";
@@ -101,10 +101,10 @@ export function SiteSearch() {
       </Combobox.Option>
     ))
     .concat([
-      <Combobox.Empty className={classes.people}>
+      <Combobox.Empty className={classes.people} key="people">
         <Group wrap="nowrap">
           {searchOptionsPeople.map(person => (
-            <Popover withArrow opened={showPersonNameToBeSelected(person.value)}>
+            <Popover key={person.value} withArrow opened={showPersonNameToBeSelected(person.value)}>
               <Popover.Target>
                 <ActionIcon
                   className={classes.person}
@@ -128,7 +128,7 @@ export function SiteSearch() {
     ]);
 
   return (
-    <div style={{ width: searchWidth }}>
+    <Box style={{ width: searchWidth }}>
       <Combobox store={combobox} withinPortal onOptionSubmit={option => onOptionSubmit(option)}>
         <Combobox.Target>
           <InputBase
@@ -157,10 +157,10 @@ export function SiteSearch() {
 
         <Combobox.Dropdown>
           <Combobox.Options>
-            {isLoading ? <Combobox.Empty>{t("loading")}</Combobox.Empty> : searchOptions}
+            {isLoading ? <Combobox.Empty key="loader">{t("loading")}</Combobox.Empty> : searchOptions}
           </Combobox.Options>
         </Combobox.Dropdown>
       </Combobox>
-    </div>
+    </Box>
   );
 }

@@ -75,7 +75,6 @@ export function LoginPage(): JSX.Element {
                   leftSection={<User />}
                   placeholder={t("login.usernameplaceholder")}
                   name="username"
-                  /* eslint-disable-next-line react/jsx-props-no-spreading */
                   {...form.getInputProps("username")}
                 />
                 <PasswordInput
@@ -83,7 +82,6 @@ export function LoginPage(): JSX.Element {
                   leftSection={<Lock />}
                   placeholder={t("login.passwordplaceholder")}
                   name="password"
-                  /* eslint-disable-next-line react/jsx-props-no-spreading */
                   {...form.getInputProps("password")}
                 />
                 <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">

@@ -3,7 +3,6 @@ import jwtDecode from "jwt-decode";
 import { Cookies } from "react-cookie";
 import { push } from "redux-first-history";
 
-// eslint-disable-next-line import/no-cycle
 import { api } from "../../api_client/api";
 import { AuthErrorSchema } from "./auth.zod";
 import type { IAuthState, IToken } from "./auth.zod";
@@ -47,17 +46,17 @@ const authSlice = createSlice({
           token: payload.refresh,
         },
       }))
-      .addMatcher(api.endpoints.login.matchRejected, (state, { payload }) => ({
+      .addMatcher(api.endpoints.login.matchRejected, (_state, { payload }) => ({
         access: null,
         refresh: null,
         error: AuthErrorSchema.parse(payload),
       }))
-      .addMatcher(api.endpoints.signUp.matchRejected, (state, { payload }) => ({
+      .addMatcher(api.endpoints.signUp.matchRejected, (_state, { payload }) => ({
         access: null,
         refresh: null,
         error: AuthErrorSchema.parse(payload),
       }))
-      .addMatcher(api.endpoints.logout.matchFulfilled, state => {
+      .addMatcher(api.endpoints.logout.matchFulfilled, () => {
         cookies.remove("access");
         cookies.remove("refresh");
         push("/login");

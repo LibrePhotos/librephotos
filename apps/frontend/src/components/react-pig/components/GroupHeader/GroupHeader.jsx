@@ -39,7 +39,7 @@ GroupHeader.propTypes = {
     location: PropTypes.string,
     date: PropTypes.string,
   }).isRequired,
-  activeTileUrl: PropTypes.string.isRequired,
+  activeTileUrl: PropTypes.string,
 };
 
 export default GroupHeader;

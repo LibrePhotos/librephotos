@@ -343,6 +343,6 @@ Pig.propTypes = {
   updateGroups: PropTypes.func,
   updateItems: PropTypes.func,
   selectedItems: PropTypes.arrayOf(PropTypes.shape({})),
-  toprightoverlay: PropTypes.shape({}),
-  bottomleftoverlay: PropTypes.shape({}),
+  toprightoverlay: PropTypes.func,
+  bottomleftoverlay: PropTypes.func,
 };

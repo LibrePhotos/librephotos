@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
 import _ from "lodash";
@@ -242,7 +241,6 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     []
   );
 
-  // eslint-disable-next-line arrow-body-style
   useEffect(() => {
     targetRef.current = document.getElementsByClassName("scrollscrubbertarget")?.item(0);
     // Clear scrollerVisibilityTimerRef on dismount

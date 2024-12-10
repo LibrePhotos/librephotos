@@ -107,7 +107,7 @@ export function AlbumUser() {
           <div style={{ position: "absolute", top: 10, right: 10 }}>
             <Menu position="bottom-end">
               <Menu.Target>
-                <ActionIcon>
+                <ActionIcon variant="subtle" c="gray">
                   <DotsVertical />
                 </ActionIcon>
               </Menu.Target>

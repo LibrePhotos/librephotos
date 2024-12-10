@@ -1,5 +1,5 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
-import { RemoveScroll, Stack } from "@mantine/core";
+import { Flex, RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
@@ -358,7 +358,7 @@ export function FaceDashboard() {
             notThisPerson={notThisPersonFunc}
           />
         </Stack>
-        <div ref={ref} style={{ flexGrow: 1 }}>
+        <Flex ref={ref} style={{ flexGrow: 1, padding: "0 15px" }}>
           <AutoSizer>
             {({ height, width: gridWidth }) => (
               <ScrollScrubber
@@ -386,7 +386,7 @@ export function FaceDashboard() {
               </ScrollScrubber>
             )}
           </AutoSizer>
-        </div>
+        </Flex>
         <ModalPersonEdit
           isOpen={modalPersonEditOpen}
           onRequestClose={() => {

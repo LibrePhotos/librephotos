@@ -29,13 +29,13 @@ export function Sidebar(props: Props) {
   const dispatch = useAppDispatch();
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
-  const { isPublic, closeSidepanel, setFaceLocation } = props;
+  const { isPublic, closeSidepanel, setFaceLocation, id } = props;
 
-  const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[props.id]);
+  const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[id]);
   const theme = useMantineTheme();
   const { colorScheme } = useMantineColorScheme();
 
-  const notThisPerson = faceId => {
+  const notThisPerson = (faceId: number) => {
     const ids = [faceId];
     dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
     notification.removeFacesFromPerson(ids.length);
