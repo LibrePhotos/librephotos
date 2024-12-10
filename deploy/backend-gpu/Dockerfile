@@ -14,8 +14,11 @@ RUN python3 --version && \
     python3 -c "import dlib; print('dlib version:', dlib.__version__)" || \
     echo "dlib not found"
 
-# Reinstall dlib to make pip aware of it
-RUN pip install --break-system-packages --force-reinstall dlib 
+# Create fake dist info for dlib
+RUN mkdir -p /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info && \
+    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/METADATA && \
+    echo "INSTALLER: pip\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/INSTALLER && \
+    touch /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/RECORD
 
 # Debugging: Ensure dlib is installed
 RUN python -m pip show dlib || echo "dlib not found"
