@@ -8,6 +8,8 @@ ENV IMAGE_TAG ${IMAGE_TAG}
 
 # Debugging: Ensure dlib is installed
 RUN python -m pip show dlib || echo "dlib not found"
+# Debugging: From previous image
+RUN python3 -c "import dlib; print(dlib.__version__)"
 
 WORKDIR /code
 RUN git clone --depth 1 https://github.com/LibrePhotos/librephotos .
