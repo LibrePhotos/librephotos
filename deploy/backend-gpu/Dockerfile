@@ -15,7 +15,7 @@ RUN python3 --version && \
     echo "dlib not found"
 
 # Reinstall dlib to make pip aware of it
-RUN pip install --force-reinstall dlib
+RUN pip install --break-system-packages --force-reinstall dlib 
 
 # Debugging: Ensure dlib is installed
 RUN python -m pip show dlib || echo "dlib not found"
