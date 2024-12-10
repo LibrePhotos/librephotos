@@ -144,6 +144,23 @@ COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin
 COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg /usr/local/lib/python3.12/dist-packages/
+# Debug Python environment and dlib installation
+RUN python3 --version && \
+    which python3 && \
+    python3 -m site && \
+    python3 -c "import sys; print('Python executable:', sys.executable)" && \
+    python3 -c "import dlib; print('dlib version:', dlib.__version__)" || \
+    echo "dlib not found"
+
+# Create fake dist info for dlib
+RUN mkdir -p /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info && \
+    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/METADATA && \
+    echo "INSTALLER: pip\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/INSTALLER && \
+    touch /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/RECORD
+
+# Debugging: Ensure dlib is installed
+RUN python -m pip show dlib || echo "dlib not found"
+# Debugging: Check if I can call dlib
 RUN python3 -c "import dlib; print(dlib.__version__)"
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib
