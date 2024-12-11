@@ -125,6 +125,7 @@ RUN apt-get update && \
     libtiff5-dev \
     libwebp-dev \
     libopenblas-dev \
+    libpq-dev \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
