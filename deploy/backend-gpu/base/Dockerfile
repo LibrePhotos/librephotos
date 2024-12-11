@@ -140,7 +140,7 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy only required components from the builder stage
-COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libdlib* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin
