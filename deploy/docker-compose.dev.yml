@@ -15,9 +15,6 @@
 
 services:
   proxy:
-    extends:
-      file: docker-compose.base.yml
-      service: proxy
     tty: true
     build:
       context: ./proxy
@@ -26,16 +23,8 @@ services:
     volumes:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
-    depends_on:
-      frontend:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
 
   frontend:
-    extends:
-      file: docker-compose.base.yml
-      service: frontend
     tty: true
     environment:
       - DEBUG=1
@@ -46,16 +35,8 @@ services:
     container_name: frontend
     volumes:
       - ${codedir}/librephotos-frontend:/usr/src/app
-    healthcheck:
-      test: curl --fail http://localhost:3000
-      interval: 3s
-      timeout: 3s
-      retries: 10
 
   backend:
-    extends:
-      file: docker-compose.base.yml
-      service: backend
     tty: true
     stdin_open: true
     environment:
@@ -76,14 +57,6 @@ services:
       - ./vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
       - ./vscode/settings.json:/code/.vscode/settings.json
       - ./backend/entrypoint.sh:/entrypoint.sh
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
-    extends:
-      file: docker-compose.base.yml
-      service: db
 
   pgadmin:
     image: dpage/pgadmin4
@@ -91,7 +64,6 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-      DEFAULT_THEME: dark
     volumes:
       - ${pgAdminLocation}/pgadmin:/root/.pgadmin
     ports:
