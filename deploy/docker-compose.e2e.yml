@@ -42,7 +42,7 @@ services:
     volumes:
       - ${e2e_bootstrap_dir:-./e2e}/init.sql.gz:/docker-entrypoint-initdb.d/init.sql.gz
     healthcheck:
-      test: pg_isready -U ${dbUser} -d ${dbName}
+      test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
       interval: 5s
       timeout: 5s
       retries: 12
