@@ -126,6 +126,7 @@ RUN apt-get update && \
     libwebp-dev \
     libopenblas-dev \
     libpq-dev \
+    libmagic1 \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
