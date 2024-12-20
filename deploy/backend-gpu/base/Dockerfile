@@ -162,7 +162,6 @@ RUN mkdir -p /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info && 
 
 # Debugging: Ensure dlib is installed
 RUN python -m pip show dlib || echo "dlib not found"
-# Debugging: Check if I can call dlib
-RUN python3 -c "import dlib; print(dlib.__version__)"
+
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib
