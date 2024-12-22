@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04 AS builder
+FROM pytorch/pytorch:2.3.1-cuda11.8-cudnn8-devel AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -97,7 +97,7 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
 RUN ls -l /usr/local/lib/python3.11/dist-packages
 
 # Stage 2: Deployment Stage
-FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-runtime
+FROM pytorch/pytorch:2.3.1-cuda11.8-cudnn8-runtime
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
