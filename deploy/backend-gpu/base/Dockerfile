@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04 AS builder
+FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-devel AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -98,7 +98,7 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
 RUN ls -l /usr/local/lib/python3.12/dist-packages
 
 # Stage 2: Deployment Stage
-FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
+FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-runtime
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
@@ -137,8 +137,6 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
     perl Makefile.PL && \
     make install && \
     rm -rf /tmp/exiftool
-
-RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
