@@ -94,7 +94,7 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no USE_SSE4_INSTRUCTIONS && \
     rm -rf /tmp/builds/*
 
-RUN ls -l /usr/local/lib/python3.12/dist-packages
+RUN ls -l /usr/local/lib/python3.11/dist-packages
 
 # Stage 2: Deployment Stage
 FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-runtime
@@ -142,7 +142,7 @@ COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin
-COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg /usr/local/lib/python3.12/dist-packages/
+COPY --from=builder /usr/local/lib/python3.11/dist-packages/dlib-19.24.99-py3.11-linux-x86_64.egg /usr/local/lib/python3.11/dist-packages/
 # Debug Python environment and dlib installation
 RUN python3 --version && \
     which python3 && \
@@ -152,10 +152,10 @@ RUN python3 --version && \
     echo "dlib not found"
 
 # Create fake dist info for dlib
-RUN mkdir -p /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info && \
-    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/METADATA && \
-    echo "INSTALLER: pip\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/INSTALLER && \
-    touch /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/RECORD
+RUN mkdir -p /usr/local/lib/python3.11/dist-packages/dlib-19.24.99.dist-info && \
+    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /usr/local/lib/python3.11/dist-packages/dlib-19.24.99.dist-info/METADATA && \
+    echo "INSTALLER: pip\n" > /usr/local/lib/python3.11/dist-packages/dlib-19.24.99.dist-info/INSTALLER && \
+    touch /usr/local/lib/python3.11/dist-packages/dlib-19.24.99.dist-info/RECORD
 
 # Debugging: Ensure dlib is installed
 RUN python -m pip show dlib || echo "dlib not found"
