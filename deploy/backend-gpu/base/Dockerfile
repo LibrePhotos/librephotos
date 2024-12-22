@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-devel AS builder
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04 AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
