@@ -58,7 +58,6 @@ RUN apt-get update && \
 	libopenslide-dev \
 	libopenexr-dev \
 	libmatio-dev \
-	libjxl-dev \
 	pkg-config \ 
 	libvips-dev \
 	swig && \
