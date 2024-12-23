@@ -449,7 +449,8 @@
         "personalreadyexists": "{{name}} 这个名字已存在。",
         "nameplaceholder": "姓名",
         "deleteperson": "删除人脸",
-        "deletepersondescription": "你真的要删除这个人的人脸数据吗？"
+        "deletepersondescription": "你真的要删除这个人的人脸数据吗？",
+        "renamepersonheader": "您想将 {{name}} 重命名为什么？"
     },
     "placealbum": {
         "showingplaces": "在地图上显示 {{number}} 个地点",
@@ -493,7 +494,11 @@
         "unknownfacescounter_other": "{{count}} 个未识别人脸",
         "clusteredfacescounter_other": "{{count}} 个已识别人脸",
         "clusteredfacescounter_one": "{{count}} 个已识别人脸",
-        "unknownfacescounter_one": "{{count}} 个未识别人脸"
+        "unknownfacescounter_one": "{{count}} 个未识别人脸",
+        "show": "显示",
+        "classifications": "分类",
+        "clusters": "类别",
+        "minconfidence": "置信度"
     },
     "scan": "扫描",
     "socialgraph": "社交图谱",
