@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM pytorch/pytorch:2.3.1-cuda11.8-cudnn8-devel AS builder
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04 AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -94,10 +94,10 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no USE_SSE4_INSTRUCTIONS && \
     rm -rf /tmp/builds/*
 
-RUN ls -l /opt/conda/lib/python3.10/site-packages/
+RUN ls -l /usr/local/lib/python3.10/dist-packages/
 
 # Stage 2: Deployment Stage
-FROM pytorch/pytorch:2.3.1-cuda11.8-cudnn8-runtime
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
@@ -129,7 +129,7 @@ RUN apt-get update && \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN conda install -c conda-forge openmp
+RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 # Install ExifTool
 WORKDIR /tmp/exiftool
@@ -144,7 +144,7 @@ COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin
-COPY --from=builder /opt/conda/lib/python3.10/site-packages/dlib-19.24.99-py3.10-linux-x86_64.egg /opt/conda/lib/python3.10/site-packages/
+COPY --from=builder /usr/local/lib/python3.10/dist-packages/dlib-19.24.99-py3.10-linux-x86_64.egg /usr/local/lib/python3.10/dist-packages/
 # Debug Python environment and dlib installation
 RUN python3 --version && \
     which python3 && \
@@ -154,10 +154,10 @@ RUN python3 --version && \
     echo "dlib not found"
 
 # Create fake dist info for dlib
-RUN mkdir -p /opt/conda/lib/python3.10/site-packages/dlib-19.24.99.dist-info && \
-    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /opt/conda/lib/python3.10/site-packages/dlib-19.24.99.dist-info/METADATA && \
-    echo "INSTALLER: pip\n" > /opt/conda/lib/python3.10/site-packages/dlib-19.24.99.dist-info/INSTALLER && \
-    touch /opt/conda/lib/python3.10/site-packages/dlib-19.24.99.dist-info/RECORD
+RUN mkdir -p /usr/local/lib/python3.10/dist-packages/dlib-19.24.99.dist-info && \
+    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /usr/local/lib/python3.10/dist-packages/dlib-19.24.99.dist-info/METADATA && \
+    echo "INSTALLER: pip\n" > /usr/local/lib/python3.10/dist-packages/dlib-19.24.99.dist-info/INSTALLER && \
+    touch /usr/local/lib/python3.10/dist-packages/dlib-19.24.99.dist-info/RECORD
 
 # Debugging: Ensure dlib is installed
 RUN python -m pip show dlib || echo "dlib not found"
