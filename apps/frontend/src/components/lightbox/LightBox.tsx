@@ -243,7 +243,7 @@ export const ContentViewer: React.FC<ContentViewerProps> = ({
                 />
               ) : type === "embedded" ? (
                 <ReactPlayer
-                  url={`${serverAddress}/media/embedded/${mainSrc}`}
+                  url={`${serverAddress}/media/embedded_media/${mainSrc}`}
                   width="100%"
                   height="92.5vh"
                   controls
