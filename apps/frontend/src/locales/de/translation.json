@@ -449,7 +449,8 @@
         "personalreadyexists": "Person {{name}} existiert bereits.",
         "nameplaceholder": "Name",
         "deleteperson": "Person löschen",
-        "deletepersondescription": "Wollen Sie diese Person wirklich löschen?"
+        "deletepersondescription": "Wollen Sie diese Person wirklich löschen?",
+        "renamepersonheader": "In was möchten Sie {{name}} umbenennen?"
     },
     "placealbum": {
         "showingplaces": "Zeige {{number}} Orte auf der Karte",
@@ -498,7 +499,11 @@
         "clusterscounter_one": "{{count}} Gruppe",
         "clusterscounter_other": "{{count}} Gruppen",
         "clusteredfacescounter_one": "{{count}} Gruppiertes Gesicht",
-        "clusteredfacescounter_other": "{{count}} Gruppierte Gesichter"
+        "clusteredfacescounter_other": "{{count}} Gruppierte Gesichter",
+        "minconfidence": "Zuversicht",
+        "clusters": "Gruppen",
+        "show": "Anzeigen",
+        "classifications": "Klassifikationen"
     },
     "personedit": {
         "addperson": "Füge Person hinzu",
