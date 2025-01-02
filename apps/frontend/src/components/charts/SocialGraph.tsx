@@ -1,4 +1,4 @@
-import { Group, Loader, Text, useMantineColorScheme } from "@mantine/core";
+import { Group, Loader, Text, useComputedColorScheme } from "@mantine/core";
 import React from "react";
 import useDimensions from "react-cool-dimensions";
 import { Graph } from "react-d3-graph";
@@ -11,7 +11,7 @@ type Props = Readonly<{
 }>;
 
 export function SocialGraph({ height }: Props) {
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   const { data, isFetching, isSuccess } = useFetchSocialGraphQuery();
   const { observe: observeChange, width } = useDimensions({ onResize: ({ observe }) => observe() });
   const { t } = useTranslation();

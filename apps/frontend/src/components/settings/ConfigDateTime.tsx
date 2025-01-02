@@ -5,7 +5,7 @@ import {
   ScrollArea,
   Table,
   Title,
-  useMantineColorScheme,
+  useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -32,7 +32,7 @@ function cloneRules(rules: DateTimeRule[]): DateTimeRule[] {
 export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const { t } = useTranslation();
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   const { data: allRules } = useFetchPredefinedRulesQuery();
   const [userRules, setUserRules] = useState<DateTimeRule[]>([]);
   const [availableRules, setAvailableRules] = useState<DateTimeRule[]>([]);

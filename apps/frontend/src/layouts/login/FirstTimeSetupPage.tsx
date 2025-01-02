@@ -7,7 +7,7 @@ import {
   Stack,
   TextInput,
   Title,
-  useMantineColorScheme,
+  useComputedColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
@@ -52,7 +52,7 @@ export function FirstTimeSetupPage(): JSX.Element {
     },
   });
 
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   const dark = colorScheme === "dark";
 
   useEffect(() => {

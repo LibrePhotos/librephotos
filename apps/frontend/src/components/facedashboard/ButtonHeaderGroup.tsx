@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
   Tooltip,
-  useMantineColorScheme,
+  useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import {
@@ -55,7 +55,7 @@ export function ButtonHeaderGroup({
   const dispatch = useAppDispatch();
 
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
 
   const setOrderBy = (value: string) => {
     dispatch(faceActions.changeFacesOrderBy(value as FacesOrderOption));

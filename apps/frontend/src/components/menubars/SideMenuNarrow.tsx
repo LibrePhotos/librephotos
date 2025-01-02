@@ -7,7 +7,6 @@ import {
   Text,
   Tooltip,
   useComputedColorScheme,
-  useMantineColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
@@ -44,7 +43,6 @@ export function SideMenuNarrow(): JSX.Element {
   const canAccess = useAppSelector(selectAuthAccess);
   const dispatch = useAppDispatch();
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
   const [active, setActive] = useState("/");
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
   const { data: imageInfos } = useFetchImageTagQuery();
@@ -74,9 +72,9 @@ export function SideMenuNarrow(): JSX.Element {
           padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
           borderRadius: theme.radius.sm,
           fontWeight: 500,
-          color: colorScheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
+          color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
           "&:hover": {
-            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+            backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
           },
         }}
         data-active={item.link === active}
@@ -161,7 +159,8 @@ export function SideMenuNarrow(): JSX.Element {
       <div
         style={{
           paddingBottom: theme.spacing.sm,
-          borderTop: colorScheme === "dark" ? `1px solid ${theme.colors.dark[4]}` : `1px solid ${theme.colors.gray[2]}`,
+          borderTop:
+            computedTheme === "dark" ? `1px solid ${theme.colors.dark[4]}` : `1px solid ${theme.colors.gray[2]}`,
         }}
       >
         <div
@@ -231,9 +230,9 @@ export function SideMenuNarrow(): JSX.Element {
             padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
             borderRadius: theme.radius.sm,
             fontWeight: 500,
-            color: colorScheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
+            color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
             "&:hover": {
-              backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+              backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
             },
           }}
         >
@@ -254,9 +253,9 @@ export function SideMenuNarrow(): JSX.Element {
             padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
             borderRadius: theme.radius.sm,
             fontWeight: 500,
-            color: colorScheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
+            color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
             "&:hover": {
-              backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
+              backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
             },
           }}
         >

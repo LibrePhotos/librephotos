@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Stack, Text, Title, useMantineColorScheme, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Box, Group, Stack, Text, Title, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,7 +33,7 @@ export function Sidebar(props: Props) {
 
   const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[id]);
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
 
   const notThisPerson = (faceId: number) => {
     const ids = [faceId];

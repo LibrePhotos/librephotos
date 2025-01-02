@@ -7,7 +7,7 @@ import {
   Title,
   Tooltip,
   UnstyledButton,
-  useMantineColorScheme,
+  useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
@@ -43,7 +43,7 @@ export function Description(props: Props) {
   const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
 
   const { photoDetail, isPublic } = props;
 

@@ -1,4 +1,4 @@
-import { Loader, Stack, Title, useMantineColorScheme } from "@mantine/core";
+import { Loader, Stack, Title, useComputedColorScheme } from "@mantine/core";
 import React from "react";
 import useDimensions from "react-cool-dimensions";
 import { Bars, Chart, Layer, Ticks } from "rumble-charts";
@@ -6,7 +6,7 @@ import { Bars, Chart, Layer, Ticks } from "rumble-charts";
 import { useFetchPhotoMonthCountQuery } from "../../api_client/util";
 
 export function EventCountMonthGraph() {
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   const { observe: observeChange, width } = useDimensions({
     onResize: ({ observe, unobserve }) => {
       observe();

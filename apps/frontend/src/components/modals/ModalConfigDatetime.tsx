@@ -6,7 +6,7 @@ import {
   Text,
   TextInput,
   Title,
-  useMantineColorScheme,
+  useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
@@ -33,7 +33,7 @@ function searchRules(query: string) {
 export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRules }: Props) {
   const { t } = useTranslation();
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   const [filter, setFilter] = useState("");
   const [rulesToAdd, setRulesToAdd] = useState<DateTimeRule[]>([]);
   const appendRule = rule => setRulesToAdd([...rulesToAdd, rule]);

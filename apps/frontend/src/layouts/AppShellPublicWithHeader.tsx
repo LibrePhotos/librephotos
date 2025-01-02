@@ -1,4 +1,4 @@
-import { AppShell, useMantineColorScheme, useMantineTheme } from "@mantine/core";
+import { AppShell, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import React from "react";
 import { Outlet } from "react-router-dom";
 
@@ -6,7 +6,7 @@ import { TopMenuPublic } from "../components/menubars/TopMenuPublic";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
 
 export function AppShellPublicWithHeader() {
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   const theme = useMantineTheme();
   return (
     <AppShell header={{ height: TOP_MENU_HEIGHT }}>

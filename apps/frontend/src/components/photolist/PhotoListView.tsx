@@ -1,4 +1,4 @@
-import { Box, Group, RemoveScroll, useMantineColorScheme, useMantineTheme } from "@mantine/core";
+import { Box, Group, RemoveScroll, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -106,7 +106,7 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
 
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   const idx2hashRef = useRef(idx2hash);
   const dispatch = useAppDispatch();
   const params = useParams();

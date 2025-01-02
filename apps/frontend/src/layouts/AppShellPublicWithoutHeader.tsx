@@ -1,10 +1,10 @@
-import { AppShell, useMantineColorScheme, useMantineTheme } from "@mantine/core";
+import { AppShell, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import React from "react";
 import { Outlet } from "react-router-dom";
 
 export function AppShellPublicWithoutHeader() {
   const theme = useMantineTheme();
-  const { colorScheme } = useMantineColorScheme();
+  const colorScheme = useComputedColorScheme();
   return (
     <AppShell>
       <AppShell.Main
