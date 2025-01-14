@@ -70,7 +70,7 @@
             "standard": "Keskitaso",
             "low": "Matala"
         },
-        "configdatetime": " Määritä päivämäärän ja ajan muotoilu",
+        "configdatetime": "Aseta päivämäärän ja ajan jäsennyssäännöt",
         "header": "Asetukset",
         "firstnameplaceholder": "Etunimi",
         "language": "Valitse kieli",
