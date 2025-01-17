@@ -578,7 +578,7 @@
     "modify": "மாற்றவும்",
     "supportus": "எங்களுக்கு ஆதரவளிக்கவும்",
     "storage": "சேமிப்பு",
-    "storagetooltip": "{{{usedstorage} of இன் {{usedstorage}} பயன்படுத்தப்பட்டது",
+    "storagetooltip": "{{totalstorage}} இன் {{usedstorage}} பயன்படுத்தப்பட்டது",
     "version": "பதிப்பு: {{version}}",
     "docs": "ஆவணப்படுத்துதல்",
     "deletefaceexplanation": "இந்த நடவடிக்கை முகங்களையும் அதனுடன் தொடர்புடைய அனைத்து தரவையும் நிரந்தரமாக நீக்கும். இந்த செயலை செயல்தவிர்க்க முடியாது.",
