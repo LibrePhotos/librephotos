@@ -29,15 +29,15 @@
         "serveradressplaceholder": "https://",
         "nextcloudpassword": "Nextcloud-sovelluksen salasana",
         "nextcloudpasswordplaceholder": "Nextcloud-sovelluksen salasana",
-        "nextcloudloggedin": "Kirjauduttu Nextcloudiin",
-        "nextcloudnotloggedin": "Ei kirjauduttu Nextcloudiin",
+        "nextcloudloggedin": "Yhdistetty",
+        "nextcloudnotloggedin": "Yhteys katkaistu",
         "nextcloudchange": "Muuta",
         "appearance": "Ulkonäkö",
         "thumbnailsize": "Esikatselukuvan koko",
         "big": "Suuri",
-        "statusscanphotostrue": "Skannataan kuvia (tiedostojärjestelmä)",
-        "statusscanphotosfalse": "Skannaa kuvat (tiedostojärjestelmä)",
-        "scannextcloudphotos": "Skannaa kuvat (Nextcloud)",
+        "statusscanphotostrue": "Skannataan kuvia",
+        "statusscanphotosfalse": "Skannaa",
+        "scannextcloudphotos": "Skannaa",
         "scannextclouddescription": {
             "item1": "Tee lista kaikista tiedostoista alakansioissa. Jokaiselle mediatiedostolle:",
             "item3": "Laske kuvatiedostolle uniikki tunniste (MD5)",
@@ -51,19 +51,19 @@
             "item4": "Jos tämä mediatiedosto on jo tietokannassa, lisää polku mediatiedostoon.",
             "item8": "Käänteinen geopaikannus paikannimien saamiseksi GPS-koordinaateista"
         },
-        "statusrescanphotosfalse": "Skannaa uudelleen kaikki kuvat (tiedostojärjestelmä)",
+        "statusrescanphotosfalse": "Skannaa uudelleen",
         "missingphotos": "Puuttuvat kuvat",
         "missingphotosdescription": "Jokaisella skannauksella LibrePhotos tarkistaa ovatko tiedostot yhä samassa sijainnissa vai onko niitä. Jos tiedostoja puuttuu, merkitään ne puuttuviksi.",
         "eventalbumsregenerate": "Muodosta uudelleen tapahtumien otsikot",
         "faces": "Kasvot",
         "people": "Ihmiset",
-        "facesbutton": "Harjoituta kasvojentunnistusta",
+        "facesbutton": "Kouluta",
         "facessmall": "kasvot",
         "labeled": "Merkitty",
         "unknown": "Tuntematon",
         "facedashboard": "Kasvopaneeli",
-        "rescanfaces": "Skannaa uudelleen kasvot",
-        "scanoptions": "Skannausasetukset",
+        "rescanfaces": "Skannaa uudelleen",
+        "scanoptions": "Skannausvaihtoehdot",
         "confidence": {
             "high": "Korkea",
             "none": "Ei lainkaan",
@@ -81,7 +81,7 @@
         "dutch": "hollanti",
         "nextcloudheader": "Nextcloud",
         "nextcloudscandirectory": "Nextcloud Skannaa hakemisto",
-        "credentialspopup": "Käytä sovelluksessa salasanaa",
+        "credentialspopup": "Nextcloudin sisäänkirjautumissalasanasi",
         "nextcloudcancel": "Peruuta",
         "nextcloudusername": "Käyttäjänimi",
         "nextcloudusernameplaceholder": "Käyttäjänimi",
@@ -93,9 +93,10 @@
             "top10": "Top 10",
             "top0": "Pois käytöstä",
             "top50": "Top 50",
-            "top100": "Top 100"
+            "top100": "Top 100",
+            "placeholder": "Semanttiset hakutulokset"
         },
-        "statusrescanphotostrue": "Skannaa uudelleen kaikki kuvat (tiedostojärjestelmä)",
+        "statusrescanphotostrue": "Skannataan uudelleen",
         "missingphotosbutton": "Poista puuttuvat kuvat",
         "eventsalbums": "Tapahtuma-albumit",
         "eventalbumsgenerate": "Muodosta tapahtuma-albumit",
@@ -104,7 +105,8 @@
         "eventsalbumsdescription": "Taustapalvelin järjestelee ensin kuvat niiden ottoajankihdan mukaan. Jos kaksi kuvaa on otettu 12 tunnin sisällä toisistaan, tulkitaan niiden olevan samasta tapahtumasta. Kun kuvat on luokiteltu näin, luodaan albumille otsikko.",
         "favoritesyncoptions": {
             "off": "Pois",
-            "mediafile": "Tallenna mediatiedostoon"
+            "mediafile": "Tallenna mediatiedostoon",
+            "sidecar": "Tallenna sivuvaunuun"
         },
         "on": "Päällä",
         "favoriteminimum": "Kuvan vähimmäisarvosana, jotta se tulkitaan suosikiksi",
@@ -115,7 +117,28 @@
         "sync": "Synkronoi metadata levylle",
         "off": "Pois",
         "experimentaloptions": "Kokeelliset asetukset",
-        "transcodevideo": "Transkoodaa videot aina"
+        "transcodevideo": "Transkoodaa videot aina",
+        "nextcloudconnecting": "Yhdistetään",
+        "colorscheme": {
+            "dark": "Tumma",
+            "title": "Värimalli",
+            "light": "Valoisa"
+        },
+        "rescanfacesdescription": "Etsi kasvoja kirjastosta",
+        "sceneconfidence": "Kohtauksen luottamus",
+        "confidencelevel": "Luottamustaso",
+        "inferred": "Päätelty",
+        "confidencepercentage": "Luottamus: {{percentage}} %",
+        "rescanfacestitle": "Skannaa kasvot uudelleen",
+        "inferredfacesconfidencehelp": "Ilmoita luottamustaso välillä 0 ja 1. Albumeissa, joissa on henkilö, näkyvät päätellyt kasvot, joiden luottamustaso on tätä arvoa korkeampi.",
+        "albumoptions": "Albumivaihtoehdot",
+        "inferredfacesconfidence": "Päätelty kasvojen luottamus",
+        "helptranslating": "Auta kääntämään",
+        "rescanphotosdescription": "Skannaa uudelleen kaikki tiedostot",
+        "trainfacestitle": "Kouluta kasvojen tunnistamista",
+        "trainfacesdescription": "Opeta järjestelmä olemassa olevien tietojen perusteella",
+        "security": "Tietoturva",
+        "semanticsearchheader": "Semanttisen haun enimmäistulokset"
     },
     "sitesettings": {
         "map_api_provider_header": "Karttapalveluntarjoaja",
@@ -186,7 +209,8 @@
         "wordclouds": "Sanapilvet",
         "timeline": "Aikajana",
         "sharing": "Jakaminen",
-        "sharedwithyou": "Jaettu kanssasi"
+        "sharedwithyou": "Jaettu kanssasi",
+        "dashboards": "Kojelaudat"
     },
     "selectionbar": {
         "selected": "valittu"
