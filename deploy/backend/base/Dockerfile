@@ -62,6 +62,7 @@ RUN apt-get update && \
 		pkg-config \ 
 		libjxl-dev \
 		libvips-dev \
+  		ninja-build \
 		swig && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
