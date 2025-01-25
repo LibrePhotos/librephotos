@@ -63,6 +63,7 @@ RUN apt-get update && \
 		libjxl-dev \
 		libvips-dev \
   		ninja-build \
+    		cmake \
 		swig && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -78,11 +79,9 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
 # Current Version: pytorch 2.2.1
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
 
-RUN pip3 install --no-cache-dir --break-system-packages cmake==3.21.2
-
 #Build and install libraw, supports more RAW image types
 WORKDIR /tmp/builds
-RUN git clone https://github.com/LibRaw/LibRaw && \
+RUN RUN git clone --branch 0.21-stable https://github.com/LibRaw/LibRaw.git && \
 	cd LibRaw && \ 
 	autoreconf --install && \
 	./configure && \
