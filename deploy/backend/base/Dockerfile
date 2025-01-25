@@ -81,7 +81,7 @@ RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extr
 
 #Build and install libraw, supports more RAW image types
 WORKDIR /tmp/builds
-RUN RUN git clone --branch 0.21-stable https://github.com/LibRaw/LibRaw.git && \
+RUN RUN git clone https://github.com/LibRaw/LibRaw.git && \
 	cd LibRaw && \ 
 	autoreconf --install && \
 	./configure && \
