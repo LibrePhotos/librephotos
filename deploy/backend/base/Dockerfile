@@ -62,6 +62,7 @@ RUN apt-get update && \
 		pkg-config \ 
 		libjxl-dev \
 		libvips-dev \
+  		libc6-dev \
     		cmake \
       		libraw-dev \
 		swig && \
