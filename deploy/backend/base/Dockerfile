@@ -71,8 +71,8 @@ RUN apt-get update && \
 
 # Install ExifTool
 WORKDIR /tmp/exiftool
-RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
-    cd Image-ExifTool-13.04 && \
+RUN curl -SL https://exiftool.org/Image-ExifTool-13.16.tar.gz | tar -xz && \
+    cd Image-ExifTool-13.16 && \
     perl Makefile.PL && \
     make install && \
     rm -rf /tmp/exiftool
