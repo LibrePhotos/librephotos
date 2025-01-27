@@ -66,6 +66,8 @@ RUN apt-get update && \
   		libc6-dev \
     		cmake \
       		libraw-dev \
+		libbz2-dev \
+        	libzip-dev \
 		swig && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
