@@ -20,6 +20,7 @@ RUN apt-get update && \
 		curl \
 		ffmpeg \
 		git \
+  		libltdl-dev \
 		libboost-all-dev \
 		libcfitsio-dev \ 
 		libexif-dev \
