@@ -2,15 +2,12 @@ name: backend-base
 
 on:
   push:
-    # Publish `dev` as Docker `latest` image.
     branches:
       - main
     paths:
       - 'backend/base/**'
 
 jobs:
-  # Run tests.
-  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
   test:
     runs-on: ubuntu-latest
 
@@ -19,19 +16,13 @@ jobs:
 
       - name: Run tests
         run: echo "To-Do Add Running Tests"
-          
-  build:
-    # Ensure test job passes before pushing image.
+
+  build-amd64:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -39,11 +30,58 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push (AMD64)
         uses: docker/build-push-action@v6
         with:
           context: ./backend/base
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
-          tags: reallibrephotos/librephotos-base:dev
-      
+          tags: reallibrephotos/librephotos-base:dev-amd64
+
+  build-arm64:
+    needs: test
+    runs-on: ubuntu-24.04-arm  # Use ARM64 runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push (ARM64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend/base
+          platforms: linux/arm64
+          push: true
+          tags: reallibrephotos/librephotos-base:dev-arm64
+
+  combine-manifest:
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Docker CLI experimental features
+        run: echo '{"experimental":"enabled"}' > ~/.docker/config.json
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Create and push multi-arch manifest
+        run: |
+          docker manifest create reallibrephotos/librephotos-base:dev \
+            reallibrephotos/librephotos-base:dev-amd64 \
+            reallibrephotos/librephotos-base:dev-arm64
+          docker manifest annotate reallibrephotos/librephotos-base:dev \
+            reallibrephotos/librephotos-base:dev-amd64 --arch amd64
+          docker manifest annotate reallibrephotos/librephotos-base:dev \
+            reallibrephotos/librephotos-base:dev-arm64 --arch arm64
+          docker manifest push reallibrephotos/librephotos-base:dev
