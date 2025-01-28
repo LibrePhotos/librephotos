@@ -147,7 +147,7 @@ RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extr
 COPY --from=builder /dlib_egg_name.txt /dlib_egg_name.txt
 # Read the dlib egg file name and copy the egg file
 RUN DLIB_EGG_NAME=$(cat /dlib_egg_name.txt) && \
-    COPY --from=builder /usr/local/lib/python3.*/dist-packages/${DLIB_EGG_NAME} /usr/local/lib/python3.12/dist-packages/
+    COPY --from=builder /usr/local/lib/python3.12/dist-packages/${DLIB_EGG_NAME} /usr/local/lib/python3.12/dist-packages/
 
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
