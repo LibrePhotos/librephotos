@@ -73,14 +73,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install ExifTool
-WORKDIR /tmp/exiftool
-RUN curl -SL https://exiftool.org/Image-ExifTool-13.16.tar.gz | tar -xz && \
-    cd Image-ExifTool-13.16 && \
-    perl Makefile.PL && \
-    make install && \
-    rm -rf /tmp/exiftool
-
 # Build and install ImageMagick
 WORKDIR /tmp/builds
 ARG IMAGEMAGICK_VERSION=7.1.1-40
@@ -136,6 +128,14 @@ RUN apt-get update && \
     libmagic1 \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Install ExifTool
+WORKDIR /tmp/exiftool
+RUN curl -SL https://exiftool.org/Image-ExifTool-13.16.tar.gz | tar -xz && \
+    cd Image-ExifTool-13.16 && \
+    perl Makefile.PL && \
+    make install && \
+    rm -rf /tmp/exiftool
 
 # Install PyTorch (CPU version)
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
