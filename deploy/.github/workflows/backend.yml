@@ -55,7 +55,7 @@ jobs:
     name: Building dev build (ARM64)
     if: github.event_name != 'release'
     needs: test
-    runs-on: ubuntu-24.04-arm64  # Use ARM64 runner
+    runs-on: ubuntu-24.04-arm  # Use ARM64 runner
 
     steps:
       - name: Checkout
@@ -137,7 +137,7 @@ jobs:
     name: Releasing (ARM64)
     if: github.event_name == 'release' && github.event.action == 'created'
     needs: test
-    runs-on: ubuntu-24.04-arm64  # Use ARM64 runner
+    runs-on: ubuntu-24.04-arm  # Use ARM64 runner
 
     steps:
       - name: Checkout
