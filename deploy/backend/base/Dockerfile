@@ -66,12 +66,21 @@ RUN apt-get update && \
 		libvips-dev \
   		libc6-dev \
     		cmake \
-      		libraw-dev \
 		libbz2-dev \
         	libzip-dev \
 		swig && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Build and install LibRaw
+WORKDIR /tmp/builds
+RUN git clone https://github.com/LibRaw/LibRaw && \
+    cd LibRaw && \
+    autoreconf --install && \
+    ./configure && \
+    make && \
+    make install && \
+    rm -rf /tmp/builds/*
 
 # Build and install ImageMagick
 WORKDIR /tmp/builds
