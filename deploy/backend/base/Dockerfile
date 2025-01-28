@@ -102,6 +102,9 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS && \
     rm -rf /tmp/builds/*
 
+# Find the dlib egg file and store its name in a file
+RUN find /usr/local/lib/python3.*/dist-packages -name "dlib-*.egg" -exec basename {} \; > /dlib_egg_name.txt
+
 # Stage 2: Deployment Stage
 FROM ubuntu:noble
 ARG TARGETPLATFORM
@@ -140,12 +143,18 @@ RUN apt-get update && \
 # Install PyTorch (CPU version)
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
 
+# Copy the dlib egg file name from the builder stage
+COPY --from=builder /dlib_egg_name.txt /dlib_egg_name.txt
+# Read the dlib egg file name and copy the egg file
+RUN DLIB_EGG_NAME=$(cat /dlib_egg_name.txt) && \
+    COPY --from=builder /usr/local/lib/python3.*/dist-packages/${DLIB_EGG_NAME} /usr/local/lib/python3.12/dist-packages/
+
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin
-COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg /usr/local/lib/python3.12/dist-packages/
+
 
 # Debug Python environment and dlib installation
 RUN python3 --version && \
