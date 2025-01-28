@@ -149,7 +149,7 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH"; exit 1; \
     fi && \
-    COPY --from=builder /usr/local/lib/python3.*/dist-packages/${EGG_NAME} /usr/local/lib/python3.12/dist-packages/
+    COPY --from=builder /usr/local/lib/python3.12/dist-packages/${EGG_NAME} /usr/local/lib/python3.12/dist-packages/
 
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
