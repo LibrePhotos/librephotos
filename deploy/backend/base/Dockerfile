@@ -131,6 +131,7 @@ RUN apt-get update && \
     libwebp-dev \
     libopenblas-dev \
     libheif-dev \
+    libjxl-dev \
     libpq-dev \
     libmagic1 \
     && apt-get clean && \
