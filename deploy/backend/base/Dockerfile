@@ -1,4 +1,5 @@
-FROM ubuntu:noble
+# Stage 1: Build Stage
+FROM ubuntu:noble AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -80,10 +81,7 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.16.tar.gz | tar -xz && \
     make install && \
     rm -rf /tmp/exiftool
 
-# Current Version: pytorch 2.2.1
-RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
-
-#Build and install imagemagick to use current libraw
+# Build and install ImageMagick
 WORKDIR /tmp/builds
 ARG IMAGEMAGICK_VERSION=7.1.1-40
 RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz | tar -xJf- && \
@@ -91,10 +89,9 @@ RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_
 	./configure --with-modules && \
 	make install && \
 	ldconfig /usr/local/lib && \
-        rm -rf /tmp/builds/*
+    rm -rf /tmp/builds/*
 
 # Build and install dlib
-# Compile it WITHOUT AVX and SSE4 instructions to ensure compatibility
 WORKDIR /tmp/builds
 RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git && \
     mkdir dlib/build && \
@@ -103,5 +100,67 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     cmake --build . && \
     cd /tmp/builds/dlib && \
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS && \
-    rm -rf /tmp/builds/* 
+    rm -rf /tmp/builds/*
 
+# Stage 2: Deployment Stage
+FROM ubuntu:noble
+ARG TARGETPLATFORM
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
+
+# Install python
+RUN apt-get update \
+  && apt-get install -y python3-pip python3-dev \
+  && cd /usr/local/bin \
+  && ln -s /usr/bin/python3 python \
+  && pip3 install --upgrade --break-system-packages --ignore-installed pip \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install minimal required libraries
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    ffmpeg \
+    git \
+    libvips-dev \
+    libjpeg-dev \
+    libgif-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libwebp-dev \
+    libopenblas-dev \
+    libpq-dev \
+    libmagic1 \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install PyTorch (CPU version)
+RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Copy only required components from the builder stage
+COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
+COPY --from=builder /usr/local/bin/magick /usr/local/bin
+COPY --from=builder /usr/local/lib/python3.12/dist-packages/dlib-19.24.99-py3.12-linux-x86_64.egg /usr/local/lib/python3.12/dist-packages/
+
+# Debug Python environment and dlib installation
+RUN python3 --version && \
+    which python3 && \
+    python3 -m site && \
+    python3 -c "import sys; print('Python executable:', sys.executable)" && \
+    python3 -c "import dlib; print('dlib version:', dlib.__version__)" || \
+    echo "dlib not found"
+
+# Create fake dist info for dlib
+RUN mkdir -p /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info && \
+    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/METADATA && \
+    echo "INSTALLER: pip\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/INSTALLER && \
+    touch /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/RECORD
+
+# Debugging: Ensure dlib is installed
+RUN python -m pip show dlib || echo "dlib not found"
+
+# Update dynamic linker cache
+RUN ldconfig /usr/local/lib
