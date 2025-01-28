@@ -148,9 +148,9 @@ RUN ARCH=$(uname -m) && \
         EGG_NAME="dlib-19.24.99-py3.12-linux-aarch64.egg"; \
     else \
         echo "Unsupported architecture: $ARCH"; exit 1; \
-    fi && \
-    COPY --from=builder /usr/local/lib/python3.12/dist-packages/${EGG_NAME} /usr/local/lib/python3.12/dist-packages/
+    fi
 
+COPY --from=builder /usr/local/lib/python3.12/dist-packages/${EGG_NAME} /usr/local/lib/python3.12/dist-packages/
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
