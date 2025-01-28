@@ -130,6 +130,7 @@ RUN apt-get update && \
     libtiff5-dev \
     libwebp-dev \
     libopenblas-dev \
+    libheif-dev \
     libpq-dev \
     libmagic1 \
     && apt-get clean && \
