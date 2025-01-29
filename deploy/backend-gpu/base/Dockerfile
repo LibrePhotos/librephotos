@@ -121,6 +121,7 @@ RUN apt-get update && \
     libjpeg-dev \
     libgif-dev \
     libpng-dev \
+    libtiff-dev \
     libtiff5-dev \
     libwebp-dev \
     libopenblas-dev \
