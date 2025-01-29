@@ -103,42 +103,6 @@ RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git 
     python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS && \
     rm -rf /tmp/builds/*
 
-# Stage 2: Deployment Stage
-FROM ubuntu:noble
-ARG TARGETPLATFORM
-ENV DEBIAN_FRONTEND=noninteractive
-WORKDIR /app
-
-# Install python
-RUN apt-get update \
-  && apt-get install -y python3-pip python3-dev \
-  && cd /usr/local/bin \
-  && ln -s /usr/bin/python3 python \
-  && pip3 install --upgrade --break-system-packages --ignore-installed pip \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
-
-# Install minimal required libraries
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    ffmpeg \
-    git \
-    libvips-dev \
-    libjpeg-dev \
-    libgif-dev \
-    libpng-dev \
-    libtiff-dev \
-    libtiff5-dev \
-    libwebp-dev \
-    libopenblas-dev \
-    libheif-dev \
-    libjxl-dev \
-    libpq-dev \
-    libmagic1 \
-    && apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
 # Install ExifTool
 WORKDIR /tmp/exiftool
 RUN curl -SL https://exiftool.org/Image-ExifTool-13.16.tar.gz | tar -xz && \
@@ -149,41 +113,3 @@ RUN curl -SL https://exiftool.org/Image-ExifTool-13.16.tar.gz | tar -xz && \
 
 # Install PyTorch (CPU version)
 RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
-
-# Determine the architecture and copy the correct dlib egg file
-RUN ARCH=$(uname -m) && \
-    if [ "$ARCH" = "x86_64" ]; then \
-        EGG_NAME="dlib-19.24.99-py3.12-linux-x86_64.egg"; \
-    elif [ "$ARCH" = "aarch64" ]; then \
-        EGG_NAME="dlib-19.24.99-py3.12-linux-aarch64.egg"; \
-    else \
-        echo "Unsupported architecture: $ARCH"; exit 1; \
-    fi
-
-COPY --from=builder /usr/local/lib/python3.12/dist-packages/${EGG_NAME} /usr/local/lib/python3.12/dist-packages/
-# Copy only required components from the builder stage
-COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
-COPY --from=builder /usr/local/bin/magick /usr/local/bin
-
-
-# Debug Python environment and dlib installation
-RUN python3 --version && \
-    which python3 && \
-    python3 -m site && \
-    python3 -c "import sys; print('Python executable:', sys.executable)" && \
-    python3 -c "import dlib; print('dlib version:', dlib.__version__)" || \
-    echo "dlib not found"
-
-# Create fake dist info for dlib
-RUN mkdir -p /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info && \
-    echo "Metadata-Version: 2.1\nName: dlib\nVersion: 19.24.99\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/METADATA && \
-    echo "INSTALLER: pip\n" > /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/INSTALLER && \
-    touch /usr/local/lib/python3.12/dist-packages/dlib-19.24.99.dist-info/RECORD
-
-# Debugging: Ensure dlib is installed
-RUN python -m pip show dlib || echo "dlib not found"
-
-# Update dynamic linker cache
-RUN ldconfig /usr/local/lib
