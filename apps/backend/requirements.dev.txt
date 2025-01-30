@@ -14,4 +14,4 @@ isort==5.13.2
 setuptools==75.4.0
 black==24.10.0
 pyfakefs==5.7.4
-pytest==8.3.3
+pytest==8.3.4
