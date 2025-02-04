@@ -557,8 +557,9 @@ def scan_faces(user, job_id: UUID, full_scan=False):
             failed = False
             try:
                 photo._extract_faces()
-            except Exception:
+            except Exception as err:
                 util.logger.exception("An error occurred: ")
+                print("[ERR]: {}".format(err))
                 failed = True
             update_scan_counter(job_id, failed)
     except Exception as err:
