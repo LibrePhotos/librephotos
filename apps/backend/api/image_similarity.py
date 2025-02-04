@@ -28,7 +28,7 @@ def search_similar_embedding(user, emb, result_count=100, threshold=27):
     if res.status_code == 200:
         return res.json()["result"]
     else:
-        logger.error("error retrieving similar embeddings for user {}".format(user_id))
+        logger.error(f"error retrieving similar embeddings for user {user_id}")
         return []
 
 
@@ -53,15 +53,13 @@ def search_similar_image(user, photo, threshold=27):
         return res.json()
     else:
         logger.error(
-            "error retrieving similar photos to {} belonging to user {}".format(
-                photo.image_hash, user.username
-            )
+            f"error retrieving similar photos to {photo.image_hash} belonging to user {user.username}"
         )
         return []
 
 
 def build_image_similarity_index(user):
-    logger.info("building similarity index for user {}".format(user.username))
+    logger.info(f"building similarity index for user {user.username}")
     requests.delete(
         settings.IMAGE_SIMILARITY_SERVER + "/build/",
         json={"user_id": user.id},

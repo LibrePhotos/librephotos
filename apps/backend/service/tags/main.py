@@ -12,7 +12,7 @@ last_request_time = None
 
 
 def log(message):
-    print("tags: {}".format(message))
+    print(f"tags: {message}")
 
 
 @app.route("/generate-tags", methods=["POST"])

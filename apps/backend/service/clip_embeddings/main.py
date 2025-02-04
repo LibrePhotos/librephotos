@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 
 def log(message):
-    print("clip embeddings: {}".format(message))
+    print(f"clip embeddings: {message}")
 
 
 semantic_search_instance = None

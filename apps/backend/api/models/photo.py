@@ -13,10 +13,8 @@ from django.db import models
 from django.db.models import Q
 from django.db.utils import IntegrityError
 
-import api.date_time_extractor as date_time_extractor
-import api.face_extractor as face_extractor
 import api.models
-import api.util as util
+from api import date_time_extractor, face_extractor, util
 from api.exif_tags import Tags
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
@@ -756,27 +754,20 @@ class Photo(models.Model):
                 face.image.save(image_path, ContentFile(face_io.getvalue()))
                 face_io.close()
                 face.save()
-            logger.info(
-                "image {}: {} face(s) saved".format(
-                    self.image_hash, len(face_locations)
-                )
-            )
+            logger.info(f"image {self.image_hash}: {len(face_locations)} face(s) saved")
         except IntegrityError:
             # When using multiple processes, then we can save at the same time, which leads to this error
             if self.files.count() > 0:
                 # print out the location of the image only if we have a path
-                logger.info("image {}: rescan face failed".format(self.main_file.path))
+                logger.info(f"image {self.main_file.path}: rescan face failed")
             if not second_try:
                 self._extract_faces(True)
+            elif self.files.count() > 0:
+                logger.error(f"image {self.main_file.path}: rescan face failed")
             else:
-                if self.files.count() > 0:
-                    logger.error(
-                        "image {}: rescan face failed".format(self.main_file.path)
-                    )
-                else:
-                    logger.error("image {}: rescan face failed".format(self))
+                logger.error(f"image {self}: rescan face failed")
         except Exception as e:
-            logger.error("image {}: scan face failed".format(self))
+            logger.error(f"image {self}: scan face failed")
             raise e
 
     def _add_to_album_thing(self):
@@ -834,12 +825,12 @@ class Photo(models.Model):
             self.dominant_color = dominant_color
             self.save()
         except Exception:
-            logger.info("Cannot calculate dominant color {} object".format(self))
+            logger.info(f"Cannot calculate dominant color {self} object")
 
     def manual_delete(self):
         for file in self.files.all():
             if os.path.isfile(file.path):
-                logger.info("Removing photo {}".format(file.path))
+                logger.info(f"Removing photo {file.path}")
                 os.remove(file.path)
                 file.delete()
             self.files.set([])
@@ -853,20 +844,18 @@ class Photo(models.Model):
         for file in self.files.all():
             if file.path == duplicate_path:
                 if not os.path.isfile(duplicate_path):
-                    logger.info(
-                        "Path does not lead to a valid file: {}".format(duplicate_path)
-                    )
+                    logger.info(f"Path does not lead to a valid file: {duplicate_path}")
                     self.files.remove(file)
                     file.delete()
                     self.save()
                     return False
-                logger.info("Removing photo {}".format(duplicate_path))
+                logger.info(f"Removing photo {duplicate_path}")
                 os.remove(duplicate_path)
                 self.files.remove(file)
                 self.save()
                 file.delete()
                 return True
-        logger.info("Path is not valid: {}".format(duplicate_path))
+        logger.info(f"Path is not valid: {duplicate_path}")
         return False
 
     def _set_embedded_media(self, obj):
@@ -876,4 +865,4 @@ class Photo(models.Model):
         main_file_path = (
             self.main_file.path if self.main_file is not None else "No main file"
         )
-        return "{} - {} - {}".format(self.image_hash, self.owner, main_file_path)
+        return f"{self.image_hash} - {self.owner} - {main_file_path}"

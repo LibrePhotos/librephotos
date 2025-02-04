@@ -7,7 +7,7 @@ import pyvips
 from django.conf import settings
 from django.db import models
 
-import api.util as util
+from api import util
 
 JPEG_EOI_MARKER = b"\xff\xd9"
 GOOGLE_PIXEL_MOTION_PHOTO_MP4_SIGNATURES = [b"ftypmp42", b"ftypisom", b"ftypiso2"]
@@ -136,7 +136,7 @@ def is_valid_media(path):
         pyvips.Image.thumbnail(path, 10000, height=200, size=pyvips.enums.Size.DOWN)
         return True
     except Exception as e:
-        util.logger.info("Could not handle {}, because {}".format(path, str(e)))
+        util.logger.info(f"Could not handle {path}, because {str(e)}")
         return False
 
 
@@ -148,7 +148,7 @@ def calculate_hash(user, path):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest() + str(user.id)
     except Exception as e:
-        util.logger.error("Could not calculate hash for file {}".format(path))
+        util.logger.error(f"Could not calculate hash for file {path}")
         raise e
 
 

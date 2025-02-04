@@ -33,7 +33,7 @@ blip_model_url = os.path.join(blip_models_path, "model_base_capfilt_large.pth")
 blip_config_url = os.path.join(blip_models_path, "med_config.json")
 
 
-class Im2txt(object):
+class Im2txt:
     def __init__(
         self,
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),

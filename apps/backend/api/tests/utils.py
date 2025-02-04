@@ -1,5 +1,5 @@
 import secrets
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from django.utils import timezone
@@ -31,12 +31,12 @@ def create_user_details(is_admin=False):
 
 
 def create_test_person(
-    name: Optional[str] = None,
-    kind: Optional[str] = Person.KIND_USER,
-    cover_photo: Optional[Photo] = None,
-    cover_face: Optional[Face] = None,
+    name: str | None = None,
+    kind: str | None = Person.KIND_USER,
+    cover_photo: Photo | None = None,
+    cover_face: Face | None = None,
     face_count: int = 0,
-    cluster_owner: Optional[User] = None,
+    cluster_owner: User | None = None,
     **kwargs: Any,
 ) -> Person:
     """Create a test Person object with random data using Faker."""
@@ -52,20 +52,20 @@ def create_test_person(
 
 
 def create_test_face(
-    photo: Optional[Photo] = None,
-    image: Optional[str] = "test.jpg",
-    person: Optional[Person] = None,
-    classification_person: Optional[Person] = None,
+    photo: Photo | None = None,
+    image: str | None = "test.jpg",
+    person: Person | None = None,
+    classification_person: Person | None = None,
     classification_probability: float = 0.0,
-    cluster_person: Optional[Person] = None,
+    cluster_person: Person | None = None,
     cluster_probability: float = 0.0,
     deleted: bool = False,
-    cluster: Optional[Cluster] = None,
+    cluster: Cluster | None = None,
     location_top: int = 0,
     location_bottom: int = 0,
     location_left: int = 0,
     location_right: int = 0,
-    encoding: Optional[str] = None,
+    encoding: str | None = None,
     **kwargs: Any,
 ) -> Face:
     """Create a test Face object with random data using Faker."""

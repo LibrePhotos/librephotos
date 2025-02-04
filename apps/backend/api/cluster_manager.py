@@ -99,9 +99,9 @@ class ClusterManager:
             # Set initial metadata on the split clusters based on known faces
             for new_cluster in added_clusters:
                 new_cluster.set_metadata(encoding_by_person[new_cluster.person.id])
-                mean_encoding_by_cluster[
-                    new_cluster.id
-                ] = new_cluster.get_mean_encoding_array()
+                mean_encoding_by_cluster[new_cluster.id] = (
+                    new_cluster.get_mean_encoding_array()
+                )
 
             # Clear the face IDs list to prepare for processing the unknown faces
             for new_cluster in added_clusters:

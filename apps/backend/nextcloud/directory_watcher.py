@@ -6,7 +6,7 @@ import owncloud as nextcloud
 import pytz
 from django.conf import settings
 
-import api.util as util
+from api import util
 from api.directory_watcher import handle_new_image
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob
@@ -91,7 +91,7 @@ def scan_photos(user, job_id):
             lrj.result = {"progress": {"current": idx + 1, "target": to_add_count}}
             lrj.save()
 
-        util.logger.info("Added {} photos".format(len(paths)))
+        util.logger.info(f"Added {len(paths)} photos")
         build_image_similarity_index(user)
 
         lrj = LongRunningJob.objects.get(job_id=job_id)

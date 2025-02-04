@@ -1,5 +1,4 @@
 import json
-from typing import List
 
 from rest_framework import serializers
 
@@ -325,7 +324,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             for f in obj.faces.all()
         ]
 
-    def get_embedded_media(self, obj: Photo) -> List[dict]:
+    def get_embedded_media(self, obj: Photo) -> list[dict]:
         def serialize_file(file):
             return {
                 "id": file.hash,

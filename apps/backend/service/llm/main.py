@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 
 def log(message):
-    print("llm: {}".format(message))
+    print(f"llm: {message}")
 
 
 @app.route("/", methods=["POST"])

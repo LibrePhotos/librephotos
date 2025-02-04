@@ -36,7 +36,7 @@ def regenerate_event_titles(user, job_id):
         aus = AlbumAuto.objects.filter(owner=user).prefetch_related("photos")
         target_count = len(aus)
         for idx, au in enumerate(aus):
-            logger.info("job {}: {}".format(job_id, idx))
+            logger.info(f"job {job_id}: {idx}")
             au._generate_title()
             au.save()
 
@@ -47,7 +47,7 @@ def regenerate_event_titles(user, job_id):
         lrj.finished = True
         lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
         lrj.save()
-        logger.info("job {}: updated lrj entry to db".format(job_id))
+        logger.info(f"job {job_id}: updated lrj entry to db")
 
     except Exception:
         logger.exception("An error occurred")
@@ -88,24 +88,21 @@ def generate_event_albums(user, job_id):
                 if len(groups) == 0:
                     groups.append([])
                     groups[-1].append(photo)
+                # Photos are sorted by timestamp, so we can just check the last photo of the last group
+                # to see if it is within the time delta
+                elif photo.exif_timestamp - groups[-1][-1].exif_timestamp < dt:
+                    groups[-1].append(photo)
+                # If the photo is not within the time delta, we create a new group
                 else:
-                    # Photos are sorted by timestamp, so we can just check the last photo of the last group
-                    # to see if it is within the time delta
-                    if photo.exif_timestamp - groups[-1][-1].exif_timestamp < dt:
-                        groups[-1].append(photo)
-                    # If the photo is not within the time delta, we create a new group
-                    else:
-                        groups.append([])
-                        groups[-1].append(photo)
+                    groups.append([])
+                    groups[-1].append(photo)
             return groups
 
         # Group images that are on the same 1 day and 12 hours interval
         groups = group(photos, dt=timedelta(days=1, hours=12))
         target_count = len(groups)
         logger.info(
-            "job {}: made {} groups out of {} images".format(
-                job_id, target_count, len(photos)
-            )
+            f"job {job_id}: made {target_count} groups out of {len(photos)} images"
         )
 
         album_locations = []
@@ -116,7 +113,7 @@ def generate_event_albums(user, job_id):
             lastKey = group[-1].exif_timestamp + timedelta(hours=11, minutes=59)
             logger.info(str(key.date) + " - " + str(lastKey.date))
             logger.info(
-                "job {}: processing auto album with date: ".format(job_id)
+                f"job {job_id}: processing auto album with date: "
                 + key.strftime(date_format)
                 + " to "
                 + lastKey.strftime(date_format)
@@ -134,9 +131,7 @@ def generate_event_albums(user, job_id):
                     album.timestamp = key
                     album.save()
 
-                    logger.info(
-                        "job {}: generate auto album {}".format(job_id, album.id)
-                    )
+                    logger.info(f"job {job_id}: generate auto album {album.id}")
                     locs = []
                     for item in items:
                         album.photos.add(item)
@@ -155,7 +150,7 @@ def generate_event_albums(user, job_id):
                     continue
                 if qs.count() == 1:
                     album = qs.first()
-                    logger.info("job {}: update auto album {}".format(job_id, album.id))
+                    logger.info(f"job {job_id}: update auto album {album.id}")
                     for item in items:
                         if item in album.photos.all():
                             continue
@@ -167,9 +162,7 @@ def generate_event_albums(user, job_id):
                 if qs.count() > 1:
                     # To-Do: Merge both auto albums
                     logger.info(
-                        "job {}: found multiple auto albums for date {}".format(
-                            job_id, key.strftime(date_format)
-                        )
+                        f"job {job_id}: found multiple auto albums for date {key.strftime(date_format)}"
                     )
                     continue
 

@@ -2,7 +2,7 @@ from collections import Counter
 
 from django.db import models
 
-import api.util as util
+from api import util
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user

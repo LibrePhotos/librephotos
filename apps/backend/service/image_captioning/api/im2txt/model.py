@@ -1,6 +1,6 @@
 import torch
-import torch.nn as nn
-import torchvision.models as models
+from torch import nn
+from torchvision import models
 
 
 class EncoderCNN(nn.Module):

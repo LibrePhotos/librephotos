@@ -20,12 +20,12 @@ def create_test_file(path: str, user: User, content: bytes):
     return File.create(path, user)
 
 
-JPEG_MAGIC_NUMBER = b"\xFF\xD8\xFF"
-JPEG = JPEG_MAGIC_NUMBER + b"\xDE\xAD\xFA\xCE" + JPEG_EOI_MARKER
-MP4_DATA = b"\xCA\xFE\xFE\xED"
+JPEG_MAGIC_NUMBER = b"\xff\xd8\xff"
+JPEG = JPEG_MAGIC_NUMBER + b"\xde\xad\xfa\xce" + JPEG_EOI_MARKER
+MP4_DATA = b"\xca\xfe\xfe\xed"
 MP4_PREFIX = b"\x00\x00\x00\x18"
 MP4 = MP4_PREFIX + b"ftypmp42" + MP4_DATA
-RANDOM_BYTES = b"\x13\x37\xC0\xDE"
+RANDOM_BYTES = b"\x13\x37\xc0\xde"
 
 
 @override_settings(MEDIA_ROOT="/tmp")

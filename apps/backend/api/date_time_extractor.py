@@ -117,8 +117,7 @@ class RuleTypes:
 
 
 class TimeExtractionRule:
-    """
-    The goal is to help extract local time, but for historical reason it is expected the returned
+    """The goal is to help extract local time, but for historical reason it is expected the returned
     datetime will have timezone to be set to pytz.utc (so local time + timezone equal to UTC)..
 
     Some sources of data might give us very rich information, e.g. timestamp + timezone,
@@ -303,8 +302,7 @@ class TimeExtractionRule:
             raise ValueError(f"Unknown rule type {self.rule_type}")
 
     def _get_tz(self, description, gps_lat, gps_lon, user_default_tz):
-        """
-        None is a valid timezone returned here (meaning that we want to use server local time).
+        """None is a valid timezone returned here (meaning that we want to use server local time).
         This is why this function returns a tuple with the first element specifying success of
         determining the timezone, and the second element - the timezone itself.
         """

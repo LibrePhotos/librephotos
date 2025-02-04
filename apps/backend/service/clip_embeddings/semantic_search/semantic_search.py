@@ -36,13 +36,13 @@ class SemanticSearch:
                     img = PIL.Image.open(path)
                     imgs.append(img)
                 except PIL.UnidentifiedImageError:
-                    print("Error loading image: {}".format(path))
+                    print(f"Error loading image: {path}")
         else:
             try:
                 img = PIL.Image.open(img_paths)
                 imgs.append(img)
             except PIL.UnidentifiedImageError:
-                print("Error loading image: {}".format(img_paths))
+                print(f"Error loading image: {img_paths}")
 
         try:
             imgs_emb = self.model.encode(imgs, batch_size=32, convert_to_tensor=True)
@@ -68,7 +68,7 @@ class SemanticSearch:
 
                 return img_emb, magnitude
         except Exception as e:
-            print("Error in calculating clip embeddings: {}".format(e))
+            print(f"Error in calculating clip embeddings: {e}")
             raise e
 
     def calculate_query_embeddings(self, query, model):

@@ -1,7 +1,7 @@
 import math
 import os
 
-import torch.nn as nn
+from torch import nn
 
 model_path = os.path.join(
     "/", "protected_media", "data_models", "resnet18-5c106cde.pth"
@@ -9,7 +9,7 @@ model_path = os.path.join(
 
 
 def conv3x3(in_planes, out_planes, stride=1):
-    "3x3 convolution with padding"
+    """3x3 convolution with padding"""
     return nn.Conv2d(
         in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False
     )
@@ -115,6 +115,7 @@ def resnet18(pretrained=False, **kwargs):
 
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
+
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:

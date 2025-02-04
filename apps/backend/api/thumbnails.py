@@ -5,7 +5,7 @@ import pyvips
 import requests
 from django.conf import settings
 
-import api.util as util
+from api import util
 from api.models.file import is_raw
 
 
@@ -49,7 +49,7 @@ def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
             x.write_to_file(completePath, Q=95)
             return completePath
     except Exception as e:
-        util.logger.error("Could not create thumbnail for file {}".format(inputPath))
+        util.logger.error(f"Could not create thumbnail for file {inputPath}")
         raise e
 
 
@@ -75,9 +75,7 @@ def createAnimatedThumbnail(inputPath, outputHeight, outputPath, hash, fileType)
         with subprocess.Popen(command) as proc:
             proc.wait()
     except Exception as e:
-        util.logger.error(
-            "Could not create animated thumbnail for file {}".format(inputPath)
-        )
+        util.logger.error(f"Could not create animated thumbnail for file {inputPath}")
         raise e
 
 
@@ -98,9 +96,7 @@ def createThumbnailForVideo(inputPath, outputPath, hash, fileType):
         with subprocess.Popen(command) as proc:
             proc.wait()
     except Exception as e:
-        util.logger.error(
-            "Could not create thumbnail for video file {}".format(inputPath)
-        )
+        util.logger.error(f"Could not create thumbnail for video file {inputPath}")
         raise e
 
 

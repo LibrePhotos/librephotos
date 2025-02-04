@@ -1,20 +1,19 @@
-"""
- * Copyright (c) 2022, salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- * By Junnan Li
- * Based on timm code base
- * https://github.com/rwightman/pytorch-image-models/tree/master/timm
+"""* Copyright (c) 2022, salesforce.com, inc.
+* All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause
+* For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+* By Junnan Li
+* Based on timm code base
+* https://github.com/rwightman/pytorch-image-models/tree/master/timm
 """
 
 from functools import partial
 
 import torch
-import torch.nn as nn
 from timm.models.helpers import adapt_input_conv
 from timm.models.layers import DropPath, trunc_normal_
 from timm.models.vision_transformer import PatchEmbed, resize_pos_embed
+from torch import nn
 
 
 class Mlp(nn.Module):
@@ -172,28 +171,28 @@ class VisionTransformer(nn.Module):
         norm_layer=None,
         ckpt_layer=0,
     ):
-        """
-        Args:
-            img_size (int, tuple): input image size
-            patch_size (int, tuple): patch size
-            in_chans (int): number of input channels
-            num_classes (int): number of classes for classification head
-            embed_dim (int): embedding dimension
-            depth (int): depth of transformer
-            num_heads (int): number of attention heads
-            mlp_ratio (int): ratio of mlp hidden dim to embedding dim
-            qkv_bias (bool): enable bias for qkv if True
-            qk_scale (float): override default qk scale of head_dim ** -0.5 if set
-            representation_size (Optional[int]): enable and set representation layer (pre-logits) to this value if set
-            drop_rate (float): dropout rate
-            attn_drop_rate (float): attention dropout rate
-            drop_path_rate (float): stochastic depth rate
-            norm_layer: (nn.Module): normalization layer
+        """Args:
+        img_size (int, tuple): input image size
+        patch_size (int, tuple): patch size
+        in_chans (int): number of input channels
+        num_classes (int): number of classes for classification head
+        embed_dim (int): embedding dimension
+        depth (int): depth of transformer
+        num_heads (int): number of attention heads
+        mlp_ratio (int): ratio of mlp hidden dim to embedding dim
+        qkv_bias (bool): enable bias for qkv if True
+        qk_scale (float): override default qk scale of head_dim ** -0.5 if set
+        representation_size (Optional[int]): enable and set representation layer (pre-logits) to this value if set
+        drop_rate (float): dropout rate
+        attn_drop_rate (float): attention dropout rate
+        drop_path_rate (float): stochastic depth rate
+        norm_layer: (nn.Module): normalization layer
+
         """
         super().__init__()
-        self.num_features = (
-            self.embed_dim
-        ) = embed_dim  # num_features for consistency with other models
+        self.num_features = self.embed_dim = (
+            embed_dim  # num_features for consistency with other models
+        )
         norm_layer = norm_layer or partial(nn.LayerNorm, eps=1e-6)
 
         self.patch_embed = PatchEmbed(
@@ -401,9 +400,7 @@ def interpolate_pos_embed(pos_embed_checkpoint, visual_encoder):
         )
         pos_tokens = pos_tokens.permute(0, 2, 3, 1).flatten(1, 2)
         new_pos_embed = torch.cat((extra_tokens, pos_tokens), dim=1)
-        print(
-            "reshape position embedding from %d to %d" % (orig_size**2, new_size**2)
-        )
+        print("reshape position embedding from %d to %d" % (orig_size**2, new_size**2))
 
         return new_pos_embed
     else:

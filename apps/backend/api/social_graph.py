@@ -19,9 +19,7 @@ def build_social_graph(user):
         JOIN face f2 USING (photo_id)
         WHERE f1.person_id != f2.person_id
         GROUP BY f1.name, f2.name
-    """.replace(
-        "{}", str(user.id)
-    )
+    """.replace("{}", str(user.id))
     G = nx.Graph()
     with connection.cursor() as cursor:
         cursor.execute(query)

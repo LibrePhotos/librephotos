@@ -13,7 +13,7 @@ last_request_time = None
 
 
 def log(message):
-    print("face_recognition: {}".format(message))
+    print(f"face_recognition: {message}")
 
 
 @app.route("/face-encodings", methods=["POST"])

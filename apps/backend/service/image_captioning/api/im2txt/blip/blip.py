@@ -1,10 +1,10 @@
+"""* Copyright (c) 2022, salesforce.com, inc.
+* All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause
+* For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+* By Junnan Li
 """
- * Copyright (c) 2022, salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- * By Junnan Li
-"""
+
 import os
 from urllib.parse import urlparse
 
@@ -25,11 +25,11 @@ class BLIP_Base(nn.Module):
         vit_grad_ckpt=False,
         vit_ckpt_layer=0,
     ):
-        """
-        Args:
-            med_config (str): path for the mixture of encoder-decoder model's configuration file
-            image_size (int): input image size
-            vit (str): model size of vision transformer
+        """Args:
+        med_config (str): path for the mixture of encoder-decoder model's configuration file
+        image_size (int): input image size
+        vit (str): model size of vision transformer
+
         """
         super().__init__()
 
@@ -92,11 +92,11 @@ class BLIP_Decoder(nn.Module):
         vit_ckpt_layer=0,
         prompt="a picture of ",
     ):
-        """
-        Args:
-            med_config (str): path for the mixture of encoder-decoder model's configuration file
-            image_size (int): input image size
-            vit (str): model size of vision transformer
+        """Args:
+        med_config (str): path for the mixture of encoder-decoder model's configuration file
+        image_size (int): input image size
+        vit (str): model size of vision transformer
+
         """
         super().__init__()
 

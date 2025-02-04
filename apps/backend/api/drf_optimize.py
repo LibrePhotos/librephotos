@@ -6,8 +6,7 @@ from rest_framework.utils import model_meta
 
 
 class OptimizeRelatedModelViewSetMetaclass(type):
-    """
-    This metaclass optimizes the queryset using `prefetch_related` and `select_related`.
+    """This metaclass optimizes the queryset using `prefetch_related` and `select_related`.
 
     Any attribute of `_base_forward_rel` as attributes on either the class or on
     any of its superclasses will be include in the `base_forward_rel`

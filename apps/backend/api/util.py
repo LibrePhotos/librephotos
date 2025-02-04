@@ -30,8 +30,7 @@ def is_number(s):
 
 
 def convert_to_degrees(values):
-    """
-    Helper function to convert the GPS coordinates stored in the EXIF to degrees in float format
+    """Helper function to convert the GPS coordinates stored in the EXIF to degrees in float format
     :param value:
     :type value: exifread.utils.Ratio
     :rtype: float
@@ -55,8 +54,7 @@ weekdays = {
 
 
 def get_sidecar_files_in_priority_order(media_file):
-    """
-    Returns a list of possible XMP sidecar files for *media_file*, ordered
+    """Returns a list of possible XMP sidecar files for *media_file*, ordered
     by priority.
 
     """
@@ -82,8 +80,7 @@ def _get_existing_metadata_files_reversed(media_file, include_sidecar_files):
 
 
 def get_metadata(media_file, tags, try_sidecar=True, struct=False):
-    """
-    Get values for each metadata tag in *tags* from *media_file*.
+    """Get values for each metadata tag in *tags* from *media_file*.
     If *try_sidecar* is `True`, use the value set in any XMP sidecar file
     stored alongside *media_file*.
     If *struct* is `True`, use the exiftool instance which returns structured data
@@ -92,7 +89,6 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
     tag was not found.
 
     """
-
     files_by_reverse_priority = _get_existing_metadata_files_reversed(
         media_file, try_sidecar
     )

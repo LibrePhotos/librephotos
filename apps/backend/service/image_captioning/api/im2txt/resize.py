@@ -26,9 +26,7 @@ def resize_images(image_dir, output_dir, size):
                 img.save(os.path.join(output_dir, image), img.format)
         if (i + 1) % 100 == 0:
             print(
-                "[{}/{}] Resized the images and saved into '{}'.".format(
-                    i + 1, num_images, output_dir
-                )
+                f"[{i + 1}/{num_images}] Resized the images and saved into '{output_dir}'."
             )
 
 

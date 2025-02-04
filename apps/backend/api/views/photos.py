@@ -110,9 +110,7 @@ class SetPhotosDeleted(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 logger.warning(
-                    "Could not set photo {} to hidden. It does not exist.".format(
-                        image_hash
-                    )
+                    f"Could not set photo {image_hash} to hidden. It does not exist."
                 )
                 continue
             if photo.owner == request.user and photo.in_trashcan != val_hidden:
@@ -124,15 +122,11 @@ class SetPhotosDeleted(APIView):
 
         if val_hidden:
             logger.info(
-                "{} photos were set hidden. {} photos were already deleted.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were set hidden. {len(not_updated)} photos were already deleted."
             )
         else:
             logger.info(
-                "{} photos were set unhidden. {} photos were already recovered.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were set unhidden. {len(not_updated)} photos were already recovered."
             )
         return Response(
             {
@@ -158,9 +152,7 @@ class SetPhotosFavorite(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 logger.warning(
-                    "Could not set photo {} to favorite. It does not exist.".format(
-                        image_hash
-                    )
+                    f"Could not set photo {image_hash} to favorite. It does not exist."
                 )
                 continue
             if photo.owner == request.user:
@@ -179,15 +171,11 @@ class SetPhotosFavorite(APIView):
 
         if val_favorite:
             logger.info(
-                "{} photos were added to favorites. {} photos were already in favorites.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were added to favorites. {len(not_updated)} photos were already in favorites."
             )
         else:
             logger.info(
-                "{} photos were removed from favorites. {} photos were already not in favorites.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were removed from favorites. {len(not_updated)} photos were already not in favorites."
             )
         return Response(
             {
@@ -212,9 +200,7 @@ class SetPhotosHidden(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 logger.warning(
-                    "Could not set photo {} to hidden. It does not exist.".format(
-                        image_hash
-                    )
+                    f"Could not set photo {image_hash} to hidden. It does not exist."
                 )
                 continue
             if photo.owner == request.user and photo.hidden != val_hidden:
@@ -226,15 +212,11 @@ class SetPhotosHidden(APIView):
 
         if val_hidden:
             logger.info(
-                "{} photos were set hidden. {} photos were already hidden.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were set hidden. {len(not_updated)} photos were already hidden."
             )
         else:
             logger.info(
-                "{} photos were set unhidden. {} photos were already unhidden.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were set unhidden. {len(not_updated)} photos were already unhidden."
             )
         return Response(
             {
@@ -351,9 +333,7 @@ class SetPhotosShared(APIView):
                 ]
             )
             logger.info(
-                "Shared {}'s {} images to user {}".format(
-                    request.user.id, len(res), target_user_id
-                )
+                f"Shared {request.user.id}'s {len(res)} images to user {target_user_id}"
             )
             res_count = len(res)
         else:
@@ -361,9 +341,7 @@ class SetPhotosShared(APIView):
                 user_id=target_user_id, photo_id__in=image_hashes
             ).delete()
             logger.info(
-                "Unshared {}'s {} images to user {}".format(
-                    request.user.id, len(res), target_user_id
-                )
+                f"Unshared {request.user.id}'s {len(res)} images to user {target_user_id}"
             )
             res_count = res[0]
 
@@ -383,9 +361,7 @@ class SetPhotosPublic(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 logger.warning(
-                    "Could not set photo {} to public. It does not exist.".format(
-                        image_hash
-                    )
+                    f"Could not set photo {image_hash} to public. It does not exist."
                 )
                 continue
             if photo.owner == request.user and photo.public != val_public:
@@ -397,15 +373,11 @@ class SetPhotosPublic(APIView):
 
         if val_public:
             logger.info(
-                "{} photos were set public. {} photos were already public.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were set public. {len(not_updated)} photos were already public."
             )
         else:
             logger.info(
-                "{} photos were set private. {} photos were already public.".format(
-                    len(updated), len(not_updated)
-                )
+                f"{len(updated)} photos were set private. {len(not_updated)} photos were already public."
             )
 
         return Response(

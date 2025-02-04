@@ -48,8 +48,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
         for photo in obj.photos.all():
             if photo and photo.exif_timestamp:
                 return photo.exif_timestamp
-        else:
-            return ""
+        return ""
 
 
 class AlbumUserEditSerializer(serializers.ModelSerializer):
@@ -95,16 +94,14 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         for pk, obj in photos.items():
             instance.photos.add(obj)
         instance.save()
-        logger.info(
-            "Created user album {} with {} photos".format(instance.id, len(photos))
-        )
+        logger.info(f"Created user album {instance.id} with {len(photos)} photos")
         return instance
 
     def update(self, instance, validated_data):
         if "title" in validated_data.keys():
             title = validated_data["title"]
             instance.title = title
-            logger.info("Renamed user album to {}".format(title))
+            logger.info(f"Renamed user album to {title}")
 
         if "removedPhotos" in validated_data.keys():
             image_hashes = validated_data["removedPhotos"]
@@ -115,12 +112,12 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
                     cnt += 1
                     instance.photos.remove(obj)
 
-            logger.info("Removed {} photos to user album {}".format(cnt, instance.id))
+            logger.info(f"Removed {cnt} photos to user album {instance.id}")
 
         if "cover_photo" in validated_data.keys():
             cover_photo = validated_data["cover_photo"]
             instance.cover_photo = cover_photo
-            logger.info("Changed cover photo to {}".format(cover_photo))
+            logger.info(f"Changed cover photo to {cover_photo}")
 
         if "photos" in validated_data.keys():
             image_hashes = validated_data["photos"]
@@ -132,7 +129,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
                     cnt += 1
                     instance.photos.add(obj)
 
-            logger.info("Added {} photos to user album {}".format(cnt, instance.id))
+            logger.info(f"Added {cnt} photos to user album {instance.id}")
 
         instance.save()
         return instance

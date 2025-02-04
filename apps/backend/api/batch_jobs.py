@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 from django.db.models import Q
 
-import api.util as util
+from api import util
 from api.image_similarity import build_image_similarity_index
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
@@ -37,7 +37,7 @@ def batch_calculate_clip_embedding(user):
         torch.multiprocessing.set_start_method("spawn", force=True)
 
     BATCH_SIZE = 64
-    util.logger.info("Using threads: {}".format(torch.get_num_threads()))
+    util.logger.info(f"Using threads: {torch.get_num_threads()}")
 
     done_count = 0
     while done_count < count:
@@ -67,7 +67,7 @@ def batch_calculate_clip_embedding(user):
                 obj.clip_embeddings_magnitude = magnitude
                 obj.save()
         except Exception as e:
-            util.logger.error("Error calculating clip embeddings: {}".format(e))
+            util.logger.error(f"Error calculating clip embeddings: {e}")
 
         lrj.progress_current = done_count
         lrj.progress_target = count

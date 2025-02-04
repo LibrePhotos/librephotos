@@ -94,7 +94,7 @@ class UserSerializer(serializers.ModelSerializer):
                 user = User.objects.create_user(**validated_data)
         else:
             user = User.objects.create_user(**validated_data)
-        logger.info("Created user {}".format(user.id))
+        logger.info(f"Created user {user.id}")
         return user
 
     def update(self, instance, validated_data):
@@ -139,14 +139,12 @@ class UserSerializer(serializers.ModelSerializer):
         if "confidence" in validated_data:
             instance.confidence = validated_data.pop("confidence")
             instance.save()
-            logger.info("Updated confidence for user {}".format(instance.confidence))
+            logger.info(f"Updated confidence for user {instance.confidence}")
         if "confidence_person" in validated_data:
             instance.confidence_person = validated_data.pop("confidence_person")
             instance.save()
             logger.info(
-                "Updated person album confidence for user {}".format(
-                    instance.confidence_person
-                )
+                f"Updated person album confidence for user {instance.confidence_person}"
             )
         if "semantic_search_topk" in validated_data:
             new_semantic_search_topk = validated_data.pop("semantic_search_topk")
@@ -163,45 +161,37 @@ class UserSerializer(serializers.ModelSerializer):
             instance.semantic_search_topk = new_semantic_search_topk
             instance.save()
             logger.info(
-                "Updated semantic_search_topk for user {}".format(
-                    instance.semantic_search_topk
-                )
+                f"Updated semantic_search_topk for user {instance.semantic_search_topk}"
             )
         if "favorite_min_rating" in validated_data:
             new_favorite_min_rating = validated_data.pop("favorite_min_rating")
             instance.favorite_min_rating = new_favorite_min_rating
             instance.save()
             logger.info(
-                "Updated favorite_min_rating for user {}".format(
-                    instance.favorite_min_rating
-                )
+                f"Updated favorite_min_rating for user {instance.favorite_min_rating}"
             )
         if "save_metadata_to_disk" in validated_data:
             instance.save_metadata_to_disk = validated_data.pop("save_metadata_to_disk")
             instance.save()
             logger.info(
-                "Updated save_metadata_to_disk for user {}".format(
-                    instance.save_metadata_to_disk
-                )
+                f"Updated save_metadata_to_disk for user {instance.save_metadata_to_disk}"
             )
         if "image_scale" in validated_data:
             new_image_scale = validated_data.pop("image_scale")
             instance.image_scale = new_image_scale
             instance.save()
-            logger.info("Updated image_scale for user {}".format(instance.image_scale))
+            logger.info(f"Updated image_scale for user {instance.image_scale}")
         if "datetime_rules" in validated_data:
             new_datetime_rules = validated_data.pop("datetime_rules")
             instance.datetime_rules = new_datetime_rules
             instance.save()
-            logger.info(
-                "Updated datetime_rules for user {}".format(instance.datetime_rules)
-            )
+            logger.info(f"Updated datetime_rules for user {instance.datetime_rules}")
         if "default_timezone" in validated_data:
             new_default_timezone = validated_data.pop("default_timezone")
             instance.default_timezone = new_default_timezone
             instance.save()
             logger.info(
-                "Updated default_timezone for user {}".format(instance.default_timezone)
+                f"Updated default_timezone for user {instance.default_timezone}"
             )
         if "public_sharing" in validated_data:
             instance.public_sharing = validated_data.pop("public_sharing")
@@ -365,9 +355,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
                 if os.path.exists(new_scan_directory):
                     instance.scan_directory = new_scan_directory
                     logger.info(
-                        "Updated scan directory for user {}".format(
-                            instance.scan_directory
-                        )
+                        f"Updated scan directory for user {instance.scan_directory}"
                     )
                 else:
                     raise ValidationError("Scan directory does not exist")

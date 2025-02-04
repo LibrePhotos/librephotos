@@ -3,7 +3,7 @@ import pickle
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torchvision import transforms
 
@@ -94,27 +94,16 @@ def main():
             # Print log info
             if i % log_step == 0:
                 print(
-                    "Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Perplexity: {:5.4f}".format(
-                        epoch,
-                        num_epochs,
-                        i,
-                        total_step,
-                        loss.item(),
-                        np.exp(loss.item()),
-                    )
+                    f"Epoch [{epoch}/{num_epochs}], Step [{i}/{total_step}], Loss: {loss.item():.4f}, Perplexity: {np.exp(loss.item()):5.4f}"
                 )
 
             # Save the model checkpoints
             if (i + 1) % save_step == 0:
                 torch.save(
                     decoder.state_dict(),
-                    os.path.join(
-                        model_path, "decoder-{}-{}.ckpt".format(epoch + 1, i + 1)
-                    ),
+                    os.path.join(model_path, f"decoder-{epoch + 1}-{i + 1}.ckpt"),
                 )
                 torch.save(
                     encoder.state_dict(),
-                    os.path.join(
-                        model_path, "encoder-{}-{}.ckpt".format(epoch + 1, i + 1)
-                    ),
+                    os.path.join(model_path, f"encoder-{epoch + 1}-{i + 1}.ckpt"),
                 )

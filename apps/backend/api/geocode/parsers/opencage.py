@@ -10,7 +10,7 @@ def parse(location):
         "suburb",
         "municipality",
         "hamlet",
-        "town" "city",
+        "towncity",
         "borough",
         "state",
         "county",

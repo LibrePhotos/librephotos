@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
-import api.util as util
+from api import util
 from api.directory_watcher import create_new_image, handle_new_image
 from api.models import Photo, User
 from api.models.file import calculate_hash, calculate_hash_b64
@@ -65,8 +65,7 @@ class UploadPhotosChunked(ChunkedUploadView):
             )
 
     def create_chunked_upload(self, save=False, **attrs):
-        """
-        Creates new chunked upload instance. Called if no 'upload_id' is
+        """Creates new chunked upload instance. Called if no 'upload_id' is
         found in the POST data.
         """
         chunked_upload = self.model(**attrs)
@@ -152,7 +151,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 if existing_photo_hash == image_hash:
                     # File already exist, do not copy it in the upload folder
                     util.logger.info(
-                        "Photo {} duplicated with hash {} ".format(filename, image_hash)
+                        f"Photo {filename} duplicated with hash {image_hash} "
                     )
                     photo_path = ""
                 else:
@@ -181,6 +180,4 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             chain.run()
 
         else:
-            util.logger.info(
-                "Photo {} duplicated with hash {} ".format(filename, image_hash)
-            )
+            util.logger.info(f"Photo {filename} duplicated with hash {image_hash} ")

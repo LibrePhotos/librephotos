@@ -115,7 +115,7 @@ def cluster_all_faces(user, job_id) -> bool:
 
     except BaseException as err:
         logger.exception("An error occurred")
-        print("[ERR] {}".format(err))
+        print(f"[ERR] {err}")
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -188,7 +188,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
         idxs = np.where(clt.labels_ == labelID)[0]
         sortedIndexes[labelID] = idxs
 
-    logger.info("Found {} clusters".format(len(sortedIndexes)))
+    logger.info(f"Found {len(sortedIndexes)} clusters")
     for labelID in sorted(
         sortedIndexes, key=lambda key: np.size(sortedIndexes[key]), reverse=True
     ):
@@ -218,7 +218,7 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
 
         all_clusters.extend(new_clusters)
 
-    print("[INFO] Created {} clusters".format(len(all_clusters)))
+    print(f"[INFO] Created {len(all_clusters)} clusters")
     return target_count
 
 
@@ -347,7 +347,7 @@ def train_faces(user: User, job_id) -> bool:
             lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
             return True
-        logger.info("Number of Cluster: {}".format(target_count))
+        logger.info(f"Number of Cluster: {target_count}")
 
         # Hacky way to split arrays into smaller arrays
         pages_encoding = [
@@ -449,7 +449,7 @@ def train_faces(user: User, job_id) -> bool:
 
     except BaseException as err:
         logger.exception("An error occurred")
-        print("[ERR] {}".format(err))
+        print(f"[ERR] {err}")
         lrj.failed = True
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)

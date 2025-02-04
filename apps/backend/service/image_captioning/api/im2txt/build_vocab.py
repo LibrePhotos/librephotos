@@ -8,7 +8,7 @@ vocab_path = "api/im2txt/data/vocab.pkl"
 threshold = 4
 
 
-class Vocabulary(object):
+class Vocabulary:
     """Simple vocabulary wrapper."""
 
     def __init__(self):
@@ -67,5 +67,5 @@ def main():
     vocab = build_vocab(json=caption_path, threshold=threshold)
     with open(vocab_path, "wb") as f:
         pickle.dump(vocab, f)
-    print("Total vocabulary size: {}".format(len(vocab)))
-    print("Saved the vocabulary wrapper to '{}'".format(vocab_path))
+    print(f"Total vocabulary size: {len(vocab)}")
+    print(f"Saved the vocabulary wrapper to '{vocab_path}'")

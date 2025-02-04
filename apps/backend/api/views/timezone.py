@@ -1,7 +1,7 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-import api.date_time_extractor as date_time_extractor
+from api import date_time_extractor
 
 
 class TimeZoneView(APIView):

@@ -13,7 +13,7 @@ last_request_time = None
 
 
 def log(message):
-    print("image_captioning: {}".format(message))
+    print(f"image_captioning: {message}")
 
 
 @app.route("/generate-caption", methods=["POST"])

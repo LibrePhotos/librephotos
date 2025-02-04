@@ -128,9 +128,7 @@ class SetUserAlbumShared(APIView):
             target_user = User.objects.get(id=target_user_id)
         except User.DoesNotExist:
             logger.warning(
-                "Cannot share album to user: target user_id {} does not exist".format(
-                    target_user_id
-                )
+                f"Cannot share album to user: target user_id {target_user_id} does not exist"
             )
             return Response(
                 {"status": False, "message": "No such user"}, status_code=400
@@ -140,9 +138,7 @@ class SetUserAlbumShared(APIView):
             user_album_to_share = AlbumUser.objects.get(id=user_album_id)
         except AlbumUser.DoesNotExist:
             logger.warning(
-                "Cannot share album to user: source user_album_id {} does not exist".format(
-                    user_album_id
-                )
+                f"Cannot share album to user: source user_album_id {user_album_id} does not exist"
             )
             return Response(
                 {"status": False, "message": "No such album"}, status_code=400
@@ -150,9 +146,7 @@ class SetUserAlbumShared(APIView):
 
         if user_album_to_share.owner != request.user:
             logger.warning(
-                "Cannot share album to user: source user_album_id {} does not belong to user_id {}".format(
-                    user_album_id, request.user.id
-                )
+                f"Cannot share album to user: source user_album_id {user_album_id} does not belong to user_id {request.user.id}"
             )
             return Response(
                 {"status": False, "message": "You cannot share an album you don't own"},
@@ -162,16 +156,12 @@ class SetUserAlbumShared(APIView):
         if shared:
             user_album_to_share.shared_to.add(target_user)
             logger.info(
-                "Shared user {}'s album {} to user {}".format(
-                    request.user.id, user_album_id, target_user_id
-                )
+                f"Shared user {request.user.id}'s album {user_album_id} to user {target_user_id}"
             )
         else:
             user_album_to_share.shared_to.remove(target_user)
             logger.info(
-                "Unshared user {}'s album {} to user {}".format(
-                    request.user.id, user_album_id, target_user_id
-                )
+                f"Unshared user {request.user.id}'s album {user_album_id} to user {target_user_id}"
             )
 
         user_album_to_share.save()
@@ -202,7 +192,8 @@ class ImageTagView(APIView):
     def get(self, request, format=None):
         # Add an exception for the directory '/code'
         subprocess.run(
-            ["git", "config", "--global", "--add", "safe.directory", "/code"]
+            ["git", "config", "--global", "--add", "safe.directory", "/code"],
+            check=False,
         )
 
         # Get the current commit hash
@@ -327,7 +318,7 @@ class MediaAccessView(APIView):
     permission_classes = (AllowAny,)
 
     def _get_protected_media_url(self, path, fname):
-        return "protected_media/{}/{}".format(path, fname)
+        return f"protected_media/{path}/{fname}"
 
     # @silk_profile(name='media')
     def get(self, request, path, fname, format=None):
@@ -414,7 +405,7 @@ class MediaAccessFullsizeOriginalView(APIView):
     permission_classes = (AllowAny,)
 
     def _get_protected_media_url(self, path, fname):
-        return "/protected_media{}/{}".format(path, fname)
+        return f"/protected_media{path}/{fname}"
 
     def _generate_response(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
@@ -660,7 +651,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                     return HttpResponse(status=404)
                 except PermissionError:
                     return HttpResponse(status=403)
-                except IOError:
+                except OSError:
                     return HttpResponse(status=500)
                 except Exception:
                     raise

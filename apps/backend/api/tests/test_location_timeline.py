@@ -14,7 +14,7 @@ def prepare_database(user):
         os.path.dirname(os.path.abspath(__file__))
         + "/fixtures/location_timeline_test_data.csv"
     )
-    with open(data, "r") as f:
+    with open(data) as f:
         reader = csv.reader(f)
         for row in reader:
             if row[0].startswith("#"):

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 from django_q.tasks import AsyncTask, schedule
 
-import api.util as util
+from api import util
 from api.models.long_running_job import LongRunningJob
 
 
@@ -62,7 +62,7 @@ def zip_photos_task(job_id, user, photos, filename):
             output_file.write(mf.getvalue())
 
     except Exception as e:
-        util.logger.error("Error while converting files to zip: {}".format(e))
+        util.logger.error(f"Error while converting files to zip: {e}")
 
     lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
     lrj.finished = True
@@ -77,15 +77,13 @@ def delete_zip_file(filename):
     file_path = os.path.join(settings.MEDIA_ROOT, "zip", filename)
     try:
         if not os.path.exists(file_path):
-            util.logger.error(
-                "Error while deleting file not found at : {}".format(file_path)
-            )
+            util.logger.error(f"Error while deleting file not found at : {file_path}")
             return
         else:
             os.remove(file_path)
-            util.logger.info("file deleted sucessfully at path : {}".format(file_path))
+            util.logger.info(f"file deleted sucessfully at path : {file_path}")
             return
 
     except Exception as e:
-        util.logger.error("Error while deleting file: {}".format(e))
+        util.logger.error(f"Error while deleting file: {e}")
         return e

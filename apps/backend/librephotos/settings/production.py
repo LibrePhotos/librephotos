@@ -31,7 +31,7 @@ if os.environ.get("SECRET_KEY"):
     print("use SECRET_KEY from env")
 
 if not SECRET_KEY and os.path.exists(SECRET_KEY_FILENAME):
-    with open(SECRET_KEY_FILENAME, "r") as f:
+    with open(SECRET_KEY_FILENAME) as f:
         SECRET_KEY = f.read().strip()
         print("use SECRET_KEY from file")
 
@@ -41,7 +41,7 @@ if not SECRET_KEY:
     with open(SECRET_KEY_FILENAME, "w") as f:
         f.write(get_random_secret_key())
         print("generate SECRET_KEY and save to file")
-    with open(SECRET_KEY_FILENAME, "r") as f:
+    with open(SECRET_KEY_FILENAME) as f:
         SECRET_KEY = f.read().strip()
         print("use SECRET_KEY from file")
 

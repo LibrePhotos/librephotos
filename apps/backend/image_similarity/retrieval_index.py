@@ -7,7 +7,7 @@ from utils import logger
 embedding_size = 512
 
 
-class RetrievalIndex(object):
+class RetrievalIndex:
     def __init__(self):
         pass
         self.indices = {}
@@ -15,9 +15,7 @@ class RetrievalIndex(object):
 
     def build_index_for_user(self, user_id, image_hashes, image_embeddings):
         logger.info(
-            "building index for user {} - got {} photos to process".format(
-                user_id, len(image_hashes)
-            )
+            f"building index for user {user_id} - got {len(image_hashes)} photos to process"
         )
         start = datetime.datetime.now()
         if not self.indices.get(user_id):

@@ -4,9 +4,9 @@
 import os
 
 import numpy as np
-import places365.wideresnet as wideresnet
 import torch
 from PIL import Image
+from places365 import wideresnet
 from torch.autograd import Variable as V
 from torch.nn import functional as F
 from torchvision import transforms as trn
@@ -114,8 +114,7 @@ class Places365:
         return " ".join(" ".join(" ".join(text.split("_")).split("/")).split("-"))
 
     def inference_places365(self, img_path, confidence):
-        """
-        @param img_path: path to the image to generate labels from
+        """@param img_path: path to the image to generate labels from
         @param confidence: minimum confidence before an category is selected
         @return: {'environment': 'indoor'/'outdoor', 'categories': [...], 'attributes': [...]}
         """

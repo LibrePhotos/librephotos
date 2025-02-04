@@ -26,7 +26,7 @@ class ScanPhotosTestCase(TestCase):
             self.client_admin.force_authenticate(self.admin)
 
             response = self.client_admin.patch(
-                "/api/manage/user/{}/".format(self.admin.id),
+                f"/api/manage/user/{self.admin.id}/",
                 {"scan_directory": samplephotos_dir},
             )
 
@@ -52,12 +52,12 @@ class ScanPhotosTestCase(TestCase):
             self.assertEqual(len(get_photos_res.json()["results"]), num_photos)
 
     def test_setup(self):
-        """make sure setup works"""
+        """Make sure setup works"""
         pass
 
     @skip
     def test_auto_albums(self):
-        """make sure user can make auto albums, list and retrieve them"""
+        """Make sure user can make auto albums, list and retrieve them"""
         # make auto albums
         auto_album_gen_res = self.client_admin.get("/api/autoalbumgen/")
         self.assertEqual(auto_album_gen_res.status_code, 200)
@@ -85,7 +85,7 @@ class ScanPhotosTestCase(TestCase):
 
     @skip
     def test_place_albums(self):
-        """make sure user can list and retrieve place albums"""
+        """Make sure user can list and retrieve place albums"""
         place_album_list_res = self.client_admin.get("/api/albums/place/list/")
         self.assertEqual(place_album_list_res.status_code, 200)
 
@@ -97,7 +97,7 @@ class ScanPhotosTestCase(TestCase):
 
     @skip
     def test_thing_albums(self):
-        """make sure user can list and retrieve thing albums"""
+        """Make sure user can list and retrieve thing albums"""
         thing_album_list_res = self.client_admin.get("/api/albums/thing/list/")
         self.assertEqual(thing_album_list_res.status_code, 200)
 

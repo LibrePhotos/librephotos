@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 
 def log(message):
-    print("exif: {}".format(message))
+    print(f"exif: {message}")
 
 
 @app.route("/get-tags", methods=["POST"])

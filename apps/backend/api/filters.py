@@ -5,7 +5,7 @@ from functools import reduce
 from django.db.models import Q
 from rest_framework import filters
 
-import api.util as util
+from api import util
 from api.image_similarity import search_similar_embedding
 from api.semantic_search import calculate_query_embeddings
 

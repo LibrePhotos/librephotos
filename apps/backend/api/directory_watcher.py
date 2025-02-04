@@ -2,7 +2,6 @@ import datetime
 import os
 import stat
 import uuid
-from typing import Optional
 from uuid import UUID
 
 import pytz
@@ -14,7 +13,7 @@ from django.db.models import F, Q, QuerySet
 from django.utils import timezone
 from django_q.tasks import AsyncTask
 
-import api.util as util
+from api import util
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
 from api.models import Face, File, LongRunningJob, Photo
@@ -58,9 +57,8 @@ else:
         return os.path.basename(path).startswith(".")
 
 
-def create_new_image(user, path) -> Optional[Photo]:
-    """
-    Creates a new Photo object based on user input and file path.
+def create_new_image(user, path) -> Photo | None:
+    """Creates a new Photo object based on user input and file path.
 
     Args:
         user: The owner of the photo.
@@ -78,12 +76,13 @@ def create_new_image(user, path) -> Optional[Photo]:
 
     Example:
         photo_instance = create_new_image(current_user, "/path/to/image.jpg")
+
     """
     if not is_valid_media(path):
         return
     hash = calculate_hash(user, path)
     if File.embedded_media.through.objects.filter(Q(to_file_id=hash)).exists():
-        util.logger.warning("embedded content file found {}".format(path))
+        util.logger.warning(f"embedded content file found {path}")
         return
 
     if is_metadata(path):
@@ -100,7 +99,7 @@ def create_new_image(user, path) -> Optional[Photo]:
             photo.files.add(file)
             photo.save()
         else:
-            util.logger.warning("no photo to metadata file found {}".format(path))
+            util.logger.warning(f"no photo to metadata file found {path}")
         return
 
     photos: QuerySet[Photo] = Photo.objects.filter(Q(image_hash=hash))
@@ -131,13 +130,12 @@ def create_new_image(user, path) -> Optional[Photo]:
             photo.in_trashcan = False
         photo.save()
         photo._check_files()
-        util.logger.warning("photo {} exists already".format(path))
+        util.logger.warning(f"photo {path} exists already")
         return photo
 
 
 def handle_new_image(user, path, job_id, photo=None):
-    """
-    Handles the creation and all the processing of the photo needed for it to be displayed.
+    """Handles the creation and all the processing of the photo needed for it to be displayed.
 
     Args:
         user: The owner of the photo.
@@ -147,6 +145,7 @@ def handle_new_image(user, path, job_id, photo=None):
 
     Note:
         This function is used, when uploading a picture, because rescanning does not perform machine learning tasks
+
     """
     update_scan_counter(job_id)
     try:
@@ -154,66 +153,48 @@ def handle_new_image(user, path, job_id, photo=None):
         if photo is None:
             photo = create_new_image(user, path)
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
-                "job {}: save image: {}, elapsed: {}".format(job_id, path, elapsed)
-            )
+            util.logger.info(f"job {job_id}: save image: {path}, elapsed: {elapsed}")
         if photo:
-            util.logger.info("job {}: handling image {}".format(job_id, path))
+            util.logger.info(f"job {job_id}: handling image {path}")
             photo._generate_thumbnail(True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: generate thumbnails: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
+                f"job {job_id}: generate thumbnails: {path}, elapsed: {elapsed}"
             )
             photo._calculate_aspect_ratio(False)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: calculate aspect ratio: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
+                f"job {job_id}: calculate aspect ratio: {path}, elapsed: {elapsed}"
             )
             photo._extract_exif_data(True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: extract exif data: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
+                f"job {job_id}: extract exif data: {path}, elapsed: {elapsed}"
             )
 
             photo._extract_date_time_from_exif(True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: extract date time: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
+                f"job {job_id}: extract date time: {path}, elapsed: {elapsed}"
             )
             photo._get_dominant_color()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: get dominant color: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
+                f"job {job_id}: get dominant color: {path}, elapsed: {elapsed}"
             )
             photo._recreate_search_captions()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "job {}: search caption recreated: {}, elapsed: {}".format(
-                    job_id, path, elapsed
-                )
+                f"job {job_id}: search caption recreated: {path}, elapsed: {elapsed}"
             )
 
     except Exception as e:
         try:
             util.logger.exception(
-                "job {}: could not load image {}. reason: {}".format(
-                    job_id, path, str(e)
-                )
+                f"job {job_id}: could not load image {path}. reason: {str(e)}"
             )
         except Exception:
-            util.logger.exception(
-                "job {}: could not load image {}".format(job_id, path)
-            )
+            util.logger.exception(f"job {job_id}: could not load image {path}")
 
 
 def walk_directory(directory, callback):
@@ -319,7 +300,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         for photo in all:
             photo_scanner(*photo)
 
-        util.logger.info("Scanned {} files in : {}".format(files_found, scan_directory))
+        util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
 
         util.logger.info("Finished updating album things")
         exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
@@ -339,7 +320,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         lrj.failed = True
 
     added_photo_count = Photo.objects.count() - photo_count_before
-    util.logger.info("Added {} photos".format(added_photo_count))
+    util.logger.info(f"Added {added_photo_count} photos")
 
 
 def generate_face_embeddings(user, job_id: UUID):
@@ -370,7 +351,7 @@ def generate_face_embeddings(user, job_id: UUID):
                 face.generate_encoding()
             except Exception as err:
                 util.logger.exception("An error occurred: ")
-                print("[ERR]: {}".format(err))
+                print(f"[ERR]: {err}")
                 failed = True
             update_scan_counter(job_id, failed)
 
@@ -379,7 +360,7 @@ def generate_face_embeddings(user, job_id: UUID):
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print("[ERR]: {}".format(err))
+        print(f"[ERR]: {err}")
         lrj.failed = True
 
 
@@ -414,7 +395,7 @@ def generate_tags(user, job_id: UUID):
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print("[ERR]: {}".format(err))
+        print(f"[ERR]: {err}")
         lrj.failed = True
 
 
@@ -426,7 +407,7 @@ def generate_tag_job(photo: Photo, job_id: str):
     except Exception as err:
         util.logger.exception("An error occurred: %s", photo.image_hash)
 
-        print("[ERR]: {}".format(err))
+        print(f"[ERR]: {err}")
         failed = True
     update_scan_counter(job_id, failed)
 
@@ -456,7 +437,7 @@ def add_geolocation(user, job_id: UUID):
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print("[ERR]: {}".format(err))
+        print(f"[ERR]: {err}")
         lrj.failed = True
 
 
@@ -516,7 +497,7 @@ def scan_faces(user, job_id: UUID, full_scan=False):
                 update_scan_counter(job_id)
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print("[ERR]: {}".format(err))
+        print(f"[ERR]: {err}")
         lrj.failed = True
 
     generate_face_embeddings(user, uuid.uuid4())

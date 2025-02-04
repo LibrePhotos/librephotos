@@ -1,8 +1,8 @@
 import os
 
 import torch
-import torch.utils.data as data
 from PIL import Image
+from torch.utils import data
 
 
 class CocoDataset(data.Dataset):
@@ -16,6 +16,7 @@ class CocoDataset(data.Dataset):
             json: coco annotation file path.
             vocab: vocabulary wrapper.
             transform: image transformer.
+
         """
         self.root = root
 
@@ -70,6 +71,7 @@ def collate_fn(data):
         images: torch tensor of shape (batch_size, 3, 256, 256).
         targets: torch tensor of shape (batch_size, padded_length).
         lengths: list; valid length for each padded caption.
+
     """
     # Sort a data list by caption length (descending order).
     data.sort(key=lambda x: len(x[1]), reverse=True)
