@@ -322,13 +322,8 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         util.logger.info("Scanned {} files in : {}".format(files_found, scan_directory))
 
         util.logger.info("Finished updating album things")
-        exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
-        paginator = Paginator(exisisting_photos, 5000)
-        for page in range(1, paginator.num_pages + 1):
-            for existing_photo in paginator.page(page).object_list:
-                existing_photo._check_files()
-        util.logger.info("Finished checking paths")
 
+        AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
         AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
         AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
         AsyncTask(batch_calculate_clip_embedding, user).run()
@@ -340,6 +335,37 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
     added_photo_count = Photo.objects.count() - photo_count_before
     util.logger.info("Added {} photos".format(added_photo_count))
+
+
+def scan_missing_photos(user, job_id: UUID):
+    if LongRunningJob.objects.filter(job_id=job_id).exists():
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    else:
+        lrj = LongRunningJob.objects.create(
+            started_by=user,
+            job_id=job_id,
+            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
+            job_type=LongRunningJob.JOB_SCAN_MISSING_PHOTOS,
+        )
+    lrj.save()
+    try:
+        exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
+        lrj.progress_target = exisisting_photos.count()
+
+        paginator = Paginator(exisisting_photos, 5000)
+        for page in range(1, paginator.num_pages + 1):
+            for existing_photo in paginator.page(page).object_list:
+                existing_photo._check_files()
+                update_scan_counter(job_id)
+
+        util.logger.info("Finished checking paths for missing photos")
+        lrj.finished = True
+        lrj.save()
+    except Exception:
+        util.logger.exception("An error occurred: ")
+        lrj.failed = True
 
 
 def generate_face_embeddings(user, job_id: UUID):
@@ -375,7 +401,6 @@ def generate_face_embeddings(user, job_id: UUID):
             update_scan_counter(job_id, failed)
 
         lrj.finished = True
-        lrj.save()
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
