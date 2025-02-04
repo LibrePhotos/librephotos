@@ -2,19 +2,10 @@ default_language_version:
   python: python3
 
 repos:
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.4 # Check latest version
     hooks:
-      - id: isort
-  - repo: https://github.com/psf/black
-    rev: 23.3.0
-    hooks:
-      - id: black
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
-        args:
-          - --exclude=.+/migrations/
-          - --max-line-length=88
-          - --ignore=E501,W503,E203,E231
+      - id: ruff
+        args: ["--fix"] # Fix lint & format
+
+      - id: ruff-format # Format code
