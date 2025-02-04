@@ -363,8 +363,6 @@ def scan_missing_photos(user, job_id: UUID):
             update_scan_counter(job_id)
 
         util.logger.info("Finished checking paths for missing photos")
-        lrj.finished = True
-        lrj.save()
     except Exception:
         util.logger.exception("An error occurred: ")
         lrj.failed = True
