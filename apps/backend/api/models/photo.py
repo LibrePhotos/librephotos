@@ -873,7 +873,7 @@ class Photo(models.Model):
         return obj.main_file.embedded_media
 
     def __str__(self):
-        main_file_path = self.main_file.path if self.main_file is not None else "No main file"
-        return (
-            "{} - {} - {}".format(self.image_hash, self.owner, main_file_path)
+        main_file_path = (
+            self.main_file.path if self.main_file is not None else "No main file"
         )
+        return "{} - {} - {}".format(self.image_hash, self.owner, main_file_path)
