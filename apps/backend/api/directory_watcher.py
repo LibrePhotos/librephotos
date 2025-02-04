@@ -323,10 +323,11 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
         util.logger.info("Finished updating album things")
 
+        # AsyncTask(batch_calculate_clip_embedding, user).run()
         AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
         AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
         AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
-        AsyncTask(batch_calculate_clip_embedding, user).run()
+        batch_calculate_clip_embedding(user)
         AsyncTask(scan_faces, user, uuid.uuid4(), full_scan).run()
 
     except Exception:
