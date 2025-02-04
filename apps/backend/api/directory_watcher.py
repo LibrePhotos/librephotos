@@ -352,16 +352,19 @@ def scan_missing_photos(user, job_id: UUID):
     lrj.save()
     try:
         exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
-        lrj.progress_target = exisisting_photos.count()
 
         paginator = Paginator(exisisting_photos, 5000)
+        lrj.progress_target = paginator.num_pages
+        lrj.save()
         for page in range(1, paginator.num_pages + 1):
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_files()
-                update_scan_counter(job_id)
+
+            update_scan_counter(job_id)
 
         util.logger.info("Finished checking paths for missing photos")
         lrj.finished = True
+        lrj.save()
     except Exception:
         util.logger.exception("An error occurred: ")
         lrj.failed = True
