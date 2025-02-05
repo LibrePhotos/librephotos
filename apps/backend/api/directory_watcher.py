@@ -416,23 +416,6 @@ def generate_face_embeddings(user, job_id: UUID):
 
 
 def generate_tags(user, job_id: UUID, full_scan=False):
-    last_scan = (
-        LongRunningJob.objects.filter(finished=True)
-        .filter(job_type=LongRunningJob.JOB_GENERATE_TAGS)
-        .filter(started_by=user)
-        .order_by("-finished_at")
-        .first()
-    )
-    existing_photos = Photo.objects.filter(
-        Q(owner=user.id)
-        & Q(captions_json__isnull=True)
-        & Q(captions_json__places365__isnull=True)
-    )
-    if not full_scan:
-        existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
-
-    if existing_photos.count() == 0:
-        return
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -447,6 +430,27 @@ def generate_tags(user, job_id: UUID, full_scan=False):
     lrj.save()
 
     try:
+        last_scan = (
+            LongRunningJob.objects.filter(finished=True)
+            .filter(job_type=LongRunningJob.JOB_GENERATE_TAGS)
+            .filter(started_by=user)
+            .order_by("-finished_at")
+            .first()
+        )
+        existing_photos = Photo.objects.filter(
+            Q(owner=user.id)
+            & Q(captions_json__isnull=True)
+            & Q(captions_json__places365__isnull=True)
+        )
+        if not full_scan:
+            existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
+
+        if existing_photos.count() == 0:
+            lrj.progress_target = 0
+            lrj.progress_current = 0
+            lrj.finished = True
+            lrj.save()
+            return
         lrj.progress_target = existing_photos.count()
         lrj.save()
         db.connections.close_all()
@@ -474,18 +478,6 @@ def generate_tag_job(photo: Photo, job_id: str):
 
 
 def add_geolocation(user, job_id: UUID, full_scan=False):
-    last_scan = (
-        LongRunningJob.objects.filter(finished=True)
-        .filter(job_type=LongRunningJob.JOB_ADD_GEOLOCATION)
-        .filter(started_by=user)
-        .order_by("-finished_at")
-        .first()
-    )
-    existing_photos = Photo.objects.filter(owner=user.id)
-    if not full_scan:
-        existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
-    if existing_photos.count() == 0:
-        return
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -500,6 +492,22 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
     lrj.save()
 
     try:
+        last_scan = (
+            LongRunningJob.objects.filter(finished=True)
+            .filter(job_type=LongRunningJob.JOB_ADD_GEOLOCATION)
+            .filter(started_by=user)
+            .order_by("-finished_at")
+            .first()
+        )
+        existing_photos = Photo.objects.filter(owner=user.id)
+        if not full_scan:
+            existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
+        if existing_photos.count() == 0:
+            lrj.progress_target = 0
+            lrj.finished = True
+            lrj.progress_current = 0
+            lrj.save()
+            return
         lrj.progress_target = existing_photos.count()
         lrj.save()
         db.connections.close_all()
@@ -526,22 +534,6 @@ def geolocation_job(photo: Photo, job_id: UUID):
 
 
 def scan_faces(user, job_id: UUID, full_scan=False):
-    last_scan = (
-        LongRunningJob.objects.filter(finished=True)
-        .filter(job_type=LongRunningJob.JOB_SCAN_FACES)
-        .filter(started_by=user)
-        .order_by("-finished_at")
-        .first()
-    )
-    existing_photos = Photo.objects.filter(
-        Q(owner=user.id) & Q(thumbnail_big__isnull=False)
-    )
-    if not full_scan:
-        existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
-
-    if existing_photos.count() == 0:
-        return
-
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
@@ -556,6 +548,26 @@ def scan_faces(user, job_id: UUID, full_scan=False):
     lrj.save()
 
     try:
+        last_scan = (
+            LongRunningJob.objects.filter(finished=True)
+            .filter(job_type=LongRunningJob.JOB_SCAN_FACES)
+            .filter(started_by=user)
+            .order_by("-finished_at")
+            .first()
+        )
+        existing_photos = Photo.objects.filter(
+            Q(owner=user.id) & Q(thumbnail_big__isnull=False)
+        )
+        if not full_scan:
+            existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
+
+        if existing_photos.count() == 0:
+            lrj.progress_current = 0
+            lrj.progress_target = 0
+            lrj.finished = True
+            lrj.save()
+            return
+
         lrj.progress_target = existing_photos.count()
         lrj.save()
         db.connections.close_all()
