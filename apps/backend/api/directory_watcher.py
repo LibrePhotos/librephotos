@@ -12,7 +12,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import F, Q, QuerySet
 from django.utils import timezone
-from django_q.tasks import AsyncTask
+from django_q.tasks import AsyncTask, Chain
 
 import api.util as util
 from api.batch_jobs import batch_calculate_clip_embedding
@@ -323,12 +323,18 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
         util.logger.info("Finished updating album things")
 
-        # AsyncTask(batch_calculate_clip_embedding, user).run()
-        AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
+        # if the scan type is not the default user scan directory, or if it is specified as only scanning
+        # specific files, there is no need to rescan fully for missing photos.
+        if full_scan or (scan_directory == user.scan_directory and not scan_files):
+            AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
         AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
         AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
-        batch_calculate_clip_embedding(user)
-        AsyncTask(scan_faces, user, uuid.uuid4(), full_scan).run()
+
+        # The scan faces job will have issues if the embeddings haven't been generated before it runs
+        chain = Chain()
+        chain.append(batch_calculate_clip_embedding, user)
+        chain.append(scan_faces, user, uuid.uuid4(), full_scan)
+        chain.run()
 
     except Exception:
         util.logger.exception("An error occurred: ")
