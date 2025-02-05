@@ -131,7 +131,7 @@
             "errormustmatch": "Hasła muszą się zgadzać",
             "titlechangepassword": "Zmiana hasła"
         },
-        "configdatetime": " Ustaw zasady przetwarzania czasu i daty",
+        "configdatetime": "Ustaw zasady przetwarzania czasu i daty",
         "finnish": "Fiński",
         "portuguese": "Portugalski",
         "basque": "Baskijski",
@@ -191,7 +191,9 @@
         "unknown_faces_confidence_help": "Wprowadź poziom pewności od 0 do 1. Twarze z grupy „Nieznane – Inne” zostaną dopasowane do innych osób, jeśli poziom pewności będzie wyższy niż ta wartość. Wartość 0 oznacza, że ta funkcja jest wyłączona.",
         "min_cluster_size_help": "Zmienia sposób tworzenia klastrów. Mniejsza wartość powoduje utworzenie większej liczby klastrów.",
         "cluster_selection_epsilon": "Wybór klastra Epsilon",
-        "min_samples_help": "Zmienia konserwatywny charakter klastrów. Mniejsza wartość oznacza mniejszy konserwatyzm."
+        "min_samples_help": "Zmienia konserwatywny charakter klastrów. Mniejsza wartość oznacza mniejszy konserwatyzm.",
+        "hindi": "Hindi",
+        "llm": "Ustawienia Modelu Dużego Języka"
     },
     "topmenu": {
         "loggedin": "Zalogowany jako",
