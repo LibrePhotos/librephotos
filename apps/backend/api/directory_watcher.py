@@ -449,6 +449,7 @@ def generate_tags(user, job_id: UUID, full_scan=False):
             lrj.progress_target = 0
             lrj.progress_current = 0
             lrj.finished = True
+            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
             return
         lrj.progress_target = existing_photos.count()
@@ -505,6 +506,7 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
         if existing_photos.count() == 0:
             lrj.progress_target = 0
             lrj.finished = True
+            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.progress_current = 0
             lrj.save()
             return
@@ -565,6 +567,7 @@ def scan_faces(user, job_id: UUID, full_scan=False):
             lrj.progress_current = 0
             lrj.progress_target = 0
             lrj.finished = True
+            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
             lrj.save()
             return
 
