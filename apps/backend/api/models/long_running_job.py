@@ -19,6 +19,7 @@ class LongRunningJob(models.Model):
     JOB_ADD_GEOLOCATION = 11
     JOB_GENERATE_TAGS = 12
     JOB_GENERATE_FACE_EMBEDDINGS = 13
+    JOB_SCAN_MISSING_PHOTOS = 14
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -34,6 +35,7 @@ class LongRunningJob(models.Model):
         (JOB_ADD_GEOLOCATION, "Add Geolocation"),
         (JOB_GENERATE_TAGS, "Generate Tags"),
         (JOB_GENERATE_FACE_EMBEDDINGS, "Generate Face Embeddings"),
+        (JOB_SCAN_MISSING_PHOTOS, "Scan Missing Photos"),
     )
 
     job_type = models.PositiveIntegerField(
