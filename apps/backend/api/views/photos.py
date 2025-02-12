@@ -28,7 +28,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        latestDate = (
+        latest_date = (
             Photo.visible.filter(Q(owner=self.request.user))
             .only("added_on")
             .order_by("-added_on")
@@ -40,9 +40,9 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
                 Q(owner=self.request.user)
                 & Q(aspect_ratio__isnull=False)
                 & Q(
-                    added_on__year=latestDate.year,
-                    added_on__month=latestDate.month,
-                    added_on__day=latestDate.day,
+                    added_on__year=latest_date.year,
+                    added_on__month=latest_date.month,
+                    added_on__day=latest_date.day,
                 )
             )
             .prefetch_related(
@@ -58,7 +58,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
 
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
-        latestDate = (
+        latest_date = (
             Photo.visible.filter(Q(owner=self.request.user))
             .only("added_on")
             .order_by("-added_on")
@@ -66,7 +66,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
             .added_on
         )
         serializer = PhotoSummarySerializer(queryset, many=True)
-        return Response({"date": latestDate, "results": serializer.data})
+        return Response({"date": latest_date, "results": serializer.data})
 
 
 class NoTimestampPhotoViewSet(ListViewSet):
@@ -94,7 +94,7 @@ class NoTimestampPhotoViewSet(ListViewSet):
         )
 
     def list(self, *args, **kwargs):
-        return super(NoTimestampPhotoViewSet, self).list(*args, **kwargs)
+        return super().list(*args, **kwargs)
 
 
 class SetPhotosDeleted(APIView):
@@ -254,11 +254,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def get_permissions(self):
-        if (
-            self.action == "list"
-            or self.action == "retrieve"
-            or self.action == "summary"
-        ):
+        if self.action in ("list", "retrieve", "summary"):
             permission_classes = [IsPhotoOrAlbumSharedTo]
         else:  # pragma: no cover - unused
             permission_classes = [IsAdminUser or IsOwnerOrReadOnly]
@@ -271,10 +267,10 @@ class PhotoViewSet(viewsets.ModelViewSet):
             return Photo.objects.order_by("-exif_timestamp")
 
     def retrieve(self, *args, **kwargs):
-        return super(PhotoViewSet, self).retrieve(*args, **kwargs)
+        return super().retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):  # pragma: no cover - unused
-        return super(PhotoViewSet, self).list(*args, **kwargs)
+        return super().list(*args, **kwargs)
 
 
 class PhotoEditViewSet(viewsets.ModelViewSet):
@@ -287,12 +283,12 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     def retrieve(
         self, *args, **kwargs
     ):  # pragma: no cover TODO(sickelap): remove unused code
-        return super(PhotoEditViewSet, self).retrieve(*args, **kwargs)
+        return super().retrieve(*args, **kwargs)
 
     def list(
         self, *args, **kwargs
     ):  # pragma: no cover TODO(sickelap): remove unused code
-        return super(PhotoEditViewSet, self).list(*args, **kwargs)
+        return super().list(*args, **kwargs)
 
 
 class SetPhotosShared(APIView):
@@ -317,17 +313,17 @@ class SetPhotosShared(APIView):
         ])
         """
 
-        ThroughModel = Photo.shared_to.through
+        through_model = Photo.shared_to.through
 
         if shared:
-            already_existing = ThroughModel.objects.filter(
+            already_existing = through_model.objects.filter(
                 user_id=target_user_id, photo_id__in=image_hashes
             ).only("photo_id")
             already_existing_image_hashes = [e.photo_id for e in already_existing]
             # print(already_existing)
-            res = ThroughModel.objects.bulk_create(
+            res = through_model.objects.bulk_create(
                 [
-                    ThroughModel(user_id=target_user_id, photo_id=image_hash)
+                    through_model(user_id=target_user_id, photo_id=image_hash)
                     for image_hash in image_hashes
                     if image_hash not in already_existing_image_hashes
                 ]
@@ -337,7 +333,7 @@ class SetPhotosShared(APIView):
             )
             res_count = len(res)
         else:
-            res = ThroughModel.objects.filter(
+            res = through_model.objects.filter(
                 user_id=target_user_id, photo_id__in=image_hashes
             ).delete()
             logger.info(

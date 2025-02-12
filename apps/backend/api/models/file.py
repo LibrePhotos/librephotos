@@ -39,13 +39,16 @@ class File(models.Model):
     )
 
     hash = models.CharField(primary_key=True, max_length=64, null=False)
-    path = models.TextField(blank=True, null=True)
+    path = models.TextField(blank=True)
     type = models.PositiveIntegerField(
         blank=True,
         choices=FILE_TYPES,
     )
     missing = models.BooleanField(default=False)
     embedded_media = models.ManyToManyField("File")
+
+    def __str__(self):
+        return self.path + " " + self._find_out_type()
 
     @staticmethod
     def create(path: str, user):
@@ -73,7 +76,7 @@ def is_video(path):
         filename = mime.from_file(path)
         return filename.find("video") != -1
     except Exception:
-        util.logger.error("Error while checking if file is video: %s" % path)
+        util.logger.error(f"Error while checking if file is video: {path}")
         raise False
 
 
