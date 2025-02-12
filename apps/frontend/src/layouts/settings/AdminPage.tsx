@@ -11,13 +11,36 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/auto";
-import { useFetchServerStatsQuery, useFetchUserListQuery } from "../../api_client/api";
+import { useFetchServerStatsQuery, useFetchServerLogsQuery, useFetchUserListQuery } from "../../api_client/api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { i18nResolvedLanguage } from "../../i18n";
 import { useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
+
+function DownloadLogsButton(){
+  const { data, isFetching } = useFetchServerLogsQuery();
+
+  const handleDownload = () => {
+    if (!data) return;
+
+    const url = window.URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ownphotos.log"; // Set default filename
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Button onClick={handleDownload} disabled={isFetching}>
+      {isFetching ? "Downloading..." : "Download Logs"}
+    </Button>
+  );
+};
 
 function UserTable() {
   const { t } = useTranslation();
@@ -171,6 +194,10 @@ function AdminTools() {
           <Button loading={isLoading} onClick={() => downloadFile()}>
             {t("adminarea.download")}
           </Button>
+        </Flex>
+        <Flex justify="space-between">
+          <div>Download Server Logs</div>
+          <DownloadLogsButton />
         </Flex>
       </Stack>
     </Card>

@@ -59,6 +59,7 @@ export enum Endpoints {
   deleteFaces = "deleteFaces",
   setFacesPersonLabel = "setFacesPersonLabel",
   fetchServerStats = "fetchServerStats",
+  fetchServerLogs = "fetchServerLogs",
   fetchStorageStats = "fetchStorageStats",
   fetchImageTag = "fetchImageTag",
   generateAutoAlbumTitle = "generateAutoAlbumTitle",
@@ -352,6 +353,15 @@ export const api = createApi({
         url: `serverstats`,
       }),
     }),
+    [Endpoints.fetchServerLogs]: builder.query<Blob, void>({
+      query: () => ({
+        url: `serverlogs`,
+        responseHandler: async (response) => 
+          // Convert response to Blob for file handling
+           response.blob()
+        ,
+      }),
+    }),
     [Endpoints.fetchStorageStats]: builder.query<StorageStatsResponseType, void>({
       query: () => ({
         url: `storagestats`,
@@ -379,6 +389,7 @@ export const {
   useManageUpdateUserMutation,
   useIsFirstTimeSetupQuery,
   useFetchServerStatsQuery,
+  useFetchServerLogsQuery,
   useFetchStorageStatsQuery,
   useFetchImageTagQuery,
 } = api;
