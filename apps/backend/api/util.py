@@ -21,6 +21,14 @@ logger.addHandler(fileHandler)
 logger.setLevel(logging.INFO)
 
 
+def is_valid_path(path, root_path):
+    # Resolve absolute paths to prevent directory traversal attacks
+    abs_path = os.path.abspath(path)
+    abs_root = os.path.abspath(root_path)
+
+    return abs_path.startswith(abs_root)
+
+
 def is_number(s):
     try:
         float(s)

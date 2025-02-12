@@ -18,7 +18,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api import util
-from api.directory_watcher import create_new_image, handle_new_image
+from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.models import Photo, User
 from api.models.file import calculate_hash, calculate_hash_b64
 
@@ -120,6 +120,17 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 status=http_status.HTTP_403_FORBIDDEN,
                 detail="Authentication credentials were not provided",
             )
+
+        if not is_valid_media(uploaded_file):
+            chunked_upload = get_object_or_404(
+                ChunkedUpload, upload_id=request.POST.get("upload_id")
+            )
+            chunked_upload.delete(delete_file=True)
+            raise ChunkedUploadError(
+                status=http_status.HTTP_400_BAD_REQUEST,
+                detail="File type not allowed",
+            )
+
         user = User.objects.filter(id=token["user_id"]).first()
         # Sanitize file name
         filename = get_valid_filename(request.POST.get("filename"))

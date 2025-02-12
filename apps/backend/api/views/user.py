@@ -15,7 +15,7 @@ from api.serializers.user import (
     SignupUserSerializer,
     UserSerializer,
 )
-from api.util import logger
+from api.util import is_valid_path, logger
 
 
 class DefaultRulesView(APIView):
@@ -36,14 +36,26 @@ class RootPathTreeView(APIView):
     def get(self, request, format=None):
         try:
             path = self.request.query_params.get("path")
-            if path:
-                res = [path_to_dict(path)]
-            else:
-                res = [path_to_dict(settings.DATA_ROOT)]
+            base_path = settings.DATA_ROOT
+
+            # Default to root directory if no path is provided
+            if not path:
+                path = base_path
+
+            # Validate the requested path
+            if not is_valid_path(path, base_path):
+                return Response(
+                    {
+                        "message": "Access denied. Path is outside the allowed directory."
+                    },
+                    status=403,
+                )
+
+            res = [path_to_dict(path)]
             return Response(res)
         except Exception as e:
             logger.exception(str(e))
-            return Response({"message": str(e)})
+            return Response({"message": str(e)}, status=500)
 
 
 class IsFirstTimeSetupView(APIView):

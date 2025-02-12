@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django_q.tasks import Chain
@@ -10,7 +11,7 @@ from api.batch_jobs import batch_calculate_clip_embedding
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
-from api.util import logger
+from api.util import is_valid_path, logger
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -351,9 +352,17 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
         if "scan_directory" in validated_data:
             new_scan_directory = validated_data.pop("scan_directory")
-            if new_scan_directory != "":
-                if os.path.exists(new_scan_directory):
-                    instance.scan_directory = new_scan_directory
+
+            if new_scan_directory:  # Ensure it's not an empty string
+                abs_new_scan_directory = os.path.abspath(new_scan_directory)
+
+                if not is_valid_path(abs_new_scan_directory, settings.DATA_ROOT):
+                    raise ValidationError(
+                        "Scan directory must be inside the data root."
+                    )
+
+                if os.path.exists(abs_new_scan_directory):
+                    instance.scan_directory = abs_new_scan_directory
                     logger.info(
                         f"Updated scan directory for user {instance.scan_directory}"
                     )
