@@ -141,7 +141,8 @@
         "semanticsearchheader": "Semanttisen haun enimmäistulokset",
         "experimentalupdate": "Päivitys",
         "favoriteupdate": "Päivitä",
-        "semanticsearchupdate": "Päivitä"
+        "semanticsearchupdate": "Päivitä",
+        "finnish": "Suomi"
     },
     "sitesettings": {
         "map_api_provider_header": "Karttapalveluntarjoaja",
