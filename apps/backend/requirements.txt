@@ -1,4 +1,4 @@
-Django==4.2.18
+Django==4.2.20
 django-constance==4.1.3
 django-cors-headers==4.6.0
 git+https://github.com/derneuere/django-chunked-upload@master#egg=django-chunked-upload
