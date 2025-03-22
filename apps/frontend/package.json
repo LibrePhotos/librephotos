@@ -94,8 +94,6 @@
     "react-player": "2.16.0",
     "react-redux": "8.1.3",
     "react-router-dom": "6.23.1",
-    "react-sortable-tree": "2.8.0",
-    "react-sortable-tree-theme-file-explorer": "2.0.0",
     "react-spring": "^9.2.3",
     "react-virtualized": "9.22.5",
     "react-vis": "1.12.1",

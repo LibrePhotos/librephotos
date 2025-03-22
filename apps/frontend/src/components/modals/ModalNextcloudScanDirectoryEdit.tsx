@@ -1,11 +1,10 @@
-import { Button, Divider, Grid, Modal, Stack, TextInput, Title } from "@mantine/core";
+import { Button, Divider, Grid, Modal, Stack, TextInput, Title, Tree } from "@mantine/core";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import SortableTree from "react-sortable-tree";
-import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 
-import type { DirTreeResponse } from "../../api_client/dir-tree";
+import type { DirTree, DirTreeResponse } from "../../api_client/dir-tree";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
+import { Leaf } from "./Leaf";
 
 type Props = Readonly<{
   path: string;
@@ -33,10 +32,15 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
     setPlaceholder(path || t("modalnextcloud.notset"));
   }, [path, t]);
 
-  const nodeClicked = (rowInfo: any) => {
-    inputRef.current!.value = rowInfo.node.absolute_path;
-    setNewScanDirectory(rowInfo.node.absolute_path);
-  };
+  // Convert DirTree data to the format expected by Mantine Tree
+  const convertToMantineTreeData = (data: DirTree[]) =>
+    data.map(item => ({
+      value: item.absolute_path,
+      label: item.title,
+      children: item.children.length > 0 ? convertToMantineTreeData(item.children) : undefined,
+    }));
+
+  const treeItems = convertToMantineTreeData(treeData);
 
   return (
     <Modal
@@ -68,23 +72,17 @@ export function ModalNextcloudScanDirectoryEdit(props: Props) {
         <Divider />
         <Title order={5}>{t("modalnextcloud.choosedirectory")}</Title>
         <div style={{ height: "250px", overflow: "auto" }}>
-          <SortableTree
-            innerStyle={{ outline: "none" }}
-            canDrag={() => false}
-            canDrop={() => false}
-            treeData={treeData}
-            onChange={setTreeData}
-            theme={FileExplorerTheme}
-            isVirtualized={false}
-            generateNodeProps={(rowInfo: any) => {
-              const nodeProps = {
-                onClick: () => nodeClicked(rowInfo),
-              };
-              if (path === rowInfo.node.absolute_path) {
-                Object.defineProperty(nodeProps, "className", { value: "selected-node" });
+          <Tree
+            data={treeItems}
+            selectOnClick
+            clearSelectionOnOutsideClick
+            onClick={node => {
+              if (inputRef.current) {
+                inputRef.current.value = node.value;
               }
-              return nodeProps;
+              setNewScanDirectory(node.value);
             }}
+            renderNode={payload => <Leaf {...payload} />}
           />
         </div>
       </Stack>

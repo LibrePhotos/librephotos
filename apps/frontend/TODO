@@ -2,7 +2,6 @@
 
 - medium: fix logout to redirect to login page
 - medium: fix public user list and public photos for authenticated user
-- medium: highlight sidebar menu when children menu page is active
 - medium: remove the use of useMediaquery
 - medium: Fix Modal Person Edit button and hover
 - low: rework mobile top menu for usability (upload, search, etc.)
@@ -10,6 +9,4 @@
 - low: select language and "help translating misaligned"
 - low: dark mode visibility text sidemenu
 - low: refactor sidebar with NavLink
-- low: notifications not visible
-- optional: refactor tree with latest mantine tree (and remove existing one)
 - optional: move color theme switch to top menu for convenience

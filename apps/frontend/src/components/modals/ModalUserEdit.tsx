@@ -1,11 +1,9 @@
-import { Box, Button, Grid, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Grid, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title, Tree } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconMail as Mail, IconUser as User } from "@tabler/icons-react";
 import type { FormEvent } from "react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import SortableTree from "react-sortable-tree";
-import FileExplorerTheme from "react-sortable-tree-theme-file-explorer";
 
 import { useManageUpdateUserMutation, useSignUpMutation } from "../../api_client/api";
 import type { DirTree } from "../../api_client/dir-tree";
@@ -15,6 +13,7 @@ import { useAppDispatch, useAppSelector } from "../../store/store";
 import { IUser } from "../../store/user/user.zod";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
+import { Leaf } from "./Leaf";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -43,16 +42,7 @@ const findPath = (tree: DirTree[], path: string): boolean => {
 };
 
 export function ModalUserEdit(props: Props) {
-  const {
-    isOpen,
-    updateAndScan,
-    selectedNodeId,
-    onRequestClose: closeModal,
-    userList,
-    createNew,
-    firstTimeSetup,
-    userToEdit,
-  } = props;
+  const { isOpen, updateAndScan, onRequestClose: closeModal, userList, createNew, firstTimeSetup, userToEdit } = props;
   const [treeData, setTreeData] = useState<DirTree[]>([]);
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
@@ -162,9 +152,17 @@ export function ModalUserEdit(props: Props) {
     }
   }, [form.values.scan_directory]);
 
-  const nodeClicked = (event: Event, rowInfo: any) => {
+  // Convert DirTree data to the format expected by Mantine Tree
+  const convertToMantineTreeData = (data: DirTree[]) =>
+    data.map(item => ({
+      value: item.absolute_path,
+      label: item.title,
+      children: item.children.length > 0 ? convertToMantineTreeData(item.children) : undefined,
+    }));
+
+  const nodeClicked = (node: { value: string }) => {
     if (inputRef.current) {
-      const path = rowInfo.node.absolute_path;
+      const path = node.value;
       inputRef.current.value = path;
       fetchDirectoryTree(path);
       form.setFieldValue("scan_directory", path);
@@ -310,18 +308,11 @@ export function ModalUserEdit(props: Props) {
             </Grid>
             <Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>
             <div style={{ height: "150px", overflow: "auto" }}>
-              <SortableTree
-                innerStyle={{ outline: "none" }}
-                canDrag={() => false}
-                canDrop={() => false}
-                treeData={treeData}
-                onChange={setTreeData}
-                theme={FileExplorerTheme}
-                isVirtualized={false}
-                generateNodeProps={(rowInfo: any) => ({
-                  onClick: (event: Event) => nodeClicked(event, rowInfo),
-                  className: selectedNodeId === rowInfo.node.id ? "selected-node" : undefined,
-                })}
+              <Tree
+                data={convertToMantineTreeData(treeData)}
+                selectOnClick
+                clearSelectionOnOutsideClick
+                renderNode={payload => <Leaf {...payload} nodeClicked={nodeClicked} />}
               />
             </div>
           </>
