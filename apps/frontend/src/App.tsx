@@ -1,5 +1,6 @@
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import "@mantine/notifications/styles.css";
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 
