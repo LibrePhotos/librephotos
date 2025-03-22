@@ -16,8 +16,9 @@ import {
   IconCloud as Cloud,
   IconHeart as Heart,
 } from "@tabler/icons-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { push } from "redux-first-history";
 
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/api";
@@ -49,9 +50,15 @@ export function SideMenuNarrow(): JSX.Element {
   const { colors } = useMantineTheme();
   const computedTheme = useComputedColorScheme("light");
   const defaultIconColor = computedTheme === "dark" ? colors.gray[3] : colors.dark[9];
+  const location = useLocation();
 
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
+  
+  // Update active state when location changes
+  useEffect(() => {
+    setActive(location.pathname);
+  }, [location.pathname]);
 
   if (!matches) {
     return <div />;
@@ -61,7 +68,11 @@ export function SideMenuNarrow(): JSX.Element {
     if (item.display === false) {
       return null;
     }
-
+    
+    // Check if this menu item or any submenu item is active
+    const isSubmenuItemActive = item.submenu?.some(subitem => subitem.link && active.startsWith(subitem.link));
+    const isItemActive = item.link === active || isSubmenuItemActive;
+    
     const link = (
       <a
         style={{
@@ -73,11 +84,16 @@ export function SideMenuNarrow(): JSX.Element {
           borderRadius: theme.radius.sm,
           fontWeight: 500,
           color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
+          backgroundColor: isItemActive
+            ? computedTheme === "dark" 
+              ? theme.colors.dark[5] 
+              : theme.colors.gray[1]
+            : "transparent",
           "&:hover": {
             backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
           },
         }}
-        data-active={item.link === active}
+        data-active={isItemActive}
         href={item.link}
         key={item.label}
         onClick={event => {
@@ -123,7 +139,7 @@ export function SideMenuNarrow(): JSX.Element {
               }
               const onClick = (event: { preventDefault: () => void }) => {
                 event.preventDefault();
-                setActive(item.link);
+                setActive(subitem.link!);
                 dispatch(push(subitem.link!));
               };
               const icon = (
