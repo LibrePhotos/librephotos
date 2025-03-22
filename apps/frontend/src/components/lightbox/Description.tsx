@@ -11,6 +11,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
+import "@mantine/tiptap/styles.css";
 import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand } from "@tabler/icons-react";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
