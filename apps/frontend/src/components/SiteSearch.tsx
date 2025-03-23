@@ -1,5 +1,4 @@
 import { ActionIcon, Box, Combobox, Group, Image, InputBase, Loader, Popover, Text, useCombobox } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
 import { IconAlbum, IconMap, IconSearch, IconTag, IconUser, IconX } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -29,11 +28,9 @@ function getIconForItem(item: SearchOption) {
 
 export function SiteSearch() {
   const { t } = useTranslation();
-  const { width } = useViewportSize();
   const { options, filterOptions, placeholder, isLoading } = useSearch();
   const combobox = useCombobox();
   const dispatch = useAppDispatch();
-  const searchWidth = width ? width - width / 1.8 : 200;
   const [value, setValue] = React.useState("");
   const [personToBeSelected, setPersonToBeSelected] = React.useState<string | null>(null);
 
@@ -128,7 +125,7 @@ export function SiteSearch() {
     ]);
 
   return (
-    <Box style={{ width: searchWidth }}>
+    <Box style={{ width: "40vw" }}>
       <Combobox store={combobox} withinPortal onOptionSubmit={option => onOptionSubmit(option)}>
         <Combobox.Target>
           <InputBase

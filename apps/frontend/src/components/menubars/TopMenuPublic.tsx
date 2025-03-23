@@ -1,4 +1,4 @@
-import { Burger, Button, Group, Image } from "@mantine/core";
+import { Button, Group, Image } from "@mantine/core";
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
@@ -6,15 +6,10 @@ import { push } from "redux-first-history";
 import { api } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
-type Props = Readonly<{
-  onToggleSidebar: () => void;
-}>;
-
-export function TopMenuCommon({ onToggleSidebar }: Props) {
+export function TopMenuCommon() {
   return (
-    <Group visibleFrom="sm">
-      <Burger size="sm" onClick={onToggleSidebar} />
-      <Link to="/">
+    <Group visibleFrom="sm" style={{ width: "185px", flexShrink: 0 }}>
+      <Link to="/" style={{ padding: 10 }}>
         <Button color="dark" style={{ padding: 2 }}>
           <Image height={30} width={30} src="/logo-white.png" />
         </Button>
