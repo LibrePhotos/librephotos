@@ -18,7 +18,6 @@ import { useParams } from "react-router-dom";
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { useUpdateUserMutation } from "../../api_client/user";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -82,9 +81,7 @@ const DEFAULT_PROPS: Props = {
 function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const { height } = useViewportSize();
   const pigRef = useRef<Pig>(null);
-  const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
   const [lightboxImageId, setLightboxImageId] = useState("");
-  const [lightboxShow, setLightboxShow] = useState(false);
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
@@ -122,7 +119,6 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
   const idx2hashRef = useRef(idx2hash);
-  const dispatch = useAppDispatch();
   const params = useParams();
 
   useEffect(() => {
@@ -249,32 +245,11 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
       return;
     }
 
-    const index = idx2hashRef.current.findIndex(image => image.id === item.id);
-    setLightboxImageIndex(index);
     setLightboxImageId(item.id);
-    setLightboxShow(index >= 0);
     setScrollLocked(true);
   };
 
-  const getPhotoDetails = (image: string) => {
-    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image));
-  };
-
-  const closeLightboxIfImageIndexIsOutOfSync = () => {
-    if (
-      lightboxShow &&
-      (idx2hashRef.current.length <= lightboxImageIndex ||
-        lightboxImageId !== idx2hashRef.current[lightboxImageIndex].id)
-    ) {
-      setScrollLocked(false);
-      setLightboxShow(false);
-    }
-  };
-
   const getNumPhotos = () => (idx2hashRef.current ? idx2hashRef.current.length : 0);
-
-  closeLightboxIfImageIndexIsOutOfSync();
-
   let isUserAlbum = false;
 
   // @ts-ignore
@@ -444,30 +419,14 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
         }}
       />
 
-      {lightboxShow && (
+      {lightboxImageId && (
         <LightBox
           isPublic={!!isPublic}
+          selectedImage={lightboxImageId}
           idx2hash={idx2hash}
-          lightboxImageIndex={lightboxImageIndex}
-          lightboxImageId={lightboxImageId}
           onCloseRequest={() => {
-            setLightboxShow(false);
+            setLightboxImageId("");
             setScrollLocked(false);
-          }}
-          onImageLoad={() => {
-            getPhotoDetails(idx2hash[lightboxImageIndex].id);
-          }}
-          onMovePrevRequest={() => {
-            const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
-            setLightboxImageIndex(prevIndex);
-            setLightboxImageId(idx2hash[prevIndex].id);
-            getPhotoDetails(idx2hash[prevIndex].id);
-          }}
-          onMoveNextRequest={() => {
-            const nextIndex = (lightboxImageIndex + idx2hash.length + 1) % idx2hash.length;
-            setLightboxImageIndex(nextIndex);
-            setLightboxImageId(idx2hash[nextIndex].id);
-            getPhotoDetails(idx2hash[nextIndex].id);
           }}
         />
       )}
