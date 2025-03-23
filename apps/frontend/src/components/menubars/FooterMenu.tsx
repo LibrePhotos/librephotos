@@ -1,4 +1,4 @@
-import { ActionIcon, Divider, Flex, Menu, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Divider, Flex, Menu } from "@mantine/core";
 import { IconHeart as Heart } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -16,8 +16,6 @@ export function FooterMenu(): JSX.Element {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
-  const theme = useMantineTheme();
-
   const navigationItems = getNavigationItems(t, isAuthenticated, canAccess);
 
   navigationItems.push({ label: t("supportus"), link: SUPPORT_LINK, icon: Heart, color: "pink" });
@@ -29,13 +27,13 @@ export function FooterMenu(): JSX.Element {
       return null;
     }
 
-    const icon = <item.icon size={33} style={{ margin: 0, marginRight: theme.spacing.sm }} />;
+    const icon = <item.icon size={24} />;
     const link = item.submenu ? (
-      <ActionIcon variant="light" color={item.color} key={key}>
+      <ActionIcon variant="light" color={item.color} key={key} size="lg">
         {icon}
       </ActionIcon>
     ) : (
-      <ActionIcon variant="light" color={item.color} key={key} component={Link} to={item.link}>
+      <ActionIcon variant="light" color={item.color} key={key} component={Link} to={item.link} size="lg">
         {icon}
       </ActionIcon>
     );
