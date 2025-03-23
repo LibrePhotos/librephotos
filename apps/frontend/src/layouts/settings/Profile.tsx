@@ -11,7 +11,6 @@ import {
   Text,
   TextInput,
   Title,
-  useMantineColorScheme,
 } from "@mantine/core";
 import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tabler/icons-react";
 import _ from "lodash";
@@ -37,9 +36,6 @@ export function Profile() {
   const { t, i18n } = useTranslation();
   const [updateAvatar] = useUpdateAvatarMutation();
   const [updateUser] = useUpdateUserMutation();
-
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
-  const dark = colorScheme === "dark";
   let editorRef = useRef(null);
 
   const setEditorRef = ref => {
@@ -236,19 +232,6 @@ export function Profile() {
                 placeholder={userSelfDetails.scan_directory}
               />
             ) : null}
-
-            <Radio.Group
-              label={t("settings.colorscheme.title")}
-              value={dark ? "1" : "0"}
-              onChange={() => {
-                toggleColorScheme();
-              }}
-            >
-              <Group mt="xs">
-                <Radio value="1" label={t("settings.colorscheme.dark")} />
-                <Radio value="0" label={t("settings.colorscheme.light")} />
-              </Group>
-            </Radio.Group>
           </Stack>
 
           <Group align="end" mb={10} mt={10}>

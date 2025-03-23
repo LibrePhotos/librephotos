@@ -1,9 +1,11 @@
-import { Avatar, Group, Menu } from "@mantine/core";
+import { ActionIcon, Avatar, Group, Menu, Tooltip, useMantineColorScheme } from "@mantine/core";
 import {
   IconAdjustments as Adjustments,
   IconBook as Book,
   IconLogout as Logout,
+  IconMoon as Moon,
   IconSettings as Settings,
+  IconSun as Sun,
   IconUser as User,
 } from "@tabler/icons-react";
 import React from "react";
@@ -24,6 +26,7 @@ export function TopMenu({ toggleSidebar }: { toggleSidebar: () => void }): React
   const auth = useAppSelector(state => state.auth);
   const { data: user } = useFetchUserSelfDetailsQuery(auth.access.user_id);
   const [logout] = useLogoutMutation();
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   return (
     <Group justify="space-between" h="100%" px={15}>
@@ -35,6 +38,12 @@ export function TopMenu({ toggleSidebar }: { toggleSidebar: () => void }): React
       <Group>
         <ChunkedUploadButton />
         <WorkerIndicator />
+
+        <Tooltip label={colorScheme === "dark" ? t("settings.colorscheme.light") : t("settings.colorscheme.dark")}>
+          <ActionIcon onClick={() => toggleColorScheme()} variant="default" size={30} aria-label="Toggle color scheme">
+            {colorScheme === "dark" ? <Sun size="1.1rem" /> : <Moon size="1.1rem" />}
+          </ActionIcon>
+        </Tooltip>
 
         <Menu width={200}>
           <Menu.Target>
