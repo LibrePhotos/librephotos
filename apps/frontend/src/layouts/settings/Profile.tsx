@@ -251,18 +251,17 @@ export function Profile() {
             </Radio.Group>
           </Stack>
 
-          <Group justify="flex-end" mb={10} mt={10}>
+          <Group align="end" mb={10} mt={10}>
             <Select
               label={t("settings.language")}
               placeholder={t("settings.language")}
-              // @ts-ignore
               onChange={value => i18n.changeLanguage(value)}
               searchable
               maxDropdownHeight={280}
-              value={window.localStorage.i18nextLng}
+              value={window.localStorage.i18nextLng === "gb" ? "en" : window.localStorage.i18nextLng}
               data={[
                 {
-                  value: "gb",
+                  value: "en",
                   label: t("settings.english"),
                 },
                 {
