@@ -1,5 +1,16 @@
-import { Box, Group, RemoveScroll, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import {
+  ActionIcon,
+  Box,
+  Group,
+  Menu,
+  NumberInput,
+  RemoveScroll,
+  Tooltip,
+  useComputedColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
+import { IconSettings } from "@tabler/icons-react";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -8,6 +19,7 @@ import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
+import { useUpdateUserMutation } from "../../api_client/user";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
@@ -83,8 +95,10 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const [scrollLocked, setScrollLocked] = useState(false);
   const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
   const [setPersonAlbumCover] = useSetPersonAlbumCoverMutation();
+  const [updateUser] = useUpdateUserMutation();
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
+  const [imageScale, setImageScale] = useState(userSelfDetails.image_scale);
   const {
     updateGroups,
     title,
@@ -114,6 +128,21 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   useEffect(() => {
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
+
+  useEffect(() => {
+    setImageScale(userSelfDetails.image_scale);
+  }, [userSelfDetails.image_scale]);
+
+  const handleThumbnailSizeChange = (value: number) => {
+    // Update the component state
+    setImageScale(value);
+
+    // Save to server
+    if (userSelfDetails.id) {
+      const newUserDetails = { ...userSelfDetails, image_scale: value };
+      updateUser(newUserDetails);
+    }
+  };
 
   const throttledUpdateGroups = useCallback(
     throttle(visibleItems => updateGroups(visibleItems), 500),
@@ -269,20 +298,51 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
         }}
       >
         {header || (
-          <DefaultHeader
-            // @ts-ignore
-            route={route}
-            // @ts-ignore
-            photoList={this}
-            loading={loading}
-            numPhotosetItems={photos.length || 0}
-            numPhotos={getNumPhotos()}
-            icon={icon}
-            title={title}
-            dayHeaderPrefix={dayHeaderPrefix}
-            date={date}
-            additionalSubHeader={additionalSubHeader}
-          />
+          <Group align="flex-start" style={{ width: "100%" }}>
+            <Box style={{ flexGrow: 1 }}>
+              <DefaultHeader
+                // @ts-ignore
+                route={route}
+                // @ts-ignore
+                photoList={this}
+                loading={loading}
+                numPhotosetItems={photos.length || 0}
+                numPhotos={getNumPhotos()}
+                icon={icon}
+                title={title}
+                dayHeaderPrefix={dayHeaderPrefix}
+                date={date}
+                additionalSubHeader={additionalSubHeader}
+              />
+            </Box>
+            {!loading && !isPublic && getNumPhotos() > 0 && (
+              <Menu shadow="md" width={200} position="bottom-end">
+                <Menu.Target>
+                  <Tooltip label="Photo Display Settings" position="bottom">
+                    <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Settings" style={{ marginTop: 8 }}>
+                      <IconSettings size={24} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>Photo Size</Menu.Label>
+                  <Box p="xs">
+                    <NumberInput
+                      value={imageScale}
+                      onChange={handleThumbnailSizeChange}
+                      min={0.25}
+                      max={3}
+                      step={0.05}
+                      precision={2}
+                      description="Lower = bigger thumbnails"
+                      allowDecimal
+                      hideControls={false}
+                    />
+                  </Box>
+                </Menu.Dropdown>
+              </Menu>
+            )}
+          </Group>
         )}
         {!loading && !isPublic && getNumPhotos() > 0 && (
           <Box
@@ -358,7 +418,7 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
               selectedItems={selectionStateRef.current.selectedItems}
               handleSelection={handleSelection}
               handleClick={handleClick}
-              scaleOfImages={userSelfDetails.image_scale}
+              scaleOfImages={imageScale}
               groupByDate={isDateView}
               getUrl={getUrl}
               toprightoverlay={FavoritedOverlay}

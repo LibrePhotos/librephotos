@@ -195,19 +195,6 @@ export function Profile() {
           <Title order={4} mb={10}>
             {t("settings.appearance")}
           </Title>
-          <Radio.Group
-            label={t("settings.thumbnailsize")}
-            value={userSelfDetails.image_scale?.toString()}
-            onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, image_scale: value });
-            }}
-            mb={10}
-          >
-            <Group mt="xs">
-              <Radio value="2" label={t("settings.small")} />
-              <Radio value="1" label={t("settings.big")} />
-            </Group>
-          </Radio.Group>
 
           <Radio.Group
             label={t("settings.public_sharing")}

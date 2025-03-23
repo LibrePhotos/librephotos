@@ -124,6 +124,7 @@ export default class Pig extends Component {
       this.containerWidth = this.container.offsetWidth;
       this.containerOffsetTop = this.container.offsetTop;
       this.windowHeight = window.innerHeight;
+      this.scaleOfImages = this.props.scaleOfImages || 1;
       this.setRenderedItems(this.imageData);
     }
   }
