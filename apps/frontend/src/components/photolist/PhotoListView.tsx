@@ -96,6 +96,7 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
   const [imageScale, setImageScale] = useState(userSelfDetails.image_scale);
+  const currentImageIndexRef = useRef(0);
   const {
     updateGroups,
     title,
@@ -244,6 +245,10 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
       handleSelection(item);
       return;
     }
+
+    // Store image index for later scrolling
+    const currentIndex = idx2hashRef.current.findIndex(image => image.id === item.id);
+    currentImageIndexRef.current = currentIndex;
 
     setLightboxImageId(item.id);
     setScrollLocked(true);
@@ -424,6 +429,69 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
           isPublic={!!isPublic}
           selectedImage={lightboxImageId}
           idx2hash={idx2hash}
+          onChangedIndex={currentIndex => {
+            // Update the current image index if provided from lightbox
+            if (currentIndex !== undefined) {
+              currentImageIndexRef.current = currentIndex;
+            }
+
+            // Scroll to the current image's position
+            if (pigRef.current && idx2hash[currentImageIndexRef.current]) {
+              // Use setTimeout to ensure DOM is updated after lightbox is closed
+              setTimeout(() => {
+                try {
+                  // Get all image buttons
+                  const buttons = document.querySelectorAll(".pig-btn");
+                  const currentImage = idx2hash[currentImageIndexRef.current];
+                  const currentImageId = currentImage.id;
+
+                  // Find the button that corresponds to the current image
+                  let targetButton = null;
+
+                  // Try to find by checking img contents
+                  for (let i = 0; i < buttons.length; i++) {
+                    const btn = buttons[i];
+                    const imgs = btn.querySelectorAll("img");
+
+                    // Try to match by checking if image source contains the ID
+                    if (imgs.length > 0) {
+                      for (const img of imgs) {
+                        if (img.src.includes(currentImageId)) {
+                          targetButton = btn;
+                          break;
+                        }
+                      }
+                    }
+
+                    if (targetButton) break;
+                  }
+
+                  // If no button found, try another approach - get index position
+                  if (!targetButton && buttons.length > 0) {
+                    // If there are the same number of buttons as images, use index directly
+                    if (buttons.length >= currentImageIndexRef.current) {
+                      targetButton = buttons[currentImageIndexRef.current];
+                    }
+                  }
+
+                  if (targetButton) {
+                    // Get position
+                    const rect = targetButton.getBoundingClientRect();
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    const targetY = rect.top + scrollTop - 80; // Offset to show a bit of context
+
+                    // Scroll to position
+                    window.scrollTo({
+                      top: targetY,
+                      behavior: "smooth",
+                    });
+                  }
+                } catch (error) {
+                  console.error("Error scrolling to image:", error);
+                }
+              }, 100);
+            }
+          }}
           onCloseRequest={() => {
             setLightboxImageId("");
             setScrollLocked(false);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -8,12 +8,16 @@ import type { LightBoxProps } from "./lightbox.types";
 export function Lightbox(props: LightBoxProps) {
   const { photoDetails } = useAppSelector(store => store.photoDetails);
 
-  const { idx2hash, isPublic, onCloseRequest, selectedImage } = props;
+  const { idx2hash, isPublic, onCloseRequest, selectedImage, onChangedIndex } = props;
   const [lightboxImageId, setLightboxImageId] = useState(selectedImage);
 
   const [lightboxImageIndex, setLightboxImageIndex] = useState(
     idx2hash.findIndex(image => image.id === lightboxImageId)
   );
+
+  useEffect(() => {
+    onChangedIndex(lightboxImageIndex);
+  }, [lightboxImageIndex]);
 
   const dispatch = useAppDispatch();
 

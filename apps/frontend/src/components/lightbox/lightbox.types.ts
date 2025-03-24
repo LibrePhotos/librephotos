@@ -24,6 +24,7 @@ export type LightBoxProps = {
   idx2hash: Array<{ id: string }>;
   isPublic: boolean;
   onCloseRequest: () => void;
+  onChangedIndex:  (currentIndex?: number) => void;
   selectedImage: string;
 };
 
