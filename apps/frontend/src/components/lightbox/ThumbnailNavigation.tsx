@@ -10,6 +10,7 @@ export function ThumbnailNavigation({
   nextSrc,
   onMovePrevRequest,
   onMoveNextRequest,
+  containerWidth,
 }: ThumbnailNavigationProps) {
   return (
     <div
@@ -19,8 +20,8 @@ export function ThumbnailNavigation({
         overflow: "visible",
         position: "absolute",
         bottom: "16px",
-        left: "0",
-        right: "0",
+        left: "50%",
+        transform: "translateX(-50%)",
         zIndex: 100,
         display: "flex",
         justifyContent: "center",
@@ -34,7 +35,8 @@ export function ThumbnailNavigation({
         margin: "0 auto",
         width: "fit-content",
         minWidth: "240px",
-        maxWidth: "90%",
+        maxWidth: "80%",
+        transition: "transform 0.25s ease-in-out, max-width 0.25s ease-in-out",
       }}
     >
       <Group justify="center" align="center" style={{ height: "100%" }}>

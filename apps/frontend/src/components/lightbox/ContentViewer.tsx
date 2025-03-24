@@ -1,11 +1,10 @@
-import { Carousel } from "@mantine/carousel";
+import { Carousel, useAnimationOffsetEffect } from "@mantine/carousel";
 import "@mantine/carousel/styles.css";
 import { Modal, Stack } from "@mantine/core";
 import { useGesture } from "@use-gesture/react";
 import React, { useEffect, useState } from "react";
 
 import { useAppSelector } from "../../store/store";
-import { FaceOverlay } from "./FaceOverlay";
 import { ImagePreloader } from "./ImagePreloader";
 import { LightboxControls } from "./LightboxControls";
 import { MediaDisplay } from "./MediaDisplay";
@@ -41,13 +40,10 @@ export function ContentViewer({
 
     const onSlideChange = () => {
       const currentSlide = embla.selectedScrollSnap();
-      console.log("Current slide:", currentSlide);
 
       if (currentSlide === 0 && prevSrc) {
-        console.log("Moving to previous slide");
         onMovePrevRequest();
       } else if (currentSlide === 2 && nextSrc) {
-        console.log("Moving to next slide");
         onMoveNextRequest();
       }
 
@@ -81,6 +77,12 @@ export function ContentViewer({
   });
 
   useEffect(() => {
+    if (embla) {
+      embla.reInit();
+    }
+  }, [lightboxSidebarShow, embla]);
+
+  useEffect(() => {
     if (onImageLoad) onImageLoad();
   }, [onImageLoad]);
 
@@ -106,9 +108,18 @@ export function ContentViewer({
             display: "flex",
             alignItems: "stretch",
             padding: 0,
+            position: "relative", // For absolute positioning
           }}
         >
-          <Stack style={{ width: `100%`, padding: 16, gap: 0 }}>
+          <Stack
+            style={{
+              width: lightboxSidebarShow ? "67%" : "100%",
+              padding: 16,
+              gap: 0,
+              position: "relative", // For the thumbnail navigation
+              height: "100%",
+            }}
+          >
             {/* Preload images */}
             <ImagePreloader prevSrc={prevSrc} mainSrc={mainSrc} nextSrc={nextSrc} />
 
@@ -126,10 +137,28 @@ export function ContentViewer({
             />
 
             {/* Main photo/video with swipe navigation */}
-            <div style={{ flex: 1 }}>
-              <Carousel getEmblaApi={setEmbla} initialSlide={1}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              <Carousel
+                getEmblaApi={setEmbla}
+                initialSlide={1}
+                style={{ width: "100%", height: "100%" }}
+                slideSize="100%"
+                align="center"
+                slideGap={0}
+                orientation="horizontal"
+                loop={false}
+                draggable={!isZoomed}
+                containScroll="trimSnaps"
+              >
                 {/* Previous slide */}
-
                 <Carousel.Slide>
                   <MediaDisplay
                     id={prevSrc ?? undefined}
@@ -189,18 +218,17 @@ export function ContentViewer({
               nextSrc={nextSrc}
               onMovePrevRequest={onMovePrevRequest}
               onMoveNextRequest={onMoveNextRequest}
+              containerWidth={lightboxSidebarShow ? "67%" : "100%"}
             />
           </Stack>
 
-          {lightboxSidebarShow ? (
+          {lightboxSidebarShow && (
             <Sidebar
               id={mainSrc}
               closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
               isPublic={isPublic}
               setFaceLocation={setFaceLocation}
             />
-          ) : (
-            <div />
           )}
         </Modal.Body>
       </Modal.Content>

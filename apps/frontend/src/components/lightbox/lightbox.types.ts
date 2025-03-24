@@ -53,6 +53,7 @@ export type ThumbnailNavigationProps = {
   nextSrc: string | null;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
+  containerWidth?: string;
 };
 
 export type LightboxControlsProps = {
