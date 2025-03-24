@@ -19,11 +19,11 @@ import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { useUpdateUserMutation } from "../../api_client/user";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
-import { LightBox } from "../lightbox/LightBox";
+import { Lightbox } from "../lightbox/Lightbox";
 import Pig from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
@@ -420,7 +420,7 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
       />
 
       {lightboxImageId && (
-        <LightBox
+        <Lightbox
           isPublic={!!isPublic}
           selectedImage={lightboxImageId}
           idx2hash={idx2hash}

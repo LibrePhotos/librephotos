@@ -11,7 +11,7 @@ import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGr
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
 import { TabComponent } from "../../components/facedashboard/TabComponent";
-import { LightBox } from "../../components/lightbox/LightBox";
+import { Lightbox } from "../../components/lightbox/Lightbox";
 import { ModalPersonEdit } from "../../components/modals/ModalPersonEdit";
 import { ScrollScrubber } from "../../components/scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
@@ -396,23 +396,13 @@ export function FaceDashboard() {
           selectedFaces={selectedFaces}
         />
         {lightboxShow && (
-          <LightBox
+          <Lightbox
             isPublic={false}
             idx2hash={idx2hash}
-            lightboxImageIndex={lightboxImageIndex}
-            lightboxImageId={lightboxImageId}
+            selectedImage={lightboxImageId}
             onCloseRequest={() => {
               setLightboxShow(false);
               setScrollLocked(false);
-            }}
-            onImageLoad={() => {
-              getPhotoDetails(idx2hash[lightboxImageIndex].id);
-            }}
-            onMovePrevRequest={() => {
-              const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
-              setLightboxImageIndex(prevIndex);
-              setLightboxImageId(idx2hash[prevIndex].id);
-              getPhotoDetails(idx2hash[prevIndex].id);
             }}
           />
         )}

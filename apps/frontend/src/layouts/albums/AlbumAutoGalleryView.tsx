@@ -17,7 +17,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { AlbumLocationMap } from "../../components/AlbumLocationMap";
 import { Tile } from "../../components/Tile";
-import { LightBox } from "../../components/lightbox/LightBox";
+import { Lightbox } from "../../components/lightbox/Lightbox";
 import { i18nResolvedLanguage } from "../../i18n";
 import { useAppDispatch } from "../../store/store";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -211,25 +211,11 @@ export function AlbumAutoGalleryView() {
       </div>
 
       {lightboxOpen && albumID && (
-        <LightBox
+        <Lightbox
           isPublic={false}
-          idx2hash={album.photos.map(i => i.image_hash)}
-          lightboxImageIndex={lightboxImageIndex}
-          lightboxImageId={album.photos[lightboxImageIndex].image_hash}
+          idx2hash={album.photos.map(i => ({ id: i.image_hash }))}
+          selectedImage={album.photos[lightboxImageIndex].image_hash}
           onCloseRequest={() => setLightboxOpen(false)}
-          onImageLoad={() => {
-            getPhotoDetails(album.photos[lightboxImageIndex].image_hash);
-          }}
-          onMovePrevRequest={() => {
-            const nextIndex = (lightboxImageIndex + album.photos.length - 1) % album.photos.length;
-            setLightboxImageIndex(nextIndex);
-            getPhotoDetails(album.photos[nextIndex].image_hash);
-          }}
-          onMoveNextRequest={() => {
-            const nextIndex = (lightboxImageIndex + album.photos.length + 1) % album.photos.length;
-            setLightboxImageIndex(nextIndex);
-            getPhotoDetails(album.photos[nextIndex].image_hash);
-          }}
         />
       )}
     </div>
