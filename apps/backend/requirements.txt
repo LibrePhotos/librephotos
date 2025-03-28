@@ -35,7 +35,7 @@ pyvips==2.2.3
 scikit-learn<1.5.3
 seaborn==0.13.2
 sentence_transformers==2.7.0
-timezonefinder==6.5.8
+timezonefinder==6.5.9
 tqdm==4.67.1
 gevent==24.10.3
 python-magic==0.4.27
