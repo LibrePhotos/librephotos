@@ -23,11 +23,11 @@ from api.llm import generate_prompt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.thumbnails import (
-    createAnimatedThumbnail,
-    createThumbnail,
-    createThumbnailForVideo,
-    doesStaticThumbnailExists,
-    doesVideoThumbnailExists,
+    create_thumbnail,
+    create_animated_thumbnail,
+    create_thumbnail_for_video,
+    does_static_thumbnail_exist,
+    does_video_thumbnail_exist,
 )
 from api.util import get_metadata, logger
 
@@ -372,9 +372,9 @@ class Photo(models.Model):
 
     def _generate_thumbnail(self, commit=True):
         try:
-            if not doesStaticThumbnailExists("thumbnails_big", self.image_hash):
+            if not does_static_thumbnail_exist("thumbnails_big", self.image_hash):
                 if not self.video:
-                    createThumbnail(
+                    create_thumbnail(
                         inputPath=self.main_file.path,
                         outputHeight=1080,
                         outputPath="thumbnails_big",
@@ -382,27 +382,27 @@ class Photo(models.Model):
                         fileType=".webp",
                     )
                 else:
-                    createThumbnailForVideo(
+                    create_thumbnail_for_video(
                         inputPath=self.main_file.path,
                         outputPath="thumbnails_big",
                         hash=self.image_hash,
                         fileType=".webp",
                     )
 
-            if not self.video and not doesStaticThumbnailExists(
+            if not self.video and not does_static_thumbnail_exist(
                 "square_thumbnails", self.image_hash
             ):
-                createThumbnail(
+                create_thumbnail(
                     inputPath=self.main_file.path,
                     outputHeight=500,
                     outputPath="square_thumbnails",
                     hash=self.image_hash,
                     fileType=".webp",
                 )
-            if self.video and not doesVideoThumbnailExists(
+            if self.video and not does_video_thumbnail_exist(
                 "square_thumbnails", self.image_hash
             ):
-                createAnimatedThumbnail(
+                create_animated_thumbnail(
                     inputPath=self.main_file.path,
                     outputHeight=500,
                     outputPath="square_thumbnails",
@@ -410,20 +410,20 @@ class Photo(models.Model):
                     fileType=".mp4",
                 )
 
-            if not self.video and not doesStaticThumbnailExists(
+            if not self.video and not does_static_thumbnail_exist(
                 "square_thumbnails_small", self.image_hash
             ):
-                createThumbnail(
+                create_thumbnail(
                     inputPath=self.main_file.path,
                     outputHeight=250,
                     outputPath="square_thumbnails_small",
                     hash=self.image_hash,
                     fileType=".webp",
                 )
-            if self.video and not doesVideoThumbnailExists(
+            if self.video and not does_video_thumbnail_exist(
                 "square_thumbnails_small", self.image_hash
             ):
-                createAnimatedThumbnail(
+                create_animated_thumbnail(
                     inputPath=self.main_file.path,
                     outputHeight=250,
                     outputPath="square_thumbnails_small",

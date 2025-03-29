@@ -135,7 +135,7 @@ class FaceListView(ListViewSet):
         ],
     )
     def list(self, *args, **kwargs):
-        return super(FaceListView, self).list(*args, **kwargs)
+        return super().list(*args, **kwargs)
 
 
 class FaceIncompleteListViewSet(ListViewSet):

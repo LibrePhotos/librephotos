@@ -9,57 +9,57 @@ from api import util
 from api.models.file import is_raw
 
 
-def createThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
+def create_thumbnail(input_path, output_height, output_path, hash, file_type):
     try:
-        if is_raw(inputPath):
-            if "thumbnails_big" in outputPath:
-                completePath = os.path.join(
-                    settings.MEDIA_ROOT, outputPath, hash + fileType
+        if is_raw(input_path):
+            if "thumbnails_big" in output_path:
+                complete_path = os.path.join(
+                    settings.MEDIA_ROOT, output_path, hash + file_type
                 ).strip()
                 json = {
-                    "source": inputPath,
-                    "destination": completePath,
-                    "height": outputHeight,
+                    "source": input_path,
+                    "destination": complete_path,
+                    "height": output_height,
                 }
                 response = requests.post("http://localhost:8003/", json=json).json()
                 return response["thumbnail"]
             else:
                 # only encode raw image in worse case, smaller thumbnails can get created from the big thumbnail instead
-                bigThumbnailPath = os.path.join(
-                    settings.MEDIA_ROOT, "thumbnails_big", hash + fileType
+                big_thumbnail_path = os.path.join(
+                    settings.MEDIA_ROOT, "thumbnails_big", hash + file_type
                 )
                 x = pyvips.Image.thumbnail(
-                    bigThumbnailPath,
+                    big_thumbnail_path,
                     10000,
-                    height=outputHeight,
+                    height=output_height,
                     size=pyvips.enums.Size.DOWN,
                 )
-                completePath = os.path.join(
-                    settings.MEDIA_ROOT, outputPath, hash + fileType
+                complete_path = os.path.join(
+                    settings.MEDIA_ROOT, output_path, hash + file_type
                 ).strip()
-                x.write_to_file(completePath, Q=95)
-            return completePath
+                x.write_to_file(complete_path, Q=95)
+            return complete_path
         else:
             x = pyvips.Image.thumbnail(
-                inputPath, 10000, height=outputHeight, size=pyvips.enums.Size.DOWN
+                input_path, 10000, height=output_height, size=pyvips.enums.Size.DOWN
             )
-            completePath = os.path.join(
-                settings.MEDIA_ROOT, outputPath, hash + fileType
+            complete_path = os.path.join(
+                settings.MEDIA_ROOT, output_path, hash + file_type
             ).strip()
-            x.write_to_file(completePath, Q=95)
-            return completePath
+            x.write_to_file(complete_path, Q=95)
+            return complete_path
     except Exception as e:
-        util.logger.error(f"Could not create thumbnail for file {inputPath}")
+        util.logger.error(f"Could not create thumbnail for file {input_path}")
         raise e
 
 
-def createAnimatedThumbnail(inputPath, outputHeight, outputPath, hash, fileType):
+def create_animated_thumbnail(input_path, output_height, output_path, hash, file_type):
     try:
-        output = os.path.join(settings.MEDIA_ROOT, outputPath, hash + fileType).strip()
+        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type).strip()
         command = [
             "ffmpeg",
             "-i",
-            inputPath,
+            input_path,
             "-to",
             "00:00:05",
             "-vcodec",
@@ -68,24 +68,24 @@ def createAnimatedThumbnail(inputPath, outputHeight, outputPath, hash, fileType)
             "20",
             "-an",
             "-filter:v",
-            f"scale=-2:{outputHeight}",
+            f"scale=-2:{output_height}",
             output,
         ]
 
         with subprocess.Popen(command) as proc:
             proc.wait()
     except Exception as e:
-        util.logger.error(f"Could not create animated thumbnail for file {inputPath}")
+        util.logger.error(f"Could not create animated thumbnail for file {input_path}")
         raise e
 
 
-def createThumbnailForVideo(inputPath, outputPath, hash, fileType):
+def create_thumbnail_for_video(input_path, output_path, hash, file_type):
     try:
-        output = os.path.join(settings.MEDIA_ROOT, outputPath, hash + fileType).strip()
+        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type).strip()
         command = [
             "ffmpeg",
             "-i",
-            inputPath,
+            input_path,
             "-ss",
             "00:00:00.000",
             "-vframes",
@@ -96,17 +96,17 @@ def createThumbnailForVideo(inputPath, outputPath, hash, fileType):
         with subprocess.Popen(command) as proc:
             proc.wait()
     except Exception as e:
-        util.logger.error(f"Could not create thumbnail for video file {inputPath}")
+        util.logger.error(f"Could not create thumbnail for video file {input_path}")
         raise e
 
 
-def doesStaticThumbnailExists(outputPath, hash):
+def does_static_thumbnail_exist(output_path, hash):
     return os.path.exists(
-        os.path.join(settings.MEDIA_ROOT, outputPath, hash + ".webp").strip()
+        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".webp").strip()
     )
 
 
-def doesVideoThumbnailExists(outputPath, hash):
+def does_video_thumbnail_exist(output_path, hash):
     return os.path.exists(
-        os.path.join(settings.MEDIA_ROOT, outputPath, hash + ".mp4").strip()
+        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4").strip()
     )

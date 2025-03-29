@@ -21,7 +21,7 @@ from django.views.decorators.vary import vary_on_cookie
 from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
 from rest_framework_simplejwt.exceptions import TokenError
@@ -62,15 +62,23 @@ class AlbumUserEditViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def retrieve(self, *args, **kwargs):
-        return super(AlbumUserEditViewSet, self).retrieve(*args, **kwargs)
+        return super().retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
-        return super(AlbumUserEditViewSet, self).list(*args, **kwargs)
+        return super().list(*args, **kwargs)
 
     def get_queryset(self):
         if self.request.user.is_anonymous:
             return AlbumUser.objects.none()
         return AlbumUser.objects.filter(owner=self.request.user).order_by("title")
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.permission_classes = (IsAuthenticated,)
+        else:
+            self.permission_classes = (IsAdminUser,)
+
+        return super().get_permissions()
 
 
 # API Views
@@ -397,8 +405,7 @@ class VideoTranscoder:
 
 
 def gen(transcoder):
-    for resp in iter(transcoder.process.stdout.readline, b""):
-        yield resp
+    yield from iter(transcoder.process.stdout.readline, b"")
 
 
 class MediaAccessFullsizeOriginalView(APIView):

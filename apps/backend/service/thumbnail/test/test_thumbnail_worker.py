@@ -1,8 +1,12 @@
 import os
 
 from pytest import fixture
+from flask import Flask
 
 from service.thumbnail.main import app
+
+HTTP_BAD_REQUEST = 400
+HTTP_CREATED = 201
 
 
 @fixture()
@@ -12,12 +16,12 @@ def client():
 
 def test_must_fail_when_passing_empty_string(client):
     response = client.post("/", data="")
-    assert response.status_code == 400
+    assert response.status_code == HTTP_BAD_REQUEST
 
 
 def test_must_fail_when_passing_invalid_json(client):
     response = client.post("/", data="invalid json")
-    assert response.status_code == 400
+    assert response.status_code == HTTP_BAD_REQUEST
 
 
 def test_must_fail_when_passing_incomplete_json(client):
@@ -31,7 +35,7 @@ def test_must_fail_when_passing_incomplete_json(client):
     ]
     for payload in invalid_payloads:
         response = client.post("/", json=payload)
-        assert response.status_code == 400
+        assert response.status_code == HTTP_BAD_REQUEST
 
 
 def test_should_create_thumbnail(client):
@@ -44,4 +48,4 @@ def test_should_create_thumbnail(client):
         source = os.path.join(samples_dir, sample)
         json = {"source": source, "destination": thumbnail_path, "height": 100}
         response = client.post("/", json=json)
-        assert response.status_code == 201
+        assert response.status_code == HTTP_CREATED

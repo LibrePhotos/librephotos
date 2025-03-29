@@ -84,7 +84,7 @@ class PersonSerializer(serializers.ModelSerializer):
             new_person = Person()
             new_person.name = name
             new_person.save()
-            logger.info("created person {}" % new_person.id)
+            logger.info(f"created person {new_person.id}")
             return new_person
 
     def update(self, instance, validated_data):

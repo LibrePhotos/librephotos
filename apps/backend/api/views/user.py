@@ -142,7 +142,7 @@ class ManageUserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminUser,)
 
     def retrieve(self, *args, **kwargs):
-        return super(ManageUserViewSet, self).retrieve(*args, **kwargs)
+        return super().retrieve(*args, **kwargs)
 
     def list(self, *args, **kwargs):
-        return super(ManageUserViewSet, self).list(*args, **kwargs)
+        return super().list(*args, **kwargs)

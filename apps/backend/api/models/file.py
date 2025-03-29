@@ -39,7 +39,7 @@ class File(models.Model):
     )
 
     hash = models.CharField(primary_key=True, max_length=64, null=False)
-    path = models.TextField(blank=True)
+    path = models.TextField(blank=True, default="")
     type = models.PositiveIntegerField(
         blank=True,
         choices=FILE_TYPES,
