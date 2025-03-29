@@ -23,8 +23,8 @@ from api.llm import generate_prompt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.thumbnails import (
-    create_thumbnail,
     create_animated_thumbnail,
+    create_thumbnail,
     create_thumbnail_for_video,
     does_static_thumbnail_exist,
     does_video_thumbnail_exist,

@@ -1,7 +1,6 @@
 import os
 
 from pytest import fixture
-from flask import Flask
 
 from service.thumbnail.main import app
 

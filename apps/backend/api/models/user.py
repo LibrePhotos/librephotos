@@ -34,12 +34,8 @@ class User(AbstractUser):
     semantic_search_topk = models.IntegerField(default=0)
     avatar = models.ImageField(upload_to="avatars", null=True, blank=True)
     transcode_videos = models.BooleanField(default=False)
-    nextcloud_server_address = models.CharField(
-        max_length=200, default="", blank=True
-    )
-    nextcloud_username = models.CharField(
-        max_length=64, default="", blank=True
-    )
+    nextcloud_server_address = models.CharField(max_length=200, default="", blank=True)
+    nextcloud_username = models.CharField(max_length=64, default="", blank=True)
     nextcloud_app_password = encrypt(
         models.CharField(max_length=64, default="", blank=True)
     )
