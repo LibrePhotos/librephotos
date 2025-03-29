@@ -17,7 +17,7 @@ class ListDir(APIView):
             return Response([])
         path = request.query_params["fpath"]
 
-        if request.user.nextcloud_server_address is None or not valid_url(
+        if not request.user.nextcloud_server_address or not valid_url(
             request.user.nextcloud_server_address
         ):
             return Response([])
