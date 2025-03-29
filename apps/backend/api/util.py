@@ -10,14 +10,14 @@ logger = logging.getLogger("ownphotos")
 formatter = logging.Formatter(
     "%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s"
 )
-fileMaxByte = 256 * 1024 * 200  # 100MB
-fileHandler = logging.handlers.RotatingFileHandler(
+FILE_MAX_BYTE = 256 * 1024 * 200  # 100MB
+FILE_HANDLER = logging.handlers.RotatingFileHandler(
     os.path.join(settings.LOGS_ROOT, "ownphotos.log"),
-    maxBytes=fileMaxByte,
+    maxBytes=FILE_MAX_BYTE,
     backupCount=10,
 )
-fileHandler.setFormatter(formatter)
-logger.addHandler(fileHandler)
+FILE_HANDLER.setFormatter(formatter)
+logger.addHandler(FILE_HANDLER)
 logger.setLevel(logging.INFO)
 
 
