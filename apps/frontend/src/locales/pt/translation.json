@@ -451,7 +451,8 @@
   "autoalbumgallery": {
     "showmap": "Mostrar mapa",
     "hidemap": "Ocultar mapa",
-    "day": "Dia {{day}}"
+    "day": "Dia {{day}}",
+    "dateRange": "{{from}} - {{to}}"
   },
   "personalbum": {
     "numberofpeople": "{{peoplelength}} Pessoas",

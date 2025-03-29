@@ -4,11 +4,11 @@
         "firstnameplaceholder": "Nome",
         "avatar": "Avatar pubblico",
         "uploadheader": "Carica un nuovo avatar",
-        "image": "Scegli un’immagine",
+        "image": "Scegli un'immagine",
         "upload": "Carica",
-        "accountinformation": "Informazioni sull’account",
+        "accountinformation": "Informazioni sull'account",
         "account": "Account",
-        "filesize": "La dimensione massima del file consentita è di 200 kB.",
+        "filesize": "La dimensione massima del file consentita è di 200 kB.",
         "lastname": "Cognome",
         "french": "francese",
         "email": "Posta elettronica",
@@ -199,7 +199,7 @@
         "headerupload": "Permetti uploads"
     },
     "modalscandirectoryedit": {
-        "explanation1": "Quando l’utente",
+        "explanation1": "Quando l'utente",
         "header": "Imposta l'elenco di scansione per l'utente",
         "update": "Aggiorna",
         "explanation2": "Facendo clic sul pulsante \"Scansiona foto\", le foto nella directory specificata verranno importate nell'account dell'utente",
@@ -224,13 +224,14 @@
     "autoalbumgallery": {
         "showmap": "Visualizza Mappa",
         "hidemap": "Nascondi Mappa",
-        "day": "Giorno {{day}}"
+        "day": "Giorno {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "countstats": {
         "photos": "Foto"
     },
     "useralbum": {
-        "albumplaceholder": "Titolo dell’album"
+        "albumplaceholder": "Titolo dell'album"
     },
     "faces": "Visi",
     "days": "Giorni",

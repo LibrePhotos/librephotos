@@ -225,7 +225,7 @@
     "topmenu": {
         "running": "In Bearbeitung",
         "available": "Arbeiter verfügbar! Du kannst mehr Fotos scannen, Gesichter analysieren, Ereignis-Alben erstellen oder Titel für Ereignis-Alben neu generieren.",
-        "busy": "Beschäftigt …",
+        "busy": "Beschäftigt …",
         "loggedin": "Angemeldet als",
         "logout": "Abmelden",
         "settings": "Einstellungen",
@@ -271,7 +271,7 @@
         "select": "Wähle alle aus"
     },
     "defaultheader": {
-        "loading": "Wird geladen …",
+        "loading": "Wird geladen …",
         "noimages": "Keine Bilder gefunden",
         "days": "Tage",
         "photos": "Fotos",
@@ -356,8 +356,8 @@
     },
     "search": {
         "search": "Suche nach",
-        "default": "Suche …",
-        "loading": "Wird geladen …"
+        "default": "Suche …",
+        "loading": "Wird geladen …"
     },
     "adminarea": {
         "header": "Adminbereich",
@@ -441,7 +441,8 @@
     "autoalbumgallery": {
         "showmap": "Zeige Karte",
         "hidemap": "Verstecke Karte",
-        "day": "Tag {{day}}"
+        "day": "Tag {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} Personen",
@@ -476,7 +477,7 @@
     "myalbums": "Meine Alben",
     "things": "Dinge",
     "places": "Orte",
-    "loading": "Wird geladen …",
+    "loading": "Wird geladen …",
     "facesdashboard": {
         "selectedfaces": "{{number}} ausgewählt",
         "explanationdeleting": "Lösche das Gesicht und das Anzeigebild",
@@ -510,7 +511,7 @@
         "newperson": "Neue Person",
         "personname": "Name der Person",
         "labelfaces": "Gesichter kennzeichnen",
-        "numberselected": "Ausgewählte(s) {{number}} Gesicht(er) kennzeichnen als …"
+        "numberselected": "Ausgewählte(s) {{number}} Gesicht(er) kennzeichnen als …"
     },
     "dataviz": "Datenvisualisierung",
     "placetree": "Ortsbaum",
@@ -551,9 +552,9 @@
         "updateusertitle": "Nutzer ändern",
         "deletemissingphotos": "Lösche fehlende Fotos…",
         "deletemissingphotostitle": "Fehlende Fotos löschen",
-        "generateeventalbums": "Ereignisalben werden generiert …",
+        "generateeventalbums": "Ereignisalben werden generiert …",
         "generateeventalbumstitle": "Ereignisalben generieren",
-        "regenerateevents": "Ereignis-Titel werden erneut generiert …",
+        "regenerateevents": "Ereignis-Titel werden erneut generiert …",
         "sharephoto": "{{numberOfPhotos}} Foto(s) wurde(n) mit {{username}} geteilt",
         "removepublicphoto": "{{numberOfPhotos}} Foto(s) wurde(n) von öffentlichen Fotos entfernt.",
         "favoritephoto": "{{numberOfPhotos}} Foto(s) wurde(n) zu Favoriten hinzugefügt.",
@@ -588,7 +589,7 @@
         "deletejobtitle": "Auftrag löschen",
         "deletejob": "Auftrag {{id}} gelöscht.",
         "deleteallautoalbumstitle": "Alle automatisch erstellten Alben löschen",
-        "scanuploadedphotos": "Hochgeladene Fotos scannen werden gescannt …",
+        "scanuploadedphotos": "Hochgeladene Fotos scannen werden gescannt …",
         "deleteallautoalbums": "Alle automatisch erstellten Alben werden gelöscht.",
         "scanuploadedphotostitle": "Hochgeladene Fotos scannen",
         "deleteuser": "{{username}} gelöscht",
@@ -628,14 +629,14 @@
     "locationtimeline": "Ort-Zeitstrahl",
     "nosocialgraph": "Kein Sozialer Graph",
     "nodata": "Keine Daten",
-    "fetchingsocialgraph": "Sozialen Graph abrufen …",
+    "fetchingsocialgraph": "Sozialen Graph abrufen …",
     "modalalbum": {
         "create": "Erstellen",
         "title": "Zum Album hinzufügen",
         "alreadexists": "Das Album {{title}} existiert bereits.",
         "newalbum": "Neues Album",
         "items": "{{count}} Element(e)",
-        "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
+        "selectedimages": "Ausgewählte(s) {{count}} Foto(s) hinzufügen zu …",
         "placeholder": "Albumtitel",
         "alreadyexists": "Das Album {{title}} existiert bereits.",
         "updated": "{{duration}} aktualisiert"

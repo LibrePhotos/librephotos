@@ -18,7 +18,7 @@ export function AlbumLocationMap({ photos }: Readonly<Props>) {
   if (photosWithGPS.length > 0) {
     return (
       <div style={{ padding: 0 }}>
-        <Map center={[avgLat, avgLon]} zoom={6}>
+        <Map center={[avgLat, avgLon]} zoom={6} style={{ height: "300px" }}>
           <TileLayer
             attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"

@@ -126,7 +126,7 @@
         "polish": "Polaco",
         "dutch": "Holandés",
         "profile": "Perfil",
-        "confidencepercentage": "Confianza: {{percentage}} %",
+        "confidencepercentage": "Confianza: {{percentage}}  %",
         "finnish": "Finlandés",
         "portuguese": "Portugués",
         "basque": "Vasco",
@@ -441,7 +441,8 @@
     "autoalbumgallery": {
         "showmap": "Mostrar mapa",
         "hidemap": "Ocultar mapa",
-        "day": "Día {{day}}"
+        "day": "Día {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} personas",
