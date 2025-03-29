@@ -5,7 +5,7 @@ from api.models.user import User, get_deleted_user
 
 
 class AlbumDate(models.Model):
-    title = models.CharField(blank=True, null=True, max_length=512, db_index=True)
+    title = models.CharField(blank=True, default="", max_length=512, db_index=True)
     date = models.DateField(db_index=True, null=True)
     photos = models.ManyToManyField(Photo)
     favorited = models.BooleanField(default=False, db_index=True)
