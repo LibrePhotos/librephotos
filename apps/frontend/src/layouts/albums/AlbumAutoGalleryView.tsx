@@ -1,36 +1,25 @@
-import { Avatar, Box, Breadcrumbs, Button, Divider, Group, Loader, Paper, Stack, Text, Title, rem } from "@mantine/core";
-import { useDisclosure, useViewportSize } from "@mantine/hooks";
+import { Avatar, Box,  Button, Divider, Group, Loader, Paper, Text, Title } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import {
   IconMap2 as Map2,
   IconSettingsAutomation as SettingsAutomation,
 } from "@tabler/icons-react";
 import _ from "lodash";
-import { DateTime } from "luxon";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
 import { useLazyFetchAutoAlbumQuery } from "../../api_client/albums/auto";
 import { serverAddress } from "../../api_client/apiClient";
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { AlbumLocationMap } from "../../components/AlbumLocationMap";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { i18nResolvedLanguage } from "../../i18n";
-import { useAppDispatch } from "../../store/store";
-import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
-const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export function AlbumAutoGalleryView() {
   const [fetchAlbum, { data: album, isFetching }] = useLazyFetchAutoAlbumQuery();
   const [showMap, { toggle: toggleMap }] = useDisclosure(false);
-  const dispatch = useAppDispatch();
   const { albumID } = useParams();
   const { t } = useTranslation();
-
-  function getPhotoDetails(image_hash: string) {
-    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hash));
-  }
 
   useEffect(() => {
     if (albumID) {
@@ -51,9 +40,6 @@ export function AlbumAutoGalleryView() {
 
   const photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => ({ ...el, idx }));
   const byDate = _.groupBy(_.sortBy(photos, "exif_timestamp"), photo => photo.exif_timestamp.split("T")[0]);
-  const timestampFrom = DateTime.fromISO(album.photos[0].exif_timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_MED);
-  const timestampTo = DateTime.fromISO(album.photos[album.photos.length - 1].exif_timestamp).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_MED);
-  const subtitle = ` ${t("numberofphotos", { number: album.photos.length })}, ${timestampFrom} - ${timestampTo}`;
 
   // Check if any photos have GPS coordinates
   const hasGPSCoordinates = photos.some(photo => photo.exif_gps_lat !== null && photo.exif_gps_lon !== null);
