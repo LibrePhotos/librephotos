@@ -21,6 +21,7 @@ SERVICES = {
     "tags": 8011,
 }
 
+HTTP_OK = 200
 
 def check_services():
     for service in SERVICES.keys():
@@ -39,7 +40,7 @@ def is_healthy(service):
             if res.json()["last_request_time"] < time.time() - 120:
                 logger.info(f"Service {service} is stale and needs to be restarted")
                 return False
-        return res.status_code == 200
+        return res.status_code == HTTP_OK
     except BaseException as e:
         logger.exception(f"Error checking health of {service}: {str(e)}")
         return False

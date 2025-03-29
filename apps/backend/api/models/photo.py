@@ -210,13 +210,12 @@ class Photo(models.Model):
             if commit:
                 self.save()
             util.logger.info(
-                "generated im2txt captions for image %s with SiteConfig %s with Blip: %s and Onnx: %s caption: %s"
-                % (image_path, site_config.CAPTIONING_MODEL, blip, onnx, caption)
+                f"generated im2txt captions for image {image_path} with SiteConfig {site_config.CAPTIONING_MODEL} with Blip: {blip} and Onnx: {onnx} caption: {caption}"
             )
             return True
         except Exception:
             util.logger.exception(
-                "could not generate im2txt captions for image %s" % image_path
+                f"could not generate im2txt captions for image {image_path}"
             )
             return False
 
@@ -230,8 +229,7 @@ class Photo(models.Model):
                 self.save(update_fields=["captions_json", "search_captions"])
 
             util.logger.info(
-                "saved captions for image %s. caption: %s. captions_json: %s."
-                % (image_path, caption, self.captions_json)
+                f"saved captions for image {image_path}. caption: {caption}. captions_json: {self.captions_json}."
             )
 
             hashtags = [
@@ -258,7 +256,7 @@ class Photo(models.Model):
                     album_thing.save()
             return True
         except Exception:
-            util.logger.exception("could not save captions for image %s" % image_path)
+            util.logger.exception(f"could not save captions for image {image_path}")
             return False
 
     def _recreate_search_captions(self):
@@ -297,7 +295,7 @@ class Photo(models.Model):
 
         self.search_captions = search_captions.strip()  # Remove trailing space
         util.logger.debug(
-            "Recreated search captions for image %s." % (self.thumbnail_big.path)
+            f"Recreated search captions for image {self.thumbnail_big.path}."
         )
         self.save()
 
@@ -362,11 +360,11 @@ class Photo(models.Model):
             if commit:
                 self.save()
             util.logger.info(
-                "generated places365 captions for image %s." % (image_path)
+                f"generated places365 captions for image {image_path}."
             )
         except Exception as e:
             util.logger.exception(
-                "could not generate captions for image %s" % image_path
+                f"could not generate captions for image {image_path}"
             )
             raise e
 
@@ -446,7 +444,7 @@ class Photo(models.Model):
                 self.save()
         except Exception as e:
             util.logger.exception(
-                "could not generate thumbnail for image %s" % self.main_file.path
+                f"could not generate thumbnail for image {self.main_file.path}"
             )
             raise e
 
@@ -495,8 +493,7 @@ class Photo(models.Model):
                 self.save()
         except Exception as e:
             util.logger.exception(
-                "could not calculate aspect ratio for image %s"
-                % self.thumbnail_big.path
+                f"could not calculate aspect ratio for image {self.thumbnail_big.path}"
             )
             raise e
 

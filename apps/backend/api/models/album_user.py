@@ -24,5 +24,8 @@ class AlbumUser(models.Model):
 
     public = models.BooleanField(default=False, db_index=True)
 
+    def __str__(self):
+        return f"{self.title} ({self.owner.username})"
+
     class Meta:
         unique_together = ("title", "owner")
