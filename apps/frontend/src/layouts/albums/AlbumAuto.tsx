@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Menu, Modal, Text } from "@mantine/core";
+import { ActionIcon, Button, Flex, Group, Menu, Modal, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
@@ -47,35 +47,41 @@ export function AlbumAuto() {
 
     return (
       <div key={key} style={style}>
-        <Link key={album.id} to={`/event/${album.id}/`}>
-          <Tile
-            video={album.photos.video === true}
-            height={entrySquareSize - 10}
-            width={entrySquareSize - 10}
-            image_hash={album.photos.image_hash}
-          />
-        </Link>
-        <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-          <b>{album.title}</b> <br />
-          {dateTimeLabel ? `${dateTimeLabel} - ` : ""}
-          {t("numberofphotos", {
-            number: album.photo_count,
-          })}
+        <div style={{ padding: 5 }}>
+          <Link key={album.id} to={`/event/${album.id}/`}>
+            <Tile
+              video={album.photos.video === true}
+              height={entrySquareSize - 10}
+              width={entrySquareSize - 10}
+              image_hash={album.photos.image_hash}
+            />
+          </Link>
+          <div style={{ position: "absolute", top: 10, right: 10 }}>
+            <Menu position="bottom-end">
+              <Menu.Target>
+                <ActionIcon variant="subtle" color="gray">
+                  <DotsVertical />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<Trash />} onClick={() => deleteAlbum(album)}>
+                  {t("delete")}
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </div>
         </div>
-        <div style={{ position: "absolute", top: 10, right: 10 }}>
-          <Menu position="bottom-end">
-            <Menu.Target>
-              <ActionIcon>
-                <DotsVertical />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Trash />} onClick={() => deleteAlbum(album)}>
-                {t("delete")}
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </div>
+        <Group justify="apart">
+          <Flex gap={0} justify="left" direction="column" px={8}>
+            <Text size="sm" fw={500} lineClamp={1} title={album.title}>
+              {album.title}
+            </Text>
+            <Text size="xs">
+              {dateTimeLabel ? `${dateTimeLabel} - ` : ""}
+              {t("numberofphotos", { number: album.photo_count })}
+            </Text>
+          </Flex>
+        </Group>
       </div>
     );
   }
@@ -100,7 +106,7 @@ export function AlbumAuto() {
             columnWidth={entrySquareSize}
             columnCount={entriesPerRow}
             height={gridHeight}
-            rowHeight={entrySquareSize + 120}
+            rowHeight={entrySquareSize + 60}
             rowCount={numberOfRows}
             width={containerWidth}
           />
