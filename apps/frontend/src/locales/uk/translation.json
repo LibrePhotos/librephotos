@@ -597,7 +597,8 @@
     "autoalbumgallery": {
         "showmap": "Показати карту",
         "hidemap": "Сховати карту",
-        "day": "День {{day}}"
+        "day": "День {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "facesdashboard": {
         "explanationtraining": "Визначити схожі обличчя і спробуйте знайти збіги",
