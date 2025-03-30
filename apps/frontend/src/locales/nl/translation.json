@@ -466,7 +466,8 @@
         "personalreadyexists": "{{name}} bestaat al.",
         "nameplaceholder": "Naam",
         "deletepersondescription": "Weet je zeker dat je deze persoon wilt verwijderen?",
-        "deleteperson": "Persoon verwijderen"
+        "deleteperson": "Persoon verwijderen",
+        "renamepersonheader": "Welke naam wil je aan ‘{{name}}’ geven?"
     },
     "thingalbum": {
         "showingthings": "Getoond: top {{number}} items"
@@ -500,7 +501,11 @@
         "facescounter_other": "{{count}} gezichten",
         "clusteredfacescounter_one": "{{count}} geclusterd gezicht",
         "clusteredfacescounter_other": "{{count}} geclusterde gezichten",
-        "unknownfacescounter_one": "{{count}} onbekend gezicht"
+        "unknownfacescounter_one": "{{count}} onbekend gezicht",
+        "show": "Bekijken",
+        "clusters": "Clusters",
+        "classifications": "Classificaties",
+        "minconfidence": "Zekerheid"
     },
     "socialgraph": "Sociale grafiek",
     "faceclusterexplanation": "Personen met gelijkaardige gezichten dienen dichter op elkaar te worden gegroepeerd. Klik op een punt om een label te tonen.",
@@ -612,7 +617,8 @@
     "autoalbumgallery": {
         "showmap": "Kaart tonen",
         "hidemap": "Kaart verbergen",
-        "day": "Dag {{day}}"
+        "day": "Dag {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "scan": "Scannen",
     "dataviz": "Gegevensinzicht",
