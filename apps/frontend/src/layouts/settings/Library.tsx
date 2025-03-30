@@ -157,7 +157,7 @@ export function Library() {
   return (
     <Container>
       <Flex align="baseline" justify="space-between">
-        <Group gap="xs" mt={40} mb={20}>
+        <Group gap="xs" mt={{ base: 20, sm: 40 }} mb={{ base: 10, sm: 20 }}>
           <Book size={35} />
           <Title order={1}>{t("settings.library")}</Title>
         </Group>
@@ -196,7 +196,7 @@ export function Library() {
               </Modal>
             </Title>
             <Grid>
-              <Grid.Col span={10}>
+              <Grid.Col span={{ base: 12, sm: 10 }}>
                 <Stack gap={0}>
                   <Group>
                     <Text>Scan Library</Text>
@@ -209,14 +209,15 @@ export function Library() {
                   </Text>
                 </Stack>
               </Grid.Col>
-              <Grid.Col span={2}>
-                <Group wrap="nowrap" gap={0}>
+              <Grid.Col span={{ base: 12, sm: 2 }}>
+                <Group wrap="nowrap" gap={0} justify="flex-end">
                   <Button
                     onClick={() => scanPhotos()}
                     disabled={!workerAvailability}
                     leftSection={<Refresh />}
                     variant="filled"
                     style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                    fullWidth
                   >
                     {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
                     {statusPhotoScan.added
@@ -256,59 +257,85 @@ export function Library() {
             </Grid>
 
             <Collapse in={isOpenNextcloudHelp}>
-              <Text fz="lg">Rescan will reprocess your entire library through the following tasks: </Text>
-              <List>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item1">
-                    Make a list of all files in subdirectories. For each media file:
-                  </Trans>
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item2">
-                    If the filepath exists, check if the file has been modified. If it was modified, rescan the image.
-                    If not, we skip.
-                  </Trans>
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item3">
-                    Calculate a unique ID of the image file (md5)
-                  </Trans>
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item4">
-                    If this media file is already in the database, we add the path to the existing media file.
-                  </Trans>
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item5">Generate a number of thumbnails</Trans>{" "}
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>{" "}
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>{" "}
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item8">
-                    Reverse geolocate to get location names from GPS coordinates{" "}
-                  </Trans>
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces. </Trans>{" "}
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item10">Add photo to thing and place albums.</Trans>{" "}
-                </List.Item>
-                <List.Item>
-                  <Trans i18nKey="settings.scannextclouddescription.item11">
-                    Check if photos are missing or have been moved.
-                  </Trans>
-                </List.Item>
-              </List>
+              <Stack gap={0}>
+                <Text>Rescan will reprocess your entire library through the following tasks:</Text>
+                <List>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item1">
+                        Make a list of all files in subdirectories. For each media file:
+                      </Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item2">
+                        If the filepath exists, check if the file has been modified. If it was modified, rescan the
+                        image. If not, we skip.
+                      </Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item3">
+                        Calculate a unique ID of the image file (md5)
+                      </Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item4">
+                        If this media file is already in the database, we add the path to the existing media file.
+                      </Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item5">Generate a number of thumbnails</Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item6">Generate image captions</Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item7">Extract Exif information</Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item8">
+                        Reverse geolocate to get location names from GPS coordinates
+                      </Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item9">Extract faces.</Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item10">
+                        Add photo to thing and place albums.
+                      </Trans>
+                    </Text>
+                  </List.Item>
+                  <List.Item>
+                    <Text fz="sm" c="dimmed">
+                      <Trans i18nKey="settings.scannextclouddescription.item11">
+                        Check if photos are missing or have been moved.
+                      </Trans>
+                    </Text>
+                  </List.Item>
+                </List>
+              </Stack>
             </Collapse>
             <Divider labelPosition="left" label={<Text fw="bold">{t("settings.eventsalbums")}</Text>} mt={20} mb={10} />
             <Grid>
-              <Grid.Col span={10}>
+              <Grid.Col span={{ base: 12, sm: 10 }}>
                 <Stack gap={0}>
                   <Text>{t("settings.eventalbumsgenerate")}</Text>
                   <Text fz="sm" c="dimmed">
@@ -316,12 +343,13 @@ export function Library() {
                   </Text>
                 </Stack>
               </Grid.Col>
-              <Grid.Col span={2}>
+              <Grid.Col span={{ base: 12, sm: 2 }}>
                 <Button
                   onClick={onGenerateEventAlbumsButtonClick}
                   disabled={!workerAvailability}
                   leftSection={<RefreshDot />}
                   variant="outline"
+                  fullWidth
                 >
                   Generate
                 </Button>
@@ -329,7 +357,7 @@ export function Library() {
             </Grid>
 
             <Grid>
-              <Grid.Col span={10}>
+              <Grid.Col span={{ base: 12, sm: 10 }}>
                 <Stack gap={0}>
                   <Text>{t("settings.eventalbumsregenerate")}</Text>
                   <Text fz="sm" c="dimmed">
@@ -337,7 +365,7 @@ export function Library() {
                   </Text>
                 </Stack>
               </Grid.Col>
-              <Grid.Col span={2}>
+              <Grid.Col span={{ base: 12, sm: 2 }}>
                 <Button
                   onClick={() => {
                     dispatch(api.endpoints.generateAutoAlbumTitle.initiate());
@@ -346,6 +374,7 @@ export function Library() {
                   disabled={!workerAvailability}
                   leftSection={<RefreshDot />}
                   variant="outline"
+                  fullWidth
                 >
                   Generate
                 </Button>
@@ -363,7 +392,7 @@ export function Library() {
             mb={10}
           />
           <Grid>
-            <Grid.Col span={10}>
+            <Grid.Col span={{ base: 12, sm: 10 }}>
               <Stack gap={0}>
                 <Text>{t("settings.trainfacestitle")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -371,7 +400,7 @@ export function Library() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={2}>
+            <Grid.Col span={{ base: 12, sm: 2 }}>
               <Button
                 disabled={!workerAvailability}
                 onClick={() => {
@@ -380,13 +409,14 @@ export function Library() {
                 }}
                 leftSection={<FaceId />}
                 variant="outline"
+                fullWidth
               >
                 <Trans i18nKey="settings.facesbutton">Train Faces</Trans>
               </Button>
             </Grid.Col>
           </Grid>
           <Grid>
-            <Grid.Col span={10}>
+            <Grid.Col span={{ base: 12, sm: 10 }}>
               <Stack gap={0}>
                 <Text>{t("settings.rescanfacestitle")}</Text>
                 <Text fz="sm" c="dimmed">
@@ -394,7 +424,7 @@ export function Library() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={2}>
+            <Grid.Col span={{ base: 12, sm: 2 }}>
               <Button
                 disabled={!workerAvailability}
                 onClick={() => {
@@ -403,6 +433,7 @@ export function Library() {
                 }}
                 leftSection={<FaceId />}
                 variant="outline"
+                fullWidth
               >
                 <Trans i18nKey="settings.rescanfaces">Rescan</Trans>
               </Button>
@@ -410,16 +441,17 @@ export function Library() {
           </Grid>
           <Divider labelPosition="left" label={<Text fw="bold">Nextcloud</Text>} mt={20} mb={10} />
           <Grid>
-            <Grid.Col span={10}>
+            <Grid.Col span={{ base: 12, sm: 10 }}>
               <Stack gap={0}>
                 <Text>Status</Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={2}>
+            <Grid.Col span={{ base: 12, sm: 2 }}>
               <Badge
                 leftSection={BadgeIcon(userSelfDetails, isNextcloudSuccess, isNextcloudError, isNextcloudFetching)}
                 variant="outline"
                 color={nextcloudStatusColor}
+                fullWidth
               >
                 {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
                 {isNextcloudFetching && t("settings.nextcloudconnecting")}
@@ -430,12 +462,12 @@ export function Library() {
                 {isNextcloudError && t("settings.nextcloudnotloggedin")}
               </Badge>
             </Grid.Col>
-            <Grid.Col span={7}>
+            <Grid.Col span={{ base: 12, sm: 7 }}>
               <Stack gap={0}>
                 <Trans i18nKey="settings.serveradress" />
               </Stack>
             </Grid.Col>
-            <Grid.Col span={5}>
+            <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
                 onChange={event => {
                   setUserSelfDetails({ ...userSelfDetails, nextcloud_server_address: event.currentTarget.value });
@@ -444,12 +476,12 @@ export function Library() {
                 placeholder={t("settings.serveradressplaceholder")}
               />
             </Grid.Col>
-            <Grid.Col span={7}>
+            <Grid.Col span={{ base: 12, sm: 7 }}>
               <Stack gap={0}>
                 <Trans i18nKey="settings.nextcloudusername" />
               </Stack>
             </Grid.Col>
-            <Grid.Col span={5}>
+            <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
                 onChange={event => {
                   setUserSelfDetails({ ...userSelfDetails, nextcloud_username: event.currentTarget.value });
@@ -458,16 +490,15 @@ export function Library() {
                 placeholder={t("settings.nextcloudusernameplaceholder")}
               />
             </Grid.Col>
-            <Grid.Col span={7}>
+            <Grid.Col span={{ base: 12, sm: 7 }}>
               <Stack gap={0}>
                 <Trans i18nKey="settings.nextcloudpassword" />
-
                 <Text size="sm" c="dimmed">
                   {t("settings.credentialspopup")}
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={5}>
+            <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
                 onChange={event => {
                   setUserSelfDetails({ ...userSelfDetails, nextcloud_app_password: event.currentTarget.value });
@@ -477,10 +508,9 @@ export function Library() {
                 value={userSelfDetails.nextcloud_app_password}
               />
             </Grid.Col>
-            <Grid.Col span={10}>
+            <Grid.Col span={{ base: 12, sm: 10 }}>
               <Stack gap={0}>
                 <Trans i18nKey="settings.nextcloudscandirectory" />
-
                 <Text size="sm" c="dimmed">
                   {userSelfDetails.nextcloud_scan_directory
                     ? userSelfDetails.nextcloud_scan_directory
@@ -488,7 +518,7 @@ export function Library() {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={2}>
+            <Grid.Col span={{ base: 12, sm: 2 }}>
               <Button
                 leftSection={<Folder />}
                 disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_server_address}
@@ -496,12 +526,13 @@ export function Library() {
                   setModalNextcloudScanDirectoryOpen(true);
                 }}
                 variant="outline"
+                fullWidth
               >
                 {t("modalnextcloud.browse")}
               </Button>
             </Grid.Col>
-            <Grid.Col span={10} />
-            <Grid.Col span={2}>
+            <Grid.Col span={{ base: 12, sm: 10 }} />
+            <Grid.Col span={{ base: 12, sm: 2 }}>
               <Button
                 onClick={() => {
                   scanNextcloudPhotos();
@@ -509,6 +540,7 @@ export function Library() {
                 disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
                 variant="filled"
                 leftSection={<BrandNextcloud />}
+                fullWidth
               >
                 <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
               </Button>

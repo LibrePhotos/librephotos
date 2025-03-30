@@ -1,4 +1,4 @@
-import { Card, Flex, Grid, Group, HoverCard, Stack, Text, Title } from "@mantine/core";
+import { Card, Grid, Group, HoverCard, Stack, Text, Title } from "@mantine/core";
 import {
   IconCalendar as Calendar,
   IconFaceId as FaceId,
@@ -18,103 +18,121 @@ export function CountStats() {
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
 
   return (
-    <Group grow gap="xs" justify="space-between">
-      <Card withBorder p="xs">
-        <Group justify="left" gap="xs">
-          <Photo size={64} strokeWidth={1} />
-          <div>
-            <Text c="dimmed">{t("countstats.photos")}</Text>
-            <Title order={3}>{countStats.num_photos}</Title>
-          </div>
-        </Group>
-      </Card>
+    <Grid gutter="xs">
+      <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
+        <Card withBorder p="xs">
+          <Group justify="left" gap="xs">
+            <Photo size={40} strokeWidth={1} />
+            <div>
+              <Text c="dimmed" size="xs">
+                {t("countstats.photos")}
+              </Text>
+              <Title order={3} size="h4">
+                {countStats.num_photos}
+              </Title>
+            </div>
+          </Group>
+        </Card>
+      </Grid.Col>
 
-      <Card withBorder p="xs">
-        <Group justify="left" gap="xs">
-          <Users size={64} strokeWidth={1} />
-          <div>
-            <Text c="dimmed"> {t("people")}</Text>
-            <Title order={3}>{countStats.num_people}</Title>
-          </div>
-        </Group>
-      </Card>
+      <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
+        <Card withBorder p="xs">
+          <Group justify="left" gap="xs">
+            <Users size={40} strokeWidth={1} />
+            <div>
+              <Text c="dimmed" size="xs">
+                {t("people")}
+              </Text>
+              <Title order={3} size="h4">
+                {countStats.num_people}
+              </Title>
+            </div>
+          </Group>
+        </Card>
+      </Grid.Col>
 
-      <Card withBorder p="xs">
-        <HoverCard width={300} shadow="md" withinPortal withArrow>
+      <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
+        <HoverCard width={200} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
-            <Group justify="left" gap="xs">
-              <FaceId size={64} strokeWidth={1} />
-              <div>
-                <Text c="dimmed">{t("faces")}</Text>
-                <Title order={3}>{countStats.num_faces}</Title>
-              </div>
-            </Group>
+            <Card withBorder p="xs">
+              <Group justify="left" gap="xs">
+                <FaceId size={40} strokeWidth={1} />
+                <div>
+                  <Text c="dimmed" size="xs">
+                    {t("faces")}
+                  </Text>
+                  <Title order={3} size="h4">
+                    {countStats.num_faces}
+                  </Title>
+                </div>
+              </Group>
+            </Card>
           </HoverCard.Target>
           <HoverCard.Dropdown>
-            <Grid>
-              <Grid.Col span={9}>
-                <Stack gap={0}>
-                  <Text>
-                    <Trans i18nKey="settings.inferred">Inferred</Trans>
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={3}>
-                <Flex gap="sm">
-                  <FaceId />
-                  {countStats.num_inferred_faces}
-                </Flex>
-              </Grid.Col>
-              <Grid.Col span={9}>
-                <Stack gap={0}>
-                  <Text>
-                    <Trans i18nKey="settings.labeled">Labeled</Trans>
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={3}>
-                <Flex gap="sm">
-                  <Tag />
-                  {countStats.num_labeled_faces}
-                </Flex>
-              </Grid.Col>
-              <Grid.Col span={9}>
-                <Stack gap={0}>
-                  <Text>
-                    <Trans i18nKey="settings.unknown">Unknown</Trans>
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={3}>
-                <Flex gap="sm">
-                  <QuestionMark />
-                  {countStats.num_unknown_faces}
-                </Flex>
-              </Grid.Col>
-            </Grid>
+            <Stack gap="xs">
+              <Group justify="space-between">
+                <Text size="sm">
+                  <Trans i18nKey="settings.inferred">Inferred</Trans>
+                </Text>
+                <Group gap="xs">
+                  <FaceId size={16} />
+                  <Text size="sm">{countStats.num_inferred_faces}</Text>
+                </Group>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm">
+                  <Trans i18nKey="settings.labeled">Labeled</Trans>
+                </Text>
+                <Group gap="xs">
+                  <Tag size={16} />
+                  <Text size="sm">{countStats.num_labeled_faces}</Text>
+                </Group>
+              </Group>
+              <Group justify="space-between">
+                <Text size="sm">
+                  <Trans i18nKey="settings.unknown">Unknown</Trans>
+                </Text>
+                <Group gap="xs">
+                  <QuestionMark size={16} />
+                  <Text size="sm">{countStats.num_unknown_faces}</Text>
+                </Group>
+              </Group>
+            </Stack>
           </HoverCard.Dropdown>
         </HoverCard>
-      </Card>
+      </Grid.Col>
 
-      <Card withBorder p="xs">
-        <Group justify="left" gap="xs">
-          <SettingsAutomation size={64} strokeWidth={1} />
-          <div>
-            <Text c="dimmed">{t("events")}</Text>
-            <Title order={3}>{countStats.num_albumauto}</Title>
-          </div>
-        </Group>
-      </Card>
+      <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
+        <Card withBorder p="xs">
+          <Group justify="left" gap="xs">
+            <SettingsAutomation size={40} strokeWidth={1} />
+            <div>
+              <Text c="dimmed" size="xs">
+                {t("events")}
+              </Text>
+              <Title order={3} size="h4">
+                {countStats.num_albumauto}
+              </Title>
+            </div>
+          </Group>
+        </Card>
+      </Grid.Col>
 
-      <Card withBorder p="xs">
-        <Group justify="left" gap="xs">
-          <Calendar size={64} strokeWidth={1} />
-          <div>
-            <Text c="dimmed">{t("days")}</Text>
-            <Title order={3}>{countStats.num_albumdate}</Title>
-          </div>
-        </Group>
-      </Card>
-    </Group>
+      <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
+        <Card withBorder p="xs">
+          <Group justify="left" gap="xs">
+            <Calendar size={40} strokeWidth={1} />
+            <div>
+              <Text c="dimmed" size="xs">
+                {t("days")}
+              </Text>
+              <Title order={3} size="h4">
+                {countStats.num_albumdate}
+              </Title>
+            </div>
+          </Group>
+        </Card>
+      </Grid.Col>
+    </Grid>
   );
 }
