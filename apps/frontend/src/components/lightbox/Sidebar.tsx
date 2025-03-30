@@ -16,6 +16,9 @@ import { Description } from "./Description";
 import { PersonDetail } from "./PersonDetailComponent";
 import { TimestampItem } from "./TimestampItem";
 import { VersionComponent } from "./VersionComponent";
+import { LocationSection } from "./LocationSection";
+import { PeopleSection } from "./PeopleSection";
+import { SimilarPhotosSection } from "./SimilarPhotosSection";
 
 interface SidebarProps {
   isPublic: boolean;
@@ -35,10 +38,7 @@ const sidebarStyles = {
     zIndex: 250,
     overflowY: "auto" as const,
     overflowX: "hidden" as const,
-  },
-  mapContainer: {
-    whiteSpace: "normal" as const,
-    lineHeight: "normal" as const,
+    boxShadow: "0 -4px 8px rgba(0,0,0,0.1)",
   },
 };
 
@@ -50,76 +50,6 @@ const SidebarHeader: React.FC<{ closeSidepanel: () => void }> = ({ closeSidepane
     </ActionIcon>
   </Group>
 );
-
-const LocationSection: React.FC<{ photoDetail: PhotoType }> = ({ photoDetail }) => {
-  const { t } = useTranslation();
-  
-  if (!photoDetail.search_location) return null;
-
-  return (
-    <Stack>
-      <Title order={4}>
-        <Map2 /> {t("lightbox.sidebar.location")}
-      </Title>
-      <Text>{photoDetail.search_location}</Text>
-      {photoDetail.exif_gps_lat && (
-        <div style={sidebarStyles.mapContainer}>
-          <LocationMap photos={[photoDetail]} />
-        </div>
-      )}
-    </Stack>
-  );
-};
-
-const PeopleSection: React.FC<{
-  photoDetail: PhotoType;
-  isPublic: boolean;
-  setFaceLocation: (face: { face_id: number; face_url: string }) => void;
-  onPersonEdit: (faceId: string, faceUrl: string) => void;
-  notThisPerson: (faceId: number) => void;
-}> = ({ photoDetail, isPublic, setFaceLocation, onPersonEdit, notThisPerson }) => {
-  if (photoDetail.people.length === 0) return null;
-
-  return (
-    <Stack>
-      <Title order={4}>People</Title>
-      {photoDetail.people.map(person => (
-        <PersonDetail
-          key={person.name}
-          person={person}
-          isPublic={isPublic}
-          setFaceLocation={setFaceLocation}
-          onPersonEdit={onPersonEdit}
-          notThisPerson={notThisPerson}
-        />
-      ))}
-    </Stack>
-  );
-};
-
-const SimilarPhotosSection: React.FC<{ photoDetail: PhotoType }> = ({ photoDetail }) => {
-  const { t } = useTranslation();
-  
-  if (photoDetail.similar_photos.length === 0) return null;
-
-  return (
-    <div>
-      <Group>
-        <Photo />
-        <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
-      </Group>
-      <Grid gutter="xs" mt="xs">
-        {photoDetail.similar_photos.slice(0, 30).map(el => (
-          <Grid.Col key={el.image_hash} span={4}>
-            <Anchor href={`/photo/${el.image_hash}`}>
-              <Tile video={el.type.includes("video")} height={85} width={113} image_hash={el.image_hash} />
-            </Anchor>
-          </Grid.Col>
-        ))}
-      </Grid>
-    </div>
-  );
-};
 
 export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: SidebarProps) {
   const dispatch = useAppDispatch();
@@ -152,6 +82,12 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
     dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
   };
 
+  // Apply shadow only on mobile
+  const shadowStyle = {
+    ...sidebarStyles.container,
+    boxShadow: window.innerWidth < 768 ? sidebarStyles.container.boxShadow : 'none',
+  };
+
   return (
     <Box
       w={{ base: "100%", md: "400px" }}
@@ -160,16 +96,15 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
       top={{ base: 0, md: "auto" }}
       right={{ base: 0, md: "auto" }}
       bottom={{ base: 0, md: "auto" }}
-      style={sidebarStyles.container}
+      style={shadowStyle}
       p="sm"
       bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
-      shadow={{ base: "0 -4px 8px rgba(0,0,0,0.1)", md: "none" }}
     >
       <Stack>
         <SidebarHeader closeSidepanel={closeSidepanel} />
         <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
         <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
-        <LocationSection photoDetail={photoDetail} />
+        <LocationSection photoDetail={photoDetail} mapHeight={200} />
         <PeopleSection
           photoDetail={photoDetail}
           isPublic={isPublic}
@@ -178,7 +113,7 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
           notThisPerson={notThisPerson}
         />
         <Description photoDetail={photoDetail} isPublic={isPublic} />
-        <SimilarPhotosSection photoDetail={photoDetail} />
+        <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
       </Stack>
 
       <ModalPersonEdit

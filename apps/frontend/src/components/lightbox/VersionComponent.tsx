@@ -1,4 +1,4 @@
-import { Anchor, Button, Divider, Group, Modal, Stack, Text } from "@mantine/core";
+import { Anchor, Button, Divider, Group, Modal, Stack, Text, Collapse } from "@mantine/core";
 import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,150 @@ import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDeleteDuplicatePhotoMutation } from "../../api_client/photos/delete";
 import { FileInfoComponent } from "./FileInfoComponent";
+
+/**
+ * Basic photo information (filename, dimensions, file size)
+ */
+function PhotoInfoSection({ photoDetail }: { photoDetail: PhotoType }) {
+  return (
+    <Group justify="apart">
+      <Group justify="left">
+        <Photo />
+        <div>
+          <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
+            <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
+              {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
+            </Text>
+          </Anchor>
+          <Group>
+            <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} />
+            {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
+              <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} />
+            ) : (
+              <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} />
+            )}
+          </Group>
+        </div>
+      </Group>
+    </Group>
+  );
+}
+
+/**
+ * Camera equipment and settings information
+ */
+function CameraInfoSection({ photoDetail }: { photoDetail: PhotoType }) {
+  if (!photoDetail.camera) return null;
+  
+  return (
+    <Group justify="apart">
+      <Group justify="left">
+        <Camera />
+        <div>
+          <Text fw={800}>{photoDetail.camera?.toString()}</Text>
+          <Group gap="xs">
+            <FileInfoComponent info={photoDetail.lens?.toString()} />
+            <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
+            <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />
+            <FileInfoComponent info={`${photoDetail.shutter_speed}`} />
+            <FileInfoComponent info={`${Math.round(photoDetail.focal_length!)} mm`} />
+            <FileInfoComponent info={`ISO${photoDetail.iso?.toString()}`} />
+          </Group>
+        </div>
+      </Group>
+    </Group>
+  );
+}
+
+/**
+ * Additional photo metadata shown in expanded view
+ */
+function AdditionalInfoSection({ photoDetail, isPublic, t }: { 
+  photoDetail: PhotoType; 
+  isPublic: boolean;
+  t: (key: string) => string;
+}) {
+  return (
+    <Stack>
+      {!isPublic && <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />}
+      <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />
+      <FileInfoComponent
+        description={t("exif.digitalzoomratio")}
+        info={photoDetail.digitalZoomRatio?.toString()}
+      />
+      <FileInfoComponent
+        description={t("exif.focallengthin35mmfilm")}
+        info={`${photoDetail.focalLength35Equivalent} mm`}
+      />
+    </Stack>
+  );
+}
+
+/**
+ * Displays and manages duplicate photos
+ */
+function DuplicatesSection({ 
+  photoDetail, 
+  duplicates, 
+  t, 
+  openDeleteDialog 
+}: { 
+  photoDetail: PhotoType;
+  duplicates: string[];
+  t: (key: string) => string;
+  openDeleteDialog: (hash: string, filePath: string) => void;
+}) {
+  if (duplicates.length === 0) return null;
+  
+  return (
+    <>
+      <Text fw={800}>{t("exif.duplicates")}</Text>
+      {duplicates.map((element, index) => (
+        <Stack key={index}>
+          <FileInfoComponent description={t("exif.filepath")} info={`${element}`} />
+          <Button color="red" onClick={() => openDeleteDialog(photoDetail.image_hash, element)}>
+            {t("delete")}
+          </Button>
+          <Divider my="sm" />
+        </Stack>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Modal for confirming duplicate photo deletion
+ */
+function DeleteConfirmationModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  t 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <Modal
+      opened={isOpen}
+      title={t("exif.deleteduplicatetitle")}
+      onClose={onClose}
+      zIndex={1000}
+    >
+      <Text size="sm">{t("exif.deleteduplicate")}</Text>
+      <Group>
+        <Button onClick={onClose}>
+          {t("cancel")}
+        </Button>
+        <Button color="red" onClick={onConfirm}>
+          {t("delete")}
+        </Button>
+      </Group>
+    </Modal>
+  );
+}
 
 export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPublic: boolean }>) {
   const { photoDetail, isPublic } = props;
@@ -19,10 +163,15 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
   const { t } = useTranslation();
   const [deleteDuplicatePhoto] = useDeleteDuplicatePhotoMutation();
 
-  const openDeleteDialog = (hash, filePath) => {
+  const openDeleteDialog = (hash: string, filePath: string) => {
     setOpenDeleteDialogState(true);
     setImageHash(hash);
     setPath(filePath);
+  };
+
+  const handleDeleteConfirm = () => {
+    deleteDuplicatePhoto({ image_hash: imageHash, path });
+    setOpenDeleteDialogState(false);
   };
 
   const duplicates = photoDetail.image_path.slice(1);
@@ -30,120 +179,44 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
   return (
     <div>
       <Stack align="left">
-        <Group justify="apart">
-          <Group justify="left">
-            <Photo />
-            <div>
-              <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-                <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
-                  {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
-                </Text>
-              </Anchor>
-              <Group>
-                <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} />
-                {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
-                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} />
-                ) : (
-                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} />
-                )}
-              </Group>
-            </div>
-          </Group>
-        </Group>
-        {photoDetail.camera && (
-          <Group justify="apart">
-            <Group justify="left">
-              <Camera />
-              <div>
-                <Text fw={800}>{photoDetail.camera?.toString()}</Text>
-                <Group gap="xs">
-                  <FileInfoComponent info={photoDetail.lens?.toString()} />
-                  <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
-                  <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />
-                  <FileInfoComponent info={`${photoDetail.shutter_speed}`} />
-                  <FileInfoComponent info={`${Math.round(photoDetail.focal_length!)} mm`} />
-                  <FileInfoComponent info={`ISO${photoDetail.iso?.toString()}`} />
-                </Group>
-              </div>
-            </Group>
-          </Group>
-        )}
-        {showMore && (
+        {/* Basic photo information */}
+        <PhotoInfoSection photoDetail={photoDetail} />
+        
+        {/* Camera equipment and settings */}
+        <CameraInfoSection photoDetail={photoDetail} />
+        
+        {/* Expanded information section */}
+        <Collapse in={showMore}>
           <Stack>
-            {
-              // To-Do: Add a type e.g. RAW, serial image, ai etc
-            }
-            {!isPublic && <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />}
-            <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />
-            <FileInfoComponent
-              description={t("exif.digitalzoomratio")}
-              info={photoDetail.digitalZoomRatio?.toString()}
-            />
-            <FileInfoComponent
-              description={t("exif.focallengthin35mmfilm")}
-              info={`${photoDetail.focalLength35Equivalent} mm`}
-            />
-
-            {
-              // To-Do: xmp should only be "Type: xmp" and the different file path if it's in a different folder
-              // To-Do: Show if there is a jpeg to the raw file
-              // To-Do: Differentiate XMPs and duplicates in the backend
-            }
+            {/* Additional photo metadata */}
+            <AdditionalInfoSection photoDetail={photoDetail} isPublic={isPublic} t={t} />
+            
+            {/* Other versions section (placeholder) */}
             {otherVersions.length > 0 && <Text fw={800}>{t("exif.otherversions")}</Text>}
-            {
-              // To-Do: If there is more then one version, show them here
-              // To-Do: If it is serial images, show a thumbnail, type and file path. Should be selectable as the current version
-              // To-Do: Same goes for stable diffusion images or upressed images
-            }
-            {duplicates.length > 0 && <Text fw={800}>{t("exif.duplicates")}</Text>}
-            {duplicates.map(element => (
-              <Stack>
-                <FileInfoComponent description={t("exif.filepath")} info={`${element}`} />
-                <Button color="red" onClick={() => openDeleteDialog(photoDetail.image_hash, element)}>
-                  {t("delete")}
-                </Button>
-                {/**
-                                 <Group>
-                                 // To-Do: Change a path to the primary file
-                                 // To-Do: Implement endpoint
-                                 <Button color="green">Change to primary</Button>
-                                 // To-Do: Use a ActionIcon instead?
-                                 </Group> */}
-                <Divider my="sm" />
-              </Stack>
-            ))}
+            
+            {/* Duplicates section */}
+            <DuplicatesSection 
+              photoDetail={photoDetail}
+              duplicates={duplicates}
+              t={t}
+              openDeleteDialog={openDeleteDialog}
+            />
           </Stack>
-        )}
+        </Collapse>
+        
+        {/* Show more/less button */}
         <Button onClick={() => setShowMore(!showMore)} variant="subtle" size="compact-xs">
           {showMore ? t("exif.showless") : t("exif.showmore")}
         </Button>
       </Stack>
-      <Modal
-        opened={openDeleteDialogState}
-        title={t("exif.deleteduplicatetitle")}
+      
+      {/* Delete confirmation modal */}
+      <DeleteConfirmationModal
+        isOpen={openDeleteDialogState}
         onClose={() => setOpenDeleteDialogState(false)}
-        zIndex={1000}
-      >
-        <Text size="sm">{t("exif.deleteduplicate")}</Text>
-        <Group>
-          <Button
-            onClick={() => {
-              setOpenDeleteDialogState(false);
-            }}
-          >
-            {t("cancel")}
-          </Button>
-          <Button
-            color="red"
-            onClick={() => {
-              deleteDuplicatePhoto({ image_hash: imageHash, path });
-              setOpenDeleteDialogState(false);
-            }}
-          >
-            {t("delete")}
-          </Button>
-        </Group>
-      </Modal>
+        onConfirm={handleDeleteConfirm}
+        t={t}
+      />
     </div>
   );
 }

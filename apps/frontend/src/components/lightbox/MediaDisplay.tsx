@@ -18,6 +18,7 @@ export function MediaDisplay({
   scale = 1,
   offset = { x: 0, y: 0 },
   handleDragStart,
+  fullHeight = false,
 }: MediaDisplayProps) {
   if (!id) return null;
 
@@ -29,7 +30,7 @@ export function MediaDisplay({
       <ReactPlayer
         url={`${serverAddress}/media/video/${id}`}
         width="100%"
-        height="82vh"
+        height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
         playing={isMainContent}
         progressInterval={100}
@@ -47,7 +48,7 @@ export function MediaDisplay({
       <ReactPlayer
         url={`${serverAddress}/media/embedded_media/${id}`}
         width="100%"
-        height="82vh"
+        height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
         playing={isMainContent}
         progressInterval={100}
@@ -64,7 +65,7 @@ export function MediaDisplay({
     <div
       style={{
         position: "relative",
-        height: "82vh",
+        height: fullHeight ? "100%" : "82vh",
         borderRadius: "8px",
         overflow: "hidden",
       }}

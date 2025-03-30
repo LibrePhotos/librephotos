@@ -1,8 +1,9 @@
-import { Box, Container, Anchor, Paper, Stack, Text, Center, Loader, Grid, Title, Group, Divider, Badge } from "@mantine/core";
+import { Box, Container, Anchor, Paper, Stack, Text, Center, Loader, Grid, Title, Group, Divider, Badge, Button, useMantineTheme, SimpleGrid } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import React from "react";
 import { useParams } from "react-router-dom";
 import { DateTime } from "luxon";
-import { IconPhoto, IconFolder, IconCamera } from "@tabler/icons-react";
+import { IconPhoto, IconFolder, IconCamera, IconMaximize, IconMinimize } from "@tabler/icons-react";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch, useAppSelector } from "../../store/store";
@@ -11,10 +12,13 @@ import { TimestampItem } from "../lightbox/TimestampItem";
 import { Description } from "../lightbox/Description";
 import { LocationMap } from "../LocationMap";
 import { MediaDisplay } from "../lightbox/MediaDisplay";
-import { VersionComponent } from "../lightbox/VersionComponent";
+import { CameraInfoComponent } from "../lightbox/CameraInfoComponent";
 import { PersonDetail } from "../lightbox/PersonDetailComponent";
 import type { FaceLocationType } from "../lightbox/lightbox.types";
 import { FileInfoComponent } from "../lightbox/FileInfoComponent";
+import { SimilarPhotosSection } from "../lightbox/SimilarPhotosSection";
+import { LocationSection } from "../lightbox/LocationSection";
+import { PeopleSection } from "../lightbox/PeopleSection";
 
 export function SinglePhotoView() {
   const { photoId } = useParams();
@@ -23,6 +27,8 @@ export function SinglePhotoView() {
   const photoDetail = photoDetails[photoId || ""];
   const [imageDimensions, setImageDimensions] = React.useState({ width: 0, height: 0 });
   const [faceLocation, setFaceLocation] = React.useState<FaceLocationType>(null);
+  const theme = useMantineTheme();
+  const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
   const handleSetFaceLocation = (face: { face_id: number; face_url: string }) => {
     // For now, we'll just set a default face location since we don't have the actual coordinates
@@ -61,31 +67,41 @@ export function SinglePhotoView() {
   if (!photoDetail) {
     return (
       <Container fluid>
-        <Center>
+        <Center py="xl">
           <Stack align="center" gap="md">
-            <Loader />
-            <Text>Loading photo details...</Text>
+            <Loader size={isMobile ? "md" : "lg"} />
+            <Text size={isMobile ? "sm" : "md"}>Loading photo details...</Text>
           </Stack>
         </Center>
       </Container>
     );
   }
 
+  const fileName = photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1);
+  const fileSize = Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 
+    ? `${Math.round((photoDetail.size / 1024) * 100) / 100} kB` 
+    : `${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`;
+  const dimensions = `${photoDetail.height} x ${photoDetail.width}`;
+  const timestamp = DateTime.fromISO(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED);
+
   return (
-    <Container fluid>
-      <Paper shadow="sm" p="md">
-        <Stack gap="md">
-          <Group justify="space-between" align="flex-start">
-            <Stack gap="xs" style={{ width: '100%' }}>
-              <Group gap="xs">
-                <IconPhoto size={45} />
+    <Container fluid p={isMobile ? "xs" : "md"}>
+      <Paper shadow="sm" p={isMobile ? "xs" : "md"} radius="md">
+        <Stack gap={isMobile ? "xs" : "md"}>
+          {/* Header Section */}
+          <Stack gap="xs">
+            <Group justify="space-between" align="flex-start" wrap="nowrap">
+              <Group gap="xs" wrap="nowrap" style={{ maxWidth: '100%' }}>
+                <IconPhoto size={isMobile ? 30 : 45} />
                 <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
-                  <Title fw={800} lineClamp={1}>
-                    {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
+                  <Title size={isMobile ? "h3" : "h2"} fw={800} lineClamp={1}>
+                    {fileName}
                   </Title>
                 </Anchor>
               </Group>
-              <Group>
+            </Group>
+            
+            <Group>
                 <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} size="sm" />
                 {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
                   <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} size="sm" />
@@ -94,87 +110,50 @@ export function SinglePhotoView() {
                 )}
                 <FileInfoComponent info={DateTime.fromISO(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)} size="sm" />
               </Group>
-            </Stack>
-          </Group>
+          </Stack>
 
           <Divider />
 
-          <MediaDisplay
-            id={photoDetail.image_hash}
-            isMainContent={true}
-            type={photoDetail.type?.includes("video") ? "video" : "photo"}
-            imageDimensions={imageDimensions}
-            setImageDimensions={setImageDimensions}
-            faceLocation={faceLocation}
-            handleDragStart={() => {}}
-          />
+          {/* Media Display */}
+          <Box>
+            <MediaDisplay
+              id={photoDetail.image_hash}
+              isMainContent={true}
+              type={photoDetail.type?.includes("video") ? "video" : "photo"}
+              imageDimensions={imageDimensions}
+              setImageDimensions={setImageDimensions}
+              faceLocation={faceLocation}
+              handleDragStart={() => {}}
+              fullHeight={true}
+            />
+          </Box>
 
-              <Stack gap="md">
+          {/* Details Section */}
+          <Grid gutter={isMobile ? "xs" : "md"}>
+            {/* Left Column - Main Information */}
+            <Grid.Col span={isMobile ? 12 : 6}>
+              <Stack gap={isMobile ? "xs" : "md"}>
                 <TimestampItem isPublic={false} photoDetail={photoDetail} />
-                <Divider />
-                
-                {photoDetail.people && photoDetail.people.length > 0 && (
-                  <>
-                    <Title order={4}>People</Title>
-                    <Group>
-                      {photoDetail.people.map(person => (
-                        <PersonDetail
-                          key={person.name}
-                          person={person}
-                          isPublic={false}
-                          setFaceLocation={handleSetFaceLocation}
-                          onPersonEdit={handlePersonEdit}
-                          notThisPerson={notThisPerson}
-                        />
-                      ))}
-                    </Group>
-                    <Divider />
-                  </>
-                )}
-                
-                <VersionComponent photoDetail={photoDetail} isPublic={false} />
-              </Stack>
-              <Stack gap="md">
-                {photoDetail.search_location && (
-                  <>
-                    <Title order={4}>Location</Title>
-                    <Text>{photoDetail.search_location}</Text>
-                    {photoDetail.exif_gps_lat && (
-                      <Box h={250}>
-                        <LocationMap photos={[photoDetail]} />
-                      </Box>
-                    )}
-                    <Divider />
-                  </>
-                )}
-                
+                <PeopleSection 
+                  photoDetail={photoDetail}
+                  isPublic={false}
+                  setFaceLocation={handleSetFaceLocation}
+                  onPersonEdit={handlePersonEdit}
+                  notThisPerson={notThisPerson}
+                />
                 <Description photoDetail={photoDetail} isPublic={false} />
-                
-                {photoDetail.similar_photos && photoDetail.similar_photos.length > 0 && (
-                  <>
-                    <Divider />
-                    <Title order={4}>Similar Photos</Title>
-                    <Grid gutter="xs">
-                      {photoDetail.similar_photos.slice(0, 8).map(el => (
-                        <Grid.Col key={el.image_hash} span={3}>
-                          <a href={`/photo/${el.image_hash}`} style={{ display: 'block', width: '100%', height: '100%' }}>
-                            <Box 
-                              style={{
-                                backgroundImage: `url(${serverAddress}/media/thumbnail/${el.image_hash})`,
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
-                                width: '100%',
-                                height: 80,
-                                borderRadius: 4
-                              }}
-                            />
-                          </a>
-                        </Grid.Col>
-                      ))}
-                    </Grid>
-                  </>
-                )}
               </Stack>
+            </Grid.Col>
+            
+            {/* Right Column - Secondary Information */}
+            <Grid.Col span={isMobile ? 12 : 6}>
+              <Stack gap={isMobile ? "xs" : "md"}>
+                <CameraInfoComponent photoDetail={photoDetail} />
+                <LocationSection photoDetail={photoDetail} />
+              </Stack>
+            </Grid.Col>
+          </Grid>
+          <SimilarPhotosSection photoDetail={photoDetail} />
         </Stack>
       </Paper>
     </Container>

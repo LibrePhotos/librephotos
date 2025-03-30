@@ -45,6 +45,7 @@ export type MediaDisplayProps = {
   scale?: number;
   offset?: { x: number; y: number };
   handleDragStart: (event: React.DragEvent) => void;
+  fullHeight?: boolean;
 };
 
 export type ThumbnailNavigationProps = {
