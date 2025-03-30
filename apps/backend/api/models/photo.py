@@ -359,13 +359,9 @@ class Photo(models.Model):
 
             if commit:
                 self.save()
-            util.logger.info(
-                f"generated places365 captions for image {image_path}."
-            )
+            util.logger.info(f"generated places365 captions for image {image_path}.")
         except Exception as e:
-            util.logger.exception(
-                f"could not generate captions for image {image_path}"
-            )
+            util.logger.exception(f"could not generate captions for image {image_path}")
             raise e
 
     def _generate_thumbnail(self, commit=True):
@@ -373,60 +369,60 @@ class Photo(models.Model):
             if not does_static_thumbnail_exist("thumbnails_big", self.image_hash):
                 if not self.video:
                     create_thumbnail(
-                        inputPath=self.main_file.path,
-                        outputHeight=1080,
-                        outputPath="thumbnails_big",
+                        input_path=self.main_file.path,
+                        output_height=1080,
+                        output_path="thumbnails_big",
                         hash=self.image_hash,
-                        fileType=".webp",
+                        file_type=".webp",
                     )
                 else:
                     create_thumbnail_for_video(
-                        inputPath=self.main_file.path,
-                        outputPath="thumbnails_big",
+                        input_path=self.main_file.path,
+                        output_path="thumbnails_big",
                         hash=self.image_hash,
-                        fileType=".webp",
+                        file_type=".webp",
                     )
 
             if not self.video and not does_static_thumbnail_exist(
                 "square_thumbnails", self.image_hash
             ):
                 create_thumbnail(
-                    inputPath=self.main_file.path,
-                    outputHeight=500,
-                    outputPath="square_thumbnails",
+                    input_path=self.main_file.path,
+                    output_height=500,
+                    output_path="square_thumbnails",
                     hash=self.image_hash,
-                    fileType=".webp",
+                    file_type=".webp",
                 )
             if self.video and not does_video_thumbnail_exist(
                 "square_thumbnails", self.image_hash
             ):
                 create_animated_thumbnail(
-                    inputPath=self.main_file.path,
-                    outputHeight=500,
-                    outputPath="square_thumbnails",
+                    input_path=self.main_file.path,
+                    output_height=500,
+                    output_path="square_thumbnails",
                     hash=self.image_hash,
-                    fileType=".mp4",
+                    file_type=".mp4",
                 )
 
             if not self.video and not does_static_thumbnail_exist(
                 "square_thumbnails_small", self.image_hash
             ):
                 create_thumbnail(
-                    inputPath=self.main_file.path,
-                    outputHeight=250,
-                    outputPath="square_thumbnails_small",
+                    input_path=self.main_file.path,
+                    output_height=250,
+                    output_path="square_thumbnails_small",
                     hash=self.image_hash,
-                    fileType=".webp",
+                    file_type=".webp",
                 )
             if self.video and not does_video_thumbnail_exist(
                 "square_thumbnails_small", self.image_hash
             ):
                 create_animated_thumbnail(
-                    inputPath=self.main_file.path,
-                    outputHeight=250,
-                    outputPath="square_thumbnails_small",
+                    input_path=self.main_file.path,
+                    output_height=250,
+                    output_path="square_thumbnails_small",
                     hash=self.image_hash,
-                    fileType=".mp4",
+                    file_type=".mp4",
                 )
             filetype = ".webp"
             if self.video:
