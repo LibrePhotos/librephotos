@@ -13,7 +13,7 @@ import { useViewportSize } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
@@ -97,6 +97,7 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
   const [imageScale, setImageScale] = useState(userSelfDetails.image_scale);
   const currentImageIndexRef = useRef(0);
+  const navigate = useNavigate();
   const {
     updateGroups,
     title,
@@ -250,6 +251,13 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
     const currentIndex = idx2hashRef.current.findIndex(image => image.id === item.id);
     currentImageIndexRef.current = currentIndex;
 
+    // If Ctrl/Cmd key is pressed, navigate to single photo view
+    if (event.ctrlKey || event.metaKey) {
+      navigate(`/photo/${item.id}`);
+      return;
+    }
+
+    // Otherwise, open in lightbox
     setLightboxImageId(item.id);
     setScrollLocked(true);
   };

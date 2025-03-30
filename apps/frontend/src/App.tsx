@@ -44,6 +44,7 @@ import { Profile } from "./layouts/settings/Profile";
 import { Settings } from "./layouts/settings/Settings";
 import { SharedByMe } from "./layouts/sharing/SharedByMe";
 import { SharedWithMe } from "./layouts/sharing/SharedWithMe";
+import { SinglePhotoView } from "./components/photolist/SinglePhotoView";
 
 export function App() {
   return (
@@ -100,6 +101,7 @@ export function App() {
             <Route path="socialgraph" element={<Graph />} />
             <Route path="facescatter" element={<FaceScatter />} />
             <Route path="countstats" element={<CountStats />} />
+            <Route path="photo/:photoId" element={<SinglePhotoView />} />
           </Route>
         </Routes>
       </MantineProvider>
