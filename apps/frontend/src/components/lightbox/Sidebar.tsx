@@ -44,17 +44,20 @@ export function Sidebar(props: Props) {
 
   return (
     <Box
+      w={{ base: "100%", md: "400px" }}
+      h="100%"
+      pos={{ base: "fixed", md: "relative" }}
+      top={{ base: 0, md: "auto" }}
+      right={{ base: 0, md: "auto" }}
+      bottom={{ base: 0, md: "auto" }}
       style={{
-        width: "33%",
-        height: "100%",
-        overflowY: "scroll",
-        overflowX: "hidden",
-        float: "right",
         whiteSpace: "normal",
         zIndex: 250,
-        padding: theme.spacing.sm,
-        backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
       }}
+      overflow="auto"
+      p="sm"
+      bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
+      shadow={{ base: "0 -4px 8px rgba(0,0,0,0.1)", md: "none" }}
     >
       {photoDetail && (
         <Stack>

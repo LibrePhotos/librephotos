@@ -112,8 +112,8 @@ export function ContentViewer({
           }}
         >
           <Stack
+            w={lightboxSidebarShow ? { base: "100%", md: "calc(100% - 400px)" } : "100%"}
             style={{
-              width: lightboxSidebarShow ? "67%" : "100%",
               padding: 16,
               gap: 0,
               position: "relative", // For the thumbnail navigation
@@ -218,7 +218,7 @@ export function ContentViewer({
               nextSrc={nextSrc}
               onMovePrevRequest={onMovePrevRequest}
               onMoveNextRequest={onMoveNextRequest}
-              containerWidth={lightboxSidebarShow ? "67%" : "100%"}
+              containerWidth={lightboxSidebarShow ? "calc(100% - 400px)" : "100%"}
             />
           </Stack>
 
