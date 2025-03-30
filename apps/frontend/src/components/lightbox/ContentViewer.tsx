@@ -112,7 +112,7 @@ export function ContentViewer({
           }}
         >
           <Stack
-            w={lightboxSidebarShow ? { base: "100%", md: "calc(100% - 400px)" } : "100%"}
+            w={lightboxSidebarShow ? { base: "100%", md: "calc(100vw - 400px)" } : "100%"}
             style={{
               padding: 16,
               gap: 0,

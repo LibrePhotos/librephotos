@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Stack, Text, Title, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Box, Group, Stack, Text, Title, useComputedColorScheme, useMantineTheme, Grid } from "@mantine/core";
 import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,8 +53,9 @@ export function Sidebar(props: Props) {
       style={{
         whiteSpace: "normal",
         zIndex: 250,
+        overflowY: "auto",
+        overflowX: "hidden",
       }}
-      overflow="auto"
       p="sm"
       bg={colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0]}
       shadow={{ base: "0 -4px 8px rgba(0,0,0,0.1)", md: "none" }}
@@ -132,13 +133,13 @@ export function Sidebar(props: Props) {
                 <Photo />
                 <Title order={4}>{t("lightbox.sidebar.similarphotos")}</Title>
               </Group>
-              <Text>
-                <Group gap="xs">
-                  {photoDetail.similar_photos.slice(0, 30).map(el => (
-                    <Tile video={el.type.includes("video")} height={85} width={85} image_hash={el.image_hash} />
-                  ))}
-                </Group>
-              </Text>
+              <Grid gutter="xs" mt="xs">
+                {photoDetail.similar_photos.slice(0, 30).map(el => (
+                  <Grid.Col key={el.image_hash} span={4}>
+                    <Tile video={el.type.includes("video")} height={85} width={113} image_hash={el.image_hash} />
+                  </Grid.Col>
+                ))}
+              </Grid>
             </div>
           )}
           {/* End Item Similar Photos */}
