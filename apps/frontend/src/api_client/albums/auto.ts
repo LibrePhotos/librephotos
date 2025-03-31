@@ -8,7 +8,7 @@ import { api } from "../api";
 export const AutoAlbumListSchema = z
   .object({
     id: z.number(),
-    title: z.string(),
+    title: z.string().nullable(),
     timestamp: z.string(),
     photos: PhotoHashSchema, // TODO: This is a single photo, so the property name should be corrected. Perhaps cover_photo?
     photo_count: z.number(),
