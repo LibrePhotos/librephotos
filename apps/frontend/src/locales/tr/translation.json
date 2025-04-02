@@ -557,7 +557,8 @@
     "autoalbumgallery": {
         "showmap": "Haritayı Göster",
         "hidemap": "Haritayı Gizle",
-        "day": "Gün {{day}}"
+        "day": "Gün {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "personalbum": {
         "deleteperson": "Kişileri Sil",
@@ -565,7 +566,8 @@
         "renameperson": "Kişiyi Yeniden Adlandır",
         "personalreadyexists": "{{name}} kişisi zaten var.",
         "nameplaceholder": "Ad",
-        "numberofpeople": "{{peoplelength}} Kişi"
+        "numberofpeople": "{{peoplelength}} Kişi",
+        "renamepersonheader": "{{name}}'in adını ne olarak değiştirmek istiyorsunuz?"
     },
     "placealbum": {
         "maploading": "Harita yükleniyor...",
@@ -606,7 +608,11 @@
         "clusterscounter_one": "{{count}} Küme",
         "clusterscounter_other": "{{count}} Küme",
         "clusteredfacescounter_other": "{{count}} Kümelenen yüz",
-        "clusteredfacescounter_one": "{{count}} Kümelenen yüz"
+        "clusteredfacescounter_one": "{{count}} Kümelenen yüz",
+        "show": "Göster",
+        "clusters": "Gruplar",
+        "classifications": "Sınıflandırmalar",
+        "minconfidence": "Güven düzeyi"
     },
     "Scan Photos": "Fotoğrafları Tara",
     "Generate Event Albums": "Etkinlik Albümleri Oluştur",
