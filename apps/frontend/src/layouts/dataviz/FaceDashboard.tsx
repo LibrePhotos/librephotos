@@ -400,6 +400,7 @@ export function FaceDashboard() {
             isPublic={false}
             idx2hash={idx2hash}
             selectedImage={lightboxImageId}
+            onChangedIndex={(index) => setLightboxImageIndex(index ?? 0)}
             onCloseRequest={() => {
               setLightboxShow(false);
               setScrollLocked(false);
