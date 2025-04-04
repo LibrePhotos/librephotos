@@ -25,9 +25,8 @@ import { useTranslation } from "react-i18next";
 
 import { api, useWorkerQuery } from "../../api_client/api";
 import { notification } from "../../service/notifications";
-import { faceActions } from "../../store/faces/faceSlice";
 import { FaceAnalysisMethod, FacesOrderOption } from "../../store/faces/facesActions.types";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppDispatch } from "../../store/store";
 
 type Props = Readonly<{
   selectMode: boolean;
@@ -36,6 +35,13 @@ type Props = Readonly<{
   addFaces: () => void;
   deleteFaces: () => void;
   notThisPerson: () => void;
+  activeTab: string;
+  analysisMethod: string;
+  onMethodChange?: (method: string) => void;
+  orderBy: string;
+  onOrderChange?: (orderBy: string) => void;
+  minConfidence: number;
+  onConfidenceChange?: (confidence: number) => void;
 }>;
 
 export function ButtonHeaderGroup({
@@ -45,24 +51,41 @@ export function ButtonHeaderGroup({
   addFaces,
   deleteFaces,
   notThisPerson,
+  activeTab,
+  analysisMethod,
+  onMethodChange,
+  orderBy,
+  onOrderChange,
+  minConfidence,
+  onConfidenceChange
 }: Props) {
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
+  const dispatch = useAppDispatch();
   const { data: worker } = useWorkerQuery();
-  const { orderBy, analysisMethod, activeTab, minConfidence } = useAppSelector(store => store.face);
+
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const dispatch = useAppDispatch();
 
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
 
   const setOrderBy = (value: string) => {
-    dispatch(faceActions.changeFacesOrderBy(value as FacesOrderOption));
+    if (onOrderChange) {
+      onOrderChange(value);
+    }
   };
 
   const changeShowType = (value: string) => {
-    dispatch(faceActions.changeAnalysisMethod(value as FaceAnalysisMethod));
+    if (onMethodChange) {
+      onMethodChange(value);
+    }
+  };
+  
+  const handleConfidenceChange = (value: number) => {
+    if (onConfidenceChange) {
+      onConfidenceChange(value);
+    }
   };
 
   useEffect(() => {
@@ -89,7 +112,7 @@ export function ButtonHeaderGroup({
         }}
         justify="space-between"
       >
-        <Group spacing="xs">
+        <Group gap="xs">
           <Button
             variant="light"
             size="xs"
@@ -121,7 +144,7 @@ export function ButtonHeaderGroup({
           {(activeTab === "inferred" || activeTab === "unknown") && (
             <div style={{ display: "contents" }}>
               <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-              <Text size="sm" weight={500} mb={3}>
+              <Text size="sm" fw={500} mb={3}>
                 {t("facesdashboard.show")}
               </Text>
               <SegmentedControl
@@ -140,7 +163,7 @@ export function ButtonHeaderGroup({
                 ]}
               />
               <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-              <Text size="sm" weight={500} mb={3}>
+              <Text size="sm" fw={500} mb={3}>
                 {t("facesdashboard.minconfidence")}
               </Text>
               <Box
@@ -158,7 +181,7 @@ export function ButtonHeaderGroup({
               >
                 <Slider
                   value={minConfidence}
-                  onChange={value => dispatch(faceActions.changeMinConfidence(value))}
+                  onChange={handleConfidenceChange}
                   label={minConfidence}
                   size={5}
                   step={0.05}

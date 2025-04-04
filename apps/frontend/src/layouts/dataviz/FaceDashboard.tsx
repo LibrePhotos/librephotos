@@ -1,9 +1,10 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
-import { Flex, RemoveScroll, Stack } from "@mantine/core";
+import { RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import _ from "lodash";
-import React, { useEffect, useRef, useState } from "react";
-import { AutoSizer, Grid } from "react-virtualized";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { AutoSizer, Grid, GridCellProps } from "react-virtualized";
 
 import { 
   useFetchIncompleteFacesQuery, 
@@ -23,391 +24,658 @@ import { ScrollScrubber } from "../../components/scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 import { notification } from "../../service/notifications";
-import { faceActions } from "../../store/faces/faceSlice";
 import { 
   FaceAnalysisMethod, 
   FacesTab,
-  CompletePersonFaceList,
-  PersonFaceListRequest 
+  CompletePersonFaceList
 } from "../../store/faces/facesActions.types";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppDispatch } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
 
-export function FaceDashboard() {
-  const { ref, width } = useElementSize();
-  const gridRef = useRef<any>();
+type FaceCell = {
+  id: number;
+  face_url: string;
+  image?: string | null;
+  name?: string;
+  isTemp?: boolean;
+  person?: number;
+  photo?: string;
+};
 
-  const { activeTab, tabs, analysisMethod, orderBy, minConfidence } = useAppSelector(store => store.face);
+type FaceSelection = {
+  face_id: number;
+  face_url: string;
+};
 
-  const [lastChecked, setLastChecked] = useState(null);
-  const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
-  const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
-  const [lightboxImageId, setLightboxImageId] = useState("");
-  const [lightboxShow, setLightboxShow] = useState(false);
+// Default values for URL parameters
+const DEFAULT_VALUES = {
+  activeTab: FacesTab.enum.labeled,
+  analysisMethod: FaceAnalysisMethod.enum.clustering,
+  orderBy: 'person',
+  minConfidence: 0.9,
+};
 
-  const [scrollTo, setScrollTo] = useState<number | null>(null);
-  const [scrollLocked, setScrollLocked] = useState(false);
+// Tab scroll positions storage
+const DEFAULT_TAB_POSITIONS = {
+  [FacesTab.enum.labeled]: 0,
+  [FacesTab.enum.inferred]: 0,
+  [FacesTab.enum.unknown]: 0,
+};
 
-  // Use explicit query keys to ensure proper caching and refetching
-  const labeledParams = {
-    inferred: false,
-    orderBy,
+// Utility to parse URL parameters with proper typing
+function parseUrlParams(searchParams: URLSearchParams) {
+  return {
+    activeTab: (searchParams.get('tab') as FacesTab) || DEFAULT_VALUES.activeTab,
+    analysisMethod: (searchParams.get('method') as FaceAnalysisMethod) || DEFAULT_VALUES.analysisMethod,
+    orderBy: searchParams.get('orderBy') || DEFAULT_VALUES.orderBy,
+    minConfidence: parseFloat(searchParams.get('minConfidence') || String(DEFAULT_VALUES.minConfidence)),
   };
+}
 
-  const inferredParams = {
-    inferred: true,
-    method: analysisMethod,
-    orderBy,
-    minConfidence,
-  };
-
-  const { data: labeledFacesListUnfiltered = [], isFetching: fetchingLabeledFacesList } = useFetchIncompleteFacesQuery(
-    labeledParams
-  );
-
-  const { data: inferredFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery(
-    inferredParams
-  );
-
-  const unknownFacesList = inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other");
-  const inferredFacesList = inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other");
-  const labeledFacesList = labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other");
-
-  const dispatch = useAppDispatch();
-
-  const [groups, setGroups] = useState<
-    {
-      page: number;
-      person: any;
-      inferred: boolean;
-      method: FaceAnalysisMethod;
-    }[]
-  >([]);
-
-  // Fetch face data when groups change
-  useEffect(() => {
-    const fetchFaces = async () => {
-      for (const element of groups) {
-        const queryParams: PersonFaceListRequest = {
-          person: element.person ? element.person : 0,
-          page: element.page,
-          inferred: element.inferred,
-          orderBy,
-          minConfidence: element.inferred ? minConfidence : undefined,
-          method: element.inferred ? element.method : undefined,
-        };
-        
-        try {
-          // Use fetchQuery instead of prefetchQuery for direct access to results
-          const data = await queryClient.fetchQuery({
-            queryKey: [QueryKeys.faces, queryParams],
-            queryFn: () => API.fetchFaces(queryParams)
-          });
-          
-          // Manually update the incomplete faces cache with the face data
-          const incompleteParams = element.inferred ? inferredParams : labeledParams;
-          
-          const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(
-            [QueryKeys.incompleteFaces, incompleteParams]
-          );
-          
-          if (incompleteData) {
-            const updatedData = [...incompleteData];
-            const personIndex = updatedData.findIndex(person => person.id === element.person);
-            
-            if (personIndex !== -1) {
-              const person = { ...updatedData[personIndex] };
-              const startIndex = (element.page - 1) * 100;
-              
-              // Create a new faces array with the updated data
-              const updatedFaces = [...person.faces];
-              
-              // Replace temporary faces with actual data
-              for (let i = 0; i < data.length; i++) {
-                if (updatedFaces[startIndex + i]) {
-                  updatedFaces[startIndex + i] = { 
-                    ...data[i],
-                    person: element.person
-                  };
-                }
-              }
-              
-              person.faces = updatedFaces;
-              updatedData[personIndex] = person;
-              
-              // Update the cache
-              queryClient.setQueryData(
-                [QueryKeys.incompleteFaces, incompleteParams],
-                updatedData
-              );
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching faces:", error);
-        }
-      }
-    };
-    
-    if (groups.length > 0) {
-      fetchFaces();
-    }
-  }, [groups, orderBy, minConfidence, analysisMethod, inferredParams, labeledParams]);
-
+// Custom hook to manage grid functionality
+function useVirtualizedGrid(
+  containerRef: React.RefObject<HTMLDivElement>,
+  activeTab: FacesTab, 
+  lists: { 
+    labeled: any[], 
+    inferred: any[], 
+    unknown: any[] 
+  },
+  handleCellClick: (e: React.MouseEvent, cell: FaceCell) => void,
+  handleShowClick: (e: React.KeyboardEvent, item: any) => void,
+  onSectionChange: (visibleInfos: Array<{
+    page: number;
+    person: number;
+    inferred: boolean;
+    method: FaceAnalysisMethod;
+  }>) => void,
+  scrollPosition: number,
+  onScroll: (params: { scrollTop: number }) => void,
+  selectMode: boolean,
+  selectedFaces: FaceSelection[],
+  clearSelection: () => void,
+  analysisMethod: FaceAnalysisMethod,
+  width: number
+) {
+  const gridRef = useRef<any>(null);
+  
+  // Calculate dimensions based on width
   const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
-
-  const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
-  const labeledCellContents = calculateFaceGridCells(labeledFacesList, numEntrySquaresPerRow).cellContents;
-  const unknownCellContents = calculateFaceGridCells(unknownFacesList, numEntrySquaresPerRow).cellContents;
-
-  const selectMode = selectedFaces.length > 0;
-
-  const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
-  const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
-
-  let idx2hash: { id: string }[] = [];
-
-  switch (activeTab) {
-    case FacesTab.enum.labeled:
-      idx2hash = labeledFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
-      break;
-    case FacesTab.enum.inferred:
-      idx2hash = inferredFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
-      break;
-    case FacesTab.enum.unknown:
-      idx2hash = unknownFacesList.flatMap(person => person.faces).map(face => ({ id: face.photo }));
-      break;
-    default:
-      throw new Error("unknown tab", activeTab);
-  }
-
-  const getCellContentsForTab = (tab: FacesTab) => {
-    if (tab === FacesTab.enum.labeled) {
-      return labeledCellContents;
-    }
-    if (tab === FacesTab.enum.inferred) {
-      return inferredCellContents;
-    }
-    if (tab === FacesTab.enum.unknown) {
-      return unknownCellContents;
-    }
-    throw new Error("unknown tab", tab);
+  
+  // Calculate cell contents for each tab
+  const cellContents = {
+    [FacesTab.enum.labeled]: calculateFaceGridCells(lists.labeled, numEntrySquaresPerRow).cellContents,
+    [FacesTab.enum.inferred]: calculateFaceGridCells(lists.inferred, numEntrySquaresPerRow).cellContents,
+    [FacesTab.enum.unknown]: calculateFaceGridCells(lists.unknown, numEntrySquaresPerRow).cellContents,
   };
-
-  const handleShowClick = (event: React.KeyboardEvent, item: any) => {
-    const index = idx2hash.findIndex(image => image.id === item.photo);
-    setLightboxImageId(item.photo);
-    setLightboxShow(index >= 0);
-    setScrollLocked(true);
-  };
-
-  const handleGridScroll = (params: any) => {
-    const { scrollTop } = params;
-    if (scrollTo !== null && scrollTop === scrollTo) {
-      setScrollTo(null);
-    }
-    if (tabs[activeTab].scrollPosition !== scrollTop) {
-      dispatch(
-        faceActions.saveCurrentGridPosition({
-          tab: activeTab,
-          position: scrollTop,
-        })
-      );
-    }
-  };
-
-  const getScrollPositions = () => {
-    const cellContents = getCellContentsForTab(activeTab);
-    let scrollPosition = 0;
-    const scrollPositions: IScrollerData[] = [];
-    cellContents.forEach(row => {
-      if (row[0].name) {
-        scrollPositions.push({ label: row[0].name, targetY: scrollPosition });
-      }
-      scrollPosition += entrySquareSize;
-    });
-    return scrollPositions;
-  };
-
-  const dataForScrollIndicator = getScrollPositions();
-
-  useEffect(() => {
-    setScrollTo(tabs[activeTab].scrollPosition);
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (scrollTo !== null) {
-      dispatch(
-        faceActions.saveCurrentGridPosition({
-          tab: activeTab,
-          position: scrollTo,
-        })
-      );
-    }
-  }, [scrollTo]);
-
-  // ensure that the endpoint is not undefined
-  const getEndpointCell = (cellContents, rowStopIndex, columnStopIndex) => {
-    if (cellContents[rowStopIndex][columnStopIndex]) {
+  
+  // Get cell contents for the active tab
+  const getCellContentsForTab = useCallback((tab: FacesTab) => 
+    cellContents[tab] || [], [cellContents]);
+    
+  // Helper to find the endpoint cell
+  const getEndpointCell = useCallback((cellContents, rowStopIndex, columnStopIndex): FaceCell => {
+    if (cellContents[rowStopIndex]?.[columnStopIndex]) {
       return cellContents[rowStopIndex][columnStopIndex];
     }
     return getEndpointCell(cellContents, rowStopIndex, columnStopIndex - 1);
-  };
-
+  }, []);
+  
+  // Calculate grid height
   const gridHeight = gridRef.current ? gridRef.current.getTotalRowsHeight() : 200;
-
-  const onSectionRendered = (params: any) => {
+  
+  // Generate scroll positions for the scrubber
+  const getScrollPositions = useCallback((): IScrollerData[] => {
+    const rows = getCellContentsForTab(activeTab);
+    return rows.reduce((positions, row, index) => {
+      if (row[0]?.name) {
+        positions.push({ label: row[0].name, targetY: index * entrySquareSize });
+      }
+      return positions;
+    }, [] as IScrollerData[]);
+  }, [activeTab, getCellContentsForTab, entrySquareSize]);
+  
+  // Handle section rendering and detect visible cells
+  const onSectionRendered = useCallback(({ 
+    rowOverscanStartIndex, columnOverscanStartIndex,
+    rowOverscanStopIndex, columnOverscanStopIndex
+  }) => {
     const cellContents = getCellContentsForTab(activeTab);
-    const startPoint = cellContents[params.rowOverscanStartIndex][params.columnOverscanStartIndex];
-    const endPoint = getEndpointCell(cellContents, params.rowOverscanStopIndex, params.columnOverscanStopIndex);
-    // flatten labeledCellContents and find the range of cells that are in the viewport
-    const flatCellContents = _.flatten(cellContents);
-    const startIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(startPoint));
-    const endIndex = flatCellContents.findIndex(cell => JSON.stringify(cell) === JSON.stringify(endPoint));
+    const startPoint = cellContents[rowOverscanStartIndex]?.[columnOverscanStartIndex];
+    const endPoint = getEndpointCell(cellContents, rowOverscanStopIndex, columnOverscanStopIndex);
+    
+    if (!startPoint || !endPoint) return;
+    
+    const flatCells = _.flatten(cellContents);
+    const startIndex = flatCells.indexOf(startPoint);
+    const endIndex = flatCells.indexOf(endPoint);
 
-    // get the range of cells that are in the viewport
-    const visibleCells = flatCellContents.slice(startIndex, endIndex + 1);
-    const relevantInfos = visibleCells
-      .filter((i: any) => i.isTemp)
-      .map((i: any) => {
-        const page = Math.ceil((parseInt(i.id, 10) + 1) / 100);
-        return {
-          page,
-          person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
-          inferred: !(activeTab === FacesTab.enum.labeled),
-          method: analysisMethod,
-        };
-      });
-    const uniqueGroups = _.uniqBy(relevantInfos, (e: any) => `${e.page} ${e.person}`);
-    if (uniqueGroups.length > 0) {
-      setGroups(uniqueGroups);
-    } else {
-      setGroups([]);
+    const relevantInfos = flatCells
+      .slice(startIndex, endIndex + 1)
+      .filter((i: any) => i?.isTemp)
+      .map(i => ({
+        page: Math.ceil((parseInt(i.id, 10) + 1) / 100),
+        person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
+        inferred: activeTab !== FacesTab.enum.labeled,
+        method: analysisMethod,
+      }));
+      
+    onSectionChange(_.uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
+  }, [activeTab, analysisMethod, getCellContentsForTab, getEndpointCell, onSectionChange]);
+  
+  // Cell renderer for the virtualized grid
+  const cellRenderer = useCallback(({ columnIndex, key, rowIndex, style }: GridCellProps) => {
+    const cell = getCellContentsForTab(activeTab)[rowIndex]?.[columnIndex];
+    if (!cell) return null;
+
+    if (cell.name) {
+      return (
+        <HeaderComponent
+          key={key}
+          style={style}
+          width={width}
+          cell={cell}
+          entrySquareSize={entrySquareSize}
+          selectedFaces={selectedFaces}
+          setSelectedFaces={clearSelection}
+        />
+      );
     }
-  };
-
-  const onFacesSelect = faces => {
-    // get duplicates of new faces and selected faces
-    const duplicates = faces.filter(face => selectedFaces.find(i => i.face_id === face.face_id));
-    // merge selected faces with new faces, filter both duplicates
-    const merged = _.uniqBy([...selectedFaces, ...faces], el => el.face_id);
-    // filter duplicates from new faces
-    const mergedAndFiltered = merged.filter(face => !duplicates.find(i => i.face_id === face.face_id));
-    // add the last selected face back to the start of the list when adding new faces
-    // @ts-ignore
-    const lastSelectedFace = { face_id: lastChecked.id, face_url: lastChecked.face_url };
-    const mergedAndFilteredAndLastSelected =
-      duplicates.length !== faces.length ? [lastSelectedFace, ...mergedAndFiltered] : mergedAndFiltered;
-    setSelectedFaces(mergedAndFilteredAndLastSelected);
-  };
-
-  const onFaceSelect = face => {
-    let tempSelectedFaces = selectedFaces;
-    if (tempSelectedFaces.map(f => f.face_url).includes(face.face_url)) {
-      tempSelectedFaces = tempSelectedFaces.filter(item => item.face_url !== face.face_url);
-    } else {
-      tempSelectedFaces.push(face);
+    
+    if (cell.isTemp) {
+      return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
     }
-    setSelectedFaces([...tempSelectedFaces]);
-  };
 
-  const handleClick = (e, cell) => {
+    return (
+      <div key={key} style={style}>
+        <FaceComponent
+          handleClick={handleCellClick}
+          handleShowClick={handleShowClick}
+          cell={cell}
+          isScrollingFast={false}
+          selectMode={selectMode}
+          isSelected={selectedFaces.some(face => face.face_id === cell.id)}
+          entrySquareSize={entrySquareSize}
+        />
+      </div>
+    );
+  }, [
+    activeTab, width, entrySquareSize, selectedFaces, 
+    handleCellClick, handleShowClick, selectMode, getCellContentsForTab, clearSelection
+  ]);
+  
+  // Get flattened cell contents for cell range selection
+  const getFlattenedCells = useCallback((): FaceCell[] => {
+    return _.flatten(getCellContentsForTab(activeTab));
+  }, [activeTab, getCellContentsForTab]);
+  
+  // Render the grid with AutoSizer
+  const renderGrid = useCallback(() => (
+    <div style={{ flexGrow: 1, padding: "0 15px" }} ref={containerRef}>
+      <AutoSizer>
+        {({ height, width: gridWidth }) => (
+          <ScrollScrubber
+            scrollPositions={getScrollPositions()}
+            scrollToY={onScroll}
+            targetHeight={gridHeight}
+            type={ScrollerType.enum.alphabet}
+          >
+            <Grid
+              ref={gridRef}
+              className="scrollscrubbertarget"
+              style={{ overflowX: "hidden" }}
+              disableHeader={false}
+              cellRenderer={cellRenderer}
+              columnWidth={entrySquareSize}
+              columnCount={numEntrySquaresPerRow}
+              rowHeight={entrySquareSize}
+              onSectionRendered={onSectionRendered}
+              height={height}
+              width={gridWidth}
+              rowCount={getCellContentsForTab(activeTab).length}
+              scrollTop={scrollPosition}
+              onScroll={onScroll}
+            />
+          </ScrollScrubber>
+        )}
+      </AutoSizer>
+    </div>
+  ), [
+    containerRef,
+    gridHeight, getScrollPositions, cellRenderer, entrySquareSize, 
+    numEntrySquaresPerRow, getCellContentsForTab, activeTab, 
+    scrollPosition, onScroll, onSectionRendered
+  ]);
+  
+  return {
+    gridRef,
+    renderGrid,
+    entrySquareSize,
+    numEntrySquaresPerRow,
+    gridHeight,
+    getCellContentsForTab,
+    getFlattenedCells
+  };
+}
+
+// Custom hook to manage lightbox functionality
+function useLightbox() {
+  const [lightboxImageId, setLightboxImageId] = useState("");
+  const [lightboxShow, setLightboxShow] = useState(false);
+  const [scrollLocked, setScrollLocked] = useState(false);
+
+  const showLightbox = useCallback((imageId: string, isValid: boolean) => {
+    setLightboxImageId(imageId);
+    setLightboxShow(isValid);
+    setScrollLocked(isValid);
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxShow(false);
+    setScrollLocked(false);
+  }, []);
+
+  const renderLightbox = useCallback((idx2hash: Array<{ id: string }>) => 
+    lightboxShow && (
+      <Lightbox
+        isPublic={false}
+        idx2hash={idx2hash}
+        selectedImage={lightboxImageId}
+        onChangedIndex={() => {}}
+        onCloseRequest={closeLightbox}
+      />
+    ), [lightboxShow, lightboxImageId, closeLightbox]);
+
+  return {
+    showLightbox,
+    closeLightbox,
+    renderLightbox,
+    isLightboxOpen: lightboxShow,
+    scrollLocked
+  };
+}
+
+// Custom hook to manage face selection
+function useFaceSelection(getFacesInRange: (start: FaceCell, end: FaceCell) => FaceCell[]) {
+  const [lastChecked, setLastChecked] = useState<FaceCell | null>(null);
+  const [selectedFaces, setSelectedFaces] = useState<FaceSelection[]>([]);
+
+  const onFacesSelect = useCallback((faces: FaceSelection[]) => {
+    setSelectedFaces(prev => {
+      const duplicates = faces.filter(face => prev.some(i => i.face_id === face.face_id));
+      const merged = _.uniqBy([...prev, ...faces], el => el.face_id);
+      
+      // If there are no duplicates, add the last checked face to the selection
+      if (duplicates.length !== faces.length && lastChecked) {
+        const lastSelectedFace = { face_id: lastChecked.id, face_url: lastChecked.face_url };
+        return [lastSelectedFace, ...merged.filter(face => !duplicates.some(d => d.face_id === face.face_id))];
+      }
+      
+      return merged.filter(face => !duplicates.some(d => d.face_id === face.face_id));
+    });
+  }, [lastChecked]);
+
+  const onFaceSelect = useCallback((face: FaceSelection) => {
+    setSelectedFaces(prev => 
+      prev.some(f => f.face_url === face.face_url)
+        ? prev.filter(item => item.face_url !== face.face_url)
+        : [...prev, face]
+    );
+  }, []);
+  
+  const handleCellClick = useCallback((e, cell) => {
     if (!lastChecked) {
       setLastChecked(cell);
       onFaceSelect({ face_id: cell.id, face_url: cell.face_url });
       return;
     }
+    
     if (e.shiftKey) {
-      const currentCellsInRowFormat = getCellContentsForTab(activeTab);
-      const allFacesInCells = [] as any[];
-      for (let i = 0; i < currentCellsInRowFormat.length; i++) {
-        for (let j = 0; j < numEntrySquaresPerRow; j++) {
-          allFacesInCells.push(currentCellsInRowFormat[i][j]);
-        }
-      }
-      const start = allFacesInCells.indexOf(cell);
-      const end = allFacesInCells.indexOf(lastChecked);
-
-      const facesToSelect = allFacesInCells
-        .slice(Math.min(start, end), Math.max(start, end) + 1)
-        .filter(i => i && i.image);
-      onFacesSelect(facesToSelect.map(i => ({ face_id: i.id, face_url: i.face_url })));
+      // Get the faces in range between the current cell and lastChecked
+      const facesInRange = getFacesInRange(cell, lastChecked);
+      
+      const facesToSelect = facesInRange
+        .filter(face => face && face.image)
+        .map(face => ({ face_id: face.id, face_url: face.face_url }));
+        
+      onFacesSelect(facesToSelect);
       setLastChecked(cell);
       return;
     }
+    
     onFaceSelect({ face_id: cell.id, face_url: cell.face_url });
     setLastChecked(cell);
+  }, [lastChecked, onFaceSelect, onFacesSelect, setLastChecked, getFacesInRange]);
+
+  return {
+    selectedFaces, 
+    setSelectedFaces, 
+    lastChecked, 
+    setLastChecked, 
+    onFaceSelect, 
+    onFacesSelect,
+    handleCellClick,
+    clearSelection: useCallback(() => setSelectedFaces([]), [])
+  };
+}
+
+// Custom hook to manage face data fetching
+function useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence) {
+  // Create params objects for API calls
+  const params = {
+    labeled: { inferred: false, orderBy },
+    inferred: { inferred: true, method: analysisMethod, orderBy, minConfidence }
   };
 
-  const changeSelectMode = () => {
-    if (selectMode) {
-      setSelectedFaces([]);
+  // Fetch data for both labeled and inferred categories
+  const { 
+    data: labeledFacesListUnfiltered = [], 
+    isFetching: fetchingLabeledFacesList 
+  } = useFetchIncompleteFacesQuery(params.labeled);
+
+  const { 
+    data: inferredFacesListUnfiltered = [], 
+    isFetching: fetchingInferredFacesList 
+  } = useFetchIncompleteFacesQuery(params.inferred);
+
+  // Filter data by category
+  const lists = {
+    unknown: inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other"),
+    inferred: inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
+    labeled: labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other")
+  };
+
+  // Create hash mapping based on active tab
+  const idx2hash = lists[activeTab === FacesTab.enum.labeled ? 'labeled' : 
+                         activeTab === FacesTab.enum.inferred ? 'inferred' : 'unknown']
+    .flatMap(person => person.faces)
+    .map(face => ({ id: face.photo }));
+
+  // Fetch detailed face data when groups change
+  useEffect(() => {
+    if (!groups.length) return;
+    
+    (async () => {
+      for (const element of groups) {
+        try {
+          const queryParams = {
+            person: element.person || 0,
+            page: element.page,
+            inferred: element.inferred,
+            orderBy,
+            minConfidence: element.inferred ? minConfidence : undefined,
+            method: element.inferred ? element.method : undefined,
+          };
+          
+          // Fetch face data
+          const data = await queryClient.fetchQuery({
+            queryKey: [QueryKeys.faces, queryParams],
+            queryFn: () => API.fetchFaces(queryParams)
+          });
+          
+          // Update cache with fetched data
+          const incompleteParams = element.inferred ? params.inferred : params.labeled;
+          const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(
+            [QueryKeys.incompleteFaces, incompleteParams]
+          );
+          
+          if (incompleteData) {
+            queryClient.setQueryData(
+              [QueryKeys.incompleteFaces, incompleteParams],
+              incompleteData.map(person => 
+                person.id === element.person 
+                  ? {
+                      ...person,
+                      faces: person.faces.map((face, idx) => {
+                        const dataIndex = idx - (element.page - 1) * 100;
+                        return dataIndex >= 0 && dataIndex < data.length
+                          ? { ...data[dataIndex], person: element.person }
+                          : face;
+                      })
+                    }
+                  : person
+              )
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching faces:", error);
+        }
+      }
+    })();
+  }, [groups, orderBy, minConfidence, analysisMethod, params.inferred, params.labeled]);
+
+  return {
+    lists,
+    fetchingLabeledFacesList,
+    fetchingInferredFacesList,
+    idx2hash,
+    params
+  };
+}
+
+// Custom hook to manage tab scroll positions in localStorage
+function useTabScrollPositions() {
+  const [tabPositions, setTabPositions] = useState(() => {
+    try {
+      const saved = localStorage.getItem('faceTabScrollPositions');
+      return saved ? JSON.parse(saved) : { ...DEFAULT_TAB_POSITIONS };
+    } catch (e) {
+      console.error('Error loading tab positions from localStorage:', e);
+      return { ...DEFAULT_TAB_POSITIONS };
     }
-  };
+  });
 
-  const deleteSelectedFaces = () => {
-    if (selectedFaces.length > 0) {
-      const ids = selectedFaces.map(face => face.face_id);
-      deleteFacesMutate({ faceIds: ids });
-      notification.deleteFaces(ids.length);
-      setSelectedFaces([]);
+  const updatePosition = useCallback((tab: FacesTab, position: number) => {
+    setTabPositions(prev => {
+      const newPositions = { ...prev, [tab]: position };
+      try {
+        localStorage.setItem('faceTabScrollPositions', JSON.stringify(newPositions));
+      } catch (e) {
+        console.error('Error saving tab positions to localStorage:', e);
+      }
+      return newPositions;
+    });
+  }, []);
+
+  return { tabPositions, updatePosition };
+}
+
+export function FaceDashboard() {
+  const { ref, width } = useElementSize();
+  const dispatch = useAppDispatch();
+  
+  // URL parameters instead of Redux store
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { activeTab, analysisMethod, orderBy, minConfidence } = parseUrlParams(searchParams);
+  
+  // Tab scroll positions from localStorage
+  const { tabPositions, updatePosition } = useTabScrollPositions();
+
+  // State
+  const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
+  const [scrollTo, setScrollTo] = useState<number | null>(null);
+  const [groups, setGroups] = useState<Array<{
+    page: number;
+    person: number;
+    inferred: boolean;
+    method: FaceAnalysisMethod;
+  }>>([]);
+
+  const {
+    lists,
+    fetchingLabeledFacesList,
+    fetchingInferredFacesList,
+    idx2hash
+  } = useFaceDataFetching(groups, activeTab, analysisMethod, orderBy, minConfidence);
+
+  const {
+    showLightbox,
+    renderLightbox,
+    scrollLocked
+  } = useLightbox();
+
+  // Mutations
+  const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
+  const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
+
+  // Update URL params (replaces Redux dispatch)
+  const updateParams = useCallback((updates: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
+  // Explicitly update the URL when parameters change
+  useEffect(() => {
+    // This ensures URL params are set on initial render
+    const params = {
+      tab: activeTab,
+      method: analysisMethod,
+      orderBy,
+      minConfidence: minConfidence.toString()
+    };
+    
+    const newParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      }
+    });
+    
+    // Only update if different to avoid loops
+    const currentParams = new URLSearchParams(searchParams);
+    let isDifferent = false;
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (currentParams.get(key) !== value) {
+        isDifferent = true;
+      }
+    });
+    
+    if (isDifferent) {
+      setSearchParams(newParams);
     }
-  };
+  }, [activeTab, analysisMethod, orderBy, minConfidence, setSearchParams]);
 
-  const addFaces = () => {
-    if (selectedFaces.length > 0) {
-      setModalPersonEditOpen(true);
+  // Event handlers
+  const handleShowClick = useCallback((event: React.KeyboardEvent, item: any) => {
+    const index = idx2hash.findIndex(image => image.id === item.photo);
+    showLightbox(item.photo, index >= 0);
+  }, [idx2hash, showLightbox]);
+
+  const handleGridScroll = useCallback(({ scrollTop }: { scrollTop: number }) => {
+    if (scrollTo !== null && scrollTop === scrollTo) {
+      setScrollTo(null);
     }
-  };
-
-  const notThisPersonFunc = () => {
-    if (selectedFaces.length > 0) {
-      const ids = selectedFaces.map(face => face.face_id);
-      setFacesPersonLabelMutate({ faceIds: ids, personName: "Unknown - Other" });
-      notification.removeFacesFromPerson(ids.length);
-      setSelectedFaces([]);
+    if (tabPositions[activeTab] !== scrollTop) {
+      updatePosition(activeTab, scrollTop);
     }
-  };
+  }, [scrollTo, tabPositions, activeTab, updatePosition]);
 
-  const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
-    const cellContents = getCellContentsForTab(activeTab);
-    const cell = cellContents[rowIndex][columnIndex];
+  // Handle tab changes
+  const handleTabChange = useCallback((newTab: FacesTab) => {
+    updateParams({ tab: newTab });
+  }, [updateParams]);
 
-    if (cell) {
-      if (cell.name) {
-        return (
-          <React.Fragment key={key}>
-            <HeaderComponent
-              style={style}
-              width={width}
-              cell={cell}
-              entrySquareSize={entrySquareSize}
-              selectedFaces={selectedFaces}
-              setSelectedFaces={setSelectedFaces}
-            />
-          </React.Fragment>
+  // Handle analysis method changes (using string type instead of enum)
+  const handleMethodChange = useCallback((method: string) => {
+    updateParams({ method });
+  }, [updateParams]);
+
+  // Handle order changes
+  const handleOrderChange = useCallback((newOrderBy: string) => {
+    updateParams({ orderBy: newOrderBy });
+  }, [updateParams]);
+
+  // Handle confidence changes
+  const handleConfidenceChange = useCallback((confidence: number) => {
+    updateParams({ minConfidence: confidence.toString() });
+  }, [updateParams]);
+
+  // Create grid utilities object that we'll use for selection logic
+  const gridUtils = useMemo(() => {
+    // We need to initialize with cell calculation functions
+    // that will be replaced after the grid is initialized
+    const utils = {
+      getFlattenedCells: () => [] as FaceCell[],
+      getFacesInRange: (start: FaceCell, end: FaceCell) => {
+        const allFaces = utils.getFlattenedCells();
+        const startIndex = allFaces.indexOf(start);
+        const endIndex = allFaces.indexOf(end);
+        return allFaces.slice(
+          Math.min(startIndex, endIndex), 
+          Math.max(startIndex, endIndex) + 1
         );
       }
-      if (cell.isTemp) {
-        return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
-      }
+    };
+    return utils;
+  }, []);
+  
+  // Create selection hook with the grid utils
+  const { 
+    selectedFaces, handleCellClick, clearSelection 
+  } = useFaceSelection(gridUtils.getFacesInRange);
 
-      return (
-        <div key={key} style={style}>
-          <FaceComponent
-            handleClick={handleClick}
-            handleShowClick={handleShowClick}
-            cell={cell}
-            isScrollingFast={false}
-            selectMode={selectMode}
-            isSelected={selectedFaces.map(face => face.face_id).includes(cell.id)}
-            entrySquareSize={entrySquareSize}
-          />
-        </div>
+  // Initialize the virtualized grid
+  const virtualGrid = useVirtualizedGrid(
+    ref,
+    activeTab,
+    lists,
+    handleCellClick,
+    handleShowClick,
+    setGroups,
+    tabPositions[activeTab], // Use local storage position instead of Redux
+    handleGridScroll,
+    selectedFaces.length > 0, // selectMode
+    selectedFaces,
+    clearSelection,
+    analysisMethod,
+    width
+  );
+  
+  // Update the grid utilities with actual implementation after grid is initialized
+  useEffect(() => {
+    gridUtils.getFlattenedCells = virtualGrid.getFlattenedCells;
+    gridUtils.getFacesInRange = (start, end) => {
+      const allFaces = virtualGrid.getFlattenedCells();
+      const startIndex = allFaces.indexOf(start);
+      const endIndex = allFaces.indexOf(end);
+      return allFaces.slice(
+        Math.min(startIndex, endIndex), 
+        Math.max(startIndex, endIndex) + 1
       );
+    };
+  }, [gridUtils, virtualGrid]);
+
+  // Action handlers
+  const deleteSelectedFaces = useCallback(() => {
+    if (selectedFaces.length > 0) {
+      deleteFacesMutate({ faceIds: selectedFaces.map(face => face.face_id) });
+      notification.deleteFaces(selectedFaces.length);
+      clearSelection();
     }
-    return null;
-  };
+  }, [selectedFaces, deleteFacesMutate, clearSelection]);
+
+  const notThisPersonFunc = useCallback(() => {
+    if (selectedFaces.length > 0) {
+      setFacesPersonLabelMutate({ 
+        faceIds: selectedFaces.map(face => face.face_id), 
+        personName: "Unknown - Other" 
+      });
+      notification.removeFacesFromPerson(selectedFaces.length);
+      clearSelection();
+    }
+  }, [selectedFaces, setFacesPersonLabelMutate, clearSelection]);
+
+  // Track scroll position based on tab
+  useEffect(() => setScrollTo(tabPositions[activeTab]), [activeTab, tabPositions]);
 
   return (
     <RemoveScroll enabled={scrollLocked}>
@@ -417,65 +685,41 @@ export function FaceDashboard() {
             width={width}
             fetchingLabeledFacesList={fetchingLabeledFacesList}
             fetchingInferredFacesList={fetchingInferredFacesList}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            analysisMethod={analysisMethod}
+            onMethodChange={handleMethodChange}
+            orderBy={orderBy}
+            onOrderChange={handleOrderChange}
+            minConfidence={minConfidence}
+            onConfidenceChange={handleConfidenceChange}
           />
           <ButtonHeaderGroup
-            selectMode={selectMode}
+            selectMode={selectedFaces.length > 0}
             selectedFaces={selectedFaces}
-            changeSelectMode={changeSelectMode}
-            addFaces={addFaces}
+            changeSelectMode={clearSelection}
+            addFaces={() => selectedFaces.length > 0 && setModalPersonEditOpen(true)}
             deleteFaces={deleteSelectedFaces}
             notThisPerson={notThisPersonFunc}
+            activeTab={activeTab}
+            analysisMethod={analysisMethod}
+            onMethodChange={handleMethodChange}
+            orderBy={orderBy}
+            onOrderChange={handleOrderChange}
+            minConfidence={minConfidence}
+            onConfidenceChange={handleConfidenceChange}
           />
         </Stack>
-        <Flex ref={ref} style={{ flexGrow: 1, padding: "0 15px" }}>
-          <AutoSizer>
-            {({ height, width: gridWidth }) => (
-              <ScrollScrubber
-                scrollPositions={dataForScrollIndicator}
-                scrollToY={setScrollTo}
-                targetHeight={gridHeight}
-                type={ScrollerType.enum.alphabet}
-              >
-                <Grid
-                  ref={gridRef}
-                  className="scrollscrubbertarget"
-                  style={{ overflowX: "hidden" }}
-                  disableHeader={false}
-                  cellRenderer={cellRenderer}
-                  columnWidth={entrySquareSize}
-                  columnCount={numEntrySquaresPerRow}
-                  rowHeight={entrySquareSize}
-                  onSectionRendered={onSectionRendered}
-                  height={height}
-                  width={gridWidth}
-                  rowCount={getCellContentsForTab(activeTab).length}
-                  scrollTop={tabs[activeTab].scrollPosition}
-                  onScroll={handleGridScroll}
-                />
-              </ScrollScrubber>
-            )}
-          </AutoSizer>
-        </Flex>
+        {virtualGrid.renderGrid()}
         <ModalPersonEdit
           isOpen={modalPersonEditOpen}
           onRequestClose={() => {
             setModalPersonEditOpen(false);
-            setSelectedFaces([]);
+            clearSelection();
           }}
           selectedFaces={selectedFaces}
         />
-        {lightboxShow && (
-          <Lightbox
-            isPublic={false}
-            idx2hash={idx2hash}
-            selectedImage={lightboxImageId}
-            onChangedIndex={() => {}}
-            onCloseRequest={() => {
-              setLightboxShow(false);
-              setScrollLocked(false);
-            }}
-          />
-        )}
+        {renderLightbox(idx2hash)}
       </div>
     </RemoveScroll>
   );
