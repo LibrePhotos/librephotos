@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { FacesTab } from "../store/faces/facesActions.types";
+import { FacesTab } from "../../../store/faces/facesActions.types";
 
 // Default tab scroll positions
 const DEFAULT_TAB_POSITIONS = {

@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { FaceAnalysisMethod, FacesTab, CompletePersonFaceList } from "../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesTab, CompletePersonFaceList } from "../../../store/faces/facesActions.types";
 import { 
   useFetchIncompleteFacesQuery, 
   queryClient,
   API,
   QueryKeys
-} from "../api_client/tanstack-api";
+} from "../../../api_client/tanstack-api";
 
 type OrderByType = "confidence" | "date" | "person";
 
@@ -24,8 +24,8 @@ export function useFaceDataFetching(
 ) {
   // Create params objects for API calls
   const params = {
-    labeled: { inferred: false, orderBy },
-    inferred: { inferred: true, method: analysisMethod, orderBy, minConfidence }
+    labeled: { inferred: false, orderBy: orderBy === "person" ? "date" : orderBy },
+    inferred: { inferred: true, method: analysisMethod, orderBy: orderBy === "person" ? "date" : orderBy, minConfidence }
   };
 
   // Fetch data for both labeled and inferred categories
@@ -63,7 +63,7 @@ export function useFaceDataFetching(
             person: element.person || 0,
             page: element.page,
             inferred: element.inferred,
-            orderBy,
+            orderBy: orderBy === "person" ? "date" : orderBy,
             minConfidence: element.inferred ? minConfidence : undefined,
             method: element.inferred ? element.method : undefined,
           };

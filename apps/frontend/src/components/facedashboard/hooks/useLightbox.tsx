@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Lightbox } from "../components/lightbox/Lightbox";
+import { Lightbox } from "../../../components/lightbox/Lightbox";
 
 export function useLightbox() {
   const [lightboxImageId, setLightboxImageId] = useState("");

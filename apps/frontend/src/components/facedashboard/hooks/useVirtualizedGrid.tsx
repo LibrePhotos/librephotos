@@ -1,13 +1,13 @@
-import { useCallback, useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import _ from "lodash";
 import { AutoSizer, Grid, GridCellProps } from "react-virtualized";
-import { FaceAnalysisMethod, FacesTab } from "../store/faces/facesActions.types";
-import { FaceComponent } from "../components/facedashboard/FaceComponent";
-import { HeaderComponent } from "../components/facedashboard/HeaderComponent";
-import { calculateFaceGridCellSize, calculateFaceGridCells } from "../util/gridUtils";
-import { ScrollerType } from "../components/scrollscrubber/ScrollScrubberTypes.zod";
-import type { IScrollerData } from "../components/scrollscrubber/ScrollScrubberTypes.zod";
-import { ScrollScrubber } from "../components/scrollscrubber/ScrollScrubber";
+import { FaceAnalysisMethod, FacesTab } from "../../../store/faces/facesActions.types";
+import { FaceComponent } from "../FaceComponent";
+import { HeaderComponent } from "../HeaderComponent";
+import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../../util/gridUtils";
+import { ScrollerType } from "../../scrollscrubber/ScrollScrubberTypes.zod";
+import type { IScrollerData } from "../../scrollscrubber/ScrollScrubberTypes.zod";
+import { ScrollScrubber } from "../../scrollscrubber/ScrollScrubber";
 
 export type FaceCell = {
   id: number;

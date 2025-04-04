@@ -17,11 +17,11 @@ import {
 } from "../../store/faces/facesActions.types";
 import { useAppDispatch } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { useVirtualizedGrid } from "../../hooks/useVirtualizedGrid";
-import { useLightbox } from "../../hooks/useLightbox";
-import { useFaceSelection } from "../../hooks/useFaceSelection";
-import { useFaceDataFetching } from "../../hooks/useFaceDataFetching";
-import { useTabScrollPositions } from "../../hooks/useTabScrollPositions";
+import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
+import { useLightbox } from "./hooks/useLightbox";
+import { useFaceSelection } from "./hooks/useFaceSelection";
+import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
+import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 
 // Default values for URL parameters
 const DEFAULT_VALUES = {
