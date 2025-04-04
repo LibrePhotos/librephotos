@@ -9,6 +9,8 @@ import "react-leaflet-markercluster/dist/styles.min.css";
 import { Provider } from "react-redux";
 import "react-vis/dist/style.css";
 import { HistoryRouter as Router } from "redux-first-history/rr6";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './api_client/tanstack-api';
 
 import { App } from "./App";
 import { libreHistory, store } from "./store/store";
@@ -17,8 +19,10 @@ const container = document.getElementById("root");
 const root = createRoot(container!); // createRoot(container!) if you use TypeScript
 root.render(
   <Provider store={store}>
-    <Router history={libreHistory}>
-      <App />
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <Router history={libreHistory}>
+        <App />
+      </Router>
+    </QueryClientProvider>
   </Provider>
 );
