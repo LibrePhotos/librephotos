@@ -21,8 +21,8 @@ const Tile = React.memo(
     windowHeight,
     scrollSpeed,
     settings,
-    toprightoverlay,
-    bottomleftoverlay,
+    toprightoverlay = null,
+    bottomleftoverlay = null,
   }) => {
     const isTemp = !!item.isTemp;
     const isSelectable = selectable;
@@ -181,11 +181,6 @@ const Tile = React.memo(
     );
   }
 );
-
-Tile.defaultProps = {
-  toprightoverlay: null,
-  bottomleftoverlay: null,
-};
 
 const ItemType = PropTypes.shape({
   id: PropTypes.string,

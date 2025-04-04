@@ -28,7 +28,7 @@ export function addTempElementsToFlatList(photosCount) {
   return tempPhotos;
 }
 
-export default class Pig extends Component {
+class Pig extends Component {
   constructor(props) {
     super(props);
 
@@ -239,7 +239,7 @@ export default class Pig extends Component {
     const { selectedItems: stateSelectedItems, activeTileUrl, scrollSpeed } = this.state;
     return (
       <Tile
-        key={item.url}
+        key={item.url || item.id}
         useLqip={useLqip}
         windowHeight={this.windowHeight}
         containerWidth={this.containerWidth}
@@ -270,7 +270,11 @@ export default class Pig extends Component {
     return (
       <React.Fragment key={group.date}>
         <GroupHeader key={group.date} settings={this.settings} group={group} activeTileUrl={activeTileUrl} />
-        {group.items.map(item => this.renderTile(item))}
+        {group.items.map(item => (
+          <React.Fragment key={item.url || item.id}>
+            {this.renderTile(item)}
+          </React.Fragment>
+        ))}
       </React.Fragment>
     );
   };
@@ -282,10 +286,12 @@ export default class Pig extends Component {
     return (
       <div className={styles.output} ref={this.containerRef}>
         {renderedItems.map(item => {
-          if (this.settings.groupByDate) {
-            return this.renderGroup(item);
-          }
-          return this.renderFlat(item);
+          const key = this.settings.groupByDate ? item.date : (item.url || item.id);
+          return (
+            <React.Fragment key={key}>
+              {this.settings.groupByDate ? this.renderGroup(item) : this.renderFlat(item)}
+            </React.Fragment>
+          );
         })}
       </div>
     );
@@ -347,3 +353,8 @@ Pig.propTypes = {
   toprightoverlay: PropTypes.func,
   bottomleftoverlay: PropTypes.func,
 };
+
+// Create memoized version of the component
+const MemoizedPig = React.memo(Pig);
+
+export default MemoizedPig;

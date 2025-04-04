@@ -61,24 +61,22 @@ type SelectionState = {
   selectMode: boolean;
 };
 
-const DEFAULT_PROPS: Props = {
-  title: "",
-  loading: true,
-  icon: null,
-  photoset: [],
-  idx2hash: [],
-  selectable: false,
-  isPublic: false,
-  numberOfItems: 0,
-  updateGroups: null,
-  updateItems: null,
-  date: null,
-  dayHeaderPrefix: null,
-  header: null,
-  additionalSubHeader: null,
-};
-
-function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
+function PhotoListViewComponent({
+  title = "",
+  loading = true,
+  icon = null,
+  photoset = [],
+  idx2hash = [],
+  selectable = false,
+  isPublic = false,
+  numberOfItems = 0,
+  updateGroups = null,
+  updateItems = null,
+  date = null,
+  dayHeaderPrefix = null,
+  header = null,
+  additionalSubHeader = null,
+}: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<Pig>(null);
   const [lightboxImageId, setLightboxImageId] = useState("");
@@ -98,22 +96,6 @@ function PhotoListViewComponent(props: Props = DEFAULT_PROPS) {
   const [imageScale, setImageScale] = useState(userSelfDetails.image_scale);
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
-  const {
-    updateGroups,
-    title,
-    loading,
-    icon,
-    photoset,
-    idx2hash,
-    selectable,
-    isPublic,
-    numberOfItems,
-    updateItems,
-    date,
-    dayHeaderPrefix,
-    header,
-    additionalSubHeader,
-  } = props;
 
   const isDateView = photoset !== idx2hash;
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;

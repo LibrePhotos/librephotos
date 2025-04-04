@@ -48,13 +48,11 @@ export function WorkerIndicator() {
       </Popover.Target>
 
       <Popover.Dropdown>
-        <Text size="sm">
-          {currentData?.queue_can_accept_job ? (
-            t("topmenu.available")
-          ) : (
-            <WorkerRunningJob workerRunningJob={workerRunningJob} />
-          )}
-        </Text>
+        {currentData?.queue_can_accept_job ? (
+          <Text size="sm">{t("topmenu.available")}</Text>
+        ) : (
+          <WorkerRunningJob workerRunningJob={workerRunningJob} />
+        )}
       </Popover.Dropdown>
     </Popover>
   );
