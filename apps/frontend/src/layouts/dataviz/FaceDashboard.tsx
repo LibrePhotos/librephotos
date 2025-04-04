@@ -5,8 +5,14 @@ import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { api, useFetchIncompleteFacesQuery } from "../../api_client/api";
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
+import { 
+  useFetchIncompleteFacesQuery, 
+  useDeleteFacesMutation, 
+  useSetFacesPersonLabelMutation,
+  queryClient,
+  API,
+  QueryKeys
+} from "../../api_client/tanstack-api";
 import { ButtonHeaderGroup } from "../../components/facedashboard/ButtonHeaderGroup";
 import { FaceComponent } from "../../components/facedashboard/FaceComponent";
 import { HeaderComponent } from "../../components/facedashboard/HeaderComponent";
@@ -18,7 +24,12 @@ import { ScrollerType } from "../../components/scrollscrubber/ScrollScrubberType
 import type { IScrollerData } from "../../components/scrollscrubber/ScrollScrubberTypes.zod";
 import { notification } from "../../service/notifications";
 import { faceActions } from "../../store/faces/faceSlice";
-import { FaceAnalysisMethod, FacesTab } from "../../store/faces/facesActions.types";
+import { 
+  FaceAnalysisMethod, 
+  FacesTab,
+  CompletePersonFaceList,
+  PersonFaceListRequest 
+} from "../../store/faces/facesActions.types";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../util/gridUtils";
@@ -32,27 +43,31 @@ export function FaceDashboard() {
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedFaces, setSelectedFaces] = useState<any[]>([]);
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
-  const [lightboxImageIndex, setLightboxImageIndex] = useState(1);
   const [lightboxImageId, setLightboxImageId] = useState("");
   const [lightboxShow, setLightboxShow] = useState(false);
 
   const [scrollTo, setScrollTo] = useState<number | null>(null);
   const [scrollLocked, setScrollLocked] = useState(false);
 
-  const { data: labeledFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery(
-    {
-      inferred: false,
-      orderBy,
-    }
+  // Use explicit query keys to ensure proper caching and refetching
+  const labeledParams = {
+    inferred: false,
+    orderBy,
+  };
+
+  const inferredParams = {
+    inferred: true,
+    method: analysisMethod,
+    orderBy,
+    minConfidence,
+  };
+
+  const { data: labeledFacesListUnfiltered = [], isFetching: fetchingLabeledFacesList } = useFetchIncompleteFacesQuery(
+    labeledParams
   );
 
-  const { data: inferredFacesListUnfiltered = [], isFetching: fetchingLabeledFacesList } = useFetchIncompleteFacesQuery(
-    {
-      inferred: true,
-      method: analysisMethod,
-      orderBy,
-      minConfidence,
-    }
+  const { data: inferredFacesListUnfiltered = [], isFetching: fetchingInferredFacesList } = useFetchIncompleteFacesQuery(
+    inferredParams
   );
 
   const unknownFacesList = inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other");
@@ -70,6 +85,75 @@ export function FaceDashboard() {
     }[]
   >([]);
 
+  // Fetch face data when groups change
+  useEffect(() => {
+    const fetchFaces = async () => {
+      for (const element of groups) {
+        const queryParams: PersonFaceListRequest = {
+          person: element.person ? element.person : 0,
+          page: element.page,
+          inferred: element.inferred,
+          orderBy,
+          minConfidence: element.inferred ? minConfidence : undefined,
+          method: element.inferred ? element.method : undefined,
+        };
+        
+        try {
+          // Use fetchQuery instead of prefetchQuery for direct access to results
+          const data = await queryClient.fetchQuery({
+            queryKey: [QueryKeys.faces, queryParams],
+            queryFn: () => API.fetchFaces(queryParams)
+          });
+          
+          // Manually update the incomplete faces cache with the face data
+          const incompleteParams = element.inferred ? inferredParams : labeledParams;
+          
+          const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(
+            [QueryKeys.incompleteFaces, incompleteParams]
+          );
+          
+          if (incompleteData) {
+            const updatedData = [...incompleteData];
+            const personIndex = updatedData.findIndex(person => person.id === element.person);
+            
+            if (personIndex !== -1) {
+              const person = { ...updatedData[personIndex] };
+              const startIndex = (element.page - 1) * 100;
+              
+              // Create a new faces array with the updated data
+              const updatedFaces = [...person.faces];
+              
+              // Replace temporary faces with actual data
+              for (let i = 0; i < data.length; i++) {
+                if (updatedFaces[startIndex + i]) {
+                  updatedFaces[startIndex + i] = { 
+                    ...data[i],
+                    person: element.person
+                  };
+                }
+              }
+              
+              person.faces = updatedFaces;
+              updatedData[personIndex] = person;
+              
+              // Update the cache
+              queryClient.setQueryData(
+                [QueryKeys.incompleteFaces, incompleteParams],
+                updatedData
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching faces:", error);
+        }
+      }
+    };
+    
+    if (groups.length > 0) {
+      fetchFaces();
+    }
+  }, [groups, orderBy, minConfidence, analysisMethod, inferredParams, labeledParams]);
+
   const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
 
   const inferredCellContents = calculateFaceGridCells(inferredFacesList, numEntrySquaresPerRow).cellContents;
@@ -78,9 +162,8 @@ export function FaceDashboard() {
 
   const selectMode = selectedFaces.length > 0;
 
-  const getPhotoDetails = (image: string) => {
-    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image));
-  };
+  const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
+  const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
 
   let idx2hash: { id: string }[] = [];
 
@@ -113,24 +196,10 @@ export function FaceDashboard() {
 
   const handleShowClick = (event: React.KeyboardEvent, item: any) => {
     const index = idx2hash.findIndex(image => image.id === item.photo);
-    setLightboxImageIndex(index);
     setLightboxImageId(item.photo);
     setLightboxShow(index >= 0);
     setScrollLocked(true);
   };
-
-  groups.forEach(element => {
-    dispatch(
-      api.endpoints.fetchFaces.initiate({
-        person: element.person ? element.person : 0,
-        page: element.page,
-        inferred: element.inferred,
-        orderBy,
-        minConfidence: element.inferred ? minConfidence : undefined,
-        method: element.inferred ? element.method : undefined,
-      })
-    );
-  });
 
   const handleGridScroll = (params: any) => {
     const { scrollTop } = params;
@@ -279,7 +348,7 @@ export function FaceDashboard() {
   const deleteSelectedFaces = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      dispatch(api.endpoints.deleteFaces.initiate({ faceIds: ids }));
+      deleteFacesMutate({ faceIds: ids });
       notification.deleteFaces(ids.length);
       setSelectedFaces([]);
     }
@@ -294,7 +363,7 @@ export function FaceDashboard() {
   const notThisPersonFunc = () => {
     if (selectedFaces.length > 0) {
       const ids = selectedFaces.map(face => face.face_id);
-      dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
+      setFacesPersonLabelMutate({ faceIds: ids, personName: "Unknown - Other" });
       notification.removeFacesFromPerson(ids.length);
       setSelectedFaces([]);
     }
@@ -400,7 +469,7 @@ export function FaceDashboard() {
             isPublic={false}
             idx2hash={idx2hash}
             selectedImage={lightboxImageId}
-            onChangedIndex={(index) => setLightboxImageIndex(index ?? 0)}
+            onChangedIndex={() => {}}
             onCloseRequest={() => {
               setLightboxShow(false);
               setScrollLocked(false);

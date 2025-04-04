@@ -346,16 +346,16 @@ function createQuery<TData, TParams extends any[] = []>(
 ) {
   return (...params: TParams) => 
     useQuery({
-      queryKey: Array.isArray(queryKey) ? queryKey : [queryKey, ...params],
+      queryKey: Array.isArray(queryKey) ? [...queryKey, ...params] : [queryKey, ...params],
       queryFn: () => queryFn(...params),
       ...options
     });
 }
 
 // Hook factory for mutations
-function createMutation<TData, TVariables>(
+function createMutation<TData, TVariables, TContext = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
-  options?: Omit<UseMutationOptions<TData, Error, TVariables>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<TData, Error, TVariables, TContext>, 'mutationFn'>
 ) {
   return () => useMutation({
     mutationFn,
@@ -400,7 +400,11 @@ export const useSetFacesPersonLabelMutation = createMutation(API.setFacesPersonL
 
 export const useTrainFacesMutation = createMutation(API.trainFaces);
 
-export const useDeleteFacesMutation = createMutation<DeleteFacesResponse, DeleteFacesRequest>(
+export const useDeleteFacesMutation = createMutation<
+  DeleteFacesResponse, 
+  DeleteFacesRequest, 
+  { previousIncompleteFaces?: CompletePersonFaceList }
+>(
   API.deleteFaces, 
   {
     onMutate: async (variables) => {
@@ -470,18 +474,18 @@ export const useFetchIncompleteFacesQuery = createQuery<CompletePersonFaceList, 
   API.fetchIncompleteFaces
 );
 
-export const useFetchFacesQuery = createQuery<PersonFaceList, [PersonFaceListRequest]>(
-  [QueryKeys.faces], 
-  API.fetchFaces,
-  {
+export const useFetchFacesQuery = (...params: [PersonFaceListRequest]) => 
+  useQuery({
+    queryKey: [QueryKeys.faces, ...params],
+    queryFn: () => API.fetchFaces(...params),
     onSuccess: (data, variables) => {
       // Update incompleteFaces cache when fetching faces
       const queryClient = useQueryClient();
       const incompleteParams: IncompletePersonFaceListRequest = {
-        method: variables.method,
-        orderBy: variables.orderBy,
-        inferred: variables.inferred,
-        minConfidence: variables.minConfidence,
+        method: params[0].method,
+        orderBy: params[0].orderBy,
+        inferred: params[0].inferred,
+        minConfidence: params[0].minConfidence,
       };
 
       const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(
@@ -493,15 +497,15 @@ export const useFetchFacesQuery = createQuery<PersonFaceList, [PersonFaceListReq
           [QueryKeys.incompleteFaces, incompleteParams], 
           draft => {
             if (!draft) return draft;
-            const indexToReplace = draft.findIndex(group => group.id === variables.person);
+            const indexToReplace = draft.findIndex(group => group.id === params[0].person);
             if (indexToReplace === -1) return draft;
 
             const groupToChange = draft[indexToReplace];
             const { faces } = groupToChange;
             const newFaces = [
-              ...faces.slice(0, (variables.page - 1) * 100),
+              ...faces.slice(0, (params[0].page - 1) * 100),
               ...data,
-              ...faces.slice(variables.page * 100)
+              ...faces.slice(params[0].page * 100)
             ];
             
             const updatedGroup = { ...groupToChange, faces: newFaces };
@@ -515,8 +519,7 @@ export const useFetchFacesQuery = createQuery<PersonFaceList, [PersonFaceListReq
         );
       }
     }
-  }
-);
+  });
 
 export const useClusterFacesQuery = createQuery(
   [QueryKeys.clusterFaces],
