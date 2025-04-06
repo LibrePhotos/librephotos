@@ -1,5 +1,5 @@
 import { useDebouncedCallback, useThrottledCallback } from "@mantine/hooks";
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from "react";
 
 import calcRenderableItems from "./calcRenderableItems";
 import GroupHeader from "./components/GroupHeader/GroupHeader";
@@ -79,6 +79,7 @@ type PigProps = {
   selectedItems?: ImageItem[] | null;
   toprightoverlay?: React.FC<any> | null;
   bottomleftoverlay?: React.FC<any> | null;
+  className?: string;
 }
 
 // Define types for layout computation functions
@@ -100,6 +101,12 @@ type LayoutResult = {
   imageData: ImageItem[] | GroupedImageItem[];
   newTotalHeight: number;
 }
+
+// Define the exported ref handle type
+export type PigHandle = {
+  imageData: any[];
+  totalHeight: number;
+};
 
 export function addTempElementsToGroups(photosGroupedByDate: GroupedImageItem[]): void {
   photosGroupedByDate.forEach(group => {
@@ -143,7 +150,8 @@ function Pig({
   selectedItems: propSelectedItems = null,
   toprightoverlay = null,
   bottomleftoverlay = null,
-}: PigProps): JSX.Element {
+  className = "",
+}, ref) {
   if (!imageData) throw new Error("imageData is missing");
 
   // State
@@ -201,6 +209,12 @@ function Pig({
   const previousYOffsetRef = useRef<number>(0);
   const scrollDirectionRef = useRef<string>("down");
   const containerWidthRef = useRef<number>(0);
+  
+  // Expose ref methods
+  useImperativeHandle(ref, () => ({
+    imageData: imageDataRef.current,
+    totalHeight: totalHeightRef.current,
+  }));
   
   // Sort image data if needed
   useEffect(() => {
@@ -423,7 +437,7 @@ function Pig({
 
   // Render
   return (
-    <div className={styles.output} ref={containerRef}>
+    <div className={`${styles.output} ${className}`} ref={containerRef}>
       {renderedItems.map(item => {
         const key = 'date' in item ? item.date : (item.url || item.id.toString());
         return (
@@ -438,6 +452,6 @@ function Pig({
   );
 }
 
-const memoizedPig = React.memo(Pig);
+const memoizedPig = React.memo(forwardRef(Pig));
 
 export default memoizedPig;

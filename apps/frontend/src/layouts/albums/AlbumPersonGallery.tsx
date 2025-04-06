@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
 import { PigPhoto } from "../../actions/photosActions.types";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/date";
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/tanstack-date";
 import { Person, useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";

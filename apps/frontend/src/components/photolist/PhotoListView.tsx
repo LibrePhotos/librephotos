@@ -25,6 +25,7 @@ import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { Lightbox } from "../lightbox/Lightbox";
 import Pig from "../react-pig";
+import type { PigHandle } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { IScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
@@ -78,7 +79,7 @@ function PhotoListViewComponent({
   additionalSubHeader = null,
 }: Props) {
   const { height } = useViewportSize();
-  const pigRef = useRef<Pig>(null);
+  const pigRef = useRef<PigHandle>(null);
   const [lightboxImageId, setLightboxImageId] = useState("");
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
@@ -113,13 +114,13 @@ function PhotoListViewComponent({
     setImageScale(userSelfDetails.image_scale);
   }, [userSelfDetails.image_scale]);
 
-  const handleThumbnailSizeChange = (value: number) => {
+  const handleThumbnailSizeChange = (value: number | string) => {
     // Update the component state
-    setImageScale(value);
+    setImageScale(typeof value === 'number' ? value : parseFloat(value));
 
     // Save to server
     if (userSelfDetails.id) {
-      const newUserDetails = { ...userSelfDetails, image_scale: value };
+      const newUserDetails = { ...userSelfDetails, image_scale: typeof value === 'number' ? value : parseFloat(value) };
       updateUser(newUserDetails);
     }
   };
@@ -134,7 +135,8 @@ function PhotoListViewComponent({
     []
   );
 
-  const getUrl = useCallback((url: string, pxHeight: number) => {
+  const getUrl = useCallback((item: any, pxHeight: number) => {
+    const url = typeof item === 'string' ? item : item.url;
     if (pxHeight < 250) {
       return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
     }
@@ -147,7 +149,7 @@ function PhotoListViewComponent({
     setSelectionState(updatedState);
   };
 
-  const handleSelection = (item: { id: string }) => {
+  const handleSelection = (item: any) => {
     let newSelectedItems = selectionStateRef.current.selectedItems;
 
     if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
@@ -206,7 +208,7 @@ function PhotoListViewComponent({
     window.scrollTo(0, y);
   };
 
-  const handleClick = (event: React.KeyboardEvent, item: { id: string }) => {
+  const handleClick = (event: React.MouseEvent<Element, MouseEvent>, item: any) => {
     // if an image is selectable, then handle shift click
     if (selectable && event.shiftKey) {
       const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
@@ -234,7 +236,7 @@ function PhotoListViewComponent({
     currentImageIndexRef.current = currentIndex;
 
     // If Ctrl/Cmd key is pressed, navigate to single photo view
-    if (event.ctrlKey || event.metaKey) {
+    if ('ctrlKey' in event && event.ctrlKey || 'metaKey' in event && event.metaKey) {
       navigate(`/photo/${item.id}`);
       return;
     }
@@ -303,7 +305,6 @@ function PhotoListViewComponent({
                       min={0.25}
                       max={3}
                       step={0.05}
-                      precision={2}
                       description="Lower = bigger thumbnails"
                       allowDecimal
                       hideControls={false}
@@ -436,7 +437,7 @@ function PhotoListViewComponent({
                   const currentImageId = currentImage.id;
 
                   // Find the button that corresponds to the current image
-                  let targetButton = null;
+                  let targetButton: Element | null = null;
 
                   // Try to find by checking img contents
                   for (let i = 0; i < buttons.length; i++) {

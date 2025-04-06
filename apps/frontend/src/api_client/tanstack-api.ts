@@ -156,6 +156,7 @@ class FetchClient {
 }
 
 const fetchClient = new FetchClient();
+export { fetchClient };
 
 // Query Keys
 export enum QueryKeys {
@@ -177,6 +178,8 @@ export enum QueryKeys {
   jobs = 'jobs',
   autoAlbums = 'autoAlbums',
   autoAlbum = 'autoAlbum',
+  dateAlbums = 'dateAlbums',
+  dateAlbum = 'dateAlbum',
 }
 
 // Create QueryClient

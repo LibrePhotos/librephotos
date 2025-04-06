@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { dateAlbumsApi } from "../api_client/albums/date";
 import { peopleAlbumsApi } from "../api_client/albums/people";
 import { api, useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
@@ -9,6 +8,7 @@ import { notification } from "../service/notifications";
 import { useAppDispatch, useAppSelector } from "../store/store";
 import { selectUserSelfDetails } from "../store/user/userSelectors";
 import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+import { queryClient, QueryKeys } from "../api_client/tanstack-api";
 
 export enum WorkerState {
   SET_WORKER_AVAILABILITY = "set-worker-availability",
@@ -42,18 +42,15 @@ export function useWorkerStatus(): {
         notification.jobFinished(workerRunningJob?.job_type_str, previousJob?.job_detail?.job_type_str);
       }
       if (workerRunningJob?.job_type_str.toLowerCase() === "train faces") {
-        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false }));
-        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: true }));
+        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false, orderBy: "confidence" }));
+        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: true, orderBy: "confidence" }));
         dispatch(peopleAlbumsApi.endpoints.fetchPeopleAlbums.initiate());
       }
       if (workerRunningJob?.job_type_str.toLowerCase() === "scan photos") {
-        dispatch(
-          dateAlbumsApi.endpoints.fetchDateAlbums.initiate({
-            username: user.username,
-            person_id: user.id,
-            photosetType: PhotosetType.NONE,
-          })
-        );
+        // Invalidate the dateAlbums query to trigger refetch
+        queryClient.invalidateQueries({
+          queryKey: [QueryKeys.dateAlbums, PhotosetType.NONE, user.id, user.username]
+        });
       }
     }
 
