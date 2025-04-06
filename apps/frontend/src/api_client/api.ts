@@ -356,11 +356,20 @@ export const api = createApi({
     [Endpoints.fetchServerLogs]: builder.query<Blob, void>({
       query: () => ({
         url: `serverlogs`,
-        responseHandler: async (response) => 
-          // Convert response to Blob for file handling
-           response.blob()
-        ,
+        responseHandler: async (response) => response.blob(),
       }),
+      // Skip storing the Blob response in Redux state (non-serializable)
+      serializeQueryArgs: () => {
+        return undefined;
+      },
+      // Transform response to avoid storing Blob in Redux state
+      transformResponse: (response: Blob) => {
+        // Return the Blob but it won't be stored in the Redux state
+        // due to serializeQueryArgs above
+        return response;
+      },
+      // Return an empty object for cache entry
+      keepUnusedDataFor: 0,
     }),
     [Endpoints.fetchStorageStats]: builder.query<StorageStatsResponseType, void>({
       query: () => ({

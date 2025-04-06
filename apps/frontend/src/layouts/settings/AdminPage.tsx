@@ -11,7 +11,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/auto";
-import { useFetchServerStatsQuery, useFetchServerLogsQuery, useFetchUserListQuery } from "../../api_client/api";
+import { useFetchUserListQuery } from "../../api_client/api";
+import { useFetchServerLogsQuery, useFetchServerStatsQuery } from "../../api_client/tanstack-api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
@@ -40,7 +41,7 @@ function DownloadLogsButton(){
       {isFetching ? "Downloading..." : "Download Logs"}
     </Button>
   );
-};
+}
 
 function UserTable() {
   const { t } = useTranslation();

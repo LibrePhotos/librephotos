@@ -48,7 +48,17 @@ export const store = configureStore({
     getDefaultMiddleware({
       immutableCheck: false,
       serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER, 
+          // Ignore RTK Query prefetch/fulfilled actions for server logs
+          'api/fetchServerLogs/executeQuery',
+          'api/fetchServerLogs/fulfilled',
+          'api/internal/executeQuery'
+        ],
+        // Ignore paths that might contain non-serializable values
+        ignoredPaths: [
+          'api.queries.fetchServerLogs',
+          'api.mutations.fetchServerLogs',
+        ],
       },
     }).concat(routerMiddleware, api.middleware, errorMiddleware),
 });
