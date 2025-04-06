@@ -5,7 +5,8 @@ import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { JobsResponseSchema, useJobsQuery } from "../../api_client/admin-jobs";
+import { JobsResponseSchema } from "../../api_client/admin-jobs-schema";
+import { useJobsQuery } from "../../api_client/tanstack-api";
 import { i18nResolvedLanguage } from "../../i18n";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
@@ -25,10 +26,7 @@ export function JobList() {
     if (!jobs) {
       return;
     }
-    const data = JobsResponseSchema.parse(jobs);
-    if (data) {
-      setJobCount(data.count);
-    }
+    setJobCount(jobs.count);
   }, [jobs]);
 
   return (
@@ -83,7 +81,7 @@ export function JobList() {
               )}
 
               <JobDuration
-                matches={matches}
+                matches={!!matches}
                 finished={job.finished}
                 finishedAt={job.finished_at}
                 startedAt={job.started_at}

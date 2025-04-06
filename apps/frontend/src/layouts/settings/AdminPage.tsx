@@ -10,9 +10,7 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/auto";
-import { useFetchUserListQuery } from "../../api_client/api";
-import { useFetchServerLogsQuery, useFetchServerStatsQuery } from "../../api_client/tanstack-api";
+import { useFetchServerLogsQuery, useFetchServerStatsQuery, useFetchUserListQuery, useDeleteAllAutoAlbumsMutation } from "../../api_client/tanstack-api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
@@ -157,7 +155,7 @@ function UserTable() {
 function AdminTools() {
   const { t } = useTranslation();
   const { data: serverStats, isLoading } = useFetchServerStatsQuery();
-  const [deleteAllAutoAlbums] = useDeleteAllAutoAlbumsMutation();
+  const { mutate: deleteAllAutoAlbums, isPending } = useDeleteAllAutoAlbumsMutation();
 
   const downloadFile = () => {
     // create file in browser
@@ -186,7 +184,7 @@ function AdminTools() {
         </Title>
         <Flex justify="space-between">
           <>{t("adminarea.deleteallautoalbums")}</>
-          <Button onClick={() => deleteAllAutoAlbums()} variant="outline">
+          <Button onClick={() => deleteAllAutoAlbums()} variant="outline" loading={isPending}>
             {t("adminarea.delete")}
           </Button>
         </Flex>
