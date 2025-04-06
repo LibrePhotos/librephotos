@@ -39,7 +39,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { useGenerateAutoAlbumsMutation } from "../../api_client/albums/auto";
+import { useGenerateAutoAlbumsMutation } from "../../api_client/tanstack-api";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
@@ -92,7 +92,7 @@ export function Library() {
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
-  const [generateAutoAlbums] = useGenerateAutoAlbumsMutation();
+  const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
   const [updateUser] = useUpdateUserMutation();
   const [scanPhotos] = useScanPhotosMutation();

@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../api_client/albums/auto";
+import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../api_client/tanstack-api";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { i18nResolvedLanguage } from "../../i18n";
@@ -23,7 +23,7 @@ export function AlbumAuto() {
   const [deleteDialogVisible, { open: showDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
   const { data: albums, isFetching } = useFetchAutoAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
-  const [deleteAutoAlbum] = useDeleteAutoAlbumMutation();
+  const { mutate: deleteAutoAlbum } = useDeleteAutoAlbumMutation();
   const { t } = useTranslation();
 
   function deleteAlbum(album) {

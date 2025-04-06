@@ -5,11 +5,11 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
 
-import { useFetchAutoAlbumsQuery } from "../../api_client/albums/auto";
 import { useFetchUserAlbumsQuery } from "../../api_client/albums/user";
 import { Tile } from "../../components/Tile";
 import { useAppDispatch } from "../../store/store";
 import { HeaderComponent } from "./HeaderComponent";
+import { useFetchAutoAlbumsQuery } from "../../api_client/tanstack-api";
 
 export function AlbumViewer() {
   const dispatch = useAppDispatch();
