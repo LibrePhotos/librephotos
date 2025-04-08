@@ -15,8 +15,8 @@ import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
-} from "../../api_client/albums/people";
-import type { Person } from "../../api_client/albums/people";
+} from "../../api_client/albums/people-tanstack";
+import type { Person } from "../../api_client/albums/people-tanstack";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";
@@ -36,8 +36,8 @@ export function AlbumPeople() {
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchPeopleAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
-  const [renamePerson] = useRenamePersonAlbumMutation();
-  const [deletePerson] = useDeletePersonAlbumMutation();
+  const renamePersonMutation = useRenamePersonAlbumMutation();
+  const deletePersonMutation = useDeletePersonAlbumMutation();
 
   function openDeleteDialog(album: Person) {
     setSelectedAlbum(album);
@@ -168,7 +168,7 @@ export function AlbumPeople() {
           <Button
             onClick={() => {
               hideRenameDialog();
-              renamePerson({
+              renamePersonMutation.mutate({
                 id: selectedAlbum.id,
                 personName: selectedAlbum.name,
                 newPersonName,
@@ -190,7 +190,7 @@ export function AlbumPeople() {
           <Button
             color="red"
             onClick={() => {
-              deletePerson(selectedAlbum.id);
+              deletePersonMutation.mutate(selectedAlbum.id);
               hideDeleteDialog();
             }}
           >

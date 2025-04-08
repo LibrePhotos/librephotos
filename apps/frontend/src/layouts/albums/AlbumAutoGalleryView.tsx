@@ -5,27 +5,20 @@ import {
   IconSettingsAutomation as SettingsAutomation,
 } from "@tabler/icons-react";
 import _ from "lodash";
-import React, { useEffect } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import { useLazyFetchAutoAlbumQuery } from "../../api_client/tanstack-api";
+import { useFetchAutoAlbumQuery } from "../../api_client/tanstack-api";
 import { serverAddress } from "../../api_client/apiClient";
 import { AlbumLocationMap } from "../../components/AlbumLocationMap";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 
-
 export function AlbumAutoGalleryView() {
-  const [fetchAlbum, { data: album, isFetching }] = useLazyFetchAutoAlbumQuery();
-  const [showMap, { toggle: toggleMap }] = useDisclosure(false);
   const { albumID } = useParams();
+  const { data: album, isFetching } = useFetchAutoAlbumQuery(albumID ?? ''); // Add null check
+  const [showMap, { toggle: toggleMap }] = useDisclosure(false);
   const { t } = useTranslation();
-
-  useEffect(() => {
-    if (albumID) {
-      fetchAlbum(albumID);
-    }
-  }, [albumID, fetchAlbum]);
 
   if (isFetching || !album) {
     return (
@@ -71,8 +64,8 @@ export function AlbumAutoGalleryView() {
   }));
 
   // Get all unique locations across all dates
-  const allLocations = _.flatMap(_.toPairs(byDate), ([_, photos]) => 
-    photos
+  const allLocations = _.flatMap(_.toPairs(byDate), ([_, datePhotos]) => 
+    datePhotos
       .filter(photo => !!photo.geolocation_json.features)
       .map(photo => {
         if (photo.geolocation_json.features) {

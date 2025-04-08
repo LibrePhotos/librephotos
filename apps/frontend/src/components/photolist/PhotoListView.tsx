@@ -15,7 +15,7 @@ import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
+import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people-tanstack";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { useUpdateUserMutation } from "../../api_client/user";
@@ -90,7 +90,7 @@ function PhotoListViewComponent({
   const gridHeight = useRef(200);
   const [scrollLocked, setScrollLocked] = useState(false);
   const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
-  const [setPersonAlbumCover] = useSetPersonAlbumCoverMutation();
+  const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
   const [updateUser] = useUpdateUserMutation();
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
@@ -346,7 +346,7 @@ function PhotoListViewComponent({
                     title={title}
                     setAlbumCover={actionType => {
                       if (actionType === "person") {
-                        setPersonAlbumCover({
+                        setPersonAlbumCover.mutate({
                           id: `${params.albumID}`,
                           cover_photo: selectionState.selectedItems[0].id,
                         });
@@ -436,26 +436,11 @@ function PhotoListViewComponent({
                   const currentImage = idx2hash[currentImageIndexRef.current];
                   const currentImageId = currentImage.id;
 
-                  // Find the button that corresponds to the current image
-                  let targetButton: Element | null = null;
-
                   // Try to find by checking img contents
-                  for (let i = 0; i < buttons.length; i++) {
-                    const btn = buttons[i];
+                  let targetButton: Element | null = Array.from(buttons).find(btn => {
                     const imgs = btn.querySelectorAll("img");
-
-                    // Try to match by checking if image source contains the ID
-                    if (imgs.length > 0) {
-                      for (const img of imgs) {
-                        if (img.src.includes(currentImageId)) {
-                          targetButton = btn;
-                          break;
-                        }
-                      }
-                    }
-
-                    if (targetButton) break;
-                  }
+                    return Array.from(imgs).some(img => img.src.includes(currentImageId));
+                  }) || null;
 
                   // If no button found, try another approach - get index position
                   if (!targetButton && buttons.length > 0) {

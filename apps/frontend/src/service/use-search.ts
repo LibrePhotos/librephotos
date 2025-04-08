@@ -3,7 +3,7 @@ import { random } from "lodash";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
+import { useFetchPeopleAlbumsQuery } from "../api_client/albums/people-tanstack";
 import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";
 import { useFetchThingsAlbumsQuery } from "../api_client/albums/things";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/user";

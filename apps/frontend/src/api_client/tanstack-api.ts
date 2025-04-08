@@ -25,10 +25,8 @@ import {
   CompletePersonFaceList,
   DeleteFacesRequest,
   DeleteFacesResponse,
-  FacesTab,
   IncompletePersonFaceListRequest,
   IncompletePersonFaceListResponse,
-  PersonFaceList,
   PersonFaceListRequest,
   PersonFaceListResponse,
   ScanFacesResponse,
@@ -42,10 +40,8 @@ import type { IManageUser, IUser, UserList } from "../store/user/user.zod";
 import { ApiUserListResponseSchema, ManageUser, UserSchema } from "../store/user/user.zod";
 import type { ImageTagResponseType, ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
 import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
-import { JobRequest, JobsResponse, JobsResponseSchema } from "../api_client/admin-jobs-schema";
-import { AutoAlbumListResponseSchema, AutoAlbumSchema } from "../actions/albumActions.types";
-import { AutoAlbum } from "../actions/albumActions.types";
-import { FetchAutoAlbumsListResponseSchema } from "../actions/albumActions.types";
+import { JobRequest, JobsResponse, JobsResponseSchema } from "./admin-jobs-schema";
+import { AutoAlbumSchema, AutoAlbum, FetchAutoAlbumsListResponseSchema } from "../actions/albumActions.types";
 
 const API_BASE_URL = '/api';
 
@@ -180,6 +176,8 @@ export enum QueryKeys {
   autoAlbum = 'autoAlbum',
   dateAlbums = 'dateAlbums',
   dateAlbum = 'dateAlbum',
+  peopleAlbums = 'peopleAlbums',
+  personAlbum = 'personAlbum',
 }
 
 // Create QueryClient

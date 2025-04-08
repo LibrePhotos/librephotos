@@ -14,7 +14,7 @@ import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
-} from "../../api_client/albums/people";
+} from "../../api_client/albums/people-tanstack";
 import { api } from "../../api_client/api";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 
@@ -41,8 +41,8 @@ export function HeaderComponent({
   const [checked, setChecked] = useState(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
-  const [renamePerson] = useRenamePersonAlbumMutation();
-  const [deletePerson] = useDeletePersonAlbumMutation();
+  const renamePerson = useRenamePersonAlbumMutation();
+  const deletePerson = useDeletePersonAlbumMutation();
   const { data: albums } = useFetchPeopleAlbumsQuery();
   const [personID, setPersonID] = useState("");
   const [personName, setPersonName] = useState("");
@@ -149,7 +149,7 @@ export function HeaderComponent({
           />
           <Button
             onClick={() => {
-              renamePerson({ id: personID, personName, newPersonName });
+              renamePerson.mutate({ id: personID, personName, newPersonName });
               hideRenameDialog();
             }}
             disabled={albums?.map(el => el.name.toLowerCase().trim()).includes(newPersonName.toLowerCase().trim())}
@@ -166,7 +166,7 @@ export function HeaderComponent({
           <Button
             color="red"
             onClick={() => {
-              deletePerson(personID);
+              deletePerson.mutate(personID);
               hideDeleteDialog();
             }}
           >

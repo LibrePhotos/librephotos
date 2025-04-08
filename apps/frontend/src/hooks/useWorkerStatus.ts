@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { peopleAlbumsApi } from "../api_client/albums/people";
 import { api, useWorkerQuery } from "../api_client/api";
 import { PhotosetType } from "../reducers/photosReducer";
 import { notification } from "../service/notifications";
@@ -44,7 +43,9 @@ export function useWorkerStatus(): {
       if (workerRunningJob?.job_type_str.toLowerCase() === "train faces") {
         dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false, orderBy: "confidence" }));
         dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: true, orderBy: "confidence" }));
-        dispatch(peopleAlbumsApi.endpoints.fetchPeopleAlbums.initiate());
+        queryClient.invalidateQueries({
+          queryKey: [QueryKeys.peopleAlbums]
+        })
       }
       if (workerRunningJob?.job_type_str.toLowerCase() === "scan photos") {
         // Invalidate the dateAlbums query to trigger refetch
