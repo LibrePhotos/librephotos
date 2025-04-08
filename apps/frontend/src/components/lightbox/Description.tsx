@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
-import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
+import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things-tanstack";
 import {
   useGenerateImageToTextCaptionMutation,
   useSavePhotoCaptionMutation,

@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useShareUserAlbumMutation } from "../../api_client/albums/sharing";
+import { useShareUserAlbumMutation } from "../../api_client/albums/sharing-tanstack";
 import type { UserAlbum } from "../../api_client/albums/types";
 import { useFetchUserAlbumQuery } from "../../api_client/albums/user";
 import { i18nResolvedLanguage } from "../../i18n";
@@ -32,7 +32,8 @@ export function UserEntry(props: UserEntryProps) {
   const { item: user, albumID } = props;
   const { t } = useTranslation();
   const { data: albumDetails } = useFetchUserAlbumQuery(albumID);
-  const [shareUserAlbum] = useShareUserAlbumMutation();
+  const { mutate: shareAlbum } = useShareUserAlbumMutation();
+
 
   return (
     <Group justify="apart" key={user.id}>
@@ -50,9 +51,9 @@ export function UserEntry(props: UserEntryProps) {
         <Switch
           checked={isShared(albumDetails!, user)}
           onChange={() => {
-            shareUserAlbum({
+            shareAlbum({
               albumId: albumID,
-              userId: `${user.id}`,
+              userId: user.id,
               share: !albumDetails?.shared_to.map(e => e.id).includes(user.id),
             });
           }}

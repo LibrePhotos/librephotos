@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
+import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things-tanstack";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";

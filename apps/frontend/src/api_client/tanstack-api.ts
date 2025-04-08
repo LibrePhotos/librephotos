@@ -181,6 +181,12 @@ export enum QueryKeys {
   placesAlbums = 'placesAlbums',
   placeAlbum = 'placeAlbum',
   locationClusters = 'locationClusters',
+  thingsAlbums = 'thingsAlbums',
+  thingsAlbum = 'thingsAlbum',
+  sharedAlbumsByMe = 'sharedAlbumsByMe',
+  sharedAlbumsWithMe = 'sharedAlbumsWithMe',
+  userAlbums = 'userAlbums',
+  userAlbum = 'userAlbum',
 }
 
 // Create QueryClient

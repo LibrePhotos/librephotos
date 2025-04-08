@@ -3,19 +3,13 @@ import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import { useLazyFetchThingsAlbumQuery } from "../../api_client/albums/things";
+import { useFetchThingsAlbumQuery } from "../../api_client/albums/things-tanstack";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 
 export function AlbumThingGallery() {
   const { t } = useTranslation();
   const { albumID } = useParams();
-  const [fetchAlbum, { data: groupedPhotos, isLoading: fetchingAlbumsThing }] = useLazyFetchThingsAlbumQuery();
-
-  useEffect(() => {
-    if (albumID) {
-      fetchAlbum(albumID);
-    }
-  }, [albumID, fetchAlbum]);
+  const { data: groupedPhotos, isLoading: fetchingAlbumsThing } = useFetchThingsAlbumQuery(albumID || '');
 
   return (
     <PhotoListView
