@@ -178,6 +178,9 @@ export enum QueryKeys {
   dateAlbum = 'dateAlbum',
   peopleAlbums = 'peopleAlbums',
   personAlbum = 'personAlbum',
+  placesAlbums = 'placesAlbums',
+  placeAlbum = 'placeAlbum',
+  locationClusters = 'locationClusters',
 }
 
 // Create QueryClient
