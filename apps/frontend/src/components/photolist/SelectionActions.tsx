@@ -22,7 +22,7 @@ import { UserAlbum } from "../../api_client/albums/types";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/user";
 import { serverAddress } from "../../api_client/apiClient";
 import { useMarkPhotosDeletedMutation } from "../../api_client/photos/delete";
-import { useLazyDownloadPhotosQuery } from "../../api_client/photos/download";
+import { useDownloadPhotosMutation } from "../../api_client/photos/download";
 import { useSetFavoritePhotosMutation } from "../../api_client/photos/favorite";
 import { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/visibility";
 import { useAppSelector } from "../../store/store";
@@ -42,12 +42,12 @@ type Props = {
 export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
   const route = useAppSelector(store => store.router);
-  const [removePhotosFromAlbum] = useRemovePhotoFromUserAlbumMutation();
-  const [setPhotosHidden] = useSetPhotosHiddenMutation();
-  const [setPhotosPublic] = useSetPhotosPublicMutation();
-  const [setFavoritePhotos] = useSetFavoritePhotosMutation();
-  const [setPhotosDeleted] = useMarkPhotosDeletedMutation();
-  const [downloadPhotoArchive] = useLazyDownloadPhotosQuery();
+  const removePhotosFromAlbum = useRemovePhotoFromUserAlbumMutation();
+  const setPhotosHidden = useSetPhotosHiddenMutation();
+  const setPhotosPublic = useSetPhotosPublicMutation();
+  const setFavoritePhotos = useSetFavoritePhotosMutation();
+  const setPhotosDeleted = useMarkPhotosDeletedMutation();
+  const downloadPhotoArchive = useDownloadPhotosMutation();
 
   const {
     selectedItems,
@@ -100,7 +100,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<Star />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setFavoritePhotos({
+              setFavoritePhotos.mutate({
                 image_hashes: selectedItems.map(i => i.id),
                 favorite: true,
               });
@@ -117,7 +117,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<StarOff />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setFavoritePhotos({
+              setFavoritePhotos.mutate({
                 image_hashes: selectedItems.map(i => i.id),
                 favorite: false,
               });
@@ -137,7 +137,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<EyeOff />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setPhotosHidden({
+              setPhotosHidden.mutate({
                 image_hashes: selectedItems.map(i => i.id),
                 hidden: true,
               });
@@ -155,7 +155,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<Eye />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setPhotosHidden({
+              setPhotosHidden.mutate  ({
                 image_hashes: selectedItems.map(i => i.id),
                 hidden: false,
               });
@@ -175,7 +175,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<Globe />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setPhotosPublic({
+              setPhotosPublic.mutate({
                 image_hashes: selectedItems.map(i => i.id),
                 val_public: true,
               });
@@ -198,7 +198,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<Key />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setPhotosPublic({
+              setPhotosPublic.mutate({
                 image_hashes: selectedItems.map(i => i.id),
                 val_public: false,
               });
@@ -218,7 +218,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<Download />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              downloadPhotoArchive({ image_hashes: selectedItems.map(i => i.id) });
+              downloadPhotoArchive.mutate({ image_hashes: selectedItems.map(i => i.id) });
 
               updateSelectionState({
                 selectMode: false,
@@ -235,7 +235,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<Trash />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setPhotosDeleted({ image_hashes: selectedItems.map(i => i.id), deleted: true });
+              setPhotosDeleted.mutate({ image_hashes: selectedItems.map(i => i.id), deleted: true });
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],
@@ -297,7 +297,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<FileMinus />}
             disabled={!route.location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
             onClick={() => {
-              removePhotosFromAlbum({
+              removePhotosFromAlbum.mutate({
                 id: albumID.toString(),
                 title,
                 photos: selectedItems.map(i => i.id),

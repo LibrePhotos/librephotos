@@ -19,6 +19,7 @@ import { copyToClipboard } from "../../util/util";
 
 type Props = Readonly<{
   photosDetail: any;
+  isPhotoDetailsLoading: boolean;
   isPublic: boolean;
   lightboxSidebarShow: boolean;
   closeSidepanel: () => void;
@@ -27,16 +28,17 @@ type Props = Readonly<{
 export function Toolbar(props: Props) {
   const dispatch = useAppDispatch();
   const { favorite_min_rating: favoriteMinRating } = useAppSelector(store => store.user.userSelfDetails);
-  const { photosDetail, isPublic, lightboxSidebarShow, closeSidepanel } = props;
+  const { photosDetail, isPublic, lightboxSidebarShow, closeSidepanel, isPhotoDetailsLoading } = props;
   const { playing: playerPlaying, loading: playerLoading } = useAppSelector(store => store.player);
-  const [setPhotosHidden] = useSetPhotosHiddenMutation();
-  const [setPhotosPublic] = useSetPhotosPublicMutation();
-  const [setFavoritePhotos] = useSetFavoritePhotosMutation();
+  const setPhotosHidden = useSetPhotosHiddenMutation();
+  const setPhotosPublic = useSetPhotosPublicMutation();
+  const setFavoritePhotos = useSetFavoritePhotosMutation();
 
   function playButton(photo) {
-    if (!photo || photo.embedded_media.length === 0) {
+    if (!photo || !photo.embedded_media || photo.embedded_media.length === 0) {
       return null;
     }
+    
     function togglePlay() {
       if (playerPlaying) {
         dispatch(playerActions.pause());
@@ -54,29 +56,29 @@ export function Toolbar(props: Props) {
 
   return (
     <Group style={{ paddingBottom: 10, paddingRight: 5 }}>
-      {!photosDetail && !isPublic && (
+      {isPhotoDetailsLoading && (
         <ActionIcon loading variant="transparent">
           <Eye color="grey" />
         </ActionIcon>
       )}
-      {!photosDetail && !isPublic && (
+      {!isPhotoDetailsLoading && !photosDetail && !isPublic && (
         <ActionIcon loading variant="transparent">
           <Star color="grey" />
         </ActionIcon>
       )}
-      {!photosDetail && !isPublic && (
+      {!isPhotoDetailsLoading && !photosDetail && !isPublic && (
         <ActionIcon loading variant="transparent">
           <Globe color="grey" />
         </ActionIcon>
       )}
       {playButton(photosDetail)}
-      {photosDetail && !isPublic && (
+      {!isPhotoDetailsLoading && photosDetail && !isPublic && (
         <ActionIcon
           variant="transparent"
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !photosDetail.hidden;
-            setPhotosHidden({ image_hashes: [imageHash], hidden: val });
+            setPhotosHidden.mutate({ image_hashes: [imageHash], hidden: val });
           }}
         >
           {photosDetail.hidden ? <EyeOff color="red" /> : <Eye color="grey" />}
@@ -88,7 +90,7 @@ export function Toolbar(props: Props) {
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !(photosDetail.rating >= favoriteMinRating);
-            setFavoritePhotos({ image_hashes: [imageHash], favorite: val });
+            setFavoritePhotos.mutate({ image_hashes: [imageHash], favorite: val });
           }}
         >
           <Star color={photosDetail.rating >= favoriteMinRating ? "yellow" : "grey"} />
@@ -100,7 +102,7 @@ export function Toolbar(props: Props) {
           onClick={() => {
             const { image_hash: imageHash } = photosDetail;
             const val = !photosDetail.public;
-            setPhotosPublic({ image_hashes: [imageHash], val_public: val });
+            setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
             copyToClipboard(
               // edited from serverAddress.replace('//','') + "/media/thumbnails_big/" + image_hash + ".jpg"
               // as above removed the domain and just left /media/thumbnails_big/" + image_hash + ".jpg"  *DW 12/9/20

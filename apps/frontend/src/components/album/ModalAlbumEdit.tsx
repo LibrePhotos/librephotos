@@ -25,8 +25,8 @@ export function ModalAlbumEdit(props: Props) {
   const { isOpen, onRequestClose, selectedImages } = props;
   const { t } = useTranslation();
   const { data: albumsUserList = [] } = useFetchUserAlbumsQuery();
-  const [createUserAlbum] = useCreateUserAlbumMutation();
-  const [addPhotoToUserAlbum] = useAddPhotoToUserAlbumMutation();
+  const createUserAlbum = useCreateUserAlbumMutation();
+  const addPhotoToUserAlbum = useAddPhotoToUserAlbumMutation();
 
   return (
     <Modal
@@ -68,7 +68,7 @@ export function ModalAlbumEdit(props: Props) {
           />
           <Button
             onClick={() => {
-              createUserAlbum({
+              createUserAlbum.mutate({
                 title: newAlbumTitle,
                 photos: selectedImages.map(i => i.id),
               });
@@ -91,7 +91,7 @@ export function ModalAlbumEdit(props: Props) {
               <UnstyledButton
                 key={`ub-${item.id}`}
                 onClick={() => {
-                  addPhotoToUserAlbum({
+                  addPhotoToUserAlbum.mutate({
                     id: `${item.id}`,
                     title: item.title,
                     photos: selectedImages.map(i => i.id),

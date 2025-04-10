@@ -309,6 +309,7 @@ export const api = createApi({
         }
       },
     }),
+    // TODO: This should invalidate the photo details cache
     [Endpoints.setFacesPersonLabel]: builder.mutation<SetFacesLabelResponse, SetFacesLabelRequest>({
       query: ({ faceIds, personName }) => ({
         url: "/labelfaces",

@@ -337,5 +337,28 @@
     },
     "topmenu": {
         "library": "Libreria"
+    },
+    "lightbox": {
+        "sidebar": {
+            "details": "Dettagli",
+            "timetaken": "Data di scatto",
+            "filepath": "Percorso file",
+            "location": "Posizione",
+            "caption": "Didascalia",
+            "people": "Persone",
+            "submit": "Invia",
+            "generate": "Genera",
+            "cancel": "Annulla",
+            "scene": "Scena",
+            "attributes": "Attributi",
+            "categories": "Categorie",
+            "similarphotos": "Foto simili",
+            "editdatetime": "Modifica data e ora",
+            "withouttimestamp": "Senza timestamp",
+            "invalidtimestamp": "Timestamp non valido",
+            "removetimestamp": "Rimuovi timestamp",
+            "undotimestampmodification": "Annulla modifica timestamp",
+            "places": "Luoghi"
+        }
     }
 }

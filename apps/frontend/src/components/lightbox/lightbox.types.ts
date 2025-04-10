@@ -59,6 +59,7 @@ export type ThumbnailNavigationProps = {
 
 export type LightboxControlsProps = {
   photoDetail: Photo | undefined;
+  isPhotoDetailsLoading: boolean;
   lightboxSidebarShow: boolean;
   setLightBoxSidebarShow: React.Dispatch<React.SetStateAction<boolean>>;
   isPublic: boolean;

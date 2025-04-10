@@ -58,8 +58,8 @@ export function AlbumUser() {
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchUserAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums ?? []);
-  const [deleteUserAlbum] = useDeleteUserAlbumMutation();
-  const [renameUserAlbum] = useRenameUserAlbumMutation();
+  const deleteUserAlbum = useDeleteUserAlbumMutation();
+  const renameUserAlbum = useRenameUserAlbumMutation();
 
   const openDeleteDialog = (id: string, title: string) => {
     showDeleteDialog();
@@ -175,7 +175,7 @@ export function AlbumUser() {
             <Button
               color="green"
               onClick={() => {
-                renameUserAlbum({ id: albumID, title: albumTitle, newTitle: newAlbumTitle });
+                renameUserAlbum.mutate({ id: albumID, title: albumTitle, newTitle: newAlbumTitle });
                 hideRenameDialog();
               }}
               disabled={albums?.map(el => el.title.toLowerCase().trim()).includes(newAlbumTitle.toLowerCase().trim())}
@@ -197,7 +197,7 @@ export function AlbumUser() {
             <Button
               color="red"
               onClick={() => {
-                deleteUserAlbum({ id: albumID, albumTitle });
+                deleteUserAlbum.mutate({ id: albumID, albumTitle });
                 hideDeleteDialog();
               }}
             >

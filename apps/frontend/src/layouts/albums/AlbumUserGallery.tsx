@@ -4,26 +4,19 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
 import type { DatePhotosGroup, PigPhoto } from "../../actions/photosActions.types";
-import { useLazyFetchUserAlbumQuery } from "../../api_client/albums/user";
+import { useFetchUserAlbumQuery } from "../../api_client/albums/user";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useAppSelector } from "../../store/store";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-
 export function AlbumUserGallery() {
-  const [fetchAlbum, { data: album, isFetching }] = useLazyFetchUserAlbumQuery();
   const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
   const [groupedPhotos, setGroupedPhotos] = useState<DatePhotosGroup[]>([]);
   const [isPublic, setIsPublic] = useState(false);
   const auth = useAppSelector(store => store.auth);
   const { albumID } = useParams();
-  const { t } = useTranslation();
 
-  useEffect(() => {
-    if (!albumID) {
-      return;
-    }
-    fetchAlbum(albumID);
-  }, [albumID, fetchAlbum]);
+  const { data: album, isFetching } = useFetchUserAlbumQuery(albumID);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!album) {

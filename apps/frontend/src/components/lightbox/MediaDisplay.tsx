@@ -110,6 +110,7 @@ export function MediaDisplay({
             WebkitBackfaceVisibility: "hidden",
             WebkitTapHighlightColor: "transparent", // Remove tap highlight on mobile
             boxShadow: isMainContent ? "0 4px 16px rgba(0,0,0,0.1)" : "none",
+            imageRendering: "auto", // Use auto for best quality rendering
           }}
         />
       </div>

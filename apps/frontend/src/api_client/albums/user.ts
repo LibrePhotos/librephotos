@@ -1,139 +1,108 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { z } from "zod";
+
 import { notification } from "../../service/notifications";
-import { api } from "../api";
-import type {
-  AddPhotoFromUserAlbumParams,
-  CreateUserAlbumParams,
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
+import {
+  UserAlbumListResponseSchema, 
+  UserAlbumSchema,
   DeleteUserAlbumParams,
-  RemovePhotoFromUserAlbumParams,
   RenameUserAlbumParams,
-  SetUserAlbumCoverParams,
-  UserAlbum,
-  UserAlbumList,
+  CreateUserAlbumParams,
+  RemovePhotoFromUserAlbumParams,
+  AddPhotoFromUserAlbumParams,
+  SetUserAlbumCoverParams
 } from "./types";
-import { UserAlbumListResponseSchema, UserAlbumSchema } from "./types";
 
-enum Endpoints {
-  fetchUserAlbums = "fetchUserAlbums",
-  fetchUserAlbum = "fetchUserAlbum",
-  createUserAlbum = "createUserAlbum",
-  renameUserAlbum = "renameUserAlbum",
-  deleteUserAlbum = "deleteUserAlbum",
-  removePhotoFromUserAlbum = "removePhotoFromUserAlbum",
-  addPhotoToUserAlbum = "addPhotoToUserAlbum",
-  setUserAlbumCover = "setUserAlbumCover",
-}
+// Fetch user albums
+export const useFetchUserAlbumsQuery = () => useQuery({
+  queryKey: [QueryKeys.userAlbums],
+  queryFn: async () => {
+    const response = await fetchClient.get('/albums/user/list/');
+    return UserAlbumListResponseSchema.parse(response).results;
+  },
+});
 
-export const userAlbumsApi = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [Endpoints.fetchUserAlbums]: builder.query<UserAlbumList, void>({
-        query: () => "albums/user/list/",
-        transformResponse: response => UserAlbumListResponseSchema.parse(response).results,
-      }),
-      [Endpoints.fetchUserAlbum]: builder.query<UserAlbum, string>({
-        query: id => `albums/user/${id}/`,
-        transformResponse: response => UserAlbumSchema.parse(response),
-      }),
-      [Endpoints.deleteUserAlbum]: builder.mutation<void, DeleteUserAlbumParams>({
-        query: ({ id }) => ({
-          url: `albums/user/${id}/`,
-          method: "DELETE",
-          body: {},
-        }),
-        transformResponse: (response, meta, query) => {
-          notification.deleteAlbum(query.albumTitle);
-        },
-      }),
-      [Endpoints.renameUserAlbum]: builder.mutation<void, RenameUserAlbumParams>({
-        query: ({ id, newTitle }) => ({
-          url: `albums/user/${id}/`,
-          method: "PATCH",
-          body: { title: newTitle },
-        }),
-        transformResponse: (response, meta, query) => {
-          notification.renameAlbum(query.title, query.newTitle);
-        },
-      }),
-      [Endpoints.createUserAlbum]: builder.mutation<void, CreateUserAlbumParams>({
-        query: ({ title, photos }) => ({
-          url: `albums/user/edit/`,
-          method: "POST",
-          body: { title, photos },
-        }),
-        transformResponse: (response, meta, query) => {
-          notification.createAlbum(query.title, query.photos.length);
-        },
-      }),
-      [Endpoints.removePhotoFromUserAlbum]: builder.mutation<void, RemovePhotoFromUserAlbumParams>({
-        query: ({ id, photos }) => ({
-          url: `albums/user/edit/${id}/`,
-          method: "PATCH",
-          body: { removedPhotos: photos },
-        }),
-        transformResponse: (response, meta, query) => {
-          notification.removePhotosFromAlbum(query.title, query.photos.length);
-        },
-      }),
-      [Endpoints.setUserAlbumCover]: builder.mutation<void, SetUserAlbumCoverParams>({
-        query: ({ id, photo }) => ({
-          url: `albums/user/edit/${id}/`,
-          method: "PATCH",
-          body: { cover_photo: photo },
-        }),
-        transformResponse: () => {
-          notification.setCoverPhoto();
-        },
-      }),
-      [Endpoints.addPhotoToUserAlbum]: builder.mutation<void, AddPhotoFromUserAlbumParams>({
-        query: ({ id, title, photos }) => ({
-          url: `albums/user/edit/${id}/`,
-          method: "PATCH",
-          body: { title, photos },
-        }),
-        transformResponse: (response, meta, query) => {
-          notification.addPhotosToAlbum(query.title, query.photos.length);
-        },
-      }),
-    }),
-  })
-  .enhanceEndpoints<"UserAlbums" | "UserAlbum" | "SharedAlbumsByMe" | "SharedAlbumsWithMe">({
-    addTagTypes: ["UserAlbums", "UserAlbum", "SharedAlbumsByMe", "SharedAlbumsWithMe"],
-    endpoints: {
-      [Endpoints.fetchUserAlbums]: {
-        providesTags: ["UserAlbums"],
-      },
-      [Endpoints.fetchUserAlbum]: {
-        providesTags: ["UserAlbum"],
-      },
-      [Endpoints.deleteUserAlbum]: {
-        invalidatesTags: ["UserAlbums"],
-      },
-      [Endpoints.renameUserAlbum]: {
-        invalidatesTags: ["UserAlbums", "UserAlbum"],
-      },
-      [Endpoints.createUserAlbum]: {
-        invalidatesTags: ["UserAlbums"],
-      },
-      [Endpoints.removePhotoFromUserAlbum]: {
-        invalidatesTags: ["UserAlbums", "UserAlbum"],
-      },
-      [Endpoints.setUserAlbumCover]: {
-        invalidatesTags: ["UserAlbums"],
-      },
-      [Endpoints.addPhotoToUserAlbum]: {
-        invalidatesTags: ["UserAlbums", "UserAlbum"],
-      },
-    },
-  });
+// Fetch a single user album
+export const useFetchUserAlbumQuery = (id: string) => useQuery({
+  queryKey: [QueryKeys.userAlbum, id],
+  queryFn: async () => {
+    const response = await fetchClient.get(`/albums/user/${id}/`);
+    return UserAlbumSchema.parse(response);
+  },
+});
 
-export const {
-  useFetchUserAlbumsQuery,
-  useFetchUserAlbumQuery,
-  useLazyFetchUserAlbumQuery,
-  useDeleteUserAlbumMutation,
-  useRenameUserAlbumMutation,
-  useCreateUserAlbumMutation,
-  useRemovePhotoFromUserAlbumMutation,
-  useSetUserAlbumCoverMutation,
-  useAddPhotoToUserAlbumMutation,
-} = userAlbumsApi;
+// Delete user album mutation
+export const useDeleteUserAlbumMutation = () => useMutation({
+  mutationFn: async ({ id, albumTitle }: DeleteUserAlbumParams) => {
+    await fetchClient.delete(`/albums/user/${id}/`);
+    notification.deleteAlbum(albumTitle);
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
+  },
+});
+
+// Rename user album mutation
+export const useRenameUserAlbumMutation = () => useMutation({
+  mutationFn: async ({ id, title, newTitle }: RenameUserAlbumParams) => {
+    await fetchClient.patch(`/albums/user/${id}/`, { title: newTitle });
+    notification.renameAlbum(title, newTitle);
+  },
+  onSuccess: (_, { id }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbum, id] });
+  },
+});
+
+// Create user album mutation
+export const useCreateUserAlbumMutation = () => useMutation({
+  mutationFn: async ({ title, photos }: CreateUserAlbumParams) => {
+    await fetchClient.post(`/albums/user/edit/`, { title, photos });
+    notification.createAlbum(title, photos.length);
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
+  },
+});
+
+// Remove photo from user album mutation
+export const useRemovePhotoFromUserAlbumMutation = () => useMutation({
+  mutationFn: async ({ id, title, photos }: RemovePhotoFromUserAlbumParams) => {
+    await fetchClient.patch(`/albums/user/edit/${id}/`, { removedPhotos: photos });
+    notification.removePhotosFromAlbum(title, photos.length);
+  },
+  onSuccess: (_, { id }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbum, id] });
+  },
+});
+
+// Set user album cover mutation
+export const useSetUserAlbumCoverMutation = () => useMutation({
+  mutationFn: async ({ id, photo }: SetUserAlbumCoverParams) => {
+    await fetchClient.patch(`/albums/user/edit/${id}/`, { cover_photo: photo });
+    notification.setCoverPhoto();
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
+  },
+});
+
+// Add photo to user album mutation
+export const useAddPhotoToUserAlbumMutation = () => useMutation({
+  mutationFn: async ({ id, title, photos }: AddPhotoFromUserAlbumParams) => {
+    await fetchClient.patch(`/albums/user/edit/${id}/`, { title, photos });
+    notification.addPhotosToAlbum(title, photos.length);
+  },
+  onSuccess: (_, { id }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbum, id] });
+  },
+}); 

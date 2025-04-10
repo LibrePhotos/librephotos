@@ -6,13 +6,11 @@ import {
   Text,
   Title,
   Tooltip,
-  UnstyledButton,
-  useComputedColorScheme,
-  useMantineTheme,
+  Button,
 } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import "@mantine/tiptap/styles.css";
-import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand } from "@tabler/icons-react";
+import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand, IconMapPin as MapPin } from "@tabler/icons-react";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -20,7 +18,6 @@ import { Text as TipTapText } from "@tiptap/extension-text";
 import { useEditor } from "@tiptap/react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { push } from "redux-first-history";
 
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things-tanstack";
@@ -28,7 +25,6 @@ import {
   useGenerateImageToTextCaptionMutation,
   useSavePhotoCaptionMutation,
 } from "../../api_client/photos/photoDetail";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 import "./Hashtag.css";
 import suggestion from "./Suggestion";
@@ -40,18 +36,14 @@ type Props = Readonly<{
 
 export function Description(props: Props) {
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
-  const { generatingCaptionIm2txt } = useAppSelector(store => store.photos);
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
 
   const { photoDetail, isPublic } = props;
 
   const [editMode, setEditMode] = useState(false);
-  const [imageCaption, setImageCaption] = useState("");
-  const [updateCaption] = useSavePhotoCaptionMutation();
-  const [generateImageToTextCaptions] = useGenerateImageToTextCaptionMutation();
+  const [imageCaption, setImageCaption] = useState<string | null>(null);
+  const { mutate: updateCaption } = useSavePhotoCaptionMutation();
+  const { mutate: generateImageToTextCaptions, isPending: generatingCaptionIm2txt } = useGenerateImageToTextCaptionMutation();
 
   const editor = useEditor({
     editable: editMode,
@@ -92,7 +84,7 @@ export function Description(props: Props) {
 
   useEffect(() => {
     if (photoDetail) {
-      const currentCaption = photoDetail.captions_json.user_caption ? photoDetail.captions_json.user_caption : "";
+      const currentCaption = photoDetail.captions_json?.user_caption ? photoDetail.captions_json.user_caption : "";
       const replacedCaption = currentCaption.replace(/#(\w+)/g, '<span data-type="mention" data-id=$1>#$1</span>');
       editor?.commands.setContent(replacedCaption);
       setImageCaption(currentCaption);
@@ -107,37 +99,27 @@ export function Description(props: Props) {
             <Note />
             <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
           </Group>
-          {photoDetail.captions_json.im2txt &&
+          {photoDetail.captions_json && photoDetail.captions_json.im2txt &&
             editMode &&
             !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
               <div>
                 <Group gap="sm" style={{ paddingBottom: 12 }}>
                   <Wand color="grey" size={20} />
-                  <Text size="sm" c="dimmed">
-                    Suggestion
+                  <Text size="sm" color="dimmed">
+                    {t("lightbox.sidebar.suggestedcaption")}
                   </Text>
                 </Group>
-                <UnstyledButton
-                  style={{
-                    display: "block",
-                    padding: theme.spacing.xs,
-                    borderRadius: theme.radius.xl,
-                    textDecoration: "none",
-                    fontSize: theme.fontSizes.sm,
-                    color: colorScheme === "dark" ? theme.colors.dark[1] : theme.colors.gray[7],
-                    backgroundColor: colorScheme === "dark" ? theme.colors.dark[4] : theme.colors.gray[1],
-                    "&:hover": {
-                      backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[3],
-                    },
-                  }}
+                <Button
+                  variant="subtle"
+                  color="gray"
+                  fullWidth
                   onClick={() => {
-                    editor?.commands.setContent(photoDetail.captions_json.im2txt);
-                    setImageCaption(photoDetail.captions_json.im2txt);
+                    editor?.commands.setContent(photoDetail.captions_json?.im2txt || "");
+                    setImageCaption(photoDetail.captions_json?.im2txt || "");
                   }}
                 >
-                  {photoDetail.captions_json.im2txt}
-                </UnstyledButton>
-                <div style={{ height: 5 }} />
+                  {photoDetail.captions_json?.im2txt}
+                </Button>
               </div>
             )}
         </Stack>
@@ -200,7 +182,7 @@ export function Description(props: Props) {
                 variant="light"
                 color="green"
                 onClick={() => {
-                  updateCaption({ id: photoDetail.image_hash, caption: imageCaption });
+                  updateCaption({ id: photoDetail.image_hash, caption: imageCaption || ""   });
                   setEditMode(false);
                 }}
               >
@@ -209,7 +191,7 @@ export function Description(props: Props) {
             </Tooltip>
           </Group>
         )}
-        {photoDetail.captions_json.places365 && (
+{photoDetail.captions_json.places365 && (
           <Stack>
             <Group>
               <Tags />

@@ -1,8 +1,9 @@
+import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PhotoSchema } from "../../actions/photosActions.types";
 import { notification } from "../../service/notifications";
-import { api } from "../api";
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
 
 const DeletePhotosRequestSchema = z.object({
   image_hashes: z.array(z.string()),
@@ -43,74 +44,54 @@ const PurgePhotosResponseSchema = z.object({
 });
 type PurgePhotosResponse = z.infer<typeof PurgePhotosResponseSchema>;
 
-enum Endpoints {
-  markPhotosDeleted = "markPhotosDeleted",
-  purgeDeletedPhotos = "purgeDeletedPhotos",
-  deleteDuplicatePhoto = "deleteDuplicatePhoto",
-  deleteMissingPhotos = "deleteMissingPhotos",
-}
-
-export const deletePhotosApi = api.injectEndpoints({
-  endpoints: builder => ({
-    [Endpoints.markPhotosDeleted]: builder.mutation<DeletePhotosResponse, DeletePhotosRequest>({
-      query: ({ image_hashes, deleted }) => ({
-        method: "POST",
-        body: { image_hashes, deleted },
-        url: "photosedit/setdeleted/",
-      }),
-      async onQueryStarted({ deleted }, { queryFulfilled }) {
-        const response = await queryFulfilled;
-        const data = DeletePhotosResponseSchema.parse(response.data);
-        notification.togglePhotoDelete(deleted, data.updated.length);
-      },
-    }),
-    [Endpoints.purgeDeletedPhotos]: builder.mutation<PurgePhotosResponse, PurgePhotosRequest>({
-      query: ({ image_hashes }) => ({
-        method: "DELETE",
-        url: "photosedit/delete/",
-        body: { image_hashes },
-      }),
-      async onQueryStarted(_args, { queryFulfilled }) {
-        const response = await queryFulfilled;
-        const data = PurgePhotosResponseSchema.parse(response.data);
-        notification.removePhotos(data.deleted.length);
-      },
-    }),
-    [Endpoints.deleteDuplicatePhoto]: builder.mutation<void, DeleteDuplicatePhotoRequest>({
-      query: ({ image_hash, path }) => ({
-        method: "DELETE",
-        url: "photosedit/duplicate/delete/",
-        body: { image_hash, path },
-      }),
-      async onQueryStarted(_args, { queryFulfilled }) {
-        await queryFulfilled;
-        notification.removePhotos(1);
-      },
-    }),
-    [Endpoints.deleteMissingPhotos]: builder.mutation<DeleteMissingPhotosResponse, void>({
-      query: () => ({
-        url: "deletemissingphotos",
-        method: "POST",
-        body: {},
-      }),
-      async onQueryStarted(_, { queryFulfilled, dispatch }) {
-        dispatch({ type: "DELETE_MISSING_PHOTOS" });
-        dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        dispatch({
-          type: "SET_WORKER_RUNNING_JOB",
-          payload: { job_type_str: "Delete Missing Photos" },
-        });
-        const response = await queryFulfilled;
-        const payload = DeleteMissingPhotosResponseSchema.parse(response.data);
-        dispatch({ type: "DELETE_MISSING_PHOTOS_FULFILLED", payload });
-      },
-    }),
-  }),
+// Mark photos as deleted
+export const useMarkPhotosDeletedMutation = () => useMutation({
+  mutationFn: async ({ image_hashes, deleted }: DeletePhotosRequest) => {
+    const response = await fetchClient.post('photosedit/setdeleted/', { image_hashes, deleted });
+    const data = DeletePhotosResponseSchema.parse(response);
+    notification.togglePhotoDelete(deleted, data.updated.length);
+    return data;
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+  },
 });
 
-export const {
-  useMarkPhotosDeletedMutation,
-  usePurgeDeletedPhotosMutation,
-  useDeleteDuplicatePhotoMutation,
-  useDeleteMissingPhotosMutation,
-} = deletePhotosApi;
+// Purge deleted photos
+export const usePurgeDeletedPhotosMutation = () => useMutation({
+  mutationFn: async ({ image_hashes }: PurgePhotosRequest) => {
+    const response = await fetchClient.delete('photosedit/delete/', { image_hashes });
+    const data = PurgePhotosResponseSchema.parse(response);
+    notification.removePhotos(data.deleted.length);
+    return data;
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+  },
+});
+
+// Delete duplicate photo
+export const useDeleteDuplicatePhotoMutation = () => useMutation({
+  mutationFn: async ({ image_hash, path }: DeleteDuplicatePhotoRequest) => {
+    await fetchClient.delete('photosedit/duplicate/delete/', { image_hash, path });
+    notification.removePhotos(1);
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+  },
+});
+
+// Delete missing photos
+export const useDeleteMissingPhotosMutation = () => useMutation({
+  mutationFn: async () => {
+    const response = await fetchClient.post('deletemissingphotos', {});
+    return DeleteMissingPhotosResponseSchema.parse(response);
+  },
+  onSuccess: (data) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+  },
+}); 

@@ -1,42 +1,61 @@
 import { IconPhoto as Photo } from "@tabler/icons-react";
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useLazyFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/list";
+import { PigPhoto } from "../../actions/photosActions.types";
+import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/list";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import type { PhotosState } from "../../reducers/photosReducer";
-import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppSelector } from "../../store/store";
+import { addTempElementsToFlatList } from "../../util/util";
 
 export function NoTimestampPhotosView() {
-  const { fetchedPhotosetType, numberOfPhotos, photosFlat } = useAppSelector(state => state.photos as PhotosState);
   const { t } = useTranslation();
-  const [fetchPhotos] = useLazyFetchPhotosWithoutTimestampQuery();
+  const [page, setPage] = useState(1);
+  const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
+
+  // Fetch actual photos
+  const { data: photosData, status } = useFetchPhotosWithoutTimestampQuery(page);
 
   useEffect(() => {
-    if (fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP) {
-      fetchPhotos(1);
+    if (photosData) {
+      var tempPhotos = [];
+
+      // If we have a count but no results yet, add temp elements
+      if (page === 1) {
+        tempPhotos = addTempElementsToFlatList(photosData.count);
+      } 
+      else {
+        tempPhotos = [...photosFlat];
+      }
+      // If we have results, update the flat list
+      if (photosData.results) {
+        // a page has 100 photos, so we need to splice the results into the photosFlat
+        const index = (page - 1) * 100;
+        tempPhotos.splice(index, 100, ...photosData.results);
+        setPhotosFlat(tempPhotos);
+      }
     }
-  }, []);
+  }, [photosData]);
 
   const getImages = (visibleItems: any) => {
     if (visibleItems.filter((i: any) => i.isTemp).length > 0) {
       const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
       const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
       if (page > 1) {
-        fetchPhotos(page);
+        setPage(page);
       }
     }
   };
 
+  console.log("photosFlat", photosFlat);
+
   return (
     <PhotoListView
       title={t("photos.notimestamp")}
-      loading={fetchedPhotosetType !== PhotosetType.NO_TIMESTAMP}
+      loading={status === "pending"}
       icon={<Photo size={50} />}
       photoset={photosFlat}
       idx2hash={photosFlat}
-      numberOfItems={numberOfPhotos}
+      numberOfItems={photosFlat?.length}
       updateItems={getImages}
       selectable
     />

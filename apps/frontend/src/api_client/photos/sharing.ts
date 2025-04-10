@@ -1,10 +1,10 @@
 import _ from "lodash";
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PigPhoto, PigPhotoSchema, SimpleUserSchema } from "../../actions/photosActions.types";
 import { notification } from "../../service/notifications";
-import { api } from "../api";
-import { photoDetailsApi } from "./photoDetail";
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
 
 const SharedPhotosByMeResponseSchema = z.object({
   results: z
@@ -31,64 +31,47 @@ type UserPhotosGroup = {
   photos: PigPhoto[];
 };
 
-enum Endpoints {
-  fetchSharedPhotosByMe = "fetchSharedPhotosByMe",
-  fetchSharedPhotosWithMe = "fetchSharedPhotosWithMe",
-  updatePhotoSharing = "updatePhotoSharing",
-}
+// Fetch shared photos by me
+export const useFetchSharedPhotosByMeQuery = () => useQuery({
+  queryKey: [QueryKeys.sharedAlbumsByMe],
+  queryFn: async () => {
+    const response = await fetchClient.get('photos/shared/fromme/');
+    const { results } = SharedPhotosByMeResponseSchema.parse(response);
+    return _.toPairs(_.groupBy(results, "user_id")).map(el => ({
+      userId: parseInt(el[0], 10),
+      photos: el[1].map(item => item.photo),
+    }));
+  },
+});
 
-export const photoSharingApi = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [Endpoints.fetchSharedPhotosByMe]: builder.query<UserPhotosGroup[], void>({
-        query: () => "photos/shared/fromme/",
-        transformResponse: response => {
-          const { results } = SharedPhotosByMeResponseSchema.parse(response);
-          return _.toPairs(_.groupBy(results, "user_id")).map(el => ({
-            userId: parseInt(el[0], 10),
-            photos: el[1].map(item => item.photo),
-          }));
-        },
-      }),
-      [Endpoints.fetchSharedPhotosWithMe]: builder.query<UserPhotosGroup[], void>({
-        query: () => "photos/shared/tome/",
-        transformResponse: response => {
-          const { results } = SharedPhotosWithMeResponseSchema.parse(response);
-          return _.toPairs(_.groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));
-        },
-      }),
-      [Endpoints.updatePhotoSharing]: builder.mutation<void, SharePhotosRequest>({
-        query: ({ image_hashes, val_shared, target_user }) => ({
-          method: "POST",
-          body: {
-            image_hashes,
-            val_shared,
-            target_user_id: target_user.id,
-          },
-          url: "photosedit/share/",
-        }),
-        async onQueryStarted({ target_user, image_hashes, val_shared }, { queryFulfilled, dispatch }) {
-          await queryFulfilled;
-          notification.togglePhotoSharing(target_user.username, image_hashes.length, val_shared);
-          if (image_hashes.length === 1) {
-            // TODO(sickelap): invalidate tags when we have them
-            dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
-          }
-        },
-      }),
-    }),
-  })
-  .enhanceEndpoints<"SharedPhotosByMe" | "SharedPhotosWithMe" | "RecentlyAddedPhotos">({
-    addTagTypes: ["SharedPhotosByMe", "SharedPhotosWithMe", "RecentlyAddedPhotos"],
-    endpoints: {
-      [Endpoints.fetchSharedPhotosByMe]: {
-        providesTags: ["SharedPhotosByMe"],
-      },
-      [Endpoints.fetchSharedPhotosWithMe]: {
-        providesTags: ["SharedPhotosWithMe"],
-      },
-    },
-  });
+// Fetch shared photos with me
+export const useFetchSharedPhotosWithMeQuery = () => useQuery({
+  queryKey: [QueryKeys.sharedAlbumsWithMe],
+  queryFn: async () => {
+    const response = await fetchClient.get('photos/shared/tome/');
+    const { results } = SharedPhotosWithMeResponseSchema.parse(response);
+    return _.toPairs(_.groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));
+  },
+});
 
-export const { useFetchSharedPhotosByMeQuery, useFetchSharedPhotosWithMeQuery, useUpdatePhotoSharingMutation } =
-  photoSharingApi;
+// Update photo sharing
+export const useUpdatePhotoSharingMutation = () => useMutation({
+  mutationFn: async ({ image_hashes, val_shared, target_user }: SharePhotosRequest) => {
+    await fetchClient.post('photosedit/share/', {
+      image_hashes,
+      val_shared,
+      target_user_id: target_user.id,
+    });
+    notification.togglePhotoSharing(target_user.username, image_hashes.length, val_shared);
+  },
+  onSuccess: (_, { image_hashes }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.sharedAlbumsByMe] });
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.sharedAlbumsWithMe] });
+    
+    // If we have a single photo, invalidate its details
+    if (image_hashes.length === 1) {
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, image_hashes[0]] });
+    }
+  },
+}); 

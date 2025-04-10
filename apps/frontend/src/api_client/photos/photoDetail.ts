@@ -1,8 +1,9 @@
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
 import type { Photo } from "../../actions/photosActions.types";
 import { notification } from "../../service/notifications";
-import { api } from "../api";
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
 
 const PhotoUpdateResponseSchema = z.object({
   image_hash: z.string(),
@@ -21,64 +22,50 @@ const StatusResponseSchema = z.object({
 });
 type StatusResponse = z.infer<typeof StatusResponseSchema>;
 
-enum Endpoints {
-  fetchPhotoDetails = "fetchPhotoDetails",
-  updatePhoto = "updatePhoto",
-  savePhotoCaption = "savePhotoCaption",
-  generateImageToTextCaption = "generateImageToTextCaption",
-}
-
-export const photoDetailsApi = api.injectEndpoints({
-  endpoints: builder => ({
-    [Endpoints.fetchPhotoDetails]: builder.query<Photo, string>({
-      query: hash => `photos/${hash}/`,
-    }),
-    [Endpoints.updatePhoto]: builder.mutation<PhotoUpdateResponse, { id: string; data: Partial<Photo> }>({
-      query: ({ id, data }) => ({
-        method: "PATCH",
-        url: `photos/edit/${id}/`,
-        body: data,
-      }),
-      async onQueryStarted(_, { queryFulfilled, dispatch }) {
-        dispatch({ type: "EDIT_PHOTO" });
-        try {
-          const response = await queryFulfilled;
-          const data = PhotoUpdateResponseSchema.parse(response.data);
-          dispatch({ type: "EDIT_PHOTO_FULFILLED" });
-          notification.updatePhoto();
-          dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(data.image_hash)).refetch();
-        } catch (error) {
-          dispatch({ type: "EDIT_PHOTO_REJECTED", payload: error });
-        }
-      },
-    }),
-    [Endpoints.savePhotoCaption]: builder.mutation<StatusResponse, { id: string; caption: string }>({
-      query: ({ id, caption }) => ({
-        method: "POST",
-        url: `photosedit/savecaption/`,
-        body: { image_hash: id, caption },
-      }),
-      async onQueryStarted({ id }, { queryFulfilled, dispatch }) {
-        const response = await queryFulfilled;
-        StatusResponseSchema.parse(response.data);
-        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(id)).refetch();
-        notification.savePhotoCaptions();
-      },
-    }),
-    [Endpoints.generateImageToTextCaption]: builder.mutation<void, { id: string }>({
-      query: ({ id }) => ({
-        method: "POST",
-        url: `photosedit/generateim2txt/`,
-        body: { image_hash: id },
-      }),
-      async onQueryStarted({ id }, { queryFulfilled, dispatch }) {
-        const response = await queryFulfilled;
-        StatusResponseSchema.parse(response.data);
-        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(id)).refetch();
-      },
-    }),
-  }),
+// Fetch photo details
+export const useFetchPhotoDetailsQuery = (hash: string) => useQuery({
+  queryKey: [QueryKeys.autoAlbum, hash],
+  queryFn: async () => {
+    const response = await fetchClient.get(`/photos/${hash}/`);
+    return response as Photo;
+  },
 });
 
-export const { useUpdatePhotoMutation, useSavePhotoCaptionMutation, useGenerateImageToTextCaptionMutation } =
-  photoDetailsApi;
+// Update photo
+export const useUpdatePhotoMutation = () => useMutation({
+  mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
+    const response = await fetchClient.patch(`/photos/edit/${id}/`, data);
+    const result = PhotoUpdateResponseSchema.parse(response);
+    notification.updatePhoto();
+    return result;
+  },
+  onSuccess: (data) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, data.image_hash] });
+  },
+});
+
+// Save photo caption
+export const useSavePhotoCaptionMutation = () => useMutation({
+  mutationFn: async ({ id, caption }: { id: string; caption: string }) => {
+    const response = await fetchClient.post(`/photosedit/savecaption/`, { image_hash: id, caption });
+    StatusResponseSchema.parse(response);
+    notification.savePhotoCaptions();
+  },
+  onSuccess: (_, { id }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, id] });
+  },
+});
+
+// Generate image to text caption
+export const useGenerateImageToTextCaptionMutation = () => useMutation({
+  mutationFn: async ({ id }: { id: string }) => {
+    const response = await fetchClient.post(`/photosedit/generateim2txt/`, { image_hash: id });
+    StatusResponseSchema.parse(response);
+  },
+  onSuccess: (_, { id }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, id] });
+  },
+}); 

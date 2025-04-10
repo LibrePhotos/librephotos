@@ -318,8 +318,8 @@
   "lightbox": {
     "sidebar": {
       "details": "Details",
-      "timetaken": "Time Taken",
-      "filepath": "File Path",
+      "timetaken": "Time taken",
+      "filepath": "File path",
       "location": "Location",
       "caption": "Caption",
       "people": "People",
@@ -334,7 +334,8 @@
       "withouttimestamp": "Without timestamp",
       "invalidtimestamp": "Invalid timestamp",
       "removetimestamp": "Remove timestamp",
-      "undotimestampmodification": "Undo timestamp modification"
+      "undotimestampmodification": "Undo timestamp modification",
+      "places": "Places"
     }
   },
   "exif": {

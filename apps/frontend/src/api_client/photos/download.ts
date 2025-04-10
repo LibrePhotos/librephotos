@@ -1,13 +1,9 @@
-import { QueryReturnValue } from "@reduxjs/toolkit/dist/query/baseQueryTypes";
-import { MaybePromise } from "@reduxjs/toolkit/dist/query/tsHelpers";
-import { FetchBaseQueryError } from "@reduxjs/toolkit/query";
-import { FetchArgs } from "@reduxjs/toolkit/query/react";
+import { useMutation } from '@tanstack/react-query';
+import { z } from "zod";
 
 import { notification } from "../../service/notifications";
-import { api } from "../api";
+import { fetchClient } from "../tanstack-api";
 
-type BaseQueryResult<T> = QueryReturnValue<T, FetchBaseQueryError, {}>;
-type BaseQuery<T> = (arg: string | FetchArgs) => MaybePromise<BaseQueryResult<T>>;
 type StatusResponse = { status: string };
 
 type DownloadResponse = {
@@ -15,17 +11,19 @@ type DownloadResponse = {
   job_id: string;
 };
 
-async function startDownloadProcess(baseQuery: BaseQuery<DownloadResponse>, image_hashes: string[]) {
-  return (await baseQuery({ url: "photos/download", method: "POST", body: { image_hashes } })).data!;
+async function startDownloadProcess(image_hashes: string[]) {
+  const response = await fetchClient.post('photos/download', { image_hashes });
+  return response as DownloadResponse;
 }
 
-async function checkDownloadStatus(baseQuery: BaseQuery<StatusResponse>, job_id: string) {
-  return (await baseQuery({ url: `photos/download?job_id=${job_id}` })).data!;
+async function checkDownloadStatus(job_id: string) {
+  const response = await fetchClient.get(`photos/download?job_id=${job_id}`);
+  return response as StatusResponse;
 }
 
-async function downloadFile(baseQuery: BaseQuery<Blob>, filename: string) {
-  const response = await baseQuery({ url: `/downloads/${filename}`, responseHandler: r => r.blob() });
-  const downloadUrl = window.URL.createObjectURL(new Blob([response.data!], { type: "application/zip" }));
+async function downloadFile(filename: string) {
+  const response = await fetchClient.get(`/downloads/${filename}`, { responseHandler: r => r.blob() });
+  const downloadUrl = window.URL.createObjectURL(new Blob([response], { type: "application/zip" }));
   const link = document.createElement("a");
   link.href = downloadUrl;
   link.setAttribute("download", "file.zip");
@@ -34,48 +32,35 @@ async function downloadFile(baseQuery: BaseQuery<Blob>, filename: string) {
   link.remove();
 }
 
-enum Endpoints {
-  downloadPhotos = "downloadPhotos",
-}
+// Download photos
+export const useDownloadPhotosMutation = () => useMutation({
+  mutationFn: async ({ image_hashes }: { image_hashes: string[] }) => {
+    notification.downloadStarting();
+    
+    const userId = (window as any).user?.userSelfDetails?.id || '';
+    const { job_id: jobId, url: filename } = await startDownloadProcess(image_hashes);
 
-export const downloadApi = api.injectEndpoints({
-  endpoints: build => ({
-    [Endpoints.downloadPhotos]: build.query<void, { image_hashes: string[] }>({
-      async onQueryStarted() {
-        notification.downloadStarting();
-      },
-      queryFn: async ({ image_hashes }, baseQueryApi, _extraOptions, baseQuery) => {
-        const userId = (baseQueryApi.getState() as any).user.userSelfDetails.id;
-        const { job_id: jobId, url: filename } = await startDownloadProcess(
-          baseQuery as BaseQuery<DownloadResponse>,
-          image_hashes
-        );
+    const statusInterval = setInterval(async () => {
+      const { status } = await checkDownloadStatus(jobId);
+      switch (status) {
+        case "SUCCESS":
+          clearInterval(statusInterval);
+          await downloadFile(filename + userId);
+          await fetchClient.delete(`/delete/zip/${filename}`);
+          notification.downloadCompleted();
+          break;
 
-        const statusInterval = setInterval(async () => {
-          const { status } = await checkDownloadStatus(baseQuery as BaseQuery<{ status: string }>, jobId);
-          switch (status) {
-            case "SUCCESS":
-              clearInterval(statusInterval);
-              await downloadFile(baseQuery as BaseQuery<Blob>, filename + userId);
-              await baseQuery({ url: `/delete/zip/${filename}`, method: "DELETE" });
-              notification.downloadCompleted();
-              break;
+        case "FAILURE":
+          clearInterval(statusInterval);
+          notification.downloadFailed();
+          break;
 
-            case "FAILURE":
-              clearInterval(statusInterval);
-              notification.downloadFailed();
-              break;
+        default:
+          // noop on PROGRESS
+          break;
+      }
+    }, 3000);
 
-            default:
-              // noop on PROGRESS
-              break;
-          }
-        }, 3000);
-
-        return { data: undefined };
-      },
-    }),
-  }),
-});
-
-export const { useLazyDownloadPhotosQuery } = downloadApi;
+    return { success: true };
+  },
+}); 

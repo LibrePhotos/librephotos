@@ -119,7 +119,18 @@ const Tile = React.memo(
             className={`${styles.pigImg} ${styles.pigFull}${isFullSizeLoaded ? ` ${styles.pigFullLoaded}` : ""}`}
             src={getUrl(item.url, getImageHeight(containerWidth))}
             alt=""
-            onLoad={() => setFullSizeLoaded(true)}
+            onLoad={() => {
+              setFullSizeLoaded(true);
+              // Force a re-render to ensure the blur filter is removed
+              setTimeout(() => {
+                const imgElements = document.querySelectorAll(`.${styles.pigThumbnail}`);
+                imgElements.forEach(img => {
+                  if (img.src.includes(item.url.split(";")[0])) {
+                    img.classList.add(styles.pigThumbnailLoaded);
+                  }
+                });
+              }, 50);
+            }}
           />
         )}
 
@@ -163,7 +174,7 @@ const Tile = React.memo(
           <div className={styles.overlaysTopLeft}>
             {isSelectable && (
               <input
-                key={item.id + isSelected}
+                key={`checkbox-${item.id}-${isSelected}`}
                 type="checkbox"
                 className={styles.checkbox}
                 defaultChecked={isSelected}

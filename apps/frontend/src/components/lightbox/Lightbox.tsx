@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ContentViewer } from "./ContentViewer";
 import type { LightBoxProps } from "./lightbox.types";
 
 export function Lightbox(props: LightBoxProps) {
-  const { photoDetails } = useAppSelector(store => store.photoDetails);
+  
 
   const { idx2hash, isPublic, onCloseRequest, selectedImage, onChangedIndex } = props;
   const [lightboxImageId, setLightboxImageId] = useState(selectedImage);
@@ -15,35 +15,24 @@ export function Lightbox(props: LightBoxProps) {
     idx2hash.findIndex(image => image.id === lightboxImageId)
   );
 
+  const { data: photoDetails } = useFetchPhotoDetailsQuery(lightboxImageId);
+
   useEffect(() => {
     onChangedIndex(lightboxImageIndex);
   }, [lightboxImageIndex]);
-
-  const dispatch = useAppDispatch();
-
-  const getPhotoDetails = (image: string) => {
-    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image));
-  };
-
-  const onImageLoad = () => {
-    getPhotoDetails(idx2hash[lightboxImageIndex].id);
-  };
-
-  const getCurrentPhotodetail = () => photoDetails[lightboxImageId];
 
   const onMovePrevRequest = () => {
     const prevIndex = (lightboxImageIndex + idx2hash.length - 1) % idx2hash.length;
     setLightboxImageIndex(prevIndex);
     setLightboxImageId(idx2hash[prevIndex].id);
-    getPhotoDetails(idx2hash[prevIndex].id);
   };
 
   const onMoveNextRequest = () => {
     const nextIndex = (lightboxImageIndex + idx2hash.length + 1) % idx2hash.length;
     setLightboxImageIndex(nextIndex);
     setLightboxImageId(idx2hash[nextIndex].id);
-    getPhotoDetails(idx2hash[nextIndex].id);
   };
+
 
   const getPreviousId = () => {
     if (lightboxImageIndex <= 0 || !idx2hash || !idx2hash.length) return null;
@@ -72,18 +61,18 @@ export function Lightbox(props: LightBoxProps) {
   };
 
   const getMediaType = () => {
-    if (
-      getCurrentPhotodetail() === undefined ||
-      (getCurrentPhotodetail().video === undefined && getCurrentPhotodetail().embedded_media.length === 0)
-    ) {
+    if (photoDetails === undefined) {
       return "photo";
     }
-    if (getCurrentPhotodetail().video) {
+    
+    if (photoDetails.video) {
       return "video";
     }
-    if (getCurrentPhotodetail().embedded_media.length > 0) {
+    
+    if (photoDetails.embedded_media && photoDetails.embedded_media.length > 0) {
       return "embedded";
     }
+    
     return "photo";
   };
 
@@ -95,11 +84,11 @@ export function Lightbox(props: LightBoxProps) {
         prevSrc={getPreviousId()}
         isPublic={isPublic}
         type={getMediaType()}
-        onImageLoad={onImageLoad}
         enableZoom={getMediaType() === "photo"}
         onCloseRequest={onCloseRequest}
         onMovePrevRequest={onMovePrevRequest}
         onMoveNextRequest={onMoveNextRequest}
+        onImageLoad={() => {}}
       />
     </div>
   );

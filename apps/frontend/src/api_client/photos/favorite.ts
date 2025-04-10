@@ -1,9 +1,9 @@
+import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PhotoSchema } from "../../actions/photosActions.types";
 import { notification } from "../../service/notifications";
-import { api } from "../api";
-import { photoDetailsApi } from "./photoDetail";
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
 
 const FavoritePhotosRequestSchema = z.object({
   image_hashes: z.string().array(),
@@ -19,39 +19,24 @@ const UpdatedPhotosResponseSchema = z.object({
 });
 type UpdatedPhotosResponse = z.infer<typeof UpdatedPhotosResponseSchema>;
 
-enum Endpoints {
-  setFavoritePhotos = "setFavoritePhotos",
-}
-
-export const favoritePhotosApi = api.injectEndpoints({
-  endpoints: builder => ({
-    [Endpoints.setFavoritePhotos]: builder.mutation<UpdatedPhotosResponse, FavoritePhotosRequest>({
-      query: ({ image_hashes, favorite }) => ({
-        url: "photosedit/favorite/",
-        method: "POST",
-        body: {
-          image_hashes,
-          favorite,
-        },
-      }),
-      async onQueryStarted({ image_hashes, favorite }, { dispatch, queryFulfilled }) {
-        dispatch({ type: "SET_PHOTOS_FAVORITE" });
-        const response = await queryFulfilled;
-        const data = UpdatedPhotosResponseSchema.parse(response.data);
-        dispatch({
-          type: "SET_PHOTOS_FAVORITE_FULFILLED",
-          payload: {
-            image_hashes,
-            favorite,
-            updatedPhotos: data.updated,
-          },
-        });
-        // TODO(sickelap): invalidate tags when we have them
-        dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
-        notification.togglePhotosFavorite(image_hashes.length, favorite);
-      },
-    }),
-  }),
-});
-
-export const { useSetFavoritePhotosMutation } = favoritePhotosApi;
+// Set favorite photos
+export const useSetFavoritePhotosMutation = () => useMutation({
+  mutationFn: async ({ image_hashes, favorite }: FavoritePhotosRequest) => {
+    const response = await fetchClient.post('photosedit/favorite/', {
+      image_hashes,
+      favorite,
+    });
+    const data = UpdatedPhotosResponseSchema.parse(response);
+    notification.togglePhotosFavorite(image_hashes.length, favorite);
+    return data;
+  },
+  onSuccess: (data, { image_hashes }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+    
+    // If we have a single photo, invalidate its details
+    if (image_hashes.length === 1) {
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, image_hashes[0]] });
+    }
+  },
+}); 

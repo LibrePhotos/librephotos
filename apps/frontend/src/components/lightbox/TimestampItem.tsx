@@ -16,6 +16,7 @@ import "react-virtualized/styles.css";
 import { Photo } from "../../actions/photosActions.types";
 import { useUpdatePhotoMutation } from "../../api_client/photos/photoDetail";
 import { i18nResolvedLanguage } from "../../i18n";
+import '@mantine/dates/styles.css';
 
 type Props = Readonly<{
   photoDetail: Partial<Photo>;
@@ -31,7 +32,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   const [savedTimestamp, setSavedTimestamp] = useState(timestamp);
   const [previousSavedTimestamp, setPreviousSavedTimestamp] = useState(timestamp);
   const [editMode, setEditMode] = useState(false);
-  const [updatePhoto] = useUpdatePhotoMutation();
+  const { mutate: updatePhoto } = useUpdatePhotoMutation();
 
   const { t } = useTranslation();
   const lang = i18nResolvedLanguage();
@@ -40,26 +41,30 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
     `dayjs/locale/${lang}.js`
   );
 
-  const onChangeDate = (date: Date) => {
+  const onChangeDate = (date: Date | null) => {
     if (date && timestamp) {
-      date.setHours(timestamp.getHours());
-      date.setMinutes(timestamp.getMinutes());
-      date.setSeconds(timestamp.getSeconds());
+      const newDate = new Date(date);
+      newDate.setHours(timestamp.getHours());
+      newDate.setMinutes(timestamp.getMinutes());
+      newDate.setSeconds(timestamp.getSeconds());
+      setTimestamp(newDate);
+    } else {
+      setTimestamp(date);
     }
-    setTimestamp(date);
   };
 
-  const onChangeTime = (date: Date) => {
-    if (date && timestamp) {
-      date.setDate(timestamp.getDate());
-      date.setMonth(timestamp.getMonth());
-      date.setFullYear(timestamp.getFullYear());
-    }
-    setTimestamp(date);
+  const onChangeTime = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!timestamp) return;
+    
+    const [hours, minutes, seconds] = event.target.value.split(':').map(Number);
+    const newDate = new Date(timestamp);
+    newDate.setHours(hours || 0);
+    newDate.setMinutes(minutes || 0);
+    newDate.setSeconds(seconds || 0);
+    setTimestamp(newDate);
   };
 
   const onSaveDateTime = () => {
-    // To-Do: Use the user defined timezone
     const differentJson = { exif_timestamp: timestamp === null ? null : timestamp.toISOString() };
     updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
     setEditMode(false);
@@ -88,7 +93,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
         </div>
       );
     }
-    return "lightbox.sidebar.invalidtimestamp";
+    return t("lightbox.sidebar.invalidtimestamp");
   };
 
   const onActivateEditMode = () => {
@@ -103,22 +108,30 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
     setTimestamp(savedTimestamp);
   };
 
+  const formatTimeForInput = (date: Date | null) => {
+    if (!date) return '';
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+  };
+
   return (
     <Group>
-      {/* To-Do: Handle click on calender */}
       {editMode && (
-        <Stack>
+        <Stack w="100%">
           <Group>
             <Calendar />
             <Text>{t("lightbox.sidebar.editdatetime")}</Text>
           </Group>
           <Stack>
-            <DatePicker locale={lang} value={timestamp} onChange={onChangeDate} />
-
+            <DatePicker 
+              locale={lang} 
+              value={timestamp} 
+              onChange={onChangeDate}
+            />
             <TimeInput
               withSeconds
-              value={timestamp?.toString()}
-              onChange={event => onChangeTime(new Date(event.target.value))}
+              value={formatTimeForInput(timestamp)}
+              onChange={onChangeTime}
+              placeholder="00:00:00"
             />
             <Group justify="center">
               <Tooltip label={t("lightbox.sidebar.cancel")}>
@@ -160,9 +173,6 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
           )}
         </Group>
       )}
-      {
-        // To-Do: Show timezone of image
-      }
     </Group>
   );
 }

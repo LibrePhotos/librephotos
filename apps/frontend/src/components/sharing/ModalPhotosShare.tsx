@@ -24,7 +24,7 @@ export function ModalPhotosShare(props: Props) {
   const { data: users = [], isFetching: isUsersLoading, isSuccess: isUsersLoaded } = useFetchUserListQuery();
   const { auth } = useAppSelector(store => store);
   const { selectedImageHashes, isOpen, onRequestClose } = props;
-  const [updatePhotoSharing] = useUpdatePhotoSharingMutation();
+  const { mutate: updatePhotoSharing } = useUpdatePhotoSharingMutation();
 
   const selectedImageSrcs = selectedImageHashes.map(
     (image_hash: string) => `${serverAddress}/media/square_thumbnails/${image_hash}`

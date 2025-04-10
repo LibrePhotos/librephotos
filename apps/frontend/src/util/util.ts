@@ -65,7 +65,7 @@ export function addTempElementsToFlatList(photosCount: number) {
   const newPhotosFlat: PigPhoto[] = [];
   for (let i = 0; i < photosCount; i++) {
     newPhotosFlat.push({
-      id: i.toString(),
+      id: `temp-${i}`,
       aspectRatio: 1,
       isTemp: true,
     } as PigPhoto);

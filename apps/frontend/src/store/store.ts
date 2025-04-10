@@ -16,7 +16,6 @@ import util from "../reducers/utilReducer";
 import { authReducer as auth } from "./auth/authSlice";
 import { faceReducer as face } from "./faces/faceSlice";
 import { errorMiddleware } from "./middleware/errorMiddleware";
-import { photoDetailsReducer as photoDetails } from "./photos/photoDetailsSlice";
 import { playerReducer as player } from "./player/playerSlice";
 import { userReducer as user } from "./user/userSlice";
 import { worker } from "./worker/workerSlice";
@@ -35,7 +34,6 @@ export const store = configureStore({
     albums,
     util,
     photos,
-    photoDetails,
     auth,
     search,
     ui,

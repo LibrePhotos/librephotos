@@ -16,8 +16,8 @@ export function TrashcanActions(props: Readonly<Props>) {
   const { selectedItems, updateSelectionState } = props;
   const { t } = useTranslation();
   const route = useAppSelector(store => store.router);
-  const [markPhotosDeleted] = useMarkPhotosDeletedMutation();
-  const [purgeDeletedPhotos] = usePurgeDeletedPhotosMutation();
+  const markPhotosDeleted = useMarkPhotosDeletedMutation();
+  const purgeDeletedPhotos = usePurgeDeletedPhotosMutation();
 
   return (
     <Group>
@@ -26,7 +26,7 @@ export function TrashcanActions(props: Readonly<Props>) {
           <ActionIcon
             disabled={selectedItems.length === 0}
             onClick={() => {
-              markPhotosDeleted({
+              markPhotosDeleted.mutate({
                 image_hashes: selectedItems.map(i => i.id),
                 deleted: false,
               });
@@ -61,7 +61,7 @@ export function TrashcanActions(props: Readonly<Props>) {
           <Button
             color="red"
             onClick={() => {
-              purgeDeletedPhotos({ image_hashes: selectedItems.map(i => i.id) });
+              purgeDeletedPhotos.mutate({ image_hashes: selectedItems.map(i => i.id) });
               updateSelectionState({
                 selectMode: false,
                 selectedItems: [],

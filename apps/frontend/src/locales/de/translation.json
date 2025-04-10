@@ -318,7 +318,8 @@
             "withouttimestamp": "Ohne Zeitstempel",
             "invalidtimestamp": "Ungültiger Zeitstempel",
             "removetimestamp": "Zeitstempel entfernen",
-            "undotimestampmodification": "Änderung des Zeitstempels rückgängig machen"
+            "undotimestampmodification": "Änderung des Zeitstempels rückgängig machen",
+            "places": "Orte"
         }
     },
     "photos": {

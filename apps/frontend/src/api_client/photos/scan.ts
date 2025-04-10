@@ -1,7 +1,8 @@
+import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { notification } from "../../service/notifications";
-import { api } from "../api";
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
 
 const JobResponseSchema = z.object({
   status: z.boolean(),
@@ -9,60 +10,44 @@ const JobResponseSchema = z.object({
 });
 type JobResponse = z.infer<typeof JobResponseSchema>;
 
-enum Endpoints {
-  scanPhotos = "scanPhotos",
-  rescanPhotos = "rescanPhotos",
-  scanNextcloudPhotos = "scanNextcloudPhotos",
-}
-
-export const scanPhotosApi = api.injectEndpoints({
-  endpoints: builder => ({
-    [Endpoints.scanPhotos]: builder.mutation<JobResponse, void>({
-      query: () => ({
-        url: "scanphotos/",
-        method: "POST",
-        body: {},
-      }),
-      async onQueryStarted(_args, { queryFulfilled, dispatch }) {
-        dispatch({ type: "SCAN_PHOTOS" });
-        dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        const response = await queryFulfilled;
-        const jobResponse = JobResponseSchema.parse(response.data);
-        notification.startPhotoScan();
-        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
-      },
-    }),
-    [Endpoints.rescanPhotos]: builder.mutation<JobResponse, void>({
-      query: () => ({
-        url: "fullscanphotos/",
-        method: "POST",
-        body: {},
-      }),
-      async onQueryStarted(_args, { queryFulfilled, dispatch }) {
-        dispatch({ type: "SCAN_PHOTOS" });
-        dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        const response = await queryFulfilled;
-        const jobResponse = JobResponseSchema.parse(response.data);
-        notification.startFullPhotoScan();
-        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
-      },
-    }),
-    [Endpoints.scanNextcloudPhotos]: builder.mutation<JobResponse, void>({
-      query: () => ({
-        url: "nextcloud/scanphotos/",
-        method: "POST",
-        body: {},
-      }),
-      async onQueryStarted(_args, { queryFulfilled, dispatch }) {
-        dispatch({ type: "SCAN_PHOTOS" });
-        dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-        const response = await queryFulfilled;
-        const jobResponse = JobResponseSchema.parse(response.data);
-        notification.startNextcloudPhotoScan();
-        dispatch({ type: "SCAN_PHOTOS_FULFILLED", payload: jobResponse });
-      },
-    }),
-  }),
+// Scan photos
+export const useScanPhotosMutation = () => useMutation({
+  mutationFn: async () => {
+    const response = await fetchClient.post('scanphotos/', {});
+    const data = JobResponseSchema.parse(response);
+    notification.startPhotoScan();
+    return data;
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+  },
 });
 
-export const { useScanPhotosMutation, useRescanPhotosMutation, useScanNextcloudPhotosMutation } = scanPhotosApi;
+// Rescan photos
+export const useRescanPhotosMutation = () => useMutation({
+  mutationFn: async () => {
+    const response = await fetchClient.post('fullscanphotos/', {});
+    const data = JobResponseSchema.parse(response);
+    notification.startFullPhotoScan();
+    return data;
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+  },
+});
+
+// Scan Nextcloud photos
+export const useScanNextcloudPhotosMutation = () => useMutation({
+  mutationFn: async () => {
+    const response = await fetchClient.post('nextcloud/scanphotos/', {});
+    const data = JobResponseSchema.parse(response);
+    notification.startNextcloudPhotoScan();
+    return data;
+  },
+  onSuccess: () => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+  },
+}); 

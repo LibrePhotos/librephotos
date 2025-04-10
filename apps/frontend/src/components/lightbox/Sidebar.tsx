@@ -1,25 +1,19 @@
 import { ActionIcon, Box, Group, Stack, Text, Title, useComputedColorScheme, useMantineTheme, Grid, Anchor } from "@mantine/core";
-import { IconMap2 as Map2, IconPhoto as Photo, IconX as X } from "@tabler/icons-react";
+import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 
-import type { Photo as PhotoType } from "../../actions/photosActions.types";
 import { api } from "../../api_client/api";
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
 import { notification } from "../../service/notifications";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { LocationMap } from "../LocationMap";
-import { Tile } from "../Tile";
+import { useAppDispatch } from "../../store/store";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { Description } from "./Description";
-import { PersonDetail } from "./PersonDetailComponent";
 import { TimestampItem } from "./TimestampItem";
 import { VersionComponent } from "./VersionComponent";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
-
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
 interface SidebarProps {
   isPublic: boolean;
   id: string;
@@ -56,7 +50,8 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
   
-  const photoDetail: PhotoType = useAppSelector(store => store.photoDetails.photoDetails[id]);
+  const { data: photoDetail } = useFetchPhotoDetailsQuery(id);
+
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
 
@@ -68,7 +63,6 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
     const ids = [faceId];
     dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
     notification.removeFacesFromPerson(ids.length);
-    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
   };
 
   const handlePersonEdit = (faceId: string, faceUrl: string) => {
@@ -79,7 +73,6 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
   const handleModalClose = () => {
     setPersonEditOpen(false);
     setSelectedFaces([]);
-    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoDetail.image_hash)).refetch();
   };
 
   // Apply shadow only on mobile

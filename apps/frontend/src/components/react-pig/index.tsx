@@ -388,7 +388,7 @@ function Pig({
     
     return (
       <TileComponent
-        key={item.url || item.id.toString()}
+        key={`tile-${item.id}`}
         useLqip={useLqip}
         windowHeight={windowHeightRef.current}
         containerWidth={containerWidthRef.current}

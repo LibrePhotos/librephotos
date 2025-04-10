@@ -95,10 +95,10 @@ export function Library() {
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
   const [updateUser] = useUpdateUserMutation();
-  const [scanPhotos] = useScanPhotosMutation();
-  const [rescanPhotos] = useRescanPhotosMutation();
-  const [scanNextcloudPhotos] = useScanNextcloudPhotosMutation();
-  const [deleteMissingPhotos] = useDeleteMissingPhotosMutation();
+  const scanPhotos = useScanPhotosMutation();
+  const rescanPhotos = useRescanPhotosMutation();
+  const scanNextcloudPhotos = useScanNextcloudPhotosMutation();
+  const deleteMissingPhotos = useDeleteMissingPhotosMutation();
 
   const onGenerateEventAlbumsButtonClick = () => {
     dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
@@ -110,7 +110,7 @@ export function Library() {
   };
 
   const onDeleteMissingPhotosButtonClick = () => {
-    deleteMissingPhotos();
+    deleteMissingPhotos.mutate();
     close();
   };
 
@@ -212,7 +212,7 @@ export function Library() {
               <Grid.Col span={{ base: 12, sm: 2 }}>
                 <Group wrap="nowrap" gap={0} justify="flex-end">
                   <Button
-                    onClick={() => scanPhotos()}
+                    onClick={() => scanPhotos.mutate()}
                     disabled={!workerAvailability}
                     leftSection={<Refresh />}
                     variant="filled"
@@ -242,7 +242,7 @@ export function Library() {
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item leftSection={<Refresh size="1rem" />} onClick={() => rescanPhotos()}>
+                      <Menu.Item leftSection={<Refresh size="1rem" />} onClick={() => rescanPhotos.mutate()}>
                         {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
                         {statusPhotoScan.added
                           ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${
@@ -535,7 +535,7 @@ export function Library() {
             <Grid.Col span={{ base: 12, sm: 2 }}>
               <Button
                 onClick={() => {
-                  scanNextcloudPhotos();
+                  scanNextcloudPhotos.mutate();
                 }}
                 disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
                 variant="filled"

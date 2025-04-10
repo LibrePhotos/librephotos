@@ -48,11 +48,13 @@
 .pigThumbnail {
   -webkit-filter: blur(8px);
   filter: blur(8px);
+  transition: filter 150ms linear, -webkit-filter 150ms linear;
 }
 
 .pigThumbnailLoaded {
   /* just in case it might help performance */
-  filter: none;
+  -webkit-filter: blur(0);
+  filter: blur(0);
 }
 
 .pigFullLoaded {

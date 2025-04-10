@@ -11,6 +11,7 @@ import { MediaDisplay } from "./MediaDisplay";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
 import type { ContentViewerProps, FaceLocationType, ImageDimensions } from "./lightbox.types";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
 
 export function ContentViewer({
   mainSrc,
@@ -20,7 +21,6 @@ export function ContentViewer({
   onCloseRequest,
   onMovePrevRequest,
   onMoveNextRequest,
-  onImageLoad,
   enableZoom = true,
   isPublic,
 }: ContentViewerProps) {
@@ -31,7 +31,7 @@ export function ContentViewer({
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
   const [embla, setEmbla] = useState<any | null>(null);
 
-  const { photoDetails } = useAppSelector(store => store.photoDetails);
+  const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrc);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions>({ width: 0, height: 0 });
 
   // Setup slide change handler for Embla
@@ -81,11 +81,7 @@ export function ContentViewer({
       embla.reInit();
     }
   }, [lightboxSidebarShow, embla]);
-
-  useEffect(() => {
-    if (onImageLoad) onImageLoad();
-  }, [onImageLoad]);
-
+  
   const toggleZoom = () => {
     const newZoomState = !isZoomed;
     setIsZoomed(newZoomState);
@@ -125,7 +121,8 @@ export function ContentViewer({
 
             {/* Top toolbar */}
             <LightboxControls
-              photoDetail={photoDetails[mainSrc]}
+              isPhotoDetailsLoading={isPhotoDetailsLoading}
+              photoDetail={photoDetails}
               lightboxSidebarShow={lightboxSidebarShow}
               setLightBoxSidebarShow={setLightBoxSidebarShow}
               isPublic={isPublic}

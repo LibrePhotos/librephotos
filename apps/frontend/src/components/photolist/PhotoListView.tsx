@@ -89,7 +89,7 @@ function PhotoListViewComponent({
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
   const gridHeight = useRef(200);
   const [scrollLocked, setScrollLocked] = useState(false);
-  const [setUserAlbumCover] = useSetUserAlbumCoverMutation();
+  const setUserAlbumCover = useSetUserAlbumCoverMutation();
   const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
   const [updateUser] = useUpdateUserMutation();
   const route = useAppSelector(store => store.router);
@@ -140,6 +140,7 @@ function PhotoListViewComponent({
     if (pxHeight < 250) {
       return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
     }
+    // Always use the highest quality thumbnails for better image quality
     return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
   }, []);
 
@@ -352,7 +353,7 @@ function PhotoListViewComponent({
                         });
                       }
                       if (actionType === "useralbum") {
-                        setUserAlbumCover({
+                        setUserAlbumCover.mutate({
                           id: `${params.albumID}`,
                           photo: selectionState.selectedItems[0].id,
                         });

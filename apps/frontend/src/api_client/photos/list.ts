@@ -1,7 +1,9 @@
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PigPhotoSchema } from "../../actions/photosActions.types";
-import { api } from "../api";
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
+import { addTempElementsToFlatList } from "../../util/util";
 
 const PaginatedPhotosResponseSchema = z.object({
   count: z.number(),
@@ -9,31 +11,14 @@ const PaginatedPhotosResponseSchema = z.object({
   previous: z.string().nullable(),
   results: PigPhotoSchema.array(),
 });
-type PaginatedPhotosResponse = z.infer<typeof PaginatedPhotosResponseSchema>;
+export type PaginatedPhotosResponse = z.infer<typeof PaginatedPhotosResponseSchema>;
 
-enum Endpoints {
-  fetchPhotosWithoutTimestamp = "fetchPhotosWithoutTimestamp",
-}
-
-export const photoListApi = api.injectEndpoints({
-  endpoints: builder => ({
-    [Endpoints.fetchPhotosWithoutTimestamp]: builder.query<PaginatedPhotosResponse, number>({
-      query: page => `photos/notimestamp/?page=${page}`,
-      async onQueryStarted(page, { dispatch, queryFulfilled }) {
-        dispatch({ type: "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED" });
-        const response = await queryFulfilled;
-        try {
-          const data = PaginatedPhotosResponseSchema.parse(response.data);
-          dispatch({
-            type: "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_FULFILLED",
-            payload: { photosFlat: data.results, page, photosCount: data.count },
-          });
-        } catch (e) {
-          dispatch({ type: "FETCH_NO_TIMESTAMP_PHOTOS_PAGINATED_REJECTED", payload: e });
-        }
-      },
-    }),
-  }),
-});
-
-export const { useLazyFetchPhotosWithoutTimestampQuery } = photoListApi;
+// Fetch photos without timestamp
+export const useFetchPhotosWithoutTimestampQuery = (page: number) => useQuery({
+  queryKey: [QueryKeys.dateAlbum, 'noTimestamp', page],
+  queryFn: async () => {
+    const response = await fetchClient.get(`/photos/notimestamp/?page=${page}`);
+    return PaginatedPhotosResponseSchema.parse(response);
+  },
+  placeholderData: keepPreviousData,
+}); 

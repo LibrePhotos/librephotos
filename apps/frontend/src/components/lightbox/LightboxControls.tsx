@@ -7,6 +7,7 @@ import { Toolbar } from "./Toolbar";
 
 export function LightboxControls({
   photoDetail,
+  isPhotoDetailsLoading,
   lightboxSidebarShow,
   setLightBoxSidebarShow,
   isPublic,
@@ -20,6 +21,7 @@ export function LightboxControls({
     <Group justify="flex-end" style={{ background: "transparent" }}>
       <Toolbar
         photosDetail={photoDetail}
+        isPhotoDetailsLoading={isPhotoDetailsLoading}
         lightboxSidebarShow={lightboxSidebarShow}
         closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
         isPublic={isPublic}

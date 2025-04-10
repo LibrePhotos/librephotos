@@ -3,56 +3,28 @@ import { useMediaQuery } from "@mantine/hooks";
 import React from "react";
 import { useParams } from "react-router-dom";
 import { DateTime } from "luxon";
-import { IconPhoto, IconFolder, IconCamera, IconMaximize, IconMinimize } from "@tabler/icons-react";
+import { IconPhoto } from "@tabler/icons-react";
 
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { photoDetailsApi } from "../../api_client/photos/photoDetail";
+import { useAppDispatch } from "../../store/store";
 import { TimestampItem } from "../lightbox/TimestampItem";
 import { Description } from "../lightbox/Description";
-import { LocationMap } from "../LocationMap";
 import { MediaDisplay } from "../lightbox/MediaDisplay";
 import { CameraInfoComponent } from "../lightbox/CameraInfoComponent";
-import { PersonDetail } from "../lightbox/PersonDetailComponent";
 import type { FaceLocationType } from "../lightbox/lightbox.types";
 import { FileInfoComponent } from "../lightbox/FileInfoComponent";
 import { SimilarPhotosSection } from "../lightbox/SimilarPhotosSection";
 import { LocationSection } from "../lightbox/LocationSection";
 import { PeopleSection } from "../lightbox/PeopleSection";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
 
 export function SinglePhotoView() {
   const { photoId } = useParams();
-  const { photoDetails } = useAppSelector(store => store.photoDetails);
-  const dispatch = useAppDispatch();
-  const photoDetail = photoDetails[photoId || ""];
+  const { data: photoDetail } = useFetchPhotoDetailsQuery(photoId || "");
   const [imageDimensions, setImageDimensions] = React.useState({ width: 0, height: 0 });
   const [faceLocation, setFaceLocation] = React.useState<FaceLocationType>(null);
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
-
-  const handleSetFaceLocation = (face: { face_id: number; face_url: string }) => {
-    // For now, we'll just set a default face location since we don't have the actual coordinates
-    setFaceLocation({
-      top: 0,
-      bottom: 0,
-      left: 0,
-      right: 0
-    });
-  };
-
-  const notThisPerson = (faceId: number) => {
-    dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoId || "")).refetch();
-  };
-
-  const handlePersonEdit = (faceId: string, faceUrl: string) => {
-    // Implementation would go here if needed
-  };
-
-  React.useEffect(() => {
-    if (photoId) {
-      dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(photoId));
-    }
-  }, [photoId, dispatch]);
 
   if (!photoId) {
     return (
@@ -77,12 +49,16 @@ export function SinglePhotoView() {
     );
   }
 
-  const fileName = photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1);
+  const fileName = photoDetail.image_path && photoDetail.image_path.length > 0
+    ? photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)
+    : "Unknown filename";
   const fileSize = Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 
     ? `${Math.round((photoDetail.size / 1024) * 100) / 100} kB` 
     : `${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`;
   const dimensions = `${photoDetail.height} x ${photoDetail.width}`;
-  const timestamp = DateTime.fromISO(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED);
+  const timestamp = photoDetail.exif_timestamp 
+    ? DateTime.fromISO(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)
+    : "Unknown timestamp";
 
   return (
     <Container fluid p={isMobile ? "xs" : "md"}>
@@ -108,7 +84,7 @@ export function SinglePhotoView() {
                 ) : (
                   <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} size="sm" />
                 )}
-                <FileInfoComponent info={DateTime.fromISO(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)} size="sm" />
+                <FileInfoComponent info={timestamp} size="sm" />
               </Group>
           </Stack>
 
@@ -119,7 +95,7 @@ export function SinglePhotoView() {
             <MediaDisplay
               id={photoDetail.image_hash}
               isMainContent={true}
-              type={photoDetail.type?.includes("video") ? "video" : "photo"}
+              type={photoDetail.video ? "video" : "photo"}
               imageDimensions={imageDimensions}
               setImageDimensions={setImageDimensions}
               faceLocation={faceLocation}
@@ -137,9 +113,12 @@ export function SinglePhotoView() {
                 <PeopleSection 
                   photoDetail={photoDetail}
                   isPublic={false}
-                  setFaceLocation={handleSetFaceLocation}
-                  onPersonEdit={handlePersonEdit}
-                  notThisPerson={notThisPerson}
+                  // To-Do: Implement this
+                  setFaceLocation={() => {}}
+                  // To-Do: Implement this
+                  onPersonEdit={() => {}}
+                  // To-Do: Implement this
+                  notThisPerson={() => {}}
                 />
                 <Description photoDetail={photoDetail} isPublic={false} />
               </Stack>

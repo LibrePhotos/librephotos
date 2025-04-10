@@ -1,9 +1,9 @@
+import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PhotoSchema } from "../../actions/photosActions.types";
 import { notification } from "../../service/notifications";
-import { api } from "../api";
-import { photoDetailsApi } from "./photoDetail";
+import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
 
 const UpdatePhotosResponseSchema = z.object({
   status: z.boolean(),
@@ -25,64 +25,40 @@ const SetPhotosHiddenRequestSchema = z.object({
 });
 type SetPhotosHiddenRequest = z.infer<typeof SetPhotosHiddenRequestSchema>;
 
-enum Endpoints {
-  setPhotosPublic = "setPhotosPublic",
-  setPhotosHidden = "setPhotosHidden",
-}
-
-export const photoVisibilityApi = api.injectEndpoints({
-  endpoints: builder => ({
-    [Endpoints.setPhotosPublic]: builder.mutation<UpdatePhotosResponse, SetPhotosPublicRequest>({
-      query: ({ image_hashes, val_public }) => ({
-        url: "photosedit/makepublic/",
-        method: "POST",
-        body: { image_hashes, val_public },
-      }),
-      async onQueryStarted({ image_hashes, val_public }, { dispatch, queryFulfilled }) {
-        dispatch({ type: "SET_PHOTOS_PUBLIC" });
-        const response = await queryFulfilled;
-        const { updated: updatedPhotos } = UpdatePhotosResponseSchema.parse(response.data);
-        dispatch({
-          type: "SET_PHOTOS_PUBLIC_FULFILLED",
-          payload: {
-            image_hashes,
-            val_public,
-            updatedPhotos,
-          },
-        });
-        notification.togglePhotosPublic(image_hashes.length, true);
-        if (image_hashes.length === 1) {
-          // TODO(sickelap): invalidate tags when we have them
-          dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
-        }
-      },
-    }),
-    [Endpoints.setPhotosHidden]: builder.mutation<UpdatePhotosResponse, SetPhotosHiddenRequest>({
-      query: ({ image_hashes, hidden }) => ({
-        url: "photosedit/hide/",
-        method: "POST",
-        body: { image_hashes, hidden },
-      }),
-      async onQueryStarted({ image_hashes, hidden }, { dispatch, queryFulfilled }) {
-        dispatch({ type: "SET_PHOTOS_HIDDEN" });
-        const response = await queryFulfilled;
-        const { updated: updatedPhotos } = UpdatePhotosResponseSchema.parse(response.data);
-        dispatch({
-          type: "SET_PHOTOS_HIDDEN_FULFILLED",
-          payload: {
-            image_hashes,
-            hidden,
-            updatedPhotos,
-          },
-        });
-        notification.togglePhotosHidden(image_hashes.length, false);
-        if (image_hashes.length === 1) {
-          // TODO(sickelap): invalidate tags when we have them
-          dispatch(photoDetailsApi.endpoints.fetchPhotoDetails.initiate(image_hashes[0])).refetch();
-        }
-      },
-    }),
-  }),
+// Set photos public
+export const useSetPhotosPublicMutation = () => useMutation({
+  mutationFn: async ({ image_hashes, val_public }: SetPhotosPublicRequest) => {
+    const response = await fetchClient.post('photosedit/makepublic/', { image_hashes, val_public });
+    const data = UpdatePhotosResponseSchema.parse(response);
+    notification.togglePhotosPublic(image_hashes.length, true);
+    return data;
+  },
+  onSuccess: (data, { image_hashes }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+    
+    // If we have a single photo, invalidate its details
+    if (image_hashes.length === 1) {
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, image_hashes[0]] });
+    }
+  },
 });
 
-export const { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } = photoVisibilityApi;
+// Set photos hidden
+export const useSetPhotosHiddenMutation = () => useMutation({
+  mutationFn: async ({ image_hashes, hidden }: SetPhotosHiddenRequest) => {
+    const response = await fetchClient.post('photosedit/hide/', { image_hashes, hidden });
+    const data = UpdatePhotosResponseSchema.parse(response);
+    notification.togglePhotosHidden(image_hashes.length, false);
+    return data;
+  },
+  onSuccess: (data, { image_hashes }) => {
+    // Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+    
+    // If we have a single photo, invalidate its details
+    if (image_hashes.length === 1) {
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, image_hashes[0]] });
+    }
+  },
+}); 

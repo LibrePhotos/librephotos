@@ -19,7 +19,9 @@ function PhotoInfoSection({ photoDetail }: { photoDetail: PhotoType }) {
         <div>
           <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
             <Text fw={800} lineClamp={1} style={{ maxWidth: 225 }}>
-              {photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)}
+              {photoDetail.image_path && photoDetail.image_path.length > 0 
+                ? photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)
+                : "Unknown filename"}
             </Text>
           </Anchor>
           <Group>
@@ -72,7 +74,9 @@ function AdditionalInfoSection({ photoDetail, isPublic, t }: {
 }) {
   return (
     <Stack>
-      {!isPublic && <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />}
+      {!isPublic && photoDetail.image_path && photoDetail.image_path.length > 0 && (
+        <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />
+      )}
       <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />
       <FileInfoComponent
         description={t("exif.digitalzoomratio")}
@@ -161,7 +165,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
   const [imageHash, setImageHash] = useState("");
   const [path, setPath] = useState("");
   const { t } = useTranslation();
-  const [deleteDuplicatePhoto] = useDeleteDuplicatePhotoMutation();
+  const deleteDuplicatePhoto = useDeleteDuplicatePhotoMutation();
 
   const openDeleteDialog = (hash: string, filePath: string) => {
     setOpenDeleteDialogState(true);
@@ -170,11 +174,11 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
   };
 
   const handleDeleteConfirm = () => {
-    deleteDuplicatePhoto({ image_hash: imageHash, path });
+    deleteDuplicatePhoto.mutate({ image_hash: imageHash, path });
     setOpenDeleteDialogState(false);
   };
 
-  const duplicates = photoDetail.image_path.slice(1);
+  const duplicates = photoDetail.image_path ? photoDetail.image_path.slice(1) : [];
 
   return (
     <div>

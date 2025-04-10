@@ -318,7 +318,8 @@
             "invalidtimestamp": "Marca de tiempo inválida",
             "withouttimestamp": "Sin marca de tiempo",
             "removetimestamp": "Eliminar marca de tiempo",
-            "undotimestampmodification": "Deshacer modificación de marca de tiempo"
+            "undotimestampmodification": "Deshacer modificación de marca de tiempo",
+            "places": "Lugares"
         }
     },
     "photos": {
