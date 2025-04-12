@@ -2,16 +2,16 @@ import { HoverCard, Stack, Text } from "@mantine/core";
 import { t } from "i18next";
 import React, { useEffect, useState } from "react";
 
-import { FacesTab } from "../../store/faces/facesActions.types";
-import type { IFacesTab } from "../../store/faces/facesActions.types";
+import { FacesTab } from "../../api_client/faces";
 import { useAppSelector } from "../../store/store";
 
 type Props = Readonly<{
-  tab: IFacesTab;
+  tab: FacesTab;
   children: React.ReactNode;
 }>;
 
 export function FacesCountersHoverCard({ tab, children }: Props) {
+  // TODO: Remove this once the store is removed
   const { inferredFacesList, labeledFacesList } = useAppSelector(store => store.face);
 
   const [labeledPersonsCount, setLabeledPersonsCount] = useState(0);

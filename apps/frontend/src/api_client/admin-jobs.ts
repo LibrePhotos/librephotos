@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 import { fetchClient, queryClient, QueryKeys } from "./api";
-import { SimpleUser } from "../store/user/user.zod";
+import { SimpleUser } from "./user/types";
 
 export const JobSchema = z.object({
   job_id: z.string(),

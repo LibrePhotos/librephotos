@@ -22,7 +22,7 @@ import { Trans, useTranslation } from "react-i18next";
 
 import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { useUpdateAvatarMutation, useUpdateUserMutation } from "../../api_client/user";
+import { useUpdateAvatarMutation, useUpdateUserMutation } from "../../api_client/user"
 import { PasswordEntry } from "../../components/settings/PasswordEntry";
 import { useAppDispatch, useAppSelector } from "../../store/store";
 

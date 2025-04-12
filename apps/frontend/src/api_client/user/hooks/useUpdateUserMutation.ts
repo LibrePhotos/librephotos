@@ -2,8 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 import { fetchClient, queryClient, QueryKeys } from "../../api";
 import { notification } from "../../../service/notifications";
-import { UserSchema } from "../../../store/user/user.zod";
-import { useQuery } from "@tanstack/react-query";
+import { UserSchema } from "../types";
 
 type User = z.infer<typeof UserSchema>;
 

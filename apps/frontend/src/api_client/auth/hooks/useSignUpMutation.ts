@@ -1,15 +1,40 @@
 import { useMutation } from '@tanstack/react-query';
-import { queryClient } from '../../api';
-import { QueryKeys } from '../../api';
-import { API } from '../../api';
-import type { SignUpMutationVariables, SignUpMutationResponse } from '../types';
+import { fetchClient, queryClient } from '../../api';
+
+import { QueryKeys as isFirstTimeSetupQueryKeys } from './useIsFirstTimeSetupQuery';
+import { QueryKeys as UserListQueryKeys } from '../../user/hooks/useFetchUserListQuery';
+import { z } from 'zod';
+
+
+
+export const UserSignupRequest = z.object({
+  username: z.string(),
+  password: z.string(),
+  email: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+});
+
+export const UserSignupResponse = z.object({
+  username: z.string(),
+  email: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+});
+
+export type UserSignupRequest = z.infer<typeof UserSignupRequest>;
+export type UserSignupResponse = z.infer<typeof UserSignupResponse>;
+
+const signUp = (data: UserSignupRequest) => 
+  fetchClient.post<UserSignupResponse>('/user/', data)
+    .then(response => UserSignupResponse.parse(response))
 
 export const useSignUpMutation = () => {
-  return useMutation<SignUpMutationResponse, Error, SignUpMutationVariables>({
-    mutationFn: (variables) => API.signUp(variables),
+  return useMutation({
+    mutationFn: signUp,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.isFirstTimeSetup] });
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.userList] });
+      queryClient.invalidateQueries({ queryKey: isFirstTimeSetupQueryKeys });
+      queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
     }
   });
 }; 

@@ -29,7 +29,7 @@ const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
       return payload;
     });
 
-export const useSetFacesPersonLabelMutation = useMutation({
+export const useSetFacesPersonLabelMutation = () => useMutation({
     mutationFn: setFacesPersonLabel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FacesQueryKeys });

@@ -3,7 +3,7 @@ import { IconTrash as Trash } from "@tabler/icons-react";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { useDeleteUserMutation } from "../../api_client/api";
+import { useDeleteUserMutation } from "../../api_client/user/hooks";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -13,7 +13,7 @@ type Props = Readonly<{
 
 export function ModalUserDelete(props: Props) {
   const { isOpen, onRequestClose, userToDelete } = props;
-  const [deleteUser] = useDeleteUserMutation();
+  const { mutate: deleteUser } = useDeleteUserMutation();
 
   const { t } = useTranslation();
 
@@ -22,7 +22,7 @@ export function ModalUserDelete(props: Props) {
   };
 
   const deleteUserAndClose = () => {
-    deleteUser({ id: userToDelete.id });
+    deleteUser(userToDelete.id);
     clearStateAndClose();
   };
 

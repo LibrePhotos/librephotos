@@ -19,8 +19,8 @@ const upload = (options: UploadOptions) => {
     }).then(response => UploadResponse.parse(response));
     }
 
-export const useUploadMutation = (options: UploadOptions) => {
+export const useUploadMutation = () => {
     return useMutation({
-        mutationFn: () => upload(options),
+        mutationFn: upload,
     });
 };  

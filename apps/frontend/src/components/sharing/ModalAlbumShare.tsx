@@ -2,7 +2,7 @@ import { Divider, Modal, ScrollArea, Stack, TextInput, Title } from "@mantine/co
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFetchUserListQuery } from "../../api_client/api";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useAppSelector } from "../../store/store";
 import classes from "./ModalAlbumShare.module.css";
 import { UserEntry } from "./UserEntry";

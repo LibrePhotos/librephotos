@@ -6,7 +6,7 @@ import { useSearchParams } from "react-router-dom";
 import { 
   useDeleteFacesMutation, 
   useSetFacesPersonLabelMutation
-} from "../../api_client/api";
+} from "../../api_client/faces";
 import { ButtonHeaderGroup } from "./ButtonHeaderGroup";
 import { TabComponent } from "./TabComponent";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";

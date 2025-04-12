@@ -1,4 +1,4 @@
-import { IUser } from "../../store/user/user.zod";
+import { User } from "../../api_client/user/types";
 
 function fuzzyMatch(str: string, pattern: string) {
   if (pattern.split("").length > 0) {
@@ -8,7 +8,7 @@ function fuzzyMatch(str: string, pattern: string) {
   return false;
 }
 
-export default function filterUsers(username: string, excludeUserId: number, users: IUser[] = []): IUser[] {
+export default function filterUsers(username: string, excludeUserId: number, users: User[] = []): User[] {
   return users
     .filter(user => {
       if (username.length === 0) {

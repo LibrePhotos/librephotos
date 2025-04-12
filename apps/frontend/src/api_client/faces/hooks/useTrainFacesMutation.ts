@@ -1,6 +1,7 @@
-import { useMutation } from '@tanstack/react-query';
-import { fetchClient } from '../../api';
+import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
+
+import { fetchClient } from "../../api";
 
 export type TrainFacesResponse = z.infer<typeof TrainFacesResponse>;
 export const TrainFacesResponse = z.object({
@@ -9,11 +10,10 @@ export const TrainFacesResponse = z.object({
   job_id: z.string().optional(),
 });
 
-export const trainFaces = () => 
-  fetchClient.post<TrainFacesResponse>('/trainfaces');
+export const trainFaces = () => fetchClient.post<TrainFacesResponse>("/trainfaces");
 
 export const useTrainFacesMutation = () => {
   return useMutation({
     mutationFn: () => trainFaces(),
   });
-}; 
+};

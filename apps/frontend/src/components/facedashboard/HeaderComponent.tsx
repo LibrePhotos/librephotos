@@ -14,7 +14,6 @@ import _ from "lodash";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDisclosure } from "@mantine/hooks";
-
 import { useAppSelector } from "../../store/store";
 import { useRenamePersonAlbumMutation, useDeletePersonAlbumMutation } from "../../api_client/albums";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums";
@@ -37,7 +36,6 @@ export function HeaderComponent({
   setSelectedFaces,
   selectedFaces,
 }: Readonly<Props>) {
-  const { activeTab } = useAppSelector(store => store.face);
   const { t } = useTranslation();
   const [checked, setChecked] = useState(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
@@ -138,7 +136,7 @@ export function HeaderComponent({
             <Button
               color="blue"
               onClick={() => {
-                renamePerson.mutate({ id: personID, name: newPersonName });
+                renamePerson.mutate({ id: personID, personName: newPersonName, newPersonName: newPersonName });
                 hideRenameDialog();
               }}
             >

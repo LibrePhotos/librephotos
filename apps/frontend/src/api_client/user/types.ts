@@ -1,4 +1,3 @@
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import { z } from "zod";
 
 export const PublicPhotoSampleSchema = z.object({
@@ -9,7 +8,7 @@ export const PublicPhotoSampleSchema = z.object({
   public: z.boolean(),
   video: z.boolean(),
 });
-export type IPublicPhotoSample = z.infer<typeof PublicPhotoSampleSchema>;
+export type PublicPhotoSample = z.infer<typeof PublicPhotoSampleSchema>;
 
 export const UserSchema = z.object({
   id: z.number(),
@@ -72,20 +71,14 @@ export const SimpleUser = z.object({
   last_name: z.string(),
 });
 
-export type IUser = z.infer<typeof UserSchema>;
-export type IManageUser = z.infer<typeof ManageUser>;
+export type User = z.infer<typeof UserSchema>;
+export type ManageUser = z.infer<typeof ManageUser>;
 
-export const ApiUserListResponseSchema = z.object({
-  count: z.number(),
-  next: z.string().nullable(),
-  previous: z.string().nullable(),
-  results: z.array(UserSchema),
-});
 
 export const UserListSchema = z.array(UserSchema);
 export type UserList = z.infer<typeof UserListSchema>;
 
-export type IUserState = {
-  userSelfDetails: IUser;
-  error: Error | FetchBaseQueryError | string | null | undefined;
+export type UserState = {
+  userSelfDetails: User;
+  error: Error | string | null | undefined;
 };

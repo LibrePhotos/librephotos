@@ -4,7 +4,7 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFetchUserListQuery } from "../../api_client/api";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useUpdatePhotoSharingMutation } from "../../api_client/photos/sharing";
 import { i18nResolvedLanguage } from "../../i18n";

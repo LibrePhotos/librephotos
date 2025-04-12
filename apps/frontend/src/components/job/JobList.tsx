@@ -5,7 +5,6 @@ import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { JobsResponseSchema } from "../../api_client/admin-jobs-schema";
 import { useJobsQuery } from "../../api_client/api";
 import { i18nResolvedLanguage } from "../../i18n";
 import { DeleteJobButton } from "./DeleteJobButton";

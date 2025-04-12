@@ -1,11 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
-import { API } from '../../api';
-import { QueryKeys } from '../../api';
-import type { FetchUserListQueryResponse } from '../types';
+import { fetchClient } from '../../api';
+import type { UserList } from '../types';
+import { UserSchema } from '../types';
+import { z } from 'zod';
 
-export const useFetchUserListQuery = () => {
-  return useQuery<FetchUserListQueryResponse>({
-    queryKey: [QueryKeys.userList],
-    queryFn: () => API.fetchUserList()
+
+export const QueryKeys = ["userList"]
+
+export const ApiUserListResponseSchema = z.object({
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  results: z.array(UserSchema),
+});
+// User List Query
+export const useFetchUserListQuery = () => 
+  useQuery<UserList>({
+    queryKey: QueryKeys,
+    queryFn: async () => {
+      const response = await fetchClient.get<UserList>('/user/');
+      return ApiUserListResponseSchema.parse(response).results;
+    }
   });
-}; 
+

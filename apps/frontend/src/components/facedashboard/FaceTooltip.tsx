@@ -4,7 +4,8 @@ import { DateTime } from "luxon";
 import React from "react";
 
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppSelector } from "../../store/store";
+import { useSearchParams } from "react-router-dom";
+import { FacesTab } from "../../api_client/faces";
 
 type Props = Readonly<{
   tooltipOpened: boolean;
@@ -14,7 +15,8 @@ type Props = Readonly<{
 }>;
 
 export function FaceTooltip({ tooltipOpened, probability, timestamp, children = null }: Props) {
-  const { activeTab } = useAppSelector(store => store.face);
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || FacesTab.enum.labeled;
 
   const confidencePercentageLabel =
     activeTab === "inferred"

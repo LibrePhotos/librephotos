@@ -3,7 +3,6 @@ import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import "react-virtualized/styles.css";
 
-import { api } from "../../api_client/api";
 import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
@@ -14,6 +13,8 @@ import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
+import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+
 interface SidebarProps {
   isPublic: boolean;
   id: string;
@@ -51,6 +52,7 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
   
   const { data: photoDetail } = useFetchPhotoDetailsQuery(id);
+  const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
 
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
@@ -61,7 +63,7 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
 
   const notThisPerson = (faceId: number) => {
     const ids = [faceId];
-    dispatch(api.endpoints.setFacesPersonLabel.initiate({ faceIds: ids, personName: "Unknown - Other" }));
+    setFacesPersonLabel({ faceIds: ids, personName: "Unknown - Other" });
     notification.removeFacesFromPerson(ids.length);
   };
 

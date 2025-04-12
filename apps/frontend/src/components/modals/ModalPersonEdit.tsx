@@ -18,10 +18,10 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
-import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppDispatch } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
+import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -36,8 +36,8 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
   const { data: people } = useFetchPeopleAlbumsQuery();
+  const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
 
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
   let filteredPeopleList = people;
@@ -91,12 +91,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
           />
           <Button
             onClick={() => {
-              dispatch(
-                api.endpoints.setFacesPersonLabel.initiate({
-                  faceIds: selectedFaceIDs,
-                  personName: newPersonName,
-                })
-              );
+              setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: newPersonName });
               if (resetGroups) {
                 resetGroups();
               }
@@ -127,12 +122,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
                   backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
                 }}
                 onClick={() => {
-                  dispatch(
-                    api.endpoints.setFacesPersonLabel.initiate({
-                      faceIds: selectedFaceIDs,
-                      personName: item.name,
-                    })
-                  );
+                  setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: item.name });
                   onRequestClose();
                 }}
               >

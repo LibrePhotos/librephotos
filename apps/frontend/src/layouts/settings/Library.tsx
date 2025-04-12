@@ -39,8 +39,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { useGenerateAutoAlbumsMutation } from "../../api_client/api";
-import { api, useWorkerQuery } from "../../api_client/api";
+import { useGenerateAutoAlbumsMutation,  useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/delete";
@@ -49,15 +48,15 @@ import {
   useScanNextcloudPhotosMutation,
   useScanPhotosMutation,
 } from "../../api_client/photos/scan";
-import { useUpdateUserMutation } from "../../api_client/user";
+import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../../api_client/util";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
 import { notification } from "../../service/notifications";
 import { useAppDispatch, useAppSelector } from "../../store/store";
-import { IUser } from "../../store/user/user.zod";
+import { User } from "../../api_client/user/types";
 
-function BadgeIcon(details: IUser, isSuccess: boolean, isError: boolean, isFetching: boolean) {
+function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
   if (isSuccess && server) {
     return <Check size={20} />;
@@ -360,7 +359,7 @@ export function Library() {
               <Grid.Col span={{ base: 12, sm: 2 }}>
                 <Button
                   onClick={() => {
-                    dispatch(api.endpoints.generateAutoAlbumTitle.initiate());
+                    generateAutoAlbums();
                     notification.regenerateEventAlbums();
                   }}
                   disabled={!workerAvailability}

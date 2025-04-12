@@ -4,17 +4,18 @@ import CryptoJS from "crypto-js";
 import MD5 from "crypto-js/md5";
 import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { fetchClient } from "../api_client/api";
+import { UploadExistResponse } from "../api_client/upload/hooks/useUploadExistsMutation";
 
 import { useGetSettingsQuery } from "../api_client/site-settings";
 import { useAppSelector } from "../store/store";
-import { useUploadExistsMutation, useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
+import { useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
 
 export function ChunkedUploadButton() {
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector(state => state.user);
   const { data: settings } = useGetSettingsQuery();
-  const uploadExistsMutation = useUploadExistsMutation();
   const uploadFinishedMutation = useUploadFinishedMutation();
   const uploadMutation = useUploadMutation();
   const chunkSize = 1000000; // < 1MB chunks, because of default of nginx
@@ -59,8 +60,8 @@ export function ChunkedUploadButton() {
   };
 
   const checkIfAlreadyUploaded = async (hash: string) => {
-    const result = await uploadExistsMutation.mutateAsync(hash + userSelfDetails.id);
-    return result;
+    const response = await fetchClient.get<string>(`/exists/${hash + userSelfDetails.id}`);
+    return UploadExistResponse.parse(response).exists;
   };
 
   const uploadFinished = async (file: File, uploadId: string) => {

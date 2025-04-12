@@ -1,17 +1,17 @@
-import { useMutation } from '@tanstack/react-query';
-import { queryClient } from '../../api';
-import { QueryKeys } from '../../api';
-import { API } from '../../api';
-import type { DeleteUserMutationVariables, DeleteUserMutationResponse } from '../types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchClient } from '../../api';
+import { QueryKeys as UserListQueryKeys } from './useFetchUserListQuery';
 
+// Delete User Mutation
 export const useDeleteUserMutation = () => {
-  return useMutation<DeleteUserMutationResponse, Error, DeleteUserMutationVariables>({
-    mutationFn: async (variables) => {
-      await API.deleteUser(variables);
-      return undefined;
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (userId: number) => {
+      await fetchClient.delete(`/delete/user/${userId}/`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.userList] });
+      queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
     }
   });
 }; 

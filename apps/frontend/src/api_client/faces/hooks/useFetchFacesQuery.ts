@@ -24,7 +24,7 @@ export const PersonFaceListResponse = z.object({
 export type PersonFaceListRequest = z.infer<typeof PersonFaceListRequest>;
   
 
-const fetchFaces = (params: PersonFaceListRequest) => {
+export const fetchFaces = (params: PersonFaceListRequest) => {
     const { person, page = 0, inferred = false, orderBy = 'confidence', method, minConfidence } = params;
     const url = `/faces/?person=${person}&page=${page}&inferred=${inferred}&order_by=${orderBy}${
       method ? `&analysis_method=${method}` : ''

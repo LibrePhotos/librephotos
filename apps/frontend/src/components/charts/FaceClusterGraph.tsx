@@ -6,7 +6,7 @@ import { Hint, HorizontalGridLines, MarkSeries, VerticalGridLines, XYPlot } from
 
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
-import { useClusterFacesMutation } from "../../api_client/faces";
+import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
 
 type Props = Readonly<{
   height: number;
@@ -20,17 +20,12 @@ export function FaceClusterGraph({ height }: Props) {
       observe();
     },
   });
-  const { facesVis, clustered, clustering } = useAppSelector(state => state.face);
-  const clusterFacesMutation = useClusterFacesMutation();
+  const { data: facesVis, isFetching: clustering, isSuccess: clustered } = useClusterFacesQuery();
 
-  useEffect(() => {
-    clusterFacesMutation.mutate();
-  }, []); // Only run on first render
-
-  const personNames = [...new Set(facesVis.map((el: any) => el.person_name))];
+  const personNames = facesVis?.data ? [...new Set(facesVis.data.map((el: any) => el.person_name))] : [];
 
   const mappedScatter = personNames.map(name => {
-    const thisPersonVis = facesVis.filter((el: any) => name === el.person_name);
+    const thisPersonVis = facesVis?.data?.filter((el: any) => name === el.person_name) ?? [];
     const thisPersonData = thisPersonVis.map((el: any) => ({
       x: el.value.x,
       y: el.value.y,

@@ -6,8 +6,8 @@ import { UploadOptions } from '../types';
 const uploadFinished = (formData: FormData) => 
     fetchClient.post('/upload/complete/', formData)
 
-export const useUploadFinishedMutation = (options: UploadOptions) => {
+export const useUploadFinishedMutation = () => {
     return useMutation({
-        mutationFn: () => uploadFinished(options.form_data),
+        mutationFn: uploadFinished,
     });
 };

@@ -17,7 +17,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
-import { useUpdateUserMutation } from "../../api_client/user";
+import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { SimpleUser } from "../store/user/user.zod";
+import { SimpleUser } from "./user/types";
 
 export const JobSchema = z.object({
   job_id: z.string(),

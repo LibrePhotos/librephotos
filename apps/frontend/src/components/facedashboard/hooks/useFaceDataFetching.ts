@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { FaceAnalysisMethod, FacesTab, CompletePersonFaceList } from "../../../store/faces/facesActions.types";
-import { 
-  useFetchIncompleteFacesQuery, 
+import {  
   queryClient,
   API,
   QueryKeys
 } from "../../../api_client/api";
+import { QueryKeys as IncompleteFacesQueryKeys, useFetchIncompleteFacesQuery } from "../../../api_client/faces/hooks/useFetchIncompleteFacesQuery";
+import { fetchFaces, QueryKeys as FacesQueryKeys } from "../../../api_client/faces/hooks/useFetchFacesQuery";
 
 type OrderByType = "confidence" | "date" | "person";
 
@@ -70,19 +71,19 @@ export function useFaceDataFetching(
           
           // Fetch face data
           const data = await queryClient.fetchQuery({
-            queryKey: [QueryKeys.faces, queryParams],
-            queryFn: () => API.fetchFaces(queryParams)
+            queryKey: [FacesQueryKeys, queryParams],
+            queryFn: () => fetchFaces(queryParams)
           });
           
           // Update cache with fetched data
           const incompleteParams = element.inferred ? params.inferred : params.labeled;
           const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(
-            [QueryKeys.incompleteFaces, incompleteParams]
+            [IncompleteFacesQueryKeys, incompleteParams]
           );
           
           if (incompleteData) {
             queryClient.setQueryData(
-              [QueryKeys.incompleteFaces, incompleteParams],
+              [IncompleteFacesQueryKeys, incompleteParams],
               incompleteData.map(person => 
                 person.id === element.person 
                   ? {

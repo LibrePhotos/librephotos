@@ -1,19 +1,19 @@
 import { Box, Button, Grid, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title, Tree } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconMail as Mail, IconUser as User } from "@tabler/icons-react";
+import { IconMail as Mail, IconUser } from "@tabler/icons-react";
 import type { FormEvent } from "react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useManageUpdateUserMutation, useSignUpMutation } from "../../api_client/api";
+import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import type { DirTree } from "../../api_client/dir-tree";
-import { useLazyFetchDirsQuery } from "../../api_client/dir-tree";
+import { useFetchDirsQuery } from "../../api_client/dir-tree";
 import { useScanPhotosMutation } from "../../api_client/photos/scan";
-import { useAppDispatch, useAppSelector } from "../../store/store";
-import { IUser } from "../../store/user/user.zod";
+import { User } from "../../api_client/user/types";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { Leaf } from "./Leaf";
+import { useSignUpMutation } from "../../api_client/auth/hooks";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -47,23 +47,22 @@ export function ModalUserEdit(props: Props) {
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
 
-  const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
-  const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
+  const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");   
   const inputRef = useRef<HTMLInputElement>(null);
+  const [path, setPath] = useState("");
   const { t } = useTranslation();
   const [closing, setClosing] = useState(false);
-  const [signup] = useSignUpMutation();
-  const [updateUser] = useManageUpdateUserMutation();
-  const [fetchDirectoryTree, { data: directoryTree }] = useLazyFetchDirsQuery();
-  const [scanPhotos] = useScanPhotosMutation();
+  const { mutate: signup } = useSignUpMutation();
+  const { mutate: updateUser } = useManageUpdateUserMutation();
+  const { data: directoryTree } = useFetchDirsQuery(path);
+  const scanPhotos = useScanPhotosMutation();
 
   const validateUsername = (username: string) => {
     if (!username) {
       return t("modaluseredit.errorusernamecannotbeblank");
     }
     const exist = userList.reduce(
-      (acc: boolean, user: IUser) =>
+      (acc: boolean, user: User) =>
         acc || (user.id !== userToEdit.id && user.username.toLowerCase() === username.toLowerCase()),
       false
     );
@@ -108,13 +107,7 @@ export function ModalUserEdit(props: Props) {
     },
   });
 
-  useEffect(() => {
-    if (auth?.access?.is_admin) {
-      fetchDirectoryTree("");
-    }
-  }, [auth.access, dispatch]);
-
-  useEffect(() => {
+  useEffect(() => { 
     if (!directoryTree) {
       return;
     }
@@ -164,7 +157,7 @@ export function ModalUserEdit(props: Props) {
     if (inputRef.current) {
       const path = node.value;
       inputRef.current.value = path;
-      fetchDirectoryTree(path);
+      setPath(path);
       form.setFieldValue("scan_directory", path);
     }
   };
@@ -210,9 +203,11 @@ export function ModalUserEdit(props: Props) {
     }
 
     if (updateAndScan) {
-      updateUser(newUserData).then(() => {
-        if (newUserData.scan_directory) {
-          scanPhotos();
+      updateUser(newUserData, {
+        onSuccess: () => {
+          if (newUserData.scan_directory) {
+            scanPhotos.mutate();
+          }
         }
       });
     } else {
@@ -251,7 +246,7 @@ export function ModalUserEdit(props: Props) {
             <TextInput
               required
               label={t("login.usernamelabel")}
-              leftSection={<User />}
+              leftSection={<IconUser />}
               placeholder={t("login.usernameplaceholder")}
               name="username"
               {...form.getInputProps("username")}
@@ -265,14 +260,14 @@ export function ModalUserEdit(props: Props) {
             />
             <TextInput
               label={t("settings.firstname")}
-              leftSection={<User />}
+              leftSection={<IconUser />}
               placeholder={t("settings.firstnameplaceholder")}
               name="first_name"
               {...form.getInputProps("first_name")}
             />
             <TextInput
               label={t("settings.lastname")}
-              leftSection={<User />}
+              leftSection={<IconUser />}
               placeholder={t("settings.lastnameplaceholder")}
               name="last_name"
               {...form.getInputProps("last_name")}

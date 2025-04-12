@@ -11,16 +11,6 @@ import { Cookies } from 'react-cookie';
 
 import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
 import { notification } from "../service/notifications";
-import type {
-  IApiDeleteUserPost,
-  IApiLoginPost,
-  IApiLoginResponse,
-  UserSignupRequest,
-  UserSignupResponse,
-} from "../store/auth/auth.zod";
-import { ApiLoginResponseSchema, UserSignupResponseSchema } from "../store/auth/auth.zod";
-import type { IManageUser, IUser, UserList } from "../store/user/user.zod";
-import { ApiUserListResponseSchema, ManageUser, UserSchema } from "../store/user/user.zod";
 import type { ImageTagResponseType, ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
 import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
 import { JobRequest, JobsResponse, JobsResponseSchema } from "./admin-jobs-schema";
@@ -145,7 +135,6 @@ export enum QueryKeys {
   incompleteFaces = 'incompleteFaces',
   faces = 'faces',
   worker = 'worker',
-  isFirstTimeSetup = 'isFirstTimeSetup',
   serverStats = 'serverStats',
   serverLogs = 'serverLogs',
   storageStats = 'storageStats',
@@ -193,44 +182,6 @@ export const queryClient = new QueryClient({
 // API endpoints
 export const API = {
   // User & Auth
-  signUp: (data: UserSignupRequest) => 
-    fetchClient.post<UserSignupResponse>('/user/', data)
-      .then(response => UserSignupResponseSchema.parse(response)),
-  
-  login: (credentials: IApiLoginPost) => 
-    fetchClient.post<IApiLoginResponse>('/auth/token/obtain/', credentials)
-      .then(response => {
-        const data = ApiLoginResponseSchema.parse(response);
-        const cookies = new Cookies();
-        cookies.set('access', data.access);
-        cookies.set('refresh', data.refresh);
-        return data;
-      }),
-  
-  logout: () => {
-    const cookies = new Cookies();
-    return fetchClient.post('/auth/token/blacklist/', { refresh: cookies.get('refresh') });
-  },
-  
-  fetchUserList: () => 
-    fetchClient.get<UserList>('/user/')
-      .then(response => ApiUserListResponseSchema.parse(response).results),
-  
-  fetchUserSelfDetails: (userId: string) => 
-    fetchClient.get<IUser>(`/user/${userId}/`)
-      .then(response => UserSchema.parse(response)),
-  
-  manageUpdateUser: (data: IManageUser) => 
-    fetchClient.patch<IManageUser>(`/manage/user/${data.id}/`, data)
-      .then(response => ManageUser.parse(response)),
-  
-  deleteUser: (data: IApiDeleteUserPost) => 
-    fetchClient.delete(`/delete/user/${data.id}/`, data),
-  
-  // Setup & Config
-  isFirstTimeSetup: () => 
-    fetchClient.get<{ isFirstTimeSetup: boolean }>('/firsttimesetup/')
-      .then(response => response.isFirstTimeSetup),
   
   fetchPredefinedRules: () => 
     fetchClient.get<string>('/predefinedrules/')
@@ -323,58 +274,16 @@ function createMutation<TData, TVariables, TContext = unknown>(
 }
 
 // Query Hooks
-export const useSignUpMutation = createMutation(API.signUp, {
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.isFirstTimeSetup] });
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userList] });
-  }
-});
 
-export const useLoginMutation = createMutation(API.login);
-
-export const useLogoutMutation = createMutation(API.logout);
-
-export const useManageUpdateUserMutation = createMutation(API.manageUpdateUser, {
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userList] });
-  }
-});
-
-export const useDeleteUserMutation = createMutation(API.deleteUser, {
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userList] });
-  }
-});
-
-export const useFetchUserListQuery = createQuery(
-  [QueryKeys.userList],
-  API.fetchUserList
-);
-
-export const useFetchUserSelfDetailsQuery = createQuery(
-  [QueryKeys.userSelfDetails],
-  API.fetchUserSelfDetails
-);
 
 export const useFetchPredefinedRulesQuery = createQuery(
   [QueryKeys.predefinedRules],
   API.fetchPredefinedRules
 );
 
-
 export const useWorkerQuery = createQuery(
   [QueryKeys.worker],
   API.worker
-);
-
-export const useIsFirstTimeSetupQuery = createQuery(
-  [QueryKeys.isFirstTimeSetup],
-  API.isFirstTimeSetup
-);
-
-export const useRescanFacesQuery = createQuery(
-  [QueryKeys.rescanFaces],
-  API.rescanFaces
 );
 
 export const useFetchServerStatsQuery = createQuery(

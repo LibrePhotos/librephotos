@@ -1,15 +1,18 @@
-import { z } from "zod";
-import { UserSchema } from "../../../store/user/user.zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+import { fetchClient } from '../../api';
+import { QueryKeys } from '../../api';
+import type { User } from '../types';
+import { UserSchema } from '../types';
 
-export const useFetchUserSelfDetailsQuery = (userId?: number) => {
-  return useQuery({
-    queryKey: ["user", userId],
+
+
+// User Self Details Query
+export const useFetchUserSelfDetailsQuery = (userId: string) => 
+  useQuery<User>({
+    queryKey: [QueryKeys.userSelfDetails, userId],
     queryFn: async () => {
-      const response = await fetch(`/api/user/${userId}/`);
-      const data = await response.json();
-      return UserSchema.parse(data);
+      const response = await fetchClient.get<User>(`/user/${userId}/`);
+      return UserSchema.parse(response);
     },
-    enabled: !!userId,
+    enabled: !!userId
   });
-}; 

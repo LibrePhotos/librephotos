@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 
 import { useWorkerQuery } from "../api_client/worker";
-import { PhotosetType } from "../reducers/photosReducer";
-import { notification } from "../service/notifications";
-import { useAppSelector } from "../store/store";
-import { selectUserSelfDetails } from "../store/user/userSelectors";
-import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+import type { IJobDetailSchema } from "../store/worker/worker.zod";
 
 export enum WorkerState {
   SET_WORKER_AVAILABILITY = "set-worker-availability",
@@ -14,8 +9,6 @@ export enum WorkerState {
 }
 
 export function useWorkerStatus() {
-  const { t } = useTranslation();
-  const userSelfDetails = useAppSelector(selectUserSelfDetails);
   const { data: worker, isLoading } = useWorkerQuery();
 
   const [workerRunningJob, setWorkerRunningJob] = useState<IJobDetailSchema | null>(null);

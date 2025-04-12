@@ -6,7 +6,7 @@ import React, { useCallback, useEffect } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/sharing";
-import { useFetchUserListQuery } from "../../api_client/api";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
 import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util/gridUtils";
 import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
