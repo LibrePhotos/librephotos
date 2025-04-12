@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { notification } from "../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
+import { fetchClient, queryClient, QueryKeys } from "../api";
 
 const JobResponseSchema = z.object({
   status: z.boolean(),

@@ -1,84 +1,36 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { api, useWorkerQuery } from "../api_client/api";
+import { useWorkerQuery } from "../api_client/worker";
 import { PhotosetType } from "../reducers/photosReducer";
 import { notification } from "../service/notifications";
-import { useAppDispatch, useAppSelector } from "../store/store";
+import { useAppSelector } from "../store/store";
 import { selectUserSelfDetails } from "../store/user/userSelectors";
 import type { IJobDetailSchema, IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
-import { queryClient, QueryKeys } from "../api_client/tanstack-api";
 
 export enum WorkerState {
   SET_WORKER_AVAILABILITY = "set-worker-availability",
   SET_WORKER_RUNNING_JOB = "set-worker-running-job",
 }
 
-export function useWorkerStatus(): {
-  currentData: IWorkerAvailabilityResponse | undefined;
-  workerRunningJob: IJobDetailSchema;
-} {
-  const dispatch = useAppDispatch();
+export function useWorkerStatus() {
   const { t } = useTranslation();
-  const workerRunningJob = useAppSelector(state => state.worker.job_detail);
+  const userSelfDetails = useAppSelector(selectUserSelfDetails);
+  const { data: worker, isLoading } = useWorkerQuery();
 
-  const [hadPreviousJob, setHadPreviousJob] = useState(false);
-
-  const user = useAppSelector(selectUserSelfDetails);
-  const { data: currentData } = useWorkerQuery(undefined, { pollingInterval: 2000 });
-
-  const [previousJob, setPreviousJob] = useState(currentData);
+  const [workerRunningJob, setWorkerRunningJob] = useState<IJobDetailSchema | null>(null);
+  const [workerAvailable, setWorkerAvailable] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentData?.job_detail?.job_id !== previousJob?.job_detail?.job_id) {
-      setPreviousJob(currentData);
+    if (worker) {
+      setWorkerAvailable(worker.queue_can_accept_job);
+      setWorkerRunningJob(worker.job_detail || null);
     }
-  }, [currentData, previousJob?.job_detail?.job_id]);
+  }, [worker]);
 
-  useEffect(() => {
-    if (hadPreviousJob && workerRunningJob !== undefined && currentData?.job_detail === null) {
-      if (previousJob?.job_detail?.job_type_str !== undefined) {
-        notification.jobFinished(workerRunningJob?.job_type_str, previousJob?.job_detail?.job_type_str);
-      }
-      if (workerRunningJob?.job_type_str.toLowerCase() === "train faces") {
-        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: false, orderBy: "confidence" }));
-        dispatch(api.endpoints.fetchIncompleteFaces.initiate({ inferred: true, orderBy: "confidence" }));
-        queryClient.invalidateQueries({
-          queryKey: [QueryKeys.peopleAlbums]
-        })
-      }
-      if (workerRunningJob?.job_type_str.toLowerCase() === "scan photos") {
-        // Invalidate the dateAlbums query to trigger refetch
-        queryClient.invalidateQueries({
-          queryKey: [QueryKeys.dateAlbums, PhotosetType.NONE, user.id, user.username]
-        });
-      }
-    }
-
-    if (currentData?.job_detail) {
-      dispatch({ type: WorkerState.SET_WORKER_AVAILABILITY, payload: false });
-      dispatch({
-        type: WorkerState.SET_WORKER_RUNNING_JOB,
-        payload: currentData?.job_detail,
-      });
-    } else {
-      dispatch({ type: WorkerState.SET_WORKER_AVAILABILITY, payload: true });
-    }
-  }, [
-    currentData,
-    dispatch,
-    hadPreviousJob,
-    previousJob?.job_detail?.job_type_str,
-    t,
-    user.id,
-    user.username,
+  return {
     workerRunningJob,
-  ]);
-
-  useEffect(() => {
-    if (workerRunningJob) {
-      setHadPreviousJob(true);
-    }
-  }, [workerRunningJob]);
-  return { workerRunningJob, currentData };
+    workerAvailable,
+    isLoading,
+  };
 }

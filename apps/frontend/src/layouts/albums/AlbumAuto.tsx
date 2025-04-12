@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../api_client/tanstack-api";
+import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../api_client/api";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { i18nResolvedLanguage } from "../../i18n";

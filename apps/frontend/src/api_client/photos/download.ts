@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { notification } from "../../service/notifications";
-import { fetchClient } from "../tanstack-api";
+import { fetchClient } from "../api";
 
 type StatusResponse = { status: string };
 

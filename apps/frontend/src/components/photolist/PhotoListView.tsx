@@ -15,10 +15,10 @@ import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people-tanstack";
+import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
-import { serverAddress } from "../../api_client/apiClient";
 import { useUpdateUserMutation } from "../../api_client/user";
+import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
@@ -91,7 +91,7 @@ function PhotoListViewComponent({
   const [scrollLocked, setScrollLocked] = useState(false);
   const setUserAlbumCover = useSetUserAlbumCoverMutation();
   const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
-  const [updateUser] = useUpdateUserMutation();
+  const updateUser = useUpdateUserMutation();
   const route = useAppSelector(store => store.router);
   const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
   const [imageScale, setImageScale] = useState(userSelfDetails.image_scale);
@@ -121,7 +121,7 @@ function PhotoListViewComponent({
     // Save to server
     if (userSelfDetails.id) {
       const newUserDetails = { ...userSelfDetails, image_scale: typeof value === 'number' ? value : parseFloat(value) };
-      updateUser(newUserDetails);
+      updateUser.mutate(newUserDetails);
     }
   };
 

@@ -17,24 +17,20 @@ import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { useLoginMutation } from "../../api_client/api";
+import { useLoginMutation, useIsAuthenticatedQuery, AuthQueryKeys } from "../../api_client/auth";
 import { useGetSettingsQuery } from "../../api_client/site-settings";
-import { selectIsAuthenticated } from "../../store/auth/authSelectors";
-import { authActions } from "../../store/auth/authSlice";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 
 export function LoginPage(): JSX.Element {
   const navigate = useNavigate();
-  const isAuth = useAppSelector(selectIsAuthenticated);
+  const { data: isAuth } = useIsAuthenticatedQuery();
   const colorScheme = useComputedColorScheme("dark");
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const location = useLocation();
   // @ts-ignore
   const from = location.state?.from || "/";
 
-  const { currentData: siteSettings } = useGetSettingsQuery();
-  const [login, { isLoading }] = useLoginMutation();
+  const { data: siteSettings } = useGetSettingsQuery();
+  const { mutate: login, isPending: isLoading } = useLoginMutation();
   const form = useForm({
     initialValues: {
       username: "",
@@ -42,18 +38,16 @@ export function LoginPage(): JSX.Element {
     },
   });
 
-  useEffect(() => {
-    dispatch(authActions.clearError());
-  }, [dispatch]);
-
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     login({ username: form.values.username.toLowerCase(), password: form.values.password });
   }
 
-  if (isAuth) {
-    navigate(from);
-  }
+  useEffect(() => {
+    if (isAuth) {
+      navigate(from);
+    }
+  }, [isAuth, navigate, from]);
 
   return (
     <Stack align="center" justify="flex-end" pt={150}>

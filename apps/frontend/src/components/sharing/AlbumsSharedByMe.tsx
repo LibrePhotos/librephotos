@@ -5,7 +5,7 @@ import debounce from "lodash/debounce";
 import React, { useCallback, useEffect } from "react";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/sharing-tanstack";
+import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/sharing";
 import { useFetchUserListQuery } from "../../api_client/api";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
 import { calculateGridCellSize, calculateSharedPhotoGridCells } from "../../util/gridUtils";

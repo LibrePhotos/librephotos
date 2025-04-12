@@ -10,7 +10,7 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFetchServerLogsQuery, useFetchServerStatsQuery, useFetchUserListQuery, useDeleteAllAutoAlbumsMutation } from "../../api_client/tanstack-api";
+import { useFetchServerLogsQuery, useFetchServerStatsQuery, useFetchUserListQuery, useDeleteAllAutoAlbumsMutation } from "../../api_client/api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";

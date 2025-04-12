@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useShareUserAlbumMutation } from "../../api_client/albums/sharing-tanstack";
+import { useShareUserAlbumMutation } from "../../api_client/albums/sharing";
 import type { UserAlbum } from "../../api_client/albums/types";
 import { useFetchUserAlbumQuery } from "../../api_client/albums/user";
 import { i18nResolvedLanguage } from "../../i18n";

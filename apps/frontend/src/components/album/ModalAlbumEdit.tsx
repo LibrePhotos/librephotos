@@ -8,7 +8,7 @@ import {
   useAddPhotoToUserAlbumMutation,
   useCreateUserAlbumMutation,
   useFetchUserAlbumsQuery,
-} from "../../api_client/albums/user";
+} from "../../api_client/albums/";
 import { i18nResolvedLanguage } from "../../i18n";
 import { fuzzyMatch } from "../../util/util";
 import { Tile } from "../Tile";

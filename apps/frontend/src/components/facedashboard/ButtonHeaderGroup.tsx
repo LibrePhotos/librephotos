@@ -23,10 +23,9 @@ import {
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { api, useWorkerQuery } from "../../api_client/api";
 import { notification } from "../../service/notifications";
 import { FaceAnalysisMethod, FacesOrderOption } from "../../store/faces/facesActions.types";
-import { useAppDispatch } from "../../store/store";
+import { useTrainFacesMutation } from "../../api_client/faces";
 
 type Props = Readonly<{
   selectMode: boolean;
@@ -61,8 +60,7 @@ export function ButtonHeaderGroup({
 }: Props) {
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
-  const dispatch = useAppDispatch();
-  const { data: worker } = useWorkerQuery();
+  const trainFacesMutation = useTrainFacesMutation();
 
   const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -89,11 +87,14 @@ export function ButtonHeaderGroup({
   };
 
   useEffect(() => {
-    if (worker) {
-      setQueueCanAcceptJob(worker.queue_can_accept_job);
-      setJobType(worker.job_detail?.job_type_str || "");
+    if (trainFacesMutation.isPending) {
+      setQueueCanAcceptJob(false);
+      setJobType("Train Faces");
+    } else {
+      setQueueCanAcceptJob(true);
+      setJobType("");
     }
-  }, [worker]);
+  }, [trainFacesMutation.isPending]);
 
   return (
     <Box
@@ -227,7 +228,7 @@ export function ButtonHeaderGroup({
               color="blue"
               variant="light"
               onClick={() => {
-                dispatch(api.endpoints.trainFaces.initiate());
+                trainFacesMutation.mutate();
                 notification.trainFaces();
               }}
             >

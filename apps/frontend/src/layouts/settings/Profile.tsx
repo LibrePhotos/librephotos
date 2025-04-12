@@ -34,8 +34,8 @@ export function Profile() {
   const auth = useAppSelector(state => state.auth);
   const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
   const { t, i18n } = useTranslation();
-  const [updateAvatar] = useUpdateAvatarMutation();
-  const [updateUser] = useUpdateUserMutation();
+  const updateAvatar = useUpdateAvatarMutation();
+  const updateUser = useUpdateUserMutation();
   let editorRef = useRef(null);
 
   const setEditorRef = ref => {
@@ -145,7 +145,7 @@ export function Profile() {
                       `${userSelfDetails.first_name}avatar.png`
                     );
                     formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
-                    updateAvatar({ id: userSelfDetails.id, data: formData });
+                    updateAvatar.mutate({ id: userSelfDetails.id, data: formData });
                   }}
                 >
                   <Upload />
@@ -367,7 +367,7 @@ export function Profile() {
                 const newUserData = userSelfDetails;
                 delete newUserData.scan_directory;
                 delete newUserData.avatar;
-                updateUser(newUserData);
+                updateUser.mutate(newUserData);
                 setIsOpenUpdateDialog(false);
               }}
             >

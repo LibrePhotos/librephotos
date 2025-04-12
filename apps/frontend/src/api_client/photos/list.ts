@@ -2,7 +2,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PigPhotoSchema } from "../../actions/photosActions.types";
-import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
+import { fetchClient, queryClient, QueryKeys } from "../api";
 import { addTempElementsToFlatList } from "../../util/util";
 
 const PaginatedPhotosResponseSchema = z.object({

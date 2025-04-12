@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { PhotoSchema } from "../../actions/photosActions.types";
 import { notification } from "../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
+import { fetchClient, queryClient, QueryKeys } from "../api";
 
 const UpdatePhotosResponseSchema = z.object({
   status: z.boolean(),

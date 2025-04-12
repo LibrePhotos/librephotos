@@ -7,14 +7,11 @@ import { combineReducers } from "redux";
 import { createReduxHistoryContext } from "redux-first-history";
 import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistStore } from "redux-persist";
 
-import { api } from "../api_client/api";
 import albums from "../reducers/albumsReducer";
 import { photos } from "../reducers/photosReducer";
 import { search } from "../reducers/searchReducer";
 import ui from "../reducers/uiReducer";
 import util from "../reducers/utilReducer";
-import { authReducer as auth } from "./auth/authSlice";
-import { faceReducer as face } from "./faces/faceSlice";
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { playerReducer as player } from "./player/playerSlice";
 import { userReducer as user } from "./user/userSlice";
@@ -30,17 +27,14 @@ const { createReduxHistory, routerMiddleware, routerReducer } = createReduxHisto
 export const store = configureStore({
   reducer: combineReducers({
     router: routerReducer,
-    face,
     albums,
     util,
     photos,
-    auth,
     search,
     ui,
     user,
     worker,
     player,
-    [api.reducerPath]: api.reducer,
   }),
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

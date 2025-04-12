@@ -39,10 +39,10 @@ import {
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { useGenerateAutoAlbumsMutation } from "../../api_client/tanstack-api";
+import { useGenerateAutoAlbumsMutation } from "../../api_client/api";
 import { api, useWorkerQuery } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { useLazyFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
+import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/delete";
 import {
   useRescanPhotosMutation,
@@ -85,16 +85,13 @@ export function Library() {
   const [workerAvailability, setWorkerAvailability] = useState(false);
   const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
   const { t } = useTranslation();
-  const [
-    fetchNextcloudDirs,
-    { isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError },
-  ] = useLazyFetchNextcloudDirsQuery();
+  const { data: nextcloudDirs, isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError } = useFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const { data: countStats = COUNT_STATS_DEFAULTS } = useFetchCountStatsQuery();
-  const [updateUser] = useUpdateUserMutation();
+  const updateUser = useUpdateUserMutation();
   const scanPhotos = useScanPhotosMutation();
   const rescanPhotos = useRescanPhotosMutation();
   const scanNextcloudPhotos = useScanNextcloudPhotosMutation();
@@ -122,11 +119,6 @@ export function Library() {
       setIsOpenUpdateDialog(false);
     }
   }, [userSelfDetailsRedux, userSelfDetails]);
-
-  useEffect(() => {
-    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id));
-    fetchNextcloudDirs(undefined, true);
-  }, [auth.access.user_id, dispatch, fetchNextcloudDirs]);
 
   useEffect(() => {
     setUserSelfDetails(userSelfDetailsRedux);
@@ -583,7 +575,7 @@ export function Library() {
                 const newUserData = userSelfDetails;
                 delete newUserData.scan_directory;
                 delete newUserData.avatar;
-                updateUser(newUserData);
+                updateUser.mutate(newUserData);
                 setIsOpenUpdateDialog(false);
               }}
             >

@@ -22,8 +22,8 @@ import { useLocation } from "react-router-dom";
 import { push } from "redux-first-history";
 
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/api";
-import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAuth } from "../../hooks/useAuth";
+import { useAppDispatch } from "../../store/store";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems } from "./navigation";
 
@@ -40,8 +40,7 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function SideMenuNarrow(): JSX.Element {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const canAccess = useAppSelector(selectAuthAccess);
+  const { isAuthenticated, userId } = useAuth();
   const dispatch = useAppDispatch();
   const theme = useMantineTheme();
   const [active, setActive] = useState("/");
@@ -64,7 +63,7 @@ export function SideMenuNarrow(): JSX.Element {
     return <div />;
   }
 
-  const links = getNavigationItems(t, isAuthenticated, canAccess).map(item => {
+  const links = getNavigationItems(t, isAuthenticated, !!userId).map(item => {
     if (item.display === false) {
       return null;
     }

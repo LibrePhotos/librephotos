@@ -1,7 +1,6 @@
-import type { ZodType } from "zod";
+import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-
-import { api } from "./api";
+import { fetchClient, QueryKeys } from "./api";
 
 export interface DirTree {
   title: string;
@@ -11,7 +10,7 @@ export interface DirTree {
 
 export type DirTreeResponse = DirTree[];
 
-export const DirTreeSchema: ZodType<DirTree> = z.lazy(() =>
+export const DirTreeSchema: z.ZodType<DirTree> = z.lazy(() =>
   z.object({
     title: z.string(),
     absolute_path: z.string(),
@@ -19,28 +18,13 @@ export const DirTreeSchema: ZodType<DirTree> = z.lazy(() =>
   })
 );
 
-export const DirTreeResponseSchema: ZodType<DirTreeResponse> = z.array(DirTreeSchema);
+export const DirTreeResponseSchema: z.ZodType<DirTreeResponse> = z.array(DirTreeSchema);
 
-enum DirTreeEndpoints {
-  fetchDirs = "fetchDirs",
-}
-
-export const dirTreeApi = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [DirTreeEndpoints.fetchDirs]: builder.query<DirTreeResponse, string>({
-        query: (path: string) => `dirtree/?path=${path}`,
-        transformResponse: (response: DirTreeResponse) => DirTreeResponseSchema.parse(response),
-      }),
-    }),
-  })
-  .enhanceEndpoints<"DirTree">({
-    addTagTypes: ["DirTree"],
-    endpoints: {
-      [DirTreeEndpoints.fetchDirs]: {
-        providesTags: ["DirTree"],
-      },
+export const useFetchDirsQuery = (path: string) => 
+  useQuery({
+    queryKey: [QueryKeys.nextcloudDirs, path],
+    queryFn: async () => {
+      const response = await fetchClient.get(`/dirtree/?path=${path}`);
+      return DirTreeResponseSchema.parse(response);
     },
-  });
-
-export const { useLazyFetchDirsQuery } = dirTreeApi;
+  }); 

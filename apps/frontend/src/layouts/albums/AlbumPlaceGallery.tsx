@@ -3,7 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import { useFetchPlaceAlbumQuery } from "../../api_client/albums/places-tanstack";
+import { useFetchPlaceAlbumQuery } from "../../api_client/albums/places";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 
 export function AlbumPlaceGallery() {

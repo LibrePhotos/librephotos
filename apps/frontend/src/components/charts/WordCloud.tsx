@@ -1,10 +1,10 @@
-import { Title } from "@mantine/core";
+import { Loader, Title } from "@mantine/core";
 import React from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { Chart, Cloud, Transform } from "rumble-charts";
 
-import { useAppSelector } from "../../store/store";
+import { useFetchWordCloudQuery } from "../../api_client/util";
 
 type Props = Readonly<{
   type: string;
@@ -20,7 +20,7 @@ export function WordCloud(props: Props) {
     polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers);
   });
   const { height } = props;
-  const { wordCloud, fetchedWordCloud } = useAppSelector(state => state.util);
+  const { data: wordCloud } = useFetchWordCloudQuery();
   const { t } = useTranslation();
 
   const title = () => {
@@ -37,7 +37,7 @@ export function WordCloud(props: Props) {
 
   const series = () => {
     const { type } = props;
-    if (fetchedWordCloud) {
+    if (wordCloud) {
       if (type === "people") {
         return [{ data: wordCloud.people }];
       }
@@ -50,6 +50,11 @@ export function WordCloud(props: Props) {
     }
     return [];
   };
+
+  if (!wordCloud) {
+    return <Loader />;
+  }
+
   return (
     <div ref={observeChange}>
       <Title order={3}>{title()}</Title>

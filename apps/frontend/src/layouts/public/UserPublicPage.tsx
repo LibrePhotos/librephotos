@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { PigPhoto } from "../../actions/photosActions.types";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/tanstack-date";
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
 import { useAppSelector } from "../../store/store";

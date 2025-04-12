@@ -1,7 +1,6 @@
 import { Group, Loader, Tabs } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { faceActions } from "../../store/faces/faceSlice";
 import { FaceAnalysisMethod, FacesTab } from "../../store/faces/facesActions.types";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 

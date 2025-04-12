@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { PigPhoto, PigPhotoSchema, SimpleUserSchema } from "../../actions/photosActions.types";
 import { notification } from "../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../tanstack-api";
+import { fetchClient, queryClient, QueryKeys } from "../api";
 
 const SharedPhotosByMeResponseSchema = z.object({
   results: z

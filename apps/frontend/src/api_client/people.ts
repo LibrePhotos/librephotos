@@ -1,6 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-
-import { api } from "./api";
+import { fetchClient, QueryKeys } from "./api";
 
 export const Node = z.object({
   id: z.string(),
@@ -20,26 +20,10 @@ export const PersonDataPointListSchema = z.object({
 
 type PersonDataPointList = z.infer<typeof PersonDataPointListSchema>;
 
-enum Endpoints {
-  fetchSocialGraph = "fetchSocialGraph",
-}
-
-export const peopleApi = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [Endpoints.fetchSocialGraph]: builder.query<PersonDataPointList, void>({
-        query: () => "socialgraph/",
-        transformResponse: response => PersonDataPointListSchema.parse(response),
-      }),
-    }),
-  })
-  .enhanceEndpoints<"SocialGraph">({
-    addTagTypes: ["SocialGraph"],
-    endpoints: {
-      [Endpoints.fetchSocialGraph]: {
-        providesTags: ["SocialGraph"],
-      },
-    },
-  });
-
-export const { useFetchSocialGraphQuery } = peopleApi;
+export const useFetchSocialGraphQuery = () => useQuery({
+  queryKey: [QueryKeys.socialGraph],
+  queryFn: async () => {
+    const response = await fetchClient.get('socialgraph/');
+    return PersonDataPointListSchema.parse(response);
+  },
+}); 

@@ -1,6 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-
-import { api } from "./api";
+import { fetchClient, QueryKeys } from "./api";
 
 export const LocationSunburstSchema = z.lazy(() =>
   z.object({
@@ -60,77 +60,50 @@ const PhotoMonthCountSchema = z.object({
 const PhotoMonthCountResponseSchema = z.array(PhotoMonthCountSchema);
 type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponseSchema>;
 
-enum Endpoints {
-  fetchTimezones = "fetchTimezones",
-  fetchLocationTree = "fetchLocationTree",
-  fetchCountStats = "fetchCountStats",
-  fetchWordCloud = "fetchWordCloud",
-  fetchPhotoMonthCount = "fetchPhotoMonthCount",
-}
-
 const TimezonesSchema = z.string().array();
 type Timezones = z.infer<typeof TimezonesSchema>;
 
-export const util = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [Endpoints.fetchTimezones]: builder.query<Timezones, void>({
-        query: () => "timezones/",
-        transformResponse: (response: string) => {
-          try {
-            const timezones = JSON.parse(response);
-            return TimezonesSchema.parse(timezones);
-          } catch (e) {
-            return [];
-          }
-        },
-      }),
-      [Endpoints.fetchLocationTree]: builder.query<LocationSunburst, void>({
-        query: () => "locationsunburst/",
-        transformResponse: response => LocationSunburstSchema.parse(response),
-      }),
-      [Endpoints.fetchCountStats]: builder.query<CountStats, void>({
-        query: () => "stats/",
-        transformResponse: response => CountStatsSchema.parse(response),
-      }),
-      [Endpoints.fetchWordCloud]: builder.query<WordCloudResponse, void>({
-        query: () => "wordcloud/",
-        async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-          /**
-           * This is a workaround. For the time being we'll use redux store instead of cache.
-           * The use of cached data is not working properly with Word Cloud component. This could be due to the timing.
-           */
-          dispatch({ type: "FETCH_WORDCLOUD" });
-          try {
-            const { data } = await queryFulfilled;
-            const payload = WordCloudResponseSchema.parse(data);
-            dispatch({ type: "FETCH_WORDCLOUD_FULFILLED", payload });
-          } catch (error) {
-            dispatch({ type: "FETCH_WORDCLOUD_REJECTED", payload: error });
-          }
-        },
-      }),
-      [Endpoints.fetchPhotoMonthCount]: builder.query<PhotoMonthCountResponse, void>({
-        query: () => "photomonthcounts/",
-        transformResponse: (response: PhotoMonthCountResponse) => PhotoMonthCountResponseSchema.parse(response),
-      }),
-    }),
-  })
-  .enhanceEndpoints<"Timezones" | "LocationTree">({
-    addTagTypes: ["Timezones", "LocationTree"],
-    endpoints: {
-      [Endpoints.fetchTimezones]: {
-        providesTags: ["Timezones"],
-      },
-      [Endpoints.fetchLocationTree]: {
-        providesTags: ["LocationTree"],
-      },
-    },
-  });
+export const useFetchTimezonesQuery = () => useQuery({
+  queryKey: [QueryKeys.timezones],
+  queryFn: async () => {
+    const response = await fetchClient.get<string>('/timezones/');
+    try {
+      const timezones = JSON.parse(response);
+      return TimezonesSchema.parse(timezones);
+    } catch (e) {
+      return [];
+    }
+  },
+});
 
-export const {
-  useFetchTimezonesQuery,
-  useFetchLocationTreeQuery,
-  useFetchCountStatsQuery,
-  useFetchPhotoMonthCountQuery,
-} = util;
+export const useFetchLocationTreeQuery = () => useQuery({
+  queryKey: [QueryKeys.locationTree],
+  queryFn: async () => {
+    const response = await fetchClient.get('/locationsunburst/');
+    return LocationSunburstSchema.parse(response);
+  },
+});
+
+export const useFetchCountStatsQuery = () => useQuery({
+  queryKey: [QueryKeys.countStats],
+  queryFn: async () => {
+    const response = await fetchClient.get('/stats/');
+    return CountStatsSchema.parse(response);
+  },
+});
+
+export const useFetchWordCloudQuery = () => useQuery({
+  queryKey: [QueryKeys.wordCloud],
+  queryFn: async () => {
+    const response = await fetchClient.get('/wordcloud/');
+    return WordCloudResponseSchema.parse(response);
+  },
+});
+
+export const useFetchPhotoMonthCountQuery = () => useQuery({
+  queryKey: [QueryKeys.photoMonthCount],
+  queryFn: async () => {
+    const response = await fetchClient.get('/photomonthcounts/');
+    return PhotoMonthCountResponseSchema.parse(response);
+  },
+}); 

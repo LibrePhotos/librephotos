@@ -3,13 +3,18 @@ import React from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { TopMenuPublic } from "../components/menubars/TopMenuPublic";
-import { selectIsAuthenticated } from "../store/auth/authSelectors";
-import { useAppSelector } from "../store/store";
+import { useAuth } from "../hooks/useAuth";
 import { TOP_MENU_HEIGHT } from "../ui-constants";
 
 export function AppShellPublicWithHeader() {
   const colorScheme = useComputedColorScheme();
   const theme = useMantineTheme();
+  const { isAuthenticated } = useAuth();
+  const { pathname } = useLocation();
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
   
   return (
     <AppShell header={{ height: TOP_MENU_HEIGHT }}>

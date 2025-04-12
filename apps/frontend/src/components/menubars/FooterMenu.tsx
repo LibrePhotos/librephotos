@@ -5,18 +5,17 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { push } from "redux-first-history";
 
-import { selectAuthAccess, selectIsAuthenticated } from "../../store/auth/authSelectors";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAuth } from "../../hooks/useAuth";
+import { useAppDispatch } from "../../store/store";
 import { SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems } from "./navigation";
 
 export function FooterMenu(): JSX.Element {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const canAccess = useAppSelector(selectAuthAccess);
+  const { isAuthenticated, userId } = useAuth();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
-  const navigationItems = getNavigationItems(t, isAuthenticated, canAccess);
+  const navigationItems = getNavigationItems(t, isAuthenticated, !!userId);
 
   navigationItems.push({ label: t("supportus"), link: SUPPORT_LINK, icon: Heart, color: "pink" });
 

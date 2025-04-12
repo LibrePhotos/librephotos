@@ -3,7 +3,7 @@ import { FetchDateAlbumResponseSchema, FetchDateAlbumsListResponseSchema } from 
 import { IncompleteDatePhotosGroup } from "../actions/photosActions.types";
 import { PhotosetType } from "../reducers/photosReducer";
 import { addTempElementsToGroups } from "../util/util";
-import { fetchClient, queryClient, QueryKeys } from "./tanstack-api";
+import { fetchClient, queryClient, QueryKeys } from "./api";
 
 // Define the QueryKeys for date albums
 export enum DateAlbumQueryKeys {

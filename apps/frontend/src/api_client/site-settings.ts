@@ -1,11 +1,6 @@
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-
-import { api } from "./api";
-
-enum SettingsEndpoints {
-  getSettings = "getSettings",
-  updateSettings = "updateSettings",
-}
+import { fetchClient, queryClient, QueryKeys } from "./api";
 
 const SiteSettingsSchema = z.object({
   allow_registration: z.boolean(),
@@ -19,33 +14,21 @@ const SiteSettingsSchema = z.object({
 
 export type SiteSettings = z.infer<typeof SiteSettingsSchema>;
 
-const settingsApi = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [SettingsEndpoints.getSettings]: builder.query<SiteSettings, void>({
-        query: () => "sitesettings",
-        transformResponse: response => SiteSettingsSchema.parse(response),
-      }),
-      [SettingsEndpoints.updateSettings]: builder.mutation<SiteSettings, Partial<SiteSettings>>({
-        query: body => ({
-          method: "POST",
-          url: "sitesettings",
-          body,
-        }),
-        transformResponse: response => SiteSettingsSchema.parse(response),
-      }),
-    }),
-  })
-  .enhanceEndpoints<"SiteSettings">({
-    addTagTypes: ["SiteSettings"],
-    endpoints: {
-      [SettingsEndpoints.getSettings]: {
-        providesTags: ["SiteSettings"],
-      },
-      [SettingsEndpoints.updateSettings]: {
-        invalidatesTags: ["SiteSettings"],
-      },
-    },
-  });
+export const useGetSettingsQuery = () => useQuery({
+  queryKey: [QueryKeys.siteSettings],
+  queryFn: async () => {
+    const response = await fetchClient.get('sitesettings');
+    return SiteSettingsSchema.parse(response);
+  },
+});
 
-export const { useGetSettingsQuery, useUpdateSettingsMutation } = settingsApi;
+export const useUpdateSettingsMutation = () => useMutation({
+  mutationFn: async (settings: Partial<SiteSettings>) => {
+    const response = await fetchClient.post('/sitesettings', settings);
+    return SiteSettingsSchema.parse(response);
+  },
+  onSuccess: () => {
+    // Invalidate the settings query to refetch
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.siteSettings] });
+  },
+}); 

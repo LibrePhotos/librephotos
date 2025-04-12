@@ -1,8 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-
+import { fetchClient, QueryKeys } from "./api";
 import { PigPhotoSchema } from "../actions/photosActions.types";
 import { getPhotosFlatFromGroupedByDate } from "../util/util";
-import { api } from "./api";
 
 const SearchExamplesSchema = z.array(z.string());
 const SearchExamplesResponseSchema = z.object({
@@ -29,48 +29,29 @@ const SearchPhotosResultScheme = z.object({
 
 type SearchPhotosResult = z.infer<typeof SearchPhotosResultScheme>;
 
-enum Endpoints {
-  searchExamples = "searchExamples",
-  searchPhotos = "searchPhotos",
-}
+export const useSearchExamplesQuery = () => useQuery({
+  queryKey: [QueryKeys.searchExamples],
+  queryFn: async () => {
+    const response = await fetchClient.get<{ results: string[] }>('/searchtermexamples/');
+    return SearchExamplesResponseSchema.parse(response).results;
+  },
+});
 
-const searchApi = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [Endpoints.searchExamples]: builder.query<SearchExamples, void>({
-        query: () => "searchtermexamples/",
-        transformResponse: response => SearchExamplesResponseSchema.parse(response).results,
-      }),
-      [Endpoints.searchPhotos]: builder.query<SearchPhotosResult, string>({
-        query: query => `photos/searchlist/?search=${query}`,
-        transformResponse: response => {
-          try {
-            const photosGroupedByDate = SearchPhotosSchema.parse(response).results;
-            return {
-              photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
-              photosGroupedByDate,
-            };
-          } catch (e) {
-            return {
-              // @ts-ignore
-              photosFlat: response.results,
-              photosGroupedByDate: [],
-            };
-          }
-        },
-      }),
-    }),
-  })
-  .enhanceEndpoints<"SearchExamples" | "SearchPhotos">({
-    addTagTypes: ["SearchExamples", "SearchPhotos"],
-    endpoints: {
-      [Endpoints.searchExamples]: {
-        providesTags: ["SearchExamples"],
-      },
-      [Endpoints.searchPhotos]: {
-        providesTags: ["SearchPhotos"],
-      },
-    },
-  });
-
-export const { useSearchExamplesQuery, useSearchPhotosQuery } = searchApi;
+export const useSearchPhotosQuery = (query: string) => useQuery({
+  queryKey: [QueryKeys.searchPhotos, query],
+  queryFn: async () => {
+    const response = await fetchClient.get<{ results: any }>(`/photos/searchlist/?search=${query}`);
+    try {
+      const photosGroupedByDate = SearchPhotosSchema.parse(response).results;
+      return {
+        photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
+        photosGroupedByDate,
+      };
+    } catch (e) {
+      return {
+        photosFlat: response.results,
+        photosGroupedByDate: [],
+      };
+    }
+  },
+}); 

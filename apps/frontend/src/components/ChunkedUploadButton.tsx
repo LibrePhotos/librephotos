@@ -5,16 +5,18 @@ import MD5 from "crypto-js/md5";
 import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
 
-import { api } from "../api_client/api";
 import { useGetSettingsQuery } from "../api_client/site-settings";
-import { useAppDispatch, useAppSelector } from "../store/store";
+import { useAppSelector } from "../store/store";
+import { useUploadExistsMutation, useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
 
 export function ChunkedUploadButton() {
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
   const { userSelfDetails } = useAppSelector(state => state.user);
   const { data: settings } = useGetSettingsQuery();
-  const dispatch = useAppDispatch();
+  const uploadExistsMutation = useUploadExistsMutation();
+  const uploadFinishedMutation = useUploadFinishedMutation();
+  const uploadMutation = useUploadMutation();
   const chunkSize = 1000000; // < 1MB chunks, because of default of nginx
 
   let currentUploadedFileSize = 0;
@@ -56,8 +58,10 @@ export function ChunkedUploadButton() {
     });
   };
 
-  const checkIfAlreadyUploaded = async (hash: string) =>
-    dispatch(api.endpoints.uploadExists.initiate(hash + userSelfDetails.id)).then(r => r.data);
+  const checkIfAlreadyUploaded = async (hash: string) => {
+    const result = await uploadExistsMutation.mutateAsync(hash + userSelfDetails.id);
+    return result;
+  };
 
   const uploadFinished = async (file: File, uploadId: string) => {
     const formData = new FormData();
@@ -65,7 +69,7 @@ export function ChunkedUploadButton() {
     formData.append("md5", await calculateMD5(file));
     formData.append("user", userSelfDetails.id.toString());
     formData.append("filename", file.name);
-    dispatch(api.endpoints.uploadFinished.initiate(formData));
+    await uploadFinishedMutation.mutateAsync(formData);
   };
 
   const calculateMD5Blob = async (blob: Blob) => {
@@ -90,13 +94,11 @@ export function ChunkedUploadButton() {
     formData.append("md5", await calculateMD5Blob(chunk));
     formData.append("offset", offset.toString());
     formData.append("user", userSelfDetails.id.toString());
-    return dispatch(
-      api.endpoints.upload.initiate({
-        form_data: formData,
-        offset,
-        chunk_size: chunk.size,
-      })
-    );
+    return uploadMutation.mutateAsync({
+      form_data: formData,
+      offset,
+      chunk_size: chunk.size,
+    });
   };
 
   const calculateChunks = (file: File, blockSize: number) => {
@@ -119,9 +121,9 @@ export function ChunkedUploadButton() {
     for (const chunk of chunks) {
       // eslint-disable-next-line no-await-in-loop
       const response = await uploadChunk(chunk, uploadId, offset);
-      if ("data" in response) {
-        offset = response.data.offset;
-        uploadId = response.data.upload_id;
+      if (response) {
+        offset = response.offset;
+        uploadId = response.upload_id;
       }
       // To-Do: Handle Error
       if (chunk.size) {

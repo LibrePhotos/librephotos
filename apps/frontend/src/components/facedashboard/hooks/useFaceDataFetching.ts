@@ -5,7 +5,7 @@ import {
   queryClient,
   API,
   QueryKeys
-} from "../../../api_client/tanstack-api";
+} from "../../../api_client/api";
 
 type OrderByType = "confidence" | "date" | "person";
 

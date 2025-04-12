@@ -20,7 +20,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Photo as PhotoType } from "../../actions/photosActions.types";
-import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things-tanstack";
+import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
 import {
   useGenerateImageToTextCaptionMutation,
   useSavePhotoCaptionMutation,

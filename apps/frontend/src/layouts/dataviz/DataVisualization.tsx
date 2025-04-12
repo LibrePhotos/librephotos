@@ -10,6 +10,7 @@ import { WordCloud } from "../../components/charts/WordCloud";
 import { LocationLink } from "../../components/locationLink";
 import { useAppDispatch } from "../../store/store";
 import { AlbumPlace } from "../albums/AlbumPlace";
+import { useFetchWordCloudQuery, useFetchLocationTreeQuery, useFetchPhotoMonthCountQuery } from "../../api_client/util";
 
 export function LocationTree() {
   return (
@@ -28,11 +29,6 @@ export function PhotoMap() {
 }
 
 export function WordClouds() {
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    dispatch(util.endpoints.fetchWordCloud.initiate());
-  }, []);
 
   return (
     <div style={{ padding: 10 }}>

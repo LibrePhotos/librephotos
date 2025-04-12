@@ -13,9 +13,9 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
-import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/people-tanstack";
-import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places-tanstack";
-import { useFetchThingsAlbumsQuery } from "../api_client/albums/things-tanstack";
+import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
+import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";
+import { useFetchThingsAlbumsQuery } from "../api_client/albums/things";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/user";
 import { useSearchExamplesQuery } from "../api_client/search";
 import { useAppDispatch } from "../store/store";

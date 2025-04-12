@@ -4,9 +4,9 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { Hint, HorizontalGridLines, MarkSeries, VerticalGridLines, XYPlot } from "react-vis";
 
-import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useAppSelector } from "../../store/store";
+import { useClusterFacesMutation } from "../../api_client/faces";
 
 type Props = Readonly<{
   height: number;
@@ -20,12 +20,12 @@ export function FaceClusterGraph({ height }: Props) {
       observe();
     },
   });
-  const dispatch = useAppDispatch();
   const { facesVis, clustered, clustering } = useAppSelector(state => state.face);
+  const clusterFacesMutation = useClusterFacesMutation();
 
   useEffect(() => {
-    dispatch(api.endpoints.clusterFaces.initiate());
-  }, [dispatch]); // Only run on first render
+    clusterFacesMutation.mutate();
+  }, []); // Only run on first render
 
   const personNames = [...new Set(facesVis.map((el: any) => el.person_name))];
 

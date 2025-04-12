@@ -1,6 +1,6 @@
 import { z } from "zod";
-
-import { api } from "./api";
+import { useQuery } from '@tanstack/react-query';
+import { fetchClient, QueryKeys } from "./api";
 
 const LocationTimelineSchema = z.array(
   z.object({
@@ -14,17 +14,10 @@ const LocationTimelineSchema = z.array(
 
 type LocationTimeline = z.infer<typeof LocationTimelineSchema>;
 
-enum LocationTimelineEndpoints {
-  locationTimeline = "locationTimeline",
-}
-
-export const locationTimelineApi = api.injectEndpoints({
-  endpoints: builder => ({
-    [LocationTimelineEndpoints.locationTimeline]: builder.query<LocationTimeline, void>({
-      query: () => "locationtimeline/",
-      transformResponse: (response: LocationTimeline) => LocationTimelineSchema.parse(response),
-    }),
-  }),
-});
-
-export const { useLocationTimelineQuery } = locationTimelineApi;
+export const useLocationTimelineQuery = () => useQuery({
+  queryKey: [QueryKeys.locationTimeline],
+  queryFn: async () => {
+    const response = await fetchClient.get('locationtimeline/');
+    return LocationTimelineSchema.parse(response);
+  },
+}); 

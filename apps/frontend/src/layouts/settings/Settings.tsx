@@ -32,7 +32,7 @@ export function Settings() {
   const auth = useAppSelector(state => state.auth);
   const { t } = useTranslation();
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
-  const [updateUser] = useUpdateUserMutation();
+  const updateUser = useUpdateUserMutation();
 
   // open update dialog, when user was edited
   useEffect(() => {
@@ -332,7 +332,7 @@ export function Settings() {
               const newUserData = userSelfDetails;
               delete newUserData.scan_directory;
               delete newUserData.avatar;
-              updateUser(newUserData);
+              updateUser.mutate(newUserData);
               setIsOpenUpdateDialog(false);
             }}
           >

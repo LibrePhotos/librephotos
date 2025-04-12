@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAppSelector } from '../../store/store';
-import { selectIsAuthenticated } from '../../store/auth/authSelectors';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ProtectedRouteProps {
   requireAuth?: boolean;
@@ -9,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ requireAuth = true, children }: ProtectedRouteProps) {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   if (requireAuth && !isAuthenticated) {

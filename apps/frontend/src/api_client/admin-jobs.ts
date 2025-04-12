@@ -1,12 +1,7 @@
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-
+import { fetchClient, queryClient, QueryKeys } from "./api";
 import { SimpleUser } from "../store/user/user.zod";
-import { api } from "./api";
-
-enum AdminJobsEndpoints {
-  jobs = "jobs",
-  deleteJob = "deleteJob",
-}
 
 export const JobSchema = z.object({
   job_id: z.string(),
@@ -33,44 +28,31 @@ export const JobRequestSchema = z.object({
 
 export type JobRequest = z.infer<typeof JobRequestSchema>;
 
-export const JobsResponseSchema = z
-  .object({
-    count: z.number(),
-    next: z.string().nullable(),
-    previous: z.string().nullable(),
-    results: z.array(JobSchema),
-  })
-  .optional();
+export const JobsResponseSchema = z.object({
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
+  results: z.array(JobSchema),
+});
 
 export type JobsResponse = z.infer<typeof JobsResponseSchema>;
 
-const adminJobsApi = api
-  .injectEndpoints({
-    endpoints: builder => ({
-      [AdminJobsEndpoints.jobs]: builder.query<JobsResponse, JobRequest>({
-        query: ({ pageSize = 10, page = 0 }) => ({
-          url: `jobs/?page_size=${pageSize}&page=${page}`,
-        }),
-        transformResponse: JobsResponseSchema.parse,
-      }),
-      [AdminJobsEndpoints.deleteJob]: builder.mutation<void, number>({
-        query: id => ({
-          method: "DELETE",
-          url: `jobs/${id}/`,
-        }),
-      }),
-    }),
-  })
-  .enhanceEndpoints<"Jobs">({
-    addTagTypes: ["Jobs"],
-    endpoints: {
-      [AdminJobsEndpoints.jobs]: {
-        providesTags: ["Jobs"],
-      },
-      [AdminJobsEndpoints.deleteJob]: {
-        invalidatesTags: ["Jobs"],
-      },
+export const useJobsQuery = (params: JobRequest, options?: { pollingInterval?: number }) => 
+  useQuery({
+    queryKey: [QueryKeys.jobs, params],
+    queryFn: async () => {
+      const response = await fetchClient.get(`/jobs/?page_size=${params.pageSize ?? 10}&page=${params.page ?? 0}`);
+      return JobsResponseSchema.parse(response);
     },
+    refetchInterval: options?.pollingInterval,
   });
 
-export const { useJobsQuery, useDeleteJobMutation } = adminJobsApi;
+export const useDeleteJobMutation = () => 
+  useMutation({
+    mutationFn: async (id: number) => {
+      await fetchClient.delete(`/jobs/${id}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.jobs] });
+    },
+  }); 

@@ -9,7 +9,7 @@ import { useFetchUserAlbumsQuery } from "../../api_client/albums/user";
 import { Tile } from "../../components/Tile";
 import { useAppDispatch } from "../../store/store";
 import { HeaderComponent } from "./HeaderComponent";
-import { useFetchAutoAlbumsQuery } from "../../api_client/tanstack-api";
+import { useFetchAutoAlbumsQuery } from "../../api_client/api";
 
 export function AlbumViewer() {
   const dispatch = useAppDispatch();
