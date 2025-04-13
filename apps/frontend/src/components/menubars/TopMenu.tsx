@@ -12,22 +12,22 @@ import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
-import { api, useFetchUserSelfDetailsQuery, useLogoutMutation } from "../../api_client/api";
+import { useLogoutMutation } from "../../api_client/auth/hooks";
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { SiteSearch } from "../SiteSearch";
 import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
-
+import { useQueryClient } from '@tanstack/react-query';
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { useNavigate } from "react-router-dom";
 export function TopMenu(): React.ReactNode {
-  const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const auth = useAppSelector(state => state.auth);
-  const { data: user } = useFetchUserSelfDetailsQuery(auth.access.user_id);
-  const [logout] = useLogoutMutation();
+  const { data: user } = useCurrentUserSelfDetailsQuery();
+  const { mutate: logout } = useLogoutMutation();
+  const queryClient = useQueryClient();
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
-
+  const navigate = useNavigate();
   return (
     <Flex>
       <TopMenuCommon />
@@ -63,34 +63,34 @@ export function TopMenu(): React.ReactNode {
 
               <Menu.Dropdown>
                 <Menu.Label>
-                  <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {auth.access ? auth.access.name : ""}
+                  <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {user ? user.username : ""}
                 </Menu.Label>
 
-                <Menu.Item leftSection={<Book />} onClick={() => dispatch(push("/library"))}>
+                <Menu.Item leftSection={<Book />} onClick={() => navigate("/library")}>
                   {t("topmenu.library")}
                 </Menu.Item>
 
-                <Menu.Item leftSection={<User />} onClick={() => dispatch(push("/profile"))}>
+                <Menu.Item leftSection={<User />} onClick={() => navigate("/profile")}>
                   {t("topmenu.profile")}
                 </Menu.Item>
 
-                <Menu.Item leftSection={<Settings />} onClick={() => dispatch(push("/settings"))}>
+                <Menu.Item leftSection={<Settings />} onClick={() => navigate("/settings")}>
                   {t("topmenu.settings")}
                 </Menu.Item>
 
-                {auth.access && auth.access.is_admin && <Menu.Divider />}
+                {user && user.is_superuser && <Menu.Divider />}
 
-                {auth.access && auth.access.is_admin && (
-                  <Menu.Item leftSection={<Adjustments />} onClick={() => dispatch(push("/admin"))}>
+                {user && user.is_superuser && (
+                  <Menu.Item leftSection={<Adjustments />} onClick={() => navigate("/admin")}>
                     {t("topmenu.adminarea")}
                   </Menu.Item>
                 )}
 
                 <Menu.Item
-                  leftSection={<Logout />}
+                  leftSection={<Logout   />}
                   onClick={() => {
                     logout();
-                    dispatch(api.util.resetApiState());
+                    queryClient.invalidateQueries();
                   }}
                 >
                   {t("topmenu.logout")}

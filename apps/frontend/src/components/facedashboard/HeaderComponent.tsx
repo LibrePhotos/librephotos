@@ -14,7 +14,6 @@ import _ from "lodash";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDisclosure } from "@mantine/hooks";
-import { useAppSelector } from "../../store/store";
 import { useRenamePersonAlbumMutation, useDeletePersonAlbumMutation } from "../../api_client/albums";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";

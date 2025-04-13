@@ -2,9 +2,8 @@ import { Avatar, Button, Group, Stack, Text, Title } from "@mantine/core";
 import { IconUser as User } from "@tabler/icons-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
-import { useFetchUserListQuery } from "../../api_client/api";
-import { UserList } from "../../store/user/user.zod";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
+import { UserList } from "../../api_client/user/types";
 
 function publicUsers(items: UserList = []) {
   return items.filter(el => el.public_sharing);

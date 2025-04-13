@@ -39,7 +39,8 @@ import {
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { useGenerateAutoAlbumsMutation,  useWorkerQuery } from "../../api_client/api";
+import { useGenerateAutoAlbumsMutation, useWorkerQuery } from "../../api_client/api";
+import { useTrainFacesMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/apiClient";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/delete";
@@ -53,8 +54,9 @@ import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../../api_client/
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
 import { CountStats } from "../../components/statistics";
 import { notification } from "../../service/notifications";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 import { User } from "../../api_client/user/types";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { fetchClient } from "../../api_client/api";
 
 function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
@@ -77,12 +79,11 @@ export function Library() {
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [userSelfDetails, setUserSelfDetails] = useState({} as any);
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
-  const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
-  const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
+  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
+  const [editedUser, setEditedUser] = useState({} as UserSelfDetails);
+  console.log(currentUser);
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
-  const statusPhotoScan = useAppSelector(state => state.util.statusPhotoScan);
   const { t } = useTranslation();
   const { data: nextcloudDirs, isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError } = useFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
@@ -95,13 +96,9 @@ export function Library() {
   const rescanPhotos = useRescanPhotosMutation();
   const scanNextcloudPhotos = useScanNextcloudPhotosMutation();
   const deleteMissingPhotos = useDeleteMissingPhotosMutation();
+  const trainFaces = useTrainFacesMutation();
 
-  const onGenerateEventAlbumsButtonClick = () => {
-    dispatch({ type: "SET_WORKER_AVAILABILITY", payload: false });
-    dispatch({
-      type: "SET_WORKER_RUNNING_JOB",
-      payload: { job_type_str: "Generate Event Albums" },
-    });
+  const onGenerateEventAlbumsButtonClick = () => {  
     generateAutoAlbums();
   };
 
@@ -112,16 +109,16 @@ export function Library() {
 
   // open update dialog, when user was edited
   useEffect(() => {
-    if (JSON.stringify(userSelfDetailsRedux) !== JSON.stringify(userSelfDetails)) {
+    if (JSON.stringify(editedUser) !== JSON.stringify(userSelfDetails)) {
       setIsOpenUpdateDialog(true);
     } else {
       setIsOpenUpdateDialog(false);
     }
-  }, [userSelfDetailsRedux, userSelfDetails]);
+  }, [editedUser, userSelfDetails]);
 
   useEffect(() => {
-    setUserSelfDetails(userSelfDetailsRedux);
-  }, [userSelfDetailsRedux]);
+    setEditedUser(userSelfDetails);
+  }, [userSelfDetails]);
 
   useEffect(() => {
     if (worker) {
@@ -210,9 +207,9 @@ export function Library() {
                     style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
                     fullWidth
                   >
-                    {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
-                    {statusPhotoScan.added
-                      ? `${t("settings.statusscanphotostrue")}(${statusPhotoScan.added}/${statusPhotoScan.to_add})`
+                    {worker?.status && worker?.job_detail?.progress_current !== null ? <Loader /> : null}
+                    {worker?.job_detail?.progress_current !== null
+                      ? `${t("settings.statusscanphotostrue")}(${worker?.job_detail?.progress_target}/${worker?.job_detail?.progress_current})`
                       : t("settings.statusscanphotosfalse")}
                   </Button>
                   <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
@@ -234,10 +231,10 @@ export function Library() {
                     </Menu.Target>
                     <Menu.Dropdown>
                       <Menu.Item leftSection={<Refresh size="1rem" />} onClick={() => rescanPhotos.mutate()}>
-                        {statusPhotoScan.status && statusPhotoScan.added ? <Loader /> : null}
-                        {statusPhotoScan.added
-                          ? `${t("settings.statusrescanphotostrue")}(${statusPhotoScan.added}/${
-                              statusPhotoScan.to_add
+                        {worker?.status && worker?.job_detail?.progress_current !== null ? <Loader /> : null}
+                        {worker?.job_detail?.progress_current !== null
+                          ? `${t("settings.statusrescanphotostrue")}(${worker?.job_detail?.progress_target}/${
+                              worker?.job_detail?.progress_current
                             })`
                           : t("settings.statusrescanphotosfalse")}
                       </Menu.Item>
@@ -395,7 +392,7 @@ export function Library() {
               <Button
                 disabled={!workerAvailability}
                 onClick={() => {
-                  dispatch(api.endpoints.trainFaces.initiate());
+                  trainFaces.mutate();
                   notification.trainFaces();
                 }}
                 leftSection={<FaceId />}
@@ -419,7 +416,8 @@ export function Library() {
               <Button
                 disabled={!workerAvailability}
                 onClick={() => {
-                  dispatch(api.endpoints.rescanFaces.initiate());
+                  fetchClient.get("/scanfaces");
+
                   notification.rescanFaces();
                 }}
                 leftSection={<FaceId />}

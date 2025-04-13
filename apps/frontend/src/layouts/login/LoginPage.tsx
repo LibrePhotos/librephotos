@@ -30,13 +30,19 @@ export function LoginPage(): JSX.Element {
   const from = location.state?.from || "/";
 
   const { data: siteSettings } = useGetSettingsQuery();
-  const { mutate: login, isPending: isLoading } = useLoginMutation();
+  const { mutate: login, isPending: isLoading, isSuccess } = useLoginMutation();
   const form = useForm({
     initialValues: {
       username: "",
       password: "",
     },
   });
+
+  useEffect(() => {
+    if (isSuccess) {
+      navigate(from);
+    }
+  }, [isSuccess, navigate, from]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();

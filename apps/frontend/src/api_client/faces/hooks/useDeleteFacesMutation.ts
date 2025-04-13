@@ -24,7 +24,7 @@ const deleteFaces = (data: DeleteFacesRequest) =>
     fetchClient.post<DeleteFacesResponse>('/deletefaces', { face_ids: data.faceIds })
       .then(response => DeleteFacesResponse.parse(response));
 
-export const useDeleteFacesMutation = useMutation(
+export const useDeleteFacesMutation = () => useMutation(
     {   
         mutationKey: QueryKeys,
         mutationFn: deleteFaces,

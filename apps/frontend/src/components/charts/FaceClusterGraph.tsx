@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Hint, HorizontalGridLines, MarkSeries, VerticalGridLines, XYPlot } from "react-vis";
 
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppSelector } from "../../store/store";
 import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
 
 type Props = Readonly<{

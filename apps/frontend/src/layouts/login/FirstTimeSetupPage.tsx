@@ -15,11 +15,13 @@ import React, { useEffect } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from '@tanstack/react-query';
 
-import { api, useSignUpMutation } from "../../api_client/api";
+import { useSignUpMutation } from "../../api_client/auth/hooks";
 import { useAppDispatch } from "../../store/store";
 import { EMAIL_REGEX } from "../../util/util";
 import type { ISignUpFormState } from "./loginUtils";
+import { QueryKeys as UserListQueryKeys } from '../../api_client/user/hooks/useFetchUserListQuery';
 
 export const initialFormState: ISignUpFormState = {
   username: "",
@@ -33,8 +35,8 @@ export const initialFormState: ISignUpFormState = {
 export function FirstTimeSetupPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [signup, { isLoading, isSuccess }] = useSignUpMutation();
-  const dispatch = useAppDispatch();
+  const {mutate: signup, isPending, isSuccess } = useSignUpMutation();
+  const queryClient = useQueryClient();
 
   const form = useForm({
     initialValues: {
@@ -57,10 +59,10 @@ export function FirstTimeSetupPage(): JSX.Element {
 
   useEffect(() => {
     if (isSuccess) {
-      dispatch(api.endpoints.fetchUserList.initiate());
+      queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
       navigate("/");
     }
-  }, [navigate, isSuccess, dispatch]);
+  }, [navigate, isSuccess, queryClient]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -149,7 +151,7 @@ export function FirstTimeSetupPage(): JSX.Element {
                     variant="gradient"
                     gradient={{ from: "#D38312", to: "#A83279" }}
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isPending}
                   >
                     {t("login.signup")}
                   </Button>

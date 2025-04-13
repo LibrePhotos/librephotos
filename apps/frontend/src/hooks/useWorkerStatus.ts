@@ -25,5 +25,6 @@ export function useWorkerStatus() {
     workerRunningJob,
     workerAvailable,
     isLoading,
+    currentData: worker
   };
 }

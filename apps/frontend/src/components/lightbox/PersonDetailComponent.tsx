@@ -4,12 +4,12 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
-import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
 import { notification } from "../../service/notifications";
 import { useAppDispatch } from "../../store/store";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
+import { useSetFacesPersonLabelMutation, useDeleteFacesMutation  } from "../../api_client/faces";
 
 type Props = {
   person: any;
@@ -23,6 +23,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [tooltipOpened, setTooltipOpened] = useState(false);
+  const {mutate: setFacesPersonLabel} = useSetFacesPersonLabelMutation();
+  const {mutate: deleteFaces} = useDeleteFacesMutation();
 
   return (
     <Group
@@ -54,9 +56,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
         <Tooltip label={t("facesdashboard.explanationadding")}>
           <ActionIcon
             onClick={() =>
-              dispatch(
-                api.endpoints.setFacesPersonLabel.initiate({ faceIds: [person.face_id], personName: person.name })
-              )
+              setFacesPersonLabel({ faceIds: [person.face_id], personName: person.name })
             }
             variant="light"
             color="green"
@@ -85,7 +85,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
             variant="light"
             color="red"
             onClick={() => {
-              dispatch(api.endpoints.deleteFaces.initiate({ faceIds: [person.face_id] }));
+              deleteFaces({ faceIds: [person.face_id] });
               notification.deleteFaces(1);
             }}
           >

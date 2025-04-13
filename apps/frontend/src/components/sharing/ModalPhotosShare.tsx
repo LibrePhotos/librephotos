@@ -8,10 +8,9 @@ import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useUpdatePhotoSharingMutation } from "../../api_client/photos/sharing";
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppSelector } from "../../store/store";
 import classes from "./ModalAlbumShare.module.css";
 import filterUsers from "./utils";
-
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 type Props = Readonly<{
   selectedImageHashes: any;
   isOpen: boolean;
@@ -22,7 +21,7 @@ export function ModalPhotosShare(props: Props) {
   const { t } = useTranslation();
   const [userNameFilter, setUserNameFilter] = useState("");
   const { data: users = [], isFetching: isUsersLoading, isSuccess: isUsersLoaded } = useFetchUserListQuery();
-  const { auth } = useAppSelector(store => store);
+  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const { selectedImageHashes, isOpen, onRequestClose } = props;
   const { mutate: updatePhotoSharing } = useUpdatePhotoSharingMutation();
 
@@ -61,7 +60,7 @@ export function ModalPhotosShare(props: Props) {
         {isUsersLoaded && (
           <ScrollArea>
             <Stack>
-              {filterUsers(userNameFilter, auth.access?.user_id, users).map(item => {
+              {filterUsers(userNameFilter, currentUser?.id ?? 0, users).map(item => {
                 let displayName = item.username;
                 if (item.first_name.length > 0 && item.last_name.length > 0) {
                   displayName = `${item.first_name} ${item.last_name}`;

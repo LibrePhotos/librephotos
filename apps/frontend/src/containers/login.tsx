@@ -1,6 +1,6 @@
 import React from "react";
 
-import { useIsFirstTimeSetupQuery } from "../api_client/api";
+import { useIsFirstTimeSetupQuery } from "../api_client/auth/hooks";
 import { FirstTimeSetupPage } from "../layouts/login/FirstTimeSetupPage";
 import { LoginPage } from "../layouts/login/LoginPage";
 

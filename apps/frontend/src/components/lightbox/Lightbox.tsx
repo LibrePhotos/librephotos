@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
-import { useAppDispatch, useAppSelector } from "../../store/store";
 import { ContentViewer } from "./ContentViewer";
 import type { LightBoxProps } from "./lightbox.types";
 

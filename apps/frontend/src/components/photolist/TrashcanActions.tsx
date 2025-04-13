@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/delete";
-import { useAppSelector } from "../../store/store";
+import { useLocation } from "react-router-dom";
 
 type Props = {
   selectedItems: any[];
@@ -15,13 +15,13 @@ export function TrashcanActions(props: Readonly<Props>) {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const { selectedItems, updateSelectionState } = props;
   const { t } = useTranslation();
-  const route = useAppSelector(store => store.router);
+  const location = useLocation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
   const purgeDeletedPhotos = usePurgeDeletedPhotosMutation();
 
   return (
     <Group>
-      {route.location.pathname.startsWith("/deleted") && (
+      {location.pathname.startsWith("/deleted") && (
         <>
           <ActionIcon
             disabled={selectedItems.length === 0}

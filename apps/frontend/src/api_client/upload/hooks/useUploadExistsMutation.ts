@@ -9,7 +9,7 @@ export const UploadExistResponse = z.object({
 // Upload
 const uploadExists =  (hash: string) =>     
     fetchClient.get<string>(`/exists/${hash}`)
-      .then(response => UploadExistResponse.parse(response).exists),
+      .then(response => UploadExistResponse.parse(response).exists)
 
 export const useUploadExists = (hash: string) => {
   return useQuery({

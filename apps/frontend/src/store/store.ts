@@ -12,10 +12,7 @@ import { photos } from "../reducers/photosReducer";
 import { search } from "../reducers/searchReducer";
 import ui from "../reducers/uiReducer";
 import util from "../reducers/utilReducer";
-import { errorMiddleware } from "./middleware/errorMiddleware";
 import { playerReducer as player } from "./player/playerSlice";
-import { userReducer as user } from "./user/userSlice";
-import { worker } from "./worker/workerSlice";
 
 const { createReduxHistory, routerMiddleware, routerReducer } = createReduxHistoryContext({
   history: createBrowserHistory(),
@@ -32,8 +29,6 @@ export const store = configureStore({
     photos,
     search,
     ui,
-    user,
-    worker,
     player,
   }),
   middleware: getDefaultMiddleware =>
@@ -52,7 +47,7 @@ export const store = configureStore({
           'api.mutations.fetchServerLogs',
         ],
       },
-    }).concat(routerMiddleware, api.middleware, errorMiddleware),
+    }).concat(routerMiddleware),
 });
 
 export const libreHistory = createReduxHistory(store);

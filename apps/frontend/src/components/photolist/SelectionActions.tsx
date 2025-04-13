@@ -19,15 +19,14 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { UserAlbum } from "../../api_client/albums/types";
-import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/user";
+import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useMarkPhotosDeletedMutation } from "../../api_client/photos/delete";
 import { useDownloadPhotosMutation } from "../../api_client/photos/download";
 import { useSetFavoritePhotosMutation } from "../../api_client/photos/favorite";
 import { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/visibility";
-import { useAppSelector } from "../../store/store";
 import { copyToClipboard } from "../../util/util";
-
+import { useLocation } from "react-router-dom";
 type Props = {
   selectedItems: UserAlbum[];
   updateSelectionState: (any) => void;
@@ -41,7 +40,7 @@ type Props = {
 
 export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
-  const route = useAppSelector(store => store.router);
+  const location = useLocation();
   const removePhotosFromAlbum = useRemovePhotoFromUserAlbumMutation();
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
@@ -265,15 +264,15 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             disabled={
-              (!route.location.pathname.startsWith("/person/") && !route.location.pathname.startsWith("/useralbum/")) ||
+              (!location.pathname.startsWith("/person/") && !location.pathname.startsWith("/useralbum/")) ||
               selectedItems.length !== 1
             }
             leftSection={<Photo />}
             onClick={() => {
-              if (route.location.pathname.startsWith("/person/")) {
+              if (location.pathname.startsWith("/person/")) {
                 setAlbumCover("person");
               }
-              if (route.location.pathname.startsWith("/useralbum/")) {
+              if (location.pathname.startsWith("/useralbum/")) {
                 setAlbumCover("useralbum");
               }
               updateSelectionState({
@@ -287,7 +286,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Share />}
-            disabled={!route.location.pathname.startsWith("/useralbum/")}
+            disabled={!location.pathname.startsWith("/useralbum/")}
             onClick={onShareAlbum}
           >
             {`  ${t("selectionactions.sharing")}`}
@@ -295,7 +294,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<FileMinus />}
-            disabled={!route.location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
+            disabled={!location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
             onClick={() => {
               removePhotosFromAlbum.mutate({
                 id: albumID.toString(),

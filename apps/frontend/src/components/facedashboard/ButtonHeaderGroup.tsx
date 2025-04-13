@@ -24,8 +24,8 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { notification } from "../../service/notifications";
-import { FaceAnalysisMethod, FacesOrderOption } from "../../store/faces/facesActions.types";
 import { useTrainFacesMutation } from "../../api_client/faces";
+import { FaceAnalysisMethod, FacesOrderOption } from "../../api_client/faces/types";
 
 type Props = Readonly<{
   selectMode: boolean;

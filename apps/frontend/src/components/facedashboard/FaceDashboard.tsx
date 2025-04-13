@@ -14,7 +14,7 @@ import { notification } from "../../service/notifications";
 import { 
   FaceAnalysisMethod, 
   FacesTab
-} from "../../store/faces/facesActions.types";
+} from "../../api_client/faces/types";
 import { useAppDispatch } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";

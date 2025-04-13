@@ -6,13 +6,13 @@ import { PigPhoto } from "../../actions/photosActions.types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { PhotosetType } from "../../reducers/photosReducer";
-import { useAppSelector } from "../../store/store";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "../photos/common";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 export function UserPublicPage() {
   const params = useParams();
-  const { auth } = useAppSelector(state => state);
+  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
@@ -47,7 +47,7 @@ export function UserPublicPage() {
     <PhotoListView
       // To-Do: Translate this
       title={
-        auth.access && auth.access.name === params.username
+        currentUser?.username === params.username
           ? "Your public photos"
           : `Public photos of ${params.username}`
       }
@@ -55,7 +55,7 @@ export function UserPublicPage() {
       icon={<Globe size={50} />}
       photoset={photosGroupedByDate ?? []}
       idx2hash={photosFlat}
-      isPublic={auth.access === null || auth.access.name !== params.username}
+      isPublic={currentUser?.username !== params.username}
       updateGroups={getAlbums}
       selectable
     />

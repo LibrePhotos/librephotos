@@ -1,7 +1,7 @@
 import { Group, Loader, Tabs } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { FaceAnalysisMethod, FacesTab } from "../../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesTab } from "../../api_client/faces/types";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 
 type Props = Readonly<{

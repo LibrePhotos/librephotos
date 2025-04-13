@@ -9,14 +9,14 @@ import {
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useFetchServerLogsQuery, useFetchServerStatsQuery, useFetchUserListQuery, useDeleteAllAutoAlbumsMutation } from "../../api_client/api";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
+import { useFetchServerLogsQuery, useFetchServerStatsQuery, useDeleteAllAutoAlbumsMutation } from "../../api_client/api";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
 import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { i18nResolvedLanguage } from "../../i18n";
-import { useAppSelector } from "../../store/store";
 import { SiteSettings } from "./SiteSettings";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 function DownloadLogsButton(){
   const { data, isFetching } = useFetchServerLogsQuery();
@@ -204,10 +204,10 @@ function AdminTools() {
 }
 
 export function AdminPage() {
-  const auth = useAppSelector(state => state.auth);
+  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const { t } = useTranslation();
 
-  if (!auth.access.is_admin) {
+  if (!currentUser?.is_superuser) {
     return <div>Unauthorized</div>;
   }
 

@@ -6,23 +6,24 @@ import { useParams } from "react-router-dom";
 import type { DatePhotosGroup, PigPhoto } from "../../actions/photosActions.types";
 import { useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { useAppSelector } from "../../store/store";
+import { useAccessToken } from "../../api_client/auth";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
+
 export function AlbumUserGallery() {
   const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
   const [groupedPhotos, setGroupedPhotos] = useState<DatePhotosGroup[]>([]);
   const [isPublic, setIsPublic] = useState(false);
-  const auth = useAppSelector(store => store.auth);
+  const { data: auth } = useAccessToken();
   const { albumID } = useParams();
 
-  const { data: album, isFetching } = useFetchUserAlbumQuery(albumID);
+  const { data: album, isFetching } = useFetchUserAlbumQuery(albumID ?? '');
   const { t } = useTranslation();
 
   useEffect(() => {
     if (!album) {
       return;
     }
-    setIsPublic(album.owner && album.owner.id !== auth.access.user_id);
+    setIsPublic(album.owner && album.owner.id !== auth?.access?.user_id);
     setGroupedPhotos(album.grouped_photos);
     setFlatPhotos(getPhotosFlatFromGroupedByDate(album.grouped_photos));
   }, [album, auth]);
@@ -31,7 +32,7 @@ export function AlbumUserGallery() {
     if (showHeader && album) {
       return (
         <span>
-          {", "}owned by {album.owner.id === auth.access.user_id ? "you" : album.owner.username}
+          {", "}owned by {album.owner.id === auth?.access?.user_id ? "you" : album.owner.username}
         </span>
       );
     }

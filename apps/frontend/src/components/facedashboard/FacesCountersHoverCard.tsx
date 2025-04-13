@@ -3,7 +3,8 @@ import { t } from "i18next";
 import React, { useEffect, useState } from "react";
 
 import { FacesTab } from "../../api_client/faces";
-import { useAppSelector } from "../../store/store";
+import { useFetchFacesQuery } from "../../api_client/faces/hooks/useFetchFacesQuery";
+import { FacesOrderOption, FaceAnalysisMethod, CompletePersonFaceList } from "../../api_client/faces/types";
 
 type Props = Readonly<{
   tab: FacesTab;
@@ -11,8 +12,20 @@ type Props = Readonly<{
 }>;
 
 export function FacesCountersHoverCard({ tab, children }: Props) {
-  // TODO: Remove this once the store is removed
-  const { inferredFacesList, labeledFacesList } = useAppSelector(store => store.face);
+  
+  const { data: labeledFacesList = [] } = useFetchFacesQuery({
+    page: 0,
+    inferred: false,
+    orderBy: FacesOrderOption.enum.confidence,
+    method: FaceAnalysisMethod.enum.clustering
+  }) as { data: CompletePersonFaceList };
+
+  const { data: inferredFacesList = [] } = useFetchFacesQuery({
+    page: 0,
+    inferred: true,
+    orderBy: FacesOrderOption.enum.confidence,
+    method: FaceAnalysisMethod.enum.clustering
+  }) as { data: CompletePersonFaceList };
 
   const [labeledPersonsCount, setLabeledPersonsCount] = useState(0);
   const [labeledFacesCount, setLabeledFacesCount] = useState(0);

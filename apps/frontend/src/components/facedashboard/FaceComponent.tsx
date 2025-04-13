@@ -4,9 +4,9 @@ import _ from "lodash";
 import React, { useState } from "react";
 
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppSelector } from "../../store/store";
 import "./FaceComponent.css";
 import { FaceTooltip } from "./FaceTooltip";
+import { useParams } from "react-router-dom";
 
 type Props = Readonly<{
   cell: any;
@@ -38,7 +38,7 @@ export function FaceComponent({
 
   const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const [tooltipOpened, setTooltipOpened] = useState(false);
-  const { activeTab } = useAppSelector(store => store.face);
+  const { tab } = useParams();
   // TODO: janky shit going on in the next line!
   const faceImageSrc = `${serverAddress}/media/faces/${_.reverse(cell.image.split("/"))[0]}`;
 
@@ -77,7 +77,7 @@ export function FaceComponent({
             color={labelProbabilityColor}
             onMouseEnter={() => setTooltipOpened(true)}
             onMouseLeave={() => setTooltipOpened(false)}
-            disabled={activeTab === "labeled"}
+            disabled={tab === "labeled"}
             size={15}
           >
             <Avatar

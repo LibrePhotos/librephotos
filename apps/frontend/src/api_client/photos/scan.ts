@@ -13,7 +13,7 @@ type JobResponse = z.infer<typeof JobResponseSchema>;
 // Scan photos
 export const useScanPhotosMutation = () => useMutation({
   mutationFn: async () => {
-    const response = await fetchClient.post('scanphotos/', {});
+    const response = await fetchClient.post('/scanphotos/', {});
     const data = JobResponseSchema.parse(response);
     notification.startPhotoScan();
     return data;
@@ -27,7 +27,7 @@ export const useScanPhotosMutation = () => useMutation({
 // Rescan photos
 export const useRescanPhotosMutation = () => useMutation({
   mutationFn: async () => {
-    const response = await fetchClient.post('fullscanphotos/', {});
+    const response = await fetchClient.post('/fullscanphotos/', {});
     const data = JobResponseSchema.parse(response);
     notification.startFullPhotoScan();
     return data;
@@ -41,7 +41,7 @@ export const useRescanPhotosMutation = () => useMutation({
 // Scan Nextcloud photos
 export const useScanNextcloudPhotosMutation = () => useMutation({
   mutationFn: async () => {
-    const response = await fetchClient.post('nextcloud/scanphotos/', {});
+    const response = await fetchClient.post('/nextcloud/scanphotos/', {});
     const data = JobResponseSchema.parse(response);
     notification.startNextcloudPhotoScan();
     return data;

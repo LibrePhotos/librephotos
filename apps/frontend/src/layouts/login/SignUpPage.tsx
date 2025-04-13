@@ -15,7 +15,7 @@ import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { useSignUpMutation } from "../../api_client/api";
+import { useSignUpMutation } from "../../api_client/auth/hooks";
 import { EMAIL_REGEX } from "../../util/util";
 
 export function SignupPage(): JSX.Element {
@@ -46,7 +46,7 @@ export function SignupPage(): JSX.Element {
       username: value => validateUsername(value),
     },
   });
-  const [signup, { isSuccess }] = useSignUpMutation();
+  const {mutate: signup, isSuccess } = useSignUpMutation();
 
   useEffect(() => {
     if (isSuccess) {

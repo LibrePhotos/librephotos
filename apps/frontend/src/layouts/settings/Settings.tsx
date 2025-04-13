@@ -8,7 +8,7 @@ import {
   NumberInput,
   Radio,
   Select,
-  Space,
+  Space,  
   Stack,
   Switch,
   Text,
@@ -18,38 +18,46 @@ import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { api } from "../../api_client/api";
-import { useUpdateUserMutation } from "../../api_client/user";
+import { useUpdateUserMutation, useFetchUserSelfDetailsQuery, UserSelfDetailsQueryKeys } from "../../api_client/user/hooks";
 import { useFetchTimezonesQuery } from "../../api_client/util";
-import { ConfigDateTime } from "../../components/settings/ConfigDateTime";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { ConfigDateTime } from "../../components/settings/ConfigDateTime"; 
+import { useQueryClient } from "@tanstack/react-query";
+import { useAccessToken } from "../../api_client/auth/hooks";
 
 export function Settings() {
-  const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
-  const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
-  const [userSelfDetails, setUserSelfDetails] = useState(userSelfDetailsRedux);
-  const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
+  const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);  
+  const { data: auth } = useAccessToken();
+  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? '');
+  const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
   const { t } = useTranslation();
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
   const updateUser = useUpdateUserMutation();
+  const queryClient = useQueryClient();
 
   // open update dialog, when user was edited
   useEffect(() => {
-    if (JSON.stringify(userSelfDetailsRedux) !== JSON.stringify(userSelfDetails)) {
+    if (userSelfDetails && editedUserDetails && JSON.stringify(userSelfDetails) !== JSON.stringify(editedUserDetails)) {
       setIsOpenUpdateDialog(true);
     } else {
       setIsOpenUpdateDialog(false);
     }
-  }, [userSelfDetailsRedux, userSelfDetails]);
+  }, [userSelfDetails, editedUserDetails]);
 
   useEffect(() => {
-    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
-  }, [auth.access.user_id, dispatch]);
+    if (auth?.access?.user_id) {
+      queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+    }
+  }, [auth?.access?.user_id, queryClient]);
 
   useEffect(() => {
-    setUserSelfDetails(userSelfDetailsRedux);
-  }, [userSelfDetailsRedux]);
+    if (userSelfDetails) {
+      setEditedUserDetails(userSelfDetails);
+    }
+  }, [userSelfDetails]);
+
+  if (!userSelfDetails || !editedUserDetails) {
+    return null;
+  }
 
   return (
     <Container>
@@ -66,9 +74,9 @@ export function Settings() {
             <Radio.Group
               description={t("settings.confidencelevel")}
               label={t("settings.sceneconfidence")}
-              value={userSelfDetails.confidence?.toString() || "0"}
+              value={editedUserDetails.confidence?.toString() || "0"}
               onChange={value => {
-                setUserSelfDetails({ ...userSelfDetails, confidence: value || "0" });
+                setEditedUserDetails({ ...editedUserDetails, confidence: parseFloat(value) || 0 });
               }}
             >
               <Group mt="xs">
@@ -81,9 +89,9 @@ export function Settings() {
             <Radio.Group
               label={t("settings.semanticsearchheader")}
               description={t("settings.semanticsearch.placeholder")}
-              value={userSelfDetails.semantic_search_topk?.toString()}
+              value={editedUserDetails.semantic_search_topk?.toString()}
               onChange={value => {
-                setUserSelfDetails({ ...userSelfDetails, semantic_search_topk: value || "0" });
+                setEditedUserDetails({ ...editedUserDetails, semantic_search_topk: parseInt(value) || 0 });
               }}
             >
               <Group mt="xs">
@@ -102,9 +110,9 @@ export function Settings() {
           <Flex align="flex-start" direction="column" gap="md">
             <Radio.Group
               label={t("settings.sync")}
-              value={userSelfDetails.save_metadata_to_disk}
+              value={editedUserDetails.save_metadata_to_disk}
               onChange={value => {
-                setUserSelfDetails({ ...userSelfDetails, save_metadata_to_disk: value || "OFF" });
+                setEditedUserDetails({ ...editedUserDetails, save_metadata_to_disk: value || "OFF" });
               }}
             >
               <Group mt="xs">
@@ -115,9 +123,9 @@ export function Settings() {
             </Radio.Group>
             <Radio.Group
               label={t("settings.favoriteminimum")}
-              value={userSelfDetails.favorite_min_rating?.toString()}
+              value={editedUserDetails.favorite_min_rating?.toString()}
               onChange={value => {
-                setUserSelfDetails({ ...userSelfDetails, favorite_min_rating: value || "3" });
+                setEditedUserDetails({ ...editedUserDetails, favorite_min_rating: parseInt(value) || 3 });
               }}
             >
               <Group mt="xs">
@@ -130,12 +138,12 @@ export function Settings() {
             </Radio.Group>
             <Select
               label={t("defaulttimezone")}
-              value={userSelfDetails.default_timezone}
+              value={editedUserDetails.default_timezone}
               placeholder={t("defaulttimezone")}
               searchable
               title={t("timezoneexplain")}
               onChange={value => {
-                setUserSelfDetails({ ...userSelfDetails, default_timezone: value ?? "UTC" });
+                setEditedUserDetails({ ...editedUserDetails, default_timezone: value ?? "UTC" });
               }}
               data={timezoneList}
             />
@@ -152,10 +160,10 @@ export function Settings() {
             max={1.0}
             placeholder="0.90"
             decimalScale={2}
-            value={userSelfDetails.confidence_person}
+            value={typeof editedUserDetails.confidence_person === 'number' ? editedUserDetails.confidence_person : 0}
             hideControls
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, confidence_person: value });
+              setEditedUserDetails({ ...editedUserDetails, confidence_person: typeof value === 'number' ? value : 0 });
             }}
           />
         </Card>
@@ -166,9 +174,9 @@ export function Settings() {
           <Radio.Group
             label={t("settings.face_recognition_model")}
             description={t("settings.face_recognition_model_help")}
-            value={userSelfDetails.face_recognition_model}
+            value={editedUserDetails.face_recognition_model}
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, face_recognition_model: value || "HOG" });
+              setEditedUserDetails({ ...editedUserDetails, face_recognition_model: value || "HOG" });
             }}
           >
             <Group mt="xs">
@@ -179,9 +187,9 @@ export function Settings() {
           <Radio.Group
             label={t("settings.min_cluster_size")}
             description={t("settings.min_cluster_size_help")}
-            value={userSelfDetails.min_cluster_size ? userSelfDetails.min_cluster_size.toString() : "0"}
+            value={editedUserDetails.min_cluster_size ? editedUserDetails.min_cluster_size.toString() : "0"}
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, min_cluster_size: value || 0 });
+              setEditedUserDetails({ ...editedUserDetails, min_cluster_size: parseInt(value) || 0 });
             }}
           >
             <Group mt="xs">
@@ -195,9 +203,9 @@ export function Settings() {
           <Radio.Group
             label={t("settings.min_samples")}
             description={t("settings.min_samples_help")}
-            value={userSelfDetails.min_samples ? userSelfDetails.min_samples.toString() : "1"}
+            value={editedUserDetails.min_samples ? editedUserDetails.min_samples.toString() : "1"}
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, min_samples: value || 0 });
+              setEditedUserDetails({ ...editedUserDetails, min_samples: parseInt(value) || 0 });
             }}
           >
             <Group mt="xs">
@@ -212,10 +220,10 @@ export function Settings() {
             label={t("settings.cluster_selection_epsilon")}
             description={t("settings.cluster_selection_epsilon_help")}
             value={
-              userSelfDetails.cluster_selection_epsilon ? userSelfDetails.cluster_selection_epsilon.toString() : "0.1"
+              editedUserDetails.cluster_selection_epsilon ? editedUserDetails.cluster_selection_epsilon.toString() : "0.1"
             }
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, cluster_selection_epsilon: value || 0 });
+              setEditedUserDetails({ ...editedUserDetails, cluster_selection_epsilon: parseFloat(value) || 0 });
             }}
           >
             <Group mt="xs">
@@ -233,18 +241,18 @@ export function Settings() {
             max={1.0}
             placeholder="0.50"
             decimalScale={2}
-            value={userSelfDetails.confidence_unknown_face}
+            value={typeof editedUserDetails.confidence_unknown_face === 'number' ? editedUserDetails.confidence_unknown_face : 0}
             hideControls
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, confidence_unknown_face: value });
+              setEditedUserDetails({ ...editedUserDetails, confidence_unknown_face: typeof value === 'number' ? value : 0 });
             }}
           />
         </Card>
         <Card shadow="md">
           <ConfigDateTime
-            value={userSelfDetails.datetime_rules}
+            value={editedUserDetails.datetime_rules}
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, datetime_rules: value || "[]" });
+              setEditedUserDetails({ ...editedUserDetails, datetime_rules: value || "[]" });
             }}
           />
         </Card>
@@ -254,10 +262,10 @@ export function Settings() {
           </Title>
           <Switch
             label={t("settings.transcodevideo")}
-            checked={userSelfDetails.transcode_videos}
+            checked={editedUserDetails.transcode_videos}
             onChange={event => {
-              setUserSelfDetails({
-                ...userSelfDetails,
+              setEditedUserDetails({
+                ...editedUserDetails,
                 transcode_videos: event.currentTarget.checked,
               });
             }}
@@ -270,12 +278,12 @@ export function Settings() {
             </Title>
             <Switch
               label={t("settings.enablellm")}
-              checked={userSelfDetails.llm_settings?.enabled}
+              checked={editedUserDetails.llm_settings?.enabled}
               onChange={event => {
-                setUserSelfDetails({
-                  ...userSelfDetails,
+                setEditedUserDetails({
+                  ...editedUserDetails,
                   llm_settings: {
-                    ...userSelfDetails.llm_settings,
+                    ...editedUserDetails.llm_settings,
                     enabled: event.currentTarget.checked,
                   },
                 });
@@ -283,13 +291,13 @@ export function Settings() {
             />
             <Switch
               label={t("settings.addperson")}
-              checked={userSelfDetails.llm_settings?.add_person}
-              disabled={!userSelfDetails.llm_settings?.enabled}
+              checked={editedUserDetails.llm_settings?.add_person}
+              disabled={!editedUserDetails.llm_settings?.enabled}
               onChange={event => {
-                setUserSelfDetails({
-                  ...userSelfDetails,
+                setEditedUserDetails({
+                  ...editedUserDetails,
                   llm_settings: {
-                    ...userSelfDetails.llm_settings,
+                    ...editedUserDetails.llm_settings,
                     add_person: event.currentTarget.checked,
                   },
                 });
@@ -297,13 +305,13 @@ export function Settings() {
             />
             <Switch
               label={t("settings.addlocation")}
-              checked={userSelfDetails.llm_settings?.add_location}
-              disabled={!userSelfDetails.llm_settings?.enabled}
+              checked={editedUserDetails.llm_settings?.add_location}
+              disabled={!editedUserDetails.llm_settings?.enabled}
               onChange={event => {
-                setUserSelfDetails({
-                  ...userSelfDetails,
+                setEditedUserDetails({
+                  ...editedUserDetails,
                   llm_settings: {
-                    ...userSelfDetails.llm_settings,
+                    ...editedUserDetails.llm_settings,
                     add_location: event.currentTarget.checked,
                   },
                 });
@@ -329,18 +337,20 @@ export function Settings() {
             size="sm"
             color="green"
             onClick={() => {
-              const newUserData = userSelfDetails;
-              delete newUserData.scan_directory;
-              delete newUserData.avatar;
-              updateUser.mutate(newUserData);
-              setIsOpenUpdateDialog(false);
+              if (editedUserDetails) {
+                const newUserData = { ...editedUserDetails };
+                delete newUserData.scan_directory;
+                delete newUserData.avatar;
+                updateUser.mutate(newUserData);
+                setIsOpenUpdateDialog(false);
+              }
             }}
           >
             <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
           </Button>
           <Button
             onClick={() => {
-              setUserSelfDetails(userSelfDetailsRedux);
+              setEditedUserDetails(userSelfDetails);
               setIsOpenUpdateDialog(false);
             }}
             size="sm"

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { FaceAnalysisMethod, FacesTab, CompletePersonFaceList } from "../../../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesTab, CompletePersonFaceList } from "../../../api_client/faces/types";
 import {  
-  queryClient,
+  queryClient,  
   API,
   QueryKeys
 } from "../../../api_client/api";

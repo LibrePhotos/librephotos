@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from "react";
 import _ from "lodash";
 import { AutoSizer, Grid, GridCellProps } from "react-virtualized";
-import { FaceAnalysisMethod, FacesTab } from "../../../store/faces/facesActions.types";
+import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces/types";
 import { FaceComponent } from "../FaceComponent";
 import { HeaderComponent } from "../HeaderComponent";
 import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../../util/gridUtils";

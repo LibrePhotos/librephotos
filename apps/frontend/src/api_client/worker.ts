@@ -7,7 +7,7 @@ export const useWorkerQuery = () => {
   return useQuery({
     queryKey: ['worker'],
     queryFn: async () => {
-      const response = await fetchClient.get('/worker/');
+      const response = await fetchClient.get('/rqavailable/');
       return WorkerAvailabilityResponse.parse(response);
     },
     refetchInterval: 2000, // Poll every 2 seconds

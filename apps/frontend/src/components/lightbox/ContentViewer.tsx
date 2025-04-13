@@ -1,10 +1,9 @@
-import { Carousel, useAnimationOffsetEffect } from "@mantine/carousel";
+import { Carousel } from "@mantine/carousel";
 import "@mantine/carousel/styles.css";
 import { Modal, Stack } from "@mantine/core";
 import { useGesture } from "@use-gesture/react";
 import React, { useEffect, useState } from "react";
 
-import { useAppSelector } from "../../store/store";
 import { ImagePreloader } from "./ImagePreloader";
 import { LightboxControls } from "./LightboxControls";
 import { MediaDisplay } from "./MediaDisplay";

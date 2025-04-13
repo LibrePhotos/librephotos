@@ -13,13 +13,12 @@ import { useViewportSize } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppSelector } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
@@ -37,6 +36,7 @@ import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -92,9 +92,9 @@ function PhotoListViewComponent({
   const setUserAlbumCover = useSetUserAlbumCoverMutation();
   const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
   const updateUser = useUpdateUserMutation();
-  const route = useAppSelector(store => store.router);
-  const userSelfDetails = useAppSelector(store => store.user.userSelfDetails);
-  const [imageScale, setImageScale] = useState(userSelfDetails.image_scale);
+  const location = useLocation();
+  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
+  const [imageScale, setImageScale] = useState(userSelfDetails?.image_scale ?? 1);
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
 
@@ -111,15 +111,17 @@ function PhotoListViewComponent({
   }, [idx2hash]);
 
   useEffect(() => {
-    setImageScale(userSelfDetails.image_scale);
-  }, [userSelfDetails.image_scale]);
+    if (userSelfDetails) {
+      setImageScale(userSelfDetails.image_scale);
+    }
+  }, [userSelfDetails?.image_scale]);
 
   const handleThumbnailSizeChange = (value: number | string) => {
     // Update the component state
     setImageScale(typeof value === 'number' ? value : parseFloat(value));
 
     // Save to server
-    if (userSelfDetails.id) {
+    if (userSelfDetails?.id) {
       const newUserDetails = { ...userSelfDetails, image_scale: typeof value === 'number' ? value : parseFloat(value) };
       updateUser.mutate(newUserDetails);
     }
@@ -251,7 +253,7 @@ function PhotoListViewComponent({
   let isUserAlbum = false;
 
   // @ts-ignore
-  if (route.location.pathname.startsWith("/useralbum/")) {
+  if (location.pathname.startsWith("/useralbum/")) {
     isUserAlbum = true;
   }
 
@@ -274,8 +276,6 @@ function PhotoListViewComponent({
           <Group align="flex-start" style={{ width: "100%" }}>
             <Box style={{ flexGrow: 1 }}>
               <DefaultHeader
-                // @ts-ignore
-                route={route}
                 // @ts-ignore
                 photoList={this}
                 loading={loading}
@@ -339,7 +339,7 @@ function PhotoListViewComponent({
                 updateSelectionState={updateSelectionState}
               />
               <Group justify="flex-end">
-                {!route.location.pathname.startsWith("/deleted") && (
+                  {!location.pathname.startsWith("/deleted") && (
                   <SelectionActions
                     selectedItems={selectionState.selectedItems}
                     // @ts-ignore

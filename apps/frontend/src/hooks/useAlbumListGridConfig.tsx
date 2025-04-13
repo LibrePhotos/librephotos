@@ -1,7 +1,6 @@
 import { useViewportSize } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 
-import { useAppSelector } from "../store/store";
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
 interface AlbumGridConfig {
@@ -11,7 +10,7 @@ interface AlbumGridConfig {
   gridHeight: number;
 }
 
-function calculateGridValues(width: number, showSidebar: boolean): { columnWidth: number; squareSize: number } {
+function calculateGridValues(width: number): { columnWidth: number; squareSize: number } {
   let entries = 6;
   if (width < 600) {
     entries = 2;
@@ -23,7 +22,7 @@ function calculateGridValues(width: number, showSidebar: boolean): { columnWidth
     entries = 5;
   }
   let columnWidth = width - 5 - 5 - 15;
-  if (width >= 700 && showSidebar) {
+  if (width >= 700 ) {
     columnWidth -= LEFT_MENU_WIDTH;
   }
   return { columnWidth, squareSize: columnWidth / entries };
@@ -35,15 +34,14 @@ export function useAlbumListGridConfig(albums: Object[]): AlbumGridConfig {
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numberOfRows, setNumberOfRows] = useState(0);
   const [gridHeight, setGridHeight] = useState(0);
-
-  const showSidebar = useAppSelector(store => store.ui.showSidebar);
+  
 
   useEffect(() => {
-    const { columnWidth, squareSize } = calculateGridValues(width, showSidebar);
+    const { columnWidth, squareSize } = calculateGridValues(width);
     setEntriesPerRow(columnWidth / squareSize);
     setEntrySquareSize(squareSize);
     setGridHeight(height - TOP_MENU_HEIGHT - 60);
-  }, [width, height, showSidebar]);
+  }, [width, height]);
 
   useEffect(() => {
     if (albums && albums.length > 0 && entriesPerRow > 0) {

@@ -20,23 +20,24 @@ import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
 
-import { api } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
-import { useUpdateAvatarMutation, useUpdateUserMutation } from "../../api_client/user"
+import { useUpdateAvatarMutation, useUpdateUserMutation, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { PasswordEntry } from "../../components/settings/PasswordEntry";
-import { useAppDispatch, useAppSelector } from "../../store/store";
+import { useQueryClient } from "@tanstack/react-query"; 
+import { useAccessToken } from "../../api_client/auth/hooks";
+import { QueryKeys } from "../../api_client/api";
 
 export function Profile() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
-  const [userSelfDetails, setUserSelfDetails] = useState({} as any);
-  const dispatch = useAppDispatch();
-  const auth = useAppSelector(state => state.auth);
-  const userSelfDetailsRedux = useAppSelector(state => state.user.userSelfDetails);
+  const { data: auth } = useAccessToken();
+  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? '');
+  const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
   const { t, i18n } = useTranslation();
   const updateAvatar = useUpdateAvatarMutation();
-  const updateUser = useUpdateUserMutation();
+  const updateUser = useUpdateUserMutation(); 
   let editorRef = useRef(null);
+  const queryClient = useQueryClient();
 
   const setEditorRef = ref => {
     editorRef = ref;
@@ -52,38 +53,49 @@ export function Profile() {
   };
 
   const onPasswordValidate = (pass: string, valid: boolean) => {
-    const newUserDetails = { ...userSelfDetails };
+    if (!editedUserDetails) return;
+    
+    const newUserDetails = { ...editedUserDetails };
     if (pass && valid) {
       newUserDetails.password = pass;
     } else {
       delete newUserDetails.password;
     }
 
-    setUserSelfDetails({ ...newUserDetails });
+    setEditedUserDetails(newUserDetails);
   };
 
   // open update dialog, when user was edited
   useEffect(() => {
-    if (!_.isEqual(userSelfDetailsRedux, userSelfDetails)) {
+    if (!_.isEqual(userSelfDetails, editedUserDetails)) {
       setIsOpenUpdateDialog(true);
     } else {
       setIsOpenUpdateDialog(false);
     }
-  }, [userSelfDetailsRedux, userSelfDetails]);
+  }, [userSelfDetails, editedUserDetails]);
 
   useEffect(() => {
-    dispatch(api.endpoints.fetchUserSelfDetails.initiate(auth.access.user_id)).refetch();
-  }, [auth.access.user_id, dispatch]);
+    if (auth?.access?.user_id) {
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.userSelfDetails] });
+    }
+  }, [auth?.access?.user_id, queryClient]);
 
   useEffect(() => {
-    setUserSelfDetails(userSelfDetailsRedux);
-  }, [userSelfDetailsRedux]);
+    if (userSelfDetails) {
+      setEditedUserDetails(userSelfDetails);
+    }
+  }, [userSelfDetails]);
 
-  if (avatarImgSrc === "/unknown_user.jpg") {
-    if (userSelfDetails.avatar_url) {
+  useEffect(() => {
+    if (avatarImgSrc === "/unknown_user.jpg" && userSelfDetails?.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
     }
+  }, [avatarImgSrc, userSelfDetails]);
+
+  if (!userSelfDetails || !editedUserDetails) {
+    return null;
   }
+
   return (
     <Container>
       <Group gap="xs" mt={40} mb={20}>
@@ -112,7 +124,6 @@ export function Profile() {
               >
                 {({ getRootProps, getInputProps }) => (
                   <div {...getRootProps()}>
-                    {}
                     <input {...getInputProps()} />
                     <AvatarEditor ref={setEditorRef} width={150} height={150} border={0} image={avatarImgSrc} />
                   </div>
@@ -142,10 +153,10 @@ export function Profile() {
                     const file = await urlToFile(
                       // @ts-ignore
                       editorRef.getImageScaledToCanvas().toDataURL(),
-                      `${userSelfDetails.first_name}avatar.png`
+                      `${editedUserDetails.first_name}avatar.png`
                     );
-                    formData.append("avatar", file, `${userSelfDetails.first_name}avatar.png`);
-                    updateAvatar.mutate({ id: userSelfDetails.id, data: formData });
+                    formData.append("avatar", file, `${editedUserDetails.first_name}avatar.png`);
+                    updateAvatar.mutate({ id: editedUserDetails.id.toString(), data: formData });
                   }}
                 >
                   <Upload />
@@ -161,26 +172,26 @@ export function Profile() {
           <Group grow>
             <TextInput
               onChange={event => {
-                setUserSelfDetails({ ...userSelfDetails, first_name: event.currentTarget.value });
+                setEditedUserDetails({ ...editedUserDetails, first_name: event.currentTarget.value });
               }}
               label={t("settings.firstname")}
               placeholder={t("settings.firstnameplaceholder")}
-              value={userSelfDetails.first_name}
+              value={editedUserDetails.first_name}
             />
             <TextInput
               onChange={event => {
-                setUserSelfDetails({ ...userSelfDetails, last_name: event.currentTarget.value });
+                setEditedUserDetails({ ...editedUserDetails, last_name: event.currentTarget.value });
               }}
               label={t("settings.lastname")}
               placeholder={t("settings.lastnameplaceholder")}
-              value={userSelfDetails.last_name}
+              value={editedUserDetails.last_name}
             />
             <TextInput
               label={t("settings.email")}
               placeholder={t("settings.emailplaceholder")}
-              value={userSelfDetails.email}
+              value={editedUserDetails.email}
               onChange={event => {
-                setUserSelfDetails({ ...userSelfDetails, email: event.currentTarget.value });
+                setEditedUserDetails({ ...editedUserDetails, email: event.currentTarget.value });
               }}
             />
           </Group>
@@ -198,9 +209,9 @@ export function Profile() {
 
           <Radio.Group
             label={t("settings.public_sharing")}
-            value={userSelfDetails.public_sharing ? "1" : "0"}
+            value={editedUserDetails.public_sharing ? "1" : "0"}
             onChange={value => {
-              setUserSelfDetails({ ...userSelfDetails, public_sharing: !!parseInt(value, 10) });
+              setEditedUserDetails({ ...editedUserDetails, public_sharing: !!parseInt(value, 10) });
             }}
             mb={10}
           >
@@ -211,12 +222,12 @@ export function Profile() {
           </Radio.Group>
 
           <Stack justify="flex-start">
-            {auth.isAdmin ? (
+            {auth?.access?.is_admin ? (
               <TextInput
                 type="text"
                 label={t("settings.scandirectory")}
                 disabled
-                placeholder={userSelfDetails.scan_directory}
+                placeholder={editedUserDetails.scan_directory}
               />
             ) : null}
           </Stack>
@@ -225,7 +236,7 @@ export function Profile() {
             <Select
               label={t("settings.language")}
               placeholder={t("settings.language")}
-              onChange={value => i18n.changeLanguage(value)}
+              onChange={value => i18n.changeLanguage(value ?? "en")}
               searchable
               maxDropdownHeight={280}
               value={window.localStorage.i18nextLng === "gb" ? "en" : window.localStorage.i18nextLng}
@@ -364,7 +375,7 @@ export function Profile() {
               size="sm"
               color="green"
               onClick={() => {
-                const newUserData = userSelfDetails;
+                const newUserData = { ...editedUserDetails };
                 delete newUserData.scan_directory;
                 delete newUserData.avatar;
                 updateUser.mutate(newUserData);
@@ -375,7 +386,7 @@ export function Profile() {
             </Button>
             <Button
               onClick={() => {
-                setUserSelfDetails(userSelfDetails);
+                setEditedUserDetails(userSelfDetails);
               }}
               size="sm"
             >

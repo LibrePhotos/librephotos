@@ -3,9 +3,9 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useShareUserAlbumMutation } from "../../api_client/albums/sharing";
+import { useShareUserAlbumMutation } from "../../api_client/albums/hooks";
 import type { UserAlbum } from "../../api_client/albums/types";
-import { useFetchUserAlbumQuery } from "../../api_client/albums/user";
+import { useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import type { User } from "../../api_client/user/types";
 

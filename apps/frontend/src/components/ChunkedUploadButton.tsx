@@ -8,13 +8,13 @@ import { fetchClient } from "../api_client/api";
 import { UploadExistResponse } from "../api_client/upload/hooks/useUploadExistsMutation";
 
 import { useGetSettingsQuery } from "../api_client/site-settings";
-import { useAppSelector } from "../store/store";
 import { useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
+import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 export function ChunkedUploadButton() {
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
-  const { userSelfDetails } = useAppSelector(state => state.user);
+  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
   const { data: settings } = useGetSettingsQuery();
   const uploadFinishedMutation = useUploadFinishedMutation();
   const uploadMutation = useUploadMutation();
@@ -60,11 +60,13 @@ export function ChunkedUploadButton() {
   };
 
   const checkIfAlreadyUploaded = async (hash: string) => {
+    if (!userSelfDetails) return false;
     const response = await fetchClient.get<string>(`/exists/${hash + userSelfDetails.id}`);
     return UploadExistResponse.parse(response).exists;
   };
 
   const uploadFinished = async (file: File, uploadId: string) => {
+    if (!userSelfDetails) return;
     const formData = new FormData();
     formData.append("upload_id", uploadId);
     formData.append("md5", await calculateMD5(file));
@@ -85,6 +87,7 @@ export function ChunkedUploadButton() {
   };
 
   const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
+    if (!userSelfDetails) return;
     // only send first chunk without upload id
     const formData = new FormData();
     if (uploadId) {
