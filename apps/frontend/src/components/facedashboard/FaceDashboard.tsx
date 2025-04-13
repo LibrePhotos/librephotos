@@ -15,7 +15,6 @@ import {
   FaceAnalysisMethod, 
   FacesTab
 } from "../../api_client/faces/types";
-import { useAppDispatch } from "../../store/store";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
 import { useLightbox } from "./hooks/useLightbox";
@@ -43,7 +42,6 @@ function parseUrlParams(searchParams: URLSearchParams) {
 
 export function FaceDashboard() {
   const { ref, width } = useElementSize();
-  const dispatch = useAppDispatch();
   
   // URL parameters instead of Redux store
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,6 +66,8 @@ export function FaceDashboard() {
     fetchingInferredFacesList,
     idx2hash
   } = useFaceDataFetching(groups, activeTab, analysisMethod, orderBy as any, minConfidence);
+
+  console.log(lists);
 
   const {
     showLightbox,

@@ -77,11 +77,9 @@ export function Library() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const [isOpenNextcloudHelp, setIsOpenNextcloudHelp] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
-  const [userSelfDetails, setUserSelfDetails] = useState({} as any);
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
-  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
-  const [editedUser, setEditedUser] = useState({} as UserSelfDetails);
-  console.log(currentUser);
+  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
+  const [editedUser, setEditedUser] = useState({} as User);
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
   const { t } = useTranslation();
@@ -207,10 +205,7 @@ export function Library() {
                     style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
                     fullWidth
                   >
-                    {worker?.status && worker?.job_detail?.progress_current !== null ? <Loader /> : null}
-                    {worker?.job_detail?.progress_current !== null
-                      ? `${t("settings.statusscanphotostrue")}(${worker?.job_detail?.progress_target}/${worker?.job_detail?.progress_current})`
-                      : t("settings.statusscanphotosfalse")}
+                    {(t("settings.statusscanphotosfalse"))}
                   </Button>
                   <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
                     <Menu.Target>
@@ -230,13 +225,12 @@ export function Library() {
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item leftSection={<Refresh size="1rem" />} onClick={() => rescanPhotos.mutate()}>
-                        {worker?.status && worker?.job_detail?.progress_current !== null ? <Loader /> : null}
-                        {worker?.job_detail?.progress_current !== null
-                          ? `${t("settings.statusrescanphotostrue")}(${worker?.job_detail?.progress_target}/${
-                              worker?.job_detail?.progress_current
-                            })`
-                          : t("settings.statusrescanphotosfalse")}
+                      <Menu.Item 
+                        leftSection={<Refresh size="1rem" />} 
+                        onClick={() => rescanPhotos.mutate()}
+                        disabled={!workerAvailability}
+                      >
+                        {t("settings.statusrescanphotosfalse")}
                       </Menu.Item>
                     </Menu.Dropdown>
                   </Menu>

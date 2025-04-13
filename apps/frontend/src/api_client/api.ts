@@ -8,6 +8,7 @@ import {
   QueryKey
 } from '@tanstack/react-query';
 import { Cookies } from 'react-cookie';
+import jwtDecode from 'jwt-decode';
 
 import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
 import { notification } from "../service/notifications";
@@ -20,35 +21,50 @@ const API_BASE_URL = '/api';
 
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
+  private isTokenExpired(exp: number): boolean {
+    return 1000 * exp - new Date().getTime() < 5000;
+  }
+
+  private async refreshToken(): Promise<string | null> {
+    const cookies = new Cookies();
+    const refreshToken = cookies.get('refresh');
+    
+    if (!refreshToken) {
+      return null;
+    }
+
+    try {
+      const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: refreshToken }),
+        credentials: 'include',
+      });
+      
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        cookies.set('access', refreshData.access);
+        return refreshData.access;
+      }
+    } catch (error) {
+      console.error('Token refresh failed', error);
+    }
+    return null;
+  }
+
   private async handleAuthError(response: Response, endpoint: string, options: RequestInit): Promise<Response> {
     if (response.status === 401) {
-      const refreshToken = new Cookies().get('refresh');
+      const newToken = await this.refreshToken();
       
-      if (refreshToken) {
-        try {
-          const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh: refreshToken }),
-            credentials: 'include',
-          });
-          
-          if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json();
-            new Cookies().set('access', refreshData.access);
-            
-            // Retry the original request with new token
-            const headers = new Headers(options.headers || {});
-            headers.set('Authorization', `Bearer ${refreshData.access}`);
-            return fetch(`${API_BASE_URL}${endpoint}`, {
-              ...options,
-              headers,
-              credentials: 'include',
-            });
-          }
-        } catch (error) {
-          console.error('Token refresh failed', error);
-        }
+      if (newToken) {
+        // Retry the original request with new token
+        const headers = new Headers(options.headers || {});
+        headers.set('Authorization', `Bearer ${newToken}`);
+        return fetch(`${API_BASE_URL}${endpoint}`, {
+          ...options,
+          headers,
+          credentials: 'include',
+        });
       }
     }
     return response;
@@ -107,7 +123,19 @@ class FetchClient {
     // Create headers with auth token if available
     const headers = new Headers(options.headers || {});
     if (accessToken && !endpoint.includes('/auth/token/refresh/')) {
-      headers.set('Authorization', `Bearer ${accessToken}`);
+      try {
+        const decodedToken = jwtDecode<{ exp: number }>(accessToken);
+        if (this.isTokenExpired(decodedToken.exp)) {
+          const newToken = await this.refreshToken();
+          if (newToken) {
+            headers.set('Authorization', `Bearer ${newToken}`);
+          }
+        } else {
+          headers.set('Authorization', `Bearer ${accessToken}`);
+        }
+      } catch (error) {
+        console.error('Error decoding token:', error);
+      }
     }
     
     if (!headers.has('Content-Type') && !options.body?.toString().includes('FormData')) {
