@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { fetchClient, queryClient } from '../../api';
 
-import { QueryKeys as isFirstTimeSetupQueryKeys } from './useIsFirstTimeSetupQuery';
+import { IsFirstTimeSetupQueryKeys } from './useIsFirstTimeSetupQuery';
 import { QueryKeys as UserListQueryKeys } from '../../user/hooks/useFetchUserListQuery';
 import { z } from 'zod';
 
@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 export const UserSignupRequest = z.object({
   username: z.string(),
-  password: z.string(),
+  password: z.string(), 
   email: z.string(),
   first_name: z.string(),
   last_name: z.string(),
@@ -33,7 +33,7 @@ export const useSignUpMutation = () => {
   return useMutation({
     mutationFn: signUp,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: isFirstTimeSetupQueryKeys });
+      queryClient.invalidateQueries({ queryKey: IsFirstTimeSetupQueryKeys });
       queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
     }
   });

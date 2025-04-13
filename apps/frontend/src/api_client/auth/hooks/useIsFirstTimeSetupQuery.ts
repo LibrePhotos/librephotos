@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchClient } from "../../api";
 
-export const QueryKeys = ["isFirstTimeSetup"]
+export const IsFirstTimeSetupQueryKeys = ["isFirstTimeSetup"]
 
 export const useIsFirstTimeSetupQuery = () => {
   return useQuery({
-    queryKey: [QueryKeys],
+    queryKey: [IsFirstTimeSetupQueryKeys],
     queryFn: () =>  fetchClient.get<{ isFirstTimeSetup: boolean }>('/firsttimesetup/')
     .then(response => response.isFirstTimeSetup),
   });

@@ -13,10 +13,10 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { push } from "redux-first-history";
 
-import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
-import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";
-import { useFetchThingsAlbumsQuery } from "../api_client/albums/things";
-import { useFetchUserAlbumsQuery } from "../api_client/albums/user";
+import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/hooks";
+import { useFetchPlacesAlbumsQuery } from "../api_client/albums/hooks";
+import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
+import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
 import { useSearchExamplesQuery } from "../api_client/search";
 import { useAppDispatch } from "../store/store";
 import { fuzzyMatch } from "../util/util";
@@ -170,11 +170,11 @@ export function CustomSearch() {
       data={searchSuggestions}
       leftSection={<Search size={14} style={{ color: "#333" }} />}
       placeholder={searchPlaceholder}
-      itemComponent={SearchSuggestionItem}
+      component={SearchSuggestionItem}
       limit={10}
       value={value}
       onChange={e => filterSearch(e)}
-      onItemSubmit={e => search(e)}
+      onSubmit={e => search(e)}
       onKeyUp={e => onKeyUp(e)}
       rightSection={
         value ? (

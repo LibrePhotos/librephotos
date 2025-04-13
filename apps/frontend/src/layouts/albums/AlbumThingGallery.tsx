@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import { useFetchThingsAlbumQuery } from "../../api_client/albums/things";
+import { useFetchThingsAlbumQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 
 export function AlbumThingGallery() {

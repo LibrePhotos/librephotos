@@ -15,8 +15,8 @@ import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/people";
-import { useSetUserAlbumCoverMutation } from "../../api_client/albums/user";
+import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks";
+import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAppSelector } from "../../store/store";

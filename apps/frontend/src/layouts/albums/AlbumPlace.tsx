@@ -8,8 +8,8 @@ import { Map, Marker, TileLayer } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import type { PlaceAlbumList } from "../../api_client/albums/places";
-import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/places";
+import type { PlaceAlbumList } from "../../api_client/albums/hooks";
+import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";

@@ -3,10 +3,10 @@ import { random } from "lodash";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFetchPeopleAlbumsQuery } from "../api_client/albums/people";
-import { useFetchPlacesAlbumsQuery } from "../api_client/albums/places";
-import { useFetchThingsAlbumsQuery } from "../api_client/albums/things";
-import { useFetchUserAlbumsQuery } from "../api_client/albums/user";
+import { useFetchPeopleAlbumsQuery } from "../api_client/albums/hooks";
+import { useFetchPlacesAlbumsQuery } from "../api_client/albums/hooks";
+import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
+import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
 import { useSearchExamplesQuery } from "../api_client/search";
 import { fuzzyMatch } from "../util/util";
 

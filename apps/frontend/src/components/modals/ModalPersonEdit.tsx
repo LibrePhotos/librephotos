@@ -17,9 +17,8 @@ import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
+import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppDispatch } from "../../store/store";
 import { fuzzyMatch } from "../../util/util";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 

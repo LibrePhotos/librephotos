@@ -4,9 +4,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
-import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/people";
-import { useFetchPlacesAlbumsQuery } from "../../api_client/albums/places";
-import { useFetchThingsAlbumsQuery } from "../../api_client/albums/things";
+import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
+import { useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
+import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
 import { Tile } from "../../components/Tile";
 import { HeaderComponent } from "./HeaderComponent";
 

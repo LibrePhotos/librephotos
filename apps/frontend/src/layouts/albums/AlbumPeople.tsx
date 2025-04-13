@@ -15,8 +15,8 @@ import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
-} from "../../api_client/albums/people";
-import type { Person } from "../../api_client/albums/people";
+} from "../../api_client/albums/hooks";
+import type { Person } from "../../api_client/albums/hooks";
 import { Tile } from "../../components/Tile";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "./HeaderComponent";

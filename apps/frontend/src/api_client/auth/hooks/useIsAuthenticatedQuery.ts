@@ -2,10 +2,10 @@ import { fetchClient } from "../../api";
 
 import { useQuery } from "@tanstack/react-query";
 
-export const QueryKeys = ["isAuthenticated"]
+export const IsAuthenticatedQueryKeys = ["isAuthenticated"]
 
 export const useIsAuthenticatedQuery = () => useQuery({
-    queryKey: QueryKeys,
+    queryKey: IsAuthenticatedQueryKeys,
     queryFn: async () => {
       const token = localStorage.getItem('access_token');
       if (!token) return false;

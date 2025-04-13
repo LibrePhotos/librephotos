@@ -19,7 +19,7 @@ import {
   useDeleteUserAlbumMutation,
   useFetchUserAlbumsQuery,
   useRenameUserAlbumMutation,
-} from "../../api_client/albums/user";
+} from "../../api_client/albums/hooks";
 import { Tile } from "../../components/Tile";
 import { ModalAlbumShare } from "../../components/sharing/ModalAlbumShare";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";

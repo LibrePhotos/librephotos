@@ -20,6 +20,83 @@ const API_BASE_URL = '/api';
 
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
+  private async handleAuthError(response: Response, endpoint: string, options: RequestInit): Promise<Response> {
+    if (response.status === 401) {
+      const refreshToken = new Cookies().get('refresh');
+      
+      if (refreshToken) {
+        try {
+          const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh: refreshToken }),
+            credentials: 'include',
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            new Cookies().set('access', refreshData.access);
+            
+            // Retry the original request with new token
+            const headers = new Headers(options.headers || {});
+            headers.set('Authorization', `Bearer ${refreshData.access}`);
+            return fetch(`${API_BASE_URL}${endpoint}`, {
+              ...options,
+              headers,
+              credentials: 'include',
+            });
+          }
+        } catch (error) {
+          console.error('Token refresh failed', error);
+        }
+      }
+    }
+    return response;
+  }
+
+  private async handleError(response: Response, endpoint: string) {
+    if (response.status === 500) {
+      notification.requestFailed(
+        `500 (Internal Server Error) for ${endpoint}`,
+        "Something went wrong on the server. Please open up the network tab in your browser's developer tools and report this issue on GitHub."
+      );
+      throw new Error('Internal Server Error');
+    }
+
+    if (response.status === 401) {
+      notification.invalidToken();
+      // Logout the user by blacklisting the refresh token
+      const cookies = new Cookies();
+      const refreshToken = cookies.get('refresh');
+      if (refreshToken) {
+        try {
+          await fetch(`${API_BASE_URL}/auth/token/blacklist/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh: refreshToken }),
+            credentials: 'include',
+          });
+        } catch (error) {
+          console.error('Logout failed:', error);
+        }
+      }
+      throw new Error('Authentication failed');
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      if (data.errors) {
+        data.errors.forEach((error: { field: string; message: string }) => {
+          if (error.field === 'detail') {
+            const isLogin = endpoint.includes('/auth/login/');
+            notification.authError(isLogin, error.field, error.message);
+          }
+        });
+      }
+    }
+  }
+
   async request<T>(
     endpoint: string, 
     options: RequestInit = {}
@@ -50,36 +127,14 @@ class FetchClient {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+      let response = await fetch(`${API_BASE_URL}${endpoint}`, config);
       
-      // Handle 401 by trying to refresh token
-      if (response.status === 401) {
-        const refreshToken = cookies.get('refresh');
-        
-        if (refreshToken) {
-          try {
-            const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ refresh: refreshToken }),
-              credentials: 'include',
-            });
-            
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              cookies.set('access', refreshData.access);
-              
-              // Retry the original request with new token
-              headers.set('Authorization', `Bearer ${refreshData.access}`);
-              return this.request<T>(endpoint, options);
-            }
-          } catch (error) {
-            console.error('Token refresh failed', error);
-          }
-        }
-      }
+      // Handle auth errors and token refresh
+      response = await this.handleAuthError(response, endpoint, config);
       
+      // Handle other errors
       if (!response.ok) {
+        await this.handleError(response, endpoint);
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
       
