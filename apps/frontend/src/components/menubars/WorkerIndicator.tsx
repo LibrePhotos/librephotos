@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
-import type { IJobDetailSchema } from "../../store/worker/worker.zod";
+import type { IJobDetailSchema } from "../../api_client/worker.zod";
 
 type IWorkerIndicator = Readonly<{
   workerRunningJob: IJobDetailSchema;

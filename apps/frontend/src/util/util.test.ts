@@ -1,4 +1,4 @@
-import type { DatePhotosGroup } from "../actions/photosActions.types";
+import type { DatePhotosGroup } from "../api_client/photos/photosActions.types";
 import type { DirTree } from "../api_client/dir-tree";
 import i18n from "../i18n";
 import { EMAIL_REGEX, formatDateForPhotoGroups, fuzzyMatch, getAveragedCoordinates, mergeDirTree } from "./util";

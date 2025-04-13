@@ -1,7 +1,7 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { PigPhotoSchema } from "../../actions/photosActions.types";
+import { PigPhotoSchema } from "./photosActions.types";
 import { fetchClient, queryClient, QueryKeys } from "../api";
 import { addTempElementsToFlatList } from "../../util/util";
 

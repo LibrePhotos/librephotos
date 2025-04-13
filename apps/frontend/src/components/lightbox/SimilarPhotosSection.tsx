@@ -3,7 +3,7 @@ import { IconPhoto as Photo } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Photo as PhotoType } from "../../actions/photosActions.types";
+import type { Photo as PhotoType } from "../../api_client/photos/photosActions.types";
 import { Tile } from "../Tile";
 
 interface SimilarPhotosSectionProps {

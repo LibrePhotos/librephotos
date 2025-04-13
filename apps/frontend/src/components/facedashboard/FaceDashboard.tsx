@@ -67,8 +67,6 @@ export function FaceDashboard() {
     idx2hash
   } = useFaceDataFetching(groups, activeTab, analysisMethod, orderBy as any, minConfidence);
 
-  console.log(lists);
-
   const {
     showLightbox,
     renderLightbox,
@@ -79,7 +77,7 @@ export function FaceDashboard() {
   const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
   const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
 
-  // Update URL params (replaces Redux dispatch)
+  // Update URL params
   const updateParams = useCallback((updates: Record<string, string>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
@@ -191,7 +189,7 @@ export function FaceDashboard() {
     handleCellClick,
     handleShowClick,
     setGroups,
-    tabPositions[activeTab], // Use local storage position instead of Redux
+    tabPositions[activeTab], // Use local storage position
     handleGridScroll,
     selectedFaces.length > 0, // selectMode
     selectedFaces,

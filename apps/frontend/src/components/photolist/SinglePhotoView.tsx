@@ -6,7 +6,6 @@ import { DateTime } from "luxon";
 import { IconPhoto } from "@tabler/icons-react";
 
 import { serverAddress } from "../../api_client/apiClient";
-import { useAppDispatch } from "../../store/store";
 import { TimestampItem } from "../lightbox/TimestampItem";
 import { Description } from "../lightbox/Description";
 import { MediaDisplay } from "../lightbox/MediaDisplay";

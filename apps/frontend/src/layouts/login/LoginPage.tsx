@@ -15,19 +15,14 @@ import { IconLock as Lock, IconUser as User } from "@tabler/icons-react";
 import type { FormEvent } from "react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
 
 import { useLoginMutation, useIsAuthenticatedQuery, AuthQueryKeys } from "../../api_client/auth";
 import { useGetSettingsQuery } from "../../api_client/site-settings";
-
+import { Navigate } from "react-router-dom";
 export function LoginPage(): JSX.Element {
-  const navigate = useNavigate();
-  const { data: isAuth } = useIsAuthenticatedQuery();
   const colorScheme = useComputedColorScheme("dark");
   const { t } = useTranslation();
-  const location = useLocation();
-  // @ts-ignore
-  const from = location.state?.from || "/";
+  const {data: isAuthenticated} = useIsAuthenticatedQuery();
 
   const { data: siteSettings } = useGetSettingsQuery();
   const { mutate: login, isPending: isLoading, isSuccess } = useLoginMutation();
@@ -38,22 +33,14 @@ export function LoginPage(): JSX.Element {
     },
   });
 
-  useEffect(() => {
-    if (isSuccess) {
-      navigate(from);
-    }
-  }, [isSuccess, navigate, from]);
-
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     login({ username: form.values.username.toLowerCase(), password: form.values.password });
   }
 
-  useEffect(() => {
-    if (isAuth) {
-      navigate(from);
-    }
-  }, [isAuth, navigate, from]);
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <Stack align="center" justify="flex-end" pt={150}>

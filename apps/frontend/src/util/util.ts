@@ -3,7 +3,7 @@ import _ from "lodash";
 import { DateTime } from "luxon";
 
 import type { UserPhotosGroup } from "../actions/photosActions";
-import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../actions/photosActions.types";
+import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../api_client/photos/photosActions.types";
 import type { DirTree } from "../api_client/dir-tree";
 import i18n, { i18nResolvedLanguage } from "../i18n";
 

@@ -2,7 +2,7 @@ import _ from "lodash";
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { PigPhoto, PigPhotoSchema, SimpleUserSchema } from "../../actions/photosActions.types";
+import { PigPhoto, PigPhotoSchema, SimpleUserSchema } from "./photosActions.types";
 import { notification } from "../../service/notifications";
 import { fetchClient, queryClient, QueryKeys } from "../api";
 

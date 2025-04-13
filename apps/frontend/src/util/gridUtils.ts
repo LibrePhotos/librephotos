@@ -1,15 +1,6 @@
 import _ from "lodash";
 
-import { store } from "../store/store";
-
 let gridType = "dense";
-
-function listener() {
-  const { ui } = store.getState();
-  gridType = ui.gridType;
-}
-
-store.subscribe(listener);
 
 export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) => {
   const gridContents: any[] = [];

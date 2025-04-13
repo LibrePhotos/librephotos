@@ -2,7 +2,7 @@ import { IconPlayerPlay as PlayerPlay, IconRun as Run } from "@tabler/icons-reac
 import { Duration } from "luxon";
 import React from "react";
 
-import { MediaType } from "../../actions/photosActions.types";
+import { MediaType } from "../../api_client/photos/photosActions.types";
 
 type Props = Readonly<{
   item: {

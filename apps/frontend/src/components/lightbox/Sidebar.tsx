@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import "react-virtualized/styles.css";
 
 import { notification } from "../../service/notifications";
-import { useAppDispatch } from "../../store/store";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { Description } from "./Description";
 import { TimestampItem } from "./TimestampItem";
@@ -47,7 +46,7 @@ const SidebarHeader: React.FC<{ closeSidepanel: () => void }> = ({ closeSidepane
 );
 
 export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: SidebarProps) {
-  const dispatch = useAppDispatch();
+  
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
   

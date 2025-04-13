@@ -13,7 +13,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
 
-import { Photo } from "../../actions/photosActions.types";
+import { Photo } from "../../api_client/photos/photosActions.types";
 import { useUpdatePhotoMutation } from "../../api_client/photos/photoDetail";
 import { i18nResolvedLanguage } from "../../i18n";
 import '@mantine/dates/styles.css';

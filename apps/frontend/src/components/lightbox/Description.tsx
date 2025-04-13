@@ -19,7 +19,7 @@ import { useEditor } from "@tiptap/react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Photo as PhotoType } from "../../actions/photosActions.types";
+import type { Photo as PhotoType } from "../../api_client/photos/photosActions.types";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
 import {
   useGenerateImageToTextCaptionMutation,

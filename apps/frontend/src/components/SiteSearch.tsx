@@ -2,10 +2,9 @@ import { ActionIcon, Box, Combobox, Group, Image, InputBase, Loader, Popover, Te
 import { IconAlbum, IconMap, IconSearch, IconTag, IconUser, IconX } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { push } from "redux-first-history";
+import { useNavigate } from "react-router-dom";
 
 import { SearchOption, SearchOptionType, useSearch } from "../service/use-search";
-import { useAppDispatch } from "../store/store";
 import classes from "./SiteSearch.module.css";
 
 const ICON_SIZE = 20;
@@ -30,9 +29,9 @@ export function SiteSearch() {
   const { t } = useTranslation();
   const { options, filterOptions, placeholder, isLoading } = useSearch();
   const combobox = useCombobox();
-  const dispatch = useAppDispatch();
   const [value, setValue] = React.useState("");
   const [personToBeSelected, setPersonToBeSelected] = React.useState<string | null>(null);
+  const navigate = useNavigate();
 
   function getSearchRightIcon() {
     if (isLoading) return <Loader size="xs" type="dots" />;
@@ -60,22 +59,22 @@ export function SiteSearch() {
     const item = options.find(i => i.value === query);
     switch (item?.type) {
       case SearchOptionType.EXAMPLE:
-        dispatch(push(`/search/${item.data}`));
+        navigate(`/search/${item.data}`);
         break;
       case SearchOptionType.USER_ALBUM:
-        dispatch(push(`/useralbum/${item.data}`));
+        navigate(`/useralbum/${item.data}`);
         break;
       case SearchOptionType.PLACE_ALBUM:
-        dispatch(push(`/place/${item.data}`));
+        navigate(`/place/${item.data}`);
         break;
       case SearchOptionType.THING_ALBUM:
-        dispatch(push(`/thing/${item.data}`));
+        navigate(`/thing/${item.data}`);
         break;
       case SearchOptionType.PEOPLE:
-        dispatch(push(`/person/${item.data}`));
+        navigate(`/person/${item.data}`);
         break;
       default:
-        dispatch(push(`/search/${query}`));
+        navigate(`/search/${query}`);
         break;
     }
   }

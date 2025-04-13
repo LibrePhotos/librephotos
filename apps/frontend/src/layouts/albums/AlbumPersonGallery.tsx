@@ -3,11 +3,10 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import { PigPhoto } from "../../actions/photosActions.types";
+import { PhotosetType, PigPhoto } from "../../api_client/photos/photosActions.types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
 import { Person, useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from "../../reducers/photosReducer";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "../photos/common";
 

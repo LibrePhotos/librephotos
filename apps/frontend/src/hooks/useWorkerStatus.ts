@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useWorkerQuery } from "../api_client/worker";
-import type { IJobDetailSchema } from "../store/worker/worker.zod";
+import type { IJobDetailSchema } from "../api_client/worker.zod";
 
 export enum WorkerState {
   SET_WORKER_AVAILABILITY = "set-worker-availability",

@@ -3,7 +3,7 @@ import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Photo as PhotoType } from "../../actions/photosActions.types";
+import type { Photo as PhotoType } from "../../api_client/photos/photosActions.types";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDeleteDuplicatePhotoMutation } from "../../api_client/photos/delete";
 import { FileInfoComponent } from "./FileInfoComponent";

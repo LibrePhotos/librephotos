@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { DatePhotosGroupSchema, PhotoHashSchema } from "../../../actions/photosActions.types";
+import { DatePhotosGroupSchema, PhotoHashSchema } from "../../photos/photosActions.types";
 import { fetchClient, QueryKeys } from "../../api";
 
 const ThingsAlbumListSchema = z

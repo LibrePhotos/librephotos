@@ -2,11 +2,10 @@ import { ActionIcon, Avatar, Button, Group, Indicator, Text, Tooltip } from "@ma
 import { IconEdit, IconTrash, IconUserCheck, IconUserOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { push } from "redux-first-history";
+import { useNavigate } from "react-router-dom";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { notification } from "../../service/notifications";
-import { useAppDispatch } from "../../store/store";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
 import { useSetFacesPersonLabelMutation, useDeleteFacesMutation  } from "../../api_client/faces";
@@ -21,10 +20,10 @@ type Props = {
 
 export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson }: Props) {
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
   const [tooltipOpened, setTooltipOpened] = useState(false);
   const {mutate: setFacesPersonLabel} = useSetFacesPersonLabelMutation();
   const {mutate: deleteFaces} = useDeleteFacesMutation();
+  const navigate = useNavigate();
 
   return (
     <Group
@@ -48,7 +47,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
             </Indicator>
           </FaceTooltip>
         }
-        onClick={() => !isPublic && dispatch(push(`/search/${person.name}`))}
+        onClick={() => !isPublic && navigate(`/search/${person.name}`)}
       >
         <Text size="sm">{person.name}</Text>
       </Button>

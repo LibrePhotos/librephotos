@@ -1,7 +1,7 @@
 import { IconStar as Star } from "@tabler/icons-react";
 import React from "react";
 
-import { PigPhoto } from "../../actions/photosActions.types";
+import { PigPhoto } from "../../api_client/photos/photosActions.types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 export function FavoritedOverlay({ item }: { item: PigPhoto }) {

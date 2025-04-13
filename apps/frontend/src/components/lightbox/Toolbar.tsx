@@ -14,8 +14,7 @@ import { shareAddress } from "../../api_client/apiClient";
 import { useSetFavoritePhotosMutation } from "../../api_client/photos/favorite";
 import { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/visibility";
 import { copyToClipboard } from "../../util/util";
-import { useAppDispatch } from "../../store/store";
-import { PhotoSchema } from "../../actions/photosActions.types";
+import { PhotoSchema } from "../../api_client/photos/photosActions.types";
 import { z } from "zod";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 type Photo = z.infer<typeof PhotoSchema>;
@@ -30,7 +29,6 @@ type Props = Readonly<{
 }>;
 
 export function Toolbar(props: Props) {
-  const dispatch = useAppDispatch();
   const { photosDetail, isPublic, lightboxSidebarShow, closeSidepanel, isPhotoDetailsLoading } = props;
     const [playerPlaying, setPlayerPlaying] = useState(false);
   // Fetch user details using TanStack Query

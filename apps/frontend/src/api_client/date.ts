@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { FetchDateAlbumResponseSchema, FetchDateAlbumsListResponseSchema } from "../actions/albumActions.types";
-import { IncompleteDatePhotosGroup } from "../actions/photosActions.types";
-import { PhotosetType } from "../reducers/photosReducer";
+import { FetchDateAlbumResponseSchema, FetchDateAlbumsListResponseSchema } from "./albums/albumActions.types";
+import { IncompleteDatePhotosGroup } from "./photos/photosActions.types";
+import { PhotosetType } from "../api_client/photos/photosActions.types";
 import { addTempElementsToGroups } from "../util/util";
 import { fetchClient, queryClient, QueryKeys } from "./api";
 

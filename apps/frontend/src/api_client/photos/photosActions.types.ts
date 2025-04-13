@@ -31,6 +31,24 @@ export const PigPhotoSchema = z.object({
 });
 export type PigPhoto = z.infer<typeof PigPhotoSchema>;
 
+export enum PhotosetType {
+  NONE = "none",
+  TIMESTAMP = "timestamp",
+  NO_TIMESTAMP = "noTimestamp",
+  FAVORITES = "favorites",
+  PHOTOS = "photos",
+  HIDDEN = "hidden",
+  RECENTLY_ADDED = "recentlyAdded",
+  IN_TRASHCAN = "in_trashcan",
+  SEARCH = "search",
+  USER_ALBUM = "userAlbum",
+  PERSON = "person",
+  PUBLIC = "public",
+  SHARED_TO_ME = "sharedToMe",
+  SHARED_BY_ME = "sharedByMe",
+  VIDEOS = "videos",
+}
+
 export const SharedFromMePhotoSchema = z.object({
   user_id: z.number(),
   user: SimpleUserSchema,

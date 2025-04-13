@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { AutoSizer, Grid } from "react-virtualized";
 
-import { UserAlbumInfo } from "../../actions/albumActions.types";
+import { UserAlbumInfo } from "../../api_client/albums/albumActions.types";
 import {
   useDeleteUserAlbumMutation,
   useFetchUserAlbumsQuery,

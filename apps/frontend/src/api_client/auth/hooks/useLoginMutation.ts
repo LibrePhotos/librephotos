@@ -1,8 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
 import { Cookies } from 'react-cookie';
 import { z} from "zod";
-
+import { useNavigate } from 'react-router-dom';
 export const LoginPost = z.object({
   username: z.string(),
   password: z.string(),
@@ -28,7 +28,14 @@ const login =  (credentials: LoginPost) =>
     })
 
 export const useLoginMutation = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: login,
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      navigate("/");
+    },
   });
 }; 

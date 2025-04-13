@@ -57,7 +57,6 @@ export function useFaceDataFetching(
     
     (async () => {
       for (const element of groups) {
-        console.log("updating query data for element", element);
         try {
           const queryParams = {
             person: element.person || 0,

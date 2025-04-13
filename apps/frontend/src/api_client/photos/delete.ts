@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { PhotoSchema } from "../../actions/photosActions.types";
+import { PhotoSchema } from "./photosActions.types";
 import { notification } from "../../service/notifications";
 import { fetchClient, queryClient, QueryKeys } from "../api";
 

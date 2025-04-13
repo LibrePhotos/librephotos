@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchClient } from './api';
-import type { IWorkerAvailabilityResponse } from '../store/worker/worker.zod';
-import { WorkerAvailabilityResponse } from '../store/worker/worker.zod';
+import type { IWorkerAvailabilityResponse } from './worker.zod';
+import { WorkerAvailabilityResponse } from './worker.zod';
 
 export const useWorkerQuery = () => {
   return useQuery({

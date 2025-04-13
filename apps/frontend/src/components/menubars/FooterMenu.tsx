@@ -2,17 +2,15 @@ import { ActionIcon, Divider, Flex, Menu } from "@mantine/core";
 import { IconHeart as Heart } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import { push } from "redux-first-history";
+import { Link, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../hooks/useAuth";
-import { useAppDispatch } from "../../store/store";
 import { SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems } from "./navigation";
 
 export function FooterMenu(): JSX.Element {
   const { isAuthenticated, userId } = useAuth();
-  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { t } = useTranslation();
 
   const navigationItems = getNavigationItems(t, isAuthenticated, !!userId);
@@ -53,7 +51,7 @@ export function FooterMenu(): JSX.Element {
               }
               const submenuIcon = <subitem.icon color={subitem.color} />;
               return (
-                <Menu.Item key={subkey} leftSection={submenuIcon} onClick={() => dispatch(push(subitem.link!))}>
+                <Menu.Item key={subkey} leftSection={submenuIcon} onClick={() => navigate(subitem.link!)}>
                   {subitem.label}
                 </Menu.Item>
               );

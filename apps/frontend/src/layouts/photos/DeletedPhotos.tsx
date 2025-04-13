@@ -2,10 +2,10 @@ import { IconTrash as Trash } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { PigPhoto } from "../../actions/photosActions.types";
+import { PigPhoto } from "../../api_client/photos/photosActions.types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from "../../reducers/photosReducer";
+import { PhotosetType } from "../../api_client/photos/photosActions.types";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "./common";
 

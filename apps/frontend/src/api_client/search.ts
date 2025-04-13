@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 import { fetchClient, QueryKeys } from "./api";
-import { PigPhotoSchema } from "../actions/photosActions.types";
+import { PigPhotoSchema } from "./photos/photosActions.types";
 import { getPhotosFlatFromGroupedByDate } from "../util/util";
 
 const SearchExamplesSchema = z.array(z.string());

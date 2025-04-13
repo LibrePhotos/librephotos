@@ -1,16 +1,13 @@
 import { Divider } from "@mantine/core";
 import React, { useEffect } from "react";
 
-import { util } from "../../api_client/util";
 import { EventCountMonthGraph } from "../../components/charts/EventCountMonthGraph";
 import FaceClusterScatter from "../../components/charts/FaceClusterGraph";
 import { LocationDurationStackedBar } from "../../components/charts/LocationDurationStackedBar";
 import { SocialGraph } from "../../components/charts/SocialGraph";
 import { WordCloud } from "../../components/charts/WordCloud";
 import { LocationLink } from "../../components/locationLink";
-import { useAppDispatch } from "../../store/store";
 import { AlbumPlace } from "../albums/AlbumPlace";
-import { useFetchWordCloudQuery, useFetchLocationTreeQuery, useFetchPhotoMonthCountQuery } from "../../api_client/util";
 
 export function LocationTree() {
   return (

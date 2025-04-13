@@ -10,7 +10,6 @@ import {
 } from "@tabler/icons-react";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { push } from "redux-first-history";
 
 import { useLogoutMutation } from "../../api_client/auth/hooks";
 import { serverAddress } from "../../api_client/apiClient";
@@ -87,10 +86,10 @@ export function TopMenu(): React.ReactNode {
                 )}
 
                 <Menu.Item
-                  leftSection={<Logout   />}
+                  leftSection={<Logout />}
                   onClick={() => {
-                    logout();
                     queryClient.invalidateQueries();
+                    logout();
                   }}
                 >
                   {t("topmenu.logout")}

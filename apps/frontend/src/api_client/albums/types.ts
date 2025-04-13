@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { PhotoSuperSimpleSchema } from "../../actions/albumActions.types";
-import { DatePhotosGroupSchema, SimpleUserSchema } from "../../actions/photosActions.types";
+import { PhotoSuperSimpleSchema } from "./albumActions.types";
+import { DatePhotosGroupSchema, SimpleUserSchema } from "../photos/photosActions.types";
 
 const UserAlbumResponseSchema = z.object({
   id: z.number(),

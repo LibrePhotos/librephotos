@@ -10,12 +10,12 @@ import {
 import { Cookies } from 'react-cookie';
 import jwtDecode from 'jwt-decode';
 
-import type { IGenerateEventAlbumsTitlesResponse } from "../actions/utilActions.types";
+import type { IGenerateEventAlbumsTitlesResponse } from "./utilActions.types";
 import { notification } from "../service/notifications";
-import type { ImageTagResponseType, ServerStatsResponseType, StorageStatsResponseType } from "../store/util/util.zod";
-import type { IWorkerAvailabilityResponse } from "../store/worker/worker.zod";
+import type { ImageTagResponseType, ServerStatsResponseType, StorageStatsResponseType } from "./util.zod";
+import type { IWorkerAvailabilityResponse } from "./worker.zod";
 import { JobRequest, JobsResponse, JobsResponseSchema } from "./admin-jobs-schema";
-import { AutoAlbumSchema, AutoAlbum, FetchAutoAlbumsListResponseSchema } from "../actions/albumActions.types";
+import { AutoAlbumSchema, AutoAlbum, FetchAutoAlbumsListResponseSchema } from "./albums/albumActions.types";
 
 const API_BASE_URL = '/api';
 
@@ -96,6 +96,12 @@ class FetchClient {
           console.error('Logout failed:', error);
         }
       }
+      // Clear auth cookies and redirect to login
+      cookies.remove('access');
+      cookies.remove('refresh');
+      cookies.remove('jwt');
+      window.location.href = '/login';
+      
       throw new Error('Authentication failed');
     }
 

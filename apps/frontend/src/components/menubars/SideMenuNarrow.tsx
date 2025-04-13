@@ -18,12 +18,10 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
-import { push } from "redux-first-history";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/api";
 import { useAuth } from "../../hooks/useAuth";
-import { useAppDispatch } from "../../store/store";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems } from "./navigation";
 
@@ -41,7 +39,7 @@ function formatBytes(bytes: number, decimals = 2) {
 
 export function SideMenuNarrow(): JSX.Element {
   const { isAuthenticated, userId } = useAuth();
-  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const theme = useMantineTheme();
   const [active, setActive] = useState("/");
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
@@ -99,7 +97,7 @@ export function SideMenuNarrow(): JSX.Element {
           event.preventDefault();
           if (!item.submenu) {
             setActive(item.link);
-            dispatch(push(item.link));
+            navigate(item.link);
           }
         }}
       >
@@ -139,7 +137,7 @@ export function SideMenuNarrow(): JSX.Element {
               const onClick = (event: { preventDefault: () => void }) => {
                 event.preventDefault();
                 setActive(subitem.link!);
-                dispatch(push(subitem.link!));
+                navigate(subitem.link!);
               };
               const icon = (
                 <ActionIcon component="span" variant="light" color={subitem.color ? subitem.color : defaultIconColor}>

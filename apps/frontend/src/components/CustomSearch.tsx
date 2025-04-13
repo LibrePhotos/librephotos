@@ -11,15 +11,14 @@ import { random } from "lodash";
 import React, { cloneElement, forwardRef, useCallback, useEffect, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { push } from "redux-first-history";
 
 import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchPlacesAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
 import { useSearchExamplesQuery } from "../api_client/search";
-import { useAppDispatch } from "../store/store";
 import { fuzzyMatch } from "../util/util";
+import { useNavigate } from "react-router-dom";
 
 enum SuggestionType {
   EXAMPLE,
@@ -74,7 +73,6 @@ const SearchSuggestionItem = forwardRef<HTMLDivElement, SearchSuggestion>(
 export function CustomSearch() {
   const { t } = useTranslation();
   const { width } = useViewportSize();
-  const dispatch = useAppDispatch();
   const [value, setValue] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<Array<any>>([]);
   const [searchPlaceholder, setSearchPlaceholder] = useState("");
@@ -84,6 +82,7 @@ export function CustomSearch() {
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
   const { data: userAlbums } = useFetchUserAlbumsQuery();
   const { data: people } = useFetchPeopleAlbumsQuery();
+  const navigate = useNavigate();
 
   const updateSearchPlaceholder = useInterval(() => {
     if (!searchExamples) {
@@ -130,19 +129,19 @@ export function CustomSearch() {
     switch (item.type) {
       case undefined:
       case SuggestionType.EXAMPLE:
-        dispatch(push(`/search/${item.value}`));
+        navigate(`/search/${item.value}`);
         break;
       case SuggestionType.USER_ALBUM:
-        dispatch(push(`/useralbum/${item.id}`));
+        navigate(`/useralbum/${item.id}`);
         break;
       case SuggestionType.PLACE_ALBUM:
-        dispatch(push(`/place/${item.id}`));
+        navigate(`/place/${item.id}`);
         break;
       case SuggestionType.THING_ALBUM:
-        dispatch(push(`/thing/${item.id}`));
+        navigate(`/thing/${item.id}`);
         break;
       case SuggestionType.PEOPLE:
-        dispatch(push(`/person/${item.id}`));
+        navigate(`/person/${item.id}`);
         break;
       default:
         break;

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { PigPhotoSchema } from "../../actions/photosActions.types";
+import { PigPhotoSchema } from "./photosActions.types";
 import { fetchClient, QueryKeys } from "../api";
 
 const RecentlyAddedPhotosResponseSchema = z.object({

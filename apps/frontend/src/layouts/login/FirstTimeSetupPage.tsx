@@ -18,7 +18,6 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useSignUpMutation } from "../../api_client/auth/hooks";
-import { useAppDispatch } from "../../store/store";
 import { EMAIL_REGEX } from "../../util/util";
 import type { ISignUpFormState } from "./loginUtils";
 import { QueryKeys as UserListQueryKeys } from '../../api_client/user/hooks/useFetchUserListQuery';
