@@ -20,8 +20,10 @@ export const QueryKeys = ["incompleteFaces"];
 const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
   const { inferred = false, method = 'clustering', orderBy = 'confidence', minConfidence } = params;
   const url = `/faces/incomplete/?inferred=${inferred}${
-    inferred ? `&analysis_method=${method}&order_by=${orderBy}` : ''
-  }${minConfidence ? `&min_confidence=${minConfidence}` : ''}`;
+    `&order_by=${orderBy}`
+  }${inferred ? `&analysis_method=${method}` : ''}${
+    minConfidence ? `&min_confidence=${minConfidence}` : ''
+  }`;
   
   return fetchClient.get<IncompletePersonFaceListResponse>(url)
     .then(response => {
@@ -46,6 +48,6 @@ const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
 };
 
 export const useFetchIncompleteFacesQuery = (request: IncompletePersonFaceListRequest) => useQuery({
-    queryKey: QueryKeys,
+    queryKey: [...QueryKeys, request],
     queryFn: () => fetchIncompleteFaces(request),
 });

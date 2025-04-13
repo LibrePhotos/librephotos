@@ -24,10 +24,10 @@ import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 
 // Default values for URL parameters
 const DEFAULT_VALUES = {
-  activeTab: FacesTab.enum.labeled,
+  activeTab: FacesTab.enum.inferred,
   analysisMethod: FaceAnalysisMethod.enum.clustering,
-  orderBy: 'person',
-  minConfidence: 0.9,
+  orderBy: 'confidence',
+  minConfidence: 0.7,
 };
 
 // Utility to parse URL parameters with proper typing

@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { FaceAnalysisMethod, FacesTab, CompletePersonFaceList } from "../../../api_client/faces/types";
 import {  
-  queryClient,  
-  API,
-  QueryKeys
+  queryClient,
 } from "../../../api_client/api";
 import { QueryKeys as IncompleteFacesQueryKeys, useFetchIncompleteFacesQuery } from "../../../api_client/faces/hooks/useFetchIncompleteFacesQuery";
 import { fetchFaces, QueryKeys as FacesQueryKeys } from "../../../api_client/faces/hooks/useFetchFacesQuery";
@@ -59,6 +57,7 @@ export function useFaceDataFetching(
     
     (async () => {
       for (const element of groups) {
+        console.log("updating query data for element", element);
         try {
           const queryParams = {
             person: element.person || 0,
@@ -78,12 +77,12 @@ export function useFaceDataFetching(
           // Update cache with fetched data
           const incompleteParams = element.inferred ? params.inferred : params.labeled;
           const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(
-            [IncompleteFacesQueryKeys, incompleteParams]
+            [...IncompleteFacesQueryKeys, incompleteParams]
           );
           
           if (incompleteData) {
             queryClient.setQueryData(
-              [IncompleteFacesQueryKeys, incompleteParams],
+              [...IncompleteFacesQueryKeys, incompleteParams],
               incompleteData.map(person => 
                 person.id === element.person 
                   ? {
