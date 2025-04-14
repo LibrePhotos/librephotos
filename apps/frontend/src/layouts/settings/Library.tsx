@@ -43,12 +43,7 @@ import { useGenerateAutoAlbumsMutation, useWorkerQuery } from "../../api_client/
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/apiClient";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
-import { useDeleteMissingPhotosMutation } from "../../api_client/photos/delete";
-import {
-  useRescanPhotosMutation,
-  useScanNextcloudPhotosMutation,
-  useScanPhotosMutation,
-} from "../../api_client/photos/scan";
+import { useDeleteMissingPhotosMutation, useRescanPhotosMutation, useScanNextcloudPhotosMutation, useScanPhotosMutation } from "../../api_client/photos/hooks";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../../api_client/util";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";

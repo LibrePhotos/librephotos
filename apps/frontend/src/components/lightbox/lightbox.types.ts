@@ -1,4 +1,4 @@
-import type { Photo } from "../../api_client/photos/photosActions.types";
+import type { Photo } from "../../api_client/photos/types";
 
 export type FaceLocationType = {
   top: number;

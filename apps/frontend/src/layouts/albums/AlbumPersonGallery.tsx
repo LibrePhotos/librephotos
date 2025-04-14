@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import { PhotosetType, PigPhoto } from "../../api_client/photos/photosActions.types";
+import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
 import { Person, useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
@@ -20,7 +20,7 @@ export function AlbumPersonGallery(): JSX.Element {
   const personname = person ? person.name : undefined;
 
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
-    photosetType: PhotosetType.PERSON,
+    photosetType: Photoset.PERSON,
     person_id: albumID ? +albumID : undefined,
   });
 
@@ -33,7 +33,7 @@ export function AlbumPersonGallery(): JSX.Element {
     {
       album_date_id: group.id,
       page: group.page,
-      photosetType: PhotosetType.PERSON,
+      photosetType: Photoset.PERSON,
       person_id: albumID ? +albumID : undefined,
     },
     { skip: !group.id }

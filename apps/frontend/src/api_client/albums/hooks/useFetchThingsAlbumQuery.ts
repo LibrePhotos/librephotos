@@ -1,26 +1,26 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { DatePhotosGroupSchema } from "../../photos/photosActions.types";
+import { DatePhotosGroup } from "../../photos/types";
 import { fetchClient, QueryKeys } from "../../api";
 
-const ThingsAlbumSchema = z.object({
+const ThingsAlbum = z.object({
   id: z.string(),
   title: z.string(),
-  grouped_photos: DatePhotosGroupSchema.array(),
+  grouped_photos: DatePhotosGroup.array(),
 });
 
-export type ThingsAlbum = z.infer<typeof ThingsAlbumSchema>;
+export type ThingsAlbum = z.infer<typeof ThingsAlbum>;
 
-const ThingsAlbumResponseSchema = z.object({
-  results: ThingsAlbumSchema,
+const ThingsAlbumResponse = z.object({
+  results: ThingsAlbum,
 });
 
 export const useFetchThingsAlbumQuery = (id: string) => useQuery({
   queryKey: [QueryKeys.thingsAlbum, id],
   queryFn: async () => {
     const response = await fetchClient.get(`/albums/thing/${id}/`);
-    return ThingsAlbumResponseSchema.parse(response).results;
+    return ThingsAlbumResponse.parse(response).results;
   },
   enabled: !!id,
 }); 

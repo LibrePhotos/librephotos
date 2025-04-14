@@ -13,17 +13,17 @@ export const Link = z.object({
   target: z.string(),
 });
 
-export const PersonDataPointListSchema = z.object({
+export const PersonDataPointList = z.object({
   nodes: Node.array(),
   links: Link.array(),
 });
 
-type PersonDataPointList = z.infer<typeof PersonDataPointListSchema>;
+export type PersonDataPointList = z.infer<typeof PersonDataPointList>;
 
 export const useFetchSocialGraphQuery = () => useQuery({
   queryKey: [QueryKeys.socialGraph],
   queryFn: async () => {
     const response = await fetchClient.get('socialgraph/');
-    return PersonDataPointListSchema.parse(response);
+    return PersonDataPointList.parse(response);
   },
 }); 

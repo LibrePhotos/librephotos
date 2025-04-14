@@ -2,14 +2,12 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 import { fetchClient, queryClient, QueryKeys } from "../../api";
 import { notification } from "../../../service/notifications";
-import { UserSchema } from "../types";
-
-type User = z.infer<typeof UserSchema>;
+import { User } from "../types";
 
 export const useUpdateUserMutation = () => useMutation({
     mutationFn: async (user: User) => {
       const response = await fetchClient.patch(`/user/${user.id}/`, user);
-      return UserSchema.parse(response);
+      return User.parse(response);
     },
     onSuccess: (data) => {
       notification.updateUser(data.username);

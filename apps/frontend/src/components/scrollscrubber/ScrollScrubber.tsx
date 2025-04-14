@@ -7,12 +7,11 @@ import type { MouseEvent, ReactNode } from "react";
 
 import { i18nResolvedLanguage } from "../../i18n";
 import "./ScrollScrubber.css";
-import { ScrollerType } from "./ScrollScrubberTypes.zod";
-import type { IScrollerData, IScrollerPosition, IScrollerType } from "./ScrollScrubberTypes.zod";
-
+import { ScrollerType, ScrollerData, ScrollerPosition } from "./ScrollScrubberTypes.zod";
+  
 type Props = Readonly<{
-  type: IScrollerType; // Type of scroller marks to display
-  scrollPositions: IScrollerData[]; // Array of positions to show on the scroller (label and Y position on target scrollable area)
+  type: ScrollerType; // Type of scroller marks to display
+  scrollPositions: ScrollerData[]; // Array of positions to show on the scroller (label and Y position on target scrollable area)
   targetHeight: number; // Height of the target scrollable area
   scrollToY: (number) => void; // Callback function that scrolls to a given Y position on target element
   children: ReactNode | null; // Target element must be one of the children nodes
@@ -24,8 +23,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const scrollerVisibilityTimerRef: { current: NodeJS.Timeout | null } = useRef(null);
   const matches = useMediaQuery("(min-width: 700px)");
   const [scrollerIsVisible, setScrollerIsVisible] = useState(false);
-  const [positions, setPositions] = useState<IScrollerPosition[]>([]);
-  const [markerPositions, setMarkerPositions] = useState<IScrollerPosition[]>([]);
+  const [positions, setPositions] = useState<ScrollerPosition[]>([]);
+  const [markerPositions, setMarkerPositions] = useState<ScrollerPosition[]>([]);
   const [dragMarkerY, setDragMarkerY] = useState(0);
   const [dragMarkerIsVisible, setDragMarkerIsVisible] = useState(false);
   const [currentScrollPosMarkerY, setCurrentScrollPosMarkerY] = useState(0);
@@ -67,8 +66,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     return "";
   };
 
-  const getLabelsMarkers = useCallback((): IScrollerPosition[] => {
-    const markers: IScrollerPosition[] = [];
+  const getLabelsMarkers = useCallback((): ScrollerPosition[] => {
+    const markers: ScrollerPosition[] = [];
     positions.forEach(item => {
       if (markers.length < 1 || item.scrollerY - markers.slice(-1)[0].scrollerY > 15) {
         markers.push({
@@ -97,8 +96,8 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     return firstChar;
   };
 
-  const getAlphabetMarkers = useCallback((): IScrollerPosition[] => {
-    const alphabet: IScrollerPosition[] = [];
+  const getAlphabetMarkers = useCallback((): ScrollerPosition[] => {
+    const alphabet: ScrollerPosition[] = [];
     let currentLetter: string | null = null;
     positions.forEach(item => {
       const letter = getLetterForAlphabetMarker(item.label);
@@ -119,15 +118,15 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     return alphabet;
   }, [positions]);
 
-  const getLabelForDateMarker = (item: IScrollerPosition, dateType: string): string => {
+  const getLabelForDateMarker = (item: ScrollerPosition, dateType: string): string => {
     if (dateType === "years" && item.year) return item.year.toString();
     if (dateType === "months" && item.month) return item.month;
     return item.label;
   };
 
   const getDateMarkers = useCallback(
-    (dateType: string = "years"): IScrollerPosition[] => {
-      const dates: IScrollerPosition[] = [];
+    (dateType: string = "years"): ScrollerPosition[] => {
+      const dates: ScrollerPosition[] = [];
       let countDifferentValues = 0;
       let currentDate: string = "";
       positions.forEach(item => {
@@ -166,10 +165,10 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   const determinePositionsCoordinates = () => {
     if (ref.current) ref.current.height = targetClientHeight;
 
-    const newPositions: IScrollerPosition[] = [];
+    const newPositions: ScrollerPosition[] = [];
     if (scrollPositions.length > 0) {
       scrollPositions.forEach(item => {
-        const pos: IScrollerPosition = {
+        const pos: ScrollerPosition = {
           label: item.label,
           targetY: item.targetY,
           scrollerY: targetYToScrollerY(item.targetY),

@@ -1,9 +1,9 @@
 import { IconBan as Ban, IconCheck as Check, IconClock as Clock, IconRefresh as Refresh } from "@tabler/icons-react";
 import React from "react";
 
-import type { IJobDetailSchema } from "../../api_client/worker.zod";
+import { JobDetail } from "../../api_client/worker.zod";
 
-export function JobIndicator({ job }: { job: IJobDetailSchema }) {
+export function JobIndicator({ job }: { job: JobDetail }) {
   if (job.finished) {
     return job.failed ? <Ban color="red" /> : <Check color="green" />;
   }

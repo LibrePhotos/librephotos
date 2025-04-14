@@ -20,7 +20,7 @@ import { useSearchExamplesQuery } from "../api_client/search";
 import { fuzzyMatch } from "../util/util";
 import { useNavigate } from "react-router-dom";
 
-enum SuggestionType {
+enum Suggestion { 
   EXAMPLE,
   PLACE_ALBUM,
   THING_ALBUM,
@@ -35,26 +35,26 @@ interface SearchSuggestion {
 }
 
 function toExampleSuggestion(item: string) {
-  return { value: item, type: SuggestionType.EXAMPLE };
+  return { value: item, type: Suggestion.EXAMPLE };
 }
 
 function toPlaceSuggestion(item: any) {
-  return { value: item.title, icon: <Map />, type: SuggestionType.PLACE_ALBUM, id: item.id };
+  return { value: item.title, icon: <Map />, type: Suggestion.PLACE_ALBUM, id: item.id };
 }
 
 function toThingSuggestion(item: any) {
-  return { value: item.title, icon: <Tag />, type: SuggestionType.THING_ALBUM, id: item.id };
+  return { value: item.title, icon: <Tag />, type: Suggestion.THING_ALBUM, id: item.id };
 }
 
 function toUserAlbumSuggestion(item: any) {
-  return { value: item.title, icon: <Album />, type: SuggestionType.USER_ALBUM, id: item.id };
+  return { value: item.title, icon: <Album />, type: Suggestion.USER_ALBUM, id: item.id };
 }
 
 function toPeopleSuggestion(item: Person) {
   return {
     value: item.name,
     icon: <Avatar src={item.face_url} alt={item.name} size="xl" />,
-    type: SuggestionType.PEOPLE,
+    type: Suggestion.PEOPLE,
     id: item.id,
   };
 }
@@ -128,19 +128,19 @@ export function CustomSearch() {
   function search(item: any) {
     switch (item.type) {
       case undefined:
-      case SuggestionType.EXAMPLE:
+      case Suggestion.EXAMPLE:
         navigate(`/search/${item.value}`);
         break;
-      case SuggestionType.USER_ALBUM:
+      case Suggestion.USER_ALBUM:
         navigate(`/useralbum/${item.id}`);
         break;
-      case SuggestionType.PLACE_ALBUM:
+      case Suggestion.PLACE_ALBUM:
         navigate(`/place/${item.id}`);
         break;
-      case SuggestionType.THING_ALBUM:
+      case Suggestion.THING_ALBUM:
         navigate(`/thing/${item.id}`);
         break;
-      case SuggestionType.PEOPLE:
+      case Suggestion.PEOPLE:
         navigate(`/person/${item.id}`);
         break;
       default:

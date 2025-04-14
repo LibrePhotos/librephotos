@@ -2,10 +2,10 @@ import { IconStar as Star } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { PigPhoto } from "../../api_client/photos/photosActions.types";
+import { PigPhoto } from "../../api_client/photos/types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from "../../api_client/photos/photosActions.types";
+import { Photoset } from "../../api_client/photos/types";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "./common";
 
@@ -13,7 +13,7 @@ export function FavoritePhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
-  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({ photosetType: PhotosetType.FAVORITES });
+  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({ photosetType: Photoset.FAVORITES });
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -21,7 +21,7 @@ export function FavoritePhotos() {
 
   const [group, setGroup] = useState({} as PhotoGroup);
   useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: PhotosetType.FAVORITES },
+    { album_date_id: group.id, page: group.page, photosetType: Photoset.FAVORITES },
     { skip: !group.id }
   );
 

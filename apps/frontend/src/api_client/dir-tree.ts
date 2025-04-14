@@ -10,21 +10,21 @@ export interface DirTree {
 
 export type DirTreeResponse = DirTree[];
 
-export const DirTreeSchema: z.ZodType<DirTree> = z.lazy(() =>
+export const DirTree = z.lazy(() =>
   z.object({
     title: z.string(),
     absolute_path: z.string(),
-    children: z.array(DirTreeSchema),
+    children: z.array(DirTree),
   })
 );
 
-export const DirTreeResponseSchema: z.ZodType<DirTreeResponse> = z.array(DirTreeSchema);
+export const DirTreeResponse = z.array(DirTree);
 
 export const useFetchDirsQuery = (path: string) => 
   useQuery({
     queryKey: [QueryKeys.nextcloudDirs, path],
     queryFn: async () => {
       const response = await fetchClient.get(`/dirtree/?path=${path}`);
-      return DirTreeResponseSchema.parse(response);
+      return DirTreeResponse.parse(response);
     },
   }); 

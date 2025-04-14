@@ -2,7 +2,7 @@ import { z } from "zod";
 import { useQuery } from '@tanstack/react-query';
 import { fetchClient, QueryKeys } from "./api";
 
-const LocationTimelineSchema = z.array(
+export const LocationTimeline = z.array(
   z.object({
     data: z.array(z.number()),
     color: z.string(),
@@ -12,12 +12,12 @@ const LocationTimelineSchema = z.array(
   })
 );
 
-type LocationTimeline = z.infer<typeof LocationTimelineSchema>;
+export type LocationTimeline = z.infer<typeof LocationTimeline>;
 
 export const useLocationTimelineQuery = () => useQuery({
   queryKey: [QueryKeys.locationTimeline],
   queryFn: async () => {
     const response = await fetchClient.get('locationtimeline/');
-    return LocationTimelineSchema.parse(response);
+    return LocationTimeline.parse(response);
   },
 }); 

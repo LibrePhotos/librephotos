@@ -2,7 +2,7 @@ import { Group, Text } from "@mantine/core";
 import { IconCamera as Camera } from "@tabler/icons-react";
 import React from "react";
 
-import type { Photo as PhotoType } from "../../api_client/photos/photosActions.types";
+import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { FileInfoComponent } from "./FileInfoComponent";
 
 /**

@@ -21,12 +21,10 @@ import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
-import { useMarkPhotosDeletedMutation } from "../../api_client/photos/delete";
-import { useDownloadPhotosMutation } from "../../api_client/photos/download";
-import { useSetFavoritePhotosMutation } from "../../api_client/photos/favorite";
-import { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/visibility";
+import { useDownloadPhotosMutation, useMarkPhotosDeletedMutation, useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
 import { copyToClipboard } from "../../util/util";
 import { useLocation } from "react-router-dom";
+
 type Props = {
   selectedItems: UserAlbum[];
   updateSelectionState: (any) => void;

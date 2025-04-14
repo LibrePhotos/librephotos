@@ -1,24 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { DatePhotosGroupSchema } from "../../photos/photosActions.types";
+import { DatePhotosGroup } from "../../photos/types";
 import { fetchClient, QueryKeys } from "../../api";
 
-const PlaceAlbumSchema = z.object({
+const PlaceAlbum = z.object({
   id: z.string(),
   title: z.string(),
-  grouped_photos: DatePhotosGroupSchema.array(),
+  grouped_photos: DatePhotosGroup.array(),
 });
 
-export type PlaceAlbum = z.infer<typeof PlaceAlbumSchema>;
+export type PlaceAlbum = z.infer<typeof PlaceAlbum>;
 
-const PlaceAlbumResponseSchema = z.object({ results: PlaceAlbumSchema });
+const PlaceAlbumResponse = z.object({ results: PlaceAlbum });
 
 export const useFetchPlaceAlbumQuery = (albumId: string) => useQuery({
   queryKey: [QueryKeys.placeAlbum, albumId],
   queryFn: async () => {
     const response = await fetchClient.get(`/albums/place/${albumId}/`);
-    return PlaceAlbumResponseSchema.parse(response).results;
+    return PlaceAlbumResponse.parse(response).results;
   },
   enabled: !!albumId,
 }); 

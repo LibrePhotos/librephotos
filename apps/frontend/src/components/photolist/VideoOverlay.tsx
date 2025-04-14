@@ -2,12 +2,12 @@ import { IconPlayerPlay as PlayerPlay, IconRun as Run } from "@tabler/icons-reac
 import { Duration } from "luxon";
 import React from "react";
 
-import { MediaType } from "../../api_client/photos/photosActions.types";
+import { Media } from "../../api_client/photos/types";
 
 type Props = Readonly<{
   item: {
-    type: MediaType;
-    video_length: string;
+    type: Media;
+    video_length: string;   
   };
 }>;
 export function VideoOverlay({ item }: Props) {
@@ -17,13 +17,13 @@ export function VideoOverlay({ item }: Props) {
     );
   }
 
-  if (![MediaType.VIDEO, MediaType.MOTION_PHOTO].includes(item.type)) {
+  if (![Media.VIDEO, Media.MOTION_PHOTO].includes(item.type)) {
     return <div />;
   }
 
   return (
     <div style={{ display: "flex", alignItems: "center", color: "white", padding: "0 0 5px 5px" }}>
-      {item.type === MediaType.MOTION_PHOTO ? <Run /> : <PlayerPlay />}
+      {item.type === Media.MOTION_PHOTO ? <Run /> : <PlayerPlay />}
       {item.video_length && item.video_length !== "None" && getDuration(item)}
     </div>
   );

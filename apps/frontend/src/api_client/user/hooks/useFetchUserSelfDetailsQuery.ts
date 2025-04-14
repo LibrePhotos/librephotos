@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
-import type { User } from '../types';
-import { UserSchema } from '../types';
+import { User } from '../types';
 
 
 export const UserSelfDetailsQueryKeys = ["userSelfDetails"]
@@ -11,7 +10,7 @@ export const useFetchUserSelfDetailsQuery = (userId: string) =>
     queryKey: [...UserSelfDetailsQueryKeys, userId],
     queryFn: async () => {
       const response = await fetchClient.get<User>(`/user/${userId}/`);
-      return UserSchema.parse(response);
+      return User.parse(response);
     },
     enabled: !!userId
   });

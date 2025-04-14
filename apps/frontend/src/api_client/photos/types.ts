@@ -1,20 +1,20 @@
 import { z } from "zod";
 
-export const SimpleUserSchema = z.object({
+export const SimpleUser = z.object({
   id: z.number(),
   username: z.string(),
   first_name: z.string(),
   last_name: z.string(),
 });
-export type SimpleUser = z.infer<typeof SimpleUserSchema>;
+export type SimpleUser = z.infer<typeof SimpleUser>;
 
-export enum MediaType {
+export enum Media {
   IMAGE = "image",
   VIDEO = "video",
   MOTION_PHOTO = "motion_photo",
 }
 
-export const PigPhotoSchema = z.object({
+export const PigPhoto = z.object({
   id: z.string(),
   dominantColor: z.string().optional(),
   url: z.string().optional(),
@@ -22,16 +22,16 @@ export const PigPhotoSchema = z.object({
   date: z.string().optional().nullable(),
   birthTime: z.string().optional(),
   aspectRatio: z.number(),
-  type: z.nativeEnum(MediaType).default(MediaType.IMAGE),
+  type: z.nativeEnum(Media).default(Media.IMAGE),
   video_length: z.string().optional(),
   rating: z.number().default(0),
-  owner: SimpleUserSchema.optional(),
-  shared_to: SimpleUserSchema.array().default([]),
+  owner: SimpleUser.optional(),
+  shared_to: SimpleUser.array().default([]),
   isTemp: z.boolean().default(false),
 });
-export type PigPhoto = z.infer<typeof PigPhotoSchema>;
+export type PigPhoto = z.infer<typeof PigPhoto>;
 
-export enum PhotosetType {
+export enum Photoset {
   NONE = "none",
   TIMESTAMP = "timestamp",
   NO_TIMESTAMP = "noTimestamp",
@@ -49,18 +49,18 @@ export enum PhotosetType {
   VIDEOS = "videos",
 }
 
-export const SharedFromMePhotoSchema = z.object({
+export const SharedFromMePhoto = z.object({
   user_id: z.number(),
-  user: SimpleUserSchema,
-  photo: PigPhotoSchema,
+  user: SimpleUser,
+  photo: PigPhoto,
 });
 
-export const PhotoHashSchema = z.object({
+export const PhotoHash = z.object({
   image_hash: z.string(),
   video: z.boolean(),
 });
 
-export const PeopleSchema = z.object({
+export const People = z.object({
   name: z.string(),
   type: z.string(),
   probability: z.number(),
@@ -69,7 +69,7 @@ export const PeopleSchema = z.object({
   face_id: z.number(),
 });
 
-export const PhotoSchema = z.object({
+export const Photo = z.object({
   camera: z.string().nullable(),
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
@@ -81,7 +81,7 @@ export const PhotoSchema = z.object({
   small_square_thumbnail_url: z.string().nullable(),
   geolocation_json: z.any().nullable(),
   exif_json: z.any().nullable(),
-  people: PeopleSchema.array(),
+  people: People.array(),
   image_hash: z.string(),
   image_path: z.string().array(),
   rating: z.number(),
@@ -91,9 +91,9 @@ export const PhotoSchema = z.object({
   removed: z.boolean(),
   size: z.number(),
   shared_to: z.number().nullable().array(), // TODO: There are sometimes items in the array with value null. Why?!?
-  similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(MediaType) }).array(),
+  similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(Media) }).array(),
   video: z.boolean(),
-  owner: SimpleUserSchema,
+  owner: SimpleUser,
   shutter_speed: z.string().nullable(),
   height: z.number().nullable(),
   width: z.number().nullable(),
@@ -104,22 +104,22 @@ export const PhotoSchema = z.object({
   subjectDistance: z.number().nullable(),
   digitalZoomRatio: z.number().nullable(),
   lens: z.string().nullable(),
-  embedded_media: z.object({ id: z.string(), type: z.nativeEnum(MediaType) }).array(),
+  embedded_media: z.object({ id: z.string(), type: z.nativeEnum(Media) }).array(),
 });
-export type Photo = z.infer<typeof PhotoSchema>;
+export type Photo = z.infer<typeof Photo>;
 
-export const DatePhotosGroupSchema = z.object({
+export const DatePhotosGroup = z.object({
   date: z.string().nullable(),
   year: z.number().nullable().optional(),
   month: z.number().nullable().optional(),
   location: z.string().nullable(),
-  items: PigPhotoSchema.array(),
+  items: PigPhoto.array(),
 });
-export type DatePhotosGroup = z.infer<typeof DatePhotosGroupSchema>;
+export type DatePhotosGroup = z.infer<typeof DatePhotosGroup>;
 
-export const IncompleteDatePhotosGroupSchema = DatePhotosGroupSchema.extend({
+export const IncompleteDatePhotosGroup = DatePhotosGroup.extend({
   id: z.string(),
   incomplete: z.boolean(),
   numberOfItems: z.number(),
 });
-export type IncompleteDatePhotosGroup = z.infer<typeof IncompleteDatePhotosGroupSchema>;
+export type IncompleteDatePhotosGroup = z.infer<typeof IncompleteDatePhotosGroup>;

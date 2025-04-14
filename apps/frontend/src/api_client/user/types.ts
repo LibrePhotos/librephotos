@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const PublicPhotoSampleSchema = z.object({
+export const PublicPhotoSample = z.object({
   image_hash: z.string(),
   rating: z.number(),
   hidden: z.boolean(),
@@ -8,9 +8,9 @@ export const PublicPhotoSampleSchema = z.object({
   public: z.boolean(),
   video: z.boolean(),
 });
-export type PublicPhotoSample = z.infer<typeof PublicPhotoSampleSchema>;
+export type PublicPhotoSample = z.infer<typeof PublicPhotoSample>;
 
-export const UserSchema = z.object({
+export const User = z.object({
   id: z.number(),
   username: z.string(),
   email: z.string(),
@@ -20,7 +20,7 @@ export const UserSchema = z.object({
   transcode_videos: z.boolean(),
   semantic_search_topk: z.number(),
   first_name: z.string(),
-  public_photo_samples: z.array(PublicPhotoSampleSchema),
+  public_photo_samples: z.array(PublicPhotoSample),
   last_name: z.string(),
   public_photo_count: z.number(),
   date_joined: z.string(),
@@ -44,7 +44,7 @@ export const UserSchema = z.object({
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
   llm_settings: z.any().nullable(),
-});
+}); 
 
 export const ManageUser = z.object({
   confidence: z.number(),
@@ -71,12 +71,12 @@ export const SimpleUser = z.object({
   last_name: z.string(),
 });
 
-export type User = z.infer<typeof UserSchema>;
+export type User = z.infer<typeof User>;
 export type ManageUser = z.infer<typeof ManageUser>;
 
 
-export const UserListSchema = z.array(UserSchema);
-export type UserList = z.infer<typeof UserListSchema>;
+export const UserList = User.array();
+export type UserList = z.infer<typeof UserList>;
 
 export type UserState = {
   userSelfDetails: User;

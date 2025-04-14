@@ -2,7 +2,7 @@ import { IconClock as Clock } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useFetchRecentlyAddedPhotosQuery } from "../../api_client/photos/recent";
+import { useFetchRecentlyAddedPhotosQuery } from "../../api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 export function RecentlyAddedPhotos() {
   const { t } = useTranslation();

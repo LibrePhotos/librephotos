@@ -1,24 +1,23 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { PigPhotoSchema } from "./photosActions.types";
-import { fetchClient, queryClient, QueryKeys } from "../api";
-import { addTempElementsToFlatList } from "../../util/util";
+import { PigPhoto } from "../types";
+import { fetchClient, QueryKeys } from "../../api";
 
-const PaginatedPhotosResponseSchema = z.object({
+const PaginatedPhotosResponse = z.object({
   count: z.number(),
   next: z.string().nullable(),
   previous: z.string().nullable(),
-  results: PigPhotoSchema.array(),
+  results: PigPhoto.array(),
 });
-export type PaginatedPhotosResponse = z.infer<typeof PaginatedPhotosResponseSchema>;
+export type PaginatedPhotosResponse = z.infer<typeof PaginatedPhotosResponse>;
 
 // Fetch photos without timestamp
 export const useFetchPhotosWithoutTimestampQuery = (page: number) => useQuery({
   queryKey: [QueryKeys.dateAlbum, 'noTimestamp', page],
   queryFn: async () => {
     const response = await fetchClient.get(`/photos/notimestamp/?page=${page}`);
-    return PaginatedPhotosResponseSchema.parse(response);
+    return PaginatedPhotosResponse.parse(response);
   },
   placeholderData: keepPreviousData,
 }); 

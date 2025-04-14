@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
-import type { IJobDetailSchema } from "../../api_client/worker.zod";
+import { JobDetail } from "../../api_client/worker.zod";
 
 type IWorkerIndicator = Readonly<{
-  workerRunningJob: IJobDetailSchema;
+  workerRunningJob: JobDetail;
 }>;
 
 function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {

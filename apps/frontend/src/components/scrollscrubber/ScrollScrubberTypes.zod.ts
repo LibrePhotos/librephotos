@@ -6,7 +6,7 @@ const ScrollerData = z.object({
   year: z.number().nullable().optional(),
   month: z.number().nullable().optional(),
 });
-export type IScrollerData = z.infer<typeof ScrollerData>;
+export type ScrollerData = z.infer<typeof ScrollerData>;
 
 const ScrollerPosition = z.object({
   label: z.string(),
@@ -16,8 +16,8 @@ const ScrollerPosition = z.object({
   scrollerY: z.number(),
   scrollerYPercent: z.number(),
 });
-export type IScrollerPosition = z.infer<typeof ScrollerPosition>;
+export type ScrollerPosition = z.infer<typeof ScrollerPosition>;
 
 export const ScrollerType = z.enum(["alphabet", "date", "labels"]);
-export type IScrollerType = z.infer<typeof ScrollerType>;
+export type ScrollerType = z.infer<typeof ScrollerType>;
 

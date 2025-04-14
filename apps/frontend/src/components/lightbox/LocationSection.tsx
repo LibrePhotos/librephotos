@@ -3,7 +3,7 @@ import { IconMapPin } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Photo as PhotoType } from "../../api_client/photos/photosActions.types";
+import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { LocationMap } from "../LocationMap";
 
 interface LocationSectionProps {

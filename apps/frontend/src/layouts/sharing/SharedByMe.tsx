@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
-import { useFetchSharedPhotosByMeQuery } from "../../api_client/photos/sharing";
+import { useFetchSharedPhotosByMeQuery } from "../../api_client/photos/hooks";
 import { AlbumsSharedByMe } from "../../components/sharing/AlbumsSharedByMe";
 import { PhotosSharedByMe } from "../../components/sharing/PhotosSharedByMe";
 

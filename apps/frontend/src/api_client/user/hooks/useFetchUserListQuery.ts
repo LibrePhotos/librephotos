@@ -1,17 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
 import type { UserList } from '../types';
-import { UserSchema } from '../types';
+import { User } from '../types';
 import { z } from 'zod';
 
 
 export const QueryKeys = ["userList"]
 
-export const ApiUserListResponseSchema = z.object({
+export const UserListResponse = z.object({
   count: z.number(),
   next: z.string().nullable(),
   previous: z.string().nullable(),
-  results: z.array(UserSchema),
+  results: z.array(User),
 });
 // User List Query
 export const useFetchUserListQuery = () => 
@@ -19,7 +19,7 @@ export const useFetchUserListQuery = () =>
     queryKey: QueryKeys,
     queryFn: async () => {
       const response = await fetchClient.get<UserList>('/user/');
-      return ApiUserListResponseSchema.parse(response).results;
+      return UserListResponse.parse(response).results;
     }
   });
 

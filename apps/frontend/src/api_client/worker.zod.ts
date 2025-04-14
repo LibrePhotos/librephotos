@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const JobDetailSchema = z.object({
+export const JobDetail = z.object({
   job_id: z.string(),
   queued_at: z.string(),
   finished: z.boolean(),
@@ -22,10 +22,10 @@ export const JobDetailSchema = z.object({
 export const WorkerAvailabilityResponse = z.object({
   status: z.boolean(),
   queue_can_accept_job: z.boolean(),
-  job_detail: JobDetailSchema.nullish(),
+  job_detail: JobDetail.nullish(),
   id: z.number().optional(),
 });
 
-export type IJobDetailSchema = z.infer<typeof JobDetailSchema>;
+export type JobDetail = z.infer<typeof JobDetail>;
 
-export type IWorkerAvailabilityResponse = z.infer<typeof WorkerAvailabilityResponse>;
+export type WorkerAvailabilityResponse = z.infer<typeof WorkerAvailabilityResponse>;

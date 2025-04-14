@@ -2,10 +2,10 @@ import { IconGlobe as Globe } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { PigPhoto } from "../../api_client/photos/photosActions.types";
+import { PigPhoto } from "../../api_client/photos/types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
-import { PhotosetType } from  "../../api_client/photos/photosActions.types";
+import { Photoset } from  "../../api_client/photos/types";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import type { PhotoGroup } from "../photos/common";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
@@ -17,7 +17,7 @@ export function UserPublicPage() {
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
-    photosetType: PhotosetType.PUBLIC,
+    photosetType: Photoset.PUBLIC,
     username: params.username,
   });
 
@@ -27,7 +27,7 @@ export function UserPublicPage() {
 
   const [group, setGroup] = useState({} as PhotoGroup);
   useFetchDateAlbumQuery(
-    { album_date_id: group.id, page: group.page, photosetType: PhotosetType.PUBLIC, username: params.username },
+    { album_date_id: group.id, page: group.page, photosetType: Photoset.PUBLIC, username: params.username },
     { skip: !group.id }
   );
 

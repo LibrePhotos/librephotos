@@ -1,32 +1,32 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { DatePhotosGroupSchema, PhotoHashSchema } from "../../photos/photosActions.types";
+import { PhotoHash } from "../../photos/types";
 import { fetchClient, QueryKeys } from "../../api";
 
-const AlbumInfoSchema = z.object({
+export const AlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
-  cover_photos: PhotoHashSchema.array(),
+  cover_photos: PhotoHash.array(),
   photo_count: z.number(),
 });
 
-const PlacesAlbumSchema = AlbumInfoSchema.extend({
+export const PlacesAlbum = AlbumInfo.extend({
   geolocation_level: z.number(),
 });
 
-const PlacesAlbumListSchema = PlacesAlbumSchema.array();
+export const PlacesAlbumList = PlacesAlbum.array();
 
-export type PlaceAlbumList = z.infer<typeof PlacesAlbumListSchema>;
+export type PlaceAlbumList = z.infer<typeof PlacesAlbumList>;
 
-const PlacesAlbumsResponseSchema = z.object({
-  results: PlacesAlbumListSchema,
+export const PlacesAlbumsResponse = z.object({
+  results: PlacesAlbumList,
 });
 
 export const useFetchPlacesAlbumsQuery = () => useQuery({
   queryKey: [QueryKeys.placesAlbums],
   queryFn: async () => {
     const response = await fetchClient.get('/albums/place/list/');
-    return PlacesAlbumsResponseSchema.parse(response).results;
+    return PlacesAlbumsResponse.parse(response).results;
   },
 }); 

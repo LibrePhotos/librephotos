@@ -19,12 +19,12 @@ import { useEditor } from "@tiptap/react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { Photo as PhotoType } from "../../api_client/photos/photosActions.types";
+import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
 import {
   useGenerateImageToTextCaptionMutation,
   useSavePhotoCaptionMutation,
-} from "../../api_client/photos/photoDetail";
+} from "../../api_client/photos/hooks";
 import { fuzzyMatch } from "../../util/util";
 import "./Hashtag.css";
 import suggestion from "./Suggestion";

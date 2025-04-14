@@ -2,17 +2,17 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 import { fetchClient, QueryKeys } from "./api";
 
-export const LocationSunburstSchema = z.lazy(() =>
+export const LocationSunburst = z.lazy(() =>
   z.object({
     name: z.string(),
     hex: z.string().optional(),
-    children: z.array(LocationSunburstSchema).optional(),
+    children: z.array(LocationSunburst).optional(),
   })
 );
 
-type LocationSunburst = z.infer<typeof LocationSunburstSchema>;
+export type LocationSunburst = z.infer<typeof LocationSunburst>;
 
-export const CountStatsSchema = z.object({
+export const CountStats = z.object({
   num_photos: z.number(),
   num_missing_photos: z.number(),
   num_faces: z.number(),
@@ -25,7 +25,7 @@ export const CountStatsSchema = z.object({
   num_albumuser: z.number(),
 });
 
-type CountStats = z.infer<typeof CountStatsSchema>;
+export type CountStats = z.infer<typeof CountStats>;
 export const COUNT_STATS_DEFAULTS: CountStats = {
   num_photos: 0,
   num_missing_photos: 0,
@@ -45,23 +45,23 @@ export const WordCloud = z.object({
   x: z.number().optional(),
 });
 
-export const WordCloudResponseSchema = z.object({
+export const WordCloudResponse = z.object({
   captions: WordCloud.array(),
   people: WordCloud.array(),
   locations: WordCloud.array(),
 });
 
-type WordCloudResponse = z.infer<typeof WordCloudResponseSchema>;
+export type WordCloudResponse = z.infer<typeof WordCloudResponse>;
 
-const PhotoMonthCountSchema = z.object({
+export const PhotoMonthCount = z.object({
   month: z.string(),
   count: z.number(),
 });
-const PhotoMonthCountResponseSchema = z.array(PhotoMonthCountSchema);
-type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponseSchema>;
+export const PhotoMonthCountResponse = z.array(PhotoMonthCount);
+export type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponse>;
 
-const TimezonesSchema = z.string().array();
-type Timezones = z.infer<typeof TimezonesSchema>;
+export const Timezones = z.string().array();
+export type Timezones = z.infer<typeof Timezones>;
 
 export const useFetchTimezonesQuery = () => useQuery({
   queryKey: [QueryKeys.timezones],
@@ -69,7 +69,7 @@ export const useFetchTimezonesQuery = () => useQuery({
     const response = await fetchClient.get<string>('/timezones/');
     try {
       const timezones = JSON.parse(response);
-      return TimezonesSchema.parse(timezones);
+      return Timezones.parse(timezones);
     } catch (e) {
       return [];
     }
@@ -80,7 +80,7 @@ export const useFetchLocationTreeQuery = () => useQuery({
   queryKey: [QueryKeys.locationTree],
   queryFn: async () => {
     const response = await fetchClient.get('/locationsunburst/');
-    return LocationSunburstSchema.parse(response);
+    return LocationSunburst.parse(response);
   },
 });
 
@@ -88,7 +88,7 @@ export const useFetchCountStatsQuery = () => useQuery({
   queryKey: [QueryKeys.countStats],
   queryFn: async () => {
     const response = await fetchClient.get('/stats/');
-    return CountStatsSchema.parse(response);
+    return CountStats.parse(response);
   },
 });
 
@@ -96,7 +96,7 @@ export const useFetchWordCloudQuery = () => useQuery({
   queryKey: [QueryKeys.wordCloud],
   queryFn: async () => {
     const response = await fetchClient.get('/wordcloud/');
-    return WordCloudResponseSchema.parse(response);
+    return WordCloudResponse.parse(response);
   },
 });
 
@@ -104,6 +104,6 @@ export const useFetchPhotoMonthCountQuery = () => useQuery({
   queryKey: [QueryKeys.photoMonthCount],
   queryFn: async () => {
     const response = await fetchClient.get('/photomonthcounts/');
-    return PhotoMonthCountResponseSchema.parse(response);
+    return PhotoMonthCountResponse.parse(response);
   },
 }); 

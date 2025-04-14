@@ -1,39 +1,39 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 import { fetchClient, QueryKeys } from "./api";
-import { PigPhotoSchema } from "./photos/photosActions.types";
+import { PigPhoto } from "./photos/types";
 import { getPhotosFlatFromGroupedByDate } from "../util/util";
 
-const SearchExamplesSchema = z.array(z.string());
-const SearchExamplesResponseSchema = z.object({
-  results: SearchExamplesSchema,
+const SearchExamples = z.array(z.string());
+const SearchExamplesResponse = z.object({
+  results: SearchExamples,
 });
-type SearchExamples = z.infer<typeof SearchExamplesSchema>;
+type SearchExamples = z.infer<typeof SearchExamples>;
 
 const PhotosGroupedByDate = z.array(
   z.object({
     date: z.string(),
     location: z.string(),
-    items: z.array(PigPhotoSchema),
+    items: z.array(PigPhoto),
   })
 );
 
-const SearchPhotosSchema = z.object({
+const SearchPhotos = z.object({
   results: PhotosGroupedByDate,
 });
 
-const SearchPhotosResultScheme = z.object({
-  photosFlat: z.array(PigPhotoSchema),
+const SearchPhotosResult = z.object({
+  photosFlat: z.array(PigPhoto),
   photosGroupedByDate: PhotosGroupedByDate,
 });
 
-type SearchPhotosResult = z.infer<typeof SearchPhotosResultScheme>;
+type SearchPhotosResult = z.infer<typeof SearchPhotosResult>;
 
 export const useSearchExamplesQuery = () => useQuery({
   queryKey: [QueryKeys.searchExamples],
   queryFn: async () => {
     const response = await fetchClient.get<{ results: string[] }>('/searchtermexamples/');
-    return SearchExamplesResponseSchema.parse(response).results;
+    return SearchExamplesResponse.parse(response).results;
   },
 });
 
@@ -42,7 +42,7 @@ export const useSearchPhotosQuery = (query: string) => useQuery({
   queryFn: async () => {
     const response = await fetchClient.get<{ results: any }>(`/photos/searchlist/?search=${query}`);
     try {
-      const photosGroupedByDate = SearchPhotosSchema.parse(response).results;
+      const photosGroupedByDate = SearchPhotos.parse(response).results;
       return {
         photosFlat: getPhotosFlatFromGroupedByDate(photosGroupedByDate),
         photosGroupedByDate,

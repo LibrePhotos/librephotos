@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import type { DatePhotosGroup, PigPhoto } from "../../api_client/photos/photosActions.types";
+import type { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
 import { useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useAccessToken } from "../../api_client/auth";

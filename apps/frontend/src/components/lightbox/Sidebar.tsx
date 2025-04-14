@@ -11,7 +11,7 @@ import { VersionComponent } from "./VersionComponent";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
-import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 
 interface SidebarProps {

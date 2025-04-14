@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const PlayerSchema = z.object({
+export const Player = z.object({
   playing: z.boolean(),
 });
 
-export type PlayerState = z.infer<typeof PlayerSchema>;
+export type Player= z.infer<typeof Player>;

@@ -11,13 +11,10 @@ import {
 import React, { useState } from "react";
 
 import { shareAddress } from "../../api_client/apiClient";
-import { useSetFavoritePhotosMutation } from "../../api_client/photos/favorite";
-import { useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/visibility";
+import { useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
 import { copyToClipboard } from "../../util/util";
-import { PhotoSchema } from "../../api_client/photos/photosActions.types";
-import { z } from "zod";
+import { Photo } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-type Photo = z.infer<typeof PhotoSchema>;
 
 
 type Props = Readonly<{

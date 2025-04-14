@@ -1,32 +1,32 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { PhotoSchema } from "./photosActions.types";
-import { notification } from "../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../api";
+import { Photo } from "../types";
+import { notification } from "../../../service/notifications";
+import { fetchClient, queryClient, QueryKeys } from "../../api";
 
-const FavoritePhotosRequestSchema = z.object({
+const FavoritePhotosRequest = z.object({
   image_hashes: z.string().array(),
   favorite: z.boolean(),
 });
-type FavoritePhotosRequest = z.infer<typeof FavoritePhotosRequestSchema>;
+type FavoritePhotosRequest = z.infer<typeof FavoritePhotosRequest>;
 
-const UpdatedPhotosResponseSchema = z.object({
+const UpdatedPhotosResponse = z.object({
   status: z.boolean(),
-  results: PhotoSchema.array(),
-  updated: PhotoSchema.array(),
-  not_updated: PhotoSchema.array(),
+  results: Photo.array(),
+  updated: Photo.array(),
+  not_updated: Photo.array(),
 });
-type UpdatedPhotosResponse = z.infer<typeof UpdatedPhotosResponseSchema>;
+type UpdatedPhotosResponse = z.infer<typeof UpdatedPhotosResponse>;
 
 // Set favorite photos
 export const useSetFavoritePhotosMutation = () => useMutation({
   mutationFn: async ({ image_hashes, favorite }: FavoritePhotosRequest) => {
-    const response = await fetchClient.post('photosedit/favorite/', {
+    const response = await fetchClient.post('/photosedit/favorite/', {
       image_hashes,
       favorite,
     });
-    const data = UpdatedPhotosResponseSchema.parse(response);
+    const data = UpdatedPhotosResponse.parse(response);
     notification.togglePhotosFavorite(image_hashes.length, favorite);
     return data;
   },

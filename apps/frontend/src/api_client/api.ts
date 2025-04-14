@@ -10,12 +10,12 @@ import {
 import { Cookies } from 'react-cookie';
 import jwtDecode from 'jwt-decode';
 
-import type { IGenerateEventAlbumsTitlesResponse } from "./utilActions.types";
+import type { GenerateEventAlbumsTitlesResponse } from "./utilActions.types";
 import { notification } from "../service/notifications";
-import type { ImageTagResponseType, ServerStatsResponseType, StorageStatsResponseType } from "./util.zod";
-import type { IWorkerAvailabilityResponse } from "./worker.zod";
-import { JobRequest, JobsResponse, JobsResponseSchema } from "./admin-jobs-schema";
-import { AutoAlbumSchema, AutoAlbum, FetchAutoAlbumsListResponseSchema } from "./albums/albumActions.types";
+import { ImageTagResponse, ServerStatsResponse, StorageStatsResponse } from "./util.zod";
+import { WorkerAvailabilityResponse } from "./worker.zod";
+import { JobRequest, JobsResponse } from "./admin-jobs-schema";
+import { AutoAlbum, FetchAutoAlbumsListResponse } from "./albums/types";
 
 const API_BASE_URL = '/api';
 
@@ -278,10 +278,10 @@ export const API = {
   
   // Worker & System
   worker: () => 
-    fetchClient.get<IWorkerAvailabilityResponse>('/rqavailable/'),
+    fetchClient.get<WorkerAvailabilityResponse>('/rqavailable/'),
   
   fetchServerStats: () => 
-    fetchClient.get<ServerStatsResponseType>('/serverstats'),
+    fetchClient.get<ServerStatsResponse>('/serverstats'),
   
   fetchServerLogs: () => 
     fetch(`${API_BASE_URL}/serverlogs`, { 
@@ -292,19 +292,19 @@ export const API = {
     }).then(response => response.blob()),
   
   fetchStorageStats: () => 
-    fetchClient.get<StorageStatsResponseType>('/storagestats'),
+    fetchClient.get<StorageStatsResponse>('/storagestats'),
   
   fetchImageTag: () => 
-    fetchClient.get<ImageTagResponseType>('/imagetag'),
+    fetchClient.get<ImageTagResponse>('/imagetag'),
   
   
   generateAutoAlbumTitle: () => 
-    fetchClient.get<IGenerateEventAlbumsTitlesResponse>('/autoalbumtitlegen'),
+    fetchClient.get<GenerateEventAlbumsTitlesResponse>('/autoalbumtitlegen'),
   
   // Jobs
   fetchJobs: (params: JobRequest) => 
     fetchClient.get(`/jobs/?page_size=${params.pageSize || 10}&page=${params.page || 0}`)
-      .then(response => JobsResponseSchema.parse(response)),
+      .then(response => JobsResponse.parse(response)),
   
   deleteJob: (id: number) => 
     fetchClient.delete(`/jobs/${id}/`),
@@ -312,11 +312,11 @@ export const API = {
   // Auto Albums
   fetchAutoAlbums: () => 
     fetchClient.get('/albums/auto/list/')
-      .then(response => FetchAutoAlbumsListResponseSchema.parse(response).results),
+      .then(response => FetchAutoAlbumsListResponse.parse(response).results),
       
   fetchAutoAlbum: (id: string) => 
     fetchClient.get<AutoAlbum>(`/albums/auto/${id}/`)
-      .then(response => AutoAlbumSchema.parse(response)),
+      .then(response => AutoAlbum.parse(response)),
       
   deleteAutoAlbum: ({ id, albumTitle }: { id: string; albumTitle: string }) => 
     fetchClient.delete(`/albums/auto/${id}/`)

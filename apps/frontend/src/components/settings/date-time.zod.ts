@@ -36,7 +36,7 @@ const ExtendedExifDateTimeProps = TransformTimezoneProps.extend({
   exif_tag: z.enum(["QuickTime:CreateDate", "Composite:GPSDateTime"]),
 });
 
-export const DateTimeRuleSchema = z.union([
+export const DateTimeRule = z.union([
   PathDateTimeProps,
   FilesystemDateTimeProps,
   SimpleDateTimeProps,
@@ -44,4 +44,4 @@ export const DateTimeRuleSchema = z.union([
   ExtendedExifDateTimeProps,
 ]);
 
-export type DateTimeRule = z.infer<typeof DateTimeRuleSchema>;
+export type DateTimeRule = z.infer<typeof DateTimeRule>;

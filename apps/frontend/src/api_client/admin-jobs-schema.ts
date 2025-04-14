@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { SimpleUser } from "./user/types";
 
-export const JobSchema = z.object({
+export const Job = z.object({
   job_id: z.string(),
   queued_at: z.string(),
   started_at: z.string().nullable(),
@@ -18,20 +18,20 @@ export const JobSchema = z.object({
   id: z.number(),
 });
 
-export type Job = z.infer<typeof JobSchema>;
+export type Job = z.infer<typeof Job>;
 
-export const JobRequestSchema = z.object({
+export const JobRequest = z.object({
   pageSize: z.number().optional(),
   page: z.number().optional(),
 });
 
-export type JobRequest = z.infer<typeof JobRequestSchema>;
+export type JobRequest = z.infer<typeof JobRequest>;
 
-export const JobsResponseSchema = z.object({
+export const JobsResponse = z.object({
   count: z.number(),
   next: z.string().nullable(),
   previous: z.string().nullable(),
-  results: z.array(JobSchema),
+  results: z.array(Job),
 });
 
-export type JobsResponse = z.infer<typeof JobsResponseSchema>; 
+export type JobsResponse = z.infer<typeof JobsResponse>; 

@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import type { PigPhoto } from "../../api_client/photos/photosActions.types";
+import type { PigPhoto } from "../../api_client/photos/types";
 
 export type PhotoGroup = {
   id: string;

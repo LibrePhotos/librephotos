@@ -37,6 +37,7 @@ import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { DatePhotosGroup } from "../../api_client/photos/types";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -186,7 +187,7 @@ function PhotoListViewComponent({
     const scrollPositions: IScrollerData[] = [];
     if (pigRef.current) {
       // @ts-ignore
-      pigRef.current.imageData.forEach((group: DatePhotosGroupSchema) => {
+      pigRef.current.imageData.forEach((group: DatePhotosGroup) => {
         scrollPositions.push({
           label: group.date,
           targetY: group.groupTranslateY,

@@ -3,7 +3,7 @@ import { IconPhoto as Photo, IconPolaroid as Polaroid, IconUser as User } from "
 import React from "react";
 
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { useFetchSharedPhotosByMeQuery } from "../../api_client/photos/sharing";
+import { useFetchSharedPhotosByMeQuery } from "../../api_client/photos/hooks";
 import { PhotoListView } from "../photolist/PhotoListView";
 
 type GroupHeaderProps = {

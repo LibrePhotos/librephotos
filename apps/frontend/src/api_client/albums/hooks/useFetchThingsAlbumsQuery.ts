@@ -1,29 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { DatePhotosGroupSchema, PhotoHashSchema } from "../../photos/photosActions.types";
+import { PhotoHash } from "../../photos/types";
 import { fetchClient, QueryKeys } from "../../api";
 
-const ThingsAlbumListSchema = z
+const ThingsAlbumList = z
   .object({
     id: z.number(),
     title: z.string(),
-    cover_photos: PhotoHashSchema.array(),
+    cover_photos: PhotoHash.array(),
     photo_count: z.number(),
     thing_type: z.string(),
   })
   .array();
 
-const ThingsAlbumListResponseSchema = z.object({
-  results: ThingsAlbumListSchema,
+const ThingsAlbumListResponse = z.object({
+  results: ThingsAlbumList,
 });
 
-export type ThingsAlbumList = z.infer<typeof ThingsAlbumListSchema>;
+export type ThingsAlbumList = z.infer<typeof ThingsAlbumList>;
 
 export const useFetchThingsAlbumsQuery = () => useQuery({
   queryKey: [QueryKeys.thingsAlbums],
   queryFn: async () => {
     const response = await fetchClient.get('/albums/thing/list/');
-    return ThingsAlbumListResponseSchema.parse(response).results;
+    return ThingsAlbumListResponse.parse(response).results;
   },
 }); 

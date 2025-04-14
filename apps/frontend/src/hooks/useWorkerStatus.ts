@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useWorkerQuery } from "../api_client/worker";
-import type { IJobDetailSchema } from "../api_client/worker.zod";
+import { JobDetail } from "../api_client/worker.zod";
 
 export enum WorkerState {
   SET_WORKER_AVAILABILITY = "set-worker-availability",
@@ -11,7 +11,7 @@ export enum WorkerState {
 export function useWorkerStatus() {
   const { data: worker, isLoading } = useWorkerQuery();
 
-  const [workerRunningJob, setWorkerRunningJob] = useState<IJobDetailSchema | null>(null);
+  const [workerRunningJob, setWorkerRunningJob] = useState<JobDetail | null>(null);
   const [workerAvailable, setWorkerAvailable] = useState<boolean>(false);
 
   useEffect(() => {

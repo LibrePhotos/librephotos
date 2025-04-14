@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import type { DirTree } from "../../api_client/dir-tree";
 import { useFetchDirsQuery } from "../../api_client/dir-tree";
-import { useScanPhotosMutation } from "../../api_client/photos/scan";
+import { useScanPhotosMutation } from "../../api_client/photos/hooks";
 import { User } from "../../api_client/user/types";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";

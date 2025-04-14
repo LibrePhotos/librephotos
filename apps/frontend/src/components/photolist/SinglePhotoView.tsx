@@ -15,7 +15,7 @@ import { FileInfoComponent } from "../lightbox/FileInfoComponent";
 import { SimilarPhotosSection } from "../lightbox/SimilarPhotosSection";
 import { LocationSection } from "../lightbox/LocationSection";
 import { PeopleSection } from "../lightbox/PeopleSection";
-import { useFetchPhotoDetailsQuery } from "../../api_client/photos/photoDetail";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 
 export function SinglePhotoView() {
   const { photoId } = useParams();

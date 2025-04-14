@@ -2,12 +2,12 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 import { fetchClient, queryClient, QueryKeys } from "../../api";
 import { notification } from "../../../service/notifications";
-import { UserSchema } from "../types";
+import { User } from "../types";
 
 export const useUpdateAvatarMutation = () => useMutation({
     mutationFn: async ({ id, data }: { id: string; data: FormData }) => {
       const response = await fetchClient.patch(`/user/${id}/`, data);
-      return UserSchema.parse(response);
+      return User.parse(response);
     },
     onSuccess: (data) => {
       notification.updateUser(data.username);

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
-import { useUpdatePhotoSharingMutation } from "../../api_client/photos/sharing";
+import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import classes from "./ModalAlbumShare.module.css";
 import filterUsers from "./utils";

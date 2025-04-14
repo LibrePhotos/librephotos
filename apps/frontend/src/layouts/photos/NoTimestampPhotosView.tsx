@@ -2,8 +2,8 @@ import { IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import { PigPhoto } from "../../api_client/photos/photosActions.types";
-import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/list";
+import { PigPhoto } from "../../api_client/photos/types";
+import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { addTempElementsToFlatList } from "../../util/util";
 

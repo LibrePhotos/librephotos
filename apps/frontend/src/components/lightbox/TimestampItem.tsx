@@ -12,9 +12,11 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
+import dayjs from "dayjs";
+import "dayjs/locale/en";
 
-import { Photo } from "../../api_client/photos/photosActions.types";
-import { useUpdatePhotoMutation } from "../../api_client/photos/photoDetail";
+import { Photo } from "../../api_client/photos/types";
+import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import '@mantine/dates/styles.css';
 
@@ -36,10 +38,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
 
   const { t } = useTranslation();
   const lang = i18nResolvedLanguage();
-  import(
-    /* @vite-ignore */
-    `dayjs/locale/${lang}.js`
-  );
+  dayjs.locale(lang);
 
   const onChangeDate = (date: Date | null) => {
     if (date && timestamp) {

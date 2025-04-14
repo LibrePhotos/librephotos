@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { fetchClient, QueryKeys } from "../../api";
 
-const PersonResponseSchema = z.object({
+export const PersonResponse = z.object({
   name: z.string(),
   face_url: z.string().nullable(),
   face_count: z.number(),
@@ -15,7 +15,7 @@ const PersonResponseSchema = z.object({
   cover_photo: z.string().optional(),
 });
 
-const PersonSchema = z.object({
+export const Person = z.object({
   id: z.string(),
   name: z.string(),
   video: z.boolean(),
@@ -24,16 +24,16 @@ const PersonSchema = z.object({
   face_url: z.string(),
 });
 
-const PeopleSchema = PersonSchema.array();
+export const People = Person.array();
 
-export type Person = z.infer<typeof PersonSchema>;
-export type People = z.infer<typeof PeopleSchema>;
+export type Person = z.infer<typeof Person>;
+export type People = z.infer<typeof People>;
 
-const PeopleResponseSchema = z.object({
+export const PeopleResponse = z.object({
   count: z.number(),
   next: z.string().nullable(),
   previous: z.string().nullable(),
-  results: PersonResponseSchema.array(),
+  results: PersonResponse.array(),
 });
 
 export const useFetchPeopleAlbumsQuery = () => useQuery({
@@ -41,7 +41,7 @@ export const useFetchPeopleAlbumsQuery = () => useQuery({
   queryFn: async () => {
     const response = await fetchClient.get('/persons/?page_size=1000');
     
-    const people = PeopleResponseSchema.parse(response).results.map(item => ({
+    const people = PeopleResponse.parse(response).results.map(item => ({
       id: item.id.toString(),
       name: item.name ?? "",
       video: !!item.video,
