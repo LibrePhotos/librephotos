@@ -1,5 +1,7 @@
 export * from './useDeleteJobMutation';
 export * from './useDownloadPhotosMutation';
+export * from './useGenerateAutoAlbumTitleQuery';
+export * from './useGenerateAutoAlbumsMutation';
 export * from './useJobsQuery';
 export * from './useRescanPhotosMutation';
 export * from './useScanNextcloudPhotosMutation';

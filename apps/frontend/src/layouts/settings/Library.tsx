@@ -39,7 +39,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { useGenerateAutoAlbumsMutation } from "../../api_client/api";
+import { useGenerateAutoAlbumsMutation } from "../../api_client/jobs/hooks";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/apiClient";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";        
