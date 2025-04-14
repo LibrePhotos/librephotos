@@ -21,8 +21,9 @@ async function checkDownloadStatus(job_id: string) {
 }
 
 async function downloadFile(filename: string) {
-  const response = await fetchClient.get(`/downloads/${filename}`, { responseHandler: r => r.blob() });
-  const downloadUrl = window.URL.createObjectURL(new Blob([response], { type: "application/zip" }));
+  const response = await fetchClient.get(`/downloads/${filename}`);
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = downloadUrl;
   link.setAttribute("download", "file.zip");

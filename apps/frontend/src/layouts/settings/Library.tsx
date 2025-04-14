@@ -42,8 +42,8 @@ import { Trans, useTranslation } from "react-i18next";
 import { useGenerateAutoAlbumsMutation } from "../../api_client/api";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/apiClient";
-import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
-import { useDeleteMissingPhotosMutation, useRescanPhotosMutation, useScanNextcloudPhotosMutation, useScanPhotosMutation } from "../../api_client/photos/hooks";
+import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";        
+import { useDeleteMissingPhotosMutation  } from "../../api_client/photos/hooks";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../../api_client/util";
 import { ModalNextcloudScanDirectoryEdit } from "../../components/modals/ModalNextcloudScanDirectoryEdit";
@@ -52,7 +52,7 @@ import { notification } from "../../service/notifications";
 import { User } from "../../api_client/user/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { fetchClient } from "../../api_client/api";
-import { useWorkerQuery } from "../../api_client/jobs/hooks";
+import { useRescanPhotosMutation, useScanNextcloudPhotosMutation, useScanPhotosMutation, useWorkerQuery } from "../../api_client/jobs/hooks";
 
 function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
