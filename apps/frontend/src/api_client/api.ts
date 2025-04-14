@@ -272,23 +272,6 @@ export const API = {
     fetchClient.get<string>('/predefinedrules/')
       .then(response => JSON.parse(response)),
   
-  fetchServerStats: () => 
-    fetchClient.get<ServerStatsResponse>('/serverstats'),
-  
-  fetchServerLogs: () => 
-    fetch(`${API_BASE_URL}/serverlogs`, { 
-      credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${new Cookies().get('access')}`
-      }
-    }).then(response => response.blob()),
-  
-  fetchStorageStats: () => 
-    fetchClient.get<StorageStatsResponse>('/storagestats'),
-  
-  fetchImageTag: () => 
-    fetchClient.get<ImageTagResponse>('/imagetag'),
-  
 };
 
 // Hook factory for queries
@@ -320,23 +303,4 @@ function createMutation<TData, TVariables, TContext = unknown>(
 export const useFetchPredefinedRulesQuery = createQuery(
   [QueryKeys.predefinedRules],
   API.fetchPredefinedRules
-);
-export const useFetchServerStatsQuery = createQuery(
-  [QueryKeys.serverStats],
-  API.fetchServerStats
-);
-
-export const useFetchServerLogsQuery = createQuery(
-  [QueryKeys.serverLogs],
-  API.fetchServerLogs
-);
-
-export const useFetchStorageStatsQuery = createQuery(
-  [QueryKeys.storageStats],
-  API.fetchStorageStats
-);
-
-export const useFetchImageTagQuery = createQuery(
-  [QueryKeys.imageTag],
-  API.fetchImageTag
 );

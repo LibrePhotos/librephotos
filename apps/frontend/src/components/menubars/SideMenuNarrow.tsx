@@ -20,7 +20,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/api";
+import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server/hooks";
 import { useAuth } from "../../hooks/useAuth";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems } from "./navigation";

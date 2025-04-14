@@ -11,7 +11,8 @@ import {
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { COUNT_STATS_DEFAULTS, useFetchCountStatsQuery } from "../api_client/util";
+import { useFetchCountStatsQuery } from "../api_client/stats/hooks";
+import { COUNT_STATS_DEFAULTS } from "../api_client/stats/types";
 
 export function CountStats() {
   const { t } = useTranslation();

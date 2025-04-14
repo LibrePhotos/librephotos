@@ -4,7 +4,7 @@ import useDimensions from "react-cool-dimensions";
 import { Graph } from "react-d3-graph";
 import { useTranslation } from "react-i18next";
 
-import { useFetchSocialGraphQuery } from "../../api_client/people";
+import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
 
 type Props = Readonly<{
   height: number;

@@ -20,7 +20,7 @@ import { hierarchy } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
 import React, { useState } from "react";
 
-import { useFetchLocationTreeQuery } from "../api_client/util";
+import { useFetchLocationTreeQuery } from "../api_client/stats/hooks";
 
 type Props = Readonly<{
   width: number;

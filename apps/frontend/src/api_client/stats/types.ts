@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-import { fetchClient, QueryKeys } from "./api";
 
 export const LocationSunburst = z.lazy(() =>
   z.object({
@@ -63,47 +61,34 @@ export type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponse>;
 export const Timezones = z.string().array();
 export type Timezones = z.infer<typeof Timezones>;
 
-export const useFetchTimezonesQuery = () => useQuery({
-  queryKey: [QueryKeys.timezones],
-  queryFn: async () => {
-    const response = await fetchClient.get<string>('/timezones/');
-    try {
-      const timezones = JSON.parse(response);
-      return Timezones.parse(timezones);
-    } catch (e) {
-      return [];
-    }
-  },
-});
+export const LocationTimeline = z.array(
+  z.object({
+    data: z.array(z.number()),
+    color: z.string(),
+    loc: z.string(),
+    start: z.number(),
+    end: z.number(),
+  })
+);
 
-export const useFetchLocationTreeQuery = () => useQuery({
-  queryKey: [QueryKeys.locationTree],
-  queryFn: async () => {
-    const response = await fetchClient.get('/locationsunburst/');
-    return LocationSunburst.parse(response);
-  },
-});
+export type LocationTimeline = z.infer<typeof LocationTimeline>; 
 
-export const useFetchCountStatsQuery = () => useQuery({
-  queryKey: [QueryKeys.countStats],
-  queryFn: async () => {
-    const response = await fetchClient.get('/stats/');
-    return CountStats.parse(response);
-  },
-});
-
-export const useFetchWordCloudQuery = () => useQuery({
-  queryKey: [QueryKeys.wordCloud],
-  queryFn: async () => {
-    const response = await fetchClient.get('/wordcloud/');
-    return WordCloudResponse.parse(response);
-  },
-});
-
-export const useFetchPhotoMonthCountQuery = () => useQuery({
-  queryKey: [QueryKeys.photoMonthCount],
-  queryFn: async () => {
-    const response = await fetchClient.get('/photomonthcounts/');
-    return PhotoMonthCountResponse.parse(response);
-  },
-}); 
+export const Node = z.object({
+    id: z.string(),
+    x: z.number(),
+    y: z.number(),
+  });
+  
+  export const Link = z.object({
+    source: z.string(),
+    target: z.string(),
+  });
+  
+  export const PersonDataPointList = z.object({
+    nodes: Node.array(),
+    links: Link.array(),
+  });
+  
+  export type PersonDataPointList = z.infer<typeof PersonDataPointList>;
+  
+  

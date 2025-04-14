@@ -5,7 +5,7 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { Hint, HorizontalBarSeries, XAxis, XYPlot } from "react-vis";
 
-import { useLocationTimelineQuery } from "../../api_client/location-timeline";
+import { useLocationTimelineQuery } from "../../api_client/stats/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 
 type HintProps = {

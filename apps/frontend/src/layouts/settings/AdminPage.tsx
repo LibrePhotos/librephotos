@@ -10,7 +10,6 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { useFetchServerLogsQuery, useFetchServerStatsQuery } from "../../api_client/api";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
 import { JobList } from "../../components/job/JobList";
 import { ModalUserDelete } from "../../components/modals/ModalUserDelete";
@@ -18,6 +17,7 @@ import { ModalUserEdit } from "../../components/modals/ModalUserEdit";
 import { i18nResolvedLanguage } from "../../i18n";
 import { SiteSettings } from "./SiteSettings";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { useFetchServerLogsQuery, useFetchServerStatsQuery } from "../../api_client/server/hooks";
 
 function DownloadLogsButton(){
   const { data, isFetching } = useFetchServerLogsQuery();

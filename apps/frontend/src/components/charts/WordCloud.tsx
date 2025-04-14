@@ -4,7 +4,7 @@ import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { Chart, Cloud, Transform } from "rumble-charts";
 
-import { useFetchWordCloudQuery } from "../../api_client/util";
+import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
 
 type Props = Readonly<{
   type: string;

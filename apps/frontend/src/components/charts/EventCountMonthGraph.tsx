@@ -3,7 +3,7 @@ import React from "react";
 import useDimensions from "react-cool-dimensions";
 import { Bars, Chart, Layer, Ticks } from "rumble-charts";
 
-import { useFetchPhotoMonthCountQuery } from "../../api_client/util";
+import { useFetchPhotoMonthCountQuery } from "../../api_client/stats/hooks";
 
 export function EventCountMonthGraph() {
   const colorScheme = useComputedColorScheme();
