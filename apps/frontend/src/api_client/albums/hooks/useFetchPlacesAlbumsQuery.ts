@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PhotoHash } from "../../photos/types";
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
+
+export const PlacesAlbumsQueryKeys = ['placesAlbums'] as const;
 
 export const AlbumInfo = z.object({
   id: z.number(),
@@ -24,7 +26,7 @@ export const PlacesAlbumsResponse = z.object({
 });
 
 export const useFetchPlacesAlbumsQuery = () => useQuery({
-  queryKey: [QueryKeys.placesAlbums],
+  queryKey: [...PlacesAlbumsQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/albums/place/list/');
     return PlacesAlbumsResponse.parse(response).results;

@@ -1,9 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
-import { QueryKeys } from '../../api';
 import { ManageUser } from '../types';
-
-
+import { UserListQueryKeys } from './useFetchUserListQuery';
 
 // Manage Update User Mutation
 export const useManageUpdateUserMutation = () => {
@@ -15,7 +13,7 @@ export const useManageUpdateUserMutation = () => {
       return ManageUser.parse(response);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.userList] });
+      queryClient.invalidateQueries({ queryKey: [...UserListQueryKeys] });
     }
   });
 };

@@ -20,7 +20,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSignUpMutation } from "../../api_client/auth/hooks";
 import { EMAIL_REGEX } from "../../util/util";
 import type { ISignUpFormState } from "./loginUtils";
-import { QueryKeys as UserListQueryKeys } from '../../api_client/user/hooks/useFetchUserListQuery';
+import { UserListQueryKeys } from '../../api_client/user/hooks/useFetchUserListQuery';
 
 export const initialFormState: ISignUpFormState = {
   username: "",

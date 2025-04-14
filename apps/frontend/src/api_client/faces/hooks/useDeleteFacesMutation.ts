@@ -1,10 +1,10 @@
 import { useMutation,useQueryClient } from '@tanstack/react-query';
 import { queryClient, fetchClient } from '../../api';
 import { CompletePersonFaceList } from '../types';
-import { QueryKeys as IncompleteFacesQueryKeys } from './useFetchIncompleteFacesQuery';
+import { IncompleteFacesQueryKeys } from './useFetchIncompleteFacesQuery';
 import { z } from 'zod';
 
-const QueryKeys = ["deleteFaces"];
+export const DeleteFacesQueryKeys = ["deleteFaces"];
 
 export type DeleteFacesRequest = z.infer<typeof DeleteFacesRequest>;
 export const DeleteFacesRequest = z.object({
@@ -26,7 +26,7 @@ const deleteFaces = (data: DeleteFacesRequest) =>
 
 export const useDeleteFacesMutation = () => useMutation(
     {   
-        mutationKey: QueryKeys,
+        mutationKey: [...DeleteFacesQueryKeys],
         mutationFn: deleteFaces,
         onMutate: async (variables) => {
             // Get the current query client

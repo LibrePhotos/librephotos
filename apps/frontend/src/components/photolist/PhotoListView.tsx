@@ -15,8 +15,8 @@ import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks";
-import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
+import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks/useSetPersonAlbumCoverMutation";
+import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks/useSetUserAlbumCoverMutation";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
@@ -27,7 +27,7 @@ import Pig from "../react-pig";
 import type { PigHandle } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
-import type { IScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
+import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { DefaultHeader } from "./DefaultHeader";
@@ -87,7 +87,7 @@ function PhotoListViewComponent({
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
   const [selectionState, setSelectionState] = useState<SelectionState>({ selectedItems: [], selectMode: false });
   const selectionStateRef = useRef(selectionState);
-  const [dataForScrollIndicator, setDataForScrollIndicator] = useState<IScrollerData[]>([]);
+  const [dataForScrollIndicator, setDataForScrollIndicator] = useState<ScrollerData[]>([]);
   const gridHeight = useRef(200);
   const [scrollLocked, setScrollLocked] = useState(false);
   const setUserAlbumCover = useSetUserAlbumCoverMutation();
@@ -183,8 +183,8 @@ function PhotoListViewComponent({
     });
   };
 
-  const getDataForScrollIndicator = (): IScrollerData[] => {
-    const scrollPositions: IScrollerData[] = [];
+    const getDataForScrollIndicator = (): ScrollerData[] => {
+    const scrollPositions: ScrollerData[] = [];
     if (pigRef.current) {
       // @ts-ignore
       pigRef.current.imageData.forEach((group: DatePhotosGroup) => {

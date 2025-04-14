@@ -1,7 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { UserAlbumsQueryKeys } from './useFetchUserAlbumsQuery';
 import { DeleteUserAlbumParams } from "../types";
 
 export const useDeleteUserAlbumMutation = () => useMutation({
@@ -11,6 +12,6 @@ export const useDeleteUserAlbumMutation = () => useMutation({
   },
   onSuccess: () => {
     // Invalidate relevant queries
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
+    queryClient.invalidateQueries({ queryKey: [...UserAlbumsQueryKeys] });
   },
 }); 

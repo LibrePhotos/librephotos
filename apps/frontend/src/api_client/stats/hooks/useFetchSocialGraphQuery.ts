@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { z } from "zod";
+
+export const SocialGraphQueryKeys = ['socialGraph'] as const;
 
 export const Node = z.object({
     id: z.string(),
@@ -23,7 +25,7 @@ export const Node = z.object({
   
 
 export const useFetchSocialGraphQuery = () => useQuery({
-    queryKey: [QueryKeys.socialGraph],
+    queryKey: [...SocialGraphQueryKeys],
     queryFn: async () => {
       const response = await fetchClient.get('socialgraph/');
       return PersonDataPointList.parse(response);

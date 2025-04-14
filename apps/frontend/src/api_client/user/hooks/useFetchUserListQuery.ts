@@ -4,8 +4,7 @@ import type { UserList } from '../types';
 import { User } from '../types';
 import { z } from 'zod';
 
-
-export const QueryKeys = ["userList"]
+export const UserListQueryKeys = ['userList'] as const;
 
 export const UserListResponse = z.object({
   count: z.number(),
@@ -16,7 +15,7 @@ export const UserListResponse = z.object({
 // User List Query
 export const useFetchUserListQuery = () => 
   useQuery<UserList>({
-    queryKey: QueryKeys,
+    queryKey: UserListQueryKeys,
     queryFn: async () => {
       const response = await fetchClient.get<UserList>('/user/');
       return UserListResponse.parse(response).results;

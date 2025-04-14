@@ -4,7 +4,7 @@ import { fetchClient } from '../../api';
 import { PersonFaceList } from '../types';
 import { z} from "zod";
 import { notification } from "../../../service/notifications";
-import { QueryKeys as FacesQueryKeys } from './useFetchFacesQuery';
+import { FacesQueryKeys } from './useFetchFacesQuery';
 export type SetFacesLabelRequest = z.infer<typeof SetFacesLabelRequest>;
 export const SetFacesLabelRequest = z.object({
   faceIds: z.array(z.number()),

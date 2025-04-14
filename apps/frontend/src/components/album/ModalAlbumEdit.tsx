@@ -6,12 +6,13 @@ import { useTranslation } from "react-i18next";
 
 import {
   useAddPhotoToUserAlbumMutation,
-  useCreateUserAlbumMutation,
-  useFetchUserAlbumsQuery,
-} from "../../api_client/albums/";
-import { i18nResolvedLanguage } from "../../i18n";
+} from "../../api_client/albums/hooks/useAddPhotoToUserAlbumMutation";
+
+  import { i18nResolvedLanguage } from "../../i18n";
 import { fuzzyMatch } from "../../util/util";
 import { Tile } from "../Tile";
+import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks/useFetchUserAlbumsQuery";
+import { useCreateUserAlbumMutation } from "../../api_client/albums/hooks/useCreateUserAlbumMutation";
 
 type Props = Readonly<{
   isOpen: boolean;

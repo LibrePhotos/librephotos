@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 
 type SetPersonAlbumCoverParams = {
   id: string;

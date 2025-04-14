@@ -1,7 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { AutoAlbumsQueryKeys } from '../../albums/hooks/useFetchAutoAlbumsQuery';
 
 const DeleteMissingPhotosResponse = z.object({
   status: z.boolean(),
@@ -15,6 +16,6 @@ export const useDeleteMissingPhotosMutation = () => useMutation({
     return DeleteMissingPhotosResponse.parse(response);
   },
   onSuccess: (data) => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+    queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });
   },
 }); 

@@ -25,7 +25,7 @@ import { useUpdateAvatarMutation, useUpdateUserMutation, useFetchUserSelfDetails
 import { PasswordEntry } from "../../components/settings/PasswordEntry";
 import { useQueryClient } from "@tanstack/react-query"; 
 import { useAccessToken } from "../../api_client/auth/hooks";
-import { QueryKeys } from "../../api_client/api";
+import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";  
 
 export function Profile() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
@@ -76,7 +76,7 @@ export function Profile() {
 
   useEffect(() => {
     if (auth?.access?.user_id) {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.userSelfDetails] });
+      queryClient.invalidateQueries({ queryKey: [...UserSelfDetailsQueryKeys] });
     }
   }, [auth?.access?.user_id, queryClient]);
 

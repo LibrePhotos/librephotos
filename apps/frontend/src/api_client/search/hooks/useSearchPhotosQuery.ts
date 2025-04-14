@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { SearchPhotos, SearchPhotosResult } from "../types";
 
+export const SearchPhotosQueryKeys = ['searchPhotos'] as const;
+
 export const useSearchPhotosQuery = (searchTerm: string) => useQuery({
-  queryKey: [QueryKeys.searchPhotos, searchTerm],
+  queryKey: [...SearchPhotosQueryKeys, searchTerm],
   queryFn: async () => {
     const response = await fetchClient.get<typeof SearchPhotos>(`/search/?search=${searchTerm}`);
     const parsed = SearchPhotos.parse(response);

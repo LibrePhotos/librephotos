@@ -3,8 +3,8 @@ import { FaceAnalysisMethod, FacesTab, CompletePersonFaceList } from "../../../a
 import {  
   queryClient,
 } from "../../../api_client/api";
-import { QueryKeys as IncompleteFacesQueryKeys, useFetchIncompleteFacesQuery } from "../../../api_client/faces/hooks/useFetchIncompleteFacesQuery";
-import { fetchFaces, QueryKeys as FacesQueryKeys } from "../../../api_client/faces/hooks/useFetchFacesQuery";
+import { IncompleteFacesQueryKeys, useFetchIncompleteFacesQuery } from "../../../api_client/faces/hooks/useFetchIncompleteFacesQuery";
+import { fetchFaces, FacesQueryKeys } from "../../../api_client/faces/hooks/useFetchFacesQuery";
 
 type OrderByType = "confidence" | "date" | "person";
 

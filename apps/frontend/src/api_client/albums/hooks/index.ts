@@ -21,7 +21,6 @@ export * from './useAddPhotoToUserAlbumMutation';
 export * from './useFetchDateAlbumQuery';
 export * from './useFetchDateAlbumsQuery';
 export * from './useFetchAutoAlbumQuery';
-export * from './useLazyFetchAutoAlbumQuery';
 export * from './useDeleteAutoAlbumMutation';
 export * from './useDeleteAllAutoAlbumsMutation'; 
 export * from './useFetchAutoAlbumsQuery';

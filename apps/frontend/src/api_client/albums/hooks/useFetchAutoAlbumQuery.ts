@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { AutoAlbum } from "../types";
+
+export const AutoAlbumQueryKeys = ['autoAlbum'] as const;
 
 export const useFetchAutoAlbumQuery = (id: string) => 
   useQuery({
-    queryKey: [QueryKeys.autoAlbum, id],
+    queryKey: [...AutoAlbumQueryKeys, id],
     queryFn: () => fetchClient.get<AutoAlbum>(`/albums/auto/${id}/`)
       .then(response => AutoAlbum.parse(response)),
     enabled: !!id

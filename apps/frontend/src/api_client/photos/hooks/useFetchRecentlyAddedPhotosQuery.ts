@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PigPhoto } from "../types";
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
+
+export const RecentlyAddedPhotosQueryKeys = ["recentlyAddedPhotos"] as const;
 
 const RecentlyAddedPhotosResponse = z.object({
   results: PigPhoto.array(),
@@ -12,7 +14,7 @@ type RecentlyAddedPhotosResponse = z.infer<typeof RecentlyAddedPhotosResponse>;
 
 // Fetch recently added photos
 export const useFetchRecentlyAddedPhotosQuery = () => useQuery({
-  queryKey: [QueryKeys.autoAlbums, 'recentlyAdded'],
+  queryKey: [...RecentlyAddedPhotosQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/photos/recentlyadded/');
     return RecentlyAddedPhotosResponse.parse(response);

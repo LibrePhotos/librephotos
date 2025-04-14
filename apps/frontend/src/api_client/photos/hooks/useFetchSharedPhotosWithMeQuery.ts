@@ -3,14 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { PigPhoto } from "../types";
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 
 const SharedPhotosWithMeResponse = z.object({
   results: PigPhoto.array(),
 });
 
+export const SharedPhotosWithMeQueryKeys = ["sharedAlbumsWithMe"] as const;
+
 export const useFetchSharedPhotosWithMeQuery = () => useQuery({
-  queryKey: [QueryKeys.sharedAlbumsWithMe],
+  queryKey: [...SharedPhotosWithMeQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('photos/shared/tome/');
     const { results } = SharedPhotosWithMeResponse.parse(response);

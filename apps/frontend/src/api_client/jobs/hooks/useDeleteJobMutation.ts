@@ -1,5 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { JobsQueryKeys } from './useJobsQuery';
+
 
 export const useDeleteJobMutation = () => 
   useMutation({
@@ -7,6 +9,6 @@ export const useDeleteJobMutation = () =>
       await fetchClient.delete(`/jobs/${id}/`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.jobs] });
+      queryClient.invalidateQueries({ queryKey: [...JobsQueryKeys] });
     },
   }); 

@@ -29,11 +29,11 @@ export const ClusterFaceDatapoint = z.object({
 
 const clusterFaces = () => fetchClient.get<ClusterFacesResponse>('/clusterfaces')
 
-export const QueryKeys = ["clusterFaces"];
+export const ClusterFacesQueryKeys = ["clusterFaces"];
 
 export const useClusterFacesQuery = () => {
   return useQuery<ClusterFacesResponse>({
-    queryKey: QueryKeys,
+    queryKey: [...ClusterFacesQueryKeys],
     queryFn: () => clusterFaces(),
   });
 }; 

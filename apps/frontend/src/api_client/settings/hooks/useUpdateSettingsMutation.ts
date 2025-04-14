@@ -1,7 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
 import { SiteSettings } from "../types";
+
+export const SiteSettingsQueryKeys = ['siteSettings'] as const;
 
 export const useUpdateSettingsMutation = () => useMutation({
   mutationFn: async (settings: Partial<SiteSettings>) => {
@@ -10,6 +12,6 @@ export const useUpdateSettingsMutation = () => useMutation({
   },
   onSuccess: () => {
     // Invalidate the settings query to refetch
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.siteSettings] });
+    queryClient.invalidateQueries({ queryKey: [...SiteSettingsQueryKeys] });
   },
 }); 

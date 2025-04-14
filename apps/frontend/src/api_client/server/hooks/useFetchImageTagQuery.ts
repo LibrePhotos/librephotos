@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { z } from 'zod';
 
 export const ImageTagResponse = z.object({
@@ -10,8 +9,10 @@ export const ImageTagResponse = z.object({
   
   export type ImageTagResponse = z.infer<typeof ImageTagResponse>; 
 
+export const ImageTagQueryKeys = ['imageTag'] as const;
+
 export const useFetchImageTagQuery = () => useQuery({
-  queryKey: [QueryKeys.imageTag],
+  queryKey: [...ImageTagQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/imagetag/');
     return ImageTagResponse.parse(response);

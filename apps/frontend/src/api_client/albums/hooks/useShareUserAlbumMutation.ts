@@ -1,7 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { UserAlbumsQueryKeys } from './useFetchUserAlbumsQuery';
+import { UserAlbumQueryKeys } from './useFetchUserAlbumQuery';
+import { SharedAlbumsByMeQueryKeys } from './useFetchSharedAlbumsByMeQuery';
 
 type ShareUserAlbumParams = {
   albumId: string;
@@ -18,10 +21,10 @@ export const useShareUserAlbumMutation = () => useMutation({
     });
     notification.toggleAlbumSharing(share);
   },
-  onSuccess: () => {
+  onSuccess: (_, { albumId }) => {
     // Invalidate relevant queries
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbum] });
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.sharedAlbumsByMe] });
+    queryClient.invalidateQueries({ queryKey: [...UserAlbumsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...UserAlbumQueryKeys, albumId] });
+    queryClient.invalidateQueries({ queryKey: [...SharedAlbumsByMeQueryKeys] });
   },
 }); 

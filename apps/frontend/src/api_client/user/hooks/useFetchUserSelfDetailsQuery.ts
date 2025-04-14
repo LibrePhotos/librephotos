@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
 import { User } from '../types';
 
+export const UserSelfDetailsQueryKeys = ['userSelfDetails'] as const;
 
-export const UserSelfDetailsQueryKeys = ["userSelfDetails"]
 // User Self Details Query
 export const useFetchUserSelfDetailsQuery = (userId: string) => 
   useQuery<User>({

@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { CountStats } from "../types";
 
+export const CountStatsQueryKeys = ['countStats'] as const;
+
 export const useFetchCountStatsQuery = () => useQuery({
-  queryKey: [QueryKeys.countStats],
+  queryKey: [...CountStatsQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/stats/');
     return CountStats.parse(response);

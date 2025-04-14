@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
-import { QueryKeys as UserListQueryKeys } from './useFetchUserListQuery';
+import { UserListQueryKeys } from './useFetchUserListQuery';
 
 // Delete User Mutation
 export const useDeleteUserMutation = () => {

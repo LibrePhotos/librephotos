@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchClient } from '../../api';
 import { z } from 'zod';
 import { Cookies } from 'react-cookie';
 import jwtDecode from 'jwt-decode';

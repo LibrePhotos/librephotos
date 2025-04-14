@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { Photo } from "../types";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
+import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery';
 
 const FavoritePhotosRequest = z.object({
   image_hashes: z.string().array(),
@@ -32,11 +35,11 @@ export const useSetFavoritePhotosMutation = () => useMutation({
   },
   onSuccess: (data, { image_hashes }) => {
     // Invalidate relevant queries
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
-    
+    queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
     // If we have a single photo, invalidate its details
     if (image_hashes.length === 1) {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, image_hashes[0]] });
+      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, image_hashes[0]] });
     }
   },
 }); 

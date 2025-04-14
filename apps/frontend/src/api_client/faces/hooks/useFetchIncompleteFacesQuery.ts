@@ -15,7 +15,7 @@ export const IncompletePersonFaceListRequest = z.object({
 export type IncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
 
 
-export const QueryKeys = ["incompleteFaces"];
+export const IncompleteFacesQueryKeys = ['incompleteFaces'] as const;
 
 const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
   const { inferred = false, method = 'clustering', orderBy = 'confidence', minConfidence } = params;
@@ -48,6 +48,6 @@ const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
 };
 
 export const useFetchIncompleteFacesQuery = (request: IncompletePersonFaceListRequest) => useQuery({
-    queryKey: [...QueryKeys, request],
+    queryKey: [...IncompleteFacesQueryKeys, request],
     queryFn: () => fetchIncompleteFaces(request),
 });

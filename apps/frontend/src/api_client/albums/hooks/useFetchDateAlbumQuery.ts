@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
 import { FetchDateAlbumResponse } from "../types";
+import { DateAlbumsQueryKeys } from './useFetchDateAlbumsQuery';
 
 type AlbumDateOption = {
   photosetType: Photoset;
@@ -11,10 +12,12 @@ type AlbumDateOption = {
   person_id?: number;
 };
 
+export const DateAlbumQueryKeys = ["dateAlbum"]
+
 // Fetch a single date album
 export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: { skip?: boolean }) => {
   return useQuery({
-    queryKey: [QueryKeys.dateAlbum, options.photosetType, options.album_date_id, options.page, options.person_id, options.username],
+    queryKey: [...DateAlbumQueryKeys, options.photosetType, options.album_date_id, options.page, options.person_id, options.username],
     queryFn: async () => {
       const params = {
         favorite: Photoset.FAVORITES === options.photosetType ? "true" : undefined,
@@ -35,7 +38,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       const result = FetchDateAlbumResponse.parse(response).results;
       
       // Get the current data from cache
-      const dateAlbumsQueryKey = [QueryKeys.dateAlbums, options.photosetType, options.person_id, options.username];
+      const dateAlbumsQueryKey = [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username];
       const oldData = queryClient.getQueryData(dateAlbumsQueryKey) as IncompleteDatePhotosGroup[] | undefined;
       
       if (oldData) {

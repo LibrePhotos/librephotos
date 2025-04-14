@@ -3,7 +3,9 @@ import { z } from "zod";
 
 import { Photo } from "../types";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
+import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery';
 
 const DeletePhotosRequest = z.object({
   image_hashes: z.array(z.string()),
@@ -27,6 +29,7 @@ export const useMarkPhotosDeletedMutation = () => useMutation({
     return data;
   },
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+    queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
   },
 }); 

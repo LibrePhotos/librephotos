@@ -2,6 +2,8 @@ import { FetchAutoAlbumsListResponse } from "../types";
 import { fetchClient } from "../../api";
 import { useQuery } from "@tanstack/react-query";
 
+export const AutoAlbumsQueryKeys = ['autoAlbums'] as const;
+
 const fetchAutoAlbums = () => 
     fetchClient.get('/albums/auto/list/')
       .then(response => FetchAutoAlbumsListResponse.parse(response).results);

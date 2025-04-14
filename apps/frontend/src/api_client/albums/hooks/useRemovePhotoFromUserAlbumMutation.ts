@@ -1,8 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
 import { RemovePhotoFromUserAlbumParams } from "../types";
+import { UserAlbumsQueryKeys } from './useFetchUserAlbumsQuery';
+import { UserAlbumQueryKeys } from './useFetchUserAlbumQuery';
 
 export const useRemovePhotoFromUserAlbumMutation = () => useMutation({
   mutationFn: async ({ id, title, photos }: RemovePhotoFromUserAlbumParams) => {
@@ -11,7 +13,7 @@ export const useRemovePhotoFromUserAlbumMutation = () => useMutation({
   },
   onSuccess: (_, { id }) => {
     // Invalidate relevant queries
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbums] });
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.userAlbum, id] });
+    queryClient.invalidateQueries({ queryKey: [...UserAlbumsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...UserAlbumQueryKeys, id] });
   },
 }); 

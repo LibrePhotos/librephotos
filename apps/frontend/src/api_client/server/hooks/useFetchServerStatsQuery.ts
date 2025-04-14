@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { z } from 'zod';
 
+export const ServerStatsQueryKeys = ['serverStats'] as const;
 
 export const ServerStatsResponse = z.object({
     cpu_usage: z.number(),
@@ -16,7 +16,7 @@ export const ServerStatsResponse = z.object({
   export type ServerStatsResponse = z.infer<typeof ServerStatsResponse>;
 
 export const useFetchServerStatsQuery = () => useQuery({
-  queryKey: [QueryKeys.serverStats],
+  queryKey: [...ServerStatsQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/serverstats/');
     return ServerStatsResponse.parse(response);

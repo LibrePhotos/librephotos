@@ -2,7 +2,9 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+
+import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
 
 const StatusResponse = z.object({
   status: z.boolean(),
@@ -16,6 +18,6 @@ export const useSavePhotoCaptionMutation = () => useMutation({
     notification.savePhotoCaptions();
   },
   onSuccess: (_, { id }) => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, id] });
+    queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, id] });
   },
 }); 

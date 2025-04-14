@@ -212,48 +212,6 @@ class FetchClient {
 const fetchClient = new FetchClient();
 export { fetchClient };
 
-// Query Keys
-export enum QueryKeys {
-  userList = 'userList',
-  userSelfDetails = 'userSelfDetails',
-  predefinedRules = 'predefinedRules',
-  incompleteFaces = 'incompleteFaces',
-  faces = 'faces',
-  worker = 'worker',
-  serverStats = 'serverStats',
-  serverLogs = 'serverLogs',
-  storageStats = 'storageStats',
-  imageTag = 'imageTag',
-  generateAutoAlbumTitle = 'generateAutoAlbumTitle',
-  jobs = 'jobs',
-  autoAlbums = 'autoAlbums',
-  autoAlbum = 'autoAlbum',
-  dateAlbums = 'dateAlbums',
-  dateAlbum = 'dateAlbum',
-  peopleAlbums = 'peopleAlbums',
-  personAlbum = 'personAlbum',
-  placesAlbums = 'placesAlbums',
-  placeAlbum = 'placeAlbum',
-  locationClusters = 'locationClusters',
-  thingsAlbums = 'thingsAlbums',
-  thingsAlbum = 'thingsAlbum',
-  sharedAlbumsByMe = 'sharedAlbumsByMe',
-  sharedAlbumsWithMe = 'sharedAlbumsWithMe',
-  userAlbums = 'userAlbums',
-  userAlbum = 'userAlbum',
-  locationTimeline = 'locationTimeline',
-  nextcloudDirs = 'nextcloudDirs',
-  socialGraph = 'socialGraph',
-  searchExamples = 'searchExamples',
-  searchPhotos = 'searchPhotos',
-  siteSettings = 'siteSettings',
-  timezones = 'timezones',
-  locationTree = 'locationTree',
-  countStats = 'countStats',
-  wordCloud = 'wordCloud',
-  photoMonthCount = 'photoMonthCount',
-}
-
 // Create QueryClient
 export const queryClient = new QueryClient({
   defaultOptions: {

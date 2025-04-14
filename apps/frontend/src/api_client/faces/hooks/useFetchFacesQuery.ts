@@ -1,9 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
-import {  CompletePersonFaceList, PersonFace, FaceAnalysisMethod, FacesOrderOption, CompletePersonFace } from '../types';
-import { QueryKeys as IncompleteFacesQueryKeys, IncompletePersonFaceListRequest } from './useFetchIncompleteFacesQuery';
+import {  PersonFace, FaceAnalysisMethod, FacesOrderOption, CompletePersonFace } from '../types';
 import { z } from "zod"
-
 
 export const PersonFaceListResponse = z.object({
     count: z.number(),
@@ -37,53 +35,12 @@ export const fetchFaces = (params: PersonFaceListRequest) => {
       });
   };
 
-export const QueryKeys = ["faces"];
+export const FacesQueryKeys = ['faces'] as const;
 
 export const useFetchFacesQuery = (params: PersonFaceListRequest) => {
   return useQuery({
-    queryKey: [QueryKeys, params],
+    queryKey: [FacesQueryKeys, params],
     queryFn: () => fetchFaces(params),
     enabled: !!params,
-    onSettled: (data) => {
-        // Update incompleteFaces cache when fetching faces
-        const queryClient = useQueryClient();
-        const incompleteParams: IncompletePersonFaceListRequest = {
-          method: params.method,
-          orderBy: params.orderBy,
-          inferred: params.inferred,
-          minConfidence: params.minConfidence,
-        };
-  
-        const incompleteData = queryClient.getQueryData<CompletePersonFaceList>(
-          [...IncompleteFacesQueryKeys, incompleteParams]
-        );
-  
-        if (incompleteData) {
-          queryClient.setQueryData<CompletePersonFaceList>(
-            [...IncompleteFacesQueryKeys, incompleteParams], 
-            draft => {
-              if (!draft) return draft;
-              const indexToReplace = draft.findIndex(group => group.id === params[0].person);
-              if (indexToReplace === -1) return draft;
-  
-              const groupToChange = draft[indexToReplace];
-              const { faces } = groupToChange;
-              const newFaces = [
-                ...faces.slice(0, (params[0].page - 1) * 100),
-                ...data,
-                ...faces.slice(params[0].page * 100)
-              ];
-              
-              const updatedGroup = { ...groupToChange, faces: newFaces };
-              
-              return [
-                ...draft.slice(0, indexToReplace),
-                updatedGroup,
-                ...draft.slice(indexToReplace + 1)
-              ];
-            }
-          );
-        }
-      }
-    });
+  });
 }; 

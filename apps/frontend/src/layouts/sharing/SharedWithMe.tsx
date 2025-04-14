@@ -2,7 +2,7 @@ import { Group, Stack, Tabs, Text, Title } from "@mantine/core";
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums";
+import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
 import { useFetchSharedPhotosWithMeQuery } from "../../api_client/photos/hooks";
 import { AlbumsSharedWithMe } from "../../components/sharing/AlbumsSharedWithMe";
 import { PhotosSharedWithMe } from "../../components/sharing/PhotosSharedWithMe";

@@ -10,13 +10,13 @@ export const ScanFacesResponse = z.object({
   job_id: z.string().optional(),
 });
 
-const QueryKeys = ["rescanFaces"];
+export const RescanFacesQueryKeys = ["rescanFaces"];
 
 const rescanFaces = () => fetchClient.get<ScanFacesResponse>('/scanfaces')
 
 export const useRescanFacesQuery = () => {
   return useQuery({
-    queryKey: QueryKeys,
+    queryKey: [...RescanFacesQueryKeys],
     queryFn: () => rescanFaces(),
   });
 }; 

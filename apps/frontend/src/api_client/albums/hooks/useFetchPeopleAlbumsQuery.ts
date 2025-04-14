@@ -2,7 +2,9 @@ import _ from "lodash";
 import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
+
+export const PeopleAlbumsQueryKeys = ['peopleAlbums'] as const;
 
 export const PersonResponse = z.object({
   name: z.string(),
@@ -37,7 +39,7 @@ export const PeopleResponse = z.object({
 });
 
 export const useFetchPeopleAlbumsQuery = () => useQuery({
-  queryKey: [QueryKeys.peopleAlbums],
+  queryKey: [...PeopleAlbumsQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/persons/?page_size=1000');
     

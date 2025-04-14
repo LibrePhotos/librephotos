@@ -2,7 +2,8 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { AutoAlbumsQueryKeys } from '../../albums/hooks/useFetchAutoAlbumsQuery';
 
 const DeleteDuplicatePhotoRequest = z.object({
   image_hash: z.string(),
@@ -16,6 +17,6 @@ export const useDeleteDuplicatePhotoMutation = () => useMutation({
     notification.removePhotos(1);
   },
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+    queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });
   },
 }); 

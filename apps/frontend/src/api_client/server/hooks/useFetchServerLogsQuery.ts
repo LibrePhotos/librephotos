@@ -1,19 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { Cookies } from 'react-cookie';
+import { fetchClient } from "../../api";
 
-import { QueryKeys } from "../../api";
-
-const API_BASE_URL = '/api';
+export const ServerLogsQueryKeys = ['serverLogs'] as const;
 
 export const useFetchServerLogsQuery = () => useQuery({
-  queryKey: [QueryKeys.serverLogs],
+  queryKey: [...ServerLogsQueryKeys],
   queryFn: async () => {
-    const response = await fetch(`${API_BASE_URL}/serverlogs`, { 
-      credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${new Cookies().get('access')}`
-      }
-    });
-    return response.blob();
+    const response = await fetchClient.get(`/serverlogs`);
+    return response as string[];
   },
 }); 

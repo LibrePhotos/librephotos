@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { LocationTimeline } from "../types";
 
+export const LocationTimelineQueryKeys = ['locationTimeline'] as const;
+
 export const useLocationTimelineQuery = () => useQuery({
-  queryKey: [QueryKeys.locationTimeline],
+  queryKey: [...LocationTimelineQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/locationtimeline/');
     return LocationTimeline.parse(response);

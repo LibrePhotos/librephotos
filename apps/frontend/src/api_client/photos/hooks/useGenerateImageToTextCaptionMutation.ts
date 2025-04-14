@@ -1,7 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
 
 const StatusResponse = z.object({
   status: z.boolean(),
@@ -14,6 +15,6 @@ export const useGenerateImageToTextCaptionMutation = () => useMutation({
     StatusResponse.parse(response);
   },
   onSuccess: (_, { id }) => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, id] });
+    queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, id] });
   },
 }); 

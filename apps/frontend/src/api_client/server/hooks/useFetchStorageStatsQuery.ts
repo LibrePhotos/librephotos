@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-
-import { fetchClient, QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { z } from 'zod';
 
+export const StorageStatsQueryKeys = ['storageStats'] as const;
 
 export const StorageStatsResponse = z.object({
     total_storage: z.number(),
@@ -13,7 +13,7 @@ export const StorageStatsResponse = z.object({
   export type StorageStatsResponse = z.infer<typeof StorageStatsResponse>;
 
 export const useFetchStorageStatsQuery = () => useQuery({
-  queryKey: [QueryKeys.storageStats],
+  queryKey: [...StorageStatsQueryKeys],
   queryFn: async () => {
     const response = await fetchClient.get('/storagestats/');
     return StorageStatsResponse.parse(response);

@@ -2,7 +2,8 @@ import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { AutoAlbumsQueryKeys } from '../../albums/hooks/useFetchAutoAlbumsQuery';
 
 const JobResponse = z.object({
   status: z.boolean(),
@@ -18,6 +19,6 @@ export const useRescanPhotosMutation = () => useMutation({
     return data;
   },
   onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbums] });
+    queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });
   },
 }); 

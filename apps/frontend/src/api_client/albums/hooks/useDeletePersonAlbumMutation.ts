@@ -1,7 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { PeopleAlbumsQueryKeys } from './useFetchPeopleAlbumsQuery';
+import { FacesQueryKeys } from '../../faces/hooks/useFetchFacesQuery';
 
 export const useDeletePersonAlbumMutation = () => useMutation({
   mutationFn: async (id: string) => {
@@ -10,7 +12,7 @@ export const useDeletePersonAlbumMutation = () => useMutation({
   },
   onSuccess: () => {
     // Invalidate relevant queries
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.peopleAlbums] });
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.faces] });
+    queryClient.invalidateQueries({ queryKey: [...PeopleAlbumsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...FacesQueryKeys] });
   },
 }); 

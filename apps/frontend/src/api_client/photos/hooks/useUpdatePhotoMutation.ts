@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import type { Photo } from "../types";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
+import { fetchClient, queryClient } from "../../api";
+import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
 
 const PhotoUpdateResponse = z.object({
   image_hash: z.string(),
@@ -25,6 +26,6 @@ export const useUpdatePhotoMutation = () => useMutation({
     return result;
   },
   onSuccess: (data) => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, data.image_hash] });
+    queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, data.image_hash] });
   },
 }); 

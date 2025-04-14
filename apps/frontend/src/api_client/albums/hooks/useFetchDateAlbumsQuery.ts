@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Photoset } from "../../photos/types";
 import { addTempElementsToGroups } from "../../../util/util";
-import { fetchClient,  QueryKeys } from "../../api";
+import { fetchClient } from "../../api";
 import { FetchDateAlbumsListResponse } from "../types";
+
+export const DateAlbumsQueryKeys = ['dateAlbums'] as const;
 
 // Define the parameter types for the queries
 type AlbumDateListOptions = {
@@ -14,7 +16,7 @@ type AlbumDateListOptions = {
 // Fetch date albums
 export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => {
   return useQuery({
-    queryKey: [QueryKeys.dateAlbums, options.photosetType, options.person_id, options.username],
+    queryKey: [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username],
     queryFn: async () => {
       const params = {
         favorite: Photoset.FAVORITES === options.photosetType ? "true" : undefined,

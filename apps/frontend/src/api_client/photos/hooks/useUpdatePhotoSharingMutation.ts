@@ -3,8 +3,10 @@ import { z } from "zod";
 
 import { SimpleUser } from "../types";
 import { notification } from "../../../service/notifications";
-import { fetchClient, queryClient, QueryKeys } from "../../api";
-
+import { fetchClient, queryClient } from "../../api";
+import { SharedPhotosByMeQueryKeys } from './useFetchSharedPhotosByMeQuery';
+import { SharedPhotosWithMeQueryKeys } from './useFetchSharedPhotosWithMeQuery';
+import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
 const SharePhotosRequest = z.object({
   image_hashes: z.string().array(),
   val_shared: z.boolean(),
@@ -22,11 +24,11 @@ export const useUpdatePhotoSharingMutation = () => useMutation({
     notification.togglePhotoSharing(target_user.username, image_hashes.length, val_shared);
   },
   onSuccess: (_, { image_hashes }) => {
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.sharedAlbumsByMe] });
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.sharedAlbumsWithMe] });
+    queryClient.invalidateQueries({ queryKey: [...SharedPhotosByMeQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...SharedPhotosWithMeQueryKeys] });
     
     if (image_hashes.length === 1) {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.autoAlbum, image_hashes[0]] });
+      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, image_hashes[0]] });
     }
   },
 }); 
