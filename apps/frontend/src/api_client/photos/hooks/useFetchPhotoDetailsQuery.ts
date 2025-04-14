@@ -8,6 +8,9 @@ export const PhotoDetailsQueryKeys = ["photoDetails"] as const;
 export const useFetchPhotoDetailsQuery = (hash: string) => useQuery({
   queryKey: [...PhotoDetailsQueryKeys, hash],
   queryFn: async () => {
+    if (!hash) {
+      return null;
+    }
     const response = await fetchClient.get(`/photos/${hash}/`);
     return response as Photo;
   },

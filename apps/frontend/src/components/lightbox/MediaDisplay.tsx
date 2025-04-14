@@ -19,6 +19,7 @@ export function MediaDisplay({
   offset = { x: 0, y: 0 },
   handleDragStart,
   fullHeight = false,
+  playing = false,
 }: MediaDisplayProps) {
   if (!id) return null;
 
@@ -32,7 +33,7 @@ export function MediaDisplay({
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
-        playing={isMainContent}
+        playing={isMainContent && playing}
         progressInterval={100}
         style={{
           objectFit: "contain",
@@ -50,7 +51,7 @@ export function MediaDisplay({
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
-        playing={isMainContent}
+        playing={isMainContent && playing}
         progressInterval={100}
         style={{
           objectFit: "contain",

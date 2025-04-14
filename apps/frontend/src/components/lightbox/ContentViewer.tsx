@@ -29,9 +29,15 @@ export function ContentViewer({
   const [lightboxSidebarShow, setLightBoxSidebarShow] = useState(false);
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
   const [embla, setEmbla] = useState<any | null>(null);
+  const [playing, setPlaying] = useState(true);
 
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrc);
   const [imageDimensions, setImageDimensions] = useState<ImageDimensions>({ width: 0, height: 0 });
+
+  // Reset playing state when slide changes
+  useEffect(() => {
+    setPlaying(true);
+  }, [mainSrc]);
 
   // Setup slide change handler for Embla
   useEffect(() => {
@@ -130,6 +136,8 @@ export function ContentViewer({
               isZoomed={isZoomed}
               toggleZoom={toggleZoom}
               onCloseRequest={onCloseRequest}
+              playing={playing}
+              setPlaying={setPlaying}
             />
 
             {/* Main photo/video with swipe navigation */}
@@ -168,6 +176,7 @@ export function ContentViewer({
                     scale={scale}
                     offset={offset}
                     handleDragStart={handleDragStart}
+                    playing={false}
                   />
                 </Carousel.Slide>
 
@@ -185,6 +194,7 @@ export function ContentViewer({
                     scale={scale}
                     offset={offset}
                     handleDragStart={handleDragStart}
+                    playing={playing}
                   />
                 </Carousel.Slide>
 
@@ -202,6 +212,7 @@ export function ContentViewer({
                     scale={scale}
                     offset={offset}
                     handleDragStart={handleDragStart}
+                    playing={false}
                   />
                 </Carousel.Slide>
               </Carousel>

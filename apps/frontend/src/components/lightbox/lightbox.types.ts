@@ -46,12 +46,16 @@ export type MediaDisplayProps = {
   offset?: { x: number; y: number };
   handleDragStart: (event: React.DragEvent) => void;
   fullHeight?: boolean;
+  playing?: boolean;
 };
 
 export type ThumbnailNavigationProps = {
   prevSrc: string | null;
+  isPrevSrcVideo: boolean;
   mainSrc: string;
+  isMainSrcVideo: boolean;
   nextSrc: string | null;
+  isNextSrcVideo: boolean;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
   containerWidth?: string;
@@ -68,6 +72,8 @@ export type LightboxControlsProps = {
   isZoomed: boolean;
   toggleZoom: () => void;
   onCloseRequest: () => void;
+  playing: boolean;
+  setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export type FaceOverlayProps = {

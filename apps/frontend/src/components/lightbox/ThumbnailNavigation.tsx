@@ -1,8 +1,17 @@
-import { Box, Group } from "@mantine/core";
+import { Box, Group, Skeleton } from "@mantine/core";
 import React from "react";
 
-import { serverAddress } from "../../api_client/apiClient";
-import type { ThumbnailNavigationProps } from "./lightbox.types";
+import { Tile } from "../Tile";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks/useFetchPhotoDetailsQuery";
+
+export type ThumbnailNavigationProps = {
+  prevSrc: string | null;
+  mainSrc: string;
+  nextSrc: string | null;
+  onMovePrevRequest: () => void;
+  onMoveNextRequest: () => void;
+  containerWidth?: string;
+};
 
 export function ThumbnailNavigation({
   prevSrc,
@@ -12,6 +21,11 @@ export function ThumbnailNavigation({
   onMoveNextRequest,
   containerWidth,
 }: ThumbnailNavigationProps) {
+
+  const {data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading} = useFetchPhotoDetailsQuery(prevSrc ?? "");
+  const {data: mainPhotoDetail, isLoading: isMainPhotoDetailLoading} = useFetchPhotoDetailsQuery(mainSrc);
+  const {data: nextPhotoDetail, isLoading: isNextPhotoDetailLoading} = useFetchPhotoDetailsQuery(nextSrc ?? "");
+
   return (
     <div
       style={{
@@ -41,143 +55,123 @@ export function ThumbnailNavigation({
     >
       <Group justify="center" align="center" style={{ height: "100%" }}>
         {prevSrc && (
-          <PreviousThumbnail
-            src={prevSrc}
+          <Box
             onClick={onMovePrevRequest}
-          />
+            style={{
+              cursor: "pointer",
+              opacity: 0.85,
+              transition: "all 0.2s ease",
+              transform: "scale(0.85) translateX(10px)",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+              width: "64px",
+              height: "64px",
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.transform = "scale(0.9) translateX(10px)";
+              e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.4)";
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.opacity = "0.85";
+              e.currentTarget.style.transform = "scale(0.85) translateX(10px)";
+              e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.3)";
+            }}
+          >
+            {isPrevPhotoDetailLoading ? (
+              <Skeleton height={64} width={64} />
+            ) : (
+              <Tile
+                image_hash={prevSrc}
+                width={64}
+                height={64}
+                video={prevPhotoDetail?.video}
+              style={{
+                border: "2px solid rgba(255,255,255,0.6)",
+                borderRadius: "8px",
+                overflow: "hidden",
+                backgroundColor: "rgba(0,0,0,0.3)",
+                  width: "100%",
+                  height: "100%",
+                }}
+                />
+            )}
+          </Box>
         )}
 
-        <CurrentThumbnail src={mainSrc} />
+        <Box
+          style={{
+            marginLeft: "8px",
+            marginRight: "8px",
+            boxShadow: "0 0 12px rgba(255,255,255,0.3), 0 4px 8px rgba(0,0,0,0.5)",
+            backgroundColor: "rgba(0,0,0,0.3)",
+            zIndex: 1,
+            width: "72px",
+            height: "72px",
+          }}
+        >
+          {isMainPhotoDetailLoading ? (
+            <Skeleton height={72} width={72} />
+          ) : (
+            <Tile
+              image_hash={mainSrc}
+              width={72}
+              height={72}
+              video={mainPhotoDetail?.video}
+            style={{
+              border: "3px solid #fff",
+              borderRadius: "8px",
+              overflow: "hidden",
+              width: "100%",
+                height: "100%",
+              }}
+            />
+          )}
+        </Box>
 
         {nextSrc && (
-          <NextThumbnail
-            src={nextSrc}
+          <Box
             onClick={onMoveNextRequest}
-          />
+            style={{
+              cursor: "pointer",
+              opacity: 0.85,
+              transition: "all 0.2s ease",
+              transform: "scale(0.85) translateX(-10px)",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+              width: "64px",
+              height: "64px",
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.transform = "scale(0.9) translateX(-10px)";
+              e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.4)";
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.opacity = "0.85";
+              e.currentTarget.style.transform = "scale(0.85) translateX(-10px)";
+              e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.3)";
+            }}
+          >
+            {isNextPhotoDetailLoading ? (
+              <Skeleton height={64} width={64} />
+            ) : (
+              <Tile
+                image_hash={nextSrc}
+                width={64}
+                height={64}
+                video={nextPhotoDetail?.video}
+              style={{
+                border: "2px solid rgba(255,255,255,0.6)",
+                borderRadius: "8px",
+                overflow: "hidden",
+                backgroundColor: "rgba(0,0,0,0.3)",
+                width: "100%",
+                height: "100%",
+                }}
+              />
+            )}
+          </Box>
         )}
       </Group>
     </div>
-  );
-}
-
-type ThumbnailProps = {
-  src: string;
-  onClick?: () => void;
-};
-
-function PreviousThumbnail({ src, onClick }: ThumbnailProps) {
-  return (
-    <Box
-      style={{
-        height: "64px",
-        width: "64px",
-        cursor: "pointer",
-        border: "2px solid rgba(255,255,255,0.6)",
-        borderRadius: "8px",
-        overflow: "hidden",
-        opacity: 0.85,
-        transition: "all 0.2s ease",
-        backgroundColor: "rgba(0,0,0,0.3)",
-        transform: "scale(0.85) translateX(10px)",
-        boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-      }}
-      onClick={onClick}
-      onMouseOver={e => {
-        e.currentTarget.style.opacity = "1";
-        e.currentTarget.style.transform = "scale(0.9) translateX(10px)";
-        e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.4)";
-      }}
-      onMouseOut={e => {
-        e.currentTarget.style.opacity = "0.85";
-        e.currentTarget.style.transform = "scale(0.85) translateX(10px)";
-        e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.3)";
-      }}
-    >
-      <img
-        src={`${serverAddress}/media/square_thumbnails/${src}`}
-        alt="Previous"
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          pointerEvents: "none",
-        }}
-        loading="eager"
-      />
-    </Box>
-  );
-}
-
-function CurrentThumbnail({ src }: { src: string }) {
-  return (
-    <Box
-      style={{
-        height: "72px",
-        width: "72px",
-        border: "3px solid #fff",
-        borderRadius: "8px",
-        overflow: "hidden",
-        marginLeft: "8px",
-        marginRight: "8px",
-        boxShadow: "0 0 12px rgba(255,255,255,0.3), 0 4px 8px rgba(0,0,0,0.5)",
-        backgroundColor: "rgba(0,0,0,0.3)",
-        zIndex: 1,
-      }}
-    >
-      <img
-        src={`${serverAddress}/media/square_thumbnails/${src}`}
-        alt="Current"
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          pointerEvents: "none",
-        }}
-        loading="eager"
-      />
-    </Box>
-  );
-}
-
-function NextThumbnail({ src, onClick }: ThumbnailProps) {
-  return (
-    <Box
-      style={{
-        height: "64px",
-        width: "64px",
-        cursor: "pointer",
-        border: "2px solid rgba(255,255,255,0.6)",
-        borderRadius: "8px",
-        overflow: "hidden",
-        opacity: 0.85,
-        transition: "all 0.2s ease",
-        backgroundColor: "rgba(0,0,0,0.3)",
-        transform: "scale(0.85) translateX(-10px)",
-        boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-      }}
-      onClick={onClick}
-      onMouseOver={e => {
-        e.currentTarget.style.opacity = "1";
-        e.currentTarget.style.transform = "scale(0.9) translateX(-10px)";
-        e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.4)";
-      }}
-      onMouseOut={e => {
-        e.currentTarget.style.opacity = "0.85";
-        e.currentTarget.style.transform = "scale(0.85) translateX(-10px)";
-        e.currentTarget.style.boxShadow = "0 2px 5px rgba(0,0,0,0.3)";
-      }}
-    >
-      <img
-        src={`${serverAddress}/media/square_thumbnails/${src}`}
-        alt="Next"
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          pointerEvents: "none",
-        }}
-        loading="eager"
-      />
-    </Box>
   );
 }
