@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import _ from "lodash";
 import { AutoSizer, Grid, GridCellProps } from "react-virtualized";
 import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces/types";
@@ -50,10 +50,29 @@ export function useVirtualizedGrid(
   width: number
 ) {
   const gridRef = useRef<any>(null);
-  
-  // Calculate dimensions based on width
-  const { entrySquareSize, numEntrySquaresPerRow } = calculateFaceGridCellSize(width);
-  
+  const [gridHeight, setGridHeight] = useState(0);
+  const [entrySquareSize, setEntrySquareSize] = useState(0);
+  const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);
+
+  // Calculate grid dimensions
+  useEffect(() => {
+    if (width > 0) {
+      const { entrySquareSize: size } = calculateFaceGridCellSize(width);
+      setEntrySquareSize(size);
+      setNumEntrySquaresPerRow(Math.floor(width / size));
+      const { cellContents } = calculateFaceGridCells(lists[activeTab], numEntrySquaresPerRow);
+      setGridHeight(cellContents.length * size);
+    }
+  }, [width, lists, activeTab, numEntrySquaresPerRow]);
+
+  // Handle scroll from scrubber
+  const handleScrubberScroll = useCallback((y: number) => {
+    if (gridRef.current) {
+      gridRef.current.scrollToPosition({ scrollTop: y });
+      onScroll({ scrollTop: y });
+    }
+  }, [onScroll]);
+
   // Calculate cell contents for each tab
   const cellContents = {
     [FacesTab.enum.labeled]: calculateFaceGridCells(lists.labeled, numEntrySquaresPerRow).cellContents,
@@ -65,16 +84,13 @@ export function useVirtualizedGrid(
   const getCellContentsForTab = useCallback((tab: FacesTab) => 
     cellContents[tab] || [], [cellContents]);
     
-  // Helper to find the endpoint cell
-  const getEndpointCell = useCallback((cellContents, rowStopIndex, columnStopIndex): FaceCell => {
+  // Get endpoint cell for section rendering
+  const getEndpointCell = useCallback((cellContents: any[][], rowStopIndex: number, columnStopIndex: number) => {
     if (cellContents[rowStopIndex]?.[columnStopIndex]) {
       return cellContents[rowStopIndex][columnStopIndex];
     }
     return getEndpointCell(cellContents, rowStopIndex, columnStopIndex - 1);
   }, []);
-  
-  // Calculate grid height
-  const gridHeight = gridRef.current ? gridRef.current.getTotalRowsHeight() : 200;
   
   // Generate scroll positions for the scrubber
   const getScrollPositions = useCallback((): IScrollerData[] => {
@@ -168,7 +184,7 @@ export function useVirtualizedGrid(
         {({ height, width: gridWidth }) => (
           <ScrollScrubber
             scrollPositions={getScrollPositions()}
-            scrollToY={onScroll}
+            scrollToY={handleScrubberScroll}
             targetHeight={gridHeight}
             type={ScrollerType.enum.alphabet}
           >
@@ -196,7 +212,7 @@ export function useVirtualizedGrid(
     containerRef,
     gridHeight, getScrollPositions, cellRenderer, entrySquareSize, 
     numEntrySquaresPerRow, getCellContentsForTab, activeTab, 
-    scrollPosition, onScroll, onSectionRendered
+    scrollPosition, onScroll, onSectionRendered, handleScrubberScroll
   ]);
   
   return {

@@ -43,7 +43,7 @@ export function SiteSettings() {
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
-  const [saveSettings] = useUpdateSettingsMutation();
+  const { mutate: saveSettings } = useUpdateSettingsMutation();
   const [opened, { open, close }] = useDisclosure(false);
 
   const saveSettingsWithValidation = (input: any) => {
