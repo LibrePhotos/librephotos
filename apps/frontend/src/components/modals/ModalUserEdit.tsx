@@ -6,9 +6,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
-import type { DirTree } from "../../api_client/dir-tree";
-import { useFetchDirsQuery } from "../../api_client/dir-tree";
-import { useRescanPhotosMutation } from "../../api_client/jobs/hooks";
+import type { DirTree } from "../../api_client/folders/types";
+import { useFetchDirsQuery } from "../../api_client/folders/hooks/useFetchDirsQuery";
+import { useScanPhotosMutation } from "../../api_client/jobs/hooks";
 import { User } from "../../api_client/user/types";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";

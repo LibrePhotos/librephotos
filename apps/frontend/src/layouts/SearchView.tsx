@@ -3,7 +3,7 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import "react-virtualized/styles.css";
 
-import { useSearchPhotosQuery } from "../api_client/search";
+import { useSearchPhotosQuery } from "../api_client/search/hooks/useSearchPhotosQuery";
 import { PhotoListView } from "../components/photolist/PhotoListView";
 import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 const DEFAULTS = {

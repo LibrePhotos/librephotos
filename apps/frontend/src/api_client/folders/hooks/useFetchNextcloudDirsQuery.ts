@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchClient, QueryKeys } from "./api";
-import { DirTreeResponse } from "./dir-tree";
+
+import { fetchClient, QueryKeys } from "../../api";
+import { DirTreeResponse } from "../types";
 
 export const useFetchNextcloudDirsQuery = () => useQuery({
   queryKey: [QueryKeys.nextcloudDirs],

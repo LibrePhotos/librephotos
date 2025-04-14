@@ -7,7 +7,7 @@ import { useFetchPeopleAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchPlacesAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
-import { useSearchExamplesQuery } from "../api_client/search";
+import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
 
 export enum SearchOptionType {

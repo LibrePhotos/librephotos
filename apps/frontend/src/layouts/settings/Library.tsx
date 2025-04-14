@@ -42,7 +42,7 @@ import { Trans, useTranslation } from "react-i18next";
 import { useGenerateAutoAlbumsMutation } from "../../api_client/jobs/hooks";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/apiClient";
-import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";        
+import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
 import { useDeleteMissingPhotosMutation  } from "../../api_client/photos/hooks";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
