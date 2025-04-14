@@ -4,10 +4,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
-import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
+import { useFetchAutoAlbumsQuery, useFetchUserAlbumsQuery } from "../../api_client/albums/hooks";
 import { Tile } from "../../components/Tile";
 import { HeaderComponent } from "./HeaderComponent";
-import { useFetchAutoAlbumsQuery } from "../../api_client/api";
 
 export function AlbumViewer() {
   const { t } = useTranslation();

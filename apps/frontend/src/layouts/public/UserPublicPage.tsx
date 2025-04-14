@@ -2,8 +2,8 @@ import { IconGlobe as Globe } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { PigPhoto } from "../../api_client/photos/types";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/date";
+import { PigPhoto } from "../../api_client/photos/types"; 
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { Photoset } from  "../../api_client/photos/types";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";

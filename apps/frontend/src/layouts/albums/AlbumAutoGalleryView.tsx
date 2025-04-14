@@ -9,7 +9,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-import { useFetchAutoAlbumQuery } from "../../api_client/api";
+import { useFetchAutoAlbumQuery } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { AlbumLocationMap } from "../../components/AlbumLocationMap";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
