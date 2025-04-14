@@ -39,7 +39,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { useGenerateAutoAlbumsMutation, useWorkerQuery } from "../../api_client/api";
+import { useGenerateAutoAlbumsMutation } from "../../api_client/api";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { serverAddress } from "../../api_client/apiClient";
 import { useFetchNextcloudDirsQuery } from "../../api_client/nextcloud";
@@ -52,6 +52,7 @@ import { notification } from "../../service/notifications";
 import { User } from "../../api_client/user/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { fetchClient } from "../../api_client/api";
+import { useWorkerQuery } from "../../api_client/jobs/hooks";
 
 function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;

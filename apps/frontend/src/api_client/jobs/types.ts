@@ -1,6 +1,35 @@
 import { z } from "zod";
+import { SimpleUser } from "../user/types";
 
-import { SimpleUser } from "./user/types";
+export const JobDetail = z.object({
+  job_id: z.string(),
+  queued_at: z.string(),
+  finished: z.boolean(),
+  finished_at: z.string().nullable(),
+  started_at: z.string(),
+  failed: z.boolean(),
+  job_type_str: z.string(),
+  job_type: z.number(),
+  started_by: z.object({
+    id: z.number(),
+    username: z.string(),
+    first_name: z.string(),
+    last_name: z.string(),
+  }),
+  progress_target: z.number(),
+  progress_current: z.number(),
+});
+
+export type JobDetail = z.infer<typeof JobDetail>;
+
+export const WorkerAvailabilityResponse = z.object({
+  status: z.boolean(),
+  queue_can_accept_job: z.boolean(),
+  job_detail: JobDetail.nullish(),
+  id: z.number().optional(),
+});
+
+export type WorkerAvailabilityResponse = z.infer<typeof WorkerAvailabilityResponse>;
 
 export const Job = z.object({
   job_id: z.string(),

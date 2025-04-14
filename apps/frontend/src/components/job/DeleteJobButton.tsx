@@ -3,7 +3,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { Job } from "../../api_client/admin-jobs-schema";
-import { useDeleteJobMutation } from "../../api_client/api";
+import { useDeleteJobMutation } from "../../api_client/jobs/hooks";
 
 export function DeleteJobButton({ job }: Readonly<{ job: Job }>) {
   const { t } = useTranslation();

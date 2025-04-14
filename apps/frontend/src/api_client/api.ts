@@ -13,8 +13,6 @@ import jwtDecode from 'jwt-decode';
 import type { GenerateEventAlbumsTitlesResponse } from "./utilActions.types";
 import { notification } from "../service/notifications";
 import { ImageTagResponse, ServerStatsResponse, StorageStatsResponse } from "./util.zod";
-import { WorkerAvailabilityResponse } from "./worker.zod";
-import { JobRequest, JobsResponse } from "./admin-jobs-schema";
 import { AutoAlbum, FetchAutoAlbumsListResponse } from "./albums/types";
 
 const API_BASE_URL = '/api';
@@ -276,10 +274,6 @@ export const API = {
     fetchClient.get<string>('/predefinedrules/')
       .then(response => JSON.parse(response)),
   
-  // Worker & System
-  worker: () => 
-    fetchClient.get<WorkerAvailabilityResponse>('/rqavailable/'),
-  
   fetchServerStats: () => 
     fetchClient.get<ServerStatsResponse>('/serverstats'),
   
@@ -300,15 +294,7 @@ export const API = {
   
   generateAutoAlbumTitle: () => 
     fetchClient.get<GenerateEventAlbumsTitlesResponse>('/autoalbumtitlegen'),
-  
-  // Jobs
-  fetchJobs: (params: JobRequest) => 
-    fetchClient.get(`/jobs/?page_size=${params.pageSize || 10}&page=${params.page || 0}`)
-      .then(response => JobsResponse.parse(response)),
-  
-  deleteJob: (id: number) => 
-    fetchClient.delete(`/jobs/${id}/`),
-  
+
   // Auto Albums
   fetchAutoAlbums: () => 
     fetchClient.get('/albums/auto/list/')
@@ -369,12 +355,6 @@ export const useFetchPredefinedRulesQuery = createQuery(
   [QueryKeys.predefinedRules],
   API.fetchPredefinedRules
 );
-
-export const useWorkerQuery = createQuery(
-  [QueryKeys.worker],
-  API.worker
-);
-
 export const useFetchServerStatsQuery = createQuery(
   [QueryKeys.serverStats],
   API.fetchServerStats
@@ -398,22 +378,6 @@ export const useFetchImageTagQuery = createQuery(
 export const useGenerateAutoAlbumTitleQuery = createQuery(
   [QueryKeys.generateAutoAlbumTitle],
   API.generateAutoAlbumTitle
-);
-
-export const useJobsQuery = (params: JobRequest, options?: { pollingInterval?: number }) => 
-  useQuery<JobsResponse>({
-    queryKey: [QueryKeys.jobs, params],
-    queryFn: () => API.fetchJobs(params),
-    refetchInterval: options?.pollingInterval,
-  });
-
-export const useDeleteJobMutation = createMutation<unknown, number>(
-  API.deleteJob,
-  {
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.jobs] });
-    }
-  }
 );
 
 export const useFetchAutoAlbumsQuery = createQuery(

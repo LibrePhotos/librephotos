@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchClient } from './api';
-import type { IWorkerAvailabilityResponse } from './worker.zod';
-import { WorkerAvailabilityResponse } from './worker.zod';
+import { fetchClient, QueryKeys } from "../../api";
+import { WorkerAvailabilityResponse } from "../types";
 
 export const useWorkerQuery = () => {
   return useQuery({
-    queryKey: ['worker'],
+    queryKey: [QueryKeys.worker],
     queryFn: async () => {
       const response = await fetchClient.get('/rqavailable/');
       return WorkerAvailabilityResponse.parse(response);
