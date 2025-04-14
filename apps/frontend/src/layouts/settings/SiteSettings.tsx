@@ -3,7 +3,8 @@ import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/site-settings";
+import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
+
 
 const MAP_API_PROVIDERS = [
   { value: "mapbox", label: "Mapbox", data: { use_api_key: true, url: "https://www.mapbox.com/" } },

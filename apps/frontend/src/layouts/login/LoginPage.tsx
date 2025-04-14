@@ -16,8 +16,8 @@ import type { FormEvent } from "react";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useLoginMutation, useIsAuthenticatedQuery, AuthQueryKeys } from "../../api_client/auth";
-import { useGetSettingsQuery } from "../../api_client/site-settings";
+import { useLoginMutation, useIsAuthenticatedQuery } from "../../api_client/auth";
+import { useGetSettingsQuery } from "../../api_client/settings/hooks/useGetSettingsQuery";
 import { Navigate } from "react-router-dom";
 export function LoginPage(): JSX.Element {
   const colorScheme = useComputedColorScheme("dark");

@@ -6,8 +6,7 @@ import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { fetchClient } from "../api_client/api";
 import { UploadExistResponse } from "../api_client/upload/hooks/useUploadExistsMutation";
-
-import { useGetSettingsQuery } from "../api_client/site-settings";
+import { useGetSettingsQuery } from "../api_client/settings/hooks/useGetSettingsQuery";
 import { useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
 import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 

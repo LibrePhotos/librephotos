@@ -14,7 +14,7 @@ import React, { useEffect, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useTranslation } from "react-i18next";
 
-import { useFetchPredefinedRulesQuery } from "../../api_client/api";
+import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { getRuleExtraInfo } from "./date-time-settings";
 import type { DateTimeRule } from "./date-time.zod";

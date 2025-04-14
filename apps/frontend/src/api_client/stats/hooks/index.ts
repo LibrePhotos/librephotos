@@ -3,5 +3,4 @@ export * from './useFetchPhotoMonthCountQuery';
 export * from './useLocationTimelineQuery'; 
 export * from './useFetchWordCloudQuery';
 export * from './useFetchLocationTreeQuery';
-export * from './useFetchTimezonesQuery';
 export * from './useFetchSocialGraphQuery';

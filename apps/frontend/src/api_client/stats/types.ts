@@ -58,9 +58,6 @@ export const PhotoMonthCount = z.object({
 export const PhotoMonthCountResponse = z.array(PhotoMonthCount);
 export type PhotoMonthCountResponse = z.infer<typeof PhotoMonthCountResponse>;
 
-export const Timezones = z.string().array();
-export type Timezones = z.infer<typeof Timezones>;
-
 export const LocationTimeline = z.array(
   z.object({
     data: z.array(z.number()),
@@ -73,22 +70,3 @@ export const LocationTimeline = z.array(
 
 export type LocationTimeline = z.infer<typeof LocationTimeline>; 
 
-export const Node = z.object({
-    id: z.string(),
-    x: z.number(),
-    y: z.number(),
-  });
-  
-  export const Link = z.object({
-    source: z.string(),
-    target: z.string(),
-  });
-  
-  export const PersonDataPointList = z.object({
-    nodes: Node.array(),
-    links: Link.array(),
-  });
-  
-  export type PersonDataPointList = z.infer<typeof PersonDataPointList>;
-  
-  

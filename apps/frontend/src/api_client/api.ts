@@ -11,7 +11,7 @@ import { Cookies } from 'react-cookie';
 import jwtDecode from 'jwt-decode';
 
 import { notification } from "../service/notifications";
-import { ImageTagResponse, ServerStatsResponse, StorageStatsResponse } from "./util.zod";
+import { AutoAlbum, FetchAutoAlbumsListResponse } from "./albums/types";
 
 const API_BASE_URL = '/api';
 
@@ -263,44 +263,3 @@ export const queryClient = new QueryClient({
     },
   },
 });
-
-// API endpoints
-export const API = {
-  // User & Auth
-  
-  fetchPredefinedRules: () => 
-    fetchClient.get<string>('/predefinedrules/')
-      .then(response => JSON.parse(response)),
-  
-};
-
-// Hook factory for queries
-function createQuery<TData, TParams extends any[] = []>(
-  queryKey: QueryKey,
-  queryFn: (...params: TParams) => Promise<TData>,
-  options?: Omit<UseQueryOptions<TData, Error, TData, QueryKey>, 'queryKey' | 'queryFn'>
-) {
-  return (...params: TParams) => 
-    useQuery({
-      queryKey: Array.isArray(queryKey) ? [...queryKey, ...params] : [queryKey, ...params],
-      queryFn: () => queryFn(...params),
-      ...options
-    });
-}
-
-// Hook factory for mutations
-function createMutation<TData, TVariables, TContext = unknown>(
-  mutationFn: (variables: TVariables) => Promise<TData>,
-  options?: Omit<UseMutationOptions<TData, Error, TVariables, TContext>, 'mutationFn'>
-) {
-  return () => useMutation({
-    mutationFn,
-    ...options
-  });
-}
-
-// Query Hooks
-export const useFetchPredefinedRulesQuery = createQuery(
-  [QueryKeys.predefinedRules],
-  API.fetchPredefinedRules
-);

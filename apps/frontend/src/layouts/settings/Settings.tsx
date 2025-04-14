@@ -19,7 +19,7 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { useUpdateUserMutation, useFetchUserSelfDetailsQuery, UserSelfDetailsQueryKeys } from "../../api_client/user/hooks";
-import { useFetchTimezonesQuery } from "../../api_client/stats/hooks";
+import { useFetchTimezonesQuery } from "../../api_client/settings/hooks/useFetchTimezonesQuery";
 import { ConfigDateTime } from "../../components/settings/ConfigDateTime"; 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccessToken } from "../../api_client/auth/hooks";
