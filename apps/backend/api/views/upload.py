@@ -121,7 +121,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 detail="Authentication credentials were not provided",
             )
 
-        if not is_valid_media(uploaded_file):
+        if not is_valid_media(uploaded_file.file.path):
             chunked_upload = get_object_or_404(
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
