@@ -8,7 +8,7 @@ export const NextcloudDirsQueryKeys = ['nextcloudDirs'] as const;
 export const useFetchNextcloudDirsQuery = () => useQuery({
   queryKey: [...NextcloudDirsQueryKeys],
   queryFn: async () => {
-    const response = await fetchClient.get('nextcloud/listdir/?fpath=/');
+    const response = await fetchClient.get('/nextcloud/listdir/?fpath=/');
     return DirTreeResponse.parse(response);
   },
 }); 

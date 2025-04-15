@@ -8,7 +8,7 @@ export const SearchPhotosQueryKeys = ['searchPhotos'] as const;
 export const useSearchPhotosQuery = (searchTerm: string) => useQuery({
   queryKey: [...SearchPhotosQueryKeys, searchTerm],
   queryFn: async () => {
-    const response = await fetchClient.get<typeof SearchPhotos>(`/search/?search=${searchTerm}`);
+    const response = await fetchClient.get<typeof SearchPhotos>(`/photos/searchlist/?search=${searchTerm}`);
     const parsed = SearchPhotos.parse(response);
     return {
       photosFlat: parsed.results.flatMap(group => group.items),

@@ -20,7 +20,7 @@ const SharedPhotosByMeResponse = z.object({
 export const useFetchSharedPhotosByMeQuery = () => useQuery({
   queryKey: [...SharedPhotosByMeQueryKeys],
   queryFn: async () => {
-    const response = await fetchClient.get('photos/shared/fromme/');
+    const response = await fetchClient.get('/photos/shared/fromme/');
     const { results } = SharedPhotosByMeResponse.parse(response);
     return _.toPairs(_.groupBy(results, "user_id")).map(el => ({
       userId: parseInt(el[0], 10),

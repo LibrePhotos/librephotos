@@ -14,7 +14,7 @@ export const SharedPhotosWithMeQueryKeys = ["sharedAlbumsWithMe"] as const;
 export const useFetchSharedPhotosWithMeQuery = () => useQuery({
   queryKey: [...SharedPhotosWithMeQueryKeys],
   queryFn: async () => {
-    const response = await fetchClient.get('photos/shared/tome/');
+    const response = await fetchClient.get('/photos/shared/tome/');
     const { results } = SharedPhotosWithMeResponse.parse(response);
     return _.toPairs(_.groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));
   },

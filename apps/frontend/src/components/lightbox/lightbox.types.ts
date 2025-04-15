@@ -49,17 +49,6 @@ export type MediaDisplayProps = {
   playing?: boolean;
 };
 
-export type ThumbnailNavigationProps = {
-  prevSrc: string | null;
-  isPrevSrcVideo: boolean;
-  mainSrc: string;
-  isMainSrcVideo: boolean;
-  nextSrc: string | null;
-  isNextSrcVideo: boolean;
-  onMovePrevRequest: () => void;
-  onMoveNextRequest: () => void;
-  containerWidth?: string;
-};
 
 export type LightboxControlsProps = {
   photoDetail: Photo | undefined;

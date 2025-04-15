@@ -27,7 +27,7 @@ export const Node = z.object({
 export const useFetchSocialGraphQuery = () => useQuery({
     queryKey: [...SocialGraphQueryKeys],
     queryFn: async () => {
-      const response = await fetchClient.get('socialgraph/');
+      const response = await fetchClient.get('/socialgraph/');
       return PersonDataPointList.parse(response);
     },
   });   
