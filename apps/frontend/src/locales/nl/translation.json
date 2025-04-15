@@ -278,7 +278,7 @@
     "lightbox": {
         "sidebar": {
             "details": "Details",
-            "timetaken": "Gemaakt op",
+            "timetaken": "Gemaakt om",
             "filepath": "Bestandslocatie",
             "location": "Locatie",
             "caption": "Bijschrift",
@@ -294,7 +294,8 @@
             "withouttimestamp": "Zonder tijdstempel",
             "invalidtimestamp": "Ongeldig tijdstempel",
             "removetimestamp": "Tijdstempel verwijderen",
-            "undotimestampmodification": "Aanpassen van tijdstempel ongedaan maken"
+            "undotimestampmodification": "Aanpassen van tijdstempel ongedaan maken",
+            "places": "Locaties"
         }
     },
     "photos": {
