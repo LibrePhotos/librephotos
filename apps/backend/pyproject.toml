@@ -3,17 +3,17 @@ line-length = 88
 target-version = "py311"
 extend-exclude = ["migrations", "im2txt", "blip", "places365"]
 
+[lint]
 select = [
-    "E",    # Pyflakes (errors)
-    "F",    # Pyflakes
-    "W",    # pycodestyle warnings
-    "I",    # isort (import sorting)
-    "N",    # PEP8 naming
-    "UP",   # Pyupgrade (modern syntax)
-    "DJ",   # pylint-django equivalent
-    "PL",   # pylint rules
+  "E",  # Pyflakes (errors)
+  "F",  # Pyflakes
+  "W",  # pycodestyle warnings
+  "I",  # isort (import sorting)
+  "N",  # PEP8 naming
+  "UP", # Pyupgrade (modern syntax)
+  "DJ", # pylint-django equivalent
+  "PL", # pylint rules
 ]
-
 ignore = ["E501", "E203", "E231"]
 
 [tool.ruff.format]

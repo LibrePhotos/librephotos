@@ -23,6 +23,7 @@ SERVICES = {
 
 HTTP_OK = 200
 
+
 def check_services():
     for service in SERVICES.keys():
         if not is_healthy(service):

@@ -337,11 +337,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             photo_filter = []
             photo_filter.append(Q(owner=self.request.user))
             photo_filter.append(
-                Q(
-                    exif_timestamp__gte=self.request.query_params.get(
-                        "last_modified"
-                    )
-                )
+                Q(exif_timestamp__gte=self.request.query_params.get("last_modified"))
             )
 
         album_date = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
