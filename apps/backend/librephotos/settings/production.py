@@ -16,6 +16,7 @@ BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
 PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
+DEMO_SITE = os.environ.get("DEMO_SITE", "False") != "False"
 
 WSGI_APPLICATION = "librephotos.wsgi.application"
 AUTH_USER_MODEL = "api.User"

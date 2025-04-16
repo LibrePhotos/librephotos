@@ -102,7 +102,7 @@ class UserSerializer(serializers.ModelSerializer):
         # user can only update the following
         if "password" in validated_data:
             password = validated_data.pop("password")
-            if password != "":
+            if password != "" and not settings.DEMO_SITE:
                 instance.set_password(password)
         if "avatar" in validated_data:
             instance.avatar = validated_data.pop("avatar")
@@ -347,7 +347,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
     def update(self, instance: User, validated_data):
         if "password" in validated_data:
             password = validated_data.pop("password")
-            if password != "":
+            if password != "" and not settings.DEMO_SITE:
                 instance.set_password(password)
 
         if "scan_directory" in validated_data:
