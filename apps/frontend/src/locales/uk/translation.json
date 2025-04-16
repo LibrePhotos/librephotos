@@ -315,7 +315,8 @@
             "categories": "Категорії",
             "withouttimestamp": "Без мітки часу",
             "invalidtimestamp": "Недійсна мітка часу",
-            "removetimestamp": "Вилучити мітку часу"
+            "removetimestamp": "Вилучити мітку часу",
+            "places": "Місця"
         }
     },
     "exif": {
