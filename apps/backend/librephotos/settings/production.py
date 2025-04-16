@@ -27,6 +27,11 @@ DEBUG = False
 SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 
+# analyze files to detect embedded media (e.g. in motion photos)
+FEATURE_PROCESS_EMBEDDED_MEDIA = (
+    os.getenv("FEATURE_PROCESS_EMBEDDED_MEDIA", "True") == "True"
+)
+
 if os.environ.get("SECRET_KEY"):
     SECRET_KEY = os.environ["SECRET_KEY"]
     print("use SECRET_KEY from env")

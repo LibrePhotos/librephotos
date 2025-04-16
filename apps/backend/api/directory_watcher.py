@@ -16,15 +16,9 @@ from django_q.tasks import AsyncTask, Chain
 from api import util
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
+from api.feature.embedded_media import extract_embedded_media, has_embedded_media
 from api.models import Face, File, LongRunningJob, Photo
-from api.models.file import (
-    calculate_hash,
-    extract_embedded_media,
-    has_embedded_media,
-    is_metadata,
-    is_valid_media,
-    is_video,
-)
+from api.models.file import calculate_hash, is_metadata, is_valid_media, is_video
 
 
 def should_skip(path):
@@ -112,8 +106,8 @@ def create_new_image(user, path) -> Photo | None:
         photo.video = is_video(path)
         photo.save()
         file = File.create(path, user)
-        if has_embedded_media(file):
-            em_path = extract_embedded_media(file)
+        if has_embedded_media(file.path) and settings.FEATURE_PROCESS_EMBEDDED_MEDIA:
+            em_path = extract_embedded_media(file.path, file.hash)
             if em_path:
                 em_file = File.create(em_path, user)
                 file.embedded_media.add(em_file)
