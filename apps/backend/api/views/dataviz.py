@@ -39,6 +39,7 @@ class SocialGraphView(APIView):
         res = build_social_graph(request.user)
         return Response(res)
 
+
 class ServerLogsView(APIView):
     def get(self, request, format=None):
         if not (request.user and request.user.is_staff):
@@ -48,7 +49,9 @@ class ServerLogsView(APIView):
         log_file = os.path.join(BASE_LOGS, "ownphotos.log")
 
         if os.path.exists(log_file):
-            return FileResponse(open(log_file, "rb"), as_attachment=True, filename="ownphotos.log")
+            return FileResponse(
+                open(log_file, "rb"), as_attachment=True, filename="ownphotos.log"
+            )
         else:
             return Response({"error": "Log file not found"}, status=404)
 

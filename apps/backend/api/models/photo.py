@@ -361,7 +361,9 @@ class Photo(models.Model):
                 self.save()
             util.logger.info(f"generated places365 captions for image {image_path}.")
         except Exception as e:
-            util.logger.exception(f"could not generate captions for image {self.main_file.path}")
+            util.logger.exception(
+                f"could not generate captions for image {self.main_file.path}"
+            )
             raise e
 
     def _generate_thumbnail(self, commit=True):
