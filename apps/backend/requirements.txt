@@ -5,7 +5,7 @@ git+https://github.com/derneuere/django-chunked-upload@master#egg=django-chunked
 django-cryptography==1.1
 django-extensions==3.2.3
 django-filter==24.3
-django-picklefield==3.2
+django-picklefield==3.3
 django-bulk-update
 django-silk==5.3.2
 djangorestframework==3.15.2
