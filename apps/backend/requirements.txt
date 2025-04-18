@@ -50,3 +50,5 @@ timm==1.0.15
 transformers==4.48.0
 # Dependencies for mistral quantized
 llama-cpp-python==0.3.8
+# Fix for build pipeline
+packaging==24.0
