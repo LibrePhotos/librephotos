@@ -181,10 +181,6 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "api.views.views.custom_exception_handler",
     "PAGE_SIZE": 20000,
 }
-REST_FRAMEWORK_EXTENSIONS = {
-    "DEFAULT_OBJECT_CACHE_KEY_FUNC": "rest_framework_extensions.utils.default_object_cache_key_func",
-    "DEFAULT_LIST_CACHE_KEY_FUNC": "rest_framework_extensions.utils.default_list_cache_key_func",
-}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
