@@ -30,7 +30,7 @@ pytz==2024.2
 tzdata==2024.2
 PyExifTool==0.4.9
 pyvips==2.2.3
-scikit-learn<1.5.3
+scikit-learn<1.6.2
 seaborn==0.13.2
 sentence_transformers==2.7.0
 timezonefinder==6.5.9
