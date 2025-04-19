@@ -29,7 +29,6 @@ https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2024.2
 tzdata==2024.2
 PyExifTool==0.4.9
-PyJWT==2.10.1
 pyvips==2.2.3
 scikit-learn<1.5.3
 seaborn==0.13.2
