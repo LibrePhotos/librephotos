@@ -22,13 +22,6 @@ from api.image_captioning import generate_caption
 from api.llm import generate_prompt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
-from api.thumbnails import (
-    create_animated_thumbnail,
-    create_thumbnail,
-    create_thumbnail_for_video,
-    does_static_thumbnail_exist,
-    does_video_thumbnail_exist,
-)
 from api.util import get_metadata, logger
 
 
@@ -38,7 +31,7 @@ class VisiblePhotoManager(models.Manager):
             super()
             .get_queryset()
             .filter(
-                Q(hidden=False) & Q(aspect_ratio__isnull=False) & Q(in_trashcan=False)
+                Q(hidden=False) & Q(thumbnail__aspect_ratio__isnull=False) & Q(in_trashcan=False)
             )
         )
 
@@ -53,11 +46,6 @@ class Photo(models.Model):
         blank=False,
         null=True,
     )
-    thumbnail_big = models.ImageField(upload_to="thumbnails_big")
-    square_thumbnail = models.ImageField(upload_to="square_thumbnails")
-    square_thumbnail_small = models.ImageField(upload_to="square_thumbnails_small")
-
-    aspect_ratio = models.FloatField(blank=True, null=True)
 
     added_on = models.DateTimeField(null=False, blank=False, db_index=True)
 
@@ -69,8 +57,6 @@ class Photo(models.Model):
 
     geolocation_json = models.JSONField(blank=True, null=True, db_index=True)
     captions_json = models.JSONField(blank=True, null=True, db_index=True)
-
-    dominant_color = models.TextField(blank=True, null=True)
 
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
@@ -162,7 +148,7 @@ class Photo(models.Model):
             )
 
     def _generate_captions_im2txt(self, commit=True):
-        image_path = self.thumbnail_big.path
+        image_path = self.thumbnail.thumbnail_big.path
         captions = self.captions_json
         try:
             from constance import config as site_config
@@ -220,7 +206,7 @@ class Photo(models.Model):
             return False
 
     def _save_captions(self, commit=True, caption=None):
-        image_path = self.thumbnail_big.path
+        image_path = self.thumbnail.thumbnail_big.path
         try:
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
             self.captions_json["user_caption"] = caption
@@ -295,7 +281,7 @@ class Photo(models.Model):
 
         self.search_captions = search_captions.strip()  # Remove trailing space
         util.logger.debug(
-            f"Recreated search captions for image {self.thumbnail_big.path}."
+            f"Recreated search captions for image {self.thumbnail.thumbnail_big.path}."
         )
         self.save()
 
@@ -303,12 +289,12 @@ class Photo(models.Model):
         if (
             self.captions_json is not None
             and self.captions_json.get("places365") is not None
-            or self.thumbnail_big.name is None
+            or self.thumbnail.thumbnail_big.name is None
         ):
             return
 
         try:
-            image_path = self.thumbnail_big.path
+            image_path = self.thumbnail.thumbnail_big.path
             confidence = self.owner.confidence
             json = {
                 "image_path": image_path,
@@ -366,86 +352,6 @@ class Photo(models.Model):
             )
             raise e
 
-    def _generate_thumbnail(self, commit=True):
-        try:
-            if not does_static_thumbnail_exist("thumbnails_big", self.image_hash):
-                if not self.video:
-                    create_thumbnail(
-                        input_path=self.main_file.path,
-                        output_height=1080,
-                        output_path="thumbnails_big",
-                        hash=self.image_hash,
-                        file_type=".webp",
-                    )
-                else:
-                    create_thumbnail_for_video(
-                        input_path=self.main_file.path,
-                        output_path="thumbnails_big",
-                        hash=self.image_hash,
-                        file_type=".webp",
-                    )
-
-            if not self.video and not does_static_thumbnail_exist(
-                "square_thumbnails", self.image_hash
-            ):
-                create_thumbnail(
-                    input_path=self.main_file.path,
-                    output_height=500,
-                    output_path="square_thumbnails",
-                    hash=self.image_hash,
-                    file_type=".webp",
-                )
-            if self.video and not does_video_thumbnail_exist(
-                "square_thumbnails", self.image_hash
-            ):
-                create_animated_thumbnail(
-                    input_path=self.main_file.path,
-                    output_height=500,
-                    output_path="square_thumbnails",
-                    hash=self.image_hash,
-                    file_type=".mp4",
-                )
-
-            if not self.video and not does_static_thumbnail_exist(
-                "square_thumbnails_small", self.image_hash
-            ):
-                create_thumbnail(
-                    input_path=self.main_file.path,
-                    output_height=250,
-                    output_path="square_thumbnails_small",
-                    hash=self.image_hash,
-                    file_type=".webp",
-                )
-            if self.video and not does_video_thumbnail_exist(
-                "square_thumbnails_small", self.image_hash
-            ):
-                create_animated_thumbnail(
-                    input_path=self.main_file.path,
-                    output_height=250,
-                    output_path="square_thumbnails_small",
-                    hash=self.image_hash,
-                    file_type=".mp4",
-                )
-            filetype = ".webp"
-            if self.video:
-                filetype = ".mp4"
-            self.thumbnail_big.name = os.path.join(
-                "thumbnails_big", self.image_hash + ".webp"
-            ).strip()
-            self.square_thumbnail.name = os.path.join(
-                "square_thumbnails", self.image_hash + filetype
-            ).strip()
-            self.square_thumbnail_small.name = os.path.join(
-                "square_thumbnails_small", self.image_hash + filetype
-            ).strip()
-            if commit:
-                self.save()
-        except Exception as e:
-            util.logger.exception(
-                f"could not generate thumbnail for image {self.main_file.path}"
-            )
-            raise e
-
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
             Q(photos__in=[self])
@@ -476,24 +382,6 @@ class Photo(models.Model):
             ):
                 old_album_date = possible_old_album_date
         return old_album_date
-
-    def _calculate_aspect_ratio(self, commit=True):
-        try:
-            # Relies on big thumbnail for correct aspect ratio, which is weird
-            height, width = get_metadata(
-                self.thumbnail_big.path,
-                tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
-                try_sidecar=False,
-            )
-            self.aspect_ratio = round(width / height, 2)
-
-            if commit:
-                self.save()
-        except Exception as e:
-            util.logger.exception(
-                f"could not calculate aspect ratio for image {self.thumbnail_big.path}"
-            )
-            raise e
 
     def _extract_date_time_from_exif(self, commit=True):
         def exif_getter(tags):
@@ -691,10 +579,10 @@ class Photo(models.Model):
             api.models.cluster.get_unknown_cluster(user=self.owner)
         )
         try:
-            big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail_big.path))
+            big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail.thumbnail_big.path))
 
             face_locations = face_extractor.extract(
-                self.main_file.path, self.thumbnail_big.path, self.owner
+                self.main_file.path, self.thumbnail.thumbnail_big.path, self.owner
             )
 
             if len(face_locations) == 0:
@@ -799,28 +687,6 @@ class Photo(models.Model):
                 file.missing = True
                 file.save()
         self.save()
-
-    def _get_dominant_color(self, palette_size=16):
-        # Skip if it's already calculated
-        if self.dominant_color:
-            return
-        try:
-            # Resize image to speed up processing
-            img = PIL.Image.open(self.square_thumbnail_small.path)
-            img.thumbnail((100, 100))
-
-            # Reduce colors (uses k-means internally)
-            paletted = img.convert("P", palette=PIL.Image.ADAPTIVE, colors=palette_size)
-
-            # Find the color that occurs most often
-            palette = paletted.getpalette()
-            color_counts = sorted(paletted.getcolors(), reverse=True)
-            palette_index = color_counts[0][1]
-            dominant_color = palette[palette_index * 3 : palette_index * 3 + 3]
-            self.dominant_color = dominant_color
-            self.save()
-        except Exception:
-            logger.info(f"Cannot calculate dominant color {self} object")
 
     def manual_delete(self):
         for file in self.files.all():

@@ -45,7 +45,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
 
     # TODO: Rename this field to aspect_ratio
     def get_aspectRatio(self, obj) -> float:
-        return obj.aspect_ratio
+        return obj.thumbnail.aspect_ratio
 
     # TODO: Remove this field in the future
     def get_url(self, obj) -> str:
@@ -77,8 +77,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             return ""
 
     def get_dominantColor(self, obj) -> str:
-        if obj.dominant_color:
-            dominant_color = obj.dominant_color[1:-1]
+        if obj.thumbnail.dominant_color:
+            dominant_color = obj.thumbnail.dominant_color[1:-1]
             return "#%02x%02x%02x" % tuple(map(int, dominant_color.split(", ")))
         else:
             return ""
@@ -152,7 +152,7 @@ class PhotoDetailsSummarySerializer(serializers.ModelSerializer):
         return PhotoSummarySerializer(obj.get()).data
 
     def get_processing(self, obj) -> bool:
-        return obj.get().aspect_ratio is None
+        return obj.get().thumbnail.aspect_ratio is None
 
     def get_album_date_id(self, obj) -> int:
         return (
@@ -251,22 +251,13 @@ class PhotoSerializer(serializers.ModelSerializer):
             return ["Missing"]
 
     def get_square_thumbnail_url(self, obj) -> str:
-        try:
-            return obj.square_thumbnail.url
-        except Exception:
-            return None
+        return obj.thumbnail.square_thumbnail.url if obj.thumbnail.square_thumbnail else ""
 
     def get_small_square_thumbnail_url(self, obj) -> str:
-        try:
-            return obj.square_thumbnail_small.url
-        except Exception:
-            return None
+        return obj.thumbnail.square_thumbnail_small.url if obj.thumbnail.square_thumbnail_small else ""
 
     def get_big_thumbnail_url(self, obj) -> str:
-        try:
-            return obj.thumbnail_big.url
-        except Exception:
-            return None
+        return obj.thumbnail.thumbnail_big.url if obj.thumbnail.thumbnail_big else ""
 
     def get_geolocation(self, obj) -> dict:
         if obj.geolocation_json:

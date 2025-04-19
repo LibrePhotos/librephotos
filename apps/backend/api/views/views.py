@@ -417,11 +417,11 @@ class MediaAccessFullsizeOriginalView(APIView):
     def _generate_response(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
             response = HttpResponse()
-            filename = os.path.splitext(photo.square_thumbnail.path)[1]
+            filename = os.path.splitext(photo.thumbnail.square_thumbnail.path)[1]
             if "jpg" in filename:
                 # handle non migrated systems
                 response["Content-Type"] = "image/jpg"
-                response["X-Accel-Redirect"] = photo.thumbnail_big.path
+                response["X-Accel-Redirect"] = photo.thumbnail.thumbnail_big.path
             if "webp" in filename:
                 response["Content-Type"] = "image/webp"
                 response["X-Accel-Redirect"] = self._get_protected_media_url(

@@ -64,7 +64,7 @@ class Face(models.Model):
     def generate_encoding(self):
         self.encoding = (
             get_face_encodings(
-                self.photo.thumbnail_big.path,
+                self.photo.thumbnail.thumbnail_big.path,
                 [
                     (
                         self.location_top,

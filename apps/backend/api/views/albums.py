@@ -297,7 +297,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         photo_filter = []
-        photo_filter.append(Q(aspect_ratio__isnull=False))
+        photo_filter.append(Q(thumbnail__aspect_ratio__isnull=False))
 
         if not self.request.user.is_anonymous and not self.request.query_params.get(
             "public"
@@ -359,11 +359,11 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             .order_by("-exif_timestamp")
             .only(
                 "image_hash",
-                "aspect_ratio",
+                "thumbnail__aspect_ratio",
                 "video",
                 "main_file",
                 "search_location",
-                "dominant_color",
+                "thumbnail__dominant_color",
                 "public",
                 "rating",
                 "hidden",
@@ -431,7 +431,7 @@ class AlbumDateListViewSet(ListViewSet):
 
     def get_queryset(self):
         filter = []
-        filter.append(Q(photos__aspect_ratio__isnull=False))
+        filter.append(Q(photos__thumbnail__aspect_ratio__isnull=False))
 
         if self.request.query_params.get("hidden"):
             filter.append(Q(photos__hidden=True))

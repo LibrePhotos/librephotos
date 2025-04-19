@@ -16,9 +16,17 @@ from django_q.tasks import AsyncTask, Chain
 from api import util
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
+
 from api.feature.embedded_media import extract_embedded_media, has_embedded_media
-from api.models import Face, File, LongRunningJob, Photo
-from api.models.file import calculate_hash, is_metadata, is_valid_media, is_video
+from api.models import Face, File, LongRunningJob, Photo, Thumbnail
+from api.models.file import (
+    calculate_hash,
+    extract_embedded_media,
+    has_embedded_media,
+    is_metadata,
+    is_valid_media,
+    is_video,
+)
 
 
 def should_skip(path):
@@ -150,12 +158,14 @@ def handle_new_image(user, path, job_id, photo=None):
             util.logger.info(f"job {job_id}: save image: {path}, elapsed: {elapsed}")
         if photo:
             util.logger.info(f"job {job_id}: handling image {path}")
-            photo._generate_thumbnail(True)
+            # Create or get thumbnail instance
+            thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
+            thumbnail._generate_thumbnail(True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 f"job {job_id}: generate thumbnails: {path}, elapsed: {elapsed}"
             )
-            photo._calculate_aspect_ratio(False)
+            thumbnail._calculate_aspect_ratio(False)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 f"job {job_id}: calculate aspect ratio: {path}, elapsed: {elapsed}"
@@ -171,7 +181,7 @@ def handle_new_image(user, path, job_id, photo=None):
             util.logger.info(
                 f"job {job_id}: extract date time: {path}, elapsed: {elapsed}"
             )
-            photo._get_dominant_color()
+            thumbnail._get_dominant_color()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 f"job {job_id}: get dominant color: {path}, elapsed: {elapsed}"
@@ -533,7 +543,7 @@ def scan_faces(user, job_id: UUID, full_scan=False):
             .first()
         )
         existing_photos = Photo.objects.filter(
-            Q(owner=user.id) & Q(thumbnail_big__isnull=False)
+            Q(owner=user.id) & Q(thumbnail__thumbnail_big__isnull=False)
         )
         if not full_scan and last_scan:
             existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)

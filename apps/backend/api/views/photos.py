@@ -38,7 +38,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         queryset = (
             Photo.visible.filter(
                 Q(owner=self.request.user)
-                & Q(aspect_ratio__isnull=False)
+                & Q(thumbnail__aspect_ratio__isnull=False)
                 & Q(
                     added_on__year=latest_date.year,
                     added_on__month=latest_date.month,

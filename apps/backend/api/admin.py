@@ -78,7 +78,6 @@ class PhotoAdmin(admin.ModelAdmin):
         "image_hash",
         "owner",
         "main_file",
-        "aspect_ratio",
         "last_modified",
         "added_on",
         "width",

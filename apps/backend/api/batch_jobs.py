@@ -54,9 +54,13 @@ def batch_calculate_clip_embedding(user):
             valid_objs = []
             for obj in objs:
                 # Thumbnail could have been deleted
-                if obj.thumbnail_big and os.path.exists(obj.thumbnail_big.path):
+                if obj.thumbnail.thumbnail_big and os.path.exists(
+                    obj.thumbnail.thumbnail_big.path
+                ):
                     valid_objs.append(obj)
-            imgs = list(map(lambda obj: obj.thumbnail_big.path, valid_objs))
+            imgs = list(
+                map(lambda obj: obj.thumbnail.thumbnail_big.path, valid_objs)
+            )
             if len(valid_objs) == 0:
                 continue
 
