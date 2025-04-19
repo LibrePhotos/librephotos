@@ -1,5 +1,9 @@
+import os
+
 from django.db import models
 from PIL import Image
+
+from api.exif_tags import Tags
 from api.models.photo import Photo
 from api.thumbnails import (
     create_animated_thumbnail,
@@ -9,16 +13,11 @@ from api.thumbnails import (
     does_video_thumbnail_exist,
 )
 from api.util import get_metadata, logger
-from api.exif_tags import Tags
-import os
 
 
 class Thumbnail(models.Model):
     photo = models.OneToOneField(
-        Photo,
-        on_delete=models.CASCADE,
-        related_name='thumbnail',
-        primary_key=True
+        Photo, on_delete=models.CASCADE, related_name="thumbnail", primary_key=True
     )
     thumbnail_big = models.ImageField(upload_to="thumbnails_big")
     square_thumbnail = models.ImageField(upload_to="square_thumbnails")
@@ -144,4 +143,4 @@ class Thumbnail(models.Model):
             self.dominant_color = dominant_color
             self.save()
         except Exception:
-            logger.info(f"Cannot calculate dominant color {self} object") 
+            logger.info(f"Cannot calculate dominant color {self} object")

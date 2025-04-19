@@ -58,9 +58,7 @@ def batch_calculate_clip_embedding(user):
                     obj.thumbnail.thumbnail_big.path
                 ):
                     valid_objs.append(obj)
-            imgs = list(
-                map(lambda obj: obj.thumbnail.thumbnail_big.path, valid_objs)
-            )
+            imgs = list(map(lambda obj: obj.thumbnail.thumbnail_big.path, valid_objs))
             if len(valid_objs) == 0:
                 continue
 

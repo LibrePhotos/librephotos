@@ -31,7 +31,9 @@ class VisiblePhotoManager(models.Manager):
             super()
             .get_queryset()
             .filter(
-                Q(hidden=False) & Q(thumbnail__aspect_ratio__isnull=False) & Q(in_trashcan=False)
+                Q(hidden=False)
+                & Q(thumbnail__aspect_ratio__isnull=False)
+                & Q(in_trashcan=False)
             )
         )
 
@@ -579,7 +581,9 @@ class Photo(models.Model):
             api.models.cluster.get_unknown_cluster(user=self.owner)
         )
         try:
-            big_thumbnail_image = np.array(PIL.Image.open(self.thumbnail.thumbnail_big.path))
+            big_thumbnail_image = np.array(
+                PIL.Image.open(self.thumbnail.thumbnail_big.path)
+            )
 
             face_locations = face_extractor.extract(
                 self.main_file.path, self.thumbnail.thumbnail_big.path, self.owner

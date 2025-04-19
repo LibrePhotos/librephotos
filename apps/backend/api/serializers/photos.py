@@ -251,10 +251,16 @@ class PhotoSerializer(serializers.ModelSerializer):
             return ["Missing"]
 
     def get_square_thumbnail_url(self, obj) -> str:
-        return obj.thumbnail.square_thumbnail.url if obj.thumbnail.square_thumbnail else ""
+        return (
+            obj.thumbnail.square_thumbnail.url if obj.thumbnail.square_thumbnail else ""
+        )
 
     def get_small_square_thumbnail_url(self, obj) -> str:
-        return obj.thumbnail.square_thumbnail_small.url if obj.thumbnail.square_thumbnail_small else ""
+        return (
+            obj.thumbnail.square_thumbnail_small.url
+            if obj.thumbnail.square_thumbnail_small
+            else ""
+        )
 
     def get_big_thumbnail_url(self, obj) -> str:
         return obj.thumbnail.thumbnail_big.url if obj.thumbnail.thumbnail_big else ""
