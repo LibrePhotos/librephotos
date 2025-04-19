@@ -21,8 +21,6 @@ from api.feature.embedded_media import extract_embedded_media, has_embedded_medi
 from api.models import Face, File, LongRunningJob, Photo, Thumbnail
 from api.models.file import (
     calculate_hash,
-    extract_embedded_media,
-    has_embedded_media,
     is_metadata,
     is_valid_media,
     is_video,
