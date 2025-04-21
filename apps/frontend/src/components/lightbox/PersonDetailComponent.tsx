@@ -2,7 +2,7 @@ import { ActionIcon, Avatar, Button, Group, Indicator, Text, Tooltip } from "@ma
 import { IconEdit, IconTrash, IconUserCheck, IconUserOff } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { notification } from "../../service/notifications";
@@ -47,7 +47,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
             </Indicator>
           </FaceTooltip>
         }
-        onClick={() => !isPublic && navigate(`/search/${person.name}`)}
+        onClick={() => !isPublic && navigate({ to: `/search/${person.name}` })}
       >
         <Text size="sm">{person.name}</Text>
       </Button>

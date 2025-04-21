@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { fetchClient } from '../../api';
 import { Cookies } from 'react-cookie';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from '@tanstack/react-router'; 
 
 const logout =  () => {
   const cookies = new Cookies();
@@ -20,7 +20,7 @@ export const useLogoutMutation = () => {
       cookies.remove('access');
       cookies.remove('refresh');
       cookies.remove('jwt');
-      navigate("/login");
+      navigate({ to: "/login" });
     },
   });
 }; 

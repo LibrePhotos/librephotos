@@ -50,17 +50,17 @@ export function getNavigationItems(
     { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
     {
       label: t("sidemenu.albums"),
-      link: "/people",
+      link: "/album/persons",
       icon: Album,
       color: "blue",
       submenu: [
         { header: t("sidemenu.albums") },
-        { label: t("sidemenu.people"), link: "/people", icon: Users },
-        { label: t("sidemenu.places"), link: "/places", icon: Map },
-        { label: t("sidemenu.things"), link: "/things", icon: Tags },
+        { label: t("sidemenu.people"), link: "/album/persons", icon: Users },
+        { label: t("sidemenu.places"), link: "/album/places", icon: Map },
+        { label: t("sidemenu.things"), link: "/album/things", icon: Tags },
         { separator: true },
-        { label: t("sidemenu.myalbums"), link: "/useralbums", icon: Bookmark },
-        { label: t("sidemenu.autoalbums"), link: "/events", icon: Wand },
+        { label: t("sidemenu.myalbums"), link: "/album/user", icon: Bookmark },
+        { label: t("sidemenu.autoalbums"), link: "/album/events", icon: Wand },
       ],
     },
     {

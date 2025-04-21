@@ -3,8 +3,8 @@ import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
 
-import { i18nResolvedLanguage } from "../../i18n";
-import { useSearchParams } from "react-router-dom";
+  import { i18nResolvedLanguage } from "../../i18n";
+  import { getRouteApi } from "@tanstack/react-router";
 import { FacesTab } from "../../api_client/faces";
 
 type Props = Readonly<{
@@ -14,9 +14,10 @@ type Props = Readonly<{
   children?: React.ReactNode;
 }>;
 
+const routeApi = getRouteApi("/_protected/faces");
+
 export function FaceTooltip({ tooltipOpened, probability, timestamp, children = null }: Props) {
-  const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || FacesTab.enum.labeled;
+  const { tab: activeTab } = routeApi.useSearch();
 
   const confidencePercentageLabel =
     activeTab === "inferred"

@@ -2,7 +2,7 @@ import { ActionIcon, Divider, Flex, Menu } from "@mantine/core";
 import { IconHeart as Heart } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 import { useAuth } from "../../hooks/useAuth";
 import { SUPPORT_LINK } from "../../ui-constants";
@@ -51,7 +51,7 @@ export function FooterMenu(): JSX.Element {
               }
               const submenuIcon = <subitem.icon color={subitem.color} />;
               return (
-                <Menu.Item key={subkey} leftSection={submenuIcon} onClick={() => navigate(subitem.link!)}>
+                <Menu.Item key={subkey} leftSection={submenuIcon} onClick={() => navigate({ to: subitem.link! })}>
                   {subitem.label}
                 </Menu.Item>
               );

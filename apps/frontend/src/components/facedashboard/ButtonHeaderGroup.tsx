@@ -26,7 +26,7 @@ import { useTranslation } from "react-i18next";
 import { notification } from "../../service/notifications";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { FaceAnalysisMethod, FacesOrderOption } from "../../api_client/faces/types";
-
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 type Props = Readonly<{
   selectMode: boolean;
   selectedFaces: any;
@@ -34,14 +34,9 @@ type Props = Readonly<{
   addFaces: () => void;
   deleteFaces: () => void;
   notThisPerson: () => void;
-  activeTab: string;
-  analysisMethod: string;
-  onMethodChange?: (method: string) => void;
-  orderBy: string;
-  onOrderChange?: (orderBy: string) => void;
-  minConfidence: number;
-  onConfidenceChange?: (confidence: number) => void;
 }>;
+
+const routeApi = getRouteApi("/_protected/faces");
 
 export function ButtonHeaderGroup({
   selectMode,
@@ -50,13 +45,6 @@ export function ButtonHeaderGroup({
   addFaces,
   deleteFaces,
   notThisPerson,
-  activeTab,
-  analysisMethod,
-  onMethodChange,
-  orderBy,
-  onOrderChange,
-  minConfidence,
-  onConfidenceChange
 }: Props) {
   const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
@@ -68,23 +56,8 @@ export function ButtonHeaderGroup({
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
 
-  const setOrderBy = (value: string) => {
-    if (onOrderChange) {
-      onOrderChange(value);
-    }
-  };
-
-  const changeShowType = (value: string) => {
-    if (onMethodChange) {
-      onMethodChange(value);
-    }
-  };
-  
-  const handleConfidenceChange = (value: number) => {
-    if (onConfidenceChange) {
-      onConfidenceChange(value);
-    }
-  };
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch()
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (trainFacesMutation.isPending) {
@@ -130,7 +103,15 @@ export function ButtonHeaderGroup({
           <SegmentedControl
             size="sm"
             value={orderBy}
-            onChange={setOrderBy}
+            onChange={(value) => {
+              navigate({
+                to: "/faces",
+                search: (prev) => ({
+                  ...prev,
+                  orderBy: value as FacesOrderOption,
+                })
+              })
+            }}
             data={[
               {
                 label: t("facesdashboard.sortbyconfidence"),
@@ -151,7 +132,15 @@ export function ButtonHeaderGroup({
               <SegmentedControl
                 size="sm"
                 value={analysisMethod}
-                onChange={changeShowType}
+                onChange={(value) => {
+                  navigate({
+                    to: "/faces",
+                    search: (prev) => ({
+                      ...prev,
+                      method: value as FaceAnalysisMethod,
+                    })
+                  })
+                }}
                 data={[
                   {
                     label: t("facesdashboard.clusters"),
@@ -182,7 +171,15 @@ export function ButtonHeaderGroup({
               >
                 <Slider
                   value={minConfidence}
-                  onChange={handleConfidenceChange}
+                  onChange={(value) => {
+                    navigate({
+                      to: "/faces",
+                      search: (prev) => ({
+                        ...prev,
+                        minConfidence: value,
+                      })
+                    })
+                  }}
                   label={minConfidence}
                   size={5}
                   step={0.05}

@@ -18,7 +18,7 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 
 import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server/hooks";
 import { useAuth } from "../../hooks/useAuth";
@@ -97,7 +97,7 @@ export function SideMenuNarrow(): JSX.Element {
           event.preventDefault();
           if (!item.submenu) {
             setActive(item.link);
-            navigate(item.link);
+            navigate({ to: item.link });
           }
         }}
       >
@@ -137,7 +137,7 @@ export function SideMenuNarrow(): JSX.Element {
               const onClick = (event: { preventDefault: () => void }) => {
                 event.preventDefault();
                 setActive(subitem.link!);
-                navigate(subitem.link!);
+                navigate({ to: subitem.link! });
               };
               const icon = (
                 <ActionIcon component="span" variant="light" color={subitem.color ? subitem.color : defaultIconColor}>

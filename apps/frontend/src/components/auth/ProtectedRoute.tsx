@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from '@tanstack/react-router';
 import { useIsAuthenticatedQuery } from '../../api_client/auth';
 
 interface ProtectedRouteProps {
@@ -9,11 +9,11 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ requireAuth = true, children }: ProtectedRouteProps) {
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
-  const location = useLocation();
+  const location = window.location;
 
   if (requireAuth && !isAuthenticated) {
     console.log("Redirecting to login");
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" search={{ from: location.pathname }} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;

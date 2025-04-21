@@ -13,7 +13,7 @@ import { useViewportSize } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks/useSetPersonAlbumCoverMutation";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks/useSetUserAlbumCoverMutation";
@@ -37,9 +37,15 @@ import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { DatePhotosGroup } from "../../api_client/photos/types";
+import { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
 
 const TIMELINE_SCROLL_WIDTH = 0;
+
+export type PhotoGroup = {
+  id: string;
+  page: number;
+  items?: PigPhoto[];
+};
 
 type Props = Readonly<{
   title: string;
@@ -103,9 +109,9 @@ function PhotoListViewComponent({
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
 
   const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
+  const colorScheme = useComputedColorScheme('light');
   const idx2hashRef = useRef(idx2hash);
-  const params = useParams();
+  const params = {} // fix this
 
   useEffect(() => {
     idx2hashRef.current = idx2hash;

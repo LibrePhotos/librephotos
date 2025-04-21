@@ -23,7 +23,7 @@ import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hoo
 import { serverAddress } from "../../api_client/apiClient";
 import { useMarkPhotosDeletedMutation, useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
 import { copyToClipboard } from "../../util/util";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "@tanstack/react-router";
 import { useDownloadPhotosMutation } from "../../api_client/jobs/hooks";
 
 type Props = {

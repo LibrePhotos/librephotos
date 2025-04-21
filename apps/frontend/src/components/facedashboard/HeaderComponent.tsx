@@ -16,7 +16,7 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/hooks";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
-import { useParams } from "react-router-dom";
+import { getRouteApi } from "@tanstack/react-router";
 
 type Props = {
   cell: any;
@@ -27,6 +27,8 @@ type Props = {
   selectedFaces: any;
 };
 
+const routeApi = getRouteApi("/_protected/faces");
+
 export function HeaderComponent({
   cell,
   width,
@@ -35,7 +37,7 @@ export function HeaderComponent({
   setSelectedFaces,
   selectedFaces,
 }: Readonly<Props>) {
-  const { tab: activeTab } = useParams();
+  const { tab: activeTab } = routeApi.useSearch();
   const { t } = useTranslation();
   const [checked, setChecked] = useState(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);

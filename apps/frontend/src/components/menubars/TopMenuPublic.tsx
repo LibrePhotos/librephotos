@@ -1,7 +1,7 @@
 import { Button, Group, Image } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 export function TopMenuCommon() {
   return (
@@ -25,7 +25,7 @@ export function TopMenuPublic() {
         <Image height={30} width={30} src="/logo-white.png" />
       </Link>
       <Group align="right">
-        <Button onClick={() => navigate("/login")}>{t("login")}</Button>
+        <Button onClick={() => navigate({ to: "/login" })}>{t("login")}</Button>
       </Group>
     </Group>
   );

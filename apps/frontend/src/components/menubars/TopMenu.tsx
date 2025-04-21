@@ -19,7 +19,8 @@ import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
 import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
+
 export function TopMenu(): React.ReactNode {
   const { t } = useTranslation();
   const { data: user } = useCurrentUserSelfDetailsQuery();
@@ -65,22 +66,22 @@ export function TopMenu(): React.ReactNode {
                   <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {user ? user.username : ""}
                 </Menu.Label>
 
-                <Menu.Item leftSection={<Book />} onClick={() => navigate("/library")}>
+                <Menu.Item leftSection={<Book />} onClick={() => navigate({ to: "/library" })}>
                   {t("topmenu.library")}
                 </Menu.Item>
 
-                <Menu.Item leftSection={<User />} onClick={() => navigate("/profile")}>
+                <Menu.Item leftSection={<User />} onClick={() => navigate({ to: "/profile" })}>
                   {t("topmenu.profile")}
                 </Menu.Item>
 
-                <Menu.Item leftSection={<Settings />} onClick={() => navigate("/settings")}>
+                <Menu.Item leftSection={<Settings />} onClick={() => navigate({ to: "/settings" })}>
                   {t("topmenu.settings")}
                 </Menu.Item>
 
                 {user && user.is_superuser && <Menu.Divider />}
 
                 {user && user.is_superuser && (
-                  <Menu.Item leftSection={<Adjustments />} onClick={() => navigate("/admin")}>
+                  <Menu.Item leftSection={<Adjustments />} onClick={() => navigate({ to: "/admin" })}>
                     {t("topmenu.adminarea")}
                   </Menu.Item>
                 )}

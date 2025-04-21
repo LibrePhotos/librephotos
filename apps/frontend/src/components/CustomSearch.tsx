@@ -18,7 +18,7 @@ import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
 import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 
 enum Suggestion { 
   EXAMPLE,
@@ -129,19 +129,19 @@ export function CustomSearch() {
     switch (item.type) {
       case undefined:
       case Suggestion.EXAMPLE:
-        navigate(`/search/${item.value}`);
+        navigate({ to: `/search/${item.value}` });
         break;
       case Suggestion.USER_ALBUM:
-        navigate(`/useralbum/${item.id}`);
+        navigate({ to: `/album/user/${item.id}` });
         break;
       case Suggestion.PLACE_ALBUM:
-        navigate(`/place/${item.id}`);
+        navigate({ to: `/album/places/${item.id}` });
         break;
       case Suggestion.THING_ALBUM:
-        navigate(`/thing/${item.id}`);
+        navigate({ to: `/album/things/${item.id}` });
         break;
       case Suggestion.PEOPLE:
-        navigate(`/person/${item.id}`);
+        navigate({ to: `/album/persons/${item.id}` });
         break;
       default:
         break;

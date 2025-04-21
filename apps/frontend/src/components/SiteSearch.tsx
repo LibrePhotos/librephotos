@@ -2,7 +2,7 @@ import { ActionIcon, Box, Combobox, Group, Image, InputBase, Loader, Popover, Te
 import { IconAlbum, IconMap, IconSearch, IconTag, IconUser, IconX } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 
 import { SearchOption, SearchOptionType, useSearch } from "../service/use-search";
 import classes from "./SiteSearch.module.css";
@@ -59,22 +59,22 @@ export function SiteSearch() {
     const item = options.find(i => i.value === query);
     switch (item?.type) {
       case SearchOptionType.EXAMPLE:
-        navigate(`/search/${item.data}`);
+        navigate({ to: `/search/${item.data}` });
         break;
       case SearchOptionType.USER_ALBUM:
-        navigate(`/useralbum/${item.data}`);
+        navigate({ to: `/album/user/${item.data}` });
         break;
       case SearchOptionType.PLACE_ALBUM:
-        navigate(`/place/${item.data}`);
+        navigate({ to: `/album/places/${item.data}` });
         break;
       case SearchOptionType.THING_ALBUM:
-        navigate(`/thing/${item.data}`);
+        navigate({ to: `/album/things/${item.data}` });
         break;
       case SearchOptionType.PEOPLE:
-        navigate(`/person/${item.data}`);
+        navigate({ to: `/album/persons/${item.data}` });
         break;
       default:
-        navigate(`/search/${query}`);
+        navigate({ to: `/search/${query}` });
         break;
     }
   }

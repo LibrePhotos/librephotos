@@ -17,7 +17,7 @@ import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useRouter } from '@tanstack/react-router';
 
 type Props = Readonly<{
   loading: boolean;
@@ -34,10 +34,11 @@ export function DefaultHeader(props: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState({});
   const navigate = useNavigate();
+  const router = useRouter();
   const {data: auth} = useAccessToken();
   const {data: userSelfDetails} = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? '');
   const {data: userList} = useFetchUserListQuery();   
-  const location = useLocation(); 
+  const location = router.state.location;
 
   const { t } = useTranslation();
 
@@ -124,48 +125,48 @@ export function DefaultHeader(props: Props) {
                 </Menu.Target>
 
                 <Menu.Dropdown>
-                  <Menu.Item leftSection={<Calendar color="green" size={14} />} onClick={() => navigate("/")}>
+                  <Menu.Item leftSection={<Calendar color="green" size={14} />} onClick={() => navigate({ to: "/" })}>
                     {t("sidemenu.withtimestamp")}
                   </Menu.Item>
 
                   <Menu.Item
                     leftSection={<Calendar color="red" size={14} />}
-                    onClick={() => navigate("/notimestamp")}
+                    onClick={() => navigate({ to: "/notimestamp" })}
                   >
                     {t("sidemenu.withouttimestamp")}
                   </Menu.Item>
 
                   <Menu.Divider />
 
-                  <Menu.Item leftSection={<Clock size={14} />} onClick={() => navigate("/recent")}>
+                  <Menu.Item leftSection={<Clock size={14} />} onClick={() => navigate({ to: "/recent" })}>
                     {t("sidemenu.recentlyadded")}
                   </Menu.Item>
 
                   <Menu.Divider />
 
-                  <Menu.Item leftSection={<EyeOff color="red" size={14} />} onClick={() => navigate("/hidden")}>
+                  <Menu.Item leftSection={<EyeOff color="red" size={14} />} onClick={() => navigate({ to: "/hidden" })}>
                     {t("sidemenu.hidden")}
                   </Menu.Item>
 
                   <Menu.Item
                     leftSection={<Star color="yellow" size={14} />}
-                    onClick={() => navigate("/favorites")}
+                    onClick={() => navigate({ to: "/favorites" })}
                   >
                     {t("sidemenu.favorites")}
                   </Menu.Item>
 
-                  <Menu.Item leftSection={<Photo color="blue" size={14} />} onClick={() => navigate("/photos")}>
+                  <Menu.Item leftSection={<Photo color="blue" size={14} />} onClick={() => navigate({ to: "/photos" })}>
                     {t("sidemenu.photos")}
                   </Menu.Item>
 
-                  <Menu.Item leftSection={<Video color="pink" size={14} />} onClick={() => navigate("/videos")}>
+                  <Menu.Item leftSection={<Video color="pink" size={14} />} onClick={() => navigate({ to: "/videos" })}>
                     {t("sidemenu.videos")}
                   </Menu.Item>
 
                   <Menu.Item
                     leftSection={<Globe color="green" size={14} />}
                     disabled={!auth?.access}
-                    onClick={() => navigate(auth?.access ? `/user/${auth.access.name}` : "/")}
+                    onClick={() => navigate(auth?.access ? { to: `/user/${auth.access.name}` } : { to: "/" })}
                   >
                     {t("sidemenu.mypublicphotos")}
                   </Menu.Item>

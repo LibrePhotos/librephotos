@@ -3,7 +3,7 @@ import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icon
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useLocation } from "react-router-dom";
+import { useLocation } from "@tanstack/react-router";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
 
 type Props = {

@@ -1,43 +1,44 @@
 import { Group, Loader, Tabs } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { FaceAnalysisMethod, FacesTab } from "../../api_client/faces/types";
+import { FacesTab } from "../../api_client/faces/types";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 
 type Props = Readonly<{
   width: number;
   fetchingLabeledFacesList: boolean;
   fetchingInferredFacesList: boolean;
-  activeTab?: FacesTab;
-  onTabChange?: (tab: FacesTab) => void;
-  analysisMethod?: FaceAnalysisMethod;
-  onMethodChange?: (method: string) => void;
-  orderBy?: string;
-  onOrderChange?: (orderBy: string) => void;
-  minConfidence?: number;
-  onConfidenceChange?: (confidence: number) => void;
 }>;
+
+const routeApi = getRouteApi("/_protected/faces");
 
 export function TabComponent({ 
   width, 
   fetchingLabeledFacesList, 
   fetchingInferredFacesList,
-  activeTab: propActiveTab,
-  onTabChange,
 }: Props) {
 
   
-  const changeTab = (value: string | null) => {
-    if (value && onTabChange) {
-      onTabChange(value as FacesTab);
-    } 
-  };
+  const { tab: activeTab  } = routeApi.useSearch()
+
+  const navigate = useNavigate();
   
   const { t } = useTranslation();
 
   return (
     <Group justify="apart">
-      <Tabs defaultValue={propActiveTab} value={propActiveTab} style={{ width }} onChange={changeTab}>
+      <Tabs defaultValue={activeTab} value={activeTab} style={{ width }} onChange={
+        (value) => {
+          navigate({
+            to: "/faces",
+            search: (prev) => ({
+              ...prev,
+              tab: value as FacesTab,
+            })
+          })
+        }
+      }>
         <Tabs.List>
           <FacesCountersHoverCard tab={FacesTab.enum.inferred}>
             <Tabs.Tab value={FacesTab.enum.inferred}>

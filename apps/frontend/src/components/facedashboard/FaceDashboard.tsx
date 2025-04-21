@@ -1,7 +1,7 @@
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { getRouteApi, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 
 import { 
   useDeleteFacesMutation, 
@@ -22,30 +22,12 @@ import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
 
-// Default values for URL parameters
-const DEFAULT_VALUES = {
-  activeTab: FacesTab.enum.inferred,
-  analysisMethod: FaceAnalysisMethod.enum.clustering,
-  orderBy: 'confidence',
-  minConfidence: 0.7,
-};
-
-// Utility to parse URL parameters with proper typing
-function parseUrlParams(searchParams: URLSearchParams) {
-  return {
-    activeTab: (searchParams.get('tab') as FacesTab) || DEFAULT_VALUES.activeTab,
-    analysisMethod: (searchParams.get('method') as FaceAnalysisMethod) || DEFAULT_VALUES.analysisMethod,
-    orderBy: searchParams.get('orderBy') || DEFAULT_VALUES.orderBy,
-    minConfidence: parseFloat(searchParams.get('minConfidence') || String(DEFAULT_VALUES.minConfidence)),
-  };
-}
+const routeApi = getRouteApi("/_protected/faces")
 
 export function FaceDashboard() {
   const { ref, width } = useElementSize();
   
-  // URL parameters instead of Redux store
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { activeTab, analysisMethod, orderBy, minConfidence } = parseUrlParams(searchParams);
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch()
   
   // Tab scroll positions from localStorage
   const { tabPositions, updatePosition } = useTabScrollPositions();
@@ -77,51 +59,6 @@ export function FaceDashboard() {
   const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
   const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
 
-  // Update URL params
-  const updateParams = useCallback((updates: Record<string, string>) => {
-    const newParams = new URLSearchParams(searchParams);
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-    setSearchParams(newParams);
-  }, [searchParams, setSearchParams]);
-
-  // Explicitly update the URL when parameters change
-  useEffect(() => {
-    // This ensures URL params are set on initial render
-    const params = {
-      tab: activeTab,
-      method: analysisMethod,
-      orderBy,
-      minConfidence: minConfidence.toString()
-    };
-    
-    const newParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      }
-    });
-    
-    // Only update if different to avoid loops
-    const currentParams = new URLSearchParams(searchParams);
-    let isDifferent = false;
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (currentParams.get(key) !== value) {
-        isDifferent = true;
-      }
-    });
-    
-    if (isDifferent) {
-      setSearchParams(newParams);
-    }
-  }, [activeTab, analysisMethod, orderBy, minConfidence, setSearchParams]);
-
   // Event handlers
   const handleShowClick = useCallback((event: React.KeyboardEvent, item: any) => {
     const index = idx2hash.findIndex(image => image.id === item.photo);
@@ -137,25 +74,7 @@ export function FaceDashboard() {
     }
   }, [scrollTo, tabPositions, activeTab, updatePosition]);
 
-  // Handle tab changes
-  const handleTabChange = useCallback((newTab: FacesTab) => {
-    updateParams({ tab: newTab });
-  }, [updateParams]);
 
-  // Handle analysis method changes (using string type instead of enum)
-  const handleMethodChange = useCallback((method: string) => {
-    updateParams({ method });
-  }, [updateParams]);
-
-  // Handle order changes
-  const handleOrderChange = useCallback((newOrderBy: string) => {
-    updateParams({ orderBy: newOrderBy });
-  }, [updateParams]);
-
-  // Handle confidence changes
-  const handleConfidenceChange = useCallback((confidence: number) => {
-    updateParams({ minConfidence: confidence.toString() });
-  }, [updateParams]);
 
   // Create grid utilities object that we'll use for selection logic
   const gridUtils = useMemo(() => {
@@ -243,14 +162,6 @@ export function FaceDashboard() {
             width={width}
             fetchingLabeledFacesList={fetchingLabeledFacesList}
             fetchingInferredFacesList={fetchingInferredFacesList}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            analysisMethod={analysisMethod}
-            onMethodChange={handleMethodChange}
-            orderBy={orderBy}
-            onOrderChange={handleOrderChange}
-            minConfidence={minConfidence}
-            onConfidenceChange={handleConfidenceChange}
           />
           <ButtonHeaderGroup
             selectMode={selectedFaces.length > 0}
@@ -259,13 +170,6 @@ export function FaceDashboard() {
             addFaces={() => selectedFaces.length > 0 && setModalPersonEditOpen(true)}
             deleteFaces={deleteSelectedFaces}
             notThisPerson={notThisPersonFunc}
-            activeTab={activeTab}
-            analysisMethod={analysisMethod}
-            onMethodChange={handleMethodChange}
-            orderBy={orderBy}
-            onOrderChange={handleOrderChange}
-            minConfidence={minConfidence}
-            onConfidenceChange={handleConfidenceChange}
           />
         </Stack>
         {virtualGrid.renderGrid()}

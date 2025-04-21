@@ -1,18 +1,10 @@
 import { 
-  useMutation, 
-  useQuery, 
-  useQueryClient, 
-  UseQueryOptions,
-  UseMutationOptions,
   QueryClient,
-  QueryKey
 } from '@tanstack/react-query';
 import { Cookies } from 'react-cookie';
 import jwtDecode from 'jwt-decode';
 
 import { notification } from "../service/notifications";
-import { AutoAlbum, FetchAutoAlbumsListResponse } from "./albums/types";
-
 const API_BASE_URL = '/api';
 
 // Custom fetch client with auth and refresh token functionality
@@ -76,7 +68,7 @@ class FetchClient {
     }
 
     if (response.status === 401) {
-      notification.invalidToken();
+      
       // Logout the user by blacklisting the refresh token
       const cookies = new Cookies();
       const refreshToken = cookies.get('refresh');
@@ -92,27 +84,30 @@ class FetchClient {
           console.error('Logout failed:', error);
         }
       }
-      // Clear auth cookies and redirect to login
-      cookies.remove('access');
-      cookies.remove('refresh');
-      cookies.remove('jwt');
-      window.location.href = '/login';
-      
-      throw new Error('Authentication failed');
-    }
+      // Clear auth cookies and redirect to login if we are not already on the login page
+      if (!window.location.pathname.includes('/login')) {
+        cookies.remove('access');
+        cookies.remove('refresh');
+        cookies.remove('jwt');
+        window.location.href = '/login';
+      }
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
+
       const data = await response.json();
       if (data.errors) {
         data.errors.forEach((error: { field: string; message: string }) => {
           if (error.field === 'detail') {
-            const isLogin = endpoint.includes('/auth/login/');
+            const isLogin = endpoint.includes('/auth/token/obtain/');
             notification.authError(isLogin, error.field, error.message);
           }
         });
       }
-    }
+      else {
+        notification.invalidToken();
+      }
+      throw new Error('Authentication failed');
+    } 
+   
   }
 
   async request<T>(
@@ -179,6 +174,8 @@ class FetchClient {
       }
     } catch (error) {
       console.error('Fetch error:', error);
+      // print stack trace
+      console.trace();
       throw error;
     }
   }
