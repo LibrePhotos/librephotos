@@ -45,7 +45,7 @@ export function useVirtualizedGrid(
   onScroll: (params: { scrollTop: number }) => void,
   selectMode: boolean,
   selectedFaces: FaceSelection[],
-  clearSelection: () => void,
+  setSelectedFaces: (faces: FaceSelection[]) => void,
   analysisMethod: FaceAnalysisMethod,
   width: number
 ) {
@@ -145,7 +145,7 @@ export function useVirtualizedGrid(
           cell={cell}
           entrySquareSize={entrySquareSize}
           selectedFaces={selectedFaces}
-          setSelectedFaces={clearSelection}
+          setSelectedFaces={setSelectedFaces}
         />
       );
     }
@@ -169,7 +169,7 @@ export function useVirtualizedGrid(
     );
   }, [
     activeTab, width, entrySquareSize, selectedFaces, 
-    handleCellClick, handleShowClick, selectMode, getCellContentsForTab, clearSelection
+    handleCellClick, handleShowClick, selectMode, getCellContentsForTab, setSelectedFaces
   ]);
   
   // Get flattened cell contents for cell range selection

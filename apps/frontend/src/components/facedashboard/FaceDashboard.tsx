@@ -97,7 +97,7 @@ export function FaceDashboard() {
   
   // Create selection hook with the grid utils
   const { 
-    selectedFaces, handleCellClick, clearSelection 
+    selectedFaces, handleCellClick, clearSelection, setSelectedFaces 
   } = useFaceSelection(gridUtils.getFacesInRange);
 
   // Initialize the virtualized grid
@@ -112,7 +112,7 @@ export function FaceDashboard() {
     handleGridScroll,
     selectedFaces.length > 0, // selectMode
     selectedFaces,
-    clearSelection,
+    setSelectedFaces,
     analysisMethod,
     width
   );
