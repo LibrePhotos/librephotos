@@ -32,7 +32,6 @@ export function ContentViewer({
   const [playing, setPlaying] = useState(true);
 
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrc);
-  const [imageDimensions, setImageDimensions] = useState<ImageDimensions>({ width: 0, height: 0 });
 
   // Reset playing state when slide changes
   useEffect(() => {
@@ -166,11 +165,8 @@ export function ContentViewer({
                 <Carousel.Slide>
                   <MediaDisplay
                     id={prevSrc ?? undefined}
-                    isMainContent
                     type={type}
                     bind={bind}
-                    imageDimensions={imageDimensions}
-                    setImageDimensions={setImageDimensions}
                     faceLocation={faceLocation}
                     toggleZoom={toggleZoom}
                     scale={scale}
@@ -187,8 +183,6 @@ export function ContentViewer({
                     isMainContent
                     type={type}
                     bind={bind}
-                    imageDimensions={imageDimensions}
-                    setImageDimensions={setImageDimensions}
                     faceLocation={faceLocation}
                     toggleZoom={toggleZoom}
                     scale={scale}
@@ -202,11 +196,8 @@ export function ContentViewer({
                 <Carousel.Slide>
                   <MediaDisplay
                     id={nextSrc ?? undefined}
-                    isMainContent
                     type={type}
                     bind={bind}
-                    imageDimensions={imageDimensions}
-                    setImageDimensions={setImageDimensions}
                     faceLocation={faceLocation}
                     toggleZoom={toggleZoom}
                     scale={scale}

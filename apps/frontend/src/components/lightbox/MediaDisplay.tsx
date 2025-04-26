@@ -1,18 +1,30 @@
-import { Box } from "@mantine/core";
-import React from "react";
+import React, {  useRef } from "react";
 import ReactPlayer from "react-player";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { FaceOverlay } from "./FaceOverlay";
-import type { MediaDisplayProps } from "./lightbox.types";
+import type { FaceLocationType } from "./lightbox.types";
+
+export type MediaDisplayProps = {
+  id: string | undefined;
+  isMainContent?: boolean;
+  type: string;
+  bind?: any;
+  faceLocation: FaceLocationType;
+  toggleZoom?: () => void;
+  scale?: number;
+  offset?: { x: number; y: number };
+  handleDragStart: (event: React.DragEvent) => void;
+  fullHeight?: boolean;
+  playing?: boolean;
+};
+
 
 export function MediaDisplay({
   id,
   isMainContent = false,
   type,
   bind,
-  imageDimensions,
-  setImageDimensions,
   faceLocation,
   toggleZoom,
   scale = 1,
@@ -21,7 +33,15 @@ export function MediaDisplay({
   fullHeight = false,
   playing = false,
 }: MediaDisplayProps) {
+  
   if (!id) return null;
+  
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const imageDimensions = { 
+    width: imgRef.current?.naturalWidth ?? 1080,
+    height: imgRef.current?.naturalHeight ?? 810
+  };
 
   // Determine the media type for the current slide
   const currentType = isMainContent ? type : "photo"; // Assuming previews are always photos
@@ -63,62 +83,39 @@ export function MediaDisplay({
   }
 
   return (
-    <div
-      style={{
-        position: "relative",
-        height: fullHeight ? "100%" : "82vh",
-        borderRadius: "8px",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        {...(isMainContent && bind ? bind() : {})}
-        style={{
-          position: "relative",
-          height: "100%",
-          overflow: "hidden",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "8px",
-        }}
-      >
+    <div   {...(isMainContent && bind ? bind() : {})} style={{ 
+      position: "relative",  
+      overflow: "hidden",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: fullHeight ? "100%" : "82vh",
+      borderRadius: "8px",
+    }}>
+      <div style={{ position: "relative" }}>
         <img
+          ref={imgRef} 
           src={`${serverAddress}/media/thumbnails_big/${id}`}
           alt={isMainContent ? "Main Content" : "Preview"}
           loading="eager"
-          onLoad={event => {
-            if (isMainContent) {
-              const img = event.target as HTMLImageElement;
-              const aspectRatio =  img.naturalHeight / img.naturalWidth;
-              setImageDimensions({ width: Math.round(1080 * aspectRatio), height: 1080 });
-            }
-          }}
           onDragStart={handleDragStart}
           onDoubleClick={isMainContent && toggleZoom ? toggleZoom : undefined}
           style={{
             transition: isMainContent ? "transform 0.15s ease-out" : "none",
             transform: isMainContent ? `translate(${offset.x}px, ${offset.y}px) scale(${scale})` : "none",
-            objectFit: "contain",
-            height: "100%",
-            width: "auto",
+            maxHeight: "82vh",
             maxWidth: "100%",
-            display: "block",
-            margin: "auto",
             borderRadius: 8,
             opacity: isMainContent ? 1 : 0.9,
-            willChange: isMainContent ? "transform" : "auto", // For smoother animations
-            backfaceVisibility: "hidden", // Prevents flickering in some browsers
-            WebkitBackfaceVisibility: "hidden",
+            willChange: isMainContent ? "transform" : "auto",
             WebkitTapHighlightColor: "transparent", // Remove tap highlight on mobile
             boxShadow: isMainContent ? "0 4px 16px rgba(0,0,0,0.1)" : "none",
-            imageRendering: "auto", // Use auto for best quality rendering
           }}
         />
       {isMainContent && faceLocation && (
         <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />
       )}
       </div>
-    </div>
+      </div>
   );
 }
