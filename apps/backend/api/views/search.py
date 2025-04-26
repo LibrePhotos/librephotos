@@ -44,11 +44,11 @@ class SearchListViewSet(ListViewSet):
                 .order_by("-exif_timestamp")
                 .only(
                     "image_hash",
-                    "aspect_ratio",
+                    "thumbnail__aspect_ratio",
                     "video",
                     "main_file",
                     "search_location",
-                    "dominant_color",
+                    "thumbnail__dominant_color",
                     "public",
                     "rating",
                     "hidden",
@@ -77,11 +77,11 @@ class SearchListViewSet(ListViewSet):
                 )
                 .only(
                     "image_hash",
-                    "aspect_ratio",
+                    "thumbnail__aspect_ratio",
                     "video",
                     "main_file",
                     "search_location",
-                    "dominant_color",
+                    "thumbnail__dominant_color",
                     "public",
                     "rating",
                     "hidden",
