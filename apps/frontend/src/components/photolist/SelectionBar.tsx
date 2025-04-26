@@ -47,7 +47,7 @@ export function SelectionBar(props: Readonly<Props>) {
           </Text>
         </Popover.Dropdown>
       </Popover>
-      <div style={{ paddingTop: 5 }}>
+      <div>
         <Popover opened={openedSelect} withArrow>
           <Popover.Target>
             <Button

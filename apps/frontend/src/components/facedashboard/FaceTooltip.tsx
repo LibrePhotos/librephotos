@@ -3,8 +3,8 @@ import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
 
-  import { i18nResolvedLanguage } from "../../i18n";
-  import { getRouteApi } from "@tanstack/react-router";
+import { i18nResolvedLanguage } from "../../i18n";
+import { getRouteApi } from "@tanstack/react-router";
 import { FacesTab } from "../../api_client/faces";
 
 type Props = Readonly<{
@@ -12,12 +12,21 @@ type Props = Readonly<{
   probability: number;
   timestamp?: string;
   children?: React.ReactNode;
+  tab?: FacesTab;
 }>;
 
 const routeApi = getRouteApi("/_protected/faces");
 
-export function FaceTooltip({ tooltipOpened, probability, timestamp, children = null }: Props) {
-  const { tab: activeTab } = routeApi.useSearch();
+export function FaceTooltip({ tooltipOpened, probability, timestamp, tab, children = null }: Props) {
+  let activeTab: FacesTab | undefined;
+  try {
+    // Try to get the tab from the route if we're in the faces dashboard
+    const { tab: routeTab } = routeApi.useSearch();
+    activeTab = routeTab;
+  } catch {
+    // If we're not in the faces dashboard, use the provided tab or undefined
+    activeTab = tab;
+  }
 
   const confidencePercentageLabel =
     activeTab === "inferred"

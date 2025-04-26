@@ -116,7 +116,7 @@ export function DefaultHeader(props: Props) {
         <Group justify="left">
           {icon}
           <div>
-            {auth?.access && isMenuView() && auth.access.is_admin ? (
+            {auth?.access && isMenuView() ? (
               <Menu>
                 <Menu.Target>
                   <Title style={{ minWidth: 200 }} ta="left" order={2}>
