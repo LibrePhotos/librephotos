@@ -89,8 +89,9 @@ export function MediaDisplay({
           loading="eager"
           onLoad={event => {
             if (isMainContent) {
-              const { naturalWidth, naturalHeight } = event.target as HTMLImageElement;
-              setImageDimensions({ width: naturalWidth, height: naturalHeight });
+              const img = event.target as HTMLImageElement;
+              const aspectRatio =  img.naturalHeight / img.naturalWidth;
+              setImageDimensions({ width: Math.round(1080 * aspectRatio), height: 1080 });
             }
           }}
           onDragStart={handleDragStart}
@@ -114,10 +115,10 @@ export function MediaDisplay({
             imageRendering: "auto", // Use auto for best quality rendering
           }}
         />
-      </div>
       {isMainContent && faceLocation && (
         <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />
       )}
+      </div>
     </div>
   );
 }
