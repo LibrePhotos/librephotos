@@ -35,6 +35,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
     >
       <Button
         variant="subtle"
+        h="auto"
+        p={3}
         leftSection={
           <FaceTooltip tooltipOpened={tooltipOpened} probability={person.probability}>
             <Indicator
@@ -42,6 +44,8 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
               disabled={person.type === "user"}
               onMouseEnter={() => person.type !== "user" && setTooltipOpened(true)}
               onMouseLeave={() => setTooltipOpened(false)}
+              size={12}
+              offset={4}
             >
               <Avatar radius="xl" src={`${serverAddress}${person.face_url}`} />
             </Indicator>
