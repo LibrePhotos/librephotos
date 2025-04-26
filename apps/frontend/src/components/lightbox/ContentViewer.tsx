@@ -10,7 +10,7 @@ import { LightboxControls } from "./LightboxControls";
 import { MediaDisplay } from "./MediaDisplay";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
-import type { ContentViewerProps, FaceLocationType, ImageDimensions } from "./lightbox.types";
+import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 
 export function ContentViewer({

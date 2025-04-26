@@ -5,13 +5,15 @@ import {
   Divider,
   Group,
   Modal,
-  SegmentedControl,
+  Select,
   Slider,
   Stack,
   Text,
   Tooltip,
   useComputedColorScheme,
   useMantineTheme,
+  NumberInput,
+  TextInput,
 } from "@mantine/core";
 import {
   IconBarbell as Barbell,
@@ -19,6 +21,11 @@ import {
   IconPlus as Plus,
   IconTrash as Trash,
   IconUserOff as UserOff,
+  IconSortAscending as SortAscending,
+  IconSortDescending as SortDescending,
+  IconFilter as Filter,
+  IconPercentage as Percentage,
+  IconWand,
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -72,7 +79,7 @@ export function ButtonHeaderGroup({
   return (
     <Box
       style={{
-        padding: 4,
+        padding: 8,
         backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
         textAlign: "center",
         cursor: "pointer",
@@ -85,115 +92,111 @@ export function ButtonHeaderGroup({
           paddingRight: 10,
         }}
         justify="space-between"
+        align="flex-start"
       >
-        <Group gap="xs">
+        <Group gap="md" align="flex-start">
           <Button
             variant="light"
-            size="xs"
+            size="sm"
             leftSection={<Check color={selectMode ? "green" : "gray"} />}
             color={selectMode ? "blue" : "gray"}
             onClick={changeSelectMode}
+            style={{ height: 36 }}
           >
             {`${selectedFaces.length} ${t("selectionbar.selected")}`}
           </Button>
-          <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-          <Text size="sm" fw={500} mb={3}>
-            {t("facesdashboard.sortby")}
-          </Text>
-          <SegmentedControl
-            size="sm"
-            value={orderBy}
-            onChange={(value) => {
-              navigate({
-                to: "/faces",
-                search: (prev) => ({
-                  ...prev,
-                  orderBy: value as FacesOrderOption,
-                })
-              })
-            }}
-            data={[
-              {
-                label: t("facesdashboard.sortbyconfidence"),
-                value: FacesOrderOption.enum.confidence,
-              },
-              {
-                label: t("facesdashboard.sortbydate"),
-                value: FacesOrderOption.enum.date,
-              },
-            ]}
-          />
-          {(activeTab === "inferred" || activeTab === "unknown") && (
-            <div style={{ display: "contents" }}>
-              <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-              <Text size="sm" fw={500} mb={3}>
-                {t("facesdashboard.show")}
-              </Text>
-              <SegmentedControl
-                size="sm"
-                value={analysisMethod}
-                onChange={(value) => {
-                  navigate({
-                    to: "/faces",
-                    search: (prev) => ({
-                      ...prev,
-                      method: value as FaceAnalysisMethod,
-                    })
+          <Divider orientation="vertical" style={{ height: 36 }} />
+          <Stack gap={0} align="start" style={{ minWidth: 150 }}>
+            <Select
+              size="sm"
+              style={{ width: 150 }}
+              value={orderBy}
+              onChange={(value) => {
+                navigate({
+                  to: "/faces",
+                  search: (prev) => ({
+                    ...prev,
+                    orderBy: value as FacesOrderOption,
                   })
-                }}
-                data={[
-                  {
-                    label: t("facesdashboard.clusters"),
-                    value: FaceAnalysisMethod.enum.clustering,
-                  },
-                  {
-                    label: t("facesdashboard.classifications"),
-                    value: FaceAnalysisMethod.enum.classification,
-                  },
-                ]}
-              />
-              <Divider orientation="vertical" style={{ height: "20px", marginTop: "10px" }} />
-              <Text size="sm" fw={500} mb={3}>
-                {t("facesdashboard.minconfidence")}
-              </Text>
-              <Box
-                style={{
-                  width: 150,
-                  paddingTop: 10,
-                  paddingBottom: 10,
-                  paddingRight: 5,
-                  paddingLeft: 5,
-                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[1],
-                  textAlign: "center",
-                  cursor: "pointer",
-                  borderRadius: 4,
-                }}
-              >
-                <Slider
-                  value={minConfidence}
+                })
+              }}
+              leftSection={<SortDescending size={16} />}
+              data={[
+                {
+                  label: t("facesdashboard.sortbyconfidence"),
+                  value: FacesOrderOption.enum.confidence,
+                },
+                {
+                  label: t("facesdashboard.sortbydate"),
+                  value: FacesOrderOption.enum.date,
+                },
+              ]}
+            />
+          </Stack>
+          {(activeTab === "inferred" || activeTab === "unknown") && (
+            <>
+              <Divider orientation="vertical" style={{ height: 36 }} />
+              <Stack gap={0} align="start" style={{ minWidth: 150 }}>
+                <Select
+                  size="sm"
+                  style={{ width: 150 }}
+                  value={analysisMethod}
                   onChange={(value) => {
                     navigate({
                       to: "/faces",
                       search: (prev) => ({
                         ...prev,
-                        minConfidence: value,
+                        method: value as FaceAnalysisMethod,
                       })
                     })
                   }}
-                  label={minConfidence}
-                  size={5}
-                  step={0.05}
-                  min={0}
-                  max={1}
-                  defaultValue={0.5}
+                  leftSection={<Filter size={16} />}
+                  data={[
+                    {
+                      label: t("facesdashboard.clusters"),
+                      value: FaceAnalysisMethod.enum.clustering,
+                    },
+                    {
+                      label: t("facesdashboard.classifications"),
+                      value: FaceAnalysisMethod.enum.classification,
+                    },
+                  ]}
                 />
-              </Box>
-            </div>
+              </Stack>
+              <Divider orientation="vertical" style={{ height: 36 }} />
+              <Stack gap={0} align="start" style={{ minWidth: 200 }}>
+                <NumberInput
+                  size="sm"
+                  style={{ width: 200 }}
+                  value={minConfidence * 100}
+                  onChange={(value) => {
+                    if (typeof value === 'number') {
+                      navigate({
+                        to: "/faces",
+                        search: (prev) => ({
+                          tab: prev.tab || "inferred",
+                          method: prev.method || "clustering",
+                          orderBy: prev.orderBy || FacesOrderOption.enum.confidence,
+                          minConfidence: value / 100,
+                        })
+                      })
+                    }
+                  }}
+                  min={0}
+                  max={100}
+                  step={5}
+                  decimalScale={0}
+                  leftSection={<IconWand size={16} />}
+
+                  suffix="% confident"
+                />
+              </Stack>
+            </>
           )}
         </Group>
-        <Group>
+        <Group gap="xs" style={{ height: 36 }}>
           <Tooltip label={t("facesdashboard.explanationadding")}>
-            <ActionIcon variant="light" color="green" disabled={selectedFaces.length === 0} onClick={addFaces}>
+            <ActionIcon variant="light" color="green" disabled={selectedFaces.length === 0} onClick={addFaces} size="lg">
               <Plus />
             </ActionIcon>
           </Tooltip>
@@ -203,6 +206,7 @@ export function ButtonHeaderGroup({
               color="orange"
               disabled={selectedFaces.length === 0}
               onClick={() => notThisPerson()}
+              size="lg"
             >
               <UserOff />
             </ActionIcon>
@@ -213,11 +217,11 @@ export function ButtonHeaderGroup({
               color="red"
               disabled={selectedFaces.length === 0}
               onClick={() => setOpenDeleteDialog(true)}
+              size="lg"
             >
               <Trash />
             </ActionIcon>
           </Tooltip>
-
           <Tooltip label={t("facesdashboard.explanationtraining")}>
             <ActionIcon
               disabled={!queueCanAcceptJob}
@@ -228,6 +232,7 @@ export function ButtonHeaderGroup({
                 trainFacesMutation.mutate();
                 notification.trainFaces();
               }}
+              size="lg"
             >
               <Barbell />
             </ActionIcon>
