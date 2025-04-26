@@ -2,6 +2,7 @@ import { Carousel } from "@mantine/carousel";
 import "@mantine/carousel/styles.css";
 import { Modal, Stack } from "@mantine/core";
 import { useGesture } from "@use-gesture/react";
+import { useHotkeys } from '@mantine/hooks';
 import React, { useEffect, useState } from "react";
 
 import { ImagePreloader } from "./ImagePreloader";
@@ -58,6 +59,15 @@ export function ContentViewer({
     embla.on("select", onSlideChange);
     return () => embla.off("select", onSlideChange);
   }, [embla, onMovePrevRequest, onMoveNextRequest]);
+
+  // Add keyboard navigation using Mantine's useHotkeys
+  useHotkeys([
+    ['ArrowLeft', () => prevSrc && onMovePrevRequest()],
+    ['ArrowRight', () => nextSrc && onMoveNextRequest()],
+    ['Escape', onCloseRequest],
+    [' ', () => type === 'video' && setPlaying(prev => !prev)],
+    ['z', () => enableZoom && type === 'photo' && toggleZoom()],
+  ]);
 
   const bind = useGesture({
     onPinch: state => {
