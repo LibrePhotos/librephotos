@@ -22,7 +22,9 @@ class BuildIndex(Resource):
 
         index.build_index_for_user(user_id, image_hashes, image_embeddings)
 
-        return jsonify({"status": True, "index_size": index.indices[user_id].ntotal})
+        # Return 0 if no index was created, otherwise return the actual size
+        index_size = index.indices[user_id].ntotal if user_id in index.indices else 0
+        return jsonify({"status": True, "index_size": index_size})
 
     def delete(self):
         user_id = json.loads(request.data)["user_id"]
