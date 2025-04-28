@@ -27,7 +27,7 @@ type Props = Readonly<{
 
 export function Toolbar(props: Props) {
   const { photosDetail, isPublic, lightboxSidebarShow, closeSidepanel, isPhotoDetailsLoading } = props;
-    const [playerPlaying, setPlayerPlaying] = useState(false);
+  const [playerPlaying, setPlayerPlaying] = useState(false);
   // Fetch user details using TanStack Query
   const { data: userDetails } = useCurrentUserSelfDetailsQuery();
   const favoriteMinRating = userDetails?.favorite_min_rating ?? 0;

@@ -1,5 +1,6 @@
-import React, {  useRef } from "react";
+import React, { useRef, useState } from "react";
 import ReactPlayer from "react-player";
+import { Alert, Text } from "@mantine/core";
 
 import { serverAddress } from "../../api_client/apiClient";
 import { FaceOverlay } from "./FaceOverlay";
@@ -37,6 +38,7 @@ export function MediaDisplay({
   if (!id) return null;
   
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const [videoError, setVideoError] = useState(false);
 
   const imageDimensions = { 
     width: imgRef.current?.naturalWidth ?? 1080,
@@ -47,6 +49,13 @@ export function MediaDisplay({
   const currentType = isMainContent ? type : "photo"; // Assuming previews are always photos
 
   if (currentType === "video") {
+    if (videoError) {
+      return (
+        <Alert color="red" title="Video Not Found" style={{ width: "100%", height: fullHeight ? "100%" : "82vh" }}>
+          <Text>The video file could not be found or is no longer available.</Text>
+        </Alert>
+      );
+    }
     return (
       <ReactPlayer
         url={`${serverAddress}/media/video/${id}`}
@@ -60,6 +69,7 @@ export function MediaDisplay({
           borderRadius: "8px",
           overflow: "hidden",
         }}
+        onError={() => setVideoError(true)}
       />
     );
   }

@@ -90,6 +90,9 @@ export function SinglePhotoView() {
                   <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} size="sm" />
                 )}
                 <FileInfoComponent info={timestamp} size="sm" />
+                {photoDetail.image_path && photoDetail.image_path.length > 0 && (
+                  <FileInfoComponent info={photoDetail.image_path[0]} size="sm" width={750} />
+                )}
               </Group>
           </Stack>
 

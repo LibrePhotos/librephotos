@@ -24,7 +24,7 @@ export type LightBoxProps = {
   idx2hash: Array<{ id: string }>;
   isPublic: boolean;
   onCloseRequest: () => void;
-  onChangedIndex:  (currentIndex?: number) => void;
+  onChangedIndex: (currentIndex?: number) => void;
   selectedImage: string;
 };
 
@@ -49,7 +49,6 @@ export type MediaDisplayProps = {
   playing?: boolean;
 };
 
-
 export type LightboxControlsProps = {
   photoDetail: Photo | undefined;
   isPhotoDetailsLoading: boolean;
@@ -63,6 +62,22 @@ export type LightboxControlsProps = {
   onCloseRequest: () => void;
   playing: boolean;
   setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+export type ThumbnailNavigationProps = {
+  prevSrc: string | null;
+  mainSrc: string;
+  nextSrc: string | null;
+  onMovePrevRequest: () => void;
+  onMoveNextRequest: () => void;
+  containerWidth?: string;
+};
+
+export type SidebarProps = {
+  id: string;
+  closeSidepanel: () => void;
+  isPublic: boolean;
+  setFaceLocation: (location: FaceLocationType) => void;
 };
 
 export type FaceOverlayProps = {

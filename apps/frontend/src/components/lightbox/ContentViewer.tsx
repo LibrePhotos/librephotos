@@ -66,7 +66,7 @@ export function ContentViewer({
     ['ArrowRight', () => nextSrc && onMoveNextRequest()],
     ['Escape', onCloseRequest],
     [' ', () => type === 'video' && setPlaying(prev => !prev)],
-    ['z', () => enableZoom && type === 'photo' && toggleZoom()],
+    ['z', () => type === 'photo' && toggleZoom()],
   ]);
 
   const bind = useGesture({

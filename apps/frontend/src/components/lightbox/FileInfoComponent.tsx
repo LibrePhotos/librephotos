@@ -5,7 +5,8 @@ export function FileInfoComponent({
   description = "",
   info,
   size = "xs",
-}: Readonly<{ description?: string; info: string | undefined; size?: string }>) {
+  width,
+}: Readonly<{ description?: string; info: string | undefined; size?: string, width?: number }>) {
   if (!info || info.includes("undefined") || info.includes("null") || info.includes("0 mm")) return null;
 
   // Calculate maxWidth based on size
@@ -22,7 +23,7 @@ export function FileInfoComponent({
 
   if (!description) {
     return (
-      <Text size={size} c="dimmed" lineClamp={1} style={{ maxWidth: getMaxWidth() }}>
+      <Text size={size} c="dimmed" lineClamp={1} style={{ maxWidth: width ? width : getMaxWidth() }}>
         {info}
       </Text>
     );

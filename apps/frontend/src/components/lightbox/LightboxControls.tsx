@@ -4,6 +4,7 @@ import React from "react";
 
 import type { LightboxControlsProps } from "./lightbox.types";
 import { Toolbar } from "./Toolbar";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 
 export function LightboxControls({
   photoDetail,
@@ -17,10 +18,11 @@ export function LightboxControls({
   toggleZoom,
   onCloseRequest,
 }: LightboxControlsProps) {
+
   return (
     <Group justify="flex-end" style={{ background: "transparent" }}>
       <Toolbar
-        photosDetail={photoDetail}
+       photosDetail={photoDetail}
         isPhotoDetailsLoading={isPhotoDetailsLoading}
         lightboxSidebarShow={lightboxSidebarShow}
         closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
