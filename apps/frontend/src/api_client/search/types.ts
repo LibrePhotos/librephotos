@@ -24,4 +24,8 @@ export const SearchPhotosResult = z.object({
   photosGroupedByDate: PhotosGroupedByDate,
 });
 
+export const SemanticSearchPhotos = z.object({
+  results: z.array(PigPhoto), 
+})
+
 export type SearchPhotosResult = z.infer<typeof SearchPhotosResult>; 
