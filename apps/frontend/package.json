@@ -45,7 +45,7 @@
     "@mantine/notifications": "^7.17.1",
     "@mantine/tiptap": "^7.17.1",
     "@popperjs/core": "2.11.8",
-    "@tabler/icons": "3.17.0",
+    "@tabler/icons": "3.31.0",
     "@tabler/icons-react": "2.47.0",
     "@tanstack/react-query": "5.74.3",
     "@tanstack/react-router": "^1.116.0",
