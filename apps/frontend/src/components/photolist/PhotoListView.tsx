@@ -274,7 +274,7 @@ function PhotoListViewComponent({
           position: "fixed",
           textAlign: "center",
           top: TOP_MENU_HEIGHT,
-          width: "100%",
+          width: "calc(100% - 200px)",
           zIndex: 10,
           backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
         }}
