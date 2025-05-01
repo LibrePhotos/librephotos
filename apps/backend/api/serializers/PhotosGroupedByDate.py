@@ -26,13 +26,12 @@ def get_photos_ordered_by_date(photos):
     no_timestamp_photos = []
     for group in grouped_photo:
         location = ""
-        for photo in group:
-            if photo.exif_timestamp:
-                date = photo.exif_timestamp
-                result.append(PhotosGroupedByDate(location, date, group))
-            else:
-                date = "No timestamp"
-                no_timestamp_photos = PhotosGroupedByDate(location, date, group)
+        if group and group[0].exif_timestamp:
+            date = group[0].exif_timestamp
+            result.append(PhotosGroupedByDate(location, date, group))
+        else:
+            date = "No timestamp"
+            no_timestamp_photos = PhotosGroupedByDate(location, date, group)
     # add no timestamp last
     if no_timestamp_photos != []:
         result.append(no_timestamp_photos)
