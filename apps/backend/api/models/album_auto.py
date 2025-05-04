@@ -9,7 +9,7 @@ from api.models.user import User, get_deleted_user
 
 
 class AlbumAuto(models.Model):
-    title = models.CharField(blank=True, null=True, max_length=512)
+    title = models.CharField(blank=False, null=False, max_length=512, default="Untitled Album")
     timestamp = models.DateTimeField(db_index=True)
     created_on = models.DateTimeField(auto_now=False, db_index=True)
     gps_lat = models.FloatField(blank=True, null=True)
@@ -95,10 +95,16 @@ class AlbumAuto(models.Model):
                     when = "Weekend"
 
             title = " ".join([when, pep, loc]).strip()
+            # Ensure title is never empty
+            if not title:
+                title = f"Album from {self.timestamp.strftime('%Y-%m-%d')}"
             self.title = title
             self.save()
         except Exception as e:
             util.logger.exception(e)
+            # Set a fallback title if something goes wrong
+            self.title = f"Album from {self.timestamp.strftime('%Y-%m-%d')}"
+            self.save()
 
     def __str__(self):
         return "%d: %s" % (self.id, self.title)

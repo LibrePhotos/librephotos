@@ -10,6 +10,8 @@ class PhotoSuperSimpleSerializer(serializers.ModelSerializer):
 
 
 class PhotoSimpleSerializer(serializers.ModelSerializer):
+    square_thumbnail = serializers.SerializerMethodField()
+
     class Meta:
         model = Photo
         fields = (
@@ -23,6 +25,9 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
             "public",
             "video",
         )
+
+    def get_square_thumbnail(self, obj) -> str:
+        return obj.thumbnail.square_thumbnail.url if obj.thumbnail and obj.thumbnail.square_thumbnail else ""
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):
