@@ -271,10 +271,9 @@ function PhotoListViewComponent({
           boxSizing: "border-box",
           cursor: "pointer",
           padding: 6,
-          position: "fixed",
-          textAlign: "center",
+          position: "sticky",
           top: TOP_MENU_HEIGHT,
-          width: "calc(100% - 200px)",
+          width: "100%",
           zIndex: 10,
           backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
         }}
@@ -388,7 +387,7 @@ function PhotoListViewComponent({
           targetHeight={gridHeight.current}
           type={ScrollerType.enum.date}
         >
-          <Box p={10} style={{ marginTop: 120 }}>
+          <Box p={10}>
             <Pig
               ref={pigRef}
               className="scrollscrubbertarget"
@@ -417,7 +416,6 @@ function PhotoListViewComponent({
         style={{
           position: "fixed",
           right: 0,
-          top: TOP_MENU_HEIGHT,
           height: height - TOP_MENU_HEIGHT,
           width: TIMELINE_SCROLL_WIDTH,
         }}
