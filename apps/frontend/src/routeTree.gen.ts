@@ -37,7 +37,7 @@ import { Route as ProtectedDatavizTimelineImport } from './routes/_protected/dat
 import { Route as ProtectedDatavizSocialgraphImport } from './routes/_protected/dataviz/socialgraph'
 import { Route as ProtectedDatavizPlacetreeImport } from './routes/_protected/dataviz/placetree'
 import { Route as ProtectedDatavizFacescatterImport } from './routes/_protected/dataviz/facescatter'
-import { Route as ProtectedAlbumUserImport } from './routes/_protected/album/user'
+import { Route as ProtectedAlbumUserIndexImport } from './routes/_protected/album/user.index'
 import { Route as ProtectedAlbumThingsIndexImport } from './routes/_protected/album/things.index'
 import { Route as ProtectedAlbumPlacesIndexImport } from './routes/_protected/album/places.index'
 import { Route as ProtectedAlbumPersonsIndexImport } from './routes/_protected/album/persons.index'
@@ -211,9 +211,9 @@ const ProtectedDatavizFacescatterRoute =
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
 
-const ProtectedAlbumUserRoute = ProtectedAlbumUserImport.update({
-  id: '/album/user',
-  path: '/album/user',
+const ProtectedAlbumUserIndexRoute = ProtectedAlbumUserIndexImport.update({
+  id: '/album/user/',
+  path: '/album/user/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 
@@ -256,9 +256,9 @@ const ProtectedSharedFrommeTabRoute = ProtectedSharedFrommeTabImport.update({
 } as any)
 
 const ProtectedAlbumUserIdRoute = ProtectedAlbumUserIdImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ProtectedAlbumUserRoute,
+  id: '/album/user/$id',
+  path: '/album/user/$id',
+  getParentRoute: () => ProtectedRouteRoute,
 } as any)
 
 const ProtectedAlbumThingsIdRoute = ProtectedAlbumThingsIdImport.update({
@@ -422,13 +422,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedIndexImport
       parentRoute: typeof ProtectedRouteImport
     }
-    '/_protected/album/user': {
-      id: '/_protected/album/user'
-      path: '/album/user'
-      fullPath: '/album/user'
-      preLoaderRoute: typeof ProtectedAlbumUserImport
-      parentRoute: typeof ProtectedRouteImport
-    }
     '/_protected/dataviz/facescatter': {
       id: '/_protected/dataviz/facescatter'
       path: '/dataviz/facescatter'
@@ -508,10 +501,10 @@ declare module '@tanstack/react-router' {
     }
     '/_protected/album/user/$id': {
       id: '/_protected/album/user/$id'
-      path: '/$id'
+      path: '/album/user/$id'
       fullPath: '/album/user/$id'
       preLoaderRoute: typeof ProtectedAlbumUserIdImport
-      parentRoute: typeof ProtectedAlbumUserImport
+      parentRoute: typeof ProtectedRouteImport
     }
     '/_protected/shared/fromme/$tab': {
       id: '/_protected/shared/fromme/$tab'
@@ -555,21 +548,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAlbumThingsIndexImport
       parentRoute: typeof ProtectedRouteImport
     }
+    '/_protected/album/user/': {
+      id: '/_protected/album/user/'
+      path: '/album/user'
+      fullPath: '/album/user'
+      preLoaderRoute: typeof ProtectedAlbumUserIndexImport
+      parentRoute: typeof ProtectedRouteImport
+    }
   }
 }
 
 // Create and export the route tree
-
-interface ProtectedAlbumUserRouteChildren {
-  ProtectedAlbumUserIdRoute: typeof ProtectedAlbumUserIdRoute
-}
-
-const ProtectedAlbumUserRouteChildren: ProtectedAlbumUserRouteChildren = {
-  ProtectedAlbumUserIdRoute: ProtectedAlbumUserIdRoute,
-}
-
-const ProtectedAlbumUserRouteWithChildren =
-  ProtectedAlbumUserRoute._addFileChildren(ProtectedAlbumUserRouteChildren)
 
 interface ProtectedRouteRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRoute
@@ -586,7 +575,6 @@ interface ProtectedRouteRouteChildren {
   ProtectedUsersRoute: typeof ProtectedUsersRoute
   ProtectedVideosRoute: typeof ProtectedVideosRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
-  ProtectedAlbumUserRoute: typeof ProtectedAlbumUserRouteWithChildren
   ProtectedDatavizFacescatterRoute: typeof ProtectedDatavizFacescatterRoute
   ProtectedDatavizPlacetreeRoute: typeof ProtectedDatavizPlacetreeRoute
   ProtectedDatavizSocialgraphRoute: typeof ProtectedDatavizSocialgraphRoute
@@ -598,12 +586,14 @@ interface ProtectedRouteRouteChildren {
   ProtectedAlbumPersonsIdRoute: typeof ProtectedAlbumPersonsIdRoute
   ProtectedAlbumPlacesIdRoute: typeof ProtectedAlbumPlacesIdRoute
   ProtectedAlbumThingsIdRoute: typeof ProtectedAlbumThingsIdRoute
+  ProtectedAlbumUserIdRoute: typeof ProtectedAlbumUserIdRoute
   ProtectedSharedFrommeTabRoute: typeof ProtectedSharedFrommeTabRoute
   ProtectedSharedTomeTabRoute: typeof ProtectedSharedTomeTabRoute
   ProtectedAlbumEventsIndexRoute: typeof ProtectedAlbumEventsIndexRoute
   ProtectedAlbumPersonsIndexRoute: typeof ProtectedAlbumPersonsIndexRoute
   ProtectedAlbumPlacesIndexRoute: typeof ProtectedAlbumPlacesIndexRoute
   ProtectedAlbumThingsIndexRoute: typeof ProtectedAlbumThingsIndexRoute
+  ProtectedAlbumUserIndexRoute: typeof ProtectedAlbumUserIndexRoute
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
@@ -621,7 +611,6 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedUsersRoute: ProtectedUsersRoute,
   ProtectedVideosRoute: ProtectedVideosRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
-  ProtectedAlbumUserRoute: ProtectedAlbumUserRouteWithChildren,
   ProtectedDatavizFacescatterRoute: ProtectedDatavizFacescatterRoute,
   ProtectedDatavizPlacetreeRoute: ProtectedDatavizPlacetreeRoute,
   ProtectedDatavizSocialgraphRoute: ProtectedDatavizSocialgraphRoute,
@@ -633,12 +622,14 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAlbumPersonsIdRoute: ProtectedAlbumPersonsIdRoute,
   ProtectedAlbumPlacesIdRoute: ProtectedAlbumPlacesIdRoute,
   ProtectedAlbumThingsIdRoute: ProtectedAlbumThingsIdRoute,
+  ProtectedAlbumUserIdRoute: ProtectedAlbumUserIdRoute,
   ProtectedSharedFrommeTabRoute: ProtectedSharedFrommeTabRoute,
   ProtectedSharedTomeTabRoute: ProtectedSharedTomeTabRoute,
   ProtectedAlbumEventsIndexRoute: ProtectedAlbumEventsIndexRoute,
   ProtectedAlbumPersonsIndexRoute: ProtectedAlbumPersonsIndexRoute,
   ProtectedAlbumPlacesIndexRoute: ProtectedAlbumPlacesIndexRoute,
   ProtectedAlbumThingsIndexRoute: ProtectedAlbumThingsIndexRoute,
+  ProtectedAlbumUserIndexRoute: ProtectedAlbumUserIndexRoute,
 }
 
 const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
@@ -677,7 +668,6 @@ export interface FileRoutesByFullPath {
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
-  '/album/user': typeof ProtectedAlbumUserRouteWithChildren
   '/dataviz/facescatter': typeof ProtectedDatavizFacescatterRoute
   '/dataviz/placetree': typeof ProtectedDatavizPlacetreeRoute
   '/dataviz/socialgraph': typeof ProtectedDatavizSocialgraphRoute
@@ -696,6 +686,7 @@ export interface FileRoutesByFullPath {
   '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
   '/album/places': typeof ProtectedAlbumPlacesIndexRoute
   '/album/things': typeof ProtectedAlbumThingsIndexRoute
+  '/album/user': typeof ProtectedAlbumUserIndexRoute
 }
 
 export interface FileRoutesByTo {
@@ -717,7 +708,6 @@ export interface FileRoutesByTo {
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
-  '/album/user': typeof ProtectedAlbumUserRouteWithChildren
   '/dataviz/facescatter': typeof ProtectedDatavizFacescatterRoute
   '/dataviz/placetree': typeof ProtectedDatavizPlacetreeRoute
   '/dataviz/socialgraph': typeof ProtectedDatavizSocialgraphRoute
@@ -736,6 +726,7 @@ export interface FileRoutesByTo {
   '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
   '/album/places': typeof ProtectedAlbumPlacesIndexRoute
   '/album/things': typeof ProtectedAlbumThingsIndexRoute
+  '/album/user': typeof ProtectedAlbumUserIndexRoute
 }
 
 export interface FileRoutesById {
@@ -759,7 +750,6 @@ export interface FileRoutesById {
   '/_protected/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/_protected/': typeof ProtectedIndexRoute
-  '/_protected/album/user': typeof ProtectedAlbumUserRouteWithChildren
   '/_protected/dataviz/facescatter': typeof ProtectedDatavizFacescatterRoute
   '/_protected/dataviz/placetree': typeof ProtectedDatavizPlacetreeRoute
   '/_protected/dataviz/socialgraph': typeof ProtectedDatavizSocialgraphRoute
@@ -778,6 +768,7 @@ export interface FileRoutesById {
   '/_protected/album/persons/': typeof ProtectedAlbumPersonsIndexRoute
   '/_protected/album/places/': typeof ProtectedAlbumPlacesIndexRoute
   '/_protected/album/things/': typeof ProtectedAlbumThingsIndexRoute
+  '/_protected/album/user/': typeof ProtectedAlbumUserIndexRoute
 }
 
 export interface FileRouteTypes {
@@ -802,7 +793,6 @@ export interface FileRouteTypes {
     | '/videos'
     | '/public/$users'
     | '/'
-    | '/album/user'
     | '/dataviz/facescatter'
     | '/dataviz/placetree'
     | '/dataviz/socialgraph'
@@ -821,6 +811,7 @@ export interface FileRouteTypes {
     | '/album/persons'
     | '/album/places'
     | '/album/things'
+    | '/album/user'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/public'
@@ -841,7 +832,6 @@ export interface FileRouteTypes {
     | '/videos'
     | '/public/$users'
     | '/'
-    | '/album/user'
     | '/dataviz/facescatter'
     | '/dataviz/placetree'
     | '/dataviz/socialgraph'
@@ -860,6 +850,7 @@ export interface FileRouteTypes {
     | '/album/persons'
     | '/album/places'
     | '/album/things'
+    | '/album/user'
   id:
     | '__root__'
     | '/_protected'
@@ -881,7 +872,6 @@ export interface FileRouteTypes {
     | '/_protected/videos'
     | '/public/$users'
     | '/_protected/'
-    | '/_protected/album/user'
     | '/_protected/dataviz/facescatter'
     | '/_protected/dataviz/placetree'
     | '/_protected/dataviz/socialgraph'
@@ -900,6 +890,7 @@ export interface FileRouteTypes {
     | '/_protected/album/persons/'
     | '/_protected/album/places/'
     | '/_protected/album/things/'
+    | '/_protected/album/user/'
   fileRoutesById: FileRoutesById
 }
 
@@ -950,7 +941,6 @@ export const routeTree = rootRoute
         "/_protected/users",
         "/_protected/videos",
         "/_protected/",
-        "/_protected/album/user",
         "/_protected/dataviz/facescatter",
         "/_protected/dataviz/placetree",
         "/_protected/dataviz/socialgraph",
@@ -962,12 +952,14 @@ export const routeTree = rootRoute
         "/_protected/album/persons/$id",
         "/_protected/album/places/$id",
         "/_protected/album/things/$id",
+        "/_protected/album/user/$id",
         "/_protected/shared/fromme/$tab",
         "/_protected/shared/tome/$tab",
         "/_protected/album/events/",
         "/_protected/album/persons/",
         "/_protected/album/places/",
-        "/_protected/album/things/"
+        "/_protected/album/things/",
+        "/_protected/album/user/"
       ]
     },
     "/public": {
@@ -1042,13 +1034,6 @@ export const routeTree = rootRoute
       "filePath": "_protected/index.tsx",
       "parent": "/_protected"
     },
-    "/_protected/album/user": {
-      "filePath": "_protected/album/user.tsx",
-      "parent": "/_protected",
-      "children": [
-        "/_protected/album/user/$id"
-      ]
-    },
     "/_protected/dataviz/facescatter": {
       "filePath": "_protected/dataviz/facescatter.tsx",
       "parent": "/_protected"
@@ -1095,7 +1080,7 @@ export const routeTree = rootRoute
     },
     "/_protected/album/user/$id": {
       "filePath": "_protected/album/user.$id.tsx",
-      "parent": "/_protected/album/user"
+      "parent": "/_protected"
     },
     "/_protected/shared/fromme/$tab": {
       "filePath": "_protected/shared/fromme.$tab.tsx",
@@ -1119,6 +1104,10 @@ export const routeTree = rootRoute
     },
     "/_protected/album/things/": {
       "filePath": "_protected/album/things.index.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/album/user/": {
+      "filePath": "_protected/album/user.index.tsx",
       "parent": "/_protected"
     }
   }

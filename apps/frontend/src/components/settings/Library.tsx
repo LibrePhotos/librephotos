@@ -76,7 +76,7 @@ export function Library() {
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
-  const [editedUser, setEditedUser] = useState({} as User);
+  const [editedUser, setEditedUser] = useState<User | null>(null);
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
   const { t } = useTranslation();
@@ -112,7 +112,9 @@ export function Library() {
   }, [editedUser, userSelfDetails]);
 
   useEffect(() => {
-    setEditedUser(userSelfDetails);
+    if (userSelfDetails) {
+      setEditedUser(userSelfDetails);
+    }
   }, [userSelfDetails]);
 
   useEffect(() => {
@@ -124,17 +126,56 @@ export function Library() {
   useEffect(() => {
     if (isNextcloudFetching === true) {
       setNextcloudStatusColor("blue");
-    } else if (isNextcloudSuccess === true && userSelfDetails.nextcloud_server_address) {
+    } else if (isNextcloudSuccess === true && userSelfDetails?.nextcloud_server_address) {
       setNextcloudStatusColor("green");
     } else if (isNextcloudError === true) {
       setNextcloudStatusColor("red");
     }
-  }, [isNextcloudFetching, isNextcloudSuccess, isNextcloudError]);
+  }, [isNextcloudFetching, isNextcloudSuccess, isNextcloudError, userSelfDetails]);
 
   if (avatarImgSrc === "/unknown_user.jpg") {
-    if (userSelfDetails.avatar_url) {
+    if (userSelfDetails?.avatar_url) {
       setAvatarImgSrc(serverAddress + userSelfDetails.avatar_url);
     }
+  }
+
+  const handleNextcloudServerAddressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (userSelfDetails) {
+      setEditedUser({ ...userSelfDetails, nextcloud_server_address: event.currentTarget.value });
+    }
+  };
+
+  const handleNextcloudUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (userSelfDetails) {
+      setEditedUser({ ...userSelfDetails, nextcloud_username: event.currentTarget.value });
+    }
+  };
+
+  const handleNextcloudPasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (userSelfDetails) {
+      setEditedUser({ ...userSelfDetails, nextcloud_scan_directory: event.currentTarget.value });
+    }
+  };
+
+  const handleSubmit = () => {
+    if (editedUser) {
+      const newUserData = { ...editedUser };
+      delete newUserData.scan_directory;
+      delete newUserData.avatar;
+      updateUser.mutate(newUserData);
+      setIsOpenUpdateDialog(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (userSelfDetails) {
+      setEditedUser(userSelfDetails);
+    }
+    setIsOpenUpdateDialog(false);
+  };
+
+  if (!userSelfDetails) {
+    return <Loader />;
   }
 
   return (
@@ -449,9 +490,7 @@ export function Library() {
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
-                onChange={event => {
-                  setUserSelfDetails({ ...userSelfDetails, nextcloud_server_address: event.currentTarget.value });
-                }}
+                onChange={handleNextcloudServerAddressChange}
                 value={userSelfDetails.nextcloud_server_address}
                 placeholder={t("settings.serveradressplaceholder")}
               />
@@ -463,9 +502,7 @@ export function Library() {
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
-                onChange={event => {
-                  setUserSelfDetails({ ...userSelfDetails, nextcloud_username: event.currentTarget.value });
-                }}
+                onChange={handleNextcloudUsernameChange}
                 value={userSelfDetails.nextcloud_username}
                 placeholder={t("settings.nextcloudusernameplaceholder")}
               />
@@ -480,12 +517,10 @@ export function Library() {
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 5 }}>
               <TextInput
-                onChange={event => {
-                  setUserSelfDetails({ ...userSelfDetails, nextcloud_app_password: event.currentTarget.value });
-                }}
+                onChange={handleNextcloudPasswordChange}
                 type="password"
                 placeholder={t("settings.nextcloudpasswordplaceholder")}
-                value={userSelfDetails.nextcloud_app_password}
+                value={userSelfDetails.nextcloud_scan_directory}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 10 }}>
@@ -533,7 +568,7 @@ export function Library() {
             path={userSelfDetails.nextcloud_scan_directory}
             isOpen={modalNextcloudScanDirectoryOpen}
             onChange={path =>
-              setUserSelfDetails({
+              setEditedUser({
                 ...userSelfDetails,
                 nextcloud_scan_directory: path,
               })
@@ -547,7 +582,7 @@ export function Library() {
         <Dialog
           opened={isOpenUpdateDialog}
           withCloseButton
-          onClose={() => setIsOpenUpdateDialog(false)}
+          onClose={handleCancel}
           size="lg"
           radius="md"
         >
@@ -559,20 +594,12 @@ export function Library() {
             <Button
               size="sm"
               color="green"
-              onClick={() => {
-                const newUserData = userSelfDetails;
-                delete newUserData.scan_directory;
-                delete newUserData.avatar;
-                updateUser.mutate(newUserData);
-                setIsOpenUpdateDialog(false);
-              }}
+              onClick={handleSubmit}
             >
               <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
             </Button>
             <Button
-              onClick={() => {
-                setUserSelfDetails(userSelfDetails);
-              }}
+              onClick={handleCancel}
               size="sm"
             >
               <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>

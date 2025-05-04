@@ -28,7 +28,7 @@ import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 
-export const Route = createFileRoute('/_protected/album/user')({
+export const Route = createFileRoute('/_protected/album/user/')({
   component: AlbumUser,
 })
 
@@ -103,7 +103,7 @@ export function AlbumUser() {
     return (
       <div key={key} style={style}>
         <div style={{ padding: 5, height: entrySquareSize, width: entrySquareSize }}>
-          <Link to={`/useralbum/${album.id}`}>
+          <Link to="/album/user/$id" params={{ id: album.id.toString() }}>
             <Tile
               video={albums[index].cover_photo.video === true}
               height={entrySquareSize - 10}
