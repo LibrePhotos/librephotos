@@ -76,7 +76,7 @@ class AlbumUserEditViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve"]:
             self.permission_classes = (IsAuthenticated,)
         else:
-            self.permission_classes = (IsAdminUser,)
+            self.permission_classes = (IsAuthenticated,)
 
         return super().get_permissions()
 
