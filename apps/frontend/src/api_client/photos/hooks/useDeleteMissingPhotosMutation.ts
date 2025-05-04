@@ -12,7 +12,7 @@ type DeleteMissingPhotosResponse = z.infer<typeof DeleteMissingPhotosResponse>;
 
 export const useDeleteMissingPhotosMutation = () => useMutation({
   mutationFn: async () => {
-    const response = await fetchClient.post('deletemissingphotos', {});
+    const response = await fetchClient.post('/deletemissingphotos', {});
     return DeleteMissingPhotosResponse.parse(response);
   },
   onSuccess: (data) => {
