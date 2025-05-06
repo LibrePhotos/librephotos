@@ -1133,15 +1133,15 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@mantine/carousel@^7.17.2":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/carousel/-/carousel-7.17.4.tgz#1eae9a6c86f24560d97640b4209eeaa1972361fb"
-  integrity sha512-BMetQKrKI9zLqIUepm1b+1ZtTl7672F0g7njlxKbG/V/GgnggtyklZ+CfjAABDa6r6yyLNTsI/j7QQJXqHjP5w==
+"@mantine/carousel@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/carousel/-/carousel-8.0.0.tgz#d599e94c16ad21ce2eb1e305d2e3909ec9178ecb"
+  integrity sha512-PURLLBAoJ5hKmAle/n5EcMKCfi4fvlkfKQ4aZJsONQkK1SlYSLz8tocQF3IRMYeNx+6KSCqlmgx44gutRokB5A==
 
-"@mantine/core@^7.17.1":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/core/-/core-7.17.4.tgz#a537cc673d3e052da5bbec01bdd77cd87cacd9e1"
-  integrity sha512-Ea4M/98jxgIWCuxCdM0YIotVYjfLTGQsfIA6zDg0LsClgjo/ZLnnh4zbi+bLNgM+GGjP4ju7gv4MZvaTKuLO8g==
+"@mantine/core@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/core/-/core-8.0.0.tgz#8a8fa5b8e71f1db2253afe54a15c8b52c2de6240"
+  integrity sha512-TskeJS2/+DbmUe85fXDoUAyErkSvR4YlbUl8MLqhjFBJUqwc72ZrLynmN13wuKtlVPakDYYjq4/IEDMReh3CYA==
   dependencies:
     "@floating-ui/react" "^0.26.28"
     clsx "^2.1.1"
@@ -1150,43 +1150,43 @@
     react-textarea-autosize "8.5.9"
     type-fest "^4.27.0"
 
-"@mantine/dates@^7.17.1":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/dates/-/dates-7.17.4.tgz#d4a305c966e9ebc63eb1121ee6863e505bd502b2"
-  integrity sha512-6oqcmcJb0Pypju+/z6s9nEVa3B9Pdj5DTrdj/FP/RD7RFx4k7nHi+jFstn4qcso6nghRRROKMHErfqrBybjzKA==
+"@mantine/dates@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/dates/-/dates-8.0.0.tgz#847ab6c9ca45b0396ee1bf3e128090691457290c"
+  integrity sha512-LQuDk8/tmFgZnqAGCuM+addTLHF/0lcyxYJgZbuQu1S+7WrbR58g04KzdQNg25UOBDydInRJIWAtiN/7fJFGmg==
   dependencies:
     clsx "^2.1.1"
 
-"@mantine/form@^7.17.1":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/form/-/form-7.17.4.tgz#e173ff71d233ec5102cb341cd6ad7d0affa59a91"
-  integrity sha512-faCz44IpvLSv8ekG962SIOtRQc4gfC+zeXasbycWNYMW0k8ge7ch689KIuSYN00gdZat2UOaCbrr+yrTYjeuCQ==
+"@mantine/form@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/form/-/form-8.0.0.tgz#c7489be7e3623c1fe1a1686d06deadc72c01b81b"
+  integrity sha512-ErbbEFMEiRsK2Rn0jmFE5ohNJXHSMSbuJsL2vDUVsbIaXo6svw6ockw1WWGdiU8oEGqxM6Pd618yI9cJWNHF3g==
   dependencies:
     fast-deep-equal "^3.1.3"
     klona "^2.0.6"
 
-"@mantine/hooks@^7.17.1":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/hooks/-/hooks-7.17.4.tgz#45f7e6b0ca7d6ed80c91972f8eaa34358c7792e6"
-  integrity sha512-PBcJxDAfGm8k1/JJmaDcxzRVQ3JSE1iXGktbgGz+qEOJmCxwbbAYe+CtGFFgi1xX2bPZ+7dtRr/+XFhnKtt/aw==
+"@mantine/hooks@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/hooks/-/hooks-8.0.0.tgz#d105e0f1c890bbb2312e5ab452b212ae85959085"
+  integrity sha512-hrcgZMHUPsgu+VBfUVcJOqMG7Qi+AshYjFyc/qo0Cz8TEhqWmD0I1yJW+qj4sDTTDWRQC6kvI5c1h+87/9MvoA==
 
-"@mantine/notifications@^7.17.1":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/notifications/-/notifications-7.17.4.tgz#e82798cfa762c7e29306ff84a00abc34d53b5c7a"
-  integrity sha512-YxNmnZSfIG69lPMFItOZZsizYL3DsOLVUSPkkJILG5pW2F798dc4IA5mhRIbdmzDEx0ArWHJ7gsdd3Vmm5ubPg==
+"@mantine/notifications@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/notifications/-/notifications-8.0.0.tgz#5280e8650e7432863340e968aaf34cd473c9037b"
+  integrity sha512-sWldvQmq4YJsknHURBNKkc3CAU0qDb0LuQGKIZGxqFlwEiXNIAI8mtfr7stgzVx+mteVW1g+HBb7FaZp07jRxQ==
   dependencies:
-    "@mantine/store" "7.17.4"
+    "@mantine/store" "8.0.0"
     react-transition-group "4.4.5"
 
-"@mantine/store@7.17.4":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/store/-/store-7.17.4.tgz#8930a29da9d9d1a59f4d7fe36e4fa805c11bcb16"
-  integrity sha512-a/EecHPtYVxhu3oMX9uTymGolmOBWxW8Qs4fLCjiazEJbS1ScI4lS71GK/SuOa2rGuuOJkaotpyritbx3paIRg==
+"@mantine/store@8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/store/-/store-8.0.0.tgz#3101628eff4fa6081da44e1b1236ee717e2c31c4"
+  integrity sha512-42RWCsXMNuhpX+d/hwr5aHj+HWyi5ltbc0R0xdiUnAmqSB7CHbWxDDLh4+DbmqPrN9pTeYvpPGp3v/CG2vuGBg==
 
-"@mantine/tiptap@^7.17.1":
-  version "7.17.4"
-  resolved "https://registry.yarnpkg.com/@mantine/tiptap/-/tiptap-7.17.4.tgz#15c5f0c9e1c6adfe73b9d407a9063dbdf744e395"
-  integrity sha512-5r6dPzw3rfcU6W+zrT06N5cFaISDwYmvVemqz1hXX1cNj7Y9UOb3ymH6lmmXsyqroUv+bHurbi/SlcYd8R0YIA==
+"@mantine/tiptap@^8.0.0":
+  version "8.0.0"
+  resolved "https://registry.yarnpkg.com/@mantine/tiptap/-/tiptap-8.0.0.tgz#1f65cce795f124b4b4bfef72bd51b8cf920c1d17"
+  integrity sha512-45GVrwyLWzQl+lXfHpNYvX/qIDCamLyvQnyEpBpyBEdkxEiSeu9dCqE0WF159uST6QsODPMktPPgdzPvcc0psQ==
 
 "@nicolo-ribaudo/eslint-scope-5-internals@5.1.1-v1":
   version "5.1.1-v1"
@@ -3765,17 +3765,23 @@ electron-to-chromium@^1.5.41:
   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.47.tgz#ef0751bc19b28be8ee44cd8405309de3bf3b20c7"
   integrity sha512-zS5Yer0MOYw4rtK2iq43cJagHZ8sXN0jDHDKzB+86gSBSAI4v07S97mcq+Gs2vclAxSh1j7vOAHxSVgduiiuVQ==
 
-embla-carousel-react@^7.1.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/embla-carousel-react/-/embla-carousel-react-7.1.0.tgz#e716f4df7fd31f7ca3e59a3e011158167bc3c468"
-  integrity sha512-tbYRPRZSDNd2QLNqYDcArAakGIxtUbhS7tkP0dGXktXHGgcX+3ji3VrOUTOftBiujZrMV8kRxtrRUe/1soloIQ==
+embla-carousel-react@^8.6.0:
+  version "8.6.0"
+  resolved "https://registry.yarnpkg.com/embla-carousel-react/-/embla-carousel-react-8.6.0.tgz#b737042a32761c38d6614593653b3ac619477bd1"
+  integrity sha512-0/PjqU7geVmo6F734pmPqpyHqiM99olvyecY7zdweCw+6tKEXnrE90pBiBbMMU8s5tICemzpQ3hi5EpxzGW+JA==
   dependencies:
-    embla-carousel "7.1.0"
+    embla-carousel "8.6.0"
+    embla-carousel-reactive-utils "8.6.0"
 
-embla-carousel@7.1.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/embla-carousel/-/embla-carousel-7.1.0.tgz#c770dd3ade9285a97f5e3b6bbf705bc35ec0f9b5"
-  integrity sha512-Bh8Pa8NWzgugLkf8sAGexQlBCNDFaej5BXiKgQdRJ1mUC9NWBrw9Z23YVPVGkguWoz5LMjZXXFVGCobl3UPt/Q==
+embla-carousel-reactive-utils@8.6.0:
+  version "8.6.0"
+  resolved "https://registry.yarnpkg.com/embla-carousel-reactive-utils/-/embla-carousel-reactive-utils-8.6.0.tgz#607f1d8ab9921c906a555c206251b2c6db687223"
+  integrity sha512-fMVUDUEx0/uIEDM0Mz3dHznDhfX+znCCDCeIophYb1QGVM7YThSWX+wz11zlYwWFOr74b4QLGg0hrGPJeG2s4A==
+
+embla-carousel@8.6.0:
+  version "8.6.0"
+  resolved "https://registry.yarnpkg.com/embla-carousel/-/embla-carousel-8.6.0.tgz#abcedff2bff36992ea8ac27cd30080ca5b6a3f58"
+  integrity sha512-SjWyZBHJPbqxHOzckOfo8lHisEaJWmwd23XppYFYVh10bU66/Pn5tkVkbkCMZVdbUE5eTCI2nD8OyIP4Z+uwkA==
 
 emittery@^0.13.1:
   version "0.13.1"
