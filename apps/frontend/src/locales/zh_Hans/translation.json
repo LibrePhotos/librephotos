@@ -318,7 +318,8 @@
             "withouttimestamp": "不带时间戳",
             "invalidtimestamp": "无效的时间戳",
             "removetimestamp": "移除时间戳",
-            "undotimestampmodification": "撤销时间戳修改"
+            "undotimestampmodification": "撤销时间戳修改",
+            "places": "位置"
         }
     },
     "photos": {
@@ -441,7 +442,8 @@
     "autoalbumgallery": {
         "showmap": "显示地图",
         "hidemap": "隐藏地图",
-        "day": "日期 {{day}}"
+        "day": "日期 {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} 个人",
