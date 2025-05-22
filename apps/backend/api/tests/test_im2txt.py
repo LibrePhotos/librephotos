@@ -107,18 +107,18 @@ class Im2TxtBenchmark(TestCase):
         )
 
         if not os.path.exists(self.coco_fixture_path):
-            logger.warn(
+            logger.warning(
                 f"Skipping tests. Directory not found: {self.coco_fixture_path}. Please add a coco folder to the fixtures directory."
             )
             self.skipTest("Directory not found")
 
         if not os.path.exists(self.val2017_fixture_path):
-            logger.warn(
+            logger.warning(
                 f"Skipping tests. Directory not found: {self.val2017_fixture_path}. Validation images are required for the COCO benchmark. Please download the COCO validation images and place them in the fixtures/coco/val2017 directory."
             )
             self.skipTest("Directory not found")
         if not os.path.exists(self.val2017captions_fixture_path):
-            logger.warn(
+            logger.warning(
                 f"Skipping tests. Directory not found: {self.val2017captions_fixture_path}. Captions of Validation images are required for the COCO benchmark. Please download the COCO validation images and place them in the fixtures/coco/ directory."
             )
             self.skipTest("Directory not found")
