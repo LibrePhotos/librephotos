@@ -401,7 +401,14 @@ class GeneratePhotoCaption(APIView):
             )
 
         res = photo._generate_captions_im2txt()
-        return Response({"status": res})
+        
+        if res:
+            return Response({"status": True})
+        else:
+            return Response(
+                {"status": False, "message": "Failed to generate caption. Check service logs for details."}, 
+                status=500
+            )
 
 
 class SavePhotoCaption(APIView):
