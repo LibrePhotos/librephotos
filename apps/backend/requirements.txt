@@ -48,3 +48,7 @@ timm==1.0.15
 transformers==4.51.3
 # Dependencies for mistral quantized
 llama-cpp-python==0.3.9
+# Dependencies for moondream
+accelerate==0.20.3
+einops==0.6.1
+torchao
