@@ -91,8 +91,11 @@ def create_test_face(
 
 
 def create_test_user(is_admin=False, public_sharing=False, **kwargs):
+    import uuid
+    # Ensure unique username by appending UUID
+    username = fake.user_name() + str(uuid.uuid4())[:8]
     return User.objects.create(
-        username=fake.user_name(),
+        username=username,
         first_name=fake.first_name(),
         last_name=fake.last_name(),
         email=fake.email(),
@@ -106,10 +109,24 @@ def create_test_user(is_admin=False, public_sharing=False, **kwargs):
 
 def create_test_photo(**kwargs):
     from api.models.thumbnail import Thumbnail
+    from api.models.photo_caption import PhotoCaption
+    from api.models.photo_search import PhotoSearch
     
     pk = fake.md5()
-    # Remove aspect_ratio from kwargs as it's now on Thumbnail model
+    
+    # Extract fields that are no longer part of Photo model
     aspect_ratio = kwargs.pop("aspect_ratio", 1)
+    thumbnail_big = kwargs.pop("thumbnail_big", f"/tmp/{pk}_big.jpg")
+    square_thumbnail = kwargs.pop("square_thumbnail", f"/tmp/{pk}_square.jpg")
+    square_thumbnail_small = kwargs.pop("square_thumbnail_small", f"/tmp/{pk}_square_small.jpg")
+    dominant_color = kwargs.pop("dominant_color", None)
+    
+    # Extract caption and search fields
+    captions_json = kwargs.pop("captions_json", None)
+    search_captions = kwargs.pop("search_captions", None)
+    search_location = kwargs.pop("search_location", None)
+    
+    # Create the photo with remaining kwargs
     photo = Photo(pk=pk, image_hash=pk, **kwargs)
     file = create_test_file(f"/tmp/{pk}.png", photo.owner, ONE_PIXEL_PNG)
     photo.main_file = file
@@ -121,10 +138,26 @@ def create_test_photo(**kwargs):
     thumbnail = Thumbnail.objects.create(
         photo=photo,
         aspect_ratio=aspect_ratio,
-        thumbnail_big=f"/tmp/{pk}_big.jpg",
-        square_thumbnail=f"/tmp/{pk}_square.jpg",
-        square_thumbnail_small=f"/tmp/{pk}_square_small.jpg"
+        thumbnail_big=thumbnail_big,
+        square_thumbnail=square_thumbnail,
+        square_thumbnail_small=square_thumbnail_small,
+        dominant_color=dominant_color
     )
+    
+    # Create PhotoCaption if captions_json is provided
+    if captions_json is not None:
+        PhotoCaption.objects.create(
+            photo=photo,
+            captions_json=captions_json
+        )
+    
+    # Create PhotoSearch if search fields are provided
+    if search_captions is not None or search_location is not None:
+        PhotoSearch.objects.create(
+            photo=photo,
+            search_captions=search_captions,
+            search_location=search_location
+        )
     
     return photo
 

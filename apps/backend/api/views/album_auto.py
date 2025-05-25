@@ -84,8 +84,8 @@ class AlbumAutoListViewSet(ListViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [
-        "photos__search_captions",
-        "photos__search_location",
+        "photos__search_instance__search_captions",
+        "photos__search_instance__search_location",
         "photos__faces__person__name",
     ]
 

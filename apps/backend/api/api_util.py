@@ -849,8 +849,10 @@ def get_searchterms_wordcloud(user):
     out = {"captions": [], "people": [], "locations": []}
     query["captions"] = """
         with captionList as (
-            select unnest(regexp_split_to_array(search_captions,' , ')) caption
-            from api_photo where owner_id = %(userid)s
+            select unnest(regexp_split_to_array(api_photo_search.search_captions,' , ')) caption
+            from api_photo 
+            left join api_photo_search on api_photo.image_hash = api_photo_search.photo_id
+            where api_photo.owner_id = %(userid)s and api_photo_search.search_captions is not null
         )
         select caption, count(*) from captionList group by caption order by count(*) desc limit 100;
     """

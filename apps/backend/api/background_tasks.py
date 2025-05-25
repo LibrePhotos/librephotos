@@ -1,4 +1,5 @@
 from tqdm import tqdm
+from django.db import models
 
 from api.models import Photo
 from api.util import logger
@@ -8,7 +9,11 @@ def generate_captions(overwrite=False):
     if overwrite:
         photos = Photo.objects.all()
     else:
-        photos = Photo.objects.filter(search_captions=None)
+        # Find photos that don't have search captions in PhotoSearch model
+        photos = Photo.objects.filter(
+            models.Q(search_instance__isnull=True) | 
+            models.Q(search_instance__search_captions__isnull=True)
+        )
     logger.info("%d photos to be processed for caption generation" % photos.count())
     for photo in photos:
         logger.info("generating captions for %s" % photo.main_file.path)

@@ -45,10 +45,12 @@ class PhotoSearch(models.Model):
                 search_captions += environment + " "
 
                 user_caption = captions_json.get("user_caption", "")
-                search_captions += user_caption + " "
+                if user_caption:
+                    search_captions += user_caption + " "
 
                 im2txt_caption = captions_json.get("im2txt", "")
-                search_captions += im2txt_caption + " "
+                if im2txt_caption:
+                    search_captions += im2txt_caption + " "
 
         # Add face/person names
         for face in api.models.face.Face.objects.filter(photo=self.photo).all():
@@ -80,8 +82,13 @@ class PhotoSearch(models.Model):
         """Update search location from geolocation data"""
         if geolocation_json and "address" in geolocation_json:
             self.search_location = geolocation_json["address"]
+        elif geolocation_json and "features" in geolocation_json:
+            # Handle features format used in tests
+            features = geolocation_json["features"]
+            location_parts = [feature.get("text", "") for feature in features if feature.get("text")]
+            self.search_location = ", ".join(location_parts) if location_parts else ""
         else:
-            self.search_location = None
+            self.search_location = ""
         
         util.logger.debug(
             f"Updated search location for image {self.photo.image_hash}: {self.search_location}"

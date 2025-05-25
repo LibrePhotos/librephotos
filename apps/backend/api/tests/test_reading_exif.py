@@ -34,10 +34,15 @@ class ReadFacesFromPhotosTest(TestCase):
         fileObject = File.create("/tmp/" + str(photo.pk) + ".jpg", self.user1)
         photo.main_file = fileObject
         photo.added_on = timezone.now()
-        photo.thumbnail.thumbnail_big = (
-            "/protected_media/thumbnails_big/" + str(photo.pk) + ".jpg"
-        )
         photo.save()
+        
+        # Create thumbnail for the photo
+        from api.models.thumbnail import Thumbnail
+        Thumbnail.objects.create(
+            photo=photo,
+            thumbnail_big="/protected_media/thumbnails_big/" + str(photo.pk) + ".jpg",
+            aspect_ratio=1.0
+        )
 
         photo._extract_faces()
 

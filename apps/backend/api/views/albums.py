@@ -356,13 +356,14 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                     queryset=File.objects.only("hash"),
                 ),
             )
+            .select_related("search_instance")
             .order_by("-exif_timestamp")
             .only(
                 "image_hash",
                 "thumbnail__aspect_ratio",
                 "video",
                 "main_file",
-                "search_location",
+                "search_instance__search_location",
                 "thumbnail__dominant_color",
                 "public",
                 "rating",
@@ -424,8 +425,8 @@ class AlbumDateListViewSet(ListViewSet):
     pagination_class = None
     filter_backends = (filters.SearchFilter,)
     search_fields = [
-        "photos__search_captions",
-        "photos__search_location",
+        "photos__search_instance__search_captions",
+        "photos__search_instance__search_location",
         "photos__faces__person__name",
     ]
 
