@@ -6,7 +6,6 @@ import {
   Text,
   Title,
   Tooltip,
-  Button,
 } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import "@mantine/tiptap/styles.css";
@@ -18,8 +17,10 @@ import { Text as TipTapText } from "@tiptap/extension-text";
 import { useEditor } from "@tiptap/react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "@tanstack/react-router";
 
 import type { Photo as PhotoType } from "../../api_client/photos/types";
+import { AISuggestionButton } from "./AISuggestionButton";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
 import {
   useGenerateImageToTextCaptionMutation,
@@ -37,6 +38,7 @@ type Props = Readonly<{
 export function Description(props: Props) {
   const { t } = useTranslation();
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
+  const navigate = useNavigate();
 
   const { photoDetail, isPublic } = props;
 
@@ -103,23 +105,13 @@ export function Description(props: Props) {
             editMode &&
             !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
               <div>
-                <Group gap="sm" style={{ paddingBottom: 12 }}>
-                  <Wand color="grey" size={20} />
-                  <Text size="sm" color="dimmed">
-                    {t("lightbox.sidebar.suggestedcaption")}
-                  </Text>
-                </Group>
-                <Button
-                  variant="subtle"
-                  color="gray"
-                  fullWidth
+                <AISuggestionButton
+                  suggestion={photoDetail.captions_json?.im2txt || ""}
                   onClick={() => {
                     editor?.commands.setContent(photoDetail.captions_json?.im2txt || "");
                     setImageCaption(photoDetail.captions_json?.im2txt || "");
                   }}
-                >
-                  {photoDetail.captions_json?.im2txt}
-                </Button>
+                />
               </div>
             )}
         </Stack>
@@ -204,7 +196,7 @@ export function Description(props: Props) {
                   key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
                   color="blue"
                   onClick={() => {
-                    dispatch(push(`/search/${nc}`));
+                    navigate({ to: `/search/${nc}` });
                   }}
                 >
                   {nc}
@@ -219,7 +211,7 @@ export function Description(props: Props) {
                   key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
                   color="teal"
                   onClick={() => {
-                    dispatch(push(`/search/${nc}`));
+                    navigate({ to: `/search/${nc}` });
                   }}
                 >
                   {nc}

@@ -1,0 +1,94 @@
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.aiSuggestionButton {
+  width: 100%;
+  height: auto;
+  min-height: 40px;
+  padding: 3px;
+  border-radius: 0.5rem;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: conic-gradient(
+    from var(--angle),
+    #8b45ff,
+    #3b82f6,
+    #06b6d4,
+    #10b981,
+    #f59e0b,
+    #ef4444,
+    #8b45ff
+  );
+  animation: borderRotate 3s linear infinite;
+}
+.aiSuggestionButton::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  background: var(--mantine-color-white);
+  border-radius: calc(0.5rem - 3px);
+  z-index: 0;
+}
+
+[data-mantine-color-scheme="dark"] .aiSuggestionButton::before {
+  background: var(--mantine-color-dark-7);
+}
+
+.aiSuggestionButton:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 8px 25px rgba(139, 69, 255, 0.4), 0 0 20px rgba(139, 69, 255, 0.3);
+  animation: borderRotate 1.5s linear infinite;
+}
+
+.aiSuggestionButtonInner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  padding: 7px 13px;
+  color: var(--mantine-color-dark-9);
+}
+
+[data-mantine-color-scheme="dark"] .aiSuggestionButtonInner {
+  color: var(--mantine-color-white);
+}
+
+.aiSuggestionButtonLabel {
+  white-space: normal;
+  text-align: left;
+  line-height: 1.4;
+  word-break: break-word;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+  color: var(--mantine-color-dark-9);
+}
+
+[data-mantine-color-scheme="dark"] .aiSuggestionButtonLabel {
+  color: var(--mantine-color-white);
+}
+
+@keyframes borderRotate {
+  to {
+    --angle: 360deg;
+  }
+}
+
+/* Fallback for browsers that don't support @property */
+@supports not (background: conic-gradient(from 0deg, red, blue)) {
+  .aiSuggestionButton {
+    background: linear-gradient(45deg, #8b45ff, #3b82f6);
+    border: 2px solid;
+    border-image: linear-gradient(45deg, #8b45ff, #3b82f6, #06b6d4, #10b981) 1;
+  }
+} 

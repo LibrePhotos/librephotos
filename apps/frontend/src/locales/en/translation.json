@@ -335,7 +335,8 @@
       "invalidtimestamp": "Invalid timestamp",
       "removetimestamp": "Remove timestamp",
       "undotimestampmodification": "Undo timestamp modification",
-      "places": "Places"
+      "places": "Places",
+      "suggestedcaption": "Suggested caption"
     }
   },
   "exif": {
