@@ -15,15 +15,15 @@ class PhotoModelIntegrationTest(TestCase):
         """Test that Photo properties delegate to PhotoCaption model"""
         # Initially no caption instance
         self.assertIsNone(self.photo.captions_json)
-        
+
         # Setting captions_json should create PhotoCaption instance
         self.photo.captions_json = {"user_caption": "Test caption"}
-        
+
         # Verify PhotoCaption was created
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
         caption = PhotoCaption.objects.get(photo=self.photo)
         self.assertEqual(caption.captions_json["user_caption"], "Test caption")
-        
+
         # Verify property returns the value
         self.assertEqual(self.photo.captions_json["user_caption"], "Test caption")
 
@@ -32,20 +32,20 @@ class PhotoModelIntegrationTest(TestCase):
         # Initially no search instance
         self.assertIsNone(self.photo.search_captions)
         self.assertIsNone(self.photo.search_location)
-        
+
         # Setting search properties should create PhotoSearch instance
         self.photo.search_captions = "outdoor nature"
         self.photo.search_location = "New York"
-        
+
         # Verify PhotoSearch was created
         self.assertTrue(PhotoSearch.objects.filter(photo=self.photo).exists())
         search = PhotoSearch.objects.get(photo=self.photo)
         self.assertEqual(search.search_captions, "outdoor nature")
         self.assertEqual(search.search_location, "New York")
-        
+
         # Refresh photo instance to get updated properties
         self.photo.refresh_from_db()
-        
+
         # Verify properties return the values
         self.assertEqual(self.photo.search_captions, "outdoor nature")
         self.assertEqual(self.photo.search_location, "New York")
@@ -55,7 +55,7 @@ class PhotoModelIntegrationTest(TestCase):
         # Test _save_captions method - this will fail due to thumbnail requirement
         # but we can test that it creates the PhotoCaption instance
         result = self.photo._save_captions(caption="My test caption")
-        
+
         # The method should return False due to missing thumbnail but still create instance
         self.assertFalse(result)
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
@@ -64,10 +64,10 @@ class PhotoModelIntegrationTest(TestCase):
         """Test that Photo search methods delegate to PhotoSearch"""
         # Create some caption data first
         self.photo.captions_json = {"user_caption": "Beautiful landscape"}
-        
+
         # Test _recreate_search_captions method
         self.photo._recreate_search_captions()
-        
+
         # Verify PhotoSearch was created and search captions updated
         self.assertTrue(PhotoSearch.objects.filter(photo=self.photo).exists())
         search = PhotoSearch.objects.get(photo=self.photo)
@@ -80,22 +80,22 @@ class PhotoModelIntegrationTest(TestCase):
             "features": [
                 {"text": "Central Park"},
                 {"text": "New York"},
-                {"text": "USA"}
+                {"text": "USA"},
             ]
         }
-        
+
         # Set geolocation_json on photo
         self.photo.geolocation_json = geolocation_data
         self.photo.save()
-        
+
         # Manually trigger the search location update part
         search_instance = self.photo._get_or_create_search_instance()
         search_instance.update_search_location(geolocation_data)
         search_instance.save()
-        
+
         # Refresh to get updated data
         self.photo.refresh_from_db()
-        
+
         # Verify search location was updated
         self.assertIn("Central Park", self.photo.search_location)
         self.assertIn("New York", self.photo.search_location)
@@ -106,16 +106,16 @@ class PhotoModelIntegrationTest(TestCase):
         # Create related instances
         self.photo.captions_json = {"user_caption": "Test"}
         self.photo.search_captions = "test search"
-        
+
         # Verify instances exist
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
         self.assertTrue(PhotoSearch.objects.filter(photo=self.photo).exists())
-        
+
         photo_id = self.photo.image_hash
-        
+
         # Delete photo
         self.photo.delete()
-        
+
         # Verify related instances were deleted
         self.assertFalse(PhotoCaption.objects.filter(photo_id=photo_id).exists())
         self.assertFalse(PhotoSearch.objects.filter(photo_id=photo_id).exists())
@@ -125,24 +125,24 @@ class PhotoModelIntegrationTest(TestCase):
         # Initially no related instances
         self.assertFalse(PhotoCaption.objects.filter(photo=self.photo).exists())
         self.assertFalse(PhotoSearch.objects.filter(photo=self.photo).exists())
-        
+
         # Accessing properties should not create instances if they don't exist
         captions = self.photo.captions_json
         search_captions = self.photo.search_captions
         search_location = self.photo.search_location
-        
+
         self.assertIsNone(captions)
         self.assertIsNone(search_captions)
         self.assertIsNone(search_location)
-        
+
         # Still no instances should be created
         self.assertFalse(PhotoCaption.objects.filter(photo=self.photo).exists())
         self.assertFalse(PhotoSearch.objects.filter(photo=self.photo).exists())
-        
+
         # Setting properties should create instances
         self.photo.captions_json = {"test": "value"}
         self.photo.search_captions = "test"
-        
+
         # Now instances should exist
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
         self.assertTrue(PhotoSearch.objects.filter(photo=self.photo).exists())
@@ -152,14 +152,14 @@ class PhotoModelIntegrationTest(TestCase):
         # Test caption instance creation
         caption_instance1 = self.photo._get_or_create_caption_instance()
         caption_instance2 = self.photo._get_or_create_caption_instance()
-        
+
         # Should return the same instance (using photo_id as primary key)
         self.assertEqual(caption_instance1.photo_id, caption_instance2.photo_id)
-        
+
         # Test search instance creation
         search_instance1 = self.photo._get_or_create_search_instance()
         search_instance2 = self.photo._get_or_create_search_instance()
-        
+
         # Should return the same instance (using photo_id as primary key)
         self.assertEqual(search_instance1.photo_id, search_instance2.photo_id)
 
@@ -167,7 +167,7 @@ class PhotoModelIntegrationTest(TestCase):
         """Test a complex workflow involving all models"""
         # 1. Add user caption (will fail due to thumbnail but creates instance)
         self.photo._save_captions(caption="My vacation photo")
-        
+
         # 2. Add places365 data directly
         caption_instance = self.photo._get_or_create_caption_instance()
         caption_instance.captions_json = {
@@ -175,30 +175,26 @@ class PhotoModelIntegrationTest(TestCase):
             "places365": {
                 "categories": ["outdoor", "beach"],
                 "attributes": ["sunny", "natural"],
-                "environment": "outdoor"
-            }
+                "environment": "outdoor",
+            },
         }
         caption_instance.save()
-        
+
         # 3. Recreate search captions
         self.photo._recreate_search_captions()
-        
+
         # 4. Add geolocation
         geolocation_data = {
-            "features": [
-                {"text": "Miami Beach"},
-                {"text": "Florida"},
-                {"text": "USA"}
-            ]
+            "features": [{"text": "Miami Beach"}, {"text": "Florida"}, {"text": "USA"}]
         }
         self.photo.geolocation_json = geolocation_data
         search_instance = self.photo._get_or_create_search_instance()
         search_instance.update_search_location(geolocation_data)
         search_instance.save()
-        
+
         # Refresh to get updated data
         self.photo.refresh_from_db()
-        
+
         # Verify final state
         self.assertEqual(self.photo.captions_json["user_caption"], "My vacation photo")
         self.assertIn("outdoor", self.photo.search_captions)
@@ -210,7 +206,7 @@ class PhotoModelIntegrationTest(TestCase):
         """Test error handling in property getters"""
         # Test when related instances don't exist and there's an error
         photo = create_test_photo(owner=self.user)
-        
+
         # These should return None gracefully, not raise exceptions
         self.assertIsNone(photo.captions_json)
         self.assertIsNone(photo.search_captions)
@@ -221,24 +217,24 @@ class PhotoModelIntegrationTest(TestCase):
         # Create instances using the old-style approach (through properties)
         self.photo.captions_json = {
             "user_caption": "Test caption",
-            "im2txt": "Generated caption"
+            "im2txt": "Generated caption",
         }
         self.photo.search_captions = "test search terms"
         self.photo.search_location = "Test Location"
-        
+
         # Refresh to get updated data
         self.photo.refresh_from_db()
-        
+
         # Verify data is accessible through properties
         self.assertEqual(self.photo.captions_json["user_caption"], "Test caption")
         self.assertEqual(self.photo.captions_json["im2txt"], "Generated caption")
         self.assertEqual(self.photo.search_captions, "test search terms")
         self.assertEqual(self.photo.search_location, "Test Location")
-        
+
         # Verify data is stored in the correct models
         caption = PhotoCaption.objects.get(photo=self.photo)
         search = PhotoSearch.objects.get(photo=self.photo)
-        
+
         self.assertEqual(caption.captions_json["user_caption"], "Test caption")
         self.assertEqual(search.search_captions, "test search terms")
         self.assertEqual(search.search_location, "Test Location")
@@ -253,13 +249,14 @@ class PhotoModelIntegrationTest(TestCase):
         """Test that using search_instance__search_location in queryset .only() works"""
         # Create a photo with search data
         self.photo.search_location = "New York"
-        
+
         # This should work because we're accessing through the related model
-        photos = list(Photo.objects.select_related('search_instance').only(
-            "image_hash", 
-            "search_instance__search_location"
-        ).filter(image_hash=self.photo.image_hash))
-        
+        photos = list(
+            Photo.objects.select_related("search_instance")
+            .only("image_hash", "search_instance__search_location")
+            .filter(image_hash=self.photo.image_hash)
+        )
+
         # Should be able to access the data
         self.assertEqual(len(photos), 1)
         # Note: accessing search_location property will still work even with .only()
@@ -267,18 +264,20 @@ class PhotoModelIntegrationTest(TestCase):
 
     def test_album_date_queryset_works(self):
         """Test that the album date queryset works with the fixed field references"""
-        
+
         # Create a photo with search data
         self.photo.search_location = "New York"
         self.photo.search_captions = "outdoor nature"
-        
+
         # Create an album date and add the photo to it
         album_date = AlbumDate.objects.create(
-            date=self.photo.exif_timestamp.date() if self.photo.exif_timestamp else timezone.now().date(),
-            owner=self.user
+            date=self.photo.exif_timestamp.date()
+            if self.photo.exif_timestamp
+            else timezone.now().date(),
+            owner=self.user,
         )
         album_date.photos.add(self.photo)
-        
+
         # This should work with the corrected field references
         photo_qs = (
             album_date.photos.all()
@@ -289,7 +288,7 @@ class PhotoModelIntegrationTest(TestCase):
                 "exif_timestamp",
             )
         )
-        
+
         photos = list(photo_qs)
         self.assertEqual(len(photos), 1)
-        self.assertEqual(photos[0].search_location, "New York") 
+        self.assertEqual(photos[0].search_location, "New York")

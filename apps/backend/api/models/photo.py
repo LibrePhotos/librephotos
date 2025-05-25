@@ -6,7 +6,6 @@ from io import BytesIO
 
 import numpy as np
 import PIL
-import requests
 from django.contrib.postgres.fields import ArrayField
 from django.core.files.base import ContentFile
 from django.db import models
@@ -18,8 +17,6 @@ from api import date_time_extractor, face_extractor, util
 from api.exif_tags import Tags
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.image_captioning import generate_caption
-from api.llm import generate_prompt
 from api.models.file import File
 from api.models.user import User, get_deleted_user
 from api.util import get_metadata, logger
@@ -102,9 +99,9 @@ class Photo(models.Model):
         """Property to access captions_json from PhotoCaption model"""
         try:
             return self.caption_instance.captions_json
-        except:
+        except AttributeError:
             return None
-    
+
     @captions_json.setter
     def captions_json(self, value):
         """Setter to update captions_json in PhotoCaption model"""
@@ -112,14 +109,14 @@ class Photo(models.Model):
         caption_instance.captions_json = value
         caption_instance.save()
 
-    @property 
+    @property
     def search_captions(self):
         """Property to access search_captions from PhotoSearch model"""
         try:
             return self.search_instance.search_captions
-        except:
+        except AttributeError:
             return None
-            
+
     @search_captions.setter
     def search_captions(self, value):
         """Setter to update search_captions in PhotoSearch model"""
@@ -132,9 +129,9 @@ class Photo(models.Model):
         """Property to access search_location from PhotoSearch model"""
         try:
             return self.search_instance.search_location
-        except:
+        except AttributeError:
             return None
-            
+
     @search_location.setter
     def search_location(self, value):
         """Setter to update search_location in PhotoSearch model"""
@@ -193,12 +190,14 @@ class Photo(models.Model):
     def _get_or_create_caption_instance(self):
         """Get or create PhotoCaption instance for this photo"""
         from api.models.photo_caption import PhotoCaption
+
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
         return caption_instance
 
     def _get_or_create_search_instance(self):
         """Get or create PhotoSearch instance for this photo"""
         from api.models.photo_search import PhotoSearch
+
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self)
         return search_instance
 
@@ -334,7 +333,7 @@ class Photo(models.Model):
             return
 
         self.geolocation_json = res
-        
+
         # Update search location through PhotoSearch model
         search_instance = self._get_or_create_search_instance()
         search_instance.update_search_location(res)

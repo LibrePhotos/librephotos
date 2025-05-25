@@ -206,7 +206,11 @@ def get_search_term_examples(user):
     for p in samples:
         faces = p.faces.all()
         terms_loc = ""
-        if p.geolocation_json and p.geolocation_json != {} and "features" in p.geolocation_json:
+        if (
+            p.geolocation_json
+            and p.geolocation_json != {}
+            and "features" in p.geolocation_json
+        ):
             terms_loc = [
                 f["text"]
                 for f in p.geolocation_json["features"][-5:]
@@ -221,9 +225,12 @@ def get_search_term_examples(user):
                 f.person.name.split(" ")[0] if f.person else "" for f in faces
             ]
         terms_things = ""
-        if (hasattr(p, 'caption_instance') and p.caption_instance and 
-            p.caption_instance.captions_json and 
-            p.caption_instance.captions_json.get("places365") is not None):
+        if (
+            hasattr(p, "caption_instance")
+            and p.caption_instance
+            and p.caption_instance.captions_json
+            and p.caption_instance.captions_json.get("places365") is not None
+        ):
             terms_things = p.caption_instance.captions_json["places365"]["categories"]
 
         terms = {
@@ -348,7 +355,8 @@ def get_server_stats():
         # number_of_files = File.objects.filter(Q(owner=user)).count()
         # Number of Captions
         number_of_captions = Photo.objects.filter(
-            Q(owner=user) & Q(caption_instance__captions_json__user_caption__isnull=False)
+            Q(owner=user)
+            & Q(caption_instance__captions_json__user_caption__isnull=False)
         ).count()
         # Number of Generated Captions
         number_of_generated_captions = Photo.objects.filter(

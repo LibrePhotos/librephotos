@@ -11,8 +11,8 @@ def generate_captions(overwrite=False):
     else:
         # Find photos that don't have search captions in PhotoSearch model
         photos = Photo.objects.filter(
-            models.Q(search_instance__isnull=True) | 
-            models.Q(search_instance__search_captions__isnull=True)
+            models.Q(search_instance__isnull=True)
+            | models.Q(search_instance__search_captions__isnull=True)
         )
     logger.info("%d photos to be processed for caption generation" % photos.count())
     for photo in photos:

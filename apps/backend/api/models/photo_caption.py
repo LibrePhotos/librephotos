@@ -1,6 +1,3 @@
-import json
-
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Q
 
@@ -13,20 +10,20 @@ from api.models.user import User
 
 class PhotoCaption(models.Model):
     """Model for handling image captions and related functionality"""
-    
+
     photo = models.OneToOneField(
-        'Photo', 
-        on_delete=models.CASCADE, 
-        related_name='caption_instance', 
-        primary_key=True
+        "Photo",
+        on_delete=models.CASCADE,
+        related_name="caption_instance",
+        primary_key=True,
     )
     captions_json = models.JSONField(blank=True, null=True, db_index=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'api_photo_caption'
+        db_table = "api_photo_caption"
 
     def __str__(self):
         return f"Captions for {self.photo.image_hash}"
@@ -34,14 +31,16 @@ class PhotoCaption(models.Model):
     def generate_captions_im2txt(self, commit=True):
         """Generate im2txt captions for the photo"""
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
-            util.logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
+            util.logger.warning(
+                f"No thumbnail available for photo {self.photo.image_hash}"
+            )
             return False
-            
+
         image_path = self.photo.thumbnail.thumbnail_big.path
         if self.captions_json is None:
             self.captions_json = {}
         captions = self.captions_json
-        
+
         try:
             from constance import config as site_config
 
@@ -51,14 +50,14 @@ class PhotoCaption(models.Model):
 
             if site_config.CAPTIONING_MODEL == "moondream":
                 return self._generate_captions_moondream(commit=commit)
-            
+
             blip = False
             if site_config.CAPTIONING_MODEL == "blip_base_capfilt_large":
                 blip = True
 
             caption = generate_caption(image_path=image_path, blip=blip)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
-            
+
             settings = User.objects.get(username=self.photo.owner).llm_settings
             if site_config.LLM_MODEL != "None" and settings["enabled"]:
                 face = api.models.Face.objects.filter(photo=self.photo).first()
@@ -89,7 +88,7 @@ class PhotoCaption(models.Model):
             self.recreate_search_captions()
             if commit:
                 self.save()
-                
+
             util.logger.info(
                 f"generated im2txt captions for image {image_path} with SiteConfig {site_config.CAPTIONING_MODEL} with Blip: {blip} caption: {caption}"
             )
@@ -103,14 +102,16 @@ class PhotoCaption(models.Model):
     def _generate_captions_moondream(self, commit=True):
         """Generate captions using Moondream with enhanced prompt"""
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
-            util.logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
+            util.logger.warning(
+                f"No thumbnail available for photo {self.photo.image_hash}"
+            )
             return False
-            
+
         image_path = self.photo.thumbnail.thumbnail_big.path
         if self.captions_json is None:
             self.captions_json = {}
         captions = self.captions_json
-        
+
         try:
             from constance import config as site_config
             from api.image_captioning import generate_caption
@@ -174,18 +175,20 @@ class PhotoCaption(models.Model):
     def save_user_caption(self, caption, commit=True):
         """Save user-provided caption"""
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
-            util.logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
+            util.logger.warning(
+                f"No thumbnail available for photo {self.photo.image_hash}"
+            )
             return False
-            
+
         image_path = self.photo.thumbnail.thumbnail_big.path
         try:
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
-            
+
             if self.captions_json is None:
                 self.captions_json = {}
             self.captions_json["user_caption"] = caption
             self.recreate_search_captions()
-            
+
             if commit:
                 self.save()
 
@@ -202,9 +205,14 @@ class PhotoCaption(models.Model):
 
             for hashtag in hashtags:
                 album_thing = api.models.album_thing.get_album_thing(
-                    title=hashtag, owner=self.photo.owner, thing_type="hashtag_attribute"
+                    title=hashtag,
+                    owner=self.photo.owner,
+                    thing_type="hashtag_attribute",
                 )
-                if album_thing.photos.filter(image_hash=self.photo.image_hash).count() == 0:
+                if (
+                    album_thing.photos.filter(image_hash=self.photo.image_hash).count()
+                    == 0
+                ):
                     album_thing.photos.add(self.photo)
                     album_thing.save()
 
@@ -232,13 +240,14 @@ class PhotoCaption(models.Model):
         if (
             self.captions_json is not None
             and self.captions_json.get("places365") is not None
-            or not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big
+            or not self.photo.thumbnail
+            or not self.photo.thumbnail.thumbnail_big
         ):
             return
 
         try:
             import requests
-            
+
             image_path = self.photo.thumbnail.thumbnail_big.path
             confidence = self.photo.owner.confidence
             json_data = {
@@ -297,4 +306,4 @@ class PhotoCaption(models.Model):
             util.logger.exception(
                 f"could not generate captions for image {self.photo.main_file.path if self.photo.main_file else 'no main file'}"
             )
-            raise e 
+            raise e

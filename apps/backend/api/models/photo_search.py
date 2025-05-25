@@ -6,21 +6,21 @@ from api import util
 
 class PhotoSearch(models.Model):
     """Model for handling photo search functionality"""
-    
+
     photo = models.OneToOneField(
-        'Photo', 
-        on_delete=models.CASCADE, 
-        related_name='search_instance', 
-        primary_key=True
+        "Photo",
+        on_delete=models.CASCADE,
+        related_name="search_instance",
+        primary_key=True,
     )
     search_captions = models.TextField(blank=True, null=True, db_index=True)
     search_location = models.TextField(blank=True, null=True, db_index=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'api_photo_search'
+        db_table = "api_photo_search"
 
     def __str__(self):
         return f"Search data for {self.photo.image_hash}"
@@ -30,7 +30,7 @@ class PhotoSearch(models.Model):
         search_captions = ""
 
         # Get captions from the PhotoCaption model
-        if hasattr(self.photo, 'caption_instance') and self.photo.caption_instance:
+        if hasattr(self.photo, "caption_instance") and self.photo.caption_instance:
             captions_json = self.photo.caption_instance.captions_json
             if captions_json:
                 places365_captions = captions_json.get("places365", {})
@@ -73,7 +73,7 @@ class PhotoSearch(models.Model):
             search_captions += self.photo.lens + " "
 
         self.search_captions = search_captions.strip()
-        
+
         util.logger.debug(
             f"Recreated search captions for image {self.photo.image_hash}."
         )
@@ -85,11 +85,13 @@ class PhotoSearch(models.Model):
         elif geolocation_json and "features" in geolocation_json:
             # Handle features format used in tests
             features = geolocation_json["features"]
-            location_parts = [feature.get("text", "") for feature in features if feature.get("text")]
+            location_parts = [
+                feature.get("text", "") for feature in features if feature.get("text")
+            ]
             self.search_location = ", ".join(location_parts) if location_parts else ""
         else:
             self.search_location = ""
-        
+
         util.logger.debug(
             f"Updated search location for image {self.photo.image_hash}: {self.search_location}"
-        ) 
+        )
