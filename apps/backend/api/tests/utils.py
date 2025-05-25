@@ -105,15 +105,27 @@ def create_test_user(is_admin=False, public_sharing=False, **kwargs):
 
 
 def create_test_photo(**kwargs):
+    from api.models.thumbnail import Thumbnail
+    
     pk = fake.md5()
-    if "aspect_ratio" not in kwargs.keys():
-        kwargs["aspect_ratio"] = 1
+    # Remove aspect_ratio from kwargs as it's now on Thumbnail model
+    aspect_ratio = kwargs.pop("aspect_ratio", 1)
     photo = Photo(pk=pk, image_hash=pk, **kwargs)
     file = create_test_file(f"/tmp/{pk}.png", photo.owner, ONE_PIXEL_PNG)
     photo.main_file = file
     if "added_on" not in kwargs.keys():
         photo.added_on = timezone.now()
     photo.save()
+    
+    # Create thumbnail for the photo
+    thumbnail = Thumbnail.objects.create(
+        photo=photo,
+        aspect_ratio=aspect_ratio,
+        thumbnail_big=f"/tmp/{pk}_big.jpg",
+        square_thumbnail=f"/tmp/{pk}_square.jpg",
+        square_thumbnail_small=f"/tmp/{pk}_square_small.jpg"
+    )
+    
     return photo
 
 

@@ -9,6 +9,8 @@ from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.photo import Photo
+from api.models.photo_caption import PhotoCaption
+from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.models.user import User
 
@@ -23,6 +25,8 @@ __all__ = [
     "LongRunningJob",
     "Person",
     "Photo",
+    "PhotoCaption",
+    "PhotoSearch",
     "Thumbnail",
     "User",
     "File",

@@ -73,7 +73,7 @@ class NoTimestampPhotoViewSet(ListViewSet):
     serializer_class = PhotoSummarySerializer
     pagination_class = RegularResultsSetPagination
     filter_backends = (filters.SearchFilter,)
-    search_fields = ["search_captions", "search_location", "faces__person__name"]
+    search_fields = ["search_instance__search_captions", "search_instance__search_location", "faces__person__name"]
 
     def get_queryset(self):
         return (
@@ -233,8 +233,8 @@ class PhotoViewSet(viewsets.ModelViewSet):
     pagination_class = HugeResultsSetPagination
     filter_backends = (filters.SearchFilter,)
     search_fields = [
-        "search_captions",
-        "search_location",
+        "search_instance__search_captions",
+        "search_instance__search_location",
         "faces__person__name",
         "exif_timestamp",
         "main_file__path",
@@ -401,13 +401,16 @@ class GeneratePhotoCaption(APIView):
             )
 
         res = photo._generate_captions_im2txt()
-        
+
         if res:
             return Response({"status": True})
         else:
             return Response(
-                {"status": False, "message": "Failed to generate caption. Check service logs for details."}, 
-                status=500
+                {
+                    "status": False,
+                    "message": "Failed to generate caption. Check service logs for details.",
+                },
+                status=500,
             )
 
 

@@ -10,16 +10,16 @@ import torch
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.image_captioning import export_onnx, generate_caption, unload_model
+from api.image_captioning import generate_caption, unload_model
 from api.tests.utils import create_test_user
 from api.util import logger
 
 
-def test_coco(testcase, device="cpu", model="im2txt", onnx=False):
+def test_coco(testcase, device="cpu", model="im2txt"):
     from pycocoevalcap.eval import COCOEvalCap
     from pycocotools.coco import COCO
 
-    logger.info(f"{device} {model}" if not onnx else f"{device} {model} onnx")
+    logger.info(f"{device} {model}")
     blip = model == "blip"
 
     # Path to the annotations file
@@ -47,7 +47,7 @@ def test_coco(testcase, device="cpu", model="im2txt", onnx=False):
             + "/fixtures/coco/val2017/"
             + image_info["file_name"]
         )
-        caption = generate_caption(blip=blip, image_path=image, onnx=onnx)
+        caption = generate_caption(blip=blip, image_path=image)
         # The LSTM adds a <start> and <end> token to the generated caption
         caption = caption.replace("<start>", "").replace("<end>", "").strip().lower()
         generated_captions.append({"image_id": image_info["id"], "caption": caption})
@@ -171,7 +171,7 @@ class Im2TxtBenchmark(TestCase):
         file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
         self.gpu_available = "False"
         caption = generate_caption(
-            device=torch.device("cpu"), image_path=file, onnx=False
+            device=torch.device("cpu"), image_path=file
         )
 
         self.assertEqual(
@@ -180,25 +180,13 @@ class Im2TxtBenchmark(TestCase):
 
         logger.info(f"Caption: {caption}")
 
-    @skip
-    def test_im2txt_onnx_cpu(self):
-        file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
-        self.gpu_available = "False"
-        caption = generate_caption(
-            device=torch.device("cpu"), image_path=file, onnx=True
-        )
 
-        self.assertEqual(
-            "<start> a man with a beard is holding a remote control . <end>", caption
-        )
-
-        logger.info(f"Caption: {caption}")
 
     @skip
     def test_im2txt_gpu(self):
         file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
         caption = generate_caption(
-            device=torch.device("cuda"), image_path=file, onnx=False
+            device=torch.device("cuda"), image_path=file
         )
 
         self.assertEqual(
@@ -214,7 +202,7 @@ class Im2TxtBenchmark(TestCase):
 
         for i in range(100):
             caption = generate_caption(
-                device=torch.device("cpu"), image_path=file, onnx=False
+                device=torch.device("cpu"), image_path=file
             )
             self.assertEqual(
                 "<start> a man with a beard is holding a remote control . <end>",
@@ -227,7 +215,7 @@ class Im2TxtBenchmark(TestCase):
 
         for i in range(100):
             caption = generate_caption(
-                device=torch.device("cuda"), image_path=file, onnx=False
+                device=torch.device("cuda"), image_path=file
             )
             self.assertEqual(
                 "<start> a man with a beard is holding a remote control . <end>",
@@ -242,13 +230,7 @@ class Im2TxtBenchmark(TestCase):
     def test_im2txt_coco_gpu(self):
         test_coco(testcase=self, device="cuda", model="im2txt")
 
-    @skip
-    def test_im2txt_coco_cpu_onnx(self):
-        test_coco(self, "cpu", "im2txt", True)
 
-    @skip
-    def test_im2txt_coco_gpu_onnx(self):
-        test_coco(self, "cuda", "im2txt", True)
 
     @skip
     def test_blip_coco_cpu(self):
@@ -258,9 +240,4 @@ class Im2TxtBenchmark(TestCase):
     def test_blip_coco_gpu(self):
         test_coco(self, "cuda", "blip")
 
-    @skip
-    def test_export(self):
-        export_onnx(
-            os.path.dirname(os.path.abspath(__file__)) + "/fixtures/coco/encoder.onnx",
-            os.path.dirname(os.path.abspath(__file__)) + "/fixtures/coco/decoder.onnx",
-        )
+

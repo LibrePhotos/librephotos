@@ -58,10 +58,6 @@ class Photo(models.Model):
     exif_json = models.JSONField(blank=True, null=True)
 
     geolocation_json = models.JSONField(blank=True, null=True, db_index=True)
-    captions_json = models.JSONField(blank=True, null=True, db_index=True)
-
-    search_captions = models.TextField(blank=True, null=True, db_index=True)
-    search_location = models.TextField(blank=True, null=True, db_index=True)
 
     timestamp = models.DateTimeField(blank=True, null=True, db_index=True)
     rating = models.IntegerField(default=0, db_index=True)
@@ -100,6 +96,51 @@ class Photo(models.Model):
     visible = VisiblePhotoManager()
 
     _loaded_values = {}
+
+    @property
+    def captions_json(self):
+        """Property to access captions_json from PhotoCaption model"""
+        try:
+            return self.caption_instance.captions_json
+        except:
+            return None
+    
+    @captions_json.setter
+    def captions_json(self, value):
+        """Setter to update captions_json in PhotoCaption model"""
+        caption_instance = self._get_or_create_caption_instance()
+        caption_instance.captions_json = value
+        caption_instance.save()
+
+    @property 
+    def search_captions(self):
+        """Property to access search_captions from PhotoSearch model"""
+        try:
+            return self.search_instance.search_captions
+        except:
+            return None
+            
+    @search_captions.setter
+    def search_captions(self, value):
+        """Setter to update search_captions in PhotoSearch model"""
+        search_instance = self._get_or_create_search_instance()
+        search_instance.search_captions = value
+        search_instance.save()
+
+    @property
+    def search_location(self):
+        """Property to access search_location from PhotoSearch model"""
+        try:
+            return self.search_instance.search_location
+        except:
+            return None
+            
+    @search_location.setter
+    def search_location(self, value):
+        """Setter to update search_location in PhotoSearch model"""
+        search_instance = self._get_or_create_search_instance()
+        search_instance.search_location = value
+        search_instance.save()
 
     @classmethod
     def from_db(cls, db, field_names, values):
@@ -149,210 +190,43 @@ class Photo(models.Model):
                 self.main_file.path, tags_to_write, use_sidecar=use_sidecar
             )
 
+    def _get_or_create_caption_instance(self):
+        """Get or create PhotoCaption instance for this photo"""
+        from api.models.photo_caption import PhotoCaption
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
+        return caption_instance
+
+    def _get_or_create_search_instance(self):
+        """Get or create PhotoSearch instance for this photo"""
+        from api.models.photo_search import PhotoSearch
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=self)
+        return search_instance
+
     def _generate_captions_im2txt(self, commit=True):
-        image_path = self.thumbnail.thumbnail_big.path
-        captions = self.captions_json
-        try:
-            from constance import config as site_config
+        """Generate im2txt captions for the photo - delegates to PhotoCaption"""
+        caption_instance = self._get_or_create_caption_instance()
+        return caption_instance.generate_captions_im2txt(commit=commit)
 
-            if site_config.CAPTIONING_MODEL == "None":
-                util.logger.info("Generating captions is disabled")
-                return False
-            onnx = False
-            if site_config.CAPTIONING_MODEL == "im2txt_onnx":
-                onnx = True
-            blip = False
-            if site_config.CAPTIONING_MODEL == "blip_base_capfilt_large":
-                blip = True
-
-            caption = generate_caption(image_path=image_path, blip=blip, onnx=onnx)
-            caption = caption.replace("<start>", "").replace("<end>", "").strip()
-            settings = User.objects.get(username=self.owner).llm_settings
-            if site_config.LLM_MODEL != "None" and settings["enabled"]:
-                face = api.models.Face.objects.filter(photo=self).first()
-                person_name = ""
-                if face and settings["add_person"]:
-                    person_name = " Person: " + face.person.name
-                place = ""
-                if self.search_location and settings["add_location"]:
-                    place = " Place: " + self.search_location
-                keywords = ""
-                if settings["add_keywords"]:
-                    keywords = " and tags or keywords"
-                prompt = (
-                    "Q: Your task is to improve the following image caption: "
-                    + caption
-                    + ". You also know the following information about the image:"
-                    + place
-                    + person_name
-                    + ". Stick as closely as possible to the caption, while replacing generic information with information you know about the image. Only output the caption"
-                    + keywords
-                    + ". \n A:"
-                )
-                util.logger.info(prompt)
-                caption = generate_prompt(prompt)
-
-            captions["im2txt"] = caption
-            self.captions_json = captions
-            self._recreate_search_captions()
-            if commit:
-                self.save()
-            util.logger.info(
-                f"generated im2txt captions for image {image_path} with SiteConfig {site_config.CAPTIONING_MODEL} with Blip: {blip} and Onnx: {onnx} caption: {caption}"
-            )
-            return True
-        except Exception:
-            util.logger.exception(
-                f"could not generate im2txt captions for image {image_path}"
-            )
-            return False
+    def _generate_captions_moondream(self, commit=True):
+        """Generate captions using Moondream - delegates to PhotoCaption"""
+        caption_instance = self._get_or_create_caption_instance()
+        return caption_instance._generate_captions_moondream(commit=commit)
 
     def _save_captions(self, commit=True, caption=None):
-        image_path = self.thumbnail.thumbnail_big.path
-        try:
-            caption = caption.replace("<start>", "").replace("<end>", "").strip()
-            self.captions_json["user_caption"] = caption
-            self._recreate_search_captions()
-            if commit:
-                self.save(update_fields=["captions_json", "search_captions"])
-
-            util.logger.info(
-                f"saved captions for image {image_path}. caption: {caption}. captions_json: {self.captions_json}."
-            )
-
-            hashtags = [
-                word
-                for word in caption.split()
-                if word.startswith("#") and len(word) > 1
-            ]
-
-            for hashtag in hashtags:
-                album_thing = api.models.album_thing.get_album_thing(
-                    title=hashtag, owner=self.owner, thing_type="hashtag_attribute"
-                )
-                if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
-                    album_thing.photos.add(self)
-                    album_thing.save()
-
-            for album_thing in api.models.album_thing.AlbumThing.objects.filter(
-                Q(photos__in=[self.image_hash])
-                & Q(thing_type="hashtag_attribute")
-                & Q(owner=self.owner)
-            ).all():
-                if album_thing.title not in caption:
-                    album_thing.photos.remove(self)
-                    album_thing.save()
-            return True
-        except Exception:
-            util.logger.exception(f"could not save captions for image {image_path}")
-            return False
+        """Save user caption - delegates to PhotoCaption"""
+        caption_instance = self._get_or_create_caption_instance()
+        return caption_instance.save_user_caption(caption, commit=commit)
 
     def _recreate_search_captions(self):
-        search_captions = ""
-
-        if self.captions_json:
-            places365_captions = self.captions_json.get("places365", {})
-
-            attributes = places365_captions.get("attributes", [])
-            search_captions += " ".join(attributes) + " "
-
-            categories = places365_captions.get("categories", [])
-            search_captions += " ".join(categories) + " "
-
-            environment = places365_captions.get("environment", "")
-            search_captions += environment + " "
-
-            user_caption = self.captions_json.get("user_caption", "")
-            search_captions += user_caption + " "
-
-        for face in api.models.face.Face.objects.filter(photo=self).all():
-            if face.person:
-                search_captions += face.person.name + " "
-
-        for file in self.files.all():
-            search_captions += file.path + " "
-
-        if self.video:
-            search_captions += "type: video "
-
-        if self.camera:
-            search_captions += self.camera + " "
-
-        if self.lens:
-            search_captions += self.lens + " "
-
-        self.search_captions = search_captions.strip()  # Remove trailing space
-        util.logger.debug(
-            f"Recreated search captions for image {self.thumbnail.thumbnail_big.path}."
-        )
-        self.save()
+        """Recreate search captions - delegates to PhotoSearch"""
+        search_instance = self._get_or_create_search_instance()
+        search_instance.recreate_search_captions()
+        search_instance.save()
 
     def _generate_captions(self, commit):
-        if (
-            self.captions_json is not None
-            and self.captions_json.get("places365") is not None
-            or self.thumbnail.thumbnail_big.name is None
-        ):
-            return
-
-        try:
-            image_path = self.thumbnail.thumbnail_big.path
-            confidence = self.owner.confidence
-            json = {
-                "image_path": image_path,
-                "confidence": confidence,
-            }
-            res_places365 = requests.post(
-                "http://localhost:8011/generate-tags", json=json
-            ).json()["tags"]
-
-            if res_places365 is None:
-                return
-            if self.captions_json is None:
-                self.captions_json = {}
-
-            self.captions_json["places365"] = res_places365
-            self._recreate_search_captions()
-
-            for album_thing in api.models.album_thing.AlbumThing.objects.filter(
-                Q(photos__in=[self.image_hash])
-                & (
-                    Q(thing_type="places365_attribute")
-                    or Q(thing_type="places365_category")
-                )
-                & Q(owner=self.owner)
-            ).all():
-                album_thing.photos.remove(self)
-                album_thing.save()
-
-            if "attributes" in res_places365:
-                for attribute in res_places365["attributes"]:
-                    album_thing = api.models.album_thing.get_album_thing(
-                        title=attribute,
-                        owner=self.owner,
-                        thing_type="places365_attribute",
-                    )
-                    album_thing.photos.add(self)
-                    album_thing.save()
-
-            if "categories" in res_places365:
-                for category in res_places365["categories"]:
-                    album_thing = api.models.album_thing.get_album_thing(
-                        title=category,
-                        owner=self.owner,
-                        thing_type="places365_category",
-                    )
-                    album_thing.photos.add(self)
-                    album_thing.save()
-
-            if commit:
-                self.save()
-            util.logger.info(f"generated places365 captions for image {image_path}.")
-        except Exception as e:
-            util.logger.exception(
-                f"could not generate captions for image {self.main_file.path}"
-            )
-            raise e
+        """Generate places365 captions - delegates to PhotoCaption"""
+        caption_instance = self._get_or_create_caption_instance()
+        caption_instance.generate_places365_captions(commit=commit)
 
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
@@ -460,7 +334,11 @@ class Photo(models.Model):
             return
 
         self.geolocation_json = res
-        self.search_location = res["address"]
+        
+        # Update search location through PhotoSearch model
+        search_instance = self._get_or_create_search_instance()
+        search_instance.update_search_location(res)
+        search_instance.save()
 
         # Delete photo from album places if location has changed
         if old_album_places is not None:

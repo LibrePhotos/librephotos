@@ -178,7 +178,8 @@ def get_search_term_examples(user):
 
     possible_ids = list(
         Photo.objects.filter(owner=user)
-        .exclude(captions_json={})[:1000]
+        .exclude(caption_instance__captions_json={})
+        .exclude(caption_instance__captions_json__isnull=True)[:1000]
         .values_list("image_hash", flat=True)
     )
     if len(possible_ids) > 99:
@@ -187,10 +188,12 @@ def get_search_term_examples(user):
     try:
         samples = (
             Photo.objects.filter(owner=user)
-            .exclude(captions_json={})
+            .exclude(caption_instance__captions_json={})
+            .exclude(caption_instance__captions_json__isnull=True)
             .filter(image_hash__in=possible_ids)
             .prefetch_related("faces")
             .prefetch_related("faces__person")
+            .prefetch_related("caption_instance")
             .all()
         )
     except ValueError:
@@ -203,11 +206,11 @@ def get_search_term_examples(user):
     for p in samples:
         faces = p.faces.all()
         terms_loc = ""
-        if p.geolocation_json != {}:
+        if p.geolocation_json and p.geolocation_json != {} and "features" in p.geolocation_json:
             terms_loc = [
                 f["text"]
                 for f in p.geolocation_json["features"][-5:]
-                if not f["text"].isdigit()
+                if "text" in f and not f["text"].isdigit()
             ]
         terms_time = ""
         if p.exif_timestamp:
@@ -218,8 +221,10 @@ def get_search_term_examples(user):
                 f.person.name.split(" ")[0] if f.person else "" for f in faces
             ]
         terms_things = ""
-        if p.captions_json and p.captions_json["places365"] is not None:
-            terms_things = p.captions_json["places365"]["categories"]
+        if (hasattr(p, 'caption_instance') and p.caption_instance and 
+            p.caption_instance.captions_json and 
+            p.caption_instance.captions_json.get("places365") is not None):
+            terms_things = p.caption_instance.captions_json["places365"]["categories"]
 
         terms = {
             "loc": terms_loc,
@@ -343,11 +348,11 @@ def get_server_stats():
         # number_of_files = File.objects.filter(Q(owner=user)).count()
         # Number of Captions
         number_of_captions = Photo.objects.filter(
-            Q(owner=user) & Q(captions_json__user_caption__isnull=False)
+            Q(owner=user) & Q(caption_instance__captions_json__user_caption__isnull=False)
         ).count()
         # Number of Generated Captions
         number_of_generated_captions = Photo.objects.filter(
-            Q(owner=user) & Q(captions_json__im2txt__isnull=False)
+            Q(owner=user) & Q(caption_instance__captions_json__im2txt__isnull=False)
         ).count()
         # Most common file type for photos (To-Do: Add mime type)
         # most_common_file_type = Photo.objects.filter(Q(owner=user)).values("file_extension").annotate(count=Count("file_extension")).order_by("-count").first()

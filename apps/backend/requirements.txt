@@ -42,9 +42,10 @@ django-q2==1.7.6
 safetensors==0.5.3
 py-cpuinfo==9.0.0
 psutil==6.1.1
-onnxruntime==1.21.1
+
 # Dependencies for blip
 timm==1.0.15
+# Dependencies for Moondream chat handler (llama-cpp-python multimodal)
 transformers==4.51.3
 # Dependencies for mistral quantized and multimodal models like Moondream
 llama-cpp-python==0.3.9

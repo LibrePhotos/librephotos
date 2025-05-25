@@ -49,18 +49,7 @@ def unload_model():
     return "", 200
 
 
-@app.route("/export-onnx", methods=["GET"])
-def export_onnx():
-    global im2txt_instance
-    if im2txt_instance is None:
-        im2txt_instance = Im2txt()
-    data = request.get_json()
-    encoder_path = data["encoder_path"]
-    decoder_path = data["decoder_path"]
-    im2txt_instance.export_onnx(
-        encoder_output_path=encoder_path, decoder_output_path=decoder_path
-    )
-    return "", 200
+
 
 
 @app.route("/health", methods=["GET"])

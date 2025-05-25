@@ -41,7 +41,9 @@ class PhotoSummaryViewTest(TestCase):
 
     def test_summary_view_no_aspect_ratio(self):
         # Simulate the case where aspect_ratio is None
-        self.photo.aspect_ratio = None
+        if hasattr(self.photo, 'thumbnail') and self.photo.thumbnail:
+            self.photo.thumbnail.aspect_ratio = None
+            self.photo.thumbnail.save()
         self.photo.save()
 
         url = reverse("photos-summary", kwargs={"pk": self.photo.image_hash})

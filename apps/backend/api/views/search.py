@@ -15,8 +15,8 @@ class SearchListViewSet(ListViewSet):
     filter_backends = (SemanticSearchFilter,)
 
     search_fields = [
-        "search_captions",
-        "search_location",
+        "search_instance__search_captions",
+        "search_instance__search_location",
         "exif_timestamp",
     ]
 
@@ -47,7 +47,7 @@ class SearchListViewSet(ListViewSet):
                     "thumbnail__aspect_ratio",
                     "video",
                     "main_file",
-                    "search_location",
+                    "search_instance__search_location",
                     "thumbnail__dominant_color",
                     "public",
                     "rating",
@@ -80,7 +80,7 @@ class SearchListViewSet(ListViewSet):
                     "thumbnail__aspect_ratio",
                     "video",
                     "main_file",
-                    "search_location",
+                    "search_instance__search_location",
                     "thumbnail__dominant_color",
                     "public",
                     "rating",

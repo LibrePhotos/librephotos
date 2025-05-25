@@ -11,7 +11,7 @@ MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DATA_ROOT = PHOTOS
 IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
-IM2TXT_ONNX_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt_onnx")
+
 BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
 PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
@@ -114,8 +114,9 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "choices": (
                 ("none", "None"),
                 ("im2txt", "im2txt PyTorch Model"),
-                ("im2txt_onnx", "im2txt ONNX Model"),
+
                 ("blip_base_capfilt_large", "BLIP Model"),
+                ("moondream", "Moondream Visual LLM"),
             ),
         },
     ],
@@ -125,8 +126,8 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("none", "None"),
-                ("mistral-7b-v0.1.Q5_K_M", "Mistral 7B v0.1 Q5 K M"),
                 ("mistral-7b-instruct-v0.2.Q5_K_M", "Mistral 7B Instruct v0.2 Q5 K M"),
+                ("moondream", "Moondream Visual LLM"),
             ),
         },
     ],

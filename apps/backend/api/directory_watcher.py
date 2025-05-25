@@ -422,8 +422,9 @@ def generate_tags(user, job_id: UUID, full_scan=False):
         )
         existing_photos = Photo.objects.filter(
             Q(owner=user.id)
-            & Q(captions_json__isnull=True)
-            & Q(captions_json__places365__isnull=True)
+            & (Q(caption_instance__isnull=True) | 
+               Q(caption_instance__captions_json__isnull=True) |
+               Q(caption_instance__captions_json__places365__isnull=True))
         )
         if not full_scan and last_scan:
             existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)

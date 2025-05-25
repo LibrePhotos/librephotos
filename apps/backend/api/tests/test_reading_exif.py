@@ -30,7 +30,7 @@ class ReadFacesFromPhotosTest(TestCase):
             "cp " + file + " " + "/protected_media/thumbnails_big/" + str(pk) + ".jpg"
         )
 
-        photo = Photo(pk=pk, image_hash=pk, aspect_ratio=1, owner=self.user1)
+        photo = Photo(pk=pk, image_hash=pk, owner=self.user1)
         fileObject = File.create("/tmp/" + str(photo.pk) + ".jpg", self.user1)
         photo.main_file = fileObject
         photo.added_on = timezone.now()
