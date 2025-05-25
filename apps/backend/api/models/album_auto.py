@@ -9,7 +9,9 @@ from api.models.user import User, get_deleted_user
 
 
 class AlbumAuto(models.Model):
-    title = models.CharField(blank=False, null=False, max_length=512, default="Untitled Album")
+    title = models.CharField(
+        blank=False, null=False, max_length=512, default="Untitled Album"
+    )
     timestamp = models.DateTimeField(db_index=True)
     created_on = models.DateTimeField(auto_now=False, db_index=True)
     gps_lat = models.FloatField(blank=True, null=True)

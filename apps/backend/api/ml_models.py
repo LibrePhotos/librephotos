@@ -83,9 +83,9 @@ ML_MODELS = [
         "additional_files": [
             {
                 "url": "https://huggingface.co/vikhyatk/moondream2/resolve/2025-04-14/moondream2-mmproj-f16.gguf?download=true",
-                "target": "moondream2-mmproj-f16.gguf"
+                "target": "moondream2-mmproj-f16.gguf",
             }
-        ]
+        ],
     },
 ]
 
@@ -122,7 +122,7 @@ def download_model(model):
         for ml_model in ML_MODELS:
             if ml_model["name"] == model_to_download:
                 model = ml_model
-    
+
     util.logger.info(f"Downloading model {model['name']}")
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
 
@@ -136,8 +136,14 @@ def download_model(model):
             for additional_file in model["additional_files"]:
                 additional_target = model_folder / additional_file["target"]
                 if not additional_target.exists():
-                    util.logger.info(f"Additional file {additional_file['target']} missing, downloading...")
-                    _download_file(additional_file["url"], additional_target, f"{model['name']} ({additional_file['target']})")
+                    util.logger.info(
+                        f"Additional file {additional_file['target']} missing, downloading..."
+                    )
+                    _download_file(
+                        additional_file["url"],
+                        additional_target,
+                        f"{model['name']} ({additional_file['target']})",
+                    )
         return
 
     if model["unpack-command"] == "tar -zxC":
@@ -157,13 +163,17 @@ def download_model(model):
         with tarfile.open(target_dir, mode="r:") as tar:
             tar.extractall(path=model_folder)
         os.remove(target_dir)
-    
+
     # Download additional files if they exist (e.g., mmproj for Moondream)
     if model.get("additional_files"):
         for additional_file in model["additional_files"]:
             additional_target = model_folder / additional_file["target"]
             if not additional_target.exists():
-                _download_file(additional_file["url"], additional_target, f"{model['name']} ({additional_file['target']})")
+                _download_file(
+                    additional_file["url"],
+                    additional_target,
+                    f"{model['name']} ({additional_file['target']})",
+                )
 
 
 def _download_file(url, target_path, model_name):
@@ -173,7 +183,7 @@ def _download_file(url, target_path, model_name):
     block_size = 1024
     current_progress = 0
     previous_percentage = -1
-    
+
     with open(target_path, "wb") as target_file:
         for chunk in response.iter_content(chunk_size=block_size):
             if chunk:
@@ -219,12 +229,12 @@ def do_all_models_exist():
         if model["type"] == MlTypes.LLM or model["type"] == MlTypes.MOONDREAM:
             if not model and model != "none":
                 continue
-        
+
         # Check main model file
         target_dir = model_folder / model["target-dir"]
         if not target_dir.exists():
             return False
-            
+
         # Check additional files if they exist (like mmproj for Moondream)
         if model.get("additional_files"):
             for additional_file in model["additional_files"]:

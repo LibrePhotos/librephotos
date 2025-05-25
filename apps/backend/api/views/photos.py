@@ -73,7 +73,11 @@ class NoTimestampPhotoViewSet(ListViewSet):
     serializer_class = PhotoSummarySerializer
     pagination_class = RegularResultsSetPagination
     filter_backends = (filters.SearchFilter,)
-    search_fields = ["search_instance__search_captions", "search_instance__search_location", "faces__person__name"]
+    search_fields = [
+        "search_instance__search_captions",
+        "search_instance__search_location",
+        "faces__person__name",
+    ]
 
     def get_queryset(self):
         return (

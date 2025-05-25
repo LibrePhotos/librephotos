@@ -114,7 +114,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "choices": (
                 ("none", "None"),
                 ("im2txt", "im2txt PyTorch Model"),
-
                 ("blip_base_capfilt_large", "BLIP Model"),
                 ("moondream", "Moondream Visual LLM"),
             ),

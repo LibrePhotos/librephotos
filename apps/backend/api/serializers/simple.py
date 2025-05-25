@@ -27,7 +27,11 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
         )
 
     def get_square_thumbnail(self, obj) -> str:
-        return obj.thumbnail.square_thumbnail.url if obj.thumbnail and obj.thumbnail.square_thumbnail else ""
+        return (
+            obj.thumbnail.square_thumbnail.url
+            if obj.thumbnail and obj.thumbnail.square_thumbnail
+            else ""
+        )
 
 
 class SimpleUserSerializer(serializers.ModelSerializer):

@@ -49,9 +49,6 @@ def unload_model():
     return "", 200
 
 
-
-
-
 @app.route("/health", methods=["GET"])
 def health():
     return {"last_request_time": last_request_time}, 200

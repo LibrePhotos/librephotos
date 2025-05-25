@@ -170,9 +170,7 @@ class Im2TxtBenchmark(TestCase):
     def test_im2txt_cpu(self):
         file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
         self.gpu_available = "False"
-        caption = generate_caption(
-            device=torch.device("cpu"), image_path=file
-        )
+        caption = generate_caption(device=torch.device("cpu"), image_path=file)
 
         self.assertEqual(
             "<start> a man with a beard is holding a remote control . <end>", caption
@@ -180,14 +178,10 @@ class Im2TxtBenchmark(TestCase):
 
         logger.info(f"Caption: {caption}")
 
-
-
     @skip
     def test_im2txt_gpu(self):
         file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
-        caption = generate_caption(
-            device=torch.device("cuda"), image_path=file
-        )
+        caption = generate_caption(device=torch.device("cuda"), image_path=file)
 
         self.assertEqual(
             "<start> a man with a beard is holding a remote control . <end>", caption
@@ -201,9 +195,7 @@ class Im2TxtBenchmark(TestCase):
         self.gpu_available = "False"
 
         for i in range(100):
-            caption = generate_caption(
-                device=torch.device("cpu"), image_path=file
-            )
+            caption = generate_caption(device=torch.device("cpu"), image_path=file)
             self.assertEqual(
                 "<start> a man with a beard is holding a remote control . <end>",
                 caption,
@@ -214,9 +206,7 @@ class Im2TxtBenchmark(TestCase):
         file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
 
         for i in range(100):
-            caption = generate_caption(
-                device=torch.device("cuda"), image_path=file
-            )
+            caption = generate_caption(device=torch.device("cuda"), image_path=file)
             self.assertEqual(
                 "<start> a man with a beard is holding a remote control . <end>",
                 caption,
@@ -230,8 +220,6 @@ class Im2TxtBenchmark(TestCase):
     def test_im2txt_coco_gpu(self):
         test_coco(testcase=self, device="cuda", model="im2txt")
 
-
-
     @skip
     def test_blip_coco_cpu(self):
         test_coco(self, "cpu", "blip")
@@ -239,5 +227,3 @@ class Im2TxtBenchmark(TestCase):
     @skip
     def test_blip_coco_gpu(self):
         test_coco(self, "cuda", "blip")
-
-
