@@ -21,14 +21,14 @@ const MAP_API_PROVIDERS = [
 
 const CAPTIONING_MODELS = [
   { value: "im2txt", label: "im2txt PyTorch" },
-  { value: "im2txt_onnx", label: "im2txt ONNX" },
   { value: "blip_base_capfilt_large", label: "BLIP Base Capfilt Large" },
+  { value: "moondream", label: "Moondream Visual LLM" },
   { value: "none", label: "None" },
 ];
 
 const LLM_MODELS = [
-  { value: "mistral-7b-v0.1.Q5_K_M", label: "Mistral 7B v0.1 Q5 K M" },
   { value: "mistral-7b-instruct-v0.2.Q5_K_M", label: "Mistral 7B Instruct v0.2 Q5 K M" },
+  { value: "moondream", label: "Moondream Visual LLM" },
   { value: "none", label: "None" },
 ];
 
