@@ -51,6 +51,7 @@ def generate_prompt(prompt, image_path=None):
         try:
             image_data = image_to_base64_data_uri(image_path)
             json_data["image_data"] = image_data
+            json_data["multimodal"] = True
         except Exception as e:
             print(f"Error converting image: {e}")
             return None

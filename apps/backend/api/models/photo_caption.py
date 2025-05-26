@@ -36,6 +36,8 @@ class PhotoCaption(models.Model):
             )
             return False
 
+        util.logger.info(f"Generating captions with Im2txt")
+
         image_path = self.photo.thumbnail.thumbnail_big.path
         if self.captions_json is None:
             self.captions_json = {}
@@ -49,6 +51,7 @@ class PhotoCaption(models.Model):
                 return False
 
             if site_config.CAPTIONING_MODEL == "moondream":
+                util.logger.info("Generating captions with Moondream")
                 return self._generate_captions_moondream(commit=commit)
 
             blip = False
@@ -81,7 +84,7 @@ class PhotoCaption(models.Model):
                     + ". \n A:"
                 )
                 util.logger.info(prompt)
-                caption = generate_prompt(prompt, image_path=image_path)
+                caption = generate_prompt(prompt)
 
             captions["im2txt"] = caption
             self.captions_json = captions
@@ -152,7 +155,7 @@ class PhotoCaption(models.Model):
             util.logger.info(f"Moondream prompt: {prompt}")
 
             # Generate caption with the final prompt
-            caption = generate_caption(image_path=image_path, prompt=prompt)
+            caption = generate_prompt(image_path=image_path, prompt=prompt)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             # Save the result

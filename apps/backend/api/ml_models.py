@@ -76,13 +76,13 @@ ML_MODELS = [
         # Moondream 2 GGUF model for llama-cpp-python multimodal support
         "id": 9,
         "name": "moondream",
-        "url": "https://huggingface.co/vikhyatk/moondream2/resolve/2025-04-14/moondream2-text-model-f16.gguf?download=true",
+        "url": "https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-text-model-f16.gguf?download=true",
         "type": MlTypes.MOONDREAM,
         "unpack-command": None,
         "target-dir": "moondream2-text-model-f16.gguf",
         "additional_files": [
             {
-                "url": "https://huggingface.co/vikhyatk/moondream2/resolve/2025-04-14/moondream2-mmproj-f16.gguf?download=true",
+                "url": "https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-mmproj-f16.gguf?download=true",
                 "target": "moondream2-mmproj-f16.gguf",
             }
         ],
