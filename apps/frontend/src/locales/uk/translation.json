@@ -316,7 +316,8 @@
             "withouttimestamp": "Без мітки часу",
             "invalidtimestamp": "Недійсна мітка часу",
             "removetimestamp": "Вилучити мітку часу",
-            "places": "Місця"
+            "places": "Місця",
+            "suggestedcaption": "Пропонований підпис"
         }
     },
     "exif": {
