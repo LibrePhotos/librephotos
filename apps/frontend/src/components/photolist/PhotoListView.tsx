@@ -22,7 +22,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
-import { Lightbox } from "../lightbox/Lightbox";
+import { useLightbox } from "../facedashboard/hooks/useLightbox";
 import Pig from "../react-pig";
 import type { PigHandle } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
@@ -87,7 +87,6 @@ function PhotoListViewComponent({
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle>(null);
-  const [lightboxImageId, setLightboxImageId] = useState("");
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
@@ -95,7 +94,6 @@ function PhotoListViewComponent({
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<ScrollerData[]>([]);
   const gridHeight = useRef(200);
-  const [scrollLocked, setScrollLocked] = useState(false);
   const setUserAlbumCover = useSetUserAlbumCoverMutation();
   const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
   const updateUser = useUpdateUserMutation();
@@ -104,6 +102,56 @@ function PhotoListViewComponent({
   const [imageScale, setImageScale] = useState(userSelfDetails?.image_scale ?? 1);
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
+
+  // Use the lightbox hook instead of local state
+  const { showLightbox, renderLightbox, scrollLocked } = useLightbox((currentIndex) => {
+    // Update the current image index if provided from lightbox
+    if (currentIndex !== undefined) {
+      currentImageIndexRef.current = currentIndex;
+    }
+
+    // Scroll to the current image's position
+    if (pigRef.current && idx2hash[currentImageIndexRef.current]) {
+      // Use setTimeout to ensure DOM is updated after lightbox is closed
+      setTimeout(() => {
+        try {
+          // Get all image buttons
+          const buttons = document.querySelectorAll(".pig-btn");
+          const currentImage = idx2hash[currentImageIndexRef.current];
+          const currentImageId = currentImage.id;
+
+          // Try to find by checking img contents
+          let targetButton: Element | null = Array.from(buttons).find(btn => {
+            const imgs = btn.querySelectorAll("img");
+            return Array.from(imgs).some(img => img.src.includes(currentImageId));
+          }) || null;
+
+          // If no button found, try another approach - get index position
+          if (!targetButton && buttons.length > 0) {
+            // If there are the same number of buttons as images, use index directly
+            if (buttons.length >= currentImageIndexRef.current) {
+              targetButton = buttons[currentImageIndexRef.current];
+            }
+          }
+
+          if (targetButton) {
+            // Get position
+            const rect = targetButton.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const targetY = rect.top + scrollTop - 80; // Offset to show a bit of context
+
+            // Scroll to position
+            window.scrollTo({
+              top: targetY,
+              behavior: "smooth",
+            });
+          }
+        } catch (error) {
+          console.error("Error scrolling to image:", error);
+        }
+      }, 100);
+    }
+  });
 
   const isDateView = photoset !== idx2hash;
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
@@ -252,8 +300,7 @@ function PhotoListViewComponent({
     }
 
     // Otherwise, open in lightbox
-    setLightboxImageId(item.id);
-    setScrollLocked(true);
+    showLightbox(item.id, currentIndex >= 0);
   };
 
   const getNumPhotos = () => (idx2hashRef.current ? idx2hashRef.current.length : 0);
@@ -421,65 +468,7 @@ function PhotoListViewComponent({
         }}
       />
 
-      {lightboxImageId && (
-        <Lightbox
-          isPublic={!!isPublic}
-          selectedImage={lightboxImageId}
-          idx2hash={idx2hash}
-          onChangedIndex={currentIndex => {
-            // Update the current image index if provided from lightbox
-            if (currentIndex !== undefined) {
-              currentImageIndexRef.current = currentIndex;
-            }
-
-            // Scroll to the current image's position
-            if (pigRef.current && idx2hash[currentImageIndexRef.current]) {
-              // Use setTimeout to ensure DOM is updated after lightbox is closed
-              setTimeout(() => {
-                try {
-                  // Get all image buttons
-                  const buttons = document.querySelectorAll(".pig-btn");
-                  const currentImage = idx2hash[currentImageIndexRef.current];
-                  const currentImageId = currentImage.id;
-
-                  // Try to find by checking img contents
-                  let targetButton: Element | null = Array.from(buttons).find(btn => {
-                    const imgs = btn.querySelectorAll("img");
-                    return Array.from(imgs).some(img => img.src.includes(currentImageId));
-                  }) || null;
-
-                  // If no button found, try another approach - get index position
-                  if (!targetButton && buttons.length > 0) {
-                    // If there are the same number of buttons as images, use index directly
-                    if (buttons.length >= currentImageIndexRef.current) {
-                      targetButton = buttons[currentImageIndexRef.current];
-                    }
-                  }
-
-                  if (targetButton) {
-                    // Get position
-                    const rect = targetButton.getBoundingClientRect();
-                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                    const targetY = rect.top + scrollTop - 80; // Offset to show a bit of context
-
-                    // Scroll to position
-                    window.scrollTo({
-                      top: targetY,
-                      behavior: "smooth",
-                    });
-                  }
-                } catch (error) {
-                  console.error("Error scrolling to image:", error);
-                }
-              }, 100);
-            }
-          }}
-          onCloseRequest={() => {
-            setLightboxImageId("");
-            setScrollLocked(false);
-          }}
-        />
-      )}
+      {renderLightbox(idx2hash.map(item => ({ id: item.id })))}
 
       {!isPublic && (
         <ModalAlbumEdit
