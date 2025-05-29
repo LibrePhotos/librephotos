@@ -8,7 +8,7 @@ import {
   IconPlayerPlay as PlayerPlay,
   IconStar as Star,
 } from "@tabler/icons-react";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 import { shareAddress } from "../../api_client/apiClient";
 import { useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
@@ -35,6 +35,49 @@ export function Toolbar(props: Props) {
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
+
+  // Callback functions for keyboard shortcuts
+  const handleFavoriteShortcut = useCallback(() => {
+    if (photosDetail && !isPublic) {
+      const { image_hash: imageHash } = photosDetail;
+      const val = !(photosDetail.rating >= favoriteMinRating);
+      setFavoritePhotos.mutate({ image_hashes: [imageHash], favorite: val });
+    }
+  }, [photosDetail, isPublic, favoriteMinRating, setFavoritePhotos]);
+
+  const handleHideShortcut = useCallback(() => {
+    if (photosDetail && !isPublic) {
+      const { image_hash: imageHash } = photosDetail;
+      const val = !photosDetail.hidden;
+      setPhotosHidden.mutate({ image_hashes: [imageHash], hidden: val });
+    }
+  }, [photosDetail, isPublic, setPhotosHidden]);
+
+  const handlePublicShortcut = useCallback(() => {
+    if (photosDetail && !isPublic) {
+      const { image_hash: imageHash } = photosDetail;
+      const val = !photosDetail.public;
+      setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
+      copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
+    }
+  }, [photosDetail, isPublic, setPhotosPublic]);
+
+  // Add event listeners for keyboard shortcuts
+  useEffect(() => {
+    const handleFavoriteEvent = () => handleFavoriteShortcut();
+    const handleHideEvent = () => handleHideShortcut();
+    const handlePublicEvent = () => handlePublicShortcut();
+
+    window.addEventListener('lightbox-favorite-shortcut', handleFavoriteEvent);
+    window.addEventListener('lightbox-hide-shortcut', handleHideEvent);
+    window.addEventListener('lightbox-public-shortcut', handlePublicEvent);
+
+    return () => {
+      window.removeEventListener('lightbox-favorite-shortcut', handleFavoriteEvent);
+      window.removeEventListener('lightbox-hide-shortcut', handleHideEvent);
+      window.removeEventListener('lightbox-public-shortcut', handlePublicEvent);
+    };
+  }, [handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut]);
 
   function playButton(photo: Photo | null) {
     if (!photo || !photo.embedded_media || photo.embedded_media.length === 0) {
