@@ -1,5 +1,5 @@
-import { ActionIcon, Group } from "@mantine/core";
-import { IconX as X, IconZoomIn as ZoomIn, IconZoomOut as ZoomOut } from "@tabler/icons-react";
+import { ActionIcon, Group, Tooltip } from "@mantine/core";
+import { IconX as X, IconZoomIn as ZoomIn, IconZoomOut as ZoomOut, IconKeyboard } from "@tabler/icons-react";
 import React from "react";
 
 import type { LightboxControlsProps } from "./lightbox.types";
@@ -35,6 +35,33 @@ export function LightboxControls({
           </ActionIcon>
         </div>
       )}
+      <div style={{ marginBottom: 5 }}>
+        <Tooltip
+          label={
+            <div style={{ fontSize: '12px' }}>
+              <div><strong>Keyboard Shortcuts:</strong></div>
+              <div>← → : Navigate</div>
+              <div>Escape : Close</div>
+              <div>Z : Zoom</div>
+              <div>I : Info panel</div>
+              {!isPublic && (
+                <>
+                  <div>F : Favorite</div>
+                  <div>H : Hide</div>
+                  <div>P : Public</div>
+                </>
+              )}
+              <div>Space : Play/Pause (video)</div>
+            </div>
+          }
+          position="bottom-end"
+          withArrow
+        >
+          <ActionIcon variant="subtle" color="gray" size="sm">
+            <IconKeyboard size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </div>
       <div style={{ marginBottom: 5 }}>
         <ActionIcon variant="subtle" color="gray" onClick={onCloseRequest}>
           <X />
