@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Loader } from "@mantine/core";
+import { ActionIcon, Group, Loader, Tooltip } from "@mantine/core";
 import {
   IconEye as Eye,
   IconEyeOff as EyeOff,
@@ -7,11 +7,12 @@ import {
   IconPlayerPause as PlayerPause,
   IconPlayerPlay as PlayerPlay,
   IconStar as Star,
+  IconTrash as Trash,
 } from "@tabler/icons-react";
 import React, { useState, useEffect, useCallback } from "react";
 
 import { shareAddress } from "../../api_client/apiClient";
-import { useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
+import { useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation, useMarkPhotosDeletedMutation } from "../../api_client/photos/hooks";
 import { copyToClipboard } from "../../util/util";
 import { Photo } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
@@ -35,6 +36,7 @@ export function Toolbar(props: Props) {
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
+  const markPhotosDeleted = useMarkPhotosDeletedMutation();
 
   // Callback functions for keyboard shortcuts
   const handleFavoriteShortcut = useCallback(() => {
@@ -62,22 +64,32 @@ export function Toolbar(props: Props) {
     }
   }, [photosDetail, isPublic, setPhotosPublic]);
 
+  const handleDeleteShortcut = useCallback(() => {
+    if (photosDetail && !isPublic) {
+      const { image_hash: imageHash } = photosDetail;
+      markPhotosDeleted.mutate({ image_hashes: [imageHash], deleted: true });
+    }
+  }, [photosDetail, isPublic, markPhotosDeleted]);
+
   // Add event listeners for keyboard shortcuts
   useEffect(() => {
     const handleFavoriteEvent = () => handleFavoriteShortcut();
     const handleHideEvent = () => handleHideShortcut();
     const handlePublicEvent = () => handlePublicShortcut();
+    const handleDeleteEvent = () => handleDeleteShortcut();
 
     window.addEventListener('lightbox-favorite-shortcut', handleFavoriteEvent);
     window.addEventListener('lightbox-hide-shortcut', handleHideEvent);
     window.addEventListener('lightbox-public-shortcut', handlePublicEvent);
+    window.addEventListener('lightbox-delete-shortcut', handleDeleteEvent);
 
     return () => {
       window.removeEventListener('lightbox-favorite-shortcut', handleFavoriteEvent);
       window.removeEventListener('lightbox-hide-shortcut', handleHideEvent);
       window.removeEventListener('lightbox-public-shortcut', handlePublicEvent);
+      window.removeEventListener('lightbox-delete-shortcut', handleDeleteEvent);
     };
-  }, [handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut]);
+  }, [handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut, handleDeleteShortcut]);
 
   function playButton(photo: Photo | null) {
     if (!photo || !photo.embedded_media || photo.embedded_media.length === 0) {
@@ -92,10 +104,12 @@ export function Toolbar(props: Props) {
       }
     }
     return (
-      <ActionIcon onClick={() => togglePlay()} variant="transparent">
-        {playerPlaying && <Loader color="grey" />}
-        {!playerPlaying && playerPlaying ? <PlayerPause /> : <PlayerPlay />}
-      </ActionIcon>
+      <Tooltip label={playerPlaying ? "Pause video (Space)" : "Play video (Space)"} position="bottom" withArrow>
+        <ActionIcon onClick={() => togglePlay()} variant="transparent">
+          {playerPlaying && <Loader color="grey" />}
+          {!playerPlaying && playerPlaying ? <PlayerPause /> : <PlayerPlay />}
+        </ActionIcon>
+      </Tooltip>
     );
   }
 
@@ -118,47 +132,68 @@ export function Toolbar(props: Props) {
       )}
       {playButton(photosDetail)}
       {!isPhotoDetailsLoading && photosDetail && !isPublic && (
-        <ActionIcon
-          variant="transparent"
-          onClick={() => {
-            const { image_hash: imageHash } = photosDetail;
-            const val = !photosDetail.hidden;
-            setPhotosHidden.mutate({ image_hashes: [imageHash], hidden: val });
-          }}
-        >
-          {photosDetail.hidden ? <EyeOff color="red" /> : <Eye color="grey" />}
-        </ActionIcon>
+        <Tooltip label={photosDetail.hidden ? "Show photo (H)" : "Hide photo (H)"} position="bottom" withArrow>
+          <ActionIcon
+            variant="transparent"
+            onClick={() => {
+              const { image_hash: imageHash } = photosDetail;
+              const val = !photosDetail.hidden;
+              setPhotosHidden.mutate({ image_hashes: [imageHash], hidden: val });
+            }}
+          >
+            {photosDetail.hidden ? <EyeOff color="red" /> : <Eye color="grey" />}
+          </ActionIcon>
+        </Tooltip>
       )}
       {photosDetail && !isPublic && (
-        <ActionIcon
-          variant="transparent"
-          onClick={() => {
-            const { image_hash: imageHash } = photosDetail;
-            const val = !(photosDetail.rating >= favoriteMinRating);
-            setFavoritePhotos.mutate({ image_hashes: [imageHash], favorite: val });
-          }}
-        >
-          <Star color={photosDetail.rating >= favoriteMinRating ? "yellow" : "grey"} />
-        </ActionIcon>
+        <Tooltip label={photosDetail.rating >= favoriteMinRating ? "Remove from favorites (F)" : "Add to favorites (F)"} position="bottom" withArrow>
+          <ActionIcon
+            variant="transparent"
+            onClick={() => {
+              const { image_hash: imageHash } = photosDetail;
+              const val = !(photosDetail.rating >= favoriteMinRating);
+              setFavoritePhotos.mutate({ image_hashes: [imageHash], favorite: val });
+            }}
+          >
+            <Star color={photosDetail.rating >= favoriteMinRating ? "yellow" : "grey"} />
+          </ActionIcon>
+        </Tooltip>
       )}
       {photosDetail && !isPublic && (
-        <ActionIcon
-          variant="transparent"
-          onClick={() => {
-            const { image_hash: imageHash } = photosDetail;
-            const val = !photosDetail.public;
-            setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
-            copyToClipboard(
-              `${shareAddress}/media/thumbnails_big/${imageHash}`
-            );
-          }}
-        >
-          <Globe color={photosDetail.public ? "green" : "grey"} />
-        </ActionIcon>
+        <Tooltip label={photosDetail.public ? "Make private (P)" : "Make public (P)"} position="bottom" withArrow>
+          <ActionIcon
+            variant="transparent"
+            onClick={() => {
+              const { image_hash: imageHash } = photosDetail;
+              const val = !photosDetail.public;
+              setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
+              copyToClipboard(
+                `${shareAddress}/media/thumbnails_big/${imageHash}`
+              );
+            }}
+          >
+            <Globe color={photosDetail.public ? "green" : "grey"} />
+          </ActionIcon>
+        </Tooltip>
       )}
-      <ActionIcon onClick={() => closeSidepanel()} variant="transparent">
-        <InfoCircle color={lightboxSidebarShow ? "white" : "grey"} />
-      </ActionIcon>
+      <Tooltip label={lightboxSidebarShow ? "Hide info panel (I)" : "Show info panel (I)"} position="bottom" withArrow>
+        <ActionIcon onClick={() => closeSidepanel()} variant="transparent">
+          <InfoCircle color={lightboxSidebarShow ? "white" : "grey"} />
+        </ActionIcon>
+      </Tooltip>
+      {photosDetail && !isPublic && (
+        <Tooltip label="Delete photo (D)" position="bottom" withArrow>
+          <ActionIcon
+            variant="transparent"
+            onClick={() => {
+              const { image_hash: imageHash } = photosDetail;
+              markPhotosDeleted.mutate({ image_hashes: [imageHash], deleted: true });
+            }}
+          >
+            <Trash color="grey" />
+          </ActionIcon>
+        </Tooltip>
+      )}
     </Group>
   );
 }

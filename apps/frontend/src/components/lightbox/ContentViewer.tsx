@@ -88,6 +88,12 @@ export function ContentViewer({
         window.dispatchEvent(new CustomEvent('lightbox-public-shortcut'));
       }
     }],
+    ['d', () => {
+      // Trigger delete action if photo details are available and not public
+      if (photoDetails && !isPublic) {
+        window.dispatchEvent(new CustomEvent('lightbox-delete-shortcut'));
+      }
+    }],
   ]);
 
   const bind = useGesture({
