@@ -319,7 +319,8 @@
             "invalidtimestamp": "无效的时间戳",
             "removetimestamp": "移除时间戳",
             "undotimestampmodification": "撤销时间戳修改",
-            "places": "位置"
+            "places": "位置",
+            "suggestedcaption": "建议的标题"
         }
     },
     "photos": {
