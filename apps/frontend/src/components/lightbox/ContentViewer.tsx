@@ -67,6 +67,27 @@ export function ContentViewer({
     ['Escape', onCloseRequest],
     [' ', () => type === 'video' && setPlaying(prev => !prev)],
     ['z', () => type === 'photo' && toggleZoom()],
+    ['i', () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
+    // Additional shortcuts for photo actions (will be implemented in toolbar)
+    ['f', () => {
+      // Trigger favorite action if photo details are available and not public
+      if (photoDetails && !isPublic) {
+        // We'll trigger this via a custom event that the Toolbar can listen to
+        window.dispatchEvent(new CustomEvent('lightbox-favorite-shortcut'));
+      }
+    }],
+    ['h', () => {
+      // Trigger hide action if photo details are available and not public  
+      if (photoDetails && !isPublic) {
+        window.dispatchEvent(new CustomEvent('lightbox-hide-shortcut'));
+      }
+    }],
+    ['p', () => {
+      // Trigger public action if photo details are available and not public
+      if (photoDetails && !isPublic) {
+        window.dispatchEvent(new CustomEvent('lightbox-public-shortcut'));
+      }
+    }],
   ]);
 
   const bind = useGesture({
