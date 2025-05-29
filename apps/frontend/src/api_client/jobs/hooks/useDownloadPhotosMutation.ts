@@ -11,7 +11,7 @@ type DownloadResponse = {
 };
 
 async function startDownloadProcess(image_hashes: string[]) {
-  const response = await fetchClient.post('photos/download', { image_hashes });
+  const response = await fetchClient.post('/photos/download', { image_hashes });
   return response as DownloadResponse;
 }
 
