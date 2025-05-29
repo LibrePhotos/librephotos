@@ -5,6 +5,8 @@ import { Photo } from "../types";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
 import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
+import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery';
+import { IncompleteFacesQueryKeys } from '../../faces/hooks/useFetchIncompleteFacesQuery';
 import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
 
 const UpdatePhotosResponse = z.object({
@@ -29,8 +31,10 @@ export const useSetPhotosHiddenMutation = () => useMutation({
     return data;
   },
   onSuccess: (data, { image_hashes }) => {
-    // Invalidate relevant queries
+    // Invalidate relevant queries to ensure consistent state
     queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...IncompleteFacesQueryKeys] });
     
     // If we have a single photo, invalidate its details
     if (image_hashes.length === 1) {
