@@ -17,10 +17,11 @@ import {
 } from "../../api_client/faces/types";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
-import { useLightbox } from "./hooks/useLightbox";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
+import { Lightbox } from "../lightbox/Lightbox";
+import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
 const routeApi = getRouteApi("/_protected/faces")
 
@@ -42,6 +43,10 @@ export function FaceDashboard() {
     method: FaceAnalysisMethod;
   }>>([]);
 
+  // Simple lightbox state management
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImageId, setLightboxImageId] = useState("");
+
   const {
     lists,
     fetchingLabeledFacesList,
@@ -49,11 +54,17 @@ export function FaceDashboard() {
     idx2hash
   } = useFaceDataFetching(groups, activeTab, analysisMethod, orderBy as any, minConfidence);
 
-  const {
-    showLightbox,
-    renderLightbox,
-    scrollLocked
-  } = useLightbox();
+  const showLightbox = useCallback((imageId: string, isValid: boolean) => {
+    if (isValid) {
+      setLightboxImageId(imageId);
+      setLightboxOpen(true);
+    }
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxOpen(false);
+    setLightboxImageId("");
+  }, []);
 
   // Mutations
   const { mutate: deleteFacesMutate } = useDeleteFacesMutation();
@@ -73,8 +84,6 @@ export function FaceDashboard() {
       updatePosition(activeTab, scrollTop);
     }
   }, [scrollTo, tabPositions, activeTab, updatePosition]);
-
-
 
   // Create grid utilities object that we'll use for selection logic
   const gridUtils = useMemo(() => {
@@ -102,7 +111,6 @@ export function FaceDashboard() {
 
   // Initialize the virtualized grid
   const virtualGrid = useVirtualizedGrid(
-    ref,
     activeTab,
     lists,
     handleCellClick,
@@ -154,8 +162,12 @@ export function FaceDashboard() {
   // Track scroll position based on tab
   useEffect(() => setScrollTo(tabPositions[activeTab]), [activeTab, tabPositions]);
 
+  const handleLightboxImageChange = useCallback((imageId: string) => {
+    setLightboxImageId(imageId);
+  }, []);
+
   return (
-    <RemoveScroll enabled={scrollLocked}>
+    <RemoveScroll enabled={lightboxOpen}>
       <div style={{ display: "flex", flexFlow: "column", height: `calc(100vh - ${TOP_MENU_HEIGHT}px)` }}>
         <Stack>
           <TabComponent
@@ -172,7 +184,26 @@ export function FaceDashboard() {
             notThisPerson={notThisPersonFunc}
           />
         </Stack>
-        {virtualGrid.renderGrid()}
+        <VirtualizedGridComponent
+          containerRef={ref}
+          gridRef={virtualGrid.gridRef}
+          entrySquareSize={virtualGrid.entrySquareSize}
+          numEntrySquaresPerRow={virtualGrid.numEntrySquaresPerRow}
+          gridHeight={virtualGrid.gridHeight}
+          getCellContentsForTab={virtualGrid.getCellContentsForTab}
+          getScrollPositions={virtualGrid.getScrollPositions}
+          handleScrubberScroll={virtualGrid.handleScrubberScroll}
+          onSectionRendered={virtualGrid.onSectionRendered}
+          scrollPosition={virtualGrid.scrollPosition}
+          onScroll={virtualGrid.onScroll}
+          handleCellClick={virtualGrid.handleCellClick}
+          handleShowClick={virtualGrid.handleShowClick}
+          selectMode={virtualGrid.selectMode}
+          selectedFaces={virtualGrid.selectedFaces}
+          setSelectedFaces={virtualGrid.setSelectedFaces}
+          width={virtualGrid.width}
+          activeTab={activeTab}
+        />
         <ModalPersonEdit
           isOpen={modalPersonEditOpen}
           onRequestClose={() => {
@@ -181,7 +212,16 @@ export function FaceDashboard() {
           }}
           selectedFaces={selectedFaces}
         />
-        {renderLightbox(idx2hash)}
+        {lightboxOpen && (
+          <Lightbox
+            isPublic={false}
+            idx2hash={idx2hash}
+            selectedImage={lightboxImageId}
+            onChangedIndex={() => {}}
+            onCloseRequest={closeLightbox}
+            onImageChange={handleLightboxImageChange}
+          />
+        )}
       </div>
     </RemoveScroll>
   );

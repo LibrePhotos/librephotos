@@ -22,7 +22,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
-import { useLightbox } from "../facedashboard/hooks/useLightbox";
+import { Lightbox } from "../lightbox/Lightbox";
 import Pig from "../react-pig";
 import type { PigHandle } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
@@ -103,8 +103,23 @@ function PhotoListViewComponent({
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
 
-  // Use the lightbox hook instead of local state
-  const { showLightbox, renderLightbox, scrollLocked } = useLightbox((currentIndex) => {
+  // Simple lightbox state management
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImageId, setLightboxImageId] = useState("");
+
+  const showLightbox = useCallback((imageId: string, isValid: boolean) => {
+    if (isValid) {
+      setLightboxImageId(imageId);
+      setLightboxOpen(true);
+    }
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxOpen(false);
+    setLightboxImageId("");
+  }, []);
+
+  const handleLightboxIndexChange = useCallback((currentIndex?: number) => {
     // Update the current image index if provided from lightbox
     if (currentIndex !== undefined) {
       currentImageIndexRef.current = currentIndex;
@@ -151,7 +166,11 @@ function PhotoListViewComponent({
         }
       }, 100);
     }
-  });
+  }, [idx2hash]);
+
+  const handleLightboxImageChange = useCallback((imageId: string) => {
+    setLightboxImageId(imageId);
+  }, []);
 
   const isDateView = photoset !== idx2hash;
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
@@ -312,7 +331,7 @@ function PhotoListViewComponent({
   }
 
   return (
-    <RemoveScroll enabled={scrollLocked}>
+    <RemoveScroll enabled={lightboxOpen}>
       <Box
         style={{
           boxSizing: "border-box",
@@ -468,7 +487,16 @@ function PhotoListViewComponent({
         }}
       />
 
-      {renderLightbox(idx2hash.map(item => ({ id: item.id })))}
+      {lightboxOpen && (
+        <Lightbox
+          isPublic={isPublic}
+          idx2hash={idx2hash.map(item => ({ id: item.id }))}
+          selectedImage={lightboxImageId}
+          onChangedIndex={handleLightboxIndexChange}
+          onCloseRequest={closeLightbox}
+          onImageChange={handleLightboxImageChange}
+        />
+      )}
 
       {!isPublic && (
         <ModalAlbumEdit
