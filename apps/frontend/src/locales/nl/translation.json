@@ -295,7 +295,8 @@
             "invalidtimestamp": "Ongeldig tijdstempel",
             "removetimestamp": "Tijdstempel verwijderen",
             "undotimestampmodification": "Aanpassen van tijdstempel ongedaan maken",
-            "places": "Locaties"
+            "places": "Locaties",
+            "suggestedcaption": "Voorgesteld bijschrift"
         }
     },
     "photos": {
