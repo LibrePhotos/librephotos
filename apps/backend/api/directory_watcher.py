@@ -158,12 +158,12 @@ def handle_new_image(user, path, job_id, photo=None):
             util.logger.info(f"job {job_id}: handling image {path}")
             # Create or get thumbnail instance
             thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
-            thumbnail._generate_thumbnail(True)
+            thumbnail._generate_thumbnail()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 f"job {job_id}: generate thumbnails: {path}, elapsed: {elapsed}"
             )
-            thumbnail._calculate_aspect_ratio(False)
+            thumbnail._calculate_aspect_ratio()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 f"job {job_id}: calculate aspect ratio: {path}, elapsed: {elapsed}"
@@ -305,6 +305,21 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
 
         util.logger.info("Finished updating album things")
+
+        # Check for photos with missing aspect ratios but existing thumbnails
+        photos_with_missing_aspect_ratio = Photo.objects.filter(
+            Q(owner=user.id) & 
+            Q(thumbnail__isnull=False) & 
+            Q(thumbnail__thumbnail_big__isnull=False) & 
+            Q(thumbnail__aspect_ratio__isnull=True)
+        )
+        if photos_with_missing_aspect_ratio.exists():
+            util.logger.info(f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios")
+            for photo in photos_with_missing_aspect_ratio:
+                try:
+                    photo.thumbnail._calculate_aspect_ratio()
+                except Exception as e:
+                    util.logger.exception(f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}")
 
         # if the scan type is not the default user scan directory, or if it is specified as only scanning
         # specific files, there is no need to rescan fully for missing photos.

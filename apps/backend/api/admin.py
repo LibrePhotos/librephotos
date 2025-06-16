@@ -14,6 +14,7 @@ from .models import (
     Person,
     Photo,
     User,
+    Thumbnail,
 )
 
 
@@ -91,6 +92,11 @@ class PhotoAdmin(admin.ModelAdmin):
             queryset=queryset,
         ).run()
 
+
+@admin.register(Thumbnail)
+class ThumbnailAdmin(admin.ModelAdmin):
+    list_display = ["photo", "aspect_ratio"]
+    raw_id_fields = ["photo"]
 
 admin.site.register(Person)
 admin.site.register(AlbumAuto)

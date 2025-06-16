@@ -25,7 +25,7 @@ class Thumbnail(models.Model):
     aspect_ratio = models.FloatField(blank=True, null=True)
     dominant_color = models.TextField(blank=True, null=True)
 
-    def _generate_thumbnail(self, commit=True):
+    def _generate_thumbnail(self):
         try:
             if not does_static_thumbnail_exist("thumbnails_big", self.photo.image_hash):
                 if not self.photo.video:
@@ -97,15 +97,14 @@ class Thumbnail(models.Model):
             self.square_thumbnail_small.name = os.path.join(
                 "square_thumbnails_small", self.photo.image_hash + filetype
             ).strip()
-            if commit:
-                self.save()
+            self.save()
         except Exception as e:
             logger.exception(
                 f"could not generate thumbnail for image {self.photo.main_file.path}"
             )
             raise e
 
-    def _calculate_aspect_ratio(self, commit=True):
+    def _calculate_aspect_ratio(self):
         try:
             # Relies on big thumbnail for correct aspect ratio
             height, width = get_metadata(
@@ -115,8 +114,7 @@ class Thumbnail(models.Model):
             )
             self.aspect_ratio = round(width / height, 2)
 
-            if commit:
-                self.save()
+            self.save()
         except Exception as e:
             logger.exception(
                 f"could not calculate aspect ratio for image {self.thumbnail_big.path}"
