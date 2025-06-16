@@ -328,7 +328,9 @@
             "withouttimestamp": "Sem etiqueta de data/hora",
             "invalidtimestamp": "Etiqueta de data/hora inválida",
             "removetimestamp": "Remover etiqueta de data/hora",
-            "undotimestampmodification": "Anular alteração de etiqueta de data/hora"
+            "undotimestampmodification": "Anular alteração de etiqueta de data/hora",
+            "suggestedcaption": "Legenda sugerida",
+            "places": "Locais"
         }
     },
     "photos": {
