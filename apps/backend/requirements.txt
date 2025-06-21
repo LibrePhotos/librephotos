@@ -41,7 +41,7 @@ Wand==0.6.13
 django-q2==1.7.6
 safetensors==0.5.3
 py-cpuinfo==9.0.0
-psutil==6.1.1
+psutil==7.0.0
 
 # Dependencies for blip
 timm==1.0.15
