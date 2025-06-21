@@ -60,7 +60,6 @@ These are settings that apply to the whole instance.
 - `Allow uploads` sets if uploading should be possible or not
 - `Skip patterns` Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)
 - `Mapbox API Key` Do you want to see on a map where all your photos where taken (if a location is stored in your photos). Get a Map box API Key https://account.mapbox.com/auth/signup/
-- `Heavyweight Processes` Number of workers, when scanning pictures. This setting can dramatically affect the ram usage. Each worker needs 800MB of RAM. Change at your own will. Default is 1.
 
 ## Users
 
