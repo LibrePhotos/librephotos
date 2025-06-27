@@ -379,7 +379,7 @@
         "sidebar": {
             "details": "விவரங்கள்",
             "timetaken": "எடுக்கப்பட்ட நேரம்",
-            "filepath": "கோப்பு பாதை",
+            "filepath": "கோப்புப் பாதை",
             "location": "இடம்",
             "caption": "தலைப்பு",
             "people": "மக்கள்",
@@ -394,7 +394,9 @@
             "withouttimestamp": "நேர முத்திரை இல்லாமல்",
             "invalidtimestamp": "தவறான நேர முத்திரை",
             "removetimestamp": "நேர முத்திரையை அகற்று",
-            "undotimestampmodification": "நேர முத்திரை மாற்றத்தை செயல்தவிர்க்கவும்"
+            "undotimestampmodification": "நேர முத்திரை மாற்றத்தை செயல்தவிர்க்கவும்",
+            "places": "இடங்கள்",
+            "suggestedcaption": "பரிந்துரைக்கப்பட்ட தலைப்பு"
         }
     },
     "exif": {
@@ -457,7 +459,7 @@
         "map_api_provider_header": "வரைபட வழங்குநர்",
         "map_api_provider_description": "பட சிபிஎச் மெட்டாடேட்டாவிலிருந்து இருப்பிட பெயர்களைப் பெறுவதற்கு.",
         "map_api_key_header": "வரைபட வழங்குநருக்கான பநிஇ விசை",
-        "map_api_key_description": "உங்கள் பநிஇ விசையை {{url} at இல் பெறுங்கள்",
+        "map_api_key_description": "உங்கள் பநிஇ விசையை {{url}} இல் பெறுங்கள்",
         "headerheavyweight": "எவிவெயிட் செயல்முறைகள்",
         "heavyweight": "1 க்கு அப்பால் பட-ச்கேனிங் தொழிலாளர்களின் எண்ணிக்கையை அதிகரிக்கவும், ஆனால் ஒவ்வொரு கூடுதல் ஒன்றிற்கும் 800 எம்பி நினைவகத்தைப் பயன்படுத்த தயாராக இருங்கள்.",
         "captioning_model_header": "தலைப்பு மாதிரி",
@@ -479,7 +481,8 @@
     "autoalbumgallery": {
         "showmap": "வரைபடத்தைக் காட்டு",
         "hidemap": "வரைபடத்தை மறைக்கவும்",
-        "day": "நாள் {{day}}"
+        "day": "நாள் {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "personalbum": {
         "numberofpeople": "{{peoplelength}} மக்கள்",
@@ -618,10 +621,10 @@
         "deletepersontitle": "நபரை நீக்கு",
         "setcoverphoto": "கவர் புகைப்பட தொகுப்பு",
         "setcoverphototitle": "கவர் புகைப்படத்தை அமைக்கவும்",
-        "sharephoto": "{{numberOfPhotos}} புகைப்படங்கள்) {{username} with உடன் பகிரப்பட்டன",
-        "unsharephoto": "{{numberOfPhotos}} புகைப்படங்கள்) {{username} with உடன் பகிரப்பட்டன",
+        "sharephoto": "{{numberOfPhotos}} புகைப்படங்கள்{{username}} உடன் பகிரப்பட்டன",
+        "unsharephoto": "{{numberOfPhotos}} புகைப்படங்கள் {{username}} உடன் பகிரப்பட்டன",
         "sharephototitle": "புகைப்படத்தைப் பகிரவும்",
-        "addpublicphoto": "Frotes புகைப்படங்களின் எண்ணிக்கை}} புகைப்படங்கள்) உங்கள் பொது புகைப்படங்களில் சேர்க்கப்பட்டன. புகைப்படங்களுக்கான இணைப்புகள் இடைநிலைப்பலகைக்கு நகலெடுக்கப்பட்டன.",
+        "addpublicphoto": "{{numberOfPhotos}} புகைப்படங்கள் உங்கள் பொது புகைப்படங்களில் சேர்க்கப்பட்டன. புகைப்படங்களுக்கான இணைப்புகள் இடைநிலைப்பலகைக்கு நகலெடுக்கப்பட்டன.",
         "removepublicphoto": "{{numberOfPhotos}} புகைப்படங்கள்) உங்கள் பொது புகைப்படங்களிலிருந்து அகற்றப்பட்டன.",
         "setpublicphotostitle": "பொது புகைப்படங்களை அமைக்கவும்",
         "favoritephoto": "{{numberOfPhotos}} புகைப்படங்கள்) உங்களுக்கு பிடித்தவைகளில் சேர்க்கப்பட்டன.",
@@ -683,8 +686,8 @@
         "rule_type": "விதி வகை: {{rule}}",
         "exif_tag": "EXIF குறிச்சொல்லைப் பயன்படுத்தவும்: {{rule}}",
         "file_property": "கோப்பு சொத்தைப் பயன்படுத்தவும்: {{rule}}",
-        "source_tz": "{{rule} இருந்து இலிருந்து மாற்றவும்",
-        "report_tz": "{{rule} பெறுநர் ஆக மாற்றவும்",
+        "source_tz": "{{rule}} இலிருந்து மாற்றவும்",
+        "report_tz": "{{rule}} பெறுநர் ஆக மாற்றவும்",
         "predefined_regexp": "முன் வரையறுக்கப்பட்ட வழக்கமான வெளிப்பாட்டைப் பயன்படுத்தவும்: {{rule}}"
     }
 }
