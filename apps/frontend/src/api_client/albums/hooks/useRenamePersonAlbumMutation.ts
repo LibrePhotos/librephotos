@@ -4,6 +4,8 @@ import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
 import { PeopleAlbumsQueryKeys } from './useFetchPeopleAlbumsQuery';
 import { FacesQueryKeys } from '../../faces/hooks/useFetchFacesQuery';
+import { IncompleteFacesQueryKeys } from '../../faces/hooks/useFetchIncompleteFacesQuery';
+import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
 
 type RenamePersonAlbumParams = {
   id: string;
@@ -20,5 +22,7 @@ export const useRenamePersonAlbumMutation = () => useMutation({
     // Invalidate relevant queries
     queryClient.invalidateQueries({ queryKey: [...PeopleAlbumsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...FacesQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...IncompleteFacesQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
   },
 }); 

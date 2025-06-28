@@ -4,7 +4,11 @@ import { fetchClient } from '../../api';
 import { PersonFaceList } from '../types';
 import { z} from "zod";
 import { notification } from "../../../service/notifications";
+import { IncompleteFacesQueryKeys } from './useFetchIncompleteFacesQuery';
 import { FacesQueryKeys } from './useFetchFacesQuery';
+import { PeopleAlbumsQueryKeys } from '../../albums/hooks/useFetchPeopleAlbumsQuery';
+import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
+
 export type SetFacesLabelRequest = z.infer<typeof SetFacesLabelRequest>;
 export const SetFacesLabelRequest = z.object({
   faceIds: z.array(z.number()),
@@ -32,7 +36,18 @@ const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
 export const useSetFacesPersonLabelMutation = () => useMutation({
     mutationFn: setFacesPersonLabel,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
+      // Add a small delay to ensure backend processing is complete
+      setTimeout(() => {
+        // Invalidate all face-related queries
+        queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
+        queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
+        
+        // Invalidate people albums (face counts and labels change)
+        queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
+        
+        // Invalidate statistics (num_faces, num_people, etc. change)
+        queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
+      }, 100);
     }
   });
   
