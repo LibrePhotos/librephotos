@@ -97,10 +97,6 @@ def scan_photos(user, job_id):
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.finished = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        prev_result = lrj.result
-        next_result = prev_result
-        next_result["new_photo_count"] = added_photo_count
-        lrj.result = next_result
         lrj.save()
     except Exception as e:
         util.logger.exception(str(e))
@@ -108,9 +104,5 @@ def scan_photos(user, job_id):
         lrj.finished = True
         lrj.failed = True
         lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        prev_result = lrj.result
-        next_result = prev_result
-        next_result["new_photo_count"] = 0
-        lrj.result = next_result
         lrj.save()
     return {"new_photo_count": added_photo_count, "status": True}
