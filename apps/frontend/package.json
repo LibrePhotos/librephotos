@@ -151,7 +151,7 @@
     "rimraf": "5.0.10",
     "source-map-loader": "4.0.2",
     "ts-loader": "9.5.2",
-    "typescript": "5.4.5"
+    "typescript": "5.8.3"
   },
   "resolutions": {
     "react-i18next": "13.5.0"
