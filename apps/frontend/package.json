@@ -147,7 +147,7 @@
     "jest": "29.7.0",
     "jsdom": "^24.0.0",
     "lint-staged": "14.0.1",
-    "prettier": "3.3.3",
+    "prettier": "3.6.2",
     "rimraf": "5.0.10",
     "source-map-loader": "4.0.2",
     "ts-loader": "9.5.2",
