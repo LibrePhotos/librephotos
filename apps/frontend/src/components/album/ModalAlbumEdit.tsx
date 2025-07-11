@@ -4,15 +4,12 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  useAddPhotoToUserAlbumMutation,
-} from "../../api_client/albums/hooks/useAddPhotoToUserAlbumMutation";
-
-  import { i18nResolvedLanguage } from "../../i18n";
+import { useAddPhotoToUserAlbumMutation } from "../../api_client/albums/hooks/useAddPhotoToUserAlbumMutation";
+import { useCreateUserAlbumMutation } from "../../api_client/albums/hooks/useCreateUserAlbumMutation";
+import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks/useFetchUserAlbumsQuery";
+import { i18nResolvedLanguage } from "../../i18n";
 import { fuzzyMatch } from "../../util/util";
 import { Tile } from "../Tile";
-import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks/useFetchUserAlbumsQuery";
-import { useCreateUserAlbumMutation } from "../../api_client/albums/hooks/useCreateUserAlbumMutation";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -45,7 +42,13 @@ export function ModalAlbumEdit(props: Props) {
           {selectedImages.map(image => (
             <Tile
               key={`si-${image.id}`}
-              style={{ objectFit: "cover" }}
+              style={{
+                objectFit: "cover",
+                width: "40px",
+                height: "40px",
+                aspectRatio: "1",
+                borderRadius: "4px",
+              }}
               height={40}
               width={40}
               image_hash={image.id}
@@ -104,7 +107,13 @@ export function ModalAlbumEdit(props: Props) {
                   <Tile
                     height={50}
                     width={50}
-                    style={{ objectFit: "cover" }}
+                    style={{
+                      objectFit: "cover",
+                      width: "40px",
+                      height: "40px",
+                      aspectRatio: "1",
+                      borderRadius: "4px",
+                    }}
                     image_hash={item.cover_photo.image_hash}
                     video={item.cover_photo.video}
                   />

@@ -126,7 +126,7 @@ export function AlbumsSharedWithMe({ showSidebar }: any) {
       // photo cell
       return (
         <div key={key} style={{ ...style, padding: 1 }}>
-          <Anchor href={`/useralbum/${cell.id}/`}>
+          <Anchor href={`/album/user/${cell.id}`}>
             <Tile
               style={{ objectFit: "cover" }}
               width={entrySquareSize - 2}
