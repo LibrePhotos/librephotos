@@ -226,8 +226,7 @@ def get_search_term_examples(user):
             ]
         terms_things = ""
         if (
-            hasattr(p, "caption_instance")
-            and p.caption_instance
+            p.caption_instance
             and p.caption_instance.captions_json
             and p.caption_instance.captions_json.get("places365") is not None
         ):

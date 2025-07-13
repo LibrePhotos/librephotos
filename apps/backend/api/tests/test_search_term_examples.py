@@ -44,6 +44,39 @@ class SearchTermExamplesTest(TestCase):
         # Should return some search terms
         self.assertIsInstance(search_terms, list)
 
+    def test_get_search_term_examples_with_empty_captions(self):
+        """Test that get_search_term_examples works with empty captions"""
+        # Create a photo without captions
+        photo = create_test_photo(owner=self.user)
+
+        # Add geolocation data
+        photo.geolocation_json = {
+            "features": [
+                {"text": "Miami"},
+                {"text": "Florida"},
+                {"text": "USA"},
+            ]
+        }
+        photo.save()
+
+        # Add empty caption data
+        caption_instance = photo._get_or_create_caption_instance()
+        caption_instance.captions_json = {
+            "places365": {
+                "categories": [],
+                "attributes": [],
+            },
+            "im2txt": "",
+            "user_caption": "",
+        }
+        caption_instance.save()
+
+        # This should not raise a FieldError
+        search_terms = get_search_term_examples(self.user)
+
+        # Should return some search terms (may be empty)
+        self.assertIsInstance(search_terms, list)
+
     def test_search_term_examples_api_endpoint(self):
         """Test the API endpoint that calls get_search_term_examples"""
         # Create a photo with captions and geolocation

@@ -94,51 +94,6 @@ class Photo(models.Model):
 
     _loaded_values = {}
 
-    @property
-    def captions_json(self):
-        """Property to access captions_json from PhotoCaption model"""
-        try:
-            return self.caption_instance.captions_json
-        except AttributeError:
-            return None
-
-    @captions_json.setter
-    def captions_json(self, value):
-        """Setter to update captions_json in PhotoCaption model"""
-        caption_instance = self._get_or_create_caption_instance()
-        caption_instance.captions_json = value
-        caption_instance.save()
-
-    @property
-    def search_captions(self):
-        """Property to access search_captions from PhotoSearch model"""
-        try:
-            return self.search_instance.search_captions
-        except AttributeError:
-            return None
-
-    @search_captions.setter
-    def search_captions(self, value):
-        """Setter to update search_captions in PhotoSearch model"""
-        search_instance = self._get_or_create_search_instance()
-        search_instance.search_captions = value
-        search_instance.save()
-
-    @property
-    def search_location(self):
-        """Property to access search_location from PhotoSearch model"""
-        try:
-            return self.search_instance.search_location
-        except AttributeError:
-            return None
-
-    @search_location.setter
-    def search_location(self, value):
-        """Setter to update search_location in PhotoSearch model"""
-        search_instance = self._get_or_create_search_instance()
-        search_instance.search_location = value
-        search_instance.save()
-
     @classmethod
     def from_db(cls, db, field_names, values):
         instance = super().from_db(db, field_names, values)
@@ -536,10 +491,15 @@ class Photo(models.Model):
 
     def _add_to_album_thing(self):
         if (
-            type(self.captions_json) is dict
-            and "places365" in self.captions_json.keys()
+            hasattr(self, "caption_instance")
+            and self.caption_instance
+            and self.caption_instance.captions_json
+            and type(self.caption_instance.captions_json) is dict
+            and "places365" in self.caption_instance.captions_json.keys()
         ):
-            for attribute in self.captions_json["places365"]["attributes"]:
+            for attribute in self.caption_instance.captions_json["places365"][
+                "attributes"
+            ]:
                 album_thing = api.models.album_thing.get_album_thing(
                     title=attribute,
                     owner=self.owner,
@@ -548,7 +508,9 @@ class Photo(models.Model):
                     album_thing.photos.add(self)
                     album_thing.thing_type = "places365_attribute"
                     album_thing.save()
-            for category in self.captions_json["places365"]["categories"]:
+            for category in self.caption_instance.captions_json["places365"][
+                "categories"
+            ]:
                 album_thing = api.models.album_thing.get_album_thing(
                     title=category,
                     owner=self.owner,

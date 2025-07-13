@@ -14,6 +14,18 @@ class DirectoryWatcherFixTest(TestCase):
         # Create a photo without captions
         photo = create_test_photo(owner=self.user)
 
+        # Add some caption data to the photo
+        caption_instance = photo._get_or_create_caption_instance()
+        caption_instance.captions_json = {
+            "places365": {
+                "categories": ["outdoor", "nature"],
+                "attributes": ["sunny", "green"],
+            },
+            "im2txt": "A beautiful landscape",
+            "user_caption": "My vacation photo",
+        }
+        caption_instance.save()
+
         # This query should work without FieldError
         existing_photos = Photo.objects.filter(
             Q(owner=self.user.id)

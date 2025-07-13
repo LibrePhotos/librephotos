@@ -52,8 +52,12 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         return obj.image_hash
 
     def get_location(self, obj) -> str:
-        if obj.search_location:
-            return obj.search_location
+        if (
+            hasattr(obj, "search_instance")
+            and obj.search_instance
+            and obj.search_instance.search_location
+        ):
+            return obj.search_instance.search_location
         else:
             return ""
 
@@ -232,8 +236,13 @@ class PhotoSerializer(serializers.ModelSerializer):
             return []
 
     def get_captions_json(self, obj) -> dict:
-        if obj.captions_json and len(obj.captions_json) > 0:
-            return obj.captions_json
+        if (
+            hasattr(obj, "caption_instance")
+            and obj.caption_instance
+            and obj.caption_instance.captions_json
+            and len(obj.caption_instance.captions_json) > 0
+        ):
+            return obj.caption_instance.captions_json
         else:
             emptyArray = {
                 "im2txt": "",

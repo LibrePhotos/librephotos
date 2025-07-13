@@ -36,7 +36,7 @@ class PhotoCaption(models.Model):
             )
             return False
 
-        util.logger.info(f"Generating captions with Im2txt")
+        util.logger.info("Generating captions with Im2txt")
 
         image_path = self.photo.thumbnail.thumbnail_big.path
         if self.captions_json is None:
@@ -68,8 +68,12 @@ class PhotoCaption(models.Model):
                 if face and settings["add_person"]:
                     person_name = " Person: " + face.person.name
                 place = ""
-                if self.photo.search_location and settings["add_location"]:
-                    place = " Place: " + self.photo.search_location
+                if (
+                    self.photo.search_instance
+                    and self.photo.search_instance.search_location
+                    and settings["add_location"]
+                ):
+                    place = " Place: " + self.photo.search_instance.search_location
                 keywords = ""
                 if settings["add_keywords"]:
                     keywords = " and tags or keywords"
@@ -117,7 +121,6 @@ class PhotoCaption(models.Model):
 
         try:
             from constance import config as site_config
-            from api.image_captioning import generate_caption
 
             util.logger.info("Generating Moondream captions")
 
@@ -138,8 +141,12 @@ class PhotoCaption(models.Model):
                     )
 
                 place = ""
-                if self.photo.search_location and settings["add_location"]:
-                    place = f" This photo was taken at {self.photo.search_location}."
+                if (
+                    self.photo.search_instance
+                    and self.photo.search_instance.search_location
+                    and settings["add_location"]
+                ):
+                    place = f" This photo was taken at {self.photo.search_instance.search_location}."
 
                 keywords_instruction = ""
                 if settings["add_keywords"]:

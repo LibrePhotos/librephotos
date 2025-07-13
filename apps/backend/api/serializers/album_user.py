@@ -40,8 +40,13 @@ class AlbumUserSerializer(serializers.ModelSerializer):
 
     def get_location(self, obj) -> str:
         for photo in obj.photos.all():
-            if photo and photo.search_location:
-                return photo.search_location
+            if (
+                photo
+                and hasattr(photo, "search_instance")
+                and photo.search_instance
+                and photo.search_instance.search_location
+            ):
+                return photo.search_instance.search_location
         return ""
 
     def get_date(self, obj) -> str:
