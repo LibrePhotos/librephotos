@@ -11,16 +11,14 @@ class DirectoryWatcherFixTest(TestCase):
 
     def test_generate_tags_query_works(self):
         """Test that the generate_tags query works with the new PhotoCaption model"""
-        # Create a photo without captions
+        # Create a photo without places365 captions
         photo = create_test_photo(owner=self.user)
 
-        # Add some caption data to the photo
-        caption_instance = photo._get_or_create_caption_instance()
+        # Add some caption data to the photo (but NOT places365)
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "places365": {
-                "categories": ["outdoor", "nature"],
-                "attributes": ["sunny", "green"],
-            },
             "im2txt": "A beautiful landscape",
             "user_caption": "My vacation photo",
         }
@@ -36,7 +34,7 @@ class DirectoryWatcherFixTest(TestCase):
             )
         )
 
-        # Should find the photo since it has no captions
+        # Should find the photo since it has no places365 captions
         self.assertEqual(existing_photos.count(), 1)
         self.assertEqual(existing_photos.first(), photo)
 
@@ -44,7 +42,9 @@ class DirectoryWatcherFixTest(TestCase):
         """Test that photos with places365 captions are excluded"""
         # Create a photo with places365 captions
         photo = create_test_photo(owner=self.user)
-        caption_instance = photo._get_or_create_caption_instance()
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
             "places365": {"categories": ["outdoor"], "attributes": ["sunny"]}
         }

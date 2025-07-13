@@ -15,7 +15,9 @@ class PhotoSearchRefactorTest(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Test setting search_location through direct access
-        search_instance = photo._get_or_create_search_instance()
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
         search_instance.search_location = "New York, USA"
         search_instance.save()
 
@@ -28,7 +30,9 @@ class PhotoSearchRefactorTest(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Test setting search_captions through direct access
-        search_instance = photo._get_or_create_search_instance()
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
         search_instance.search_captions = "outdoor nature sunny"
         search_instance.save()
 
@@ -41,7 +45,9 @@ class PhotoSearchRefactorTest(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Add some caption data
-        caption_instance = photo._get_or_create_caption_instance()
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
             "places365": {"categories": ["outdoor"], "attributes": ["sunny"]},
             "user_caption": "My photo",
@@ -52,7 +58,9 @@ class PhotoSearchRefactorTest(TestCase):
         photo._recreate_search_captions()
 
         # Verify search captions were created
-        search_instance = photo._get_or_create_search_instance()
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
         self.assertIsNotNone(search_instance.search_captions)
         self.assertIn("outdoor", search_instance.search_captions)
         self.assertIn("sunny", search_instance.search_captions)
@@ -74,7 +82,9 @@ class PhotoSearchRefactorTest(TestCase):
         }
 
         # Update search location through PhotoSearch
-        search_instance = photo._get_or_create_search_instance()
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
         search_instance.update_search_location(geolocation_data)
         search_instance.save()
 
@@ -88,11 +98,15 @@ class PhotoSearchRefactorTest(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # Set data through direct access
-        caption_instance = photo._get_or_create_caption_instance()
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {"user_caption": "Test caption"}
         caption_instance.save()
 
-        search_instance = photo._get_or_create_search_instance()
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
         search_instance.search_captions = "test captions"
         search_instance.search_location = "Test Location"
         search_instance.save()

@@ -38,7 +38,13 @@ class PhotoCaption(models.Model):
 
         util.logger.info("Generating captions with Im2txt")
 
-        image_path = self.photo.thumbnail.thumbnail_big.path
+        try:
+            image_path = self.photo.thumbnail.thumbnail_big.path
+        except Exception:
+            util.logger.warning(
+                f"Cannot access thumbnail path for photo {self.photo.image_hash}"
+            )
+            return False
         if self.captions_json is None:
             self.captions_json = {}
         captions = self.captions_json
@@ -114,7 +120,13 @@ class PhotoCaption(models.Model):
             )
             return False
 
-        image_path = self.photo.thumbnail.thumbnail_big.path
+        try:
+            image_path = self.photo.thumbnail.thumbnail_big.path
+        except Exception:
+            util.logger.warning(
+                f"Cannot access thumbnail path for photo {self.photo.image_hash}"
+            )
+            return False
         if self.captions_json is None:
             self.captions_json = {}
         captions = self.captions_json
@@ -190,7 +202,14 @@ class PhotoCaption(models.Model):
             )
             return False
 
-        image_path = self.photo.thumbnail.thumbnail_big.path
+        try:
+            image_path = self.photo.thumbnail.thumbnail_big.path
+        except Exception:
+            util.logger.warning(
+                f"Cannot access thumbnail path for photo {self.photo.image_hash}"
+            )
+            return False
+
         try:
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
@@ -240,8 +259,10 @@ class PhotoCaption(models.Model):
             return False
 
     def recreate_search_captions(self):
-        """Recreate search captions - delegates to PhotoSearch model"""
-        search_instance = self.photo._get_or_create_search_instance()
+        """Recreate search captions - directly access PhotoSearch model"""
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance.recreate_search_captions()
         search_instance.save()
 

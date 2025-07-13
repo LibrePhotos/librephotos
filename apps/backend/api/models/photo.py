@@ -142,44 +142,40 @@ class Photo(models.Model):
                 self.main_file.path, tags_to_write, use_sidecar=use_sidecar
             )
 
-    def _get_or_create_caption_instance(self):
-        """Get or create PhotoCaption instance for this photo"""
+    def _generate_captions_im2txt(self, commit=True):
+        """Generate im2txt captions for the photo - directly access PhotoCaption"""
         from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
-        return caption_instance
-
-    def _get_or_create_search_instance(self):
-        """Get or create PhotoSearch instance for this photo"""
-        from api.models.photo_search import PhotoSearch
-
-        search_instance, created = PhotoSearch.objects.get_or_create(photo=self)
-        return search_instance
-
-    def _generate_captions_im2txt(self, commit=True):
-        """Generate im2txt captions for the photo - delegates to PhotoCaption"""
-        caption_instance = self._get_or_create_caption_instance()
         return caption_instance.generate_captions_im2txt(commit=commit)
 
     def _generate_captions_moondream(self, commit=True):
-        """Generate captions using Moondream - delegates to PhotoCaption"""
-        caption_instance = self._get_or_create_caption_instance()
+        """Generate captions using Moondream - directly access PhotoCaption"""
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
         return caption_instance._generate_captions_moondream(commit=commit)
 
     def _save_captions(self, commit=True, caption=None):
-        """Save user caption - delegates to PhotoCaption"""
-        caption_instance = self._get_or_create_caption_instance()
+        """Save user caption - directly access PhotoCaption"""
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
         return caption_instance.save_user_caption(caption, commit=commit)
 
     def _recreate_search_captions(self):
-        """Recreate search captions - delegates to PhotoSearch"""
-        search_instance = self._get_or_create_search_instance()
+        """Recreate search captions - directly access PhotoSearch"""
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=self)
         search_instance.recreate_search_captions()
         search_instance.save()
 
     def _generate_captions(self, commit):
-        """Generate places365 captions - delegates to PhotoCaption"""
-        caption_instance = self._get_or_create_caption_instance()
+        """Generate places365 captions - directly access PhotoCaption"""
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
         caption_instance.generate_places365_captions(commit=commit)
 
     def _find_album_place(self):
@@ -290,7 +286,9 @@ class Photo(models.Model):
         self.geolocation_json = res
 
         # Update search location through PhotoSearch model
-        search_instance = self._get_or_create_search_instance()
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=self)
         search_instance.update_search_location(res)
         search_instance.save()
 

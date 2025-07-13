@@ -78,7 +78,9 @@ class PhotoCaptionModelTest(TestCase):
 
         # Verify PhotoSearch was created and has search captions
         self.assertTrue(hasattr(self.photo, "search_instance"))
-        search_instance = self.photo._get_or_create_search_instance()
+        from api.models.photo_search import PhotoSearch
+
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         self.assertIsNotNone(search_instance.search_captions)
 
     def test_captions_json_default_empty_dict(self):

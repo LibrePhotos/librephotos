@@ -27,7 +27,9 @@ class SearchTermExamplesTest(TestCase):
         photo.save()
 
         # Add some caption data through the new PhotoCaption model
-        caption_instance = photo._get_or_create_caption_instance()
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
             "places365": {
                 "categories": ["outdoor", "nature"],
@@ -60,7 +62,9 @@ class SearchTermExamplesTest(TestCase):
         photo.save()
 
         # Add empty caption data
-        caption_instance = photo._get_or_create_caption_instance()
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
             "places365": {
                 "categories": [],
@@ -87,7 +91,9 @@ class SearchTermExamplesTest(TestCase):
         photo.save()
 
         # Add some caption data
-        caption_instance = photo._get_or_create_caption_instance()
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
             "places365": {"categories": ["outdoor"], "attributes": ["sunny"]}
         }
