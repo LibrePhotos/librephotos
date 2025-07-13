@@ -2,7 +2,9 @@ from django.test import TestCase
 from django.utils import timezone
 from django.core.exceptions import FieldDoesNotExist
 
-from api.models import Photo, PhotoCaption, PhotoSearch, AlbumDate
+from api.models import Photo, AlbumDate
+from api.models.photo_caption import PhotoCaption
+from api.models.photo_search import PhotoSearch
 from api.tests.utils import create_test_user, create_test_photo
 
 
@@ -14,7 +16,6 @@ class PhotoModelIntegrationTest(TestCase):
     def test_photo_properties_delegate_to_caption_model(self):
         """Test that Photo properties delegate to PhotoCaption model"""
         # Initially no caption instance
-        from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
         self.assertIsNone(caption_instance.captions_json)
@@ -34,7 +35,6 @@ class PhotoModelIntegrationTest(TestCase):
     def test_photo_properties_delegate_to_search_model(self):
         """Test that Photo properties delegate to PhotoSearch model"""
         # Initially no search instance
-        from api.models.photo_search import PhotoSearch
 
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         self.assertIsNone(search_instance.search_captions)
@@ -58,27 +58,29 @@ class PhotoModelIntegrationTest(TestCase):
         self.assertEqual(search_instance.search_captions, "outdoor nature")
         self.assertEqual(search_instance.search_location, "New York")
 
-    def test_photo_caption_methods_delegate_correctly(self):
-        """Test that Photo caption methods delegate to PhotoCaption"""
-        # Test _save_captions method - this will fail due to thumbnail requirement
-        # but we can test that it creates the PhotoCaption instance
-        result = self.photo._save_captions(caption="My test caption")
+    def test_photo_caption_methods_work_directly(self):
+        """Test that PhotoCaption methods work directly with the photo"""
+
+        # Test save_user_caption method directly on PhotoCaption
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
+        result = caption_instance.save_user_caption(caption="My test caption")
 
         # The method should return False due to missing thumbnail but still create instance
         self.assertFalse(result)
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
 
-    def test_photo_search_methods_delegate_correctly(self):
-        """Test that Photo search methods delegate to PhotoSearch"""
+    def test_photo_search_methods_work_directly(self):
+        """Test that PhotoSearch methods work directly with the photo"""
         # Create some caption data first
-        from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
         caption_instance.captions_json = {"user_caption": "Beautiful landscape"}
         caption_instance.save()
 
-        # Test _recreate_search_captions method
-        self.photo._recreate_search_captions()
+        # Test recreate_search_captions method directly on PhotoSearch
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
+        search_instance.recreate_search_captions()
+        search_instance.save()
 
         # Verify PhotoSearch was created and search captions updated
         self.assertTrue(PhotoSearch.objects.filter(photo=self.photo).exists())
@@ -101,7 +103,6 @@ class PhotoModelIntegrationTest(TestCase):
         self.photo.save()
 
         # Manually trigger the search location update part
-        from api.models.photo_search import PhotoSearch
 
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance.update_search_location(geolocation_data)
@@ -118,13 +119,10 @@ class PhotoModelIntegrationTest(TestCase):
     def test_cascade_deletion_of_related_models(self):
         """Test that deleting Photo cascades to PhotoCaption and PhotoSearch"""
         # Create related instances
-        from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
         caption_instance.captions_json = {"user_caption": "Test"}
         caption_instance.save()
-
-        from api.models.photo_search import PhotoSearch
 
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance.search_captions = "Test"
@@ -143,8 +141,6 @@ class PhotoModelIntegrationTest(TestCase):
 
     def test_lazy_creation_of_related_instances(self):
         """Test that related instances are created only when needed"""
-        from api.models.photo_caption import PhotoCaption
-        from api.models.photo_search import PhotoSearch
 
         # Initially no instances should exist
         self.assertFalse(PhotoCaption.objects.filter(photo=self.photo).exists())
@@ -175,7 +171,6 @@ class PhotoModelIntegrationTest(TestCase):
     def test_get_or_create_methods(self):
         """Test the _get_or_create_* methods"""
         # Test caption instance creation
-        from api.models.photo_caption import PhotoCaption
 
         caption_instance1, created = PhotoCaption.objects.get_or_create(
             photo=self.photo
@@ -188,7 +183,6 @@ class PhotoModelIntegrationTest(TestCase):
         self.assertEqual(caption_instance1.photo_id, caption_instance2.photo_id)
 
         # Test search instance creation
-        from api.models.photo_search import PhotoSearch
 
         search_instance1, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance2, created = PhotoSearch.objects.get_or_create(photo=self.photo)
@@ -199,7 +193,6 @@ class PhotoModelIntegrationTest(TestCase):
     def test_complex_workflow(self):
         """Test a complex workflow involving all models"""
         # 1. Add user caption (will fail due to thumbnail but creates instance)
-        from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
         caption_instance.save_user_caption(caption="My vacation photo")
@@ -216,7 +209,6 @@ class PhotoModelIntegrationTest(TestCase):
         caption_instance.save()
 
         # 3. Recreate search captions
-        from api.models.photo_search import PhotoSearch
 
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance.recreate_search_captions()
@@ -247,8 +239,6 @@ class PhotoModelIntegrationTest(TestCase):
         photo = create_test_photo(owner=self.user)
 
         # These should return None gracefully, not raise exceptions
-        from api.models.photo_caption import PhotoCaption
-        from api.models.photo_search import PhotoSearch
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
@@ -260,7 +250,6 @@ class PhotoModelIntegrationTest(TestCase):
     def test_backward_compatibility(self):
         """Test that the refactored models maintain backward compatibility"""
         # Create instances using the refactored approach
-        from api.models.photo_caption import PhotoCaption
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
         caption_instance.captions_json = {
@@ -268,8 +257,6 @@ class PhotoModelIntegrationTest(TestCase):
             "im2txt": "Generated caption",
         }
         caption_instance.save()
-
-        from api.models.photo_search import PhotoSearch
 
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance.search_captions = "test search terms"
@@ -302,7 +289,6 @@ class PhotoModelIntegrationTest(TestCase):
     def test_queryset_only_with_search_instance_works(self):
         """Test that using search_instance__search_location in queryset .only() works"""
         # Create a photo with search data
-        from api.models.photo_search import PhotoSearch
 
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance.search_location = "New York"
@@ -324,7 +310,6 @@ class PhotoModelIntegrationTest(TestCase):
         """Test that the album date queryset works with the fixed field references"""
 
         # Create a photo with search data
-        from api.models.photo_search import PhotoSearch
 
         search_instance, created = PhotoSearch.objects.get_or_create(photo=self.photo)
         search_instance.search_location = "New York"

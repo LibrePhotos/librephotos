@@ -142,42 +142,6 @@ class Photo(models.Model):
                 self.main_file.path, tags_to_write, use_sidecar=use_sidecar
             )
 
-    def _generate_captions_im2txt(self, commit=True):
-        """Generate im2txt captions for the photo - directly access PhotoCaption"""
-        from api.models.photo_caption import PhotoCaption
-
-        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
-        return caption_instance.generate_captions_im2txt(commit=commit)
-
-    def _generate_captions_moondream(self, commit=True):
-        """Generate captions using Moondream - directly access PhotoCaption"""
-        from api.models.photo_caption import PhotoCaption
-
-        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
-        return caption_instance._generate_captions_moondream(commit=commit)
-
-    def _save_captions(self, commit=True, caption=None):
-        """Save user caption - directly access PhotoCaption"""
-        from api.models.photo_caption import PhotoCaption
-
-        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
-        return caption_instance.save_user_caption(caption, commit=commit)
-
-    def _recreate_search_captions(self):
-        """Recreate search captions - directly access PhotoSearch"""
-        from api.models.photo_search import PhotoSearch
-
-        search_instance, created = PhotoSearch.objects.get_or_create(photo=self)
-        search_instance.recreate_search_captions()
-        search_instance.save()
-
-    def _generate_captions(self, commit):
-        """Generate places365 captions - directly access PhotoCaption"""
-        from api.models.photo_caption import PhotoCaption
-
-        caption_instance, created = PhotoCaption.objects.get_or_create(photo=self)
-        caption_instance.generate_places365_captions(commit=commit)
-
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
             Q(photos__in=[self])

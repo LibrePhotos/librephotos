@@ -46,6 +46,7 @@ class PhotoSearchRefactorTest(TestCase):
 
         # Add some caption data
         from api.models.photo_caption import PhotoCaption
+        from api.models.photo_search import PhotoSearch
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
@@ -55,7 +56,9 @@ class PhotoSearchRefactorTest(TestCase):
         caption_instance.save()
 
         # Recreate search captions
-        photo._recreate_search_captions()
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
+        search_instance.recreate_search_captions()
+        search_instance.save()
 
         # Verify search captions were created
         from api.models.photo_search import PhotoSearch

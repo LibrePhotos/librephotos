@@ -19,6 +19,8 @@ from api.face_classify import cluster_all_faces
 
 from api.feature.embedded_media import extract_embedded_media, has_embedded_media
 from api.models import Face, File, LongRunningJob, Photo, Thumbnail
+from api.models.photo_caption import PhotoCaption
+from api.models.photo_search import PhotoSearch
 from api.models.file import (
     calculate_hash,
     is_metadata,
@@ -184,7 +186,9 @@ def handle_new_image(user, path, job_id, photo=None):
             util.logger.info(
                 f"job {job_id}: get dominant color: {path}, elapsed: {elapsed}"
             )
-            photo._recreate_search_captions()
+            search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
+            search_instance.recreate_search_captions()
+            search_instance.save()
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 f"job {job_id}: search caption recreated: {path}, elapsed: {elapsed}"
@@ -308,18 +312,22 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
         # Check for photos with missing aspect ratios but existing thumbnails
         photos_with_missing_aspect_ratio = Photo.objects.filter(
-            Q(owner=user.id) & 
-            Q(thumbnail__isnull=False) & 
-            Q(thumbnail__thumbnail_big__isnull=False) & 
-            Q(thumbnail__aspect_ratio__isnull=True)
+            Q(owner=user.id)
+            & Q(thumbnail__isnull=False)
+            & Q(thumbnail__thumbnail_big__isnull=False)
+            & Q(thumbnail__aspect_ratio__isnull=True)
         )
         if photos_with_missing_aspect_ratio.exists():
-            util.logger.info(f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios")
+            util.logger.info(
+                f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios"
+            )
             for photo in photos_with_missing_aspect_ratio:
                 try:
                     photo.thumbnail._calculate_aspect_ratio()
                 except Exception as e:
-                    util.logger.exception(f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}")
+                    util.logger.exception(
+                        f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
+                    )
 
         # if the scan type is not the default user scan directory, or if it is specified as only scanning
         # specific files, there is no need to rescan fully for missing photos.
@@ -470,7 +478,8 @@ def generate_tag_job(photo: Photo, job_id: str):
     failed = False
     try:
         photo.refresh_from_db()
-        photo._generate_captions(True)
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
+        caption_instance.generate_places365_captions(commit=True)
     except Exception as err:
         util.logger.exception("An error occurred: %s", photo.image_hash)
 

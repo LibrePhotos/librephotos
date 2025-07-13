@@ -13,7 +13,9 @@ class PhotoCaptionsTest(TestCase):
         self.user2 = create_test_user()
         self.client.force_authenticate(user=self.user1)
 
-    @patch("api.models.Photo._generate_captions_im2txt", autospec=True)
+    @patch(
+        "api.models.photo_caption.PhotoCaption.generate_captions_im2txt", autospec=True
+    )
     def test_generate_captions_for_my_photo(self, generate_caption_mock):
         generate_caption_mock.return_value = True
         photo = create_test_photo(owner=self.user1)
@@ -30,7 +32,9 @@ class PhotoCaptionsTest(TestCase):
 
         self.assertTrue(data["status"])
 
-    @patch("api.models.Photo._generate_captions_im2txt", autospec=True)
+    @patch(
+        "api.models.photo_caption.PhotoCaption.generate_captions_im2txt", autospec=True
+    )
     def test_fail_to_generate_captions_for_my_photo(self, generate_caption_mock):
         generate_caption_mock.return_value = False
         photo = create_test_photo(owner=self.user1)

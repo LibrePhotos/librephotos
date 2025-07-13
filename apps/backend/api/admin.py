@@ -98,6 +98,7 @@ class ThumbnailAdmin(admin.ModelAdmin):
     list_display = ["photo", "aspect_ratio"]
     raw_id_fields = ["photo"]
 
+
 admin.site.register(Person)
 admin.site.register(AlbumAuto)
 admin.site.register(AlbumUser)

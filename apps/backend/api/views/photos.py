@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import File, Photo, User
+from api.models.photo_caption import PhotoCaption
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.photos import (
     PhotoDetailsSummarySerializer,
@@ -404,7 +405,8 @@ class GeneratePhotoCaption(APIView):
                 status=400,
             )
 
-        res = photo._generate_captions_im2txt()
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
+        res = caption_instance.generate_captions_im2txt()
 
         if res:
             return Response({"status": True})
@@ -433,7 +435,8 @@ class SavePhotoCaption(APIView):
                 status=400,
             )
 
-        res = photo._save_captions(caption=caption)
+        caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
+        res = caption_instance.save_user_caption(caption)
         return Response({"status": res})
 
 

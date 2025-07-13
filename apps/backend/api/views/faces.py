@@ -13,6 +13,7 @@ from api.face_classify import cluster_all_faces
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Face
 from api.models.person import Person, get_or_create_person
+from api.models.photo_search import PhotoSearch
 from api.serializers.face import (
     FaceListSerializer,
     IncompletePersonFaceListSerializer,
@@ -274,7 +275,9 @@ class SetFacePersonLabel(APIView):
         if person:
             person._calculate_face_count()
             person._set_default_cover_photo()
-        face.photo._recreate_search_captions()
+        search_instance, created = PhotoSearch.objects.get_or_create(photo=face.photo)
+        search_instance.recreate_search_captions()
+        search_instance.save()
         return Response(
             {
                 "status": True,

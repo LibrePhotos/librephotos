@@ -21,6 +21,13 @@ from api import util
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.models import Photo, User
 from api.models.file import calculate_hash, calculate_hash_b64
+from api.models.photo_caption import PhotoCaption
+
+
+def generate_captions_wrapper(photo, commit=True):
+    """Wrapper function to generate captions for use in chain"""
+    caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
+    caption_instance.generate_places365_captions(commit=commit)
 
 
 class UploadPhotoExists(viewsets.ViewSet):
@@ -184,7 +191,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             chain = Chain()
             photo = create_new_image(user, photo_path)
             chain.append(handle_new_image, user, photo_path, image_hash, photo)
-            chain.append(photo._generate_captions, True)
+            chain.append(generate_captions_wrapper, photo, True)
             chain.append(photo._geolocate)
             chain.append(photo._add_location_to_album_dates)
             chain.append(photo._extract_faces)
