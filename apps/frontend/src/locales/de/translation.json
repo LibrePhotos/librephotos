@@ -423,7 +423,7 @@
         "map_api_key_description": "Holen Sie sich einen API-Schlüssel unter {{url}}",
         "heavyweight": "Anzahl der Worker für Bildverarbeitung kann höher als 1 eingestellt werden, allerdings benötigt jeder zusätzliche Worker 800MB Arbeitsspeicher.",
         "map_api_provider_header": "Kartenanbieter",
-        "map_api_provider_description": "Nötig, um Ortsnamen zu GPS Metadaten aus Bildern abzurufen.",
+        "map_api_provider_description": "Zum Abrufen von Ortsnamen aus den GPS-Metadaten von Bildern.",
         "llm_model_header": "Large Language Model",
         "captioning_model_description": "Wähle ein Model für die Beschreibungsgenerierung aus.",
         "ram_warning_header": "Hohe RAM-Größe möglich",
