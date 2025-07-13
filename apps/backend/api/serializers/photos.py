@@ -172,6 +172,8 @@ class PhotoSerializer(serializers.ModelSerializer):
     small_square_thumbnail_url = serializers.SerializerMethodField()
     similar_photos = serializers.SerializerMethodField()
     captions_json = serializers.SerializerMethodField()
+    search_captions = serializers.SerializerMethodField()
+    search_location = serializers.SerializerMethodField()
     people = serializers.SerializerMethodField()
     shared_to = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     image_path = serializers.SerializerMethodField()
@@ -184,9 +186,9 @@ class PhotoSerializer(serializers.ModelSerializer):
             "exif_gps_lat",
             "exif_gps_lon",
             "exif_timestamp",
+            "captions_json",
             "search_captions",
             "search_location",
-            "captions_json",
             "big_thumbnail_url",
             "square_thumbnail_url",
             "small_square_thumbnail_url",
@@ -249,6 +251,16 @@ class PhotoSerializer(serializers.ModelSerializer):
                 "places365": {"attributes": [], "categories": [], "environment": []},
             }
             return emptyArray
+
+    def get_search_captions(self, obj) -> str:
+        if hasattr(obj, "search_instance") and obj.search_instance:
+            return obj.search_instance.search_captions or ""
+        return ""
+
+    def get_search_location(self, obj) -> str:
+        if hasattr(obj, "search_instance") and obj.search_instance:
+            return obj.search_instance.search_location or ""
+        return ""
 
     def get_image_path(self, obj) -> list[str]:
         try:
