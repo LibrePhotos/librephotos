@@ -191,7 +191,7 @@
             "cnn": "CNN"
         },
         "min_samples": "Minimale Samples",
-        "cluster_selection_epsilon_help": "Bestimmt, welche Cluster zusammengeführt werden. Ein höherer Wert bedeutet, dass mehr Cluster zusammengeführt werden.",
+        "cluster_selection_epsilon_help": "Bestimmt, welche Cluster zusammengefasst werden. Ein höherer Wert heißt, dass mehr Cluster zusammengefasst werden.",
         "hindi": "Hindi",
         "llm": "Large Language Model Einstellungen",
         "enablellm": "Aktiviere Large Language Model für Beschreibungen",
