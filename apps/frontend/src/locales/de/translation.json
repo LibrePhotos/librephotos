@@ -319,7 +319,8 @@
             "invalidtimestamp": "Ungültiger Zeitstempel",
             "removetimestamp": "Zeitstempel entfernen",
             "undotimestampmodification": "Änderung des Zeitstempels rückgängig machen",
-            "places": "Orte"
+            "places": "Orte",
+            "suggestedcaption": "Vorgeschlagene Überschrift"
         }
     },
     "photos": {
