@@ -47,7 +47,7 @@
     "@popperjs/core": "2.11.8",
     "@tabler/icons": "3.17.0",
     "@tabler/icons-react": "2.47.0",
-    "@tanstack/react-query": "5.76.1",
+    "@tanstack/react-query": "5.83.0",
     "@tanstack/react-router": "^1.116.0",
     "@tiptap/core": "^2.3.2",
     "@tiptap/extension-document": "^2.3.2",
