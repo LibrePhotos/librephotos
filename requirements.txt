@@ -38,7 +38,7 @@ tqdm==4.67.1
 gevent==24.11.1
 python-magic==0.4.27
 Wand==0.6.13
-django-q2==1.7.6
+django-q2==1.8.0
 safetensors==0.5.3
 py-cpuinfo==9.0.0
 psutil==7.0.0
