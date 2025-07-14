@@ -43,9 +43,10 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   const onChangeDate = (date: Date | null) => {
     if (date && timestamp) {
       const newDate = new Date(date);
-      newDate.setHours(timestamp.getHours());
-      newDate.setMinutes(timestamp.getMinutes());
-      newDate.setSeconds(timestamp.getSeconds());
+      const ts = new Date(timestamp);
+      newDate.setHours(ts.getHours());
+      newDate.setMinutes(ts.getMinutes());
+      newDate.setSeconds(ts.getSeconds());
       setTimestamp(newDate);
     } else {
       setTimestamp(date);
