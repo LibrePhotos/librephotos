@@ -1,5 +1,6 @@
 import { ActionIcon, Button, Group, Stack, Text, Tooltip } from "@mantine/core";
 import { DatePicker, TimeInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 // only needs to be imported once
 import {
   IconArrowBackUp as ArrowBackUp,
@@ -8,17 +9,18 @@ import {
   IconEdit as Edit,
   IconX as X,
 } from "@tabler/icons-react";
+import dayjs from "dayjs";
+import "dayjs/locale/en";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import "react-virtualized/styles.css";
-import dayjs from "dayjs";
-import "dayjs/locale/en";
 
-import { Photo } from "../../api_client/photos/types";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
+import { Photo } from "../../api_client/photos/types";
 import { i18nResolvedLanguage } from "../../i18n";
-import '@mantine/dates/styles.css';
+
+const isValidDate = (date: Date | null): date is Date => date instanceof Date && !Number.isNaN(date.getTime());
 
 type Props = Readonly<{
   photoDetail: Partial<Photo>;
@@ -26,9 +28,13 @@ type Props = Readonly<{
 }>;
 
 export function TimestampItem({ photoDetail, isPublic }: Props) {
-  const [timestamp, setTimestamp] = useState<Date | null>(
-    photoDetail.exif_timestamp == null ? null : new Date(photoDetail.exif_timestamp)
-  );
+  const [timestamp, setTimestamp] = useState(() => {
+    if (!photoDetail.exif_timestamp) {
+      return null;
+    }
+    const date = new Date(photoDetail.exif_timestamp);
+    return Number.isNaN(date.getTime()) ? null : date;
+  });
 
   // savedTimestamp is used to cancel timestamp modification
   const [savedTimestamp, setSavedTimestamp] = useState(timestamp);
@@ -55,8 +61,8 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
 
   const onChangeTime = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!timestamp) return;
-    
-    const [hours, minutes, seconds] = event.target.value.split(':').map(Number);
+
+    const [hours, minutes, seconds] = event.target.value.split(":").map(Number);
     const newDate = new Date(timestamp);
     newDate.setHours(hours || 0);
     newDate.setMinutes(minutes || 0);
@@ -65,7 +71,9 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   };
 
   const onSaveDateTime = () => {
-    const differentJson = { exif_timestamp: timestamp === null ? null : timestamp.toISOString() };
+    const differentJson = {
+      exif_timestamp: isValidDate(timestamp) ? timestamp.toISOString() : null,
+    };
     updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
     setEditMode(false);
   };
@@ -103,14 +111,16 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   };
 
   const onUndoChangedTimestamp = () => {
-    const differentJson = { exif_timestamp: savedTimestamp === null ? null : savedTimestamp.toISOString() };
+    const differentJson = {
+      exif_timestamp: isValidDate(savedTimestamp) ? savedTimestamp.toISOString() : null,
+    };
     updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
     setTimestamp(savedTimestamp);
   };
 
   const formatTimeForInput = (date: Date | null) => {
-    if (!date) return '';
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+    if (!date) return "";
+    return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date.getSeconds().toString().padStart(2, "0")}`;
   };
 
   return (
@@ -122,11 +132,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
             <Text>{t("lightbox.sidebar.editdatetime")}</Text>
           </Group>
           <Stack>
-            <DatePicker 
-              locale={lang} 
-              value={timestamp} 
-              onChange={onChangeDate}
-            />
+            <DatePicker locale={lang} value={timestamp} onChange={onChangeDate} />
             <TimeInput
               withSeconds
               value={formatTimeForInput(timestamp)}
