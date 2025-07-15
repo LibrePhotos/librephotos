@@ -131,7 +131,9 @@
         "password": {
             "errorcannotbeblank": "Lösenordet kan inte vara tomt",
             "titlechangepassword": "Ändra lösenord",
-            "errormustmatch": "Lösenorden måste matcha"
+            "errormustmatch": "Lösenord måste stämma överens",
+            "errormustretype": "Du måste ange lösenordet igen",
+            "titlesetpassword": "Ange lösenord"
         },
         "finnish": "Finska",
         "czech": "Tjeckiska",
