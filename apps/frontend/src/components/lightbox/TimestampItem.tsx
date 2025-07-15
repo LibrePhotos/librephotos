@@ -26,8 +26,8 @@ type Props = Readonly<{
 }>;
 
 export function TimestampItem({ photoDetail, isPublic }: Props) {
-  const [timestamp, setTimestamp] = useState(
-    photoDetail.exif_timestamp === null ? null : new Date(photoDetail.exif_timestamp!)
+  const [timestamp, setTimestamp] = useState<Date | null>(
+    photoDetail.exif_timestamp == null ? null : new Date(photoDetail.exif_timestamp)
   );
 
   // savedTimestamp is used to cancel timestamp modification
