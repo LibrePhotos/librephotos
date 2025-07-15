@@ -262,9 +262,10 @@
         "people": "Personer",
         "places": "Platser",
         "things": "Saker",
-        "datavizsmall": "Datavisualisering",
+        "datavizsmall": "Data",
         "facerecognition": "Ansikten",
-        "sharing": "Delade"
+        "sharing": "Delade",
+        "videos": "Videor"
     },
     "selectionbar": {
         "selected": "valda",
@@ -299,7 +300,7 @@
         "albumsharingdescription": "Öppna delningspanelen för det aktuella albumet",
         "removephotos": "Ta bort bilder",
         "album": "Album",
-        "deleted": "Ta bort"
+        "deleted": "Flytta till papperskorgen"
     },
     "lightbox": {
         "sidebar": {
@@ -316,7 +317,13 @@
             "attributes": "Attribut",
             "categories": "Kategorier",
             "similarphotos": "Liknande bilder",
-            "editdatetime": "Ändra datum och tid"
+            "editdatetime": "Ändra datum och tid",
+            "withouttimestamp": "Utan tidsstämpel",
+            "invalidtimestamp": "Ogiltig tidsstämpel",
+            "removetimestamp": "Ta bort tidsstämpel",
+            "undotimestampmodification": "Ångra ändring av tidsstämpel",
+            "places": "Platser",
+            "suggestedcaption": "Föreslagen bildtext"
         }
     },
     "joblist": {
@@ -355,7 +362,8 @@
         "notimestamp": "Bilder utan tidsstämpel",
         "hidden": "Dolda bilder",
         "favorite": "Favoritbilder",
-        "deleted": "Papperskorg"
+        "deleted": "Papperskorg",
+        "videos": "Videor"
     },
     "login": {
         "password": "Lösenord",
@@ -374,7 +382,11 @@
         "errorpassword": "Lösenordet får inte vara tomt!",
         "errorusername": "Användarnamnet får inte vara tomt!",
         "firsttimesetup": "Inställningar vid första start",
-        "usernamelabel": "Användarnamn"
+        "usernamelabel": "Användarnamn",
+        "error": {
+            "token_not_valid": "Inloggningen har löpt ut. Logga in igen.",
+            "token": "Tokenproblem"
+        }
     },
     "adminarea": {
         "header": "Administratörsområde",
@@ -390,7 +402,13 @@
         "deleteuserconfirmexplanation": "Du håller på att ta bort följande användare: {{username}}. Detta kommer att ta bort all data kopplad till användaren.",
         "titledeleteuser": "Ta bort användare",
         "addnewuser": "Skapa ny användare",
-        "deleteallautoalbums": "Ta bort alla automatiskt skapade album"
+        "deleteallautoalbums": "Ta bort alla automatiskt skapade album",
+        "delete": "Ta bort",
+        "admintools": "Administratörsverktyg",
+        "cannotbeundone": "Denna åtgärd kan inte ångras.",
+        "cannotdeleteadmin": "Kan inte ta bort administratörsanvändaren",
+        "download": "Hämta",
+        "downloadserverstats": "Hämta serverstatistik"
     },
     "modalscandirectoryedit": {
         "explanation2": "klickar på knappen \"Genomsök bilder\", kommer bilder i katalogen som du anger här att importeras till användarens konto",
@@ -575,9 +593,13 @@
         "filepath": "Filsökväg",
         "duplicates": "Duplikat",
         "deleteduplicatetitle": "Ta bort duplikat",
-        "deleteduplicate": "Är du säker på att du vill ta bort detta duplikatet?",
+        "deleteduplicate": "Ta bort detta duplikatet?",
         "showmore": "Visa mer",
-        "showless": "Visa mindre"
+        "showless": "Visa mindre",
+        "subjectdistance": "Avstånd till motiv",
+        "digitalzoomratio": "Digitalt zoomförhållande",
+        "focallengthin35mmfilm": "Brännvidd motsvarande 35 mm",
+        "otherversions": "Andra versioner"
     },
     "modaluseredit": {
         "errorusernameexists": "En användare med samma namn finns redan",
@@ -589,5 +611,10 @@
     "modify": "Ändra",
     "supportus": "Stöd oss",
     "metadata": "Metadataalternativ",
-    "timezoneexplain": "Denna tidszon används för att konvertera tidsstämplar till användarens standardtidszon."
+    "timezoneexplain": "Denna tidszon används för att konvertera tidsstämplar till användarens standardtidszon",
+    "sync": "Synkronisera metadata till disk",
+    "favoritesyncoptions": {
+        "off": "Av",
+        "mediafile": "Spara till mediefil"
+    }
 }
