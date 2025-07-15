@@ -189,7 +189,7 @@
         "cluster_selection_epsilon": "Klusterval epsilon",
         "cluster_selection_epsilon_help": "Bestämmer vilka kluster som slås samman. Ett högre värde innebär att fler kluster kommer att slås samman.",
         "llm": "Inställningar för stora språkmodeller",
-        "enablellm": "Aktivera stor språkmodell för textning",
+        "enablellm": "Aktivera stor språkmodell för bildtextning",
         "addperson": "Lägg till personer i bildtexterna",
         "addlocation": "Lägg till platser i bildtexterna"
     },
@@ -197,7 +197,10 @@
         "updated": "Uppdaterad {{duration}}",
         "newalbum": "Nytt album",
         "alreadyexists": "Albumet {{title}} finns redan.",
-        "create": "Skapa"
+        "create": "Skapa",
+        "title": "Lägg till i album",
+        "selectedimages": "Lägg till valda {{count}} foton till…",
+        "placeholder": "Albumtitel"
     },
     "modalnextcloud": {
         "setdirectory": "Ange lagringsplats i Nextcloud",
@@ -205,13 +208,22 @@
         "choosedirectory": "Välj en mapp nedanför",
         "currentdirectory": "Nuvarande lagringsplats i Nextcloud",
         "update": "Uppdatera",
-        "notset": "inte angiven"
+        "notset": "inte angiven",
+        "browse": "Bläddra"
     },
     "modalphotosshare": {
-        "joined": "Anslöt sig"
+        "joined": "Anslöt sig",
+        "title": "Dela foton",
+        "search": "Sök användare",
+        "name": "Personnamn",
+        "share": "Dela",
+        "unshare": "Avbryt delning"
     },
     "modalalbumsshare": {
-        "joined": "Anslöt sig"
+        "joined": "Anslöt sig",
+        "title": "Dela album",
+        "search": "Sök användare",
+        "name": "Personnamn"
     },
     "topmenu": {
         "available": "Arbetare tillgänglig! Du kan börja söka efter fler bilder, tyda fler ansikten, generera händelsealbum eller generera namn på händelsealbum.",
@@ -575,5 +587,7 @@
     "confirm": "Bekräfta",
     "save": "Spara",
     "modify": "Ändra",
-    "supportus": "Stöd oss"
+    "supportus": "Stöd oss",
+    "metadata": "Metadataalternativ",
+    "timezoneexplain": "Denna tidszon används för att konvertera tidsstämplar till användarens standardtidszon."
 }
