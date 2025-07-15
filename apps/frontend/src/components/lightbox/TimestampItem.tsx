@@ -46,17 +46,19 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   const lang = i18nResolvedLanguage();
   dayjs.locale(lang);
 
-  const onChangeDate = (date: Date | null) => {
-    if (date && timestamp) {
-      const newDate = new Date(date);
-      const ts = new Date(timestamp);
-      newDate.setHours(ts.getHours());
-      newDate.setMinutes(ts.getMinutes());
-      newDate.setSeconds(ts.getSeconds());
-      setTimestamp(newDate);
-    } else {
-      setTimestamp(date);
+  const onChangeDate = (date: Date | string | null) => {
+    if (!date) {
+      setTimestamp(null);
+      return;
     }
+
+    const newDate = new Date(date);
+    if (timestamp) {
+      newDate.setHours(timestamp.getHours());
+      newDate.setMinutes(timestamp.getMinutes());
+      newDate.setSeconds(timestamp.getSeconds());
+    }
+    setTimestamp(Number.isNaN(newDate.getTime()) ? null : newDate);
   };
 
   const onChangeTime = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,9 +120,11 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
     setTimestamp(savedTimestamp);
   };
 
-  const formatTimeForInput = (date: Date | null) => {
+  const formatTimeForInput = (date: Date | string | null) => {
     if (!date) return "";
-    return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date.getSeconds().toString().padStart(2, "0")}`;
+    const d = date instanceof Date ? date : new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d.getSeconds().toString().padStart(2, "0")}`;
   };
 
   return (
