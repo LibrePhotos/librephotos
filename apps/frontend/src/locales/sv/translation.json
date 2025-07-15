@@ -132,8 +132,9 @@
             "errorcannotbeblank": "Lösenordet kan inte vara tomt",
             "titlechangepassword": "Ändra lösenord",
             "errormustmatch": "Lösenord måste stämma överens",
-            "errormustretype": "Du måste ange lösenordet igen",
-            "titlesetpassword": "Ange lösenord"
+            "errormustretype": "Du måste ange lösenordet pånytt",
+            "titlesetpassword": "Ange lösenord",
+            "tooltipeditbutton": "Klicka för att ändra lösenordet"
         },
         "finnish": "Finska",
         "czech": "Tjeckiska",
@@ -163,7 +164,34 @@
         "trainfacesdescription": "Lär systemet baserat på befintlig information",
         "rescanfacestitle": "Genomsök ansikten pånytt",
         "rescanfacesdescription": "Leta efter ansikten i biblioteket",
-        "albumoptions": "Albumalternativ"
+        "albumoptions": "Albumalternativ",
+        "public_sharing": "Offentlig delning",
+        "add_rule": "Lägg till regel",
+        "face_options": "Ansiktsalternativ",
+        "face_recognition_model": "Modell för ansiktsigenkänning",
+        "face_recognition_model_help": "Ändrar modellen som används för ansiktsigenkänning. CNN-modellen är mer exakt men långsammare än HOG-modellen.",
+        "models": {
+            "hog": "HOG",
+            "cnn": "CNN"
+        },
+        "min_cluster_size": "Minsta klusterstorlek",
+        "min_cluster_size_help": "Ändrar hur kluster bildas. Ett lägre värde resulterar i att fler kluster bildas.",
+        "size": {
+            "auto": "Automatiskt",
+            "small": "Liten",
+            "normal": "Normal",
+            "high": "Hög",
+            "veryhigh": "Mycket hög",
+            "off": "Av"
+        },
+        "min_samples": "Minsta antal prover",
+        "min_samples_help": "Ändrar hur konservativa kluster är. Ett mindre värde betyder mindre konservativt.",
+        "cluster_selection_epsilon": "Klusterval epsilon",
+        "cluster_selection_epsilon_help": "Bestämmer vilka kluster som slås samman. Ett högre värde innebär att fler kluster kommer att slås samman.",
+        "llm": "Inställningar för stora språkmodeller",
+        "enablellm": "Aktivera stor språkmodell för textning",
+        "addperson": "Lägg till personer i bildtexterna",
+        "addlocation": "Lägg till platser i bildtexterna"
     },
     "modalalbum": {
         "updated": "Uppdaterad {{duration}}",
