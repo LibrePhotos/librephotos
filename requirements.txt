@@ -48,4 +48,4 @@ timm==1.0.17
 # Dependencies for Moondream chat handler (llama-cpp-python multimodal)
 transformers==4.53.2
 # Dependencies for mistral quantized and multimodal models like Moondream
-llama-cpp-python==0.3.13
+llama-cpp-python==0.3.14
