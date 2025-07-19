@@ -2,14 +2,14 @@
     "settings": {
         "header": "Configuración",
         "account": "Cuenta",
-        "avatar": "Avatar público",
-        "uploadheader": "Cargar avatar nuevo",
-        "image": "Elija una imagen",
+        "avatar": "Foto de perfil pública",
+        "uploadheader": "Cargar nueva foto de perfil",
+        "image": "Elegir una imagen",
         "upload": "Cargar",
-        "filesize": "El tamaño máximo de archivo permitido es 200 kB.",
-        "accountinformation": "Información de cuenta",
-        "firstname": "Nombres",
-        "firstnameplaceholder": "Nombres",
+        "filesize": "El tamaño de archivo máximo permitido es de 200 kB.",
+        "accountinformation": "Información de la cuenta",
+        "firstname": "Nombre",
+        "firstnameplaceholder": "Nombre",
         "lastname": "Apellidos",
         "lastnameplaceholder": "Apellidos",
         "email": "Correo electrónico",
@@ -302,10 +302,10 @@
     "lightbox": {
         "sidebar": {
             "details": "Detalles",
-            "timetaken": "Tiempo tomado",
-            "filepath": "Ruta",
+            "timetaken": "Tiempo empleado",
+            "filepath": "Ruta del archivo",
             "location": "Ubicación",
-            "caption": "Leyenda",
+            "caption": "Descripción",
             "people": "Personas",
             "submit": "Enviar",
             "generate": "Generar",
@@ -319,7 +319,8 @@
             "withouttimestamp": "Sin marca de tiempo",
             "removetimestamp": "Eliminar marca de tiempo",
             "undotimestampmodification": "Deshacer modificación de marca de tiempo",
-            "places": "Lugares"
+            "places": "Lugares",
+            "suggestedcaption": "Descripción sugerida"
         }
     },
     "photos": {
