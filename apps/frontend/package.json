@@ -128,7 +128,7 @@
     "@typescript-eslint/parser": "7.16.0",
     "@tanstack/router-plugin": "1.127.8",
     "@vitest/coverage-v8": "^1.2.1",
-    "eslint": "9.6.0",
+    "eslint": "9.31.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-airbnb-typescript": "18.0.0",
     "eslint-config-node": "4.1.0",
