@@ -1,7 +1,7 @@
 ---
-title: "🐋 Docker"
-excerpt: "How to install LibrePhotos using Docker and Docker Compose."
-sidebar_position: 1
+title: "🐋 Standard Docker Setup"
+excerpt: "Traditional multi-container deployment with nginx proxy."
+sidebar_position: 3
 ---
 
 ## Docker Compose

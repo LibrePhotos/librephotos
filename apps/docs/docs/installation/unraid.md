@@ -1,7 +1,7 @@
 ---
 title: "📦 unRAID"
 excerpt: "How to install LibrePhotos on Unraid using Docker Compose."
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 ## Docker Compose
