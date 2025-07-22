@@ -7,7 +7,7 @@ import os
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden, FileResponse
 from django.urls import include, re_path
 from django.views.generic import TemplateView
 from rest_framework import routers
@@ -20,6 +20,10 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
 
 from api.views import (
     album_auto,
@@ -36,7 +40,11 @@ from api.views import (
     user,
     views,
 )
+from api.models import Photo, User
 from nextcloud import views as nextcloud_views
+import os
+import magic
+from django.db.models import Q
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -93,6 +101,83 @@ class FrontendView(TemplateView):
                 'Frontend build not found. Please build the frontend first.',
                 status=500
             )
+
+
+class NoProxyMediaAccessView(APIView):
+    """
+    Media access view for no-proxy setup that serves files directly
+    instead of using X-Accel-Redirect headers
+    """
+    permission_classes = (AllowAny,)
+
+    def get(self, request, path, fname, format=None):
+        jwt = request.COOKIES.get("jwt")
+        image_hash = fname.split(".")[0].split("_")[0]
+        
+        try:
+            photo = Photo.objects.get(image_hash=image_hash)
+        except Photo.DoesNotExist:
+            return HttpResponse(status=404)
+
+        # Grant access if the requested photo is public
+        if photo.public:
+            return self._serve_file(path, fname)
+
+        # Check JWT token
+        if jwt is not None:
+            try:
+                token = AccessToken(jwt)
+                user = User.objects.filter(id=token["user_id"]).only("id").first()
+            except TokenError:
+                return HttpResponseForbidden()
+        else:
+            return HttpResponseForbidden()
+
+        # Grant access if user owns the photo or photo is shared with user
+        if photo.owner == user or user in photo.shared_to.all():
+            return self._serve_file(path, fname)
+        
+        # Check if photo is in a shared album
+        for album in photo.albumuser_set.only("shared_to"):
+            if user in album.shared_to.all():
+                return self._serve_file(path, fname)
+        
+        return HttpResponse(status=404)
+
+    def _serve_file(self, path, fname):
+        """Serve file directly from Django"""
+        file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+        
+        if not os.path.exists(file_path):
+            return HttpResponse(status=404)
+        
+        try:
+            # Use FileResponse for efficient file serving
+            response = FileResponse(open(file_path, 'rb'))
+            
+            # Set appropriate content type
+            if fname.endswith('.webp'):
+                response['Content-Type'] = 'image/webp'
+            elif fname.endswith('.mp4'):
+                response['Content-Type'] = 'video/mp4'
+            elif fname.endswith('.jpg') or fname.endswith('.jpeg'):
+                response['Content-Type'] = 'image/jpeg'
+            elif fname.endswith('.png'):
+                response['Content-Type'] = 'image/png'
+            else:
+                # Try to detect MIME type
+                try:
+                    mime = magic.Magic(mime=True)
+                    content_type = mime.from_file(file_path)
+                    response['Content-Type'] = content_type
+                except:
+                    response['Content-Type'] = 'application/octet-stream'
+            
+            return response
+        except (FileNotFoundError, PermissionError):
+            return HttpResponse(status=404)
+        except Exception:
+            return HttpResponse(status=500)
 
 
 # API Router
@@ -248,11 +333,11 @@ api_urlpatterns = [
 urlpatterns = [
     # API routes (prefixed with /api/)
     re_path(r"^api/", include(api_urlpatterns)),
-    # Media routes (direct access for frontend compatibility)
+    # Media routes (direct access for frontend compatibility - no-proxy mode)
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
-        views.MediaAccessFullsizeOriginalView.as_view(),
-        name="media",
+        NoProxyMediaAccessView.as_view(),
+        name="media_direct",
     ),
 ]
 
