@@ -253,6 +253,12 @@ api_urlpatterns = [
 urlpatterns = [
     # API routes (prefixed with /api/)
     re_path(r"^api/", include(api_urlpatterns)),
+    # Media routes (direct access for frontend compatibility)
+    re_path(
+        r"^media/(?P<path>.*)/(?P<fname>.*)",
+        views.MediaAccessFullsizeOriginalView.as_view(),
+        name="media_direct",
+    ),
 ]
 
 # Add static files serving
@@ -269,6 +275,12 @@ if getattr(settings, 'SERVE_FRONTEND', False):
         re_path(r'^assets/(?P<path>.*)$', serve, {'document_root': os.path.join(frontend_build_path, 'assets')}),
         re_path(r'^(?P<path>manifest\.json)$', serve, {'document_root': frontend_build_path}),
         re_path(r'^(?P<path>favicon\.ico)$', serve, {'document_root': frontend_build_path}),
+        # Add patterns for logo files
+        re_path(r'^(?P<path>logo-white\.png)$', serve, {'document_root': frontend_build_path}), 
+        re_path(r'^(?P<path>logo\.png)$', serve, {'document_root': frontend_build_path}),
+        # Add pattern for other common frontend assets
+        re_path(r'^(?P<path>unknown_user\.jpg)$', serve, {'document_root': frontend_build_path}),
+        re_path(r'^(?P<path>.*\.(?:png|jpg|jpeg|gif|ico|svg))$', serve, {'document_root': frontend_build_path}),
     ]
 
 # Add development tools in debug mode
