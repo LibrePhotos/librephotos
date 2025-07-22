@@ -9,7 +9,7 @@ on:
     paths:
       - 'unified/**'
   repository_dispatch:
-    types: unified-commit-event
+    types: backend-commit-event
 
 env:
   IMAGE_NAME: librephotos-unified
