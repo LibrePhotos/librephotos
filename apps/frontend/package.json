@@ -94,7 +94,7 @@
     "react-i18next": "13.5.0",
     "react-leaflet": "^1.9.1",
     "react-leaflet-markercluster": "^1.1.8",
-    "react-player": "2.16.0",
+    "react-player": "2.16.1",
     "react-spring": "^9.2.3",
     "react-virtualized": "9.22.6",
     "react-vis": "1.12.1",
