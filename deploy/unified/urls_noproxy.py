@@ -94,23 +94,93 @@ class FrontendView(TemplateView):
 
 # API Router
 router = routers.DefaultRouter()
-router.register(r"albums/auto", album_auto.AlbumAutoListViewSet, basename="album_auto_list")
-router.register(r"albums/date", albums.AlbumDateListViewSet, basename="album_date_list")
-router.register(r"albums/thing", albums.AlbumThingListViewSet, basename="album_thing_list")
-router.register(r"albums/place", albums.AlbumPlaceListViewSet, basename="album_place_list")
-router.register(r"albums/user", albums.AlbumUserViewSet)
-router.register(r"persons", faces.PersonViewSet)
-router.register(r"faces", faces.FaceViewSet, basename="face")
-router.register(r"faces/incomplete", faces.FaceIncompleteViewSet, basename="incomplete_faces")
-router.register(r"photos", photos.PhotoViewSet)
-router.register(r"photos/edit", photos.PhotoEditViewSet)
-router.register(r"photos/notimestamp", photos.NoTimestampPhotoViewSet, basename="photos_no_timestamp")
-router.register(r"albums/date/photohash", photos.AlbumDatePhotosViewSet)
-router.register(r"user", user.UserViewSet)
-router.register(r"manage/user", user.ManageUserViewSet)
-router.register(r"upload", upload.UploadPhotosViewSet)
-router.register(r"jobs", jobs.LongRunningJobViewSet)
-router.register(r"search", search.SearchViewSet, basename="search")
+router.register(r"user", user.UserViewSet, basename="user")
+router.register(r"manage/user", user.ManageUserViewSet, basename="manage_user")
+router.register(r"delete/user", user.DeleteUserViewSet, basename="delete_user")
+
+router.register(
+    r"albums/auto/list", album_auto.AlbumAutoListViewSet, basename="album_auto_list"
+)
+router.register(
+    r"albums/date/list", albums.AlbumDateListViewSet, basename="album_date_list"
+)
+router.register(
+    r"albums/thing/list", albums.AlbumThingListViewSet, basename="album_thing_list"
+)
+router.register(
+    r"albums/place/list", albums.AlbumPlaceListViewSet, basename="album_place_list"
+)
+router.register(
+    r"albums/user/list", albums.AlbumUserListViewSet, basename="album_user_list"
+)
+
+router.register(
+    r"albums/user/edit", views.AlbumUserEditViewSet, basename="edit_album_user"
+)
+
+router.register(
+    r"albums/user/shared/tome",
+    sharing.SharedToMeAlbumUserListViewSet,
+    basename="share_to_me_album_user",
+)
+router.register(
+    r"albums/user/shared/fromme",
+    sharing.SharedFromMeAlbumUserListViewSet,
+    basename="share_from_me_album_user",
+)
+
+router.register(r"albums/auto", album_auto.AlbumAutoViewSet, basename="album_auto")
+router.register(
+    r"albums/person", albums.AlbumPersonViewSet, basename="album_person"
+)
+router.register(r"albums/date", albums.AlbumDateViewSet, basename="album_date")
+router.register(r"albums/thing", albums.AlbumThingViewSet, basename="album_thing")
+router.register(r"albums/place", albums.AlbumPlaceViewSet, basename="album_place")
+router.register(r"albums/user", albums.AlbumUserViewSet, basename="album_user")
+
+router.register(r"persons", albums.PersonViewSet, basename="persons")
+
+router.register(
+    r"photos/shared/tome",
+    sharing.SharedToMePhotoSuperSimpleListViewSet,
+    basename="shared_to_me_photo",
+)
+router.register(
+    r"photos/shared/fromme",
+    sharing.SharedFromMePhotoSuperSimpleListViewSet,
+    basename="shared_from_me_photo",
+)
+
+router.register(
+    r"photos/notimestamp",
+    photos.NoTimestampPhotoViewSet,
+    basename="photos_no_timestamp",
+)
+
+router.register(r"photos/edit", photos.PhotoEditViewSet, basename="photo_edit")
+
+router.register(
+    r"photos/recentlyadded",
+    photos.RecentlyAddedPhotoListViewSet,
+    basename="recently_added_photo",
+)
+router.register(
+    r"photos/searchlist", search.SearchListViewSet, basename="photo_search"
+)
+
+router.register(r"photos", photos.PhotoViewSet, basename="photos")
+
+router.register(
+    r"faces/incomplete",
+    faces.FaceIncompleteListViewSet,
+    basename="incomplete_faces",
+)
+
+router.register(r"faces", faces.FaceListView, basename="faces")
+
+router.register(r"exists", upload.UploadPhotoExists, basename="photo_exists")
+router.register(r"jobs", jobs.LongRunningJobViewSet, basename="jobs")
+router.register(r"services", services.ServiceViewSet, basename="service")
 
 # API URL patterns
 api_urlpatterns = [
