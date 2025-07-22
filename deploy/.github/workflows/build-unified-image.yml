@@ -1,0 +1,200 @@
+name: unified
+
+on:
+  release:
+    types: [created]
+  push:
+    branches:
+      - main
+    paths:
+      - 'unified/**'
+  repository_dispatch:
+    types: unified-commit-event
+
+env:
+  IMAGE_NAME: librephotos-unified
+
+jobs:
+  # Run tests.
+  test:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run tests
+        run: echo "To-Do Add Running Tests"
+
+  build-amd64:
+    name: Building dev build (AMD64)
+    if: github.event_name != 'release'
+    needs: test
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push (AMD64)
+        uses: docker/build-push-action@v2
+        with:
+          context: ./unified
+          build-args: |
+            "IMAGE_TAG=dev-amd64"
+          platforms: linux/amd64
+          push: true
+          tags: reallibrephotos/librephotos-unified:dev-amd64
+
+  build-arm64:
+    name: Building dev build (ARM64)
+    if: github.event_name != 'release'
+    needs: test
+    runs-on: ubuntu-24.04-arm  # Use ARM64 runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push (ARM64)
+        uses: docker/build-push-action@v2
+        with:
+          context: ./unified
+          build-args: |
+            "IMAGE_TAG=dev-arm64"
+          platforms: linux/arm64
+          push: true
+          tags: reallibrephotos/librephotos-unified:dev-arm64
+
+  combine-manifest-dev:
+    name: Combine into multi-arch manifest (dev)
+    if: github.event_name != 'release'
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Enable Docker CLI experimental features
+        run: echo '{"experimental":"enabled"}' > ~/.docker/config.json
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Create and push multi-arch manifest (dev)
+        run: |
+          docker manifest create reallibrephotos/librephotos-unified:dev \
+            reallibrephotos/librephotos-unified:dev-amd64 \
+            reallibrephotos/librephotos-unified:dev-arm64
+          docker manifest annotate reallibrephotos/librephotos-unified:dev \
+            reallibrephotos/librephotos-unified:dev-amd64 --arch amd64
+          docker manifest annotate reallibrephotos/librephotos-unified:dev \
+            reallibrephotos/librephotos-unified:dev-arm64 --arch arm64
+          docker manifest push reallibrephotos/librephotos-unified:dev
+
+  release-amd64:
+    name: Releasing (AMD64)
+    if: github.event_name == 'release' && github.event.action == 'created'
+    needs: test
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push (AMD64)
+        uses: docker/build-push-action@v2
+        with:
+          context: ./unified
+          build-args: |
+            "IMAGE_TAG=${{ github.event.release.tag_name }}-amd64"
+          platforms: linux/amd64
+          push: true
+          tags: reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-amd64
+
+  release-arm64:
+    name: Releasing (ARM64)
+    if: github.event_name == 'release' && github.event.action == 'created'
+    needs: test
+    runs-on: ubuntu-24.04-arm  # Use ARM64 runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push (ARM64)
+        uses: docker/build-push-action@v2
+        with:
+          context: ./unified
+          build-args: |
+            "IMAGE_TAG=${{ github.event.release.tag_name }}-arm64"
+          platforms: linux/arm64
+          push: true
+          tags: reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-arm64
+
+  combine-manifest-release:
+    name: Combine into multi-arch manifest (release)
+    if: github.event_name == 'release' && github.event.action == 'created'
+    needs: [release-amd64, release-arm64]
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Enable Docker CLI experimental features
+        run: echo '{"experimental":"enabled"}' > ~/.docker/config.json
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Create and push multi-arch manifest (release)
+        run: |
+          docker manifest create reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }} \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-amd64 \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-arm64
+          docker manifest annotate reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }} \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-amd64 --arch amd64
+          docker manifest annotate reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }} \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-arm64 --arch arm64
+          docker manifest push reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}
+
+          # Optionally, tag the release as "latest"
+          docker manifest create reallibrephotos/librephotos-unified:latest \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-amd64 \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-arm64
+          docker manifest annotate reallibrephotos/librephotos-unified:latest \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-amd64 --arch amd64
+          docker manifest annotate reallibrephotos/librephotos-unified:latest \
+            reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-arm64 --arch arm64
+          docker manifest push reallibrephotos/librephotos-unified:latest 

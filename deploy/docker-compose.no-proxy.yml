@@ -1,0 +1,54 @@
+# LibrePhotos - No Proxy Configuration
+# This configuration removes the nginx proxy dependency
+# by having Django serve both the API and frontend
+
+services:
+  db:
+    image: pgautoupgrade/pgautoupgrade:latest
+    container_name: db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${dbUser}
+      - POSTGRES_PASSWORD=${dbPass}
+      - POSTGRES_DB=${dbName}
+    volumes:
+      - ${data}/dbcursor:/var/lib/postgresql/data
+    healthcheck:
+      test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: reallibrephotos/librephotos-unified:${tag}
+    container_name: backend
+    restart: unless-stopped
+    volumes:
+      - ${scanDirectory}:/data
+      - ${data}/protected_media:/protected_media
+      - ${data}/logs:/logs
+      - ${data}/cache:/root/.cache
+    ports:
+      - ${httpPort:-3000}:8001
+    environment:
+      - SECRET_KEY=${shhhhKey:-}
+      - BACKEND_HOST=backend
+      - ADMIN_EMAIL=${adminEmail:-}
+      - ADMIN_USERNAME=${userName:-}
+      - ADMIN_PASSWORD=${userPass:-}
+      - DB_BACKEND=postgresql
+      - DB_NAME=${dbName}
+      - DB_USER=${dbUser}
+      - DB_PASS=${dbPass}
+      - DB_HOST=${dbHost}
+      - DB_PORT=5432
+      - MAPBOX_API_KEY=${mapApiKey:-}
+      - WEB_CONCURRENCY=${gunniWorkers:-1}
+      - SKIP_PATTERNS=${skipPatterns:-}
+      - ALLOW_UPLOAD=${allowUpload:-false}
+      - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
+      - SERVE_FRONTEND=true
+      - DEBUG=0
+    depends_on:
+      db:
+        condition: service_healthy 
