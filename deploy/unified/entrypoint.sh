@@ -21,14 +21,6 @@ else
     echo "Using standard proxy setup..."
 fi
 
-# Wait for database to be ready
-echo "Waiting for database..."
-while ! python manage.py dbshell <<< "select 1;" > /dev/null 2>&1; do
-    sleep 1
-done
-
-echo "Database ready"
-
 # Run migrations
 echo "Running migrations..."
 python manage.py migrate
