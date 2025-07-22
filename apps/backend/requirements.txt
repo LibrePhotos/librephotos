@@ -9,7 +9,7 @@ django-picklefield==3.3
 django-bulk-update
 django-silk==5.4.0
 djangorestframework==3.16.0
-djangorestframework-simplejwt==5.5.0
+djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.28.0
 face-recognition==1.3.0
 faiss-cpu==1.11.0.post1
