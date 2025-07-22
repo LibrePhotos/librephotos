@@ -83,7 +83,10 @@ class FrontendView(TemplateView):
     """
     def get(self, request, *args, **kwargs):
         try:
-            with open(os.path.join(settings.BASE_DIR, 'frontend_build', 'index.html')) as f:
+            # The frontend_build is at /code/frontend_build, but BASE_DIR is /code/librephotos
+            # So we need to go up one level from BASE_DIR
+            frontend_path = os.path.join(os.path.dirname(settings.BASE_DIR), 'frontend_build', 'index.html')
+            with open(frontend_path) as f:
                 return HttpResponse(f.read(), content_type='text/html')
         except FileNotFoundError:
             return HttpResponse(

@@ -13,8 +13,10 @@ if SERVE_FRONTEND:
     STATIC_URL = "/static/"
     STATIC_ROOT = os.path.join(BASE_DIR, "static")
     # Add frontend build directory to static files
+    # The frontend_build is at /code/frontend_build, but BASE_DIR is /code/librephotos
+    # So we need to go up one level from BASE_DIR
     STATICFILES_DIRS = [
-        os.path.join(BASE_DIR, "frontend_build"),
+        os.path.join(os.path.dirname(BASE_DIR), "frontend_build"),
     ]
     # Use WhiteNoise for efficient static file serving
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
