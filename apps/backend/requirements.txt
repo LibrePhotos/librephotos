@@ -35,7 +35,7 @@ seaborn==0.13.2
 sentence_transformers==2.7.0
 timezonefinder==6.6.3
 tqdm==4.67.1
-gevent==24.11.1
+gevent==25.5.1
 python-magic==0.4.27
 Wand==0.6.13
 django-q2==1.8.0
