@@ -110,59 +110,23 @@ class NoProxyMediaAccessView(APIView):
     """
     permission_classes = (AllowAny,)
 
-    def get(self, request, path, fname, format=None):
-        jwt = request.COOKIES.get("jwt")
-        image_hash = fname.split(".")[0].split("_")[0]
-        
-        try:
-            photo = Photo.objects.get(image_hash=image_hash)
-        except Photo.DoesNotExist:
-            return HttpResponse(status=404)
-
-        # Grant access if the requested photo is public
-        if photo.public:
-            return self._serve_file(path, fname)
-
-        # Check JWT token
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-                user = User.objects.filter(id=token["user_id"]).only("id").first()
-            except TokenError:
-                return HttpResponseForbidden()
-        else:
-            return HttpResponseForbidden()
-
-        # Grant access if user owns the photo or photo is shared with user
-        if photo.owner == user or user in photo.shared_to.all():
-            return self._serve_file(path, fname)
-        
-        # Check if photo is in a shared album
-        for album in photo.albumuser_set.only("shared_to"):
-            if user in album.shared_to.all():
-                return self._serve_file(path, fname)
-        
-        return HttpResponse(status=404)
-
-    def _serve_file(self, path, fname):
+    def _serve_file_direct(self, file_path, content_type=None):
         """Serve file directly from Django"""
-        file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
-        
         if not os.path.exists(file_path):
             return HttpResponse(status=404)
         
         try:
-            # Use FileResponse for efficient file serving
             response = FileResponse(open(file_path, 'rb'))
             
-            # Set appropriate content type
-            if fname.endswith('.webp'):
+            if content_type:
+                response['Content-Type'] = content_type
+            elif file_path.endswith('.webp'):
                 response['Content-Type'] = 'image/webp'
-            elif fname.endswith('.mp4'):
+            elif file_path.endswith('.mp4'):
                 response['Content-Type'] = 'video/mp4'
-            elif fname.endswith('.jpg') or fname.endswith('.jpeg'):
+            elif file_path.endswith('.jpg') or file_path.endswith('.jpeg'):
                 response['Content-Type'] = 'image/jpeg'
-            elif fname.endswith('.png'):
+            elif file_path.endswith('.png'):
                 response['Content-Type'] = 'image/png'
             else:
                 # Try to detect MIME type
@@ -178,6 +142,174 @@ class NoProxyMediaAccessView(APIView):
             return HttpResponse(status=404)
         except Exception:
             return HttpResponse(status=500)
+
+    def _generate_response_direct(self, photo, path, fname, transcode_videos):
+        """Generate response by serving files directly (no X-Accel-Redirect)"""
+        if "thumbnail" in path:
+            # Handle thumbnail files
+            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+            
+            # Try different extensions if the exact file doesn't exist
+            if not os.path.exists(file_path):
+                # Try with .webp extension
+                if not fname.endswith('.webp'):
+                    file_path_webp = os.path.join(settings.MEDIA_ROOT, path, fname + '.webp')
+                    if os.path.exists(file_path_webp):
+                        return self._serve_file_direct(file_path_webp, 'image/webp')
+                
+                # Try with .mp4 extension for video thumbnails
+                if not fname.endswith('.mp4'):
+                    file_path_mp4 = os.path.join(settings.MEDIA_ROOT, path, fname + '.mp4')
+                    if os.path.exists(file_path_mp4):
+                        return self._serve_file_direct(file_path_mp4, 'video/mp4')
+            
+            # Check if it's a legacy .jpg thumbnail
+            filename = os.path.splitext(photo.thumbnail.square_thumbnail.path)[1] if hasattr(photo, 'thumbnail') else ''
+            if "jpg" in filename and hasattr(photo, 'thumbnail'):
+                # Handle non-migrated systems
+                return self._serve_file_direct(photo.thumbnail.thumbnail_big.path, 'image/jpg')
+            
+            return self._serve_file_direct(file_path)
+
+        if "faces" in path:
+            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+            return self._serve_file_direct(file_path, 'image/jpg')
+
+        if photo.video:
+            # For video files, serve directly from the original location
+            if transcode_videos:
+                # Note: Video transcoding not implemented for no-proxy mode
+                # Fall back to serving original file
+                pass
+            
+            # Serve original video file
+            return self._serve_file_direct(photo.main_file.path)
+        
+        # For other files (faces, avatars, etc.)
+        file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+        return self._serve_file_direct(file_path, 'image/jpg')
+
+    def get(self, request, path, fname, format=None):
+        # Handle ZIP files
+        if path.lower() == "zip":
+            jwt = request.COOKIES.get("jwt")
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+            try:
+                filename = fname + str(token["user_id"]) + ".zip"
+                file_path = os.path.join(settings.MEDIA_ROOT, path, filename)
+                return self._serve_file_direct(file_path, 'application/x-zip-compressed')
+            except Exception:
+                return HttpResponseForbidden()
+
+        # Handle avatars
+        if path.lower() == "avatars":
+            jwt = request.COOKIES.get("jwt")
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+            try:
+                user = User.objects.filter(id=token["user_id"]).only("id").first()
+                file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+                return self._serve_file_direct(file_path, 'image/png')
+            except Exception:
+                return HttpResponse(status=404)
+
+        # Handle embedded media
+        if path.lower() == "embedded_media":
+            jwt = request.COOKIES.get("jwt")
+            query = Q(public=True)
+            if request.user.is_authenticated:
+                query = Q(owner=request.user)
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                    user = User.objects.filter(id=token["user_id"]).only("id").first()
+                    query = Q(owner=user)
+                except TokenError:
+                    pass
+            try:
+                photo = Photo.objects.filter(query, image_hash=fname).first()
+                if not photo or photo.main_file.embedded_media.count() < 1:
+                    raise Photo.DoesNotExist()
+            except Photo.DoesNotExist:
+                return HttpResponse(status=404)
+            
+            file_path = os.path.join(settings.MEDIA_ROOT, path, fname + "_1.mp4")
+            return self._serve_file_direct(file_path, 'video/mp4')
+
+        # Handle regular media files (not photos)
+        if path.lower() != "photos":
+            jwt = request.COOKIES.get("jwt")
+            image_hash = fname.split(".")[0].split("_")[0]
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                return HttpResponse(status=404)
+
+            # Grant access if the requested photo is public
+            if photo.public:
+                return self._generate_response_direct(photo, path, fname, False)
+
+            # Check JWT token
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+
+            # Grant access if user owns the photo or photo is shared with user
+            user = User.objects.filter(id=token["user_id"]).only("id", "transcode_videos").first()
+            if photo.owner == user or user in photo.shared_to.all():
+                return self._generate_response_direct(photo, path, fname, user.transcode_videos)
+            else:
+                for album in photo.albumuser_set.only("shared_to"):
+                    if user in album.shared_to.all():
+                        return self._generate_response_direct(photo, path, fname, user.transcode_videos)
+            return HttpResponse(status=404)
+
+        # Handle photos (original files)
+        else:
+            jwt = request.COOKIES.get("jwt")
+            image_hash = fname.split(".")[0].split("_")[0]
+            try:
+                photo = Photo.objects.get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                return HttpResponse(status=404)
+
+            # Grant access if the requested photo is public
+            if photo.public:
+                return self._serve_file_direct(photo.main_file.path)
+
+            # Check JWT token
+            if jwt is not None:
+                try:
+                    token = AccessToken(jwt)
+                except TokenError:
+                    return HttpResponseForbidden()
+            else:
+                return HttpResponseForbidden()
+
+            # Grant access if user owns the photo or photo is shared with user
+            user = User.objects.filter(id=token["user_id"]).only("id").first()
+            if photo.owner == user or user in photo.shared_to.all():
+                return self._serve_file_direct(photo.main_file.path)
+            else:
+                for album in photo.albumuser_set.only("shared_to"):
+                    if user in album.shared_to.all():
+                        return self._serve_file_direct(photo.main_file.path)
+            return HttpResponse(status=404)
 
 
 # API Router
