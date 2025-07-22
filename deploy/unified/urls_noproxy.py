@@ -231,11 +231,6 @@ api_urlpatterns = [
     re_path(r"^auth/token/refresh/$", CustomTokenRefreshView.as_view()),
     re_path(r"^auth/token/blacklist/", TokenBlacklistView.as_view()),
     re_path(
-        r"^media/(?P<path>.*)/(?P<fname>.*)",
-        views.MediaAccessFullsizeOriginalView.as_view(),
-        name="media",
-    ),
-    re_path(
         r"^delete/zip/(?P<fname>.*)",
         views.DeleteZipView.as_view(),
         name="delete-zip",
@@ -257,7 +252,7 @@ urlpatterns = [
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
         views.MediaAccessFullsizeOriginalView.as_view(),
-        name="media_direct",
+        name="media",
     ),
 ]
 
