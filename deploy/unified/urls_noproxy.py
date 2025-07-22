@@ -258,6 +258,19 @@ urlpatterns = [
 # Add static files serving
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
+# Serve frontend assets and manifest directly
+if getattr(settings, 'SERVE_FRONTEND', False):
+    from django.views.static import serve
+    import os
+    
+    # Serve assets from frontend build
+    frontend_build_path = os.path.join(os.path.dirname(settings.BASE_DIR), 'frontend_build')
+    urlpatterns += [
+        re_path(r'^assets/(?P<path>.*)$', serve, {'document_root': os.path.join(frontend_build_path, 'assets')}),
+        re_path(r'^manifest\.json$', serve, {'document_root': frontend_build_path}),
+        re_path(r'^favicon\.ico$', serve, {'document_root': frontend_build_path}),
+    ]
+
 # Add development tools in debug mode
 if settings.DEBUG:
     from drf_spectacular.views import (
@@ -276,5 +289,5 @@ if settings.DEBUG:
 # Catch-all pattern for frontend (must be last)
 if getattr(settings, 'SERVE_FRONTEND', False):
     urlpatterns += [
-        re_path(r"^.*$", FrontendView.as_view(), name="frontend"),
+        re_path(r"^(?!api/)(?!static/)(?!assets/)(?!manifest\.json).*$", FrontendView.as_view(), name="frontend"),
     ] 
