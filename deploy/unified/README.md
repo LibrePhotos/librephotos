@@ -32,27 +32,35 @@ docker-compose -f docker-compose.no-proxy.yml up -d
 For a simple single-container deployment with SQLite database:
 
 ```bash
-# Create data directory
-mkdir -p ./librephotos-data/{db,protected_media,logs,data}
+# Create data directory structure
+mkdir -p ./librephotos-data/{db,internal_media,logs}
 
 # Run container
 docker run -d \
   --name librephotos \
   -p 3000:8001 \
-  -v ./librephotos-data:/data \
+  -v ./librephotos-data/db:/db \
+  -v ./librephotos-data/internal_media:/protected_media \
   -v ./librephotos-data/logs:/logs \
-  -v /path/to/your/photos:/data/data \
-  -e SERVE_FRONTEND=true \
+  -v /path/to/your/photos:/data \
+  -e SERVE_FRONTEND=True \
   -e DB_BACKEND=sqlite \
   reallibrephotos/librephotos-unified:latest
 ```
 
 Replace `/path/to/your/photos` with the actual path to your photo collection.
 
+**Directory Structure Created:**
+- `./librephotos-data/db/` - SQLite databases (`librephotos.sqlite3`, `cache.sqlite3`)
+- `./librephotos-data/protected_media/` - Processed images, thumbnails, and model data
+- `./librephotos-data/logs/` - Application logs, Secret Key
+
 **Key environment variable:**
 ```bash
-SERVE_FRONTEND=true
+SERVE_FRONTEND=True
 ```
+
+> **Note**: The value must be `True` (with capital T), not `true` (lowercase).
 
 ## Available Images
 
@@ -67,7 +75,7 @@ Automatically built and published:
 
 ```bash
 # Enable frontend serving
-SERVE_FRONTEND=true
+SERVE_FRONTEND=True
 
 # Database backend (sqlite or postgresql)
 DB_BACKEND=sqlite
@@ -83,39 +91,11 @@ DB_PASS=your-password
 # ... other standard variables
 ```
 
-### Volume Mounts for Docker Run
-
-| Container Path | Purpose | Required |
-|----------------|---------|----------|
-| `/data` | Main data directory (database, media) | Yes |
-| `/logs` | Application logs | Yes |
-| `/data/data` | Your photos directory | Yes |
-
-### Reverse Proxy Examples
-
-#### Traefik
-```yaml
-services:
-  backend:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.librephotos.rule=Host(`photos.yourdomain.com`)"
-      - "traefik.http.routers.librephotos.tls.certresolver=letsencrypt"
-      - "traefik.http.services.librephotos.loadbalancer.server.port=8001"
-```
-
-#### Caddy
-```
-photos.yourdomain.com {
-    reverse_proxy localhost:3000
-}
-```
-
 ## Migration from Standard Setup
 
 1. **Backup data**: Database and photos
 2. **Switch compose file**: Use `docker-compose.no-proxy.yml`
-3. **Add environment**: Set `SERVE_FRONTEND=true`
+3. **Add environment**: Set `SERVE_FRONTEND=True`
 4. **Update CSRF**: Set `CSRF_TRUSTED_ORIGINS` for your domain(s)
 5. **Deploy**: `docker-compose -f docker-compose.no-proxy.yml up -d`
 
@@ -128,7 +108,7 @@ CSRF_TRUSTED_ORIGINS=https://yourdomain.com,http://localhost:3000
 ```
 
 ### Static Files Not Loading
-Verify `SERVE_FRONTEND=true` is set and container includes frontend build.
+Verify `SERVE_FRONTEND=True` is set and container includes frontend build.
 
 ### API Not Responding
 API endpoints are still at `/api/*`. Check requests are properly prefixed.

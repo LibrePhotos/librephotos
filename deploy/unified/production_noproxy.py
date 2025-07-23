@@ -6,6 +6,10 @@ BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 BASE_DATA = os.environ.get("BASE_DATA", "/")
 PHOTOS = os.environ.get("PHOTOS", os.path.join(BASE_DATA, "data"))
 
+# Database configuration - explicit database backend selection
+# Set DB_BACKEND environment variable to choose: postgresql, sqlite
+db_backend = os.environ.get("DB_BACKEND", "sqlite").lower()
+
 # Frontend serving configuration
 SERVE_FRONTEND = os.environ.get("SERVE_FRONTEND", "False") == "True"
 
@@ -198,26 +202,7 @@ TEMPLATES = [
     },
 ]
 
-# Database configuration - explicit database backend selection
-# Set DB_BACKEND environment variable to choose: postgresql, sqlite
-db_backend = os.environ.get("DB_BACKEND", "sqlite").lower()
-
-if db_backend == "postgresql":
-    # PostgreSQL configuration
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ.get("DB_NAME", "db"),
-            "USER": os.environ.get("DB_USER", "docker"),
-            "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
-            "HOST": os.environ.get("DB_HOST", "db"),
-            "PORT": os.environ.get("DB_PORT", "5432"),
-            "CONN_MAX_AGE": 600,
-            "CONN_HEALTH_CHECKS": True,
-        },
-    }
-    print("Using PostgreSQL database")
-elif db_backend == "sqlite":
+if db_backend == "sqlite":
     # Production-optimized SQLite configuration
     # Based on best practices from https://alldjango.com/articles/definitive-guide-to-using-django-sqlite-in-production
     db_dir = os.path.join(BASE_DATA, "db")
@@ -256,6 +241,21 @@ elif db_backend == "sqlite":
         },
     }
     print("Using production-optimized SQLite database")
+elif db_backend == "postgresql":
+    # PostgreSQL configuration
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "db"),
+            "USER": os.environ.get("DB_USER", "docker"),
+            "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
+            "HOST": os.environ.get("DB_HOST", "db"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+            "CONN_MAX_AGE": 600,
+            "CONN_HEALTH_CHECKS": True,
+        },
+    }
+    print("Using PostgreSQL database")
 else:
     raise ValueError(f"Unsupported DB_BACKEND: {db_backend}. Use 'postgresql' or 'sqlite'")
 
