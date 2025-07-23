@@ -21,9 +21,36 @@ else
     echo "Using standard proxy setup..."
 fi
 
-# Run migrations
+# Run migrations based on database backend
 echo "Running migrations..."
-python manage.py migrate
+DB_BACKEND=${DB_BACKEND:-sqlite}
+
+if [ "$DB_BACKEND" = "sqlite" ]; then
+    echo "Using production-optimized SQLite database mode"
+    # Ensure database directory exists
+    mkdir -p /data/db
+    
+    # Run migrations for both default and cache databases
+    python manage.py migrate
+    python manage.py migrate --database=cache
+    
+    # Create cache table for SQLite
+    echo "Creating cache table..."
+    python manage.py createcachetable --database=cache
+elif [ "$DB_BACKEND" = "postgresql" ]; then
+    echo "Using PostgreSQL database mode"
+    
+    # Run standard migrations
+    python manage.py migrate
+    
+    # Create cache table for PostgreSQL
+    echo "Creating cache table..."
+    python manage.py createcachetable
+else
+    echo "Error: Unsupported DB_BACKEND: $DB_BACKEND"
+    echo "Supported values: sqlite, postgresql"
+    exit 1
+fi
 
 # Create cache directory
 mkdir -p /root/.cache

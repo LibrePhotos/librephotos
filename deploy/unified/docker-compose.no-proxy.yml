@@ -1,4 +1,4 @@
-# LibrePhotos - No Proxy Configuration
+# LibrePhotos - No Proxy Configuration with PostgreSQL
 # This configuration removes the nginx proxy dependency
 # by having Django serve both the API and frontend
 

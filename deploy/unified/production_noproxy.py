@@ -84,7 +84,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django.contrib.postgres",
     "api",
     "nextcloud",
     "rest_framework",
@@ -96,6 +95,10 @@ INSTALLED_APPS = [
     "constance.backends.database",
     "django_q",
 ]
+
+# Add PostgreSQL-specific apps only when using PostgreSQL
+if db_backend == "postgresql":
+    INSTALLED_APPS.append("django.contrib.postgres")
 
 Q_CLUSTER = {
     "name": "DjangORM",
@@ -195,18 +198,106 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "db"),
-        "USER": os.environ.get("DB_USER", "docker"),
-        "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
-        "HOST": os.environ.get("DB_HOST", "db"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
-        "CONN_MAX_AGE": 600,
-        "CONN_HEALTH_CHECKS": True,
-    },
-}
+# Database configuration - explicit database backend selection
+# Set DB_BACKEND environment variable to choose: postgresql, sqlite
+db_backend = os.environ.get("DB_BACKEND", "sqlite").lower()
+
+if db_backend == "postgresql":
+    # PostgreSQL configuration
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "db"),
+            "USER": os.environ.get("DB_USER", "docker"),
+            "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
+            "HOST": os.environ.get("DB_HOST", "db"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+            "CONN_MAX_AGE": 600,
+            "CONN_HEALTH_CHECKS": True,
+        },
+    }
+    print("Using PostgreSQL database")
+elif db_backend == "sqlite":
+    # Production-optimized SQLite configuration
+    # Based on best practices from https://alldjango.com/articles/definitive-guide-to-using-django-sqlite-in-production
+    db_dir = os.path.join(BASE_DATA, "db")
+    os.makedirs(db_dir, exist_ok=True)
+    
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(db_dir, "librephotos.sqlite3"),
+            "OPTIONS": {
+                "transaction_mode": "IMMEDIATE",
+                "timeout": 5,  # seconds
+                "init_command": """
+                    PRAGMA journal_mode=WAL;
+                    PRAGMA synchronous=NORMAL;
+                    PRAGMA mmap_size=134217728;
+                    PRAGMA journal_size_limit=27103364;
+                    PRAGMA cache_size=2000;
+                """,
+            },
+        },
+        "cache": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(db_dir, "cache.sqlite3"),
+            "OPTIONS": {
+                "transaction_mode": "IMMEDIATE",
+                "timeout": 5,  # seconds
+                "init_command": """
+                    PRAGMA journal_mode=WAL;
+                    PRAGMA synchronous=NORMAL;
+                    PRAGMA mmap_size=134217728;
+                    PRAGMA journal_size_limit=27103364;
+                    PRAGMA cache_size=2000;
+                """,
+            },
+        },
+    }
+    print("Using production-optimized SQLite database")
+else:
+    raise ValueError(f"Unsupported DB_BACKEND: {db_backend}. Use 'postgresql' or 'sqlite'")
+
+# Cache configuration - optimized for each database backend
+if db_backend == "sqlite":
+    # Use separate SQLite database for cache (recommended for production)
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "cache_table",
+        }
+    }
+    
+    # Database router for cache (when using separate SQLite cache database)
+    class CacheRouter:
+        """Route cache queries to a separate 'cache' database."""
+        DJANGO_CACHE_APP_LABEL = "django_cache"
+
+        def db_for_read(self, model, **hints):
+            if model._meta.app_label == self.DJANGO_CACHE_APP_LABEL:
+                return "cache"
+            return None
+
+        def db_for_write(self, model, **hints):
+            if model._meta.app_label == self.DJANGO_CACHE_APP_LABEL:
+                return "cache"
+            return None
+
+        def allow_migrate(self, db, app_label, model_name=None, **hints):
+            if app_label == self.DJANGO_CACHE_APP_LABEL:
+                return db == "cache"
+            return None
+
+    DATABASE_ROUTERS = ["librephotos.settings.production.CacheRouter"]
+else:
+    # For PostgreSQL, use database cache on default connection
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "cache_table",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {

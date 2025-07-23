@@ -22,10 +22,32 @@ This configuration removes the nginx proxy dependency by having Django serve bot
 
 ## Quick Start
 
+### Docker Compose (Recommended)
 ```bash
 # Use the no-proxy Docker Compose configuration
 docker-compose -f docker-compose.no-proxy.yml up -d
 ```
+
+### Docker Run (SQLite)
+For a simple single-container deployment with SQLite database:
+
+```bash
+# Create data directory
+mkdir -p ./librephotos-data/{db,protected_media,logs,data}
+
+# Run container
+docker run -d \
+  --name librephotos \
+  -p 3000:8001 \
+  -v ./librephotos-data:/data \
+  -v ./librephotos-data/logs:/logs \
+  -v /path/to/your/photos:/data/data \
+  -e SERVE_FRONTEND=true \
+  -e DB_BACKEND=sqlite \
+  reallibrephotos/librephotos-unified:latest
+```
+
+Replace `/path/to/your/photos` with the actual path to your photo collection.
 
 **Key environment variable:**
 ```bash
@@ -47,6 +69,9 @@ Automatically built and published:
 # Enable frontend serving
 SERVE_FRONTEND=true
 
+# Database backend (sqlite or postgresql)
+DB_BACKEND=sqlite
+
 # Set trusted origins for CSRF protection (production)
 CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
 
@@ -57,6 +82,14 @@ DB_USER=postgres
 DB_PASS=your-password
 # ... other standard variables
 ```
+
+### Volume Mounts for Docker Run
+
+| Container Path | Purpose | Required |
+|----------------|---------|----------|
+| `/data` | Main data directory (database, media) | Yes |
+| `/logs` | Application logs | Yes |
+| `/data/data` | Your photos directory | Yes |
 
 ### Reverse Proxy Examples
 
@@ -99,6 +132,17 @@ Verify `SERVE_FRONTEND=true` is set and container includes frontend build.
 
 ### API Not Responding
 API endpoints are still at `/api/*`. Check requests are properly prefixed.
+
+### Container Won't Start
+Check logs with:
+```bash
+docker logs librephotos
+```
+
+Common issues:
+- Missing required environment variables
+- Incorrect volume mounts
+- Port conflicts
 
 ## Building Custom Images
 
