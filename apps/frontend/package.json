@@ -44,7 +44,6 @@
     "@mantine/hooks": "^8.0.0",
     "@mantine/notifications": "^8.0.0",
     "@mantine/tiptap": "^8.0.0",
-    "@popperjs/core": "2.11.8",
     "@tabler/icons": "3.17.0",
     "@tabler/icons-react": "2.47.0",
     "@tanstack/react-query": "5.83.0",
@@ -71,8 +70,6 @@
     "d3-shape": "3.2.0",
     "dayjs": "1.11.13",
     "embla-carousel-react": "^8.6.0",
-    "font-awesome": "4.7.0",
-    "history": "5.3.0",
     "i18next": "23.16.8",
     "i18next-browser-languagedetector": "7.2.2",
     "jwt-decode": "3.1.2",
@@ -99,7 +96,6 @@
     "react-virtualized": "9.22.6",
     "react-vis": "1.12.1",
     "rumble-charts": "5.0.0",
-    "source-map-explorer": "2.5.3",
     "tippy.js": "^6.3.7",
     "vite": "^5.4.9",
     "vite-tsconfig-paths": "^4.3.1",
@@ -107,7 +103,6 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "7.28.0",
     "@eslint/compat": "^1.1.1",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.7.0",
@@ -149,8 +144,6 @@
     "lint-staged": "14.0.1",
     "prettier": "3.6.2",
     "rimraf": "5.0.10",
-    "source-map-loader": "4.0.2",
-    "ts-loader": "9.5.2",
     "typescript": "5.8.3"
   },
   "resolutions": {
