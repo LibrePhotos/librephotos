@@ -32,20 +32,12 @@ if [ "$DB_BACKEND" = "sqlite" ]; then
     
     # Run migrations for both default and cache databases
     python manage.py migrate
-    python manage.py migrate --database=cache
     
-    # Create cache table for SQLite
-    echo "Creating cache table..."
-    python manage.py createcachetable --database=cache
 elif [ "$DB_BACKEND" = "postgresql" ]; then
     echo "Using PostgreSQL database mode"
     
     # Run standard migrations
     python manage.py migrate
-    
-    # Create cache table for PostgreSQL
-    echo "Creating cache table..."
-    python manage.py createcachetable
 else
     echo "Error: Unsupported DB_BACKEND: $DB_BACKEND"
     echo "Supported values: sqlite, postgresql"

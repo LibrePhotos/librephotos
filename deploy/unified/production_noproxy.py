@@ -224,21 +224,6 @@ if db_backend == "sqlite":
                 """,
             },
         },
-        "cache": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(db_dir, "cache.sqlite3"),
-            "OPTIONS": {
-                "transaction_mode": "IMMEDIATE",
-                "timeout": 5,  # seconds
-                "init_command": """
-                    PRAGMA journal_mode=WAL;
-                    PRAGMA synchronous=NORMAL;
-                    PRAGMA mmap_size=134217728;
-                    PRAGMA journal_size_limit=27103364;
-                    PRAGMA cache_size=2000;
-                """,
-            },
-        },
     }
     print("Using production-optimized SQLite database")
 elif db_backend == "postgresql":
@@ -259,45 +244,7 @@ elif db_backend == "postgresql":
 else:
     raise ValueError(f"Unsupported DB_BACKEND: {db_backend}. Use 'postgresql' or 'sqlite'")
 
-# Cache configuration - optimized for each database backend
-if db_backend == "sqlite":
-    # Use separate SQLite database for cache (recommended for production)
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-            "LOCATION": "cache_table",
-        }
-    }
-    
-    # Database router for cache (when using separate SQLite cache database)
-    class CacheRouter:
-        """Route cache queries to a separate 'cache' database."""
-        DJANGO_CACHE_APP_LABEL = "django_cache"
 
-        def db_for_read(self, model, **hints):
-            if model._meta.app_label == self.DJANGO_CACHE_APP_LABEL:
-                return "cache"
-            return None
-
-        def db_for_write(self, model, **hints):
-            if model._meta.app_label == self.DJANGO_CACHE_APP_LABEL:
-                return "cache"
-            return None
-
-        def allow_migrate(self, db, app_label, model_name=None, **hints):
-            if app_label == self.DJANGO_CACHE_APP_LABEL:
-                return db == "cache"
-            return None
-
-    DATABASE_ROUTERS = ["librephotos.settings.production.CacheRouter"]
-else:
-    # For PostgreSQL, use database cache on default connection
-    CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-            "LOCATION": "cache_table",
-        }
-    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
