@@ -10,4 +10,4 @@ Faker==37.4.2
 setuptools==80.9.0
 pyfakefs==5.9.1
 pytest==8.4.1
-ruff==0.12.4
+ruff==0.12.5
