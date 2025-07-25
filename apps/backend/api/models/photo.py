@@ -96,7 +96,19 @@ class Photo(models.Model):
 
     def get_clip_embeddings(self):
         """Get clip embeddings as a list, regardless of storage format"""
-        return self.clip_embeddings if self.clip_embeddings else None
+        if not self.clip_embeddings:
+            return None
+
+        # Handle case where embeddings might be stored as JSON string
+        if isinstance(self.clip_embeddings, str):
+            try:
+                import json
+
+                return json.loads(self.clip_embeddings)
+            except (json.JSONDecodeError, TypeError):
+                return None
+
+        return self.clip_embeddings
 
     def set_clip_embeddings(self, embeddings):
         """Set clip embeddings, automatically handling storage format"""

@@ -38,10 +38,11 @@ def search_similar_image(user, photo, threshold=27):
     else:
         user_id = user.id
 
-    if photo.clip_embeddings is None:
+    clip_embeddings = photo.get_clip_embeddings()
+    if clip_embeddings is None:
         return []
 
-    image_embedding = np.array(photo.clip_embeddings, dtype=np.float32)
+    image_embedding = np.array(clip_embeddings, dtype=np.float32)
 
     post_data = {
         "user_id": user_id,
@@ -78,9 +79,11 @@ def build_image_similarity_index(user):
         image_hashes = []
         image_embeddings = []
         for photo in paginator.page(page).object_list:
-            image_hashes.append(photo.image_hash)
-            image_embedding = np.array(photo.clip_embeddings, dtype=np.float32)
-            image_embeddings.append(image_embedding.tolist())
+            clip_embeddings = photo.get_clip_embeddings()
+            if clip_embeddings is not None:
+                image_hashes.append(photo.image_hash)
+                image_embedding = np.array(clip_embeddings, dtype=np.float32)
+                image_embeddings.append(image_embedding.tolist())
 
         post_data = {
             "user_id": user.id,
