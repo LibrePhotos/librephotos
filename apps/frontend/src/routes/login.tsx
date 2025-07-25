@@ -86,9 +86,9 @@ export function LoginPage(): JSX.Element {
 
   return (
     <Stack align="center" justify="flex-end" pt={150}>
-      <Group>
+      <Group gap="xs" justify="center">
         <Image height={80} width={80} fit="contain" src={colorScheme === "dark" ? "/logo-white.png" : "/logo.png"} />
-        <span style={{ paddingLeft: 5, fontSize: 18 }}>
+        <span style={{ fontSize: 18 }}>
           <b>{t("login.name")}</b>
         </span>
       </Group>
@@ -233,9 +233,9 @@ export function FirstTimeSetupPage(): JSX.Element {
       }}
     >
       <Stack align="center" justify="flex-end">
-        <Group>
+        <Group gap="xs" justify="center">
           <Image height={80} width={80} fit="contain" src={dark ? "/logo-white.png" : "/logo.png"} />
-          <span style={{ paddingLeft: 5, fontSize: 18 }}>
+          <span style={{ fontSize: 18 }}>
             <b>{t("login.name")}</b>
           </span>
         </Group>
