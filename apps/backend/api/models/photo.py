@@ -6,7 +6,6 @@ from io import BytesIO
 
 import numpy as np
 import PIL
-from django.contrib.postgres.fields import ArrayField
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
@@ -83,9 +82,10 @@ class Photo(models.Model):
     shared_to = models.ManyToManyField(User, related_name="photo_shared_to")
 
     public = models.BooleanField(default=False, db_index=True)
-    clip_embeddings = ArrayField(
-        models.FloatField(blank=True, null=True), size=512, null=True
-    )
+
+    # Use JSONField for database compatibility (works with both PostgreSQL and SQLite)
+    clip_embeddings = models.JSONField(blank=True, null=True)
+
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
     last_modified = models.DateTimeField(auto_now=True)
 
@@ -93,6 +93,14 @@ class Photo(models.Model):
     visible = VisiblePhotoManager()
 
     _loaded_values = {}
+
+    def get_clip_embeddings(self):
+        """Get clip embeddings as a list, regardless of storage format"""
+        return self.clip_embeddings if self.clip_embeddings else None
+
+    def set_clip_embeddings(self, embeddings):
+        """Set clip embeddings, automatically handling storage format"""
+        self.clip_embeddings = embeddings if embeddings else None
 
     @classmethod
     def from_db(cls, db, field_names, values):
