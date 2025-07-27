@@ -5,7 +5,7 @@ Pygments==2.19.2
 prompt-toolkit==3.0.51
 nose==1.3.7
 pre-commit==4.2.0
-coverage==7.10.0
+coverage==7.10.1
 Faker==37.4.2
 setuptools==80.9.0
 pyfakefs==5.9.1
