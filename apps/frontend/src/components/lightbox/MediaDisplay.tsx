@@ -18,6 +18,7 @@ export type MediaDisplayProps = {
   handleDragStart: (event: React.DragEvent) => void;
   fullHeight?: boolean;
   playing?: boolean;
+  photoDetails?: any | null; // Allow null values from the API
 };
 
 
@@ -33,6 +34,7 @@ export function MediaDisplay({
   handleDragStart,
   fullHeight = false,
   playing = false,
+  photoDetails,
 }: MediaDisplayProps) {
   
   if (!id) return null;
@@ -43,6 +45,16 @@ export function MediaDisplay({
   const imageDimensions = { 
     width: imgRef.current?.naturalWidth ?? 1080,
     height: imgRef.current?.naturalHeight ?? 810
+  };
+
+  // Helper function to check if the photo is a GIF
+  const isGif = () => {
+    if (!photoDetails?.image_path || !Array.isArray(photoDetails.image_path)) {
+      return false;
+    }
+    return photoDetails.image_path.some((path: string) => 
+      path.toLowerCase().endsWith('.gif')
+    );
   };
 
   // Determine the media type for the current slide
@@ -92,6 +104,12 @@ export function MediaDisplay({
     );
   }
 
+  // For GIFs, use the original photo endpoint to get the animated file
+  // For regular photos, use the big thumbnail
+  const imageUrl = isGif() && isMainContent 
+    ? `${serverAddress}/media/photos/${id}` 
+    : `${serverAddress}/media/thumbnails_big/${id}`;
+
   return (
     <div   {...(isMainContent && bind ? bind() : {})} style={{ 
       position: "relative",  
@@ -105,7 +123,7 @@ export function MediaDisplay({
       <div style={{ position: "relative" }}>
         <img
           ref={imgRef} 
-          src={`${serverAddress}/media/thumbnails_big/${id}`}
+          src={imageUrl}
           alt={isMainContent ? "Main Content" : "Preview"}
           loading="eager"
           onDragStart={handleDragStart}

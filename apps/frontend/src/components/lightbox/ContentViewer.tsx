@@ -191,7 +191,6 @@ export function ContentViewer({
                 initialSlide={1}
                 style={{ width: "100%", height: "100%" }}
                 slideSize="100%"
-                align="center"
                 slideGap={0}
                 orientation="horizontal"
                 loop={false}
@@ -226,6 +225,7 @@ export function ContentViewer({
                     offset={offset}
                     handleDragStart={handleDragStart}
                     playing={playing}
+                    {...(photoDetails ? { photoDetails } : {})}
                   />
                 </Carousel.Slide>
 
