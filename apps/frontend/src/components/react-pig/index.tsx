@@ -388,7 +388,7 @@ function Pig({
     
     return (
       <TileComponent
-        key={`tile-${item.id}`}
+        key={`tile-${item.id || item.url || Math.random().toString(36)}`}
         useLqip={useLqip}
         windowHeight={windowHeightRef.current}
         containerWidth={containerWidthRef.current}
@@ -424,8 +424,8 @@ function Pig({
     return (
       <React.Fragment key={group.date}>
         <GroupHeaderComponent key={group.date} settings={settings} group={group} activeTileUrl={activeTileUrl} />
-        {group.items.map((item: ImageItem) => (
-          <React.Fragment key={item.url || item.id.toString()}>
+        {group.items.map((item: ImageItem, index: number) => (
+          <React.Fragment key={item.url || item.id?.toString() || `group-item-${index}`}>
             {renderTile(item)}
           </React.Fragment>
         ))}
@@ -438,8 +438,8 @@ function Pig({
   // Render
   return (
     <div className={`${styles.output} ${className}`} ref={containerRef}>
-      {renderedItems.map(item => {
-        const key = 'date' in item ? item.date : (item.url || item.id.toString());
+      {renderedItems.map((item, index) => {
+        const key = ('date' in item && item.date) ? item.date : (item.url || item.id?.toString() || `item-${index}`);
         return (
           <React.Fragment key={key}>
             {settings.groupByDate 

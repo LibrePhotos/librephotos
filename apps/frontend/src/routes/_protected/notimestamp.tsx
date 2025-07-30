@@ -24,7 +24,7 @@ export function NoTimestampPhotosView() {
 
   useEffect(() => {
     if (photosData) {
-      var tempPhotos = [];
+      let tempPhotos: PigPhoto[] = [];
 
       // If we have a count but no results yet, add temp elements
       if (page === 1) {
@@ -46,7 +46,9 @@ export function NoTimestampPhotosView() {
   const getImages = (visibleItems: any) => {
     if (visibleItems.filter((i: any) => i.isTemp).length > 0) {
       const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
-      const page = Math.ceil((parseInt(firstTempObject.id, 10) + 1) / 100);
+      // Extract the numeric part from temp IDs like "temp-0", "temp-1", etc.
+      const tempIndex = parseInt(firstTempObject.id.replace('temp-', ''), 10);
+      const page = Math.ceil((tempIndex + 1) / 100);
       if (page > 1) {
         setPage(page);
       }
