@@ -108,37 +108,59 @@ class SetPhotosDeleted(APIView):
         val_hidden = data["deleted"]
         image_hashes = data["image_hashes"]
 
-        updated = []
-        not_updated = []
-        for image_hash in image_hashes:
-            try:
-                photo = Photo.objects.get(image_hash=image_hash)
-            except Photo.DoesNotExist:
-                logger.warning(
-                    f"Could not set photo {image_hash} to hidden. It does not exist."
-                )
-                continue
-            if photo.owner == request.user and photo.in_trashcan != val_hidden:
+        # Get all photos with related data in one query to prevent N+1 queries from serializer
+        photos = (
+            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            .select_related("owner", "thumbnail", "main_file")
+            .prefetch_related(
+                "files", "faces__person", "shared_to", "main_file__embedded_media"
+            )
+        )
+
+        # Also prefetch search and caption instances if they exist
+        photos = photos.select_related("search_instance", "caption_instance")
+
+        # Group photos by whether they need updating
+        photos_to_update = []
+        updated_data = []
+        not_updated_data = []
+
+        for photo in photos:
+            if photo.in_trashcan != val_hidden:
+                photos_to_update.append(photo.image_hash)
                 photo.in_trashcan = val_hidden
-                photo.save()
-                updated.append(PhotoSerializer(photo).data)
+                updated_data.append(PhotoSerializer(photo).data)
             else:
-                not_updated.append(PhotoSerializer(photo).data)
+                not_updated_data.append(PhotoSerializer(photo).data)
+
+        # Bulk update in one query
+        if photos_to_update:
+            Photo.objects.filter(
+                image_hash__in=photos_to_update, owner=request.user
+            ).update(in_trashcan=val_hidden)
+
+        # Handle missing photos
+        found_hashes = {photo.image_hash for photo in photos}
+        missing_hashes = set(image_hashes) - found_hashes
+        for missing_hash in missing_hashes:
+            logger.warning(
+                f"Could not set photo {missing_hash} to hidden. It does not exist or is not owned by user."
+            )
 
         if val_hidden:
             logger.info(
-                f"{len(updated)} photos were set hidden. {len(not_updated)} photos were already deleted."
+                f"{len(updated_data)} photos were set hidden. {len(not_updated_data)} photos were already deleted."
             )
         else:
             logger.info(
-                f"{len(updated)} photos were set unhidden. {len(not_updated)} photos were already recovered."
+                f"{len(updated_data)} photos were set unhidden. {len(not_updated_data)} photos were already recovered."
             )
         return Response(
             {
                 "status": True,
-                "results": updated,
-                "updated": updated,
-                "not_updated": not_updated,
+                "results": updated_data,
+                "updated": updated_data,
+                "not_updated": not_updated_data,
             }
         )
 
@@ -149,45 +171,69 @@ class SetPhotosFavorite(APIView):
         val_favorite = data["favorite"]
         image_hashes = data["image_hashes"]
 
-        updated = []
-        not_updated = []
-        user = User.objects.get(username=request.user)
-        for image_hash in image_hashes:
-            try:
-                photo = Photo.objects.get(image_hash=image_hash)
-            except Photo.DoesNotExist:
-                logger.warning(
-                    f"Could not set photo {image_hash} to favorite. It does not exist."
-                )
-                continue
-            if photo.owner == request.user:
-                if val_favorite and photo.rating < user.favorite_min_rating:
-                    photo.rating = user.favorite_min_rating
-                    photo.save()
-                    updated.append(PhotoSerializer(photo).data)
-                elif not val_favorite and photo.rating >= user.favorite_min_rating:
-                    photo.rating = 0
-                    photo.save()
-                    updated.append(PhotoSerializer(photo).data)
-                else:
-                    not_updated.append(PhotoSerializer(photo).data)
+        # Get all photos with related data in one query to prevent N+1 queries from serializer
+        photos = (
+            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            .select_related(
+                "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
+            )
+            .prefetch_related(
+                "files", "faces__person", "shared_to", "main_file__embedded_media"
+            )
+        )
+        user = request.user
+
+        # Group photos by whether they need updating
+        photos_to_favorite = []
+        photos_to_unfavorite = []
+        updated_data = []
+        not_updated_data = []
+
+        for photo in photos:
+            if val_favorite and photo.rating < user.favorite_min_rating:
+                photos_to_favorite.append(photo.image_hash)
+                photo.rating = user.favorite_min_rating
+                updated_data.append(PhotoSerializer(photo).data)
+            elif not val_favorite and photo.rating >= user.favorite_min_rating:
+                photos_to_unfavorite.append(photo.image_hash)
+                photo.rating = 0
+                updated_data.append(PhotoSerializer(photo).data)
             else:
-                not_updated.append(PhotoSerializer(photo).data)
+                not_updated_data.append(PhotoSerializer(photo).data)
+
+        # Bulk update in separate queries for different rating values
+        if photos_to_favorite:
+            Photo.objects.filter(
+                image_hash__in=photos_to_favorite, owner=request.user
+            ).update(rating=user.favorite_min_rating)
+
+        if photos_to_unfavorite:
+            Photo.objects.filter(
+                image_hash__in=photos_to_unfavorite, owner=request.user
+            ).update(rating=0)
+
+        # Handle missing photos
+        found_hashes = {photo.image_hash for photo in photos}
+        missing_hashes = set(image_hashes) - found_hashes
+        for missing_hash in missing_hashes:
+            logger.warning(
+                f"Could not set photo {missing_hash} to favorite. It does not exist or is not owned by user."
+            )
 
         if val_favorite:
             logger.info(
-                f"{len(updated)} photos were added to favorites. {len(not_updated)} photos were already in favorites."
+                f"{len(updated_data)} photos were added to favorites. {len(not_updated_data)} photos were already in favorites."
             )
         else:
             logger.info(
-                f"{len(updated)} photos were removed from favorites. {len(not_updated)} photos were already not in favorites."
+                f"{len(updated_data)} photos were removed from favorites. {len(not_updated_data)} photos were already not in favorites."
             )
         return Response(
             {
                 "status": True,
-                "results": updated,
-                "updated": updated,
-                "not_updated": not_updated,
+                "results": updated_data,
+                "updated": updated_data,
+                "not_updated": not_updated_data,
             }
         )
 
@@ -198,37 +244,58 @@ class SetPhotosHidden(APIView):
         val_hidden = data["hidden"]
         image_hashes = data["image_hashes"]
 
-        updated = []
-        not_updated = []
-        for image_hash in image_hashes:
-            try:
-                photo = Photo.objects.get(image_hash=image_hash)
-            except Photo.DoesNotExist:
-                logger.warning(
-                    f"Could not set photo {image_hash} to hidden. It does not exist."
-                )
-                continue
-            if photo.owner == request.user and photo.hidden != val_hidden:
+        # Get all photos with related data in one query to prevent N+1 queries from serializer
+        photos = (
+            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            .select_related(
+                "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
+            )
+            .prefetch_related(
+                "files", "faces__person", "shared_to", "main_file__embedded_media"
+            )
+        )
+
+        # Group photos by whether they need updating
+        photos_to_update = []
+        updated_data = []
+        not_updated_data = []
+
+        for photo in photos:
+            if photo.hidden != val_hidden:
+                photos_to_update.append(photo.image_hash)
                 photo.hidden = val_hidden
-                photo.save()
-                updated.append(PhotoSerializer(photo).data)
+                updated_data.append(PhotoSerializer(photo).data)
             else:
-                not_updated.append(PhotoSerializer(photo).data)
+                not_updated_data.append(PhotoSerializer(photo).data)
+
+        # Bulk update in one query
+        if photos_to_update:
+            Photo.objects.filter(
+                image_hash__in=photos_to_update, owner=request.user
+            ).update(hidden=val_hidden)
+
+        # Handle missing photos
+        found_hashes = {photo.image_hash for photo in photos}
+        missing_hashes = set(image_hashes) - found_hashes
+        for missing_hash in missing_hashes:
+            logger.warning(
+                f"Could not set photo {missing_hash} to hidden. It does not exist or is not owned by user."
+            )
 
         if val_hidden:
             logger.info(
-                f"{len(updated)} photos were set hidden. {len(not_updated)} photos were already hidden."
+                f"{len(updated_data)} photos were set hidden. {len(not_updated_data)} photos were already hidden."
             )
         else:
             logger.info(
-                f"{len(updated)} photos were set unhidden. {len(not_updated)} photos were already unhidden."
+                f"{len(updated_data)} photos were set unhidden. {len(not_updated_data)} photos were already unhidden."
             )
         return Response(
             {
                 "status": True,
-                "results": updated,
-                "updated": updated,
-                "not_updated": not_updated,
+                "results": updated_data,
+                "updated": updated_data,
+                "not_updated": not_updated_data,
             }
         )
 
@@ -355,38 +422,59 @@ class SetPhotosPublic(APIView):
         val_public = data["val_public"]
         image_hashes = data["image_hashes"]
 
-        updated = []
-        not_updated = []
-        for image_hash in image_hashes:
-            try:
-                photo = Photo.objects.get(image_hash=image_hash)
-            except Photo.DoesNotExist:
-                logger.warning(
-                    f"Could not set photo {image_hash} to public. It does not exist."
-                )
-                continue
-            if photo.owner == request.user and photo.public != val_public:
+        # Get all photos with related data in one query to prevent N+1 queries from serializer
+        photos = (
+            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            .select_related(
+                "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
+            )
+            .prefetch_related(
+                "files", "faces__person", "shared_to", "main_file__embedded_media"
+            )
+        )
+
+        # Group photos by whether they need updating
+        photos_to_update = []
+        updated_data = []
+        not_updated_data = []
+
+        for photo in photos:
+            if photo.public != val_public:
+                photos_to_update.append(photo.image_hash)
                 photo.public = val_public
-                photo.save()
-                updated.append(PhotoSerializer(photo).data)
+                updated_data.append(PhotoSerializer(photo).data)
             else:
-                not_updated.append(PhotoSerializer(photo).data)
+                not_updated_data.append(PhotoSerializer(photo).data)
+
+        # Bulk update in one query
+        if photos_to_update:
+            Photo.objects.filter(
+                image_hash__in=photos_to_update, owner=request.user
+            ).update(public=val_public)
+
+        # Handle missing photos
+        found_hashes = {photo.image_hash for photo in photos}
+        missing_hashes = set(image_hashes) - found_hashes
+        for missing_hash in missing_hashes:
+            logger.warning(
+                f"Could not set photo {missing_hash} to public. It does not exist or is not owned by user."
+            )
 
         if val_public:
             logger.info(
-                f"{len(updated)} photos were set public. {len(not_updated)} photos were already public."
+                f"{len(updated_data)} photos were set public. {len(not_updated_data)} photos were already public."
             )
         else:
             logger.info(
-                f"{len(updated)} photos were set private. {len(not_updated)} photos were already public."
+                f"{len(updated_data)} photos were set private. {len(not_updated_data)} photos were already public."
             )
 
         return Response(
             {
                 "status": True,
-                "results": updated,
-                "updated": updated,
-                "not_updated": not_updated,
+                "results": updated_data,
+                "updated": updated_data,
+                "not_updated": not_updated_data,
             }
         )
 
