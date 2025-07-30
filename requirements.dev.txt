@@ -8,6 +8,6 @@ pre-commit==4.2.0
 coverage==7.10.1
 Faker==37.4.2
 setuptools==80.9.0
-pyfakefs==5.9.1
+pyfakefs==5.9.2
 pytest==8.4.1
 ruff==0.12.7
