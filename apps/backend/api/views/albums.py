@@ -356,21 +356,25 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                     queryset=File.objects.only("hash"),
                 ),
             )
-            .select_related("search_instance")
+            .select_related("thumbnail", "search_instance", "main_file")
             .order_by("-exif_timestamp")
             .only(
                 "image_hash",
                 "thumbnail__aspect_ratio",
+                "thumbnail__dominant_color",
                 "video",
                 "main_file",
                 "search_instance__search_location",
-                "thumbnail__dominant_color",
                 "public",
                 "rating",
                 "hidden",
                 "exif_timestamp",
                 "owner",
                 "video_length",
+                "exif_gps_lat",
+                "exif_gps_lon",
+                "removed",
+                "in_trashcan",
             )
         )
 

@@ -1,4 +1,5 @@
 import pytz
+from itertools import groupby
 
 utc = pytz.UTC
 
@@ -11,28 +12,38 @@ class PhotosGroupedByDate:
 
 
 def get_photos_ordered_by_date(photos):
-    from collections import defaultdict
+    """
+    Efficiently group photos by date using itertools.groupby.
+    Assumes photos are already ordered by exif_timestamp.
+    """
+    # Convert to list once if it's a queryset
+    if hasattr(photos, "_result_cache") and photos._result_cache is None:
+        photos = list(photos)
 
-    groups = defaultdict(list)
-
-    for photo in photos:
-        if photo.exif_timestamp:
-            groups[photo.exif_timestamp.date().strftime("%Y-%m-%d")].append(photo)
-        else:
-            groups[photo.exif_timestamp].append(photo)
-
-    grouped_photo = list(groups.values())
     result = []
     no_timestamp_photos = []
-    for group in grouped_photo:
+
+    def date_key(photo):
+        """Key function for grouping photos by date"""
+        if photo.exif_timestamp:
+            return photo.exif_timestamp.date().strftime("%Y-%m-%d")
+        return None
+
+    # Group consecutive photos by their date
+    for date_str, group_photos in groupby(photos, key=date_key):
+        group_list = list(group_photos)
         location = ""
-        if group and group[0].exif_timestamp:
-            date = group[0].exif_timestamp
-            result.append(PhotosGroupedByDate(location, date, group))
+
+        if date_str is not None:
+            # Use the first photo's timestamp as the group date
+            date = group_list[0].exif_timestamp
+            result.append(PhotosGroupedByDate(location, date, group_list))
         else:
-            date = "No timestamp"
-            no_timestamp_photos = PhotosGroupedByDate(location, date, group)
-    # add no timestamp last
-    if no_timestamp_photos != []:
-        result.append(no_timestamp_photos)
+            # Collect photos without timestamps
+            no_timestamp_photos.extend(group_list)
+
+    # Add no timestamp photos as a single group at the end
+    if no_timestamp_photos:
+        result.append(PhotosGroupedByDate("", "No timestamp", no_timestamp_photos))
+
     return result

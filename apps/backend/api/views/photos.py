@@ -46,12 +46,34 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
                     added_on__day=latest_date.day,
                 )
             )
+            .select_related("thumbnail", "search_instance", "main_file")
             .prefetch_related(
-                "owner",
+                Prefetch(
+                    "owner",
+                    queryset=User.objects.only(
+                        "id", "username", "first_name", "last_name"
+                    ),
+                ),
                 Prefetch(
                     "main_file__embedded_media",
                     queryset=File.objects.only("hash"),
                 ),
+            )
+            .only(
+                "image_hash",
+                "thumbnail__aspect_ratio",
+                "thumbnail__dominant_color",
+                "video",
+                "main_file",
+                "search_instance__search_location",
+                "rating",
+                "owner",
+                "exif_gps_lat",
+                "exif_gps_lon",
+                "removed",
+                "in_trashcan",
+                "exif_timestamp",
+                "video_length",
             )
             .order_by("-added_on")
         )
@@ -83,6 +105,7 @@ class NoTimestampPhotoViewSet(ListViewSet):
     def get_queryset(self):
         return (
             Photo.visible.filter(Q(exif_timestamp=None) & Q(owner=self.request.user))
+            .select_related("thumbnail", "search_instance", "main_file")
             .prefetch_related(
                 Prefetch(
                     "owner",
@@ -94,6 +117,22 @@ class NoTimestampPhotoViewSet(ListViewSet):
                     "main_file__embedded_media",
                     queryset=File.objects.only("hash"),
                 ),
+            )
+            .only(
+                "image_hash",
+                "thumbnail__aspect_ratio",
+                "thumbnail__dominant_color",
+                "video",
+                "main_file",
+                "search_instance__search_location",
+                "rating",
+                "owner",
+                "exif_gps_lat",
+                "exif_gps_lon",
+                "removed",
+                "in_trashcan",
+                "exif_timestamp",
+                "video_length",
             )
             .order_by("added_on")
         )

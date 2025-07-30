@@ -29,6 +29,7 @@ class SearchListViewSet(ListViewSet):
         if request.user.semantic_search_topk == 0:
             queryset = self.filter_queryset(
                 Photo.visible.filter(Q(owner=self.request.user))
+                .select_related("thumbnail", "search_instance", "main_file")
                 .prefetch_related(
                     Prefetch(
                         "owner",
@@ -45,16 +46,20 @@ class SearchListViewSet(ListViewSet):
                 .only(
                     "image_hash",
                     "thumbnail__aspect_ratio",
+                    "thumbnail__dominant_color",
                     "video",
                     "main_file",
                     "search_instance__search_location",
-                    "thumbnail__dominant_color",
                     "public",
                     "rating",
                     "hidden",
                     "exif_timestamp",
                     "owner",
                     "video_length",
+                    "exif_gps_lat",
+                    "exif_gps_lon",
+                    "removed",
+                    "in_trashcan",
                 )
             )
             grouped_photos = get_photos_ordered_by_date(queryset)
@@ -63,6 +68,7 @@ class SearchListViewSet(ListViewSet):
         else:
             queryset = self.filter_queryset(
                 Photo.visible.filter(Q(owner=self.request.user))
+                .select_related("thumbnail", "search_instance", "main_file")
                 .prefetch_related(
                     Prefetch(
                         "owner",
@@ -78,16 +84,20 @@ class SearchListViewSet(ListViewSet):
                 .only(
                     "image_hash",
                     "thumbnail__aspect_ratio",
+                    "thumbnail__dominant_color",
                     "video",
                     "main_file",
                     "search_instance__search_location",
-                    "thumbnail__dominant_color",
                     "public",
                     "rating",
                     "hidden",
                     "exif_timestamp",
                     "owner",
                     "video_length",
+                    "exif_gps_lat",
+                    "exif_gps_lon",
+                    "removed",
+                    "in_trashcan",
                 )
             )
             serializer = PhotoSummarySerializer(queryset, many=True)
