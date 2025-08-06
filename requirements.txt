@@ -7,7 +7,7 @@ django-extensions==4.1
 django-filter==25.1
 django-bulk-update
 django-silk==5.4.0
-djangorestframework==3.16.0
+djangorestframework==3.16.1
 djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.28.0
 face-recognition==1.3.0
