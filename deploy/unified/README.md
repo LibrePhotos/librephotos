@@ -43,7 +43,7 @@ docker run -d \
   -v ./librephotos-data/internal_media:/protected_media \
   -v ./librephotos-data/logs:/logs \
   -v /path/to/your/photos:/data \
-  -e SERVE_FRONTEND=True \
+  -e SERVE_FRONTEND=true \
   -e DB_BACKEND=sqlite \
   reallibrephotos/librephotos-unified:latest
 ```
@@ -57,10 +57,8 @@ Replace `/path/to/your/photos` with the actual path to your photo collection.
 
 **Key environment variable:**
 ```bash
-SERVE_FRONTEND=True
+SERVE_FRONTEND=true
 ```
-
-> **Note**: The value must be `True` (with capital T), not `true` (lowercase).
 
 ## Available Images
 
@@ -75,7 +73,7 @@ Automatically built and published:
 
 ```bash
 # Enable frontend serving
-SERVE_FRONTEND=True
+SERVE_FRONTEND=true
 
 # Database backend (sqlite or postgresql)
 DB_BACKEND=sqlite
@@ -108,7 +106,7 @@ CSRF_TRUSTED_ORIGINS=https://yourdomain.com,http://localhost:3000
 ```
 
 ### Static Files Not Loading
-Verify `SERVE_FRONTEND=True` is set and container includes frontend build.
+Verify `SERVE_FRONTEND=true` is set and container includes frontend build.
 
 ### API Not Responding
 API endpoints are still at `/api/*`. Check requests are properly prefixed.
