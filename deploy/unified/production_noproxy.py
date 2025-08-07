@@ -11,7 +11,7 @@ PHOTOS = os.environ.get("PHOTOS", os.path.join(BASE_DATA, "data"))
 db_backend = os.environ.get("DB_BACKEND", "sqlite").lower()
 
 # Frontend serving configuration
-SERVE_FRONTEND = os.environ.get("SERVE_FRONTEND", "False") == "True"
+SERVE_FRONTEND = str(os.environ.get("SERVE_FRONTEND", "false")).strip().lower() in {"true", "1", "yes", "on"}
 
 if SERVE_FRONTEND:
     STATIC_URL = "/static/"
