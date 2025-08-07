@@ -5,7 +5,7 @@ set -e
 echo "LibrePhotos starting..."
 
 # Check if we should serve frontend
-if [ "$SERVE_FRONTEND" = "True" ]; then
+if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
     echo "Configuring for no-proxy deployment (serving frontend from Django)..."
     
     # Copy the no-proxy settings and URLs
