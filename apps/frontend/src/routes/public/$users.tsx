@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react";
 import { useLoaderData } from "@tanstack/react-router";
 
 import { PigPhoto, Photoset } from "../../api_client/photos/types"; 
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
+import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-import type { PhotoGroup } from "../../layouts/photos/common";
+type PhotoGroup = { id: string; page: number };
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 export const Route = createFileRoute('/public/$users')({
@@ -20,10 +20,13 @@ export function UserPublicPage() {
 
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
-  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
-    photosetType: Photoset.PUBLIC,
-    username: users,
-  });
+  const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery(
+    {
+      photosetType: Photoset.PUBLIC,
+      username: users,
+    },
+    // Disable this query when a specific album is requested
+  );
 
   useEffect(() => {
     if (photosGroupedByDate) setPhotosFlat(getPhotosFlatFromGroupedByDate(photosGroupedByDate));
@@ -34,6 +37,11 @@ export function UserPublicPage() {
     { album_date_id: group.id, page: group.page, photosetType: Photoset.PUBLIC, username: users },
     { skip: !group.id }
   );
+
+  // If a specific user album is requested via ?album=ID, fetch it and display instead
+  const params = new URLSearchParams(window.location.search);
+  const albumId = params.get('album') ?? '';
+  const { data: userAlbum } = useFetchUserAlbumQuery(albumId, albumId ? { public: true, username: users } : undefined);
 
   const getAlbums = (visibleGroups: any) => {
     visibleGroups.reverse().forEach((photoGroup: any) => {
@@ -47,14 +55,25 @@ export function UserPublicPage() {
     });
   };
 
+  // If a specific album is requested and loaded, render it directly
+  if (albumId && userAlbum) {
+    return (
+      <PhotoListView
+        title={userAlbum.title}
+        loading={false}
+        icon={<Globe size={50} />}
+        photoset={userAlbum.grouped_photos}
+        idx2hash={getPhotosFlatFromGroupedByDate(userAlbum.grouped_photos)}
+        isPublic={true}
+        updateGroups={() => {}}
+        selectable
+      />
+    );
+  }
+
   return (
     <PhotoListView
-      // To-Do: Translate this
-      title={
-        currentUser?.username === users
-          ? "Your public photos"
-          : `Public photos of ${users}`
-      }
+      title={currentUser?.username === users ? "Your public photos" : `Public photos of ${users}`}
       loading={isLoading}
       icon={<Globe size={50} />}
       photoset={photosGroupedByDate ?? []}

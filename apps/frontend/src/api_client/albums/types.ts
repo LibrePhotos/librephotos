@@ -17,6 +17,7 @@ const UserAlbumResponse = z.object({
   shared_to: SimpleUser.array(),
   created_on: z.string(),
   favorited: z.boolean(),
+  public: z.boolean().optional(),
 });
 
 const UserAlbumList = UserAlbumResponse.array();
@@ -128,6 +129,7 @@ export const UserAlbumInfo = z.object({
   shared_to: SimpleUser.array(),
   created_on: z.string(),
   favorited: z.boolean(),
+  public: z.boolean().optional(),
 });
 export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
 
@@ -135,7 +137,7 @@ const UserAlbumDetails = z.object({
   id: z.string(),
   title: z.string(),
   owner: SimpleUser,
-  shared_to: SimpleUser.array(),
+  shared_to: SimpleUser.array().optional(),
 
   date: z.string(),
   location: z.string().nullable(),
@@ -144,6 +146,9 @@ export type UserAlbumDetails = z.infer<typeof UserAlbumDetails>;
 
 export const UserAlbum = UserAlbumDetails.extend({
   grouped_photos: DatePhotosGroup.array(),
+  public: z.boolean().optional(),
+  public_slug: z.string().optional(),
+  public_expires_at: z.string().nullable().optional(),
 });
 
 export type UserAlbum = z.infer<typeof UserAlbum>;

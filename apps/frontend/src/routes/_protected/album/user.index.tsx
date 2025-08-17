@@ -1,12 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 
-import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, Text, TextInput, Title } from "@mantine/core";
+import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconAlbum as Album,
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
+  IconLink as LinkIcon,
   IconShare as Share,
   IconTrash as Trash,
   IconUser as User,
@@ -59,6 +60,7 @@ function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
 export function AlbumUser() {
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [albumID, setAlbumID] = useState("");
+  const [albumOwner, setAlbumOwner] = useState("");
   const [albumTitle, setAlbumTitle] = useState("");
   const [isDeleteDialogOpen, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
   const [isRenameDialogOpen, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
@@ -85,6 +87,8 @@ export function AlbumUser() {
     showShareDialog();
     setAlbumID(id);
     setAlbumTitle(title);
+    const album = albums?.find(a => `${a.id}` === id);
+    if (album) setAlbumOwner(album.owner.username);
   };
 
   function isShared(album: UserAlbumInfo) {
@@ -133,6 +137,15 @@ export function AlbumUser() {
               </Menu.Dropdown>
             </Menu>
           </div>
+          {album.public && (
+            <div style={{ position: "absolute", top: 10, left: 10 }}>
+              <Tooltip label="This album is public">
+                <span>
+                  <LinkIcon size={18} />
+                </span>
+              </Tooltip>
+            </div>
+          )}
         </div>
         <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
           <Group>
@@ -194,7 +207,7 @@ export function AlbumUser() {
           </Group>
         </div>
       </Modal>
-      <ModalAlbumShare isOpen={isShareDialogOpen} onRequestClose={hideShareDialog} albumID={albumID} />
+      <ModalAlbumShare isOpen={isShareDialogOpen} onRequestClose={hideShareDialog} albumID={albumID} ownerUsername={albumOwner} />
       <Modal opened={isDeleteDialogOpen} onClose={hideDeleteDialog}>
         <Stack>
           {t("deletealbumexplanation")}

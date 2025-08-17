@@ -8,6 +8,7 @@ import {
   IconFileMinus as FileMinus,
   IconGlobe as Globe,
   IconKey as Key,
+  IconLink as LinkIcon,
   IconPhoto as Photo,
   IconPlus as Plus,
   IconShare as Share,
@@ -19,7 +20,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 
 import { UserAlbum } from "../../api_client/albums/types";
-import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
+import { useRemovePhotoFromUserAlbumMutation, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useMarkPhotosDeletedMutation, useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
 import { copyToClipboard } from "../../util/util";
@@ -34,13 +35,15 @@ type Props = {
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   title: string;
-  albumID: number;
+  albumID?: number | string;
+  ownerUsername?: string;
 };
 
 export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
   const location = useLocation();
   const removePhotosFromAlbum = useRemovePhotoFromUserAlbumMutation();
+  const toggleAlbumPublic = useToggleUserAlbumPublicMutation();
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
@@ -55,6 +58,7 @@ export function SelectionActions(props: Readonly<Props>) {
     title,
     setAlbumCover,
     albumID,
+    ownerUsername,
     onAddToAlbum,
   } = props;
 
@@ -285,7 +289,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<Share />}
-            disabled={!location.pathname.startsWith("/useralbum/")}
+            disabled={!location.pathname.startsWith("/album/user/")}
             onClick={onShareAlbum}
           >
             {`  ${t("selectionactions.sharing")}`}
@@ -293,10 +297,10 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Item
             leftSection={<FileMinus />}
-            disabled={!location.pathname.startsWith("/useralbum/") || selectedItems.length === 0}
+            disabled={!location.pathname.startsWith("/album/user/") || selectedItems.length === 0}
             onClick={() => {
               removePhotosFromAlbum.mutate({
-                id: albumID.toString(),
+                id: `${albumID ?? ''}`,
                 title,
                 photos: selectedItems.map(i => i.id),
               });

@@ -62,6 +62,8 @@ type Props = Readonly<{
   dayHeaderPrefix?: any;
   header?: any;
   additionalSubHeader?: any;
+  albumID?: string;
+  ownerUsername?: string;
 }>;
 
 type SelectionState = {
@@ -84,6 +86,8 @@ function PhotoListViewComponent({
   dayHeaderPrefix = null,
   header = null,
   additionalSubHeader = null,
+  albumID,
+  ownerUsername,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle>(null);
@@ -178,7 +182,7 @@ function PhotoListViewComponent({
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme('light');
   const idx2hashRef = useRef(idx2hash);
-  const params = {} // fix this
+  const params = { albumID } as { albumID?: string } // provide album context when available
 
   useEffect(() => {
     idx2hashRef.current = idx2hash;
@@ -322,11 +326,11 @@ function PhotoListViewComponent({
     showLightbox(item.id, currentIndex >= 0);
   };
 
-  const getNumPhotos = () => (idx2hashRef.current ? idx2hashRef.current.length : 0);
+  // Use live prop length so UI reflects data availability immediately on load
+  const getNumPhotos = () => (idx2hash ? idx2hash.length : 0);
   let isUserAlbum = false;
-
   // @ts-ignore
-  if (location.pathname.startsWith("/useralbum/")) {
+  if (location.pathname.startsWith("/album/user/")) {
     isUserAlbum = true;
   }
 
@@ -416,6 +420,7 @@ function PhotoListViewComponent({
                     selectedItems={selectionState.selectedItems}
                     // @ts-ignore
                     albumID={params ? params.albumID : undefined}
+                    ownerUsername={ownerUsername}
                     title={title}
                     setAlbumCover={actionType => {
                       if (actionType === "person") {
@@ -523,7 +528,7 @@ function PhotoListViewComponent({
           onRequestClose={() => {
             setModalAlbumShareOpen(false);
           }}
-          albumID={params?.albumID ?? ""}
+          albumID={albumID ?? ""}
         />
       )}
     </RemoveScroll>

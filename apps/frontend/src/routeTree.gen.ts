@@ -28,6 +28,7 @@ import { Route as ProtectedFavoritesRouteImport } from './routes/_protected/favo
 import { Route as ProtectedFacesRouteImport } from './routes/_protected/faces'
 import { Route as ProtectedDeletedRouteImport } from './routes/_protected/deleted'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
+import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
 import { Route as ProtectedSearchQueryRouteImport } from './routes/_protected/search.$query'
 import { Route as ProtectedPhotoIdRouteImport } from './routes/_protected/photo.$id'
 import { Route as ProtectedDatavizWordcloudsRouteImport } from './routes/_protected/dataviz/wordclouds'
@@ -141,6 +142,11 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const PublicSSlugRoute = PublicSSlugRouteImport.update({
+  id: '/s/$slug',
+  path: '/s/$slug',
+  getParentRoute: () => PublicRouteRoute,
 } as any)
 const ProtectedSearchQueryRoute = ProtectedSearchQueryRouteImport.update({
   id: '/search/$query',
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/dataviz/wordclouds': typeof ProtectedDatavizWordcloudsRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
+  '/public/s/$slug': typeof PublicSSlugRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
   '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/dataviz/wordclouds': typeof ProtectedDatavizWordcloudsRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
+  '/public/s/$slug': typeof PublicSSlugRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
   '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
@@ -354,6 +362,7 @@ export interface FileRoutesById {
   '/_protected/dataviz/wordclouds': typeof ProtectedDatavizWordcloudsRoute
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
+  '/public/s/$slug': typeof PublicSSlugRoute
   '/_protected/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/_protected/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
   '/_protected/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
@@ -395,6 +404,7 @@ export interface FileRouteTypes {
     | '/dataviz/wordclouds'
     | '/photo/$id'
     | '/search/$query'
+    | '/public/s/$slug'
     | '/album/events/$id'
     | '/album/persons/$id'
     | '/album/places/$id'
@@ -434,6 +444,7 @@ export interface FileRouteTypes {
     | '/dataviz/wordclouds'
     | '/photo/$id'
     | '/search/$query'
+    | '/public/s/$slug'
     | '/album/events/$id'
     | '/album/persons/$id'
     | '/album/places/$id'
@@ -474,6 +485,7 @@ export interface FileRouteTypes {
     | '/_protected/dataviz/wordclouds'
     | '/_protected/photo/$id'
     | '/_protected/search/$query'
+    | '/public/s/$slug'
     | '/_protected/album/events/$id'
     | '/_protected/album/persons/$id'
     | '/_protected/album/places/$id'
@@ -629,6 +641,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof ProtectedAdminRouteImport
       parentRoute: typeof ProtectedRouteRoute
+    }
+    '/public/s/$slug': {
+      id: '/public/s/$slug'
+      path: '/s/$slug'
+      fullPath: '/public/s/$slug'
+      preLoaderRoute: typeof PublicSSlugRouteImport
+      parentRoute: typeof PublicRouteRoute
     }
     '/_protected/search/$query': {
       id: '/_protected/search/$query'
@@ -844,10 +863,12 @@ const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
 
 interface PublicRouteRouteChildren {
   PublicUsersRoute: typeof PublicUsersRoute
+  PublicSSlugRoute: typeof PublicSSlugRoute
 }
 
 const PublicRouteRouteChildren: PublicRouteRouteChildren = {
   PublicUsersRoute: PublicUsersRoute,
+  PublicSSlugRoute: PublicSSlugRoute,
 }
 
 const PublicRouteRouteWithChildren = PublicRouteRoute._addFileChildren(

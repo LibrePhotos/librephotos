@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { DatePhotosGroup, PigPhoto } from "../../../api_client/photos/types";
 import { useFetchUserAlbumQuery } from "../../../api_client/albums/hooks";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
-import { useAccessToken } from "../../../api_client/auth";
+import { useCurrentUserSelfDetailsQuery } from "../../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute('/_protected/album/user/$id')({
@@ -18,7 +18,7 @@ export function AlbumUserGallery() {
   const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
   const [groupedPhotos, setGroupedPhotos] = useState<DatePhotosGroup[]>([]);
   const [isPublic, setIsPublic] = useState(false);
-  const { data: auth } = useAccessToken();
+  const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const { id: albumID } = Route.useParams();
 
   const { data: album, isFetching } = useFetchUserAlbumQuery(albumID ?? '');
@@ -28,16 +28,16 @@ export function AlbumUserGallery() {
     if (!album) {
       return;
     }
-    setIsPublic(album.owner && album.owner.id !== auth?.access?.user_id);
+    setIsPublic(album.owner && album.owner.id !== currentUser?.id);
     setGroupedPhotos(album.grouped_photos);
     setFlatPhotos(getPhotosFlatFromGroupedByDate(album.grouped_photos));
-  }, [album, auth]);
+  }, [album, currentUser]);
 
   function getSubheader(showHeader: boolean) {
     if (showHeader && album) {
       return (
         <span>
-          {", "}owned by {album.owner.id === auth?.access?.user_id ? "you" : album.owner.username}
+          {", "}owned by {album.owner.id === currentUser?.id ? "you" : album.owner.username}
         </span>
       );
     }
@@ -53,6 +53,8 @@ export function AlbumUserGallery() {
       photoset={groupedPhotos}
       idx2hash={flatPhotos}
       isPublic={isPublic}
+      albumID={albumID}
+      ownerUsername={album?.owner.username}
       selectable
     />
   );

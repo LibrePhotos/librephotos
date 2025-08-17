@@ -20,12 +20,12 @@ export function TopMenuPublic() {
   const { t } = useTranslation();
 
   return (
-    <Group justify="space-between" px={15}>
+    <Group justify="space-between" px={15} py={10}>
       <Link to="/">
         <Image height={30} width={30} src="/logo-white.png" />
       </Link>
       <Group align="right">
-        <Button onClick={() => navigate({ to: "/login" })}>{t("login")}</Button>
+        <Button onClick={() => navigate({ to: "/login" })}>{t("login.login")}</Button>
       </Group>
     </Group>
   );
