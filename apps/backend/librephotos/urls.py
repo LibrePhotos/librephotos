@@ -38,6 +38,7 @@ from api.views import (
     faces,
     jobs,
     photos,
+    public_albums,
     search,
     services,
     sharing,
@@ -237,6 +238,19 @@ urlpatterns = [
     re_path(r"^api/nextcloud/listdir", nextcloud_views.ListDir.as_view()),
     re_path(r"^api/nextcloud/scanphotos", nextcloud_views.ScanPhotosView.as_view()),
     re_path(r"^api/photos/download$", views.ZipListPhotosView_V2.as_view()),
+    # Public album by slug
+    re_path(
+        r"^api/public/albums/s/(?P<slug>[^/]+)/$",
+        public_albums.PublicAlbumBySlug.as_view(),
+    ),
+    # Public album media access (no auth, album must be marked public)
+    re_path(
+        r"^api/public/albums/(?P<album_id>[^/]+)/media/(?P<path>.*)/(?P<fname>.*)",
+        public_albums.PublicAlbumMediaAccessView.as_view(),
+        name="public-album-media",
+    ),
+    # Toggle album public flag
+    re_path(r"^api/useralbum/makepublic", public_albums.SetUserAlbumPublic.as_view()),
     re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
     re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view()),
     re_path(r"api/upload/", upload.UploadPhotosChunked.as_view()),

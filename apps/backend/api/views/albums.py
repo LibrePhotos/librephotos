@@ -32,7 +32,11 @@ from api.serializers.album_thing import (
     AlbumThingSerializer,
     GroupedThingPhotosSerializer,
 )
-from api.serializers.album_user import AlbumUserListSerializer, AlbumUserSerializer
+from api.serializers.album_user import (
+    AlbumUserListSerializer,
+    AlbumUserPublicSerializer,
+    AlbumUserSerializer,
+)
 from api.serializers.person import GroupedPersonPhotosSerializer, PersonSerializer
 from api.serializers.photos import PhotoSummarySerializer
 from api.util import logger
@@ -257,16 +261,45 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        # Support public access when explicitly requested
+        if self.request.query_params.get("public"):
+            # Anyone can view a public album if the album itself is marked public and active (not expired)
+            username = self.request.query_params.get("username")
+            from django.utils import timezone
+
+            # Use share model exclusively
+            base_qs = AlbumUser.objects.filter(
+                Q(share__enabled=True)
+                & (
+                    Q(share__expires_at__isnull=True)
+                    | Q(share__expires_at__gte=timezone.now())
+                )
+            )
+            if username:
+                base_qs = base_qs.filter(owner__username=username)
+            return base_qs.order_by("-id")
+
         if self.request.user.is_anonymous:
             return AlbumUser.objects.none()
-        qs = (
+        return (
             AlbumUser.objects.filter(
                 Q(owner=self.request.user) | Q(shared_to__exact=self.request.user.id)
             )
             .distinct("id")
             .order_by("-id")
         )
-        return qs
+
+    def get_permissions(self):
+        if self.request.query_params.get("public"):
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_serializer_class(self):
+        if self.request.query_params.get("public"):
+            return AlbumUserPublicSerializer
+        return super().get_serializer_class()
 
 
 # To-Do: Could be the list command in AlbumUserViewSet

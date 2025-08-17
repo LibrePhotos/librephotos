@@ -22,8 +22,6 @@ class AlbumUser(models.Model):
 
     shared_to = models.ManyToManyField(User, related_name="album_user_shared_to")
 
-    public = models.BooleanField(default=False, db_index=True)
-
     def __str__(self):
         return f"{self.title} ({self.owner.username})"
 

@@ -337,8 +337,8 @@ class MediaAccessView(APIView):
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
 
-        # grant access if the requested photo is public
-        if photo.public:
+        # grant access if the requested photo is public or part of any public user album
+        if photo.public or photo.albumuser_set.filter(public=True).exists():
             response = HttpResponse()
             response["Content-Type"] = "image/jpeg"
             response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
@@ -353,8 +353,8 @@ class MediaAccessView(APIView):
         else:
             return HttpResponseForbidden()
 
-        # grant access if the user is owner of the requested photo
-        # or the photo is shared with the user
+        # grant access if the user is owner of the requested photo,
+        # the photo is shared with the user, or the photo belongs to a public user album
         image_hash = fname.split(".")[0].split("_")[0]  # janky alert
         user = User.objects.filter(id=token["user_id"]).only("id").first()
         if photo.owner == user or user in photo.shared_to.all():
@@ -363,8 +363,8 @@ class MediaAccessView(APIView):
             response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
             return response
         else:
-            for album in photo.albumuser_set.only("shared_to"):
-                if user in album.shared_to.all():
+            for album in photo.albumuser_set.only("shared_to", "public"):
+                if album.public or user in album.shared_to.all():
                     response = HttpResponse()
                     response["Content-Type"] = "image/jpeg"
                     response["X-Accel-Redirect"] = self._get_protected_media_url(
@@ -561,8 +561,8 @@ class MediaAccessFullsizeOriginalView(APIView):
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
 
-            # grant access if the requested photo is public
-            if photo.public:
+            # grant access if the requested photo belongs to a publicly shared user album
+            if photo.albumuser_set.filter(share__enabled=True).exists():
                 return self._generate_response(photo, path, fname, False)
 
             # forbid access if trouble with jwt
@@ -575,7 +575,7 @@ class MediaAccessFullsizeOriginalView(APIView):
                 return HttpResponseForbidden()
 
             # grant access if the user is owner of the requested photo
-            # or the photo is shared with the user
+            # or the photo is shared with the user, or inside a public album
             image_hash = fname.split(".")[0].split("_")[0]  # janky alert
             user = (
                 User.objects.filter(id=token["user_id"])
@@ -587,8 +587,8 @@ class MediaAccessFullsizeOriginalView(APIView):
                     photo, path, fname, user.transcode_videos
                 )
             else:
-                for album in photo.albumuser_set.only("shared_to"):
-                    if user in album.shared_to.all():
+                for album in photo.albumuser_set.only("shared_to", "public"):
+                    if album.public or user in album.shared_to.all():
                         return self._generate_response(
                             photo, path, fname, user.transcode_videos
                         )
@@ -613,8 +613,8 @@ class MediaAccessFullsizeOriginalView(APIView):
                 # If, for some reason, the file is in a weird place, handle that.
                 internal_path = None
             internal_path = quote(internal_path)
-            # grant access if the requested photo is public
-            if photo.public:
+            # grant access if the requested photo belongs to a publicly shared user album
+            if photo.albumuser_set.filter(share__enabled=True).exists():
                 response = HttpResponse()
                 mime = magic.Magic(mime=True)
                 filename = mime.from_file(photo.main_file.path)
@@ -634,8 +634,8 @@ class MediaAccessFullsizeOriginalView(APIView):
             else:
                 return HttpResponseForbidden()
 
-            # grant access if the user is owner of the requested photo
-            # or the photo is shared with the user
+            # grant access if the user is owner, the photo is shared with the user,
+            # or the photo lives in a public user album
             image_hash = fname.split(".")[0].split("_")[0]  # janky alert
             user = User.objects.filter(id=token["user_id"]).only("id").first()
 
@@ -667,7 +667,9 @@ class MediaAccessFullsizeOriginalView(APIView):
                 return response
             else:
                 for album in photo.albumuser_set.only("shared_to"):
-                    if user in album.shared_to.all():
+                    if (
+                        hasattr(album, "share") and album.share.enabled
+                    ) or user in album.shared_to.all():
                         return response
             return HttpResponse(status=404)
 

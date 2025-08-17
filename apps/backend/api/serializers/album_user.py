@@ -14,6 +14,9 @@ class AlbumUserSerializer(serializers.ModelSerializer):
     date = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     grouped_photos = serializers.SerializerMethodField()
+    public = serializers.SerializerMethodField()
+    public_slug = serializers.SerializerMethodField()
+    public_expires_at = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumUser
@@ -25,6 +28,9 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "date",
             "location",
             "grouped_photos",
+            "public",
+            "public_slug",
+            "public_expires_at",
         )
 
     # To-Do: Legacy definition, should be a number instead
@@ -54,6 +60,15 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             if photo and photo.exif_timestamp:
                 return photo.exif_timestamp
         return ""
+
+    def get_public(self, obj) -> bool:
+        return bool(getattr(obj, "share", None) and obj.share.enabled)
+
+    def get_public_slug(self, obj) -> str:
+        return getattr(getattr(obj, "share", None), "slug", "") or ""
+
+    def get_public_expires_at(self, obj):
+        return getattr(getattr(obj, "share", None), "expires_at", None)
 
 
 class AlbumUserEditSerializer(serializers.ModelSerializer):
@@ -145,6 +160,9 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
     photo_count = serializers.SerializerMethodField()
     shared_to = SimpleUserSerializer(many=True, read_only=True)
     owner = SimpleUserSerializer(many=False, read_only=True)
+    public = serializers.SerializerMethodField()
+    public_slug = serializers.SerializerMethodField()
+    public_expires_at = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumUser
@@ -157,6 +175,9 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "shared_to",
             "owner",
             "photo_count",
+            "public",
+            "public_slug",
+            "public_expires_at",
         )
 
     def get_cover_photo(self, obj) -> PhotoSuperSimpleSerializer:
@@ -169,3 +190,70 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             return obj.photo_count
         except Exception:  # for when calling AlbumUserListSerializer(obj).data directly
             return obj.photos.count()
+
+    def get_public(self, obj) -> bool:
+        return bool(getattr(obj, "share", None) and obj.share.enabled)
+
+    def get_public_slug(self, obj) -> str:
+        return getattr(getattr(obj, "share", None), "slug", "") or ""
+
+    def get_public_expires_at(self, obj):
+        return getattr(getattr(obj, "share", None), "expires_at", None)
+
+
+class AlbumUserPublicSerializer(serializers.ModelSerializer):
+    """Serializer for publicly shared user albums.
+
+    Ensures photos are grouped from a filtered subset (not hidden, not in trashcan).
+    """
+
+    id = serializers.SerializerMethodField()
+    owner = SimpleUserSerializer(many=False, read_only=True)
+    date = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    grouped_photos = serializers.SerializerMethodField()
+    public_slug = serializers.CharField(read_only=True)
+    public_expires_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = AlbumUser
+        fields = (
+            "id",
+            "title",
+            "owner",
+            "date",
+            "location",
+            "grouped_photos",
+            "public_slug",
+            "public_expires_at",
+        )
+
+    def get_id(self, obj) -> str:
+        return str(obj.id)
+
+    def _filtered_photos(self, obj):
+        # Public albums should not expose hidden or trash photos
+        return obj.photos.filter(hidden=False, in_trashcan=False).order_by(
+            "-exif_timestamp"
+        )
+
+    def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
+        grouped_photos = get_photos_ordered_by_date(self._filtered_photos(obj))
+        return GroupedPhotosSerializer(grouped_photos, many=True).data
+
+    def get_location(self, obj) -> str:
+        for photo in self._filtered_photos(obj):
+            if (
+                photo
+                and hasattr(photo, "search_instance")
+                and photo.search_instance
+                and photo.search_instance.search_location
+            ):
+                return photo.search_instance.search_location
+        return ""
+
+    def get_date(self, obj) -> str:
+        for photo in self._filtered_photos(obj):
+            if photo and photo.exif_timestamp:
+                return photo.exif_timestamp
+        return ""
