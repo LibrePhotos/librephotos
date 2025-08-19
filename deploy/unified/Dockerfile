@@ -41,7 +41,6 @@ RUN mkdir -p /code/static
 
 # Copy no-proxy configuration files
 COPY production_noproxy.py /code/
-COPY urls_noproxy.py /code/
 COPY entrypoint.sh /entrypoint.sh
 
 EXPOSE 8001

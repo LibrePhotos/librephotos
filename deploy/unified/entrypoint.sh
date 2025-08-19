@@ -10,12 +10,11 @@ if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
     
     # Copy the no-proxy settings and URLs
     cp /code/production_noproxy.py /code/librephotos/settings/production.py
-    cp /code/urls_noproxy.py /code/librephotos/urls.py
     
     # Collect static files including frontend
     echo "Collecting static files..."
     python manage.py collectstatic --noinput
-    
+
     echo "Frontend will be served from Django on port 8001"
 else
     echo "Using standard proxy setup..."
