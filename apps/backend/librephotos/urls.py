@@ -20,6 +20,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, re_path
+from django.http import HttpResponse
+from django.views.generic import TemplateView
 from rest_framework import routers
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -48,6 +50,7 @@ from api.views import (
     views,
 )
 from nextcloud import views as nextcloud_views
+import os
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -86,6 +89,26 @@ class CustomTokenRefreshView(TokenRefreshView):
         response.set_cookie("jwt", response.data["access"])
         response["Access-Control-Allow-Credentials"] = "true"
         return response
+
+
+class FrontendView(TemplateView):
+    """
+    Serves the frontend index.html for all non-API routes (no-proxy compatibility)
+    """
+
+    def get(self, request, *args, **kwargs):
+        try:
+            # The frontend_build is at /code/frontend_build, but BASE_DIR is /code/librephotos
+            # So we need to go up one level from BASE_DIR
+            frontend_path = os.path.join(
+                os.path.dirname(settings.BASE_DIR), "frontend_build", "index.html"
+            )
+            with open(frontend_path) as f:
+                return HttpResponse(f.read(), content_type="text/html")
+        except FileNotFoundError:
+            return HttpResponse(
+                "Frontend build not found. Please build the frontend first.", status=500
+            )
 
 
 router = routers.DefaultRouter()
@@ -226,7 +249,7 @@ urlpatterns = [
     re_path(r"^api/auth/token/blacklist/", TokenBlacklistView.as_view()),
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
-        views.MediaAccessFullsizeOriginalView.as_view(),
+        views.UnifiedMediaAccessView.as_view(),
         name="media",
     ),
     re_path(
@@ -242,12 +265,6 @@ urlpatterns = [
     re_path(
         r"^api/public/albums/s/(?P<slug>[^/]+)/$",
         public_albums.PublicAlbumBySlug.as_view(),
-    ),
-    # Public album media access (no auth, album must be marked public)
-    re_path(
-        r"^api/public/albums/(?P<album_id>[^/]+)/media/(?P<path>.*)/(?P<fname>.*)",
-        public_albums.PublicAlbumMediaAccessView.as_view(),
-        name="public-album-media",
     ),
     # Toggle album public flag
     re_path(r"^api/useralbum/makepublic", public_albums.SetUserAlbumPublic.as_view()),
@@ -269,4 +286,59 @@ if settings.DEBUG:
         re_path(r"^api/schema", SpectacularAPIView.as_view(), name="schema"),
         re_path(r"^api/swagger", SpectacularSwaggerView.as_view(), name="swagger-ui"),
         re_path(r"^api/redoc", SpectacularRedocView.as_view(), name="redoc"),
+    ]
+
+# Configure media and frontend serving for no-proxy (SERVE_FRONTEND) mode
+if getattr(settings, "SERVE_FRONTEND", False):
+    # Serve frontend assets and manifest directly
+    from django.views.static import serve as static_serve  # type: ignore
+
+    frontend_build_path = os.path.join(
+        os.path.dirname(settings.BASE_DIR), "frontend_build"
+    )
+    urlpatterns += [
+        re_path(
+            r"^assets/(?P<path>.*)$",
+            static_serve,
+            {"document_root": os.path.join(frontend_build_path, "assets")},
+        ),
+        re_path(
+            r"^(?P<path>manifest\.json)$",
+            static_serve,
+            {"document_root": frontend_build_path},
+        ),
+        re_path(
+            r"^(?P<path>favicon\.ico)$",
+            static_serve,
+            {"document_root": frontend_build_path},
+        ),
+        re_path(
+            r"^(?P<path>logo-white\.png)$",
+            static_serve,
+            {"document_root": frontend_build_path},
+        ),
+        re_path(
+            r"^(?P<path>logo\.png)$",
+            static_serve,
+            {"document_root": frontend_build_path},
+        ),
+        re_path(
+            r"^(?P<path>unknown_user\.jpg)$",
+            static_serve,
+            {"document_root": frontend_build_path},
+        ),
+        re_path(
+            r"^(?P<path>.*\.(?:png|jpg|jpeg|gif|ico|svg))$",
+            static_serve,
+            {"document_root": frontend_build_path},
+        ),
+    ]
+
+    # Catch-all pattern for frontend routes (must be last)
+    urlpatterns += [
+        re_path(
+            r"^(?!api/)(?!media/)(?!static/)(?!assets/)(?!manifest\.json).*$",
+            FrontendView.as_view(),
+            name="frontend",
+        ),
     ]

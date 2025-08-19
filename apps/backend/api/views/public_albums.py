@@ -1,10 +1,4 @@
-import os
-
-import magic
-from django.conf import settings
 from django.db.models import Q
-from django.http import HttpResponse
-from django.utils.encoding import iri_to_uri
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
@@ -12,7 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import AlbumUser, Photo
+from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.album_user import (
     AlbumUserListSerializer,
@@ -56,83 +50,6 @@ class SetUserAlbumPublic(APIView):
         share.save()
 
         return Response({"status": True, "album": AlbumUserListSerializer(album).data})
-
-
-class PublicAlbumMediaAccessView(APIView):
-    permission_classes = (AllowAny,)
-
-    def _get_protected_media_url(self, path, fname):
-        return f"/protected_media/{path}/{fname}"
-
-    def get(self, request, album_id, path, fname, format=None):
-        image_hash = fname.split(".")[0].split("_")[0]
-        # Album must be publicly shared and active
-        album = (
-            AlbumUser.objects.filter(
-                id=album_id,
-                share__enabled=True,
-            )
-            .filter(
-                Q(share__expires_at__isnull=True)
-                | Q(share__expires_at__gte=timezone.now())
-            )
-            .first()
-        )
-        if album is None:
-            return HttpResponse(status=404)
-
-        try:
-            photo = album.photos.only(
-                "image_hash", "video", "main_file", "thumbnail"
-            ).get(image_hash=image_hash)
-        except Photo.DoesNotExist:
-            return HttpResponse(status=404)
-
-        # Thumbnails and faces
-        if "thumbnail" in path or "thumbnails" in path:
-            response = HttpResponse()
-            filename = os.path.splitext(photo.thumbnail.square_thumbnail.path)[1]
-            if "jpg" in filename:
-                response["Content-Type"] = "image/jpg"
-                response["X-Accel-Redirect"] = photo.thumbnail.thumbnail_big.path
-            if "webp" in filename:
-                response["Content-Type"] = "image/webp"
-                response["X-Accel-Redirect"] = self._get_protected_media_url(
-                    path, fname + ".webp"
-                )
-            if "mp4" in filename:
-                response["Content-Type"] = "video/mp4"
-                response["X-Accel-Redirect"] = self._get_protected_media_url(
-                    path, fname + ".mp4"
-                )
-            return response
-
-        if "faces" in path:
-            response = HttpResponse()
-            response["Content-Type"] = "image/jpg"
-            response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
-            return response
-
-        # Originals and videos
-        if photo.video:
-            mime = magic.Magic(mime=True)
-            filename = mime.from_file(photo.main_file.path)
-            response = HttpResponse()
-            response["Content-Type"] = filename
-            response["X-Accel-Redirect"] = iri_to_uri(
-                photo.main_file.path.replace(settings.DATA_ROOT, "/original")
-            )
-            return response
-
-        response = HttpResponse()
-        response["Content-Type"] = "image/webp"
-        # Build internal path
-        if photo.main_file.path.startswith(settings.PHOTOS):
-            internal_path = "/original" + photo.main_file.path[len(settings.PHOTOS) :]
-        else:
-            internal_path = photo.main_file.path
-        response["X-Accel-Redirect"] = iri_to_uri(internal_path)
-        return response
 
 
 class PublicAlbumBySlug(APIView):

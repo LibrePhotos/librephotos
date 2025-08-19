@@ -16,10 +16,11 @@ from django.http import (
 )
 from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
+from django.utils import timezone
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
 from django_q.tasks import AsyncTask, Chain
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -408,28 +409,61 @@ def gen(transcoder):
     yield from iter(transcoder.process.stdout.readline, b"")
 
 
-class MediaAccessFullsizeOriginalView(APIView):
+class UnifiedMediaAccessView(APIView):
+    """
+    Unified media access endpoint supporting both proxy and no-proxy setups,
+    and handling public album media access.
+    """
+
     permission_classes = (AllowAny,)
 
-    def _get_protected_media_url(self, path, fname):
-        return f"/protected_media{path}/{fname}"
+    def _should_use_proxy(self):
+        return not getattr(settings, "SERVE_FRONTEND", False)
 
-    def _generate_response(self, photo, path, fname, transcode_videos):
+    def _protected_media_url(self, path, fname):
+        path = path.lstrip("/")
+        return f"/protected_media/{path}/{fname}"
+
+    def _serve_file_direct(self, file_path, content_type=None):
+        if not os.path.exists(file_path):
+            return HttpResponse(status=404)
+        try:
+            response = FileResponse(open(file_path, "rb"))
+            if content_type:
+                response["Content-Type"] = content_type
+            else:
+                try:
+                    mime = magic.Magic(mime=True)
+                    response["Content-Type"] = mime.from_file(file_path)
+                except Exception:
+                    response["Content-Type"] = "application/octet-stream"
+            return response
+        except (FileNotFoundError, PermissionError):
+            return HttpResponse(status=404)
+        except Exception:
+            return HttpResponse(status=500)
+
+    def _generate_response_proxy(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
             response = HttpResponse()
-            filename = os.path.splitext(photo.thumbnail.square_thumbnail.path)[1]
-            if "jpg" in filename:
-                # handle non migrated systems
+            ext = (
+                os.path.splitext(getattr(photo.thumbnail, "square_thumbnail").path)[1]
+                if hasattr(photo, "thumbnail")
+                else ""
+            )
+            if "jpg" in ext:
                 response["Content-Type"] = "image/jpg"
-                response["X-Accel-Redirect"] = photo.thumbnail.thumbnail_big.path
-            if "webp" in filename:
+                response["X-Accel-Redirect"] = getattr(
+                    photo.thumbnail, "thumbnail_big", photo.thumbnail.square_thumbnail
+                ).path
+            if "webp" in ext:
                 response["Content-Type"] = "image/webp"
-                response["X-Accel-Redirect"] = self._get_protected_media_url(
+                response["X-Accel-Redirect"] = self._protected_media_url(
                     path, fname + ".webp"
                 )
-            if "mp4" in filename:
+            if "mp4" in ext:
                 response["Content-Type"] = "video/mp4"
-                response["X-Accel-Redirect"] = self._get_protected_media_url(
+                response["X-Accel-Redirect"] = self._protected_media_url(
                     path, fname + ".mp4"
                 )
             return response
@@ -437,11 +471,10 @@ class MediaAccessFullsizeOriginalView(APIView):
         if "faces" in path:
             response = HttpResponse()
             response["Content-Type"] = "image/jpg"
-            response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
+            response["X-Accel-Redirect"] = self._protected_media_url(path, fname)
             return response
 
         if photo.video:
-            # This is probably very slow -> Save the mime type when scanning
             mime = magic.Magic(mime=True)
             filename = mime.from_file(photo.main_file.path)
             if transcode_videos:
@@ -450,48 +483,57 @@ class MediaAccessFullsizeOriginalView(APIView):
                     content_type="video/mp4",
                 )
                 return response
-            else:
-                response = HttpResponse()
-                response["Content-Type"] = filename
-                response["X-Accel-Redirect"] = iri_to_uri(
-                    photo.main_file.path.replace(settings.DATA_ROOT, "/original")
-                )
-                return response
-        # faces and avatars
+            response = HttpResponse()
+            response["Content-Type"] = filename
+            response["X-Accel-Redirect"] = iri_to_uri(
+                photo.main_file.path.replace(settings.DATA_ROOT, "/original")
+            )
+            return response
+
         response = HttpResponse()
         response["Content-Type"] = "image/jpg"
-        response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
+        response["X-Accel-Redirect"] = self._protected_media_url(path, fname)
         return response
 
-    @extend_schema(
-        description="Endpoint to load media files.",
-        parameters=[
-            OpenApiParameter(
-                name="path",
-                description="Kind of media file you want to load",
-                required=True,
-                type=OpenApiTypes.STR,
-                enum=[
-                    "thumbnails_big",
-                    "square_thumbnails",
-                    "small_square_thumbnails",
-                    "avatars",
-                    "photos",
-                    "faces",
-                    "embedded_media",
-                ],
-                location=OpenApiParameter.PATH,
-            ),
-            OpenApiParameter(
-                name="fname",
-                description="Usually the hash of the file. Faces have the format <hash>_<face_id>.jpg and avatars <first_name>avatar_<hash>.png",
-                required=True,
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.PATH,
-            ),
-        ],
-    )
-    def get(self, request, path, fname, format=None):
+    def _generate_response_direct(self, photo, path, fname, transcode_videos):
+        if "thumbnail" in path:
+            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+            if not os.path.exists(file_path):
+                if not fname.endswith(".webp"):
+                    webp = os.path.join(settings.MEDIA_ROOT, path, fname + ".webp")
+                    if os.path.exists(webp):
+                        return self._serve_file_direct(webp, "image/webp")
+                if not fname.endswith(".mp4"):
+                    mp4 = os.path.join(settings.MEDIA_ROOT, path, fname + ".mp4")
+                    if os.path.exists(mp4):
+                        return self._serve_file_direct(mp4, "video/mp4")
+            if hasattr(photo, "thumbnail"):
+                ext = os.path.splitext(photo.thumbnail.square_thumbnail.path)[1]
+                if "jpg" in ext:
+                    return self._serve_file_direct(
+                        photo.thumbnail.thumbnail_big.path, "image/jpg"
+                    )
+            return self._serve_file_direct(file_path)
+
+        if "faces" in path:
+            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+            return self._serve_file_direct(file_path, "image/jpg")
+
+        if photo.video:
+            return self._serve_file_direct(photo.main_file.path)
+
+        file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+        return self._serve_file_direct(file_path, "image/jpg")
+
+    def _public_album_active_q(self):
+        return Q(share__enabled=True) & (
+            Q(share__expires_at__isnull=True) | Q(share__expires_at__gte=timezone.now())
+        )
+
+    def get(self, request, path, fname, album_id=None, format=None):
+        use_proxy = self._should_use_proxy()
+
+        # ZIP files
         if path.lower() == "zip":
             jwt = request.COOKIES.get("jwt")
             if jwt is not None:
@@ -503,15 +545,21 @@ class MediaAccessFullsizeOriginalView(APIView):
                 return HttpResponseForbidden()
             try:
                 filename = fname + str(token["user_id"]) + ".zip"
-                response = HttpResponse()
-                response["Content-Type"] = "application/x-zip-compressed"
-                response["X-Accel-Redirect"] = self._get_protected_media_url(
-                    path, filename
+                if use_proxy:
+                    response = HttpResponse()
+                    response["Content-Type"] = "application/x-zip-compressed"
+                    response["X-Accel-Redirect"] = self._protected_media_url(
+                        path, filename
+                    )
+                    return response
+                file_path = os.path.join(settings.MEDIA_ROOT, path, filename)
+                return self._serve_file_direct(
+                    file_path, "application/x-zip-compressed"
                 )
-                return response
             except Exception:
                 return HttpResponseForbidden()
 
+        # Avatars
         if path.lower() == "avatars":
             jwt = request.COOKIES.get("jwt")
             if jwt is not None:
@@ -522,21 +570,26 @@ class MediaAccessFullsizeOriginalView(APIView):
             else:
                 return HttpResponseForbidden()
             try:
-                user = User.objects.filter(id=token["user_id"]).only("id").first()
-                response = HttpResponse()
-                response["Content-Type"] = "image/png"
-                response["X-Accel-Redirect"] = "/protected_media/" + path + "/" + fname
-                return response
+                _ = User.objects.filter(id=token["user_id"]).only("id").first()
+                if use_proxy:
+                    response = HttpResponse()
+                    response["Content-Type"] = "image/png"
+                    response["X-Accel-Redirect"] = self._protected_media_url(
+                        path, fname
+                    )
+                    return response
+                file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+                return self._serve_file_direct(file_path, "image/png")
             except Exception:
                 return HttpResponse(status=404)
+
+        # Embedded media
         if path.lower() == "embedded_media":
             jwt = request.COOKIES.get("jwt")
             query = Q(public=True)
             if request.user.is_authenticated:
                 query = Q(owner=request.user)
-            if (
-                jwt is not None
-            ):  # pragma: no cover, currently it's difficult to test requests with jwt in cookies
+            if jwt is not None:  # pragma: no cover
                 try:
                     token = AccessToken(jwt)
                     user = User.objects.filter(id=token["user_id"]).only("id").first()
@@ -549,23 +602,78 @@ class MediaAccessFullsizeOriginalView(APIView):
                     raise Photo.DoesNotExist()
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
-            response = HttpResponse()
-            response["Content-Type"] = "video/mp4"
-            response["X-Accel-Redirect"] = f"/protected_media/{path}/{fname}_1.mp4"
-            return response
+            if use_proxy:
+                response = HttpResponse()
+                response["Content-Type"] = "video/mp4"
+                response["X-Accel-Redirect"] = self._protected_media_url(
+                    path, fname + "_1.mp4"
+                )
+                return response
+            file_path = os.path.join(settings.MEDIA_ROOT, path, fname + "_1.mp4")
+            return self._serve_file_direct(file_path, "video/mp4")
+
+        # Determine photo by hash
+        image_hash = fname.split(".")[0].split("_")[0]
+
+        # Public album access
+        if album_id is not None:
+            album = (
+                AlbumUser.objects.filter(id=album_id)
+                .filter(self._public_album_active_q())
+                .first()
+            )
+            if album is None:
+                return HttpResponse(status=404)
+            try:
+                photo = album.photos.only(
+                    "image_hash", "video", "main_file", "thumbnail"
+                ).get(image_hash=image_hash)
+            except Photo.DoesNotExist:
+                return HttpResponse(status=404)
+
+            if "thumbnail" in path or "thumbnails" in path or "faces" in path:
+                if use_proxy:
+                    return self._generate_response_proxy(photo, path, fname, False)
+                return self._generate_response_direct(photo, path, fname, False)
+
+            if use_proxy:
+                response = HttpResponse()
+                try:
+                    mime = magic.Magic(mime=True)
+                    filename = mime.from_file(photo.main_file.path)
+                except Exception:
+                    filename = "application/octet-stream"
+                response["Content-Type"] = filename if photo.video else "image/webp"
+                if photo.main_file.path.startswith(settings.PHOTOS):
+                    internal_path = (
+                        "/original" + photo.main_file.path[len(settings.PHOTOS) :]
+                    )
+                else:
+                    internal_path = photo.main_file.path
+                response["X-Accel-Redirect"] = iri_to_uri(internal_path)
+                return response
+            try:
+                mime = magic.Magic(mime=True)
+                content_type = mime.from_file(photo.main_file.path)
+            except Exception:
+                content_type = "application/octet-stream"
+            return self._serve_file_direct(
+                photo.main_file.path, content_type if photo.video else "image/webp"
+            )
+
+        # Non-photos (thumbnails, faces, etc.)
         if path.lower() != "photos":
-            jwt = request.COOKIES.get("jwt")
-            image_hash = fname.split(".")[0].split("_")[0]
             try:
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
 
-            # grant access if the requested photo belongs to a publicly shared user album
-            if photo.albumuser_set.filter(share__enabled=True).exists():
-                return self._generate_response(photo, path, fname, False)
+            if photo.albumuser_set.filter(self._public_album_active_q()).exists():
+                if use_proxy:
+                    return self._generate_response_proxy(photo, path, fname, False)
+                return self._generate_response_direct(photo, path, fname, False)
 
-            # forbid access if trouble with jwt
+            jwt = request.COOKIES.get("jwt")
             if jwt is not None:
                 try:
                     token = AccessToken(jwt)
@@ -574,104 +682,124 @@ class MediaAccessFullsizeOriginalView(APIView):
             else:
                 return HttpResponseForbidden()
 
-            # grant access if the user is owner of the requested photo
-            # or the photo is shared with the user, or inside a public album
-            image_hash = fname.split(".")[0].split("_")[0]  # janky alert
             user = (
                 User.objects.filter(id=token["user_id"])
                 .only("id", "transcode_videos")
                 .first()
             )
             if photo.owner == user or user in photo.shared_to.all():
-                return self._generate_response(
+                if use_proxy:
+                    return self._generate_response_proxy(
+                        photo, path, fname, user.transcode_videos
+                    )
+                return self._generate_response_direct(
                     photo, path, fname, user.transcode_videos
                 )
             else:
                 for album in photo.albumuser_set.only("shared_to", "public"):
-                    if album.public or user in album.shared_to.all():
-                        return self._generate_response(
+                    if getattr(album, "public", False) or user in album.shared_to.all():
+                        if use_proxy:
+                            return self._generate_response_proxy(
+                                photo, path, fname, user.transcode_videos
+                            )
+                        return self._generate_response_direct(
                             photo, path, fname, user.transcode_videos
                         )
             return HttpResponse(status=404)
-        else:
-            jwt = request.COOKIES.get("jwt")
-            image_hash = fname.split(".")[0].split("_")[0]
-            try:
-                photo = Photo.objects.get(image_hash=image_hash)
-            except Photo.DoesNotExist:
-                return HttpResponse(status=404)
-            if photo.main_file.path.startswith("/nextcloud_media/"):
-                internal_path = photo.main_file.path.replace(
-                    "/nextcloud_media/", "/nextcloud_original/"
-                )
-                internal_path = "/nextcloud_original" + photo.main_file.path[21:]
-            elif photo.main_file.path.startswith(settings.PHOTOS):
-                internal_path = (
-                    "/original" + photo.main_file.path[len(settings.PHOTOS) :]
-                )
-            else:
-                # If, for some reason, the file is in a weird place, handle that.
-                internal_path = None
-            internal_path = quote(internal_path)
-            # grant access if the requested photo belongs to a publicly shared user album
-            if photo.albumuser_set.filter(share__enabled=True).exists():
+
+        # Original photos (path == photos)
+        try:
+            photo = Photo.objects.get(image_hash=image_hash)
+        except Photo.DoesNotExist:
+            return HttpResponse(status=404)
+
+        if photo.albumuser_set.filter(self._public_album_active_q()).exists():
+            if use_proxy:
+                try:
+                    mime = magic.Magic(mime=True)
+                    filename = mime.from_file(photo.main_file.path)
+                except Exception:
+                    filename = "application/octet-stream"
                 response = HttpResponse()
-                mime = magic.Magic(mime=True)
-                filename = mime.from_file(photo.main_file.path)
-                if photo.video:
-                    response["Content-Type"] = filename
+                response["Content-Type"] = filename if photo.video else "image/webp"
+                if photo.main_file.path.startswith("/nextcloud_media/"):
+                    internal_path = "/nextcloud_original" + photo.main_file.path[21:]
+                elif photo.main_file.path.startswith(settings.PHOTOS):
+                    internal_path = (
+                        "/original" + photo.main_file.path[len(settings.PHOTOS) :]
+                    )
                 else:
-                    response["Content-Type"] = "image/webp"
+                    internal_path = quote(photo.main_file.path)
                 response["X-Accel-Redirect"] = internal_path
                 return response
-
-            # forbid access if trouble with jwt
-            if jwt is not None:
-                try:
-                    token = AccessToken(jwt)
-                except TokenError:
-                    return HttpResponseForbidden()
-            else:
-                return HttpResponseForbidden()
-
-            # grant access if the user is owner, the photo is shared with the user,
-            # or the photo lives in a public user album
-            image_hash = fname.split(".")[0].split("_")[0]  # janky alert
-            user = User.objects.filter(id=token["user_id"]).only("id").first()
-
-            if internal_path is not None:
-                response = HttpResponse()
+            try:
                 mime = magic.Magic(mime=True)
-                filename = mime.from_file(photo.main_file.path)
-                if photo.video:
-                    response["Content-Type"] = filename
+                content_type = mime.from_file(photo.main_file.path)
+            except Exception:
+                content_type = "application/octet-stream"
+            return self._serve_file_direct(photo.main_file.path, content_type)
+
+        jwt = request.COOKIES.get("jwt")
+        if jwt is not None:
+            try:
+                token = AccessToken(jwt)
+            except TokenError:
+                return HttpResponseForbidden()
+        else:
+            return HttpResponseForbidden()
+
+        user = User.objects.filter(id=token["user_id"]).only("id").first()
+        if photo.owner == user or user in photo.shared_to.all():
+            if use_proxy:
+                response = HttpResponse()
+                try:
+                    mime = magic.Magic(mime=True)
+                    filename = mime.from_file(photo.main_file.path)
+                except Exception:
+                    filename = "application/octet-stream"
+                response["Content-Type"] = filename if photo.video else "image/webp"
+                if photo.main_file.path.startswith("/nextcloud_media/"):
+                    internal_path = "/nextcloud_original" + photo.main_file.path[21:]
+                elif photo.main_file.path.startswith(settings.PHOTOS):
+                    internal_path = (
+                        "/original" + photo.main_file.path[len(settings.PHOTOS) :]
+                    )
                 else:
-                    response["Content-Type"] = "image/webp"
+                    internal_path = quote(photo.main_file.path)
                 response["Content-Disposition"] = 'inline; filename="{}"'.format(
                     photo.main_file.path.split("/")[-1]
                 )
                 response["X-Accel-Redirect"] = internal_path
-            else:
-                try:
-                    response = FileResponse(open(photo.main_file.path, "rb"))
-                except FileNotFoundError:
-                    return HttpResponse(status=404)
-                except PermissionError:
-                    return HttpResponse(status=403)
-                except OSError:
-                    return HttpResponse(status=500)
-                except Exception:
-                    raise
-
-            if photo.owner == user or user in photo.shared_to.all():
                 return response
-            else:
-                for album in photo.albumuser_set.only("shared_to"):
-                    if (
-                        hasattr(album, "share") and album.share.enabled
-                    ) or user in album.shared_to.all():
+            return self._serve_file_direct(photo.main_file.path)
+        else:
+            for album in photo.albumuser_set.only("shared_to", "public"):
+                if getattr(album, "public", False) or user in album.shared_to.all():
+                    if use_proxy:
+                        response = HttpResponse()
+                        try:
+                            mime = magic.Magic(mime=True)
+                            filename = mime.from_file(photo.main_file.path)
+                        except Exception:
+                            filename = "application/octet-stream"
+                        response["Content-Type"] = (
+                            filename if photo.video else "image/webp"
+                        )
+                        if photo.main_file.path.startswith("/nextcloud_media/"):
+                            internal_path = (
+                                "/nextcloud_original" + photo.main_file.path[21:]
+                            )
+                        elif photo.main_file.path.startswith(settings.PHOTOS):
+                            internal_path = (
+                                "/original"
+                                + photo.main_file.path[len(settings.PHOTOS) :]
+                            )
+                        else:
+                            internal_path = quote(photo.main_file.path)
+                        response["X-Accel-Redirect"] = internal_path
                         return response
-            return HttpResponse(status=404)
+                    return self._serve_file_direct(photo.main_file.path)
+        return HttpResponse(status=404)
 
 
 class ZipListPhotosView_V2(APIView):
