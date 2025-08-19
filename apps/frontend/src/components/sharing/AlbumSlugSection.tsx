@@ -1,4 +1,7 @@
 import { ActionIcon, Button, Group, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import { DateTimePicker } from "@mantine/dates";
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
@@ -6,6 +9,8 @@ import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react"
 import { useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
 import { copyToClipboard } from "../../util/util";
+
+dayjs.extend(customParseFormat);
 
 type Props = Readonly<{
   albumID: string;
@@ -186,16 +191,24 @@ type ExpiresProps = Readonly<{
 function ExpiresSetting({ value, onChange }: ExpiresProps) {
   return (
     <Stack gap="xs">
-      <TextInput
+      <DateTimePicker
         label="Expiration (optional)"
-        placeholder="YYYY-MM-DDTHH:mm:ssZ"
-        value={value}
-        onChange={(e) => onChange(e.currentTarget.value)}
+        placeholder="Pick expiration"
+        withSeconds
+        clearable
+        value={value ? dayjs(value).format("YYYY-MM-DD HH:mm:ss") : ""}
+        onChange={(v) => {
+          if (!v) { onChange(""); return; }
+          const parsed = dayjs(v, "YYYY-MM-DD HH:mm:ss");
+          onChange(parsed.isValid() ? parsed.toDate().toISOString() : "");
+        }}
+        presets={[
+          { value: dayjs().add(7, "day").format("YYYY-MM-DD HH:mm:ss"), label: "7 days" },
+          { value: dayjs().add(30, "day").format("YYYY-MM-DD HH:mm:ss"), label: "30 days" },
+          { value: dayjs().add(90, "day").format("YYYY-MM-DD HH:mm:ss"), label: "90 days" },
+        ]}
       />
       <Group gap="xs">
-        <Button size="xs" variant="subtle" onClick={() => { const d = new Date(); d.setDate(d.getDate()+7); onChange(d.toISOString()); }}>7 days</Button>
-        <Button size="xs" variant="subtle" onClick={() => { const d = new Date(); d.setDate(d.getDate()+30); onChange(d.toISOString()); }}>30 days</Button>
-        <Button size="xs" variant="subtle" onClick={() => { const d = new Date(); d.setDate(d.getDate()+90); onChange(d.toISOString()); }}>90 days</Button>
         <Button size="xs" variant="subtle" onClick={() => onChange("")}>Never</Button>
       </Group>
     </Stack>
