@@ -112,6 +112,9 @@ class FrontendView(TemplateView):
 
 
 router = routers.DefaultRouter()
+# In SERVE_FRONTEND mode, disable DRF's API root at '/'
+# so the frontend catch-all can serve the SPA instead of the browsable API.
+router.include_root_view = not getattr(settings, "SERVE_FRONTEND", False)
 
 router.register(r"api/user", user.UserViewSet, basename="user")
 router.register(r"api/manage/user", user.ManageUserViewSet, basename="manage_user")
