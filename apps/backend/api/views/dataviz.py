@@ -5,15 +5,16 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.api_util import (
+from api.stats import (
     get_count_stats,
-    get_location_clusters,
-    get_location_sunburst,
-    get_location_timeline,
     get_photo_month_counts,
     get_searchterms_wordcloud,
     get_server_stats,
+    get_location_clusters,
+    get_location_sunburst,
+    get_location_timeline,
 )
+
 from api.face_classify import cluster_faces
 from api.social_graph import build_social_graph
 

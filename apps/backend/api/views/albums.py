@@ -285,7 +285,7 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
             AlbumUser.objects.filter(
                 Q(owner=self.request.user) | Q(shared_to__exact=self.request.user.id)
             )
-            .distinct("id")
+            .distinct()
             .order_by("-id")
         )
 
