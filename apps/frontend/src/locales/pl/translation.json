@@ -193,7 +193,10 @@
         "cluster_selection_epsilon": "Wybór klastra Epsilon",
         "min_samples_help": "Zmienia konserwatywny charakter klastrów. Mniejsza wartość oznacza mniejszy konserwatyzm.",
         "hindi": "Hindi",
-        "llm": "Ustawienia Modelu Dużego Języka"
+        "llm": "Ustawienia Modelu Dużego Języka",
+        "enablellm": "Włącz duży model językowy dla podpisów",
+        "addperson": "Dodaj osoby do podpisów",
+        "addlocation": "Dodaj lokalizacje do podpisów"
     },
     "topmenu": {
         "loggedin": "Zalogowany jako",
@@ -266,7 +269,10 @@
         "heavyweight": "Zwiększ liczbę pracowników skanujących obrazy powyżej 1, ale przygotuj się na użycie 800 MB pamięci dla każdego dodatkowego pracownika.",
         "llm_model_header": "Duży Model Językowy",
         "blip_warning": "Ta opcja do poprawnej pracy wymaga dodatkowych 3GB pamięci operacyjnej. Rozważ to zanim się zdecydujesz.",
-        "heavyweight_process_warning": "Ustawienie liczby procesów zasobożernych na więcej niż 3 będzie prawdopodobnie wymagało więcej niż 16GB pamięci operacyjnej. Rozważ to zanim się zdecydujesz."
+        "heavyweight_process_warning": "Ustawienie liczby procesów zasobożernych na więcej niż 3 będzie prawdopodobnie wymagało więcej niż 16GB pamięci operacyjnej. Rozważ to zanim się zdecydujesz.",
+        "captioning_model_header": "Model podpisów",
+        "captioning_model_description": "Wybierz model generowania podpisów do obrazów.",
+        "llm_model_description": "Wybierz model do przetwarzania końcowego podpisów z dużym modelem językowym."
     },
     "selectionactions": {
         "hide": "Ukryj",
@@ -356,7 +362,9 @@
             "undotimestampmodification": "Cofnij modyfikację sygnatury czasowej",
             "withouttimestamp": "Bez znacznika czasu",
             "invalidtimestamp": "Nieprawidłowy znacznik czasu",
-            "removetimestamp": "Usuwanie sygnatury czasowej"
+            "removetimestamp": "Usuwanie sygnatury czasowej",
+            "places": "Miejsca",
+            "suggestedcaption": "Sugerowane podpisy"
         }
     },
     "joblist": {
