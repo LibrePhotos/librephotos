@@ -44,6 +44,6 @@ psutil==7.0.0
 # Dependencies for blip
 timm==1.0.19
 # Dependencies for Moondream chat handler (llama-cpp-python multimodal)
-transformers==4.55.3
+transformers==4.55.4
 # Dependencies for mistral quantized and multimodal models like Moondream
 llama-cpp-python==0.3.16
