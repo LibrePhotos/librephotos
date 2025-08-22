@@ -35,6 +35,7 @@ from rest_framework_simplejwt.views import (
 
 from api.views import (
     album_auto,
+    album_folder,
     albums,
     dataviz,
     faces,
@@ -152,6 +153,9 @@ router.register(
 )
 
 router.register(r"api/albums/auto", album_auto.AlbumAutoViewSet, basename="album_auto")
+router.register(
+    r"api/folders", album_folder.FolderNavigationViewSet, basename="folder_navigation"
+)
 router.register(
     r"api/albums/person", albums.AlbumPersonViewSet, basename="album_person"
 )

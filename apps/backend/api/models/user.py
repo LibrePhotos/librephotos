@@ -75,6 +75,21 @@ class User(AbstractUser):
     min_samples = models.IntegerField(default=1)
     cluster_selection_epsilon = models.FloatField(default=0.05)
 
+    class TextAlignment(models.TextChoices):
+        LEFT = "left"
+        RIGHT = "right"
+
+    text_alignment = models.TextField(
+        choices=TextAlignment.choices, default=TextAlignment.RIGHT
+    )
+
+    class HeaderSize(models.TextChoices):
+        LARGE = "large"
+        NORMAL = "normal"
+        SMALL = "small"
+
+    header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
+
 
 def get_admin_user():
     return User.objects.get(is_superuser=True)

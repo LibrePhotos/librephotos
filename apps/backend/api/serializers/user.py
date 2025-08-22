@@ -36,6 +36,8 @@ class UserSerializer(serializers.ModelSerializer):
             "nextcloud_app_password": {"write_only": True},
             "favorite_min_rating": {"required": False},
             "save_metadata_to_disk": {"required": False},
+            "text_alignment": {"required": False},
+            "header_size": {"required": False},
         }
         fields = (
             "id",
@@ -62,6 +64,8 @@ class UserSerializer(serializers.ModelSerializer):
             "avatar_url",
             "favorite_min_rating",
             "image_scale",
+            "text_alignment",
+            "header_size",
             "save_metadata_to_disk",
             "datetime_rules",
             "llm_settings",
@@ -182,6 +186,16 @@ class UserSerializer(serializers.ModelSerializer):
             instance.image_scale = new_image_scale
             instance.save()
             logger.info(f"Updated image_scale for user {instance.image_scale}")
+        if "text_alignment" in validated_data:
+            new_text_alignment = validated_data.pop("text_alignment")
+            instance.text_alignment = new_text_alignment
+            instance.save()
+            logger.info(f"Updated text_alignment for user {instance.text_alignment}")
+        if "header_size" in validated_data:
+            new_header_size = validated_data.pop("header_size")
+            instance.header_size = new_header_size
+            instance.save()
+            logger.info(f"Updated header_size for user {instance.header_size}")
         if "datetime_rules" in validated_data:
             new_datetime_rules = validated_data.pop("datetime_rules")
             instance.datetime_rules = new_datetime_rules

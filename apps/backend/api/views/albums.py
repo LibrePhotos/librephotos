@@ -346,6 +346,11 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 photo_filter.append(Q(owner__username=username))
             photo_filter.append(Q(public=True))
 
+        # Filter by folder path if provided
+        if self.request.query_params.get("folder"):
+            folder_path = self.request.query_params.get("folder")
+            photo_filter.append(Q(files__path__startswith=folder_path))
+
         if self.request.query_params.get("hidden"):
             photo_filter.append(Q(hidden=True))
         else:
@@ -478,6 +483,11 @@ class AlbumDateListViewSet(ListViewSet):
 
         if self.request.query_params.get("in_trashcan"):
             filter.append(Q(photos__in_trashcan=True) & Q(photos__removed=False))
+
+        # Filter by folder path if provided
+        if self.request.query_params.get("folder"):
+            folder_path = self.request.query_params.get("folder")
+            filter.append(Q(photos__files__path__startswith=folder_path))
         else:
             filter.append(Q(photos__in_trashcan=False))
 
