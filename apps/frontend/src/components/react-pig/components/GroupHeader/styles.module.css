@@ -13,15 +13,14 @@
   align-items: baseline;
 }
 
+/* Base styles - will be overridden by header size classes */
 .location {
-  font-size: 15px;
   margin-right: 1rem;
   flex: 1;
   opacity: 0.5;
 }
 
 .date {
-  font-size: 18px;
   font-weight: bold;
   text-align: right;
   flex: 1;
@@ -37,8 +36,107 @@
   }
 }
 
+/* Header Size Classes - High specificity to override base styles */
+.large.date {
+  font-size: 18px !important;
+}
+
+.large.location {
+  font-size: 15px !important;
+}
+
+.normal.date {
+  font-size: 16px !important;
+}
+
+.normal.location {
+  font-size: 15px !important;
+}
+
+.small.date {
+  font-size: 15px !important;
+}
+
+.small.location {
+  font-size: 14px !important;
+}
+
+@media (min-width: 600px) {
+  .large.date {
+    font-size: 32px !important;
+  }
+
+  .large.location {
+    font-size: 16px !important;
+  }
+
+  .normal.date {
+    font-size: 20px !important;
+  }
+
+  .normal.location {
+    font-size: 16px !important;
+  }
+
+  .small.date {
+    font-size: 16px !important;
+  }
+
+  .small.location {
+    font-size: 15px !important;
+  }
+}
+
+/* Left alignment styles - Location first, then Date */
+.leftAligned {
+  justify-content: flex-start;
+}
+
+.leftAligned .location {
+  text-align: left;
+}
+
+.leftAligned .date {
+  margin-right: 1rem;
+  text-align: left;
+  flex: 1;
+}
+
+/* Right alignment styles - Date first, then Location */
+.rightAligned {
+  justify-content: flex-end;
+}
+
+.rightAligned .date {
+  text-align: right;
+  flex: 1;
+  margin-left: 1rem;
+}
+
+.rightAligned .location {
+  text-align: right;
+  flex: 1;
+}
+
+@media (min-width: 600px) {
+  /* These will be overridden by header size classes */
+  .leftAligned .date,
+  .rightAligned .date {
+    font-size: 32px;
+  }
+
+  .leftAligned .location,
+  .rightAligned .location {
+    font-size: 16px;
+  }
+}
+
 @media (min-width: 1000px) {
-  .headerInner {
+  .leftAligned.headerInner {
+    justify-content: flex-start;
+  }
+
+  .rightAligned.headerInner {
     justify-content: flex-end;
   }
 
@@ -48,5 +146,17 @@
 
   .location {
     flex: inherit;
+  }
+
+  .leftAligned .date,
+  .leftAligned .location,
+  .rightAligned .date,
+  .rightAligned .location {
+    flex: inherit;
+  }
+
+  /* For right alignment on large screens, adjust margins */
+  .rightAligned .date {
+    margin-left: 1rem;
   }
 }

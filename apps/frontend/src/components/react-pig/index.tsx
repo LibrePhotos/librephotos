@@ -51,6 +51,7 @@ type PigSettings = {
   breakpoint: number;
   groupGapSm: number;
   groupGapLg: number;
+  headerSize?: 'large' | 'normal' | 'small';
 }
 
 type PigProps = {
@@ -80,6 +81,8 @@ type PigProps = {
   toprightoverlay?: React.FC<any> | null;
   bottomleftoverlay?: React.FC<any> | null;
   className?: string;
+  textAlignment?: 'left' | 'right';
+  headerSize?: 'large' | 'normal' | 'small';
 }
 
 // Define types for layout computation functions
@@ -151,6 +154,8 @@ function Pig({
   toprightoverlay = null,
   bottomleftoverlay = null,
   className = "",
+  textAlignment = 'right',
+  headerSize = 'large',
 }, ref) {
   if (!imageData) throw new Error("imageData is missing");
 
@@ -244,10 +249,11 @@ function Pig({
     breakpoint,
     groupGapSm,
     groupGapLg,
+    headerSize,
   }), [
-    gridGap, bgColor, primaryImageBufferHeight, 
-    secondaryImageBufferHeight, expandedSize, thumbnailSize, 
-    groupByDate, breakpoint, groupGapSm, groupGapLg
+    gridGap, bgColor, primaryImageBufferHeight,
+    secondaryImageBufferHeight, expandedSize, thumbnailSize,
+    groupByDate, breakpoint, groupGapSm, groupGapLg, headerSize
   ]);
 
   const getUpdatedImageLayout = useCallback((): (ImageItem | GroupedImageItem)[] => {
@@ -423,7 +429,7 @@ function Pig({
     
     return (
       <React.Fragment key={group.date}>
-        <GroupHeaderComponent key={group.date} settings={settings} group={group} activeTileUrl={activeTileUrl} />
+        <GroupHeaderComponent key={group.date} settings={settings} group={group} activeTileUrl={activeTileUrl} textAlignment={textAlignment} headerSize={headerSize} />
         {group.items.map((item: ImageItem, index: number) => (
           <React.Fragment key={item.url || item.id?.toString() || `group-item-${index}`}>
             {renderTile(item)}

@@ -44,6 +44,8 @@ export const User = z.object({
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
   llm_settings: z.any().nullable(),
+  text_alignment: z.enum(['left', 'right']).default('right'),
+  header_size: z.enum(['large', 'normal', 'small']).default('large'),
 }); 
 
 export const ManageUser = z.object({

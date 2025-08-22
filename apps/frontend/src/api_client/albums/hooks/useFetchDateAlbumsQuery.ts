@@ -11,12 +11,13 @@ type AlbumDateListOptions = {
   photosetType: Photoset;
   person_id?: number;
   username?: string;
+  folder?: string;
 };
 
 // Fetch date albums
 export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => {
   return useQuery({
-    queryKey: [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username],
+    queryKey: [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username, options.folder],
     queryFn: async () => {
       const params = {
         favorite: Photoset.FAVORITES === options.photosetType ? "true" : undefined,
@@ -27,6 +28,7 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => {
         video: Photoset.VIDEOS === options.photosetType ? "true" : undefined,
         person: options.person_id,
         username: options.username?.toLowerCase(),
+        folder: options.folder,
       };
 
       const response = await fetchClient.get(`/albums/date/list/?${new URLSearchParams(

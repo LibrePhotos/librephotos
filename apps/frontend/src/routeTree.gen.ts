@@ -40,6 +40,7 @@ import { Route as ProtectedAlbumUserIndexRouteImport } from './routes/_protected
 import { Route as ProtectedAlbumThingsIndexRouteImport } from './routes/_protected/album/things.index'
 import { Route as ProtectedAlbumPlacesIndexRouteImport } from './routes/_protected/album/places.index'
 import { Route as ProtectedAlbumPersonsIndexRouteImport } from './routes/_protected/album/persons.index'
+import { Route as ProtectedAlbumFolderIndexRouteImport } from './routes/_protected/album/folder.index'
 import { Route as ProtectedAlbumEventsIndexRouteImport } from './routes/_protected/album/events.index'
 import { Route as ProtectedSharedTomeTabRouteImport } from './routes/_protected/shared/tome.$tab'
 import { Route as ProtectedSharedFrommeTabRouteImport } from './routes/_protected/shared/fromme.$tab'
@@ -47,6 +48,7 @@ import { Route as ProtectedAlbumUserIdRouteImport } from './routes/_protected/al
 import { Route as ProtectedAlbumThingsIdRouteImport } from './routes/_protected/album/things.$id'
 import { Route as ProtectedAlbumPlacesIdRouteImport } from './routes/_protected/album/places.$id'
 import { Route as ProtectedAlbumPersonsIdRouteImport } from './routes/_protected/album/persons.$id'
+import { Route as ProtectedAlbumFolderIdRouteImport } from './routes/_protected/album/folder.$id'
 import { Route as ProtectedAlbumEventsIdRouteImport } from './routes/_protected/album/events.$id'
 
 const SignupRoute = SignupRouteImport.update({
@@ -211,6 +213,12 @@ const ProtectedAlbumPersonsIndexRoute =
     path: '/album/persons/',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
+const ProtectedAlbumFolderIndexRoute =
+  ProtectedAlbumFolderIndexRouteImport.update({
+    id: '/album/folder/',
+    path: '/album/folder/',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
 const ProtectedAlbumEventsIndexRoute =
   ProtectedAlbumEventsIndexRouteImport.update({
     id: '/album/events/',
@@ -248,6 +256,11 @@ const ProtectedAlbumPersonsIdRoute = ProtectedAlbumPersonsIdRouteImport.update({
   path: '/album/persons/$id',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedAlbumFolderIdRoute = ProtectedAlbumFolderIdRouteImport.update({
+  id: '/album/folder/$id',
+  path: '/album/folder/$id',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ProtectedAlbumEventsIdRoute = ProtectedAlbumEventsIdRouteImport.update({
   id: '/album/events/$id',
   path: '/album/events/$id',
@@ -282,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/search/$query': typeof ProtectedSearchQueryRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
+  '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
   '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
   '/album/things/$id': typeof ProtectedAlbumThingsIdRoute
@@ -289,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/shared/fromme/$tab': typeof ProtectedSharedFrommeTabRoute
   '/shared/tome/$tab': typeof ProtectedSharedTomeTabRoute
   '/album/events': typeof ProtectedAlbumEventsIndexRoute
+  '/album/folder': typeof ProtectedAlbumFolderIndexRoute
   '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
   '/album/places': typeof ProtectedAlbumPlacesIndexRoute
   '/album/things': typeof ProtectedAlbumThingsIndexRoute
@@ -322,6 +337,7 @@ export interface FileRoutesByTo {
   '/search/$query': typeof ProtectedSearchQueryRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
+  '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
   '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
   '/album/things/$id': typeof ProtectedAlbumThingsIdRoute
@@ -329,6 +345,7 @@ export interface FileRoutesByTo {
   '/shared/fromme/$tab': typeof ProtectedSharedFrommeTabRoute
   '/shared/tome/$tab': typeof ProtectedSharedTomeTabRoute
   '/album/events': typeof ProtectedAlbumEventsIndexRoute
+  '/album/folder': typeof ProtectedAlbumFolderIndexRoute
   '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
   '/album/places': typeof ProtectedAlbumPlacesIndexRoute
   '/album/things': typeof ProtectedAlbumThingsIndexRoute
@@ -364,6 +381,7 @@ export interface FileRoutesById {
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/_protected/album/events/$id': typeof ProtectedAlbumEventsIdRoute
+  '/_protected/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/_protected/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
   '/_protected/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
   '/_protected/album/things/$id': typeof ProtectedAlbumThingsIdRoute
@@ -371,6 +389,7 @@ export interface FileRoutesById {
   '/_protected/shared/fromme/$tab': typeof ProtectedSharedFrommeTabRoute
   '/_protected/shared/tome/$tab': typeof ProtectedSharedTomeTabRoute
   '/_protected/album/events/': typeof ProtectedAlbumEventsIndexRoute
+  '/_protected/album/folder/': typeof ProtectedAlbumFolderIndexRoute
   '/_protected/album/persons/': typeof ProtectedAlbumPersonsIndexRoute
   '/_protected/album/places/': typeof ProtectedAlbumPlacesIndexRoute
   '/_protected/album/things/': typeof ProtectedAlbumThingsIndexRoute
@@ -406,6 +425,7 @@ export interface FileRouteTypes {
     | '/search/$query'
     | '/public/s/$slug'
     | '/album/events/$id'
+    | '/album/folder/$id'
     | '/album/persons/$id'
     | '/album/places/$id'
     | '/album/things/$id'
@@ -413,6 +433,7 @@ export interface FileRouteTypes {
     | '/shared/fromme/$tab'
     | '/shared/tome/$tab'
     | '/album/events'
+    | '/album/folder'
     | '/album/persons'
     | '/album/places'
     | '/album/things'
@@ -446,6 +467,7 @@ export interface FileRouteTypes {
     | '/search/$query'
     | '/public/s/$slug'
     | '/album/events/$id'
+    | '/album/folder/$id'
     | '/album/persons/$id'
     | '/album/places/$id'
     | '/album/things/$id'
@@ -453,6 +475,7 @@ export interface FileRouteTypes {
     | '/shared/fromme/$tab'
     | '/shared/tome/$tab'
     | '/album/events'
+    | '/album/folder'
     | '/album/persons'
     | '/album/places'
     | '/album/things'
@@ -487,6 +510,7 @@ export interface FileRouteTypes {
     | '/_protected/search/$query'
     | '/public/s/$slug'
     | '/_protected/album/events/$id'
+    | '/_protected/album/folder/$id'
     | '/_protected/album/persons/$id'
     | '/_protected/album/places/$id'
     | '/_protected/album/things/$id'
@@ -494,6 +518,7 @@ export interface FileRouteTypes {
     | '/_protected/shared/fromme/$tab'
     | '/_protected/shared/tome/$tab'
     | '/_protected/album/events/'
+    | '/_protected/album/folder/'
     | '/_protected/album/persons/'
     | '/_protected/album/places/'
     | '/_protected/album/things/'
@@ -726,6 +751,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAlbumPersonsIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/album/folder/': {
+      id: '/_protected/album/folder/'
+      path: '/album/folder'
+      fullPath: '/album/folder'
+      preLoaderRoute: typeof ProtectedAlbumFolderIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/album/events/': {
       id: '/_protected/album/events/'
       path: '/album/events'
@@ -775,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAlbumPersonsIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/album/folder/$id': {
+      id: '/_protected/album/folder/$id'
+      path: '/album/folder/$id'
+      fullPath: '/album/folder/$id'
+      preLoaderRoute: typeof ProtectedAlbumFolderIdRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/album/events/$id': {
       id: '/_protected/album/events/$id'
       path: '/album/events/$id'
@@ -808,6 +847,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute
   ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute
   ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute
+  ProtectedAlbumFolderIdRoute: typeof ProtectedAlbumFolderIdRoute
   ProtectedAlbumPersonsIdRoute: typeof ProtectedAlbumPersonsIdRoute
   ProtectedAlbumPlacesIdRoute: typeof ProtectedAlbumPlacesIdRoute
   ProtectedAlbumThingsIdRoute: typeof ProtectedAlbumThingsIdRoute
@@ -815,6 +855,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedSharedFrommeTabRoute: typeof ProtectedSharedFrommeTabRoute
   ProtectedSharedTomeTabRoute: typeof ProtectedSharedTomeTabRoute
   ProtectedAlbumEventsIndexRoute: typeof ProtectedAlbumEventsIndexRoute
+  ProtectedAlbumFolderIndexRoute: typeof ProtectedAlbumFolderIndexRoute
   ProtectedAlbumPersonsIndexRoute: typeof ProtectedAlbumPersonsIndexRoute
   ProtectedAlbumPlacesIndexRoute: typeof ProtectedAlbumPlacesIndexRoute
   ProtectedAlbumThingsIndexRoute: typeof ProtectedAlbumThingsIndexRoute
@@ -844,6 +885,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedPhotoIdRoute: ProtectedPhotoIdRoute,
   ProtectedSearchQueryRoute: ProtectedSearchQueryRoute,
   ProtectedAlbumEventsIdRoute: ProtectedAlbumEventsIdRoute,
+  ProtectedAlbumFolderIdRoute: ProtectedAlbumFolderIdRoute,
   ProtectedAlbumPersonsIdRoute: ProtectedAlbumPersonsIdRoute,
   ProtectedAlbumPlacesIdRoute: ProtectedAlbumPlacesIdRoute,
   ProtectedAlbumThingsIdRoute: ProtectedAlbumThingsIdRoute,
@@ -851,6 +893,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedSharedFrommeTabRoute: ProtectedSharedFrommeTabRoute,
   ProtectedSharedTomeTabRoute: ProtectedSharedTomeTabRoute,
   ProtectedAlbumEventsIndexRoute: ProtectedAlbumEventsIndexRoute,
+  ProtectedAlbumFolderIndexRoute: ProtectedAlbumFolderIndexRoute,
   ProtectedAlbumPersonsIndexRoute: ProtectedAlbumPersonsIndexRoute,
   ProtectedAlbumPlacesIndexRoute: ProtectedAlbumPlacesIndexRoute,
   ProtectedAlbumThingsIndexRoute: ProtectedAlbumThingsIndexRoute,

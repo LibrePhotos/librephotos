@@ -23,5 +23,6 @@ export * from './useFetchDateAlbumQuery';
 export * from './useFetchDateAlbumsQuery';
 export * from './useFetchAutoAlbumQuery';
 export * from './useDeleteAutoAlbumMutation';
-export * from './useDeleteAllAutoAlbumsMutation'; 
+export * from './useDeleteAllAutoAlbumsMutation';
 export * from './useFetchAutoAlbumsQuery';
+export * from './useFetchFolderAlbumsQuery';

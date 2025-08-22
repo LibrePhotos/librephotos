@@ -5,9 +5,11 @@ import {
   Menu,
   NumberInput,
   RemoveScroll,
+  Switch,
   Tooltip,
   useComputedColorScheme,
   useMantineTheme,
+  Button,
 } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
@@ -18,6 +20,8 @@ import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks/useSetPersonAlbumCoverMutation";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks/useSetUserAlbumCoverMutation";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
+import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
+import { useQueryClient } from "@tanstack/react-query";
 import { serverAddress } from "../../api_client/apiClient";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
@@ -101,9 +105,19 @@ function PhotoListViewComponent({
   const setUserAlbumCover = useSetUserAlbumCoverMutation();
   const setPersonAlbumCover = useSetPersonAlbumCoverMutation();
   const updateUser = useUpdateUserMutation();
+  const queryClient = useQueryClient();
   const location = useLocation();
-  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
-  const [imageScale, setImageScale] = useState(userSelfDetails?.image_scale ?? 1);
+  const { data: userSelfDetails, isLoading: userDetailsLoading } = useCurrentUserSelfDetailsQuery();
+
+  // Combined loading state - wait for both parent loading and user details
+  const isLoading = loading || userDetailsLoading;
+
+  // Use query data directly instead of local state
+  const imageScale = userSelfDetails?.image_scale ?? 1;
+  const textAlignment = (userSelfDetails?.text_alignment as 'left' | 'right') ?? 'right';
+  const headerSize = (userSelfDetails?.header_size as 'large' | 'normal' | 'small') ?? 'large';
+
+
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
 
@@ -188,20 +202,44 @@ function PhotoListViewComponent({
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
 
-  useEffect(() => {
-    if (userSelfDetails) {
-      setImageScale(userSelfDetails.image_scale);
-    }
-  }, [userSelfDetails?.image_scale]);
+
 
   const handleThumbnailSizeChange = (value: number | string) => {
-    // Update the component state
-    setImageScale(typeof value === 'number' ? value : parseFloat(value));
-
     // Save to server
     if (userSelfDetails?.id) {
       const newUserDetails = { ...userSelfDetails, image_scale: typeof value === 'number' ? value : parseFloat(value) };
-      updateUser.mutate(newUserDetails);
+      updateUser.mutate(newUserDetails, {
+        onSuccess: () => {
+          // Invalidate the user self details query to refetch the latest data
+          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+        }
+      });
+    }
+  };
+
+  const handleTextAlignmentChange = (alignment: 'left' | 'right') => {
+    // Save to server
+    if (userSelfDetails?.id) {
+      const newUserDetails = { ...userSelfDetails, text_alignment: alignment };
+      updateUser.mutate(newUserDetails, {
+        onSuccess: () => {
+          // Invalidate the user self details query to refetch the latest data
+          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+        }
+      });
+    }
+  };
+
+  const handleHeaderSizeChange = (size: 'large' | 'normal' | 'small') => {
+    // Save to server
+    if (userSelfDetails?.id) {
+      const newUserDetails = { ...userSelfDetails, header_size: size };
+      updateUser.mutate(newUserDetails, {
+        onSuccess: () => {
+          // Invalidate the user self details query to refetch the latest data
+          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+        }
+      });
     }
   };
 
@@ -277,13 +315,13 @@ function PhotoListViewComponent({
   };
 
   useEffect(() => {
-    if (!loading && pigRef.current) {
+    if (!isLoading && pigRef.current) {
       setDataForScrollIndicator(getDataForScrollIndicator());
       // @ts-ignore
       gridHeight.current = pigRef.current.totalHeight;
     }
     // @ts-ignore
-  }, [loading, pigRef.current?.totalHeight]);
+  }, [isLoading, pigRef.current?.totalHeight]);
 
   const scrollToY = (y: number) => {
     window.scrollTo(0, y);
@@ -349,50 +387,107 @@ function PhotoListViewComponent({
         }}
       >
         {header || (
-          <Group align="flex-start" style={{ width: "100%" }}>
-            <Box style={{ flexGrow: 1 }}>
-              <DefaultHeader
-                // @ts-ignore
-                photoList={this}
-                loading={loading}
-                numPhotosetItems={photos.length || 0}
-                numPhotos={getNumPhotos()}
-                icon={icon}
-                title={title}
-                dayHeaderPrefix={dayHeaderPrefix}
-                date={date}
-                additionalSubHeader={additionalSubHeader}
-              />
-            </Box>
-            {!loading && !isPublic && getNumPhotos() > 0 && (
-              <Menu shadow="md" width={200} position="bottom-end">
-                <Menu.Target>
-                  <Tooltip label="Photo Display Settings" position="bottom">
-                    <ActionIcon variant="subtle" color="gray" size="lg" aria-label="Settings" style={{ marginTop: 8 }}>
-                      <IconSettings size={24} />
-                    </ActionIcon>
-                  </Tooltip>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Label>Photo Size</Menu.Label>
-                  <Box p="xs">
-                    <NumberInput
-                      value={imageScale}
-                      onChange={handleThumbnailSizeChange}
-                      min={0.25}
-                      max={3}
-                      step={0.05}
-                      description="Lower = bigger thumbnails"
-                      allowDecimal
-                      hideControls={false}
-                    />
-                  </Box>
-                </Menu.Dropdown>
-              </Menu>
+          <Box style={{ position: "relative", width: "100%" }}>
+            <DefaultHeader
+              // @ts-ignore
+              photoList={this}
+              loading={isLoading}
+              numPhotosetItems={photos.length || 0}
+              numPhotos={getNumPhotos()}
+              icon={icon}
+              title={title}
+              dayHeaderPrefix={dayHeaderPrefix}
+              date={date}
+              additionalSubHeader={additionalSubHeader}
+            />
+            {!isLoading && !isPublic && getNumPhotos() > 0 && (
+              <Box
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  zIndex: 10
+                }}
+              >
+                <Menu shadow="md" width={200} position="bottom-end">
+                  <Menu.Target>
+                    <Tooltip label="Photo Display Settings" position="bottom">
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        size="lg"
+                        aria-label="Settings"
+                        style={{
+                          backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                          borderRadius: theme.radius.sm
+                        }}
+                      >
+                        <IconSettings size={20} />
+                      </ActionIcon>
+                    </Tooltip>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Label>Photo Size</Menu.Label>
+                    <Box p="xs">
+                      <NumberInput
+                        value={imageScale}
+                        onChange={handleThumbnailSizeChange}
+                        min={0.25}
+                        max={3}
+                        step={0.05}
+                        description="Lower = bigger thumbnails"
+                        allowDecimal
+                        hideControls={false}
+                      />
+                    </Box>
+
+                    <Menu.Divider />
+
+                    <Menu.Label>Text Alignment</Menu.Label>
+                    <Box p="xs">
+                      <Switch
+                        label="Left align date & location"
+                        checked={textAlignment === 'left'}
+                        onChange={(event) => handleTextAlignmentChange(event.currentTarget.checked ? 'left' : 'right')}
+                        size="sm"
+                      />
+                    </Box>
+
+                    <Menu.Divider />
+
+                    <Menu.Label>Header Size</Menu.Label>
+                    <Box p="xs">
+                      <Group>
+                        <Button
+                          size="xs"
+                          variant={headerSize === 'large' ? 'filled' : 'outline'}
+                          onClick={() => handleHeaderSizeChange('large')}
+                        >
+                          Large
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant={headerSize === 'normal' ? 'filled' : 'outline'}
+                          onClick={() => handleHeaderSizeChange('normal')}
+                        >
+                          Normal
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant={headerSize === 'small' ? 'filled' : 'outline'}
+                          onClick={() => handleHeaderSizeChange('small')}
+                        >
+                          Small
+                        </Button>
+                      </Group>
+                    </Box>
+                  </Menu.Dropdown>
+                </Menu>
+              </Box>
             )}
-          </Group>
+          </Box>
         )}
-        {!loading && !isPublic && getNumPhotos() > 0 && (
+        {!isLoading && !isPublic && getNumPhotos() > 0 && (
           <Box
             style={{
               padding: 4,
@@ -451,7 +546,7 @@ function PhotoListViewComponent({
           </Box>
         )}
       </Box>
-      {!loading && photos && photos.length > 0 ? (
+      {!isLoading && photos && photos.length > 0 ? (
         <ScrollScrubber
           scrollPositions={dataForScrollIndicator}
           scrollToY={scrollToY}
@@ -476,6 +571,8 @@ function PhotoListViewComponent({
               updateItems={updateItems ? throttledUpdateItems : () => {}}
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
               bgColor="inherit"
+              textAlignment={textAlignment}
+              headerSize={headerSize}
             />
           </Box>
         </ScrollScrubber>

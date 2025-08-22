@@ -10,6 +10,7 @@ type AlbumDateOption = {
   page: number;
   username?: string;
   person_id?: number;
+  folder?: string;
 };
 
 export const DateAlbumQueryKeys = ["dateAlbum"]
@@ -17,7 +18,7 @@ export const DateAlbumQueryKeys = ["dateAlbum"]
 // Fetch a single date album
 export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: { skip?: boolean }) => {
   return useQuery({
-    queryKey: [...DateAlbumQueryKeys, options.photosetType, options.album_date_id, options.page, options.person_id, options.username],
+    queryKey: [...DateAlbumQueryKeys, options.photosetType, options.album_date_id, options.page, options.person_id, options.username, options.folder],
     queryFn: async () => {
       const params = {
         favorite: Photoset.FAVORITES === options.photosetType ? "true" : undefined,
@@ -29,6 +30,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
         page: options.page.toString(),
         person: options.person_id?.toString(),
         username: options.username?.toLowerCase(),
+        folder: options.folder,
       };
 
       const response = await fetchClient.get(`/albums/date/${options.album_date_id}?${new URLSearchParams(
@@ -38,7 +40,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       const result = FetchDateAlbumResponse.parse(response).results;
       
       // Get the current data from cache
-      const dateAlbumsQueryKey = [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username];
+      const dateAlbumsQueryKey = [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username, options.folder];
       const oldData = queryClient.getQueryData(dateAlbumsQueryKey) as IncompleteDatePhotosGroup[] | undefined;
       
       if (oldData) {
