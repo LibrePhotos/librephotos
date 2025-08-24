@@ -6,14 +6,12 @@ import {
   Group,
   Modal,
   Select,
-  Slider,
   Stack,
   Text,
   Tooltip,
   useComputedColorScheme,
   useMantineTheme,
   NumberInput,
-  TextInput,
 } from "@mantine/core";
 import {
   IconBarbell as Barbell,
@@ -21,10 +19,8 @@ import {
   IconPlus as Plus,
   IconTrash as Trash,
   IconUserOff as UserOff,
-  IconSortAscending as SortAscending,
   IconSortDescending as SortDescending,
   IconFilter as Filter,
-  IconPercentage as Percentage,
   IconWand,
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";

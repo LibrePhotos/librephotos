@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { z } from "zod";
 
 import { fetchClient } from "../../api";
 import { UserAlbumListResponse } from "../types";

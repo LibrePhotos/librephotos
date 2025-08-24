@@ -10,11 +10,11 @@ const API_BASE_URL = '/api';
 
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
-  private isTokenExpired(exp: number): boolean {
+  private static isTokenExpired(exp: number): boolean {
     return 1000 * exp - new Date().getTime() < 5000;
   }
 
-  private async refreshToken(): Promise<string | null> {
+  private static async refreshToken(): Promise<string | null> {
     const cookies = new Cookies();
     const refreshToken = cookies.get('refresh');
     
@@ -41,9 +41,9 @@ class FetchClient {
     return null;
   }
 
-  private async handleAuthError(response: Response, endpoint: string, options: RequestInit): Promise<Response> {
+  private static async handleAuthError(response: Response, endpoint: string, options: RequestInit): Promise<Response> {
     if (response.status === 401) {
-      const newToken = await this.refreshToken();
+      const newToken = await FetchClient.refreshToken();
       
       if (newToken) {
         // Retry the original request with new token
@@ -59,7 +59,7 @@ class FetchClient {
     return response;
   }
 
-  private async handleError(response: Response, endpoint: string) {
+  private static async handleError(response: Response, endpoint: string) {
     if (response.status === 500) {
       notification.requestFailed(
         `500 (Internal Server Error) for ${endpoint}`,
@@ -111,7 +111,7 @@ class FetchClient {
    
   }
 
-  async request<T>(
+  static async request<T>(
     endpoint: string, 
     options: RequestInit = {}
   ): Promise<T> {
@@ -123,8 +123,8 @@ class FetchClient {
     if (accessToken && !endpoint.includes('/auth/token/refresh/')) {
       try {
         const decodedToken = jwtDecode<{ exp: number }>(accessToken);
-        if (this.isTokenExpired(decodedToken.exp)) {
-          const newToken = await this.refreshToken();
+        if (FetchClient.isTokenExpired(decodedToken.exp)) {
+          const newToken = await FetchClient.refreshToken();
           if (newToken) {
             headers.set('Authorization', `Bearer ${newToken}`);
           }
@@ -156,11 +156,11 @@ class FetchClient {
       let response = await fetch(`${API_BASE_URL}${endpoint}`, config);
       
       // Handle auth errors and token refresh
-      response = await this.handleAuthError(response, endpoint, config);
+      response = await FetchClient.handleAuthError(response, endpoint, config);
       
       // Handle other errors
       if (!response.ok) {
-        await this.handleError(response, endpoint);
+        await FetchClient.handleError(response, endpoint);
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
       
@@ -182,25 +182,25 @@ class FetchClient {
   }
   
   get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' });
+    return (this.constructor as typeof FetchClient).request<T>(endpoint, { method: 'GET' });
   }
   
   post<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
+    return (this.constructor as typeof FetchClient).request<T>(endpoint, {
       method: 'POST',
       body: data,
     });
   }
   
   patch<T>(endpoint: string, data: any): Promise<T> {
-    return this.request<T>(endpoint, {
+    return (this.constructor as typeof FetchClient).request<T>(endpoint, {
       method: 'PATCH',
       body: data,
     });
   }
   
   delete<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
+    return (this.constructor as typeof FetchClient).request<T>(endpoint, {
       method: 'DELETE',
       body: data,
     });

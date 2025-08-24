@@ -33,7 +33,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       };
 
       const response = await fetchClient.get(`/albums/date/${options.album_date_id}?${new URLSearchParams(
-        Object.entries(params).filter(([_, v]) => v !== undefined) as [string, string][]
+        Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
       ).toString()}`);
       
       const result = FetchDateAlbumResponse.parse(response).results;

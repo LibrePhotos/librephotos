@@ -1,5 +1,5 @@
 import { Image, Loader, Stack, Text, Title } from "@mantine/core";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
 import { Hint, HorizontalGridLines, MarkSeries, VerticalGridLines, XYPlot } from "react-vis";

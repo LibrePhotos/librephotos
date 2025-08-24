@@ -8,7 +8,6 @@ import {
   IconFileMinus as FileMinus,
   IconGlobe as Globe,
   IconKey as Key,
-  IconLink as LinkIcon,
   IconPhoto as Photo,
   IconPlus as Plus,
   IconShare as Share,

@@ -31,7 +31,7 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => useQue
       };
 
       const response = await fetchClient.get(`/albums/date/list/?${new URLSearchParams(
-        Object.entries(params).filter(([_, v]) => v !== undefined) as [string, string][]
+        Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
       ).toString()}`);
       
       const { results } = FetchDateAlbumsListResponse.parse(response);

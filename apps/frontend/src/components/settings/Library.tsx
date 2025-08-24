@@ -80,7 +80,7 @@ export function Library() {
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
   const { t } = useTranslation();
-  const { data: nextcloudDirs, isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError } = useFetchNextcloudDirsQuery();
+  const { isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError } = useFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();

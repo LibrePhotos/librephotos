@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Group, Stack, Text, Title, useComputedColorScheme, useMantineTheme, Grid, Anchor } from "@mantine/core";
+import { ActionIcon, Box, Group, Stack, Title, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import "react-virtualized/styles.css";

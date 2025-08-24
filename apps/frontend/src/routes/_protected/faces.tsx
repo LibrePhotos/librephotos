@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { z } from 'zod'
 import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
 import { FacesTab, FaceAnalysisMethod } from '../../api_client/faces';
 

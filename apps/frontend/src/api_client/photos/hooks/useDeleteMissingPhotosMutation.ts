@@ -15,7 +15,7 @@ export const useDeleteMissingPhotosMutation = () => useMutation({
     const response = await fetchClient.post('/deletemissingphotos', {});
     return DeleteMissingPhotosResponse.parse(response);
   },
-  onSuccess: (data) => {
+  onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: [...AutoAlbumsQueryKeys] });
   },
 }); 
