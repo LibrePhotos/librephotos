@@ -1,0 +1,16 @@
+# Generated artifacts and caches
+.tanstack/
+node_modules/
+dist/
+coverage/
+.vscode/
+.idea/
+.DS_Store
+
+# Cypress/Vitest caches
+.cypress/
+.vitest/
+
+# Logs
+*.log
+

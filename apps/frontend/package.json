@@ -106,7 +106,7 @@
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.7.0",
     "@tanstack/router-plugin": "1.127.8",
-    "@trivago/prettier-plugin-sort-imports": "5.2.2",
+    "@ianvs/prettier-plugin-sort-imports": "4.6.2",
     "@types/crypto-js": "4.2.2",
     "@types/jest": "^29.0.0",
     "@types/lodash": "4.17.20",
