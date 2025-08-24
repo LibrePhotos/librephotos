@@ -77,7 +77,7 @@ export function FolderDetail() {
     // Truncate folder names for mobile
     const truncateFolderName = (name: string) => {
       if (name.length <= maxFolderNameLength) return name;
-      return name.substring(0, maxFolderNameLength - 3) + '...';
+      return `${name.substring(0, maxFolderNameLength - 3)  }...`;
     };
 
     return (

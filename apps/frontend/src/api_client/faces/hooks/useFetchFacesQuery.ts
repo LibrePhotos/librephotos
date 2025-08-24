@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
+import { z } from "zod"
 import { fetchClient } from '../../api';
 import {  PersonFace, FaceAnalysisMethod, FacesOrderOption, CompletePersonFace } from '../types';
-import { z } from "zod"
 
 export const PersonFaceListResponse = z.object({
     count: z.number(),
@@ -37,10 +37,8 @@ export const fetchFaces = (params: PersonFaceListRequest) => {
 
 export const FacesQueryKeys = ['faces'] as const;
 
-export const useFetchFacesQuery = (params: PersonFaceListRequest) => {
-  return useQuery({
+export const useFetchFacesQuery = (params: PersonFaceListRequest) => useQuery({
     queryKey: [FacesQueryKeys, params],
     queryFn: () => fetchFaces(params),
     enabled: !!params,
-  });
-}; 
+  }); 

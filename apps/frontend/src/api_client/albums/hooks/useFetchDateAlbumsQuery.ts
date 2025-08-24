@@ -15,8 +15,7 @@ type AlbumDateListOptions = {
 };
 
 // Fetch date albums
-export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => {
-  return useQuery({
+export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => useQuery({
     queryKey: [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username, options.folder],
     queryFn: async () => {
       const params = {
@@ -40,4 +39,3 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => {
       return results;
     },
   });
-};

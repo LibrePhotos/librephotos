@@ -30,10 +30,11 @@ import {
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { notification } from "../../service/notifications";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { FaceAnalysisMethod, FacesOrderOption } from "../../api_client/faces/types";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+
 type Props = Readonly<{
   selectMode: boolean;
   selectedFaces: any;

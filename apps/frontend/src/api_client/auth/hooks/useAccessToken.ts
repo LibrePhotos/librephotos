@@ -14,8 +14,7 @@ export const AuthResponse = z.object({
 
 export const AuthQueryKeys = ['auth'] as const;
 
-export const useAccessToken = () => {
-  return useQuery({
+export const useAccessToken = () => useQuery({
     queryKey: AuthQueryKeys,
     queryFn: async () => {
       const cookies = new Cookies();
@@ -27,5 +26,4 @@ export const useAccessToken = () => {
       const decodedToken = jwtDecode<Token>(accessToken);
       return { access: decodedToken };
     },
-  });
-}; 
+  }); 

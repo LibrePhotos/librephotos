@@ -17,7 +17,7 @@ export function AppShellProtected() {
   const colorScheme = useComputedColorScheme();
   const theme = useMantineTheme();
   const { data: isAuthenticated, isLoading } = useIsAuthenticatedQuery();
-  const pathname = window.location.pathname;
+  const {pathname} = window.location;
 
   if (isLoading) {
     return <Loader />;

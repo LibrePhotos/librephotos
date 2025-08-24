@@ -11,15 +11,15 @@ import {
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
 
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from "@tanstack/react-router";
 import { useLogoutMutation } from "../../api_client/auth/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { SiteSearch } from "../SiteSearch";
 import { TopMenuCommon } from "./TopMenuPublic";
 import { WorkerIndicator } from "./WorkerIndicator";
-import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { useNavigate } from "@tanstack/react-router";
 
 export function TopMenu(): React.ReactNode {
   const { t } = useTranslation();

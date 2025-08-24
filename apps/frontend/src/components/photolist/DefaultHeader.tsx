@@ -13,11 +13,11 @@ import { DateTime } from "luxon";
 import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
-import { useNavigate, useRouter } from '@tanstack/react-router';
 
 type Props = Readonly<{
   loading: boolean;
@@ -38,7 +38,7 @@ export function DefaultHeader(props: Props) {
   const {data: auth} = useAccessToken();
   const {data: userSelfDetails} = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? '');
   const {data: userList} = useFetchUserListQuery();   
-  const location = router.state.location;
+  const {location} = router.state;
 
   const { t } = useTranslation();
 

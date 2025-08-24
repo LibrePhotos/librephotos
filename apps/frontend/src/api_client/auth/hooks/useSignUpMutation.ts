@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
+import { z } from 'zod';
 import { fetchClient, queryClient } from '../../api';
 
 import { IsFirstTimeSetupQueryKeys } from './useIsFirstTimeSetupQuery';
 import { UserListQueryKeys } from '../../user/hooks/useFetchUserListQuery';
-import { z } from 'zod';
 
 
 
@@ -31,12 +31,10 @@ const signUp = (data: UserSignupRequest) =>
   fetchClient.post<UserSignupResponse>('/user/', data)
     .then(response => UserSignupResponse.parse(response))
 
-export const useSignUpMutation = () => {
-  return useMutation({
+export const useSignUpMutation = () => useMutation({
     mutationFn: signUp,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IsFirstTimeSetupQueryKeys });
       queryClient.invalidateQueries({ queryKey: UserListQueryKeys });
     }
-  });
-}; 
+  }); 

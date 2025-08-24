@@ -1,10 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
+import { z } from 'zod';
 import { queryClient, fetchClient } from '../../api';
 import { IncompleteFacesQueryKeys } from './useFetchIncompleteFacesQuery';
 import { FacesQueryKeys } from './useFetchFacesQuery';
 import { PeopleAlbumsQueryKeys } from '../../albums/hooks/useFetchPeopleAlbumsQuery';
 import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
-import { z } from 'zod';
 
 export const DeleteFacesQueryKeys = ["deleteFaces"];
 
@@ -22,10 +22,8 @@ export const DeleteFacesResponse = z.object({
   not_deleted: z.array(z.string()),
 });
 
-const deleteFaces = (data: DeleteFacesRequest) => {
-    return fetchClient.post<DeleteFacesResponse>('/deletefaces', { face_ids: data.faceIds })
+const deleteFaces = (data: DeleteFacesRequest) => fetchClient.post<DeleteFacesResponse>('/deletefaces', { face_ids: data.faceIds })
       .then(response => DeleteFacesResponse.parse(response));
-};
 
 export const useDeleteFacesMutation = () => useMutation(
     {   

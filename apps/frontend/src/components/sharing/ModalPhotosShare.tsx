@@ -11,6 +11,7 @@ import { i18nResolvedLanguage } from "../../i18n";
 import classes from "./ModalAlbumShare.module.css";
 import filterUsers from "./utils";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+
 type Props = Readonly<{
   selectedImageHashes: any;
   isOpen: boolean;

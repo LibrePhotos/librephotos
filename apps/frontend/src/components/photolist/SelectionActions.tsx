@@ -19,12 +19,12 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
+import { useLocation } from "@tanstack/react-router";
 import { UserAlbum } from "../../api_client/albums/types";
 import { useRemovePhotoFromUserAlbumMutation, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useMarkPhotosDeletedMutation, useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
 import { copyToClipboard } from "../../util/util";
-import { useLocation } from "@tanstack/react-router";
 import { useDownloadPhotosMutation } from "../../api_client/jobs/hooks";
 
 type Props = {

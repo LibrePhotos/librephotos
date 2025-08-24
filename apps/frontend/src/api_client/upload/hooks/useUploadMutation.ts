@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
+import { z } from 'zod';
 import { fetchClient } from '../../api';
 import { UploadOptions } from '../types';
-import { z } from 'zod';
 
 export const UploadResponse = z.object({
   upload_id: z.string(),
@@ -19,8 +19,6 @@ const upload = (options: UploadOptions) => {
     }).then(response => UploadResponse.parse(response));
     }
 
-export const useUploadMutation = () => {
-    return useMutation({
+export const useUploadMutation = () => useMutation({
         mutationFn: upload,
-    });
-};  
+    });  

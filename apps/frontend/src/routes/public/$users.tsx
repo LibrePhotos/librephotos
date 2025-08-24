@@ -7,8 +7,9 @@ import { PigPhoto, Photoset } from "../../api_client/photos/types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-type PhotoGroup = { id: string; page: number };
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+
+type PhotoGroup = { id: string; page: number };
 
 export const Route = createFileRoute('/public/$users')({
   component: UserPublicPage, 

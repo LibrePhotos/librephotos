@@ -17,11 +17,11 @@ import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks/useSetPersonAlbumCoverMutation";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks/useSetUserAlbumCoverMutation";
 import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
-import { useQueryClient } from "@tanstack/react-query";
 import { serverAddress } from "../../api_client/apiClient";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";

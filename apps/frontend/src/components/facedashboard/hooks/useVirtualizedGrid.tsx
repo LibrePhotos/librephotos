@@ -126,9 +126,7 @@ export function useVirtualizedGrid(
   }, [activeTab, analysisMethod, getCellContentsForTab, getEndpointCell, onSectionChange]);
   
   // Get flattened cell contents for cell range selection
-  const getFlattenedCells = useCallback((): FaceCell[] => {
-    return _.flatten(getCellContentsForTab(activeTab));
-  }, [activeTab, getCellContentsForTab]);
+  const getFlattenedCells = useCallback((): FaceCell[] => _.flatten(getCellContentsForTab(activeTab)), [activeTab, getCellContentsForTab]);
   
   return {
     gridRef,

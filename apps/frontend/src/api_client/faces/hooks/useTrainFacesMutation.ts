@@ -12,8 +12,6 @@ export const TrainFacesResponse = z.object({
 
 export const trainFaces = () => fetchClient.post<TrainFacesResponse>("/trainfaces");
 
-export const useTrainFacesMutation = () => {
-  return useMutation({
+export const useTrainFacesMutation = () => useMutation({
     mutationFn: () => trainFaces(),
   });
-};

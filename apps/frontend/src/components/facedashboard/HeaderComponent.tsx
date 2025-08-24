@@ -10,13 +10,13 @@ import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { getRouteApi } from "@tanstack/react-router";
 import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
 } from "../../api_client/albums/hooks";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
-import { getRouteApi } from "@tanstack/react-router";
 
 type Props = {
   cell: any;

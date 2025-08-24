@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
-import { fetchClient } from '../../api';
 import { Cookies } from 'react-cookie';
 import { useNavigate } from '@tanstack/react-router'; 
+import { fetchClient } from '../../api';
 
 const logout =  () => {
   const cookies = new Cookies();

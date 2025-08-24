@@ -12,13 +12,13 @@ import React, { cloneElement, forwardRef, useCallback, useEffect, useState } fro
 import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useNavigate } from "@tanstack/react-router";
 import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchPlacesAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
 import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
 import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
-import { useNavigate } from "@tanstack/react-router";
 
 enum Suggestion { 
   EXAMPLE,

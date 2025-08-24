@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchClient } from "../../api";
 import { z } from "zod";
+import { fetchClient } from "../../api";
 
 export const SocialGraphQueryKeys = ['socialGraph'] as const;
 

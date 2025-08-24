@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 import { fetchClient } from '../../api';
 import type { UserList } from '../types';
 import { User } from '../types';
-import { z } from 'zod';
 
 export const UserListQueryKeys = ['userList'] as const;
 

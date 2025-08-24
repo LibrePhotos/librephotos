@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-let gridType = "dense";
+const gridType = "dense";
 
 export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) => {
   const gridContents: any[] = [];

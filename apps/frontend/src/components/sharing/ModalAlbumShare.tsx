@@ -3,6 +3,7 @@ import { Badge, Button, Divider, Group, Modal, Paper, ScrollArea, Stack, Switch,
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { IconSettings as SettingsIcon, IconChevronDown as ChevronDown, IconChevronUp as ChevronUp } from "@tabler/icons-react";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import classes from "./ModalAlbumShare.module.css";
 import { UserEntry } from "./UserEntry";
@@ -10,7 +11,6 @@ import filterUsers from "./utils";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
-import { IconSettings as SettingsIcon, IconChevronDown as ChevronDown, IconChevronUp as ChevronUp } from "@tabler/icons-react";
 import { AlbumSlugSection } from "./AlbumSlugSection";
 
 type Props = Readonly<{

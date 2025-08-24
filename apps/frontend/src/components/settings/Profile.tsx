@@ -20,10 +20,10 @@ import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
 
+import { useQueryClient } from "@tanstack/react-query"; 
 import { serverAddress } from "../../api_client/apiClient";
 import { useUpdateAvatarMutation, useUpdateUserMutation, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { PasswordEntry } from "./PasswordEntry";
-import { useQueryClient } from "@tanstack/react-query"; 
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";  
 

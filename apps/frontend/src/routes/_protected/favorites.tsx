@@ -8,6 +8,7 @@ import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_clien
 import { PhotoListView, PhotoGroup } from "../../components/photolist/PhotoListView";
 import { Photoset } from "../../api_client/photos/types";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
+
 export const Route = createFileRoute('/_protected/favorites')({
   component: FavoritePhotos,
 })

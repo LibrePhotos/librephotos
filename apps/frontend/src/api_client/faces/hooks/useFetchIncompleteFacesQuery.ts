@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';    
 import { fetchClient } from '../../api';
 import { CompletePersonFaceList, CompletePersonFace, FaceAnalysisMethod, FacesOrderOption, IncompletePersonFace} from '../types';
-import { z } from 'zod';    
 
 export const IncompletePersonFaceList = z.array(IncompletePersonFace);
 export const IncompletePersonFaceListResponse = IncompletePersonFaceList;

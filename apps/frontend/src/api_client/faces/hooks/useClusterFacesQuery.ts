@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchClient } from '../../api';
 import { z } from 'zod';
+import { fetchClient } from '../../api';
 
 export const DataPoint = z.object({
     x: z.number(),
@@ -31,9 +31,7 @@ const clusterFaces = () => fetchClient.get<ClusterFacesResponse>('/clusterfaces'
 
 export const ClusterFacesQueryKeys = ["clusterFaces"];
 
-export const useClusterFacesQuery = () => {
-  return useQuery<ClusterFacesResponse>({
+export const useClusterFacesQuery = () => useQuery<ClusterFacesResponse>({
     queryKey: [...ClusterFacesQueryKeys],
     queryFn: () => clusterFaces(),
-  });
-}; 
+  }); 

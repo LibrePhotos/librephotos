@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
 import { z } from 'zod'
+import { FaceDashboard } from "../../components/facedashboard/FaceDashboard";
 import { FacesTab, FaceAnalysisMethod } from '../../api_client/faces';
 
 type FacesSearch = {
@@ -21,12 +21,10 @@ const DEFAULT_VALUES = {
 
 export const Route = createFileRoute('/_protected/faces')({
   component: FaceDashboard,
-  validateSearch: (search: Record<string, unknown>): FacesSearch => {
-    return {
+  validateSearch: (search: Record<string, unknown>): FacesSearch => ({
       tab: (search.tab as FacesTab) || DEFAULT_VALUES.activeTab,
       method: (search.method as FaceAnalysisMethod) || DEFAULT_VALUES.analysisMethod,
       orderBy: (search.orderBy as string) || DEFAULT_VALUES.orderBy,
       minConfidence: (search.minConfidence as number) || DEFAULT_VALUES.minConfidence,
-    }
-  }
+    })
 })

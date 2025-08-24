@@ -5,6 +5,7 @@ import { Cookies } from 'react-cookie';
 import jwtDecode from 'jwt-decode';
 
 import { notification } from "../service/notifications";
+
 const API_BASE_URL = '/api';
 
 // Custom fetch client with auth and refresh token functionality
@@ -167,11 +168,11 @@ class FetchClient {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         return await response.json() as T;
-      } else if (contentType && contentType.includes('application/octet-stream')) {
+      } if (contentType && contentType.includes('application/octet-stream')) {
         return await response.blob() as unknown as T;
-      } else {
+      } 
         return await response.text() as unknown as T;
-      }
+      
     } catch (error) {
       console.error('Fetch error:', error);
       // print stack trace

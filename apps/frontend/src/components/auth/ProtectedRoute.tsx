@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ requireAuth = true, children }: ProtectedRouteProps) {
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
-  const location = window.location;
+  const {location} = window;
 
   if (requireAuth && !isAuthenticated) {
     console.log("Redirecting to login");

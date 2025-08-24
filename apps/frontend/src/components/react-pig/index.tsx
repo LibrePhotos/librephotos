@@ -173,9 +173,9 @@ function Pig({
     setSelectedItems(prev => {
       if (prev.includes(item)) {
         return prev.filter(value => value !== item);
-      } else {
+      } 
         return [...prev, item];
-      }
+      
     });
   }, []);
 
@@ -198,10 +198,10 @@ function Pig({
   const numberOfItemsRef = useRef<number>(numberOfItems || imageData.length);
   const scaleOfImagesRef = useRef<number>(scaleOfImages);
   const updateGroupsFunc = useRef<(groups: GroupedImageItem[]) => void>(
-    propUpdateGroups || function onUpdateGroups() {}
+    propUpdateGroups || (() => {})
   );
   const updateItemsFunc = useRef<(items: ImageItem[]) => void>(
-    propUpdateItems || function onUpdateItems() {}
+    propUpdateItems || (() => {})
   );
   
   // Other instance variables

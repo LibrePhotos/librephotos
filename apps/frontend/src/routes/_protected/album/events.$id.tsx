@@ -13,11 +13,11 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
 
+import { z } from 'zod';
 import { useFetchAutoAlbumQuery } from "../../../api_client/albums/hooks";
 import { serverAddress } from "../../../api_client/apiClient";
 import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
 import { PhotoListView } from "../../../components/photolist/PhotoListView"; 
-import { z } from 'zod';
 
 export const Route = createFileRoute('/_protected/album/events/$id')({
   component: AlbumAutoGalleryView,

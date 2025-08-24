@@ -32,8 +32,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
   activeTileUrl,
   textAlignment = 'right',
   headerSize = 'large'
-}) => {
-  return (
+}) => (
     <header
       className={styles.headerPositioner}
       style={{
@@ -62,6 +61,5 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({
       </div>
     </header>
   );
-};
 
 export default GroupHeader;

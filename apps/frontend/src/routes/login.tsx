@@ -2,7 +2,6 @@
 
 import React, { useEffect } from "react";
 
-import { useIsFirstTimeSetupQuery } from "../api_client/auth/hooks";
 import { createFileRoute } from '@tanstack/react-router'
 
 import {
@@ -25,13 +24,14 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from '@tanstack/react-query';
 
+import { Navigate } from "@tanstack/react-router";
 import { useSignUpMutation } from "../api_client/auth/hooks";
 import { EMAIL_REGEX } from "../util/util";
 import { UserListQueryKeys } from '../api_client/user/hooks/useFetchUserListQuery';
 
 import { useLoginMutation, useIsAuthenticatedQuery } from "../api_client/auth";
 import { useGetSettingsQuery } from "../api_client/settings/hooks/useGetSettingsQuery";
-import { Navigate } from "@tanstack/react-router";
+import { useIsFirstTimeSetupQuery } from "../api_client/auth/hooks";
 import { isStringEmpty } from "../util/stringUtils";
 
 export const Route = createFileRoute('/login')({

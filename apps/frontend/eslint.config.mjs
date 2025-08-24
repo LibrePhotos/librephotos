@@ -58,8 +58,6 @@ export default [
       "import/no-cycle": "off",
       // Many files intentionally import from the same module in separate lines
       "import/no-duplicates": "off",
-      // Enforce import order is low value and very noisy in this codebase
-      "import/order": "off",
       // Temporarily disable rule that crashes under certain graph shapes
       "import/export": "off",
       // Allow omitting extensions for common module types

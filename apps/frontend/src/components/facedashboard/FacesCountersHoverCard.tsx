@@ -21,20 +21,16 @@ export function FacesCountersHoverCard({ tab, children }: Props) {
   const getFilteredPersons = () => {
     if (tab === FacesTab.enum.labeled) {
       return facesList.filter(person => person.name !== "Unknown - Other");
-    } else if (tab === FacesTab.enum.inferred) {
+    } if (tab === FacesTab.enum.inferred) {
       return facesList.filter(person => person.name !== "Unknown - Other");
-    } else {
+    } 
       return facesList.filter(person => person.name === "Unknown - Other");
-    }
+    
   };
 
-  const getFaceCount = () => {
-    return getFilteredPersons().reduce((sum, person) => sum + person.faces.length, 0);
-  };
+  const getFaceCount = () => getFilteredPersons().reduce((sum, person) => sum + person.faces.length, 0);
 
-  const getPersonCount = () => {
-    return getFilteredPersons().length;
-  };
+  const getPersonCount = () => getFilteredPersons().length;
 
   const getLabeledCounters = () => {
     const labeledPersons = facesList.filter(person => person.name !== "Unknown - Other");

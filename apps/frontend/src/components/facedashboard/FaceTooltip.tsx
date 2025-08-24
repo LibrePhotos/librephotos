@@ -3,8 +3,8 @@ import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
 
-import { i18nResolvedLanguage } from "../../i18n";
 import { getRouteApi } from "@tanstack/react-router";
+import { i18nResolvedLanguage } from "../../i18n";
 import { FacesTab } from "../../api_client/faces";
 
 type Props = Readonly<{

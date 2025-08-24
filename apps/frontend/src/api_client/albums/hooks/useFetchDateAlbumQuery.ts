@@ -16,8 +16,7 @@ type AlbumDateOption = {
 export const DateAlbumQueryKeys = ["dateAlbum"]
 
 // Fetch a single date album
-export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: { skip?: boolean }) => {
-  return useQuery({
+export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: { skip?: boolean }) => useQuery({
     queryKey: [...DateAlbumQueryKeys, options.photosetType, options.album_date_id, options.page, options.person_id, options.username, options.folder],
     queryFn: async () => {
       const params = {
@@ -66,5 +65,4 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       return result;
     },
     enabled: queryOptions?.skip === undefined ? true : !queryOptions.skip,
-  });
-}; 
+  }); 

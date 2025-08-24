@@ -23,7 +23,7 @@ export function FileInfoComponent({
 
   if (!description) {
     return (
-      <Text size={size} c="dimmed" lineClamp={1} style={{ maxWidth: width ? width : getMaxWidth() }}>
+      <Text size={size} c="dimmed" lineClamp={1} style={{ maxWidth: width || getMaxWidth() }}>
         {info}
       </Text>
     );

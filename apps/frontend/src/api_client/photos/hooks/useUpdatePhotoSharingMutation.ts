@@ -7,6 +7,7 @@ import { fetchClient, queryClient } from "../../api";
 import { SharedPhotosByMeQueryKeys } from './useFetchSharedPhotosByMeQuery';
 import { SharedPhotosWithMeQueryKeys } from './useFetchSharedPhotosWithMeQuery';
 import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+
 const SharePhotosRequest = z.object({
   image_hashes: z.string().array(),
   val_shared: z.boolean(),

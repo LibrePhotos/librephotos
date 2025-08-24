@@ -7,6 +7,7 @@ import { fetchClient, queryClient } from "../../api";
 import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
 import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery'; 
 import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
   results: Photo.array(),

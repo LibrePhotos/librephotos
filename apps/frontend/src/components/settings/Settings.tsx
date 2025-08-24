@@ -18,10 +18,10 @@ import { IconSettings as SettingIcon } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useUpdateUserMutation, useFetchUserSelfDetailsQuery, UserSelfDetailsQueryKeys } from "../../api_client/user/hooks";
 import { useFetchTimezonesQuery } from "../../api_client/settings/hooks/useFetchTimezonesQuery";
 import { ConfigDateTime } from "./ConfigDateTime"; 
-import { useQueryClient } from "@tanstack/react-query";
 import { useAccessToken } from "../../api_client/auth/hooks";
 
 export function Settings() {
