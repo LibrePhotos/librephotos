@@ -36,11 +36,11 @@ export function MediaDisplay({
   playing = false,
   photoDetails,
 }: MediaDisplayProps) {
-  
-  if (!id) return null;
-  
+  // Hooks must be called unconditionally at the top of the component
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [videoError, setVideoError] = useState(false);
+
+  if (!id) return null;
 
   const imageDimensions = { 
     width: imgRef.current?.naturalWidth ?? 1080,

@@ -31,12 +31,23 @@ export default [
         ...globals.jest,
       },
 
-      ecmaVersion: 5,
-      sourceType: "commonjs",
+      // Use modern ECMAScript and ESM modules to match Vite/TypeScript setup
+      ecmaVersion: "latest",
+      sourceType: "module",
 
       parserOptions: {
         project: "./tsconfig.eslint.json",
         tsconfigRootDir: __dirname,
+      },
+    },
+
+    settings: {
+      // Help eslint-plugin-import resolve TS paths and avoid deep graph walks
+      "import/resolver": {
+        typescript: {
+          project: "./tsconfig.eslint.json",
+        },
+        node: true,
       },
     },
 
@@ -45,6 +56,40 @@ export default [
       "import/no-named-as-default": "off",
       "import/no-named-as-default-member": "off",
       "import/no-cycle": "off",
+      // Many files intentionally import from the same module in separate lines
+      "import/no-duplicates": "off",
+      // Enforce import order is low value and very noisy in this codebase
+      "import/order": "off",
+      // Temporarily disable rule that crashes under certain graph shapes
+      "import/export": "off",
+      // Allow omitting extensions for common module types
+      "import/extensions": [
+        "error",
+        "ignorePackages",
+        {
+          js: "never",
+          jsx: "never",
+          ts: "never",
+          tsx: "never",
+        },
+      ],
+      // React 17+ with new JSX transform doesn't require React in scope
+      "react/react-in-jsx-scope": "off",
+      // TypeScript with optional props doesn't require defaultProps
+      "react/require-default-props": "off",
+      // Allow explicit boolean values in JSX when clearer for readability
+      "react/jsx-boolean-value": "off",
+      // Don't require deps for dev-only util hooks files
+      "import/no-extraneous-dependencies": [
+        "error",
+        {
+          devDependencies: [
+            "**/src/wdyr.ts",
+            "**/*.test.{ts,tsx}",
+            "**/e2e/**/*.{ts,tsx}",
+          ],
+        },
+      ],
       "react/jsx-props-no-spreading": "off",
       "react-hooks/exhaustive-deps": "off",
     },
