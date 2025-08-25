@@ -483,13 +483,13 @@ class AlbumDateListViewSet(ListViewSet):
 
         if self.request.query_params.get("in_trashcan"):
             filter.append(Q(photos__in_trashcan=True) & Q(photos__removed=False))
+        else:
+            filter.append(Q(photos__in_trashcan=False))
 
         # Filter by folder path if provided
         if self.request.query_params.get("folder"):
             folder_path = self.request.query_params.get("folder")
             filter.append(Q(photos__files__path__startswith=folder_path))
-        else:
-            filter.append(Q(photos__in_trashcan=False))
 
         if not self.request.user.is_anonymous and not self.request.query_params.get(
             "public"
