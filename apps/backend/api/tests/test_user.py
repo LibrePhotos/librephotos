@@ -62,6 +62,8 @@ class UserTest(TestCase):
         "min_samples",
         "cluster_selection_epsilon",
         "llm_settings",
+        "text_alignment",
+        "header_size",
     ]
 
     def setUp(self):

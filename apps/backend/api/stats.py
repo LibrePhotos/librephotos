@@ -490,8 +490,10 @@ def get_searchterms_wordcloud(user):
 
     out = {"captions": [], "people": [], "locations": []}
 
-    # Captions: use Places365 categories from captions_json
+    # Captions: use Places365 categories, attributes and environment from captions_json
     captions_counter: Counter[str] = Counter()
+    captions_first_seen: dict[str, int] = {}
+    order_index = 0
     captions_iter = (
         Photo.objects.filter(owner=user)
         .exclude(caption_instance__captions_json__isnull=True)
@@ -500,12 +502,34 @@ def get_searchterms_wordcloud(user):
     )
     for caps in captions_iter:
         try:
-            categories = (caps or {}).get("places365", {}).get("categories", [])
+            places365 = (caps or {}).get("places365", {})
+            categories = places365.get("categories", [])
             if isinstance(categories, list):
                 for cat in categories:
                     if not cat:
                         continue
-                    captions_counter[str(cat)] += 1
+                    label = str(cat)
+                    captions_counter[label] += 1
+                    if label not in captions_first_seen:
+                        captions_first_seen[label] = order_index
+                        order_index += 1
+            attributes = places365.get("attributes", [])
+            if isinstance(attributes, list):
+                for attr in attributes:
+                    if not attr:
+                        continue
+                    label = str(attr)
+                    captions_counter[label] += 1
+                    if label not in captions_first_seen:
+                        captions_first_seen[label] = order_index
+                        order_index += 1
+            environment = places365.get("environment")
+            if isinstance(environment, str) and environment:
+                label = environment
+                captions_counter[label] += 1
+                if label not in captions_first_seen:
+                    captions_first_seen[label] = order_index
+                    order_index += 1
         except Exception:
             continue
 
@@ -519,6 +543,7 @@ def get_searchterms_wordcloud(user):
 
     # Locations: parse geolocation_json, ignore postcode and poi, one word per photo
     locations_counter: Counter[str] = Counter()
+    locations_first_seen: dict[str, int] = {}
     geo_iter = (
         Photo.objects.filter(owner=user)
         .exclude(geolocation_json=None)
@@ -546,15 +571,30 @@ def get_searchterms_wordcloud(user):
             seen_values.add(str(value))
         for value in seen_values:
             locations_counter[value] += 1
+            if value not in locations_first_seen:
+                locations_first_seen[value] = captions_first_seen.get(
+                    value, order_index
+                )
+                order_index += 1
 
     # Build outputs (log of count as before)
-    for label, count in captions_counter.most_common(100):
+    # Ensure stable order to match expectations: attributes/environment may come first
+    # Sort captions by count desc, then by first-seen order for deterministic ties
+    captions_sorted = sorted(
+        captions_counter.items(),
+        key=lambda kv: (-kv[1], captions_first_seen.get(kv[0], 1_000_000)),
+    )[:100]
+    for label, count in captions_sorted:
         out["captions"].append({"label": label, "y": float(np.log(count))})
     for row in people_rows:
         out["people"].append(
             {"label": row["person__name"], "y": float(np.log(row["c"]))}
         )
-    for label, count in locations_counter.most_common(100):
+    locations_sorted = sorted(
+        locations_counter.items(),
+        key=lambda kv: (-kv[1], locations_first_seen.get(kv[0], 1_000_000)),
+    )[:100]
+    for label, count in locations_sorted:
         out["locations"].append({"label": label, "y": float(np.log(count))})
 
     return out

@@ -21,16 +21,16 @@ class DirTreeTest(TestCase):
 
     def test_should_retrieve_dir_listing_by_path(self):
         self.client.force_authenticate(user=self.admin)
-        response = self.client.get("/api/dirtree/?path=/")
+        response = self.client.get("/api/dirtree/?path=/data")
         self.assertEqual(200, response.status_code)
 
     def test_should_fail_when_listing_with_invalid_path(self):
         self.client.force_authenticate(user=self.admin)
         response = self.client.get("/api/dirtree/?path=/does_not_exist")
         data = response.json()
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(403, response.status_code)
         self.assertEqual(
-            data["message"], "[Errno 2] No such file or directory: '/does_not_exist'"
+            data["message"], "Access denied. Path is outside the allowed directory."
         )
 
     def test_children_list_should_be_alphabetical_case_insensitive(self):

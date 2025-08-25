@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from rest_framework.test import APIClient
 
-from api.api_util import get_location_timeline, get_photo_month_counts
+from api.stats import get_location_timeline, get_photo_month_counts
 from api.models import Photo
 from api.tests.utils import create_test_photo, create_test_user
 

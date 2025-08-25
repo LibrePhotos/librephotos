@@ -49,7 +49,7 @@ class PublicPhotosTest(TestCase):
         self.assertEqual(2, len(data["updated"]))
         self.assertEqual(0, len(data["not_updated"]))
 
-    def test_set_photos_of_other_user_as_public(self):
+    def test_set_photos_of_other_user_as_public(self, logger):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
         image_hashes = [p.image_hash for p in photos]
 
@@ -63,7 +63,10 @@ class PublicPhotosTest(TestCase):
         self.assertTrue(data["status"])
         self.assertEqual(0, len(data["results"]))
         self.assertEqual(0, len(data["updated"]))
-        self.assertEqual(2, len(data["not_updated"]))
+        self.assertEqual(0, len(data["not_updated"]))
+        logger.assert_called_with(
+            "Could not set photo nonexistent_photo to public. It does not exist or is not owned by user."
+        )
 
     @patch("api.views.photos.logger.warning", autospec=True)
     def test_tag_nonexistent_photo_as_favorite(self, logger_ext: unittest.mock.Mock):
@@ -80,5 +83,5 @@ class PublicPhotosTest(TestCase):
         self.assertEqual(0, len(data["updated"]))
         self.assertEqual(0, len(data["not_updated"]))
         logger_ext.assert_called_with(
-            "Could not set photo nonexistent_photo to public. It does not exist."
+            "Could not set photo nonexistent_photo to public. It does not exist or is not owned by user."
         )

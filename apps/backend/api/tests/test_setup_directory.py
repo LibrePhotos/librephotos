@@ -18,7 +18,7 @@ class SetupDirectoryTestCase(TestCase):
         self.client.force_authenticate(user=self.admin)
         response = self.client.patch(
             f"/api/manage/user/{self.admin.id}/",
-            {"scan_directory": "/code"},
+            {"scan_directory": "/data"},
         )
         self.assertEqual(response.status_code, 200)
 
@@ -29,4 +29,6 @@ class SetupDirectoryTestCase(TestCase):
             {"scan_directory": "/non-existent-directory"},
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), ["Scan directory does not exist"])
+        self.assertEqual(
+            response.json(), ["Scan directory must be inside the data root."]
+        )

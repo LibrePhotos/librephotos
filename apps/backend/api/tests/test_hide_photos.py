@@ -46,7 +46,7 @@ class FavoritePhotosTest(TestCase):
         self.assertEqual(1, len(data["updated"]))
         self.assertEqual(2, len(data["not_updated"]))
 
-    def test_tag_photos_of_other_user_as_favorite(self):
+    def test_tag_photos_of_other_user_as_favorite(self, logger):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
         image_hashes = [p.image_hash for p in photos]
 
@@ -60,7 +60,10 @@ class FavoritePhotosTest(TestCase):
         self.assertTrue(data["status"])
         self.assertEqual(0, len(data["results"]))
         self.assertEqual(0, len(data["updated"]))
-        self.assertEqual(2, len(data["not_updated"]))
+        self.assertEqual(0, len(data["not_updated"]))
+        logger.assert_called_with(
+            "Could not set photo nonexistent_photo to hidden. It does not exist or is not owned by user."
+        )
 
     @patch("api.views.photos.logger.warning", autospec=True)
     def test_tag_nonexistent_photo_as_favorite(self, logger):
@@ -76,5 +79,5 @@ class FavoritePhotosTest(TestCase):
         self.assertEqual(0, len(data["updated"]))
         self.assertEqual(0, len(data["not_updated"]))
         logger.assert_called_with(
-            "Could not set photo nonexistent_photo to hidden. It does not exist."
+            "Could not set photo nonexistent_photo to hidden. It does not exist or is not owned by user."
         )
