@@ -6,7 +6,7 @@ django-cryptography-5==2.0.3
 django-extensions==4.1
 django-filter==25.1
 django-bulk-update
-django-silk==5.4.1
+django-silk==5.4.2
 djangorestframework==3.16.1
 djangorestframework-simplejwt==5.5.1
 drf-spectacular==0.28.0
