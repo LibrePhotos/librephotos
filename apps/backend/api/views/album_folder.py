@@ -13,7 +13,12 @@ from api.models.photo import Photo
 class FolderNavigationViewSet(viewsets.ViewSet):
     """
     ViewSet for folder navigation functionality.
-    Returns subfolders for a given path.
+    Returns paginated subfolders for a given path (max 100 per page).
+    Only queries photo counts for folders in the current page for optimal performance.
+
+    Query Parameters:
+    - path: The directory path to list subfolders for
+    - page: Page number for pagination (default: 1)
 
     Security:
     - Admins (is_staff=True) can access all folders within DATA_ROOT
@@ -25,7 +30,17 @@ class FolderNavigationViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"])
     def subfolders(self, request):
-        """Get subfolders for a given path."""
+        """Get subfolders for a given path with pagination."""
+        # Get pagination parameters
+        try:
+            page = int(request.query_params.get("page", 1))
+            if page < 1:
+                page = 1
+        except (ValueError, TypeError):
+            page = 1
+
+        page_size = 100  # Fixed page size of 100 folders
+
         # Determine default path based on user permissions
         is_admin = request.user.is_staff if request.user else False
 
@@ -108,24 +123,75 @@ class FolderNavigationViewSet(viewsets.ViewSet):
                         "current_path": base_path,
                         "parent_path": parent_path,
                         "subfolders": [],
+                        "pagination": {
+                            "page": page,
+                            "page_size": page_size,
+                            "total_folders": 0,
+                            "total_pages": 0,
+                            "has_next": False,
+                            "has_previous": page > 1,
+                        },
                     }
                 )
 
-            # One DB roundtrip: build conditional aggregates per subfolder (distinct to avoid duplicates)
+            # Sort folder entries by name first
+            folder_entries.sort(key=lambda x: x[0].lower())
+
+            # Apply pagination to folder entries before querying database
+            total_folders_all = len(folder_entries)
+            total_pages_all = (
+                total_folders_all + page_size - 1
+            ) // page_size  # Ceiling division
+
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
+            paginated_entries = folder_entries[start_idx:end_idx]
+
+            # Early return if no folders in this page
+            if not paginated_entries:
+                if is_admin:
+                    parent_path = (
+                        os.path.dirname(base_path)
+                        if base_path != settings.DATA_ROOT
+                        else None
+                    )
+                else:
+                    parent_path = (
+                        os.path.dirname(base_path)
+                        if base_path != request.user.scan_directory
+                        else None
+                    )
+                return Response(
+                    {
+                        "current_path": base_path,
+                        "parent_path": parent_path,
+                        "subfolders": [],
+                        "pagination": {
+                            "page": page,
+                            "page_size": page_size,
+                            "total_folders": total_folders_all,
+                            "total_pages": total_pages_all,
+                            "has_next": page < total_pages_all,
+                            "has_previous": page > 1,
+                        },
+                    }
+                )
+
+            # Query database only for the folders we need (paginated ones)
             aggregates = {}
-            for idx, (_, folder_path, _) in enumerate(folder_entries):
+            for idx, (_, folder_path, _) in enumerate(paginated_entries):
                 aggregates[f"count_{idx}"] = Count(
                     "pk", filter=Q(files__path__startswith=folder_path), distinct=True
                 )
 
             counts = Photo.objects.filter(owner=request.user).aggregate(**aggregates)
 
-            # Build response
-            subfolders = []
-            for idx, (name, folder_path, mtime) in enumerate(folder_entries):
+            # Build response for paginated folders
+            paginated_subfolders = []
+            for idx, (name, folder_path, mtime) in enumerate(paginated_entries):
                 photo_count = counts.get(f"count_{idx}", 0) or 0
                 if photo_count > 0:
-                    subfolders.append(
+                    paginated_subfolders.append(
                         {
                             "name": name,
                             "path": folder_path,
@@ -133,9 +199,6 @@ class FolderNavigationViewSet(viewsets.ViewSet):
                             "modified": mtime,
                         }
                     )
-
-            # Sort by name
-            subfolders.sort(key=lambda x: x["name"].lower())
 
             # Calculate parent path respecting user permissions
             if is_admin:
@@ -155,7 +218,15 @@ class FolderNavigationViewSet(viewsets.ViewSet):
                 {
                     "current_path": base_path,
                     "parent_path": parent_path,
-                    "subfolders": subfolders,
+                    "subfolders": paginated_subfolders,
+                    "pagination": {
+                        "page": page,
+                        "page_size": page_size,
+                        "total_folders": total_folders_all,
+                        "total_pages": total_pages_all,
+                        "has_next": page < total_pages_all,
+                        "has_previous": page > 1,
+                    },
                 }
             )
 
