@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.conf import settings
+from django.db.models import Count, Q
 
 from api.util import logger
 from api.models.photo import Photo
@@ -80,28 +81,58 @@ class FolderNavigationViewSet(viewsets.ViewSet):
                 )
 
         try:
-            subfolders = []
+            # Gather immediate subfolders and their mtimes
+            folder_entries = []
             for item in os.scandir(base_path):
                 if item.is_dir() and not item.name.startswith("."):
-                    item_path = item.path
-                    # Count photos in this folder
-                    photo_count = (
-                        Photo.objects.filter(
-                            owner=request.user, files__path__startswith=item_path
-                        )
-                        .distinct()
-                        .count()
+                    folder_entries.append(
+                        (item.name, item.path, os.path.getmtime(item.path))
                     )
 
-                    if photo_count > 0:  # Only include folders with photos
-                        subfolders.append(
-                            {
-                                "name": item.name,
-                                "path": item_path,
-                                "photo_count": photo_count,
-                                "modified": os.path.getmtime(item_path),
-                            }
-                        )
+            # Early return if there are no subfolders
+            if not folder_entries:
+                if is_admin:
+                    parent_path = (
+                        os.path.dirname(base_path)
+                        if base_path != settings.DATA_ROOT
+                        else None
+                    )
+                else:
+                    parent_path = (
+                        os.path.dirname(base_path)
+                        if base_path != request.user.scan_directory
+                        else None
+                    )
+                return Response(
+                    {
+                        "current_path": base_path,
+                        "parent_path": parent_path,
+                        "subfolders": [],
+                    }
+                )
+
+            # One DB roundtrip: build conditional aggregates per subfolder (distinct to avoid duplicates)
+            aggregates = {}
+            for idx, (_, folder_path, _) in enumerate(folder_entries):
+                aggregates[f"count_{idx}"] = Count(
+                    "pk", filter=Q(files__path__startswith=folder_path), distinct=True
+                )
+
+            counts = Photo.objects.filter(owner=request.user).aggregate(**aggregates)
+
+            # Build response
+            subfolders = []
+            for idx, (name, folder_path, mtime) in enumerate(folder_entries):
+                photo_count = counts.get(f"count_{idx}", 0) or 0
+                if photo_count > 0:
+                    subfolders.append(
+                        {
+                            "name": name,
+                            "path": folder_path,
+                            "photo_count": photo_count,
+                            "modified": mtime,
+                        }
+                    )
 
             # Sort by name
             subfolders.sort(key=lambda x: x["name"].lower())
