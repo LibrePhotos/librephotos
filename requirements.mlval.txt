@@ -2,5 +2,5 @@ pycocotools==2.0.10
 pycocoevalcap==1.2
 nltk==3.9.1
 matplotlib==3.10.5
-onnx==1.18.0
+onnx==1.19.0
 onnxscript
