@@ -1,10 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { Group, Button, Box } from "@mantine/core";
+import { Group, Button, Box, Modal, TextInput, ScrollArea, Stack, Text, Highlight, Badge, Avatar, UnstyledButton } from "@mantine/core";
 import { IconFolder as Folder, IconArrowLeft } from "@tabler/icons-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, memo } from "react";
 import { useTranslation } from "react-i18next";
-import { useMediaQuery } from "@mantine/hooks";
+import { useMediaQuery, useDisclosure } from "@mantine/hooks";
+import { Link } from "@tanstack/react-router";
+
 
 import { PigPhoto } from "../../../api_client/photos/types";
 import { useFetchDateAlbumsQuery, useFetchDateAlbumQuery } from "../../../api_client/albums/hooks";
@@ -12,17 +14,232 @@ import { PhotoListView, PhotoGroup } from "../../../components/photolist/PhotoLi
 import { Photoset } from "../../../api_client/photos/types";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks";
+import classes from './folder.module.css';
 
 export const Route = createFileRoute('/_protected/album/folder/$id')({
   component: FolderDetail,
 });
+
+// FolderListModal component - encapsulates all modal functionality
+interface FolderListModalProps {
+  subfolders: any[];
+  buttonSize: string;
+  isMobile: boolean;
+}
+
+const FolderListModal = memo<FolderListModalProps>(({ subfolders, buttonSize, isMobile }) => {
+  const { t } = useTranslation();
+  const [folderSearch, setFolderSearch] = useState("");
+  const [opened, { open, close }] = useDisclosure(false);
+
+  const MAX_RESULTS = 200;
+  const { items: filteredSubfolders, total: totalFilteredSubfolders } = useMemo(() => {
+    const query = folderSearch.trim().toLowerCase();
+    const all = !query
+      ? subfolders
+      : subfolders.filter((f: any) =>
+          f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query)
+        );
+    return { items: all.slice(0, MAX_RESULTS), total: all.length };
+  }, [subfolders, folderSearch]);
+
+  // Memoized FolderButton component with Mantine components
+  const FolderButton = memo<{
+    subfolder: any;
+    folderSearch: string;
+  }>(({ subfolder, folderSearch }) => {
+    // Helper function to truncate path intelligently
+    const truncatePath = (path: string, maxLength: number = 50) => {
+      if (path.length <= maxLength) return path;
+      // Try to break at folder separators
+      const parts = path.split('/');
+      let result = parts[parts.length - 1]; // Start with filename
+
+      for (let i = parts.length - 2; i >= 0; i--) {
+        const newResult = parts[i] + '/' + result;
+        if (newResult.length > maxLength - 3) break; // Leave room for "..."
+        result = newResult;
+      }
+
+      return result.length < path.length ? '...' + result : result;
+    };
+
+    return (
+      <UnstyledButton
+        component={Link}
+        to={`/album/folder/${encodeURIComponent(subfolder.path)}`}
+        variant="light"
+        size="lg"
+        title={subfolder.path}
+        className={classes.folderButton}
+        onClick={() => {
+          close();
+        }}
+      >
+        <Group gap="md" justify="space-between" align="center" wrap="nowrap">
+          <Group gap="md" align="center" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+            {/* Folder icon */}
+            <Avatar
+              size="lg"
+              radius="md"
+              color="blue"
+            >
+              📁
+            </Avatar>
+
+            {/* Text content */}
+            <Box style={{ flex: 1, minWidth: 0 }}>
+              <Stack gap={4}>
+                {/* Folder name */}
+                <Text
+                  size="sm"
+                  fw={600}
+                  lineClamp={1}
+                  ta="left"
+                >
+                  <Highlight highlight={folderSearch}>
+                    {subfolder.name}
+                  </Highlight>
+                </Text>
+
+                {/* Folder path */}
+                <Text
+                  size="xs"
+                  c="dimmed"
+                  lineClamp={1}
+                  ta="left"
+                >
+                  <Highlight highlight={folderSearch}>
+                    {truncatePath(subfolder.path)}
+                  </Highlight>
+                </Text>
+              </Stack>
+            </Box>
+          </Group>
+          <Badge
+            size="xl"
+            radius="xl"
+            variant="filled"
+            color="blue"
+            style={{
+              fontSize: 'var(--mantine-fontSizes-lg)',
+              fontWeight: 700,
+              padding: '8px 16px',
+              minWidth: '56px',
+              textAlign: 'center',
+              alignSelf: 'center'
+            }}
+          >
+            {subfolder.photo_count}
+          </Badge>
+        </Group>
+      </UnstyledButton>
+    );
+  });
+
+  FolderButton.displayName = 'FolderButton';
+
+  const maxFolders = 6; // We only need this for the trigger button logic
+
+  return (
+    <>
+      <Modal
+        opened={opened}
+        onClose={close}
+        title={`${t('all_subfolders', { defaultValue: 'All subfolders' })}`}
+        size={isMobile ? '90%' : 'lg'}
+        centered
+        scrollAreaComponent={ScrollArea.Autosize}
+        withCloseButton
+      >
+        <Stack gap="sm">
+          <TextInput
+            value={folderSearch}
+            onChange={(event) => {
+              setFolderSearch(event.currentTarget.value);
+            }}
+            placeholder={t('filter_folders', { defaultValue: 'Filter by name or path...' })}
+            leftSection={<span style={{ fontSize: '16px' }}>🔍</span>}
+            size="md"
+            radius="md"
+            styles={{
+              input: {
+                '&:focus': {
+                  borderColor: 'var(--mantine-color-blue-5)',
+                  boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)'
+                }
+              }
+            }}
+          />
+
+          <Group justify="space-between" align="center">
+            <Text size="sm" c="dimmed" fw={500}>
+              {t('results', { defaultValue: 'Results' })}: {filteredSubfolders.length}
+            </Text>
+            {totalFilteredSubfolders > MAX_RESULTS && (
+              <Badge variant="light" color="blue" size="sm">
+                {t('showing_first', { defaultValue: 'showing first' })} {MAX_RESULTS} / {totalFilteredSubfolders}
+              </Badge>
+            )}
+          </Group>
+          <ScrollArea.Autosize mah={600} type="auto">
+            <Stack gap="lg" p="md">
+              {filteredSubfolders.map((subfolder: any) => (
+                <FolderButton
+                  key={subfolder.path}
+                  subfolder={subfolder}
+                  folderSearch={folderSearch}
+                />
+              ))}
+              {filteredSubfolders.length === 0 && (
+                <Box ta="center" py="xl">
+                  <Stack gap="xs" align="center">
+                    <Avatar size="lg" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-1)' }}>
+                      📁
+                    </Avatar>
+                    <Text size="sm" c="dimmed" fw={500}>
+                      {t('no_folders_found', { defaultValue: 'No folders found' })}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {t('try_different_search', { defaultValue: 'Try adjusting your search terms' })}
+                    </Text>
+                  </Stack>
+                </Box>
+              )}
+            </Stack>
+          </ScrollArea.Autosize>
+        </Stack>
+      </Modal>
+
+      {/* Trigger button */}
+      {subfolders.length > maxFolders && (
+        <Button
+          variant="default"
+          size={buttonSize}
+          onClick={open}
+          styles={{
+            root: {
+              minHeight: isMobile ? '32px' : '28px',
+              padding: isMobile ? '4px 8px' : '2px 6px',
+              fontSize: isMobile ? '12px' : '13px'
+            }
+          }}
+          title={t('show_all_subfolders', { defaultValue: 'Show all subfolders' })}
+        >
+          +{subfolders.length - maxFolders} {t('more', { defaultValue: 'more' })}
+        </Button>
+      )}
+    </>
+  );
+});
+
+FolderListModal.displayName = 'FolderListModal';
 
 export function FolderDetail() {
   const { id } = Route.useParams();
   const folderPath = decodeURIComponent(id); // The id is the encoded folder path
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
-
   // Responsive breakpoints
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isSmallMobile = useMediaQuery('(max-width: 480px)');
@@ -35,6 +252,7 @@ export function FolderDetail() {
 
   // Get subfolders for navigation
   const { data: folderData } = useFetchFolderSubfoldersQuery(folderPath);
+  const subfolders = folderData?.subfolders || [];
 
   useEffect(() => {
     if (photosGroupedByDate) {
@@ -43,8 +261,6 @@ export function FolderDetail() {
   }, [photosGroupedByDate]);
 
   const [group, setGroup] = useState({} as PhotoGroup);
-
-  console.log(photosGroupedByDate);
 
   useFetchDateAlbumQuery(
     { album_date_id: group.id, page: group.page, photosetType: Photoset.NONE, folder: folderPath },
@@ -64,7 +280,6 @@ export function FolderDetail() {
   };
 
   function getSubheader() {
-    const subfolders = folderData?.subfolders || [];
     const parentPath = folderPath.substring(0, folderPath.lastIndexOf('/'));
     const canGoBack = parentPath && parentPath !== folderPath && parentPath.length > 0;
 
@@ -162,25 +377,14 @@ export function FolderDetail() {
             </Button>
           ))}
 
-          {/* Show remaining folders count */}
-          {subfolders.length > maxFolders && (
-            <Box
-              style={{
-                fontSize: isSmallMobile ? '11px' : isMobile ? '12px' : '13px',
-                color: 'var(--mantine-color-dimmed)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '4px 8px',
-                minHeight: isMobile ? '32px' : '28px',
-                backgroundColor: 'var(--mantine-color-body)',
-                borderRadius: 'var(--mantine-radius-sm)',
-                border: '1px solid var(--mantine-color-default-border)'
-              }}
-            >
-              +{subfolders.length - maxFolders} more
-            </Box>
-          )}
+          {/* Folder list modal with trigger button */}
+          <FolderListModal
+            subfolders={subfolders}
+            buttonSize={buttonSize}
+            isMobile={isMobile}
+          />
         </Group>
+       
       </Box>
     );
   }

@@ -25,7 +25,7 @@ type Props = Readonly<{
   numPhotos: number;
   icon: ReactElement;
   title: string;
-  additionalSubHeader: string;
+  additionalSubHeader: React.ReactNode;
   dayHeaderPrefix: string;
   date: string;
 }>;
@@ -74,11 +74,13 @@ export function DefaultHeader(props: Props) {
     }
 
     return (
-      <Text ta="left" c="dimmed">
-        {numPhotosetItems !== numPhotos ? `${numPhotosetItems} ${t("defaultheader.days")}, ` : ""}
-        {numPhotos} {t("defaultheader.photos")}
+      <div>
+        <Text ta="left" c="dimmed">
+          {numPhotosetItems !== numPhotos ? `${numPhotosetItems} ${t("defaultheader.days")}, ` : ""}
+          {numPhotos} {t("defaultheader.photos")}
+        </Text>
         {additionalSubHeader}
-      </Text>
+      </div>
     );
   }
 

@@ -7,6 +7,7 @@ import { Photo as PhotoType } from "../../api_client/photos/types";
 import { serverAddress } from "../../api_client/apiClient";
 import { useDeleteDuplicatePhotoMutation } from "../../api_client/photos/hooks";
 import { FileInfoComponent } from "./FileInfoComponent";
+import { BreadcrumbPath } from "../common/BreadcrumbPath";
 
 /**
  * Basic photo information (filename, dimensions, file size)
@@ -75,7 +76,10 @@ function AdditionalInfoSection({ photoDetail, isPublic, t }: {
   return (
     <Stack>
       {!isPublic && photoDetail.image_path && photoDetail.image_path.length > 0 && (
-        <FileInfoComponent description={t("exif.filepath")} info={`${photoDetail.image_path[0]}`} />
+        <Group>
+          <Text size="xs" c="dimmed">{t("exif.filepath")}</Text>
+          <BreadcrumbPath fullPath={photoDetail.image_path[0].replace(/\\/g, '/').split('/').slice(0, -1).join('/')} />
+        </Group>
       )}
       <FileInfoComponent description={t("exif.subjectdistance")} info={`${photoDetail.subjectDistance} m`} />
       <FileInfoComponent
@@ -111,7 +115,10 @@ function DuplicatesSection({
       <Text fw={800}>{t("exif.duplicates")}</Text>
       {duplicates.map((element, index) => (
         <Stack key={index}>
-          <FileInfoComponent description={t("exif.filepath")} info={`${element}`} />
+          <Group>
+            <Text size="xs" c="dimmed">{t("exif.filepath")}</Text>
+            <BreadcrumbPath fullPath={element.replace(/\\/g, '/').split('/').slice(0, -1).join('/')} />
+          </Group>
           <Button color="red" onClick={() => openDeleteDialog(photoDetail.image_hash, element)}>
             {t("delete")}
           </Button>

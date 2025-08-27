@@ -13,6 +13,7 @@ import { MediaDisplay } from "../../components/lightbox/MediaDisplay";
 import { CameraInfoComponent } from "../../components/lightbox/CameraInfoComponent";
 import type { FaceLocationType } from "../../components/lightbox/lightbox.types";
 import { FileInfoComponent } from "../../components/lightbox/FileInfoComponent";
+import { BreadcrumbPath } from "../../components/common/BreadcrumbPath";
 import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSection";
 import { LocationSection } from "../../components/lightbox/LocationSection";
 import { PeopleSection } from "../../components/lightbox/PeopleSection";
@@ -26,7 +27,6 @@ export const Route = createFileRoute('/_protected/photo/$id')({
 export function SinglePhotoView() {
   const { id: photoId } = Route.useParams();
   const { data: photoDetail } = useFetchPhotoDetailsQuery(photoId || "");
-  const [imageDimensions, setImageDimensions] = React.useState({ width: 0, height: 0 });
   const [faceLocation, setFaceLocation] = React.useState<FaceLocationType>(null);
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
@@ -91,7 +91,7 @@ export function SinglePhotoView() {
                 )}
                 <FileInfoComponent info={timestamp} size="sm" />
                 {photoDetail.image_path && photoDetail.image_path.length > 0 && (
-                  <FileInfoComponent info={photoDetail.image_path[0]} size="sm" width={750} />
+                  <BreadcrumbPath fullPath={photoDetail.image_path[0].replace(/\\/g, '/').split('/').slice(0, -1).join('/')} size="sm" />
                 )}
               </Group>
           </Stack>
@@ -104,8 +104,6 @@ export function SinglePhotoView() {
               id={photoDetail.image_hash}
               isMainContent={true}
               type={photoDetail.video ? "video" : "photo"}
-              imageDimensions={imageDimensions}
-              setImageDimensions={setImageDimensions}
               faceLocation={faceLocation}
               handleDragStart={() => {}}
               fullHeight={true}

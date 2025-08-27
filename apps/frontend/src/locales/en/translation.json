@@ -689,5 +689,17 @@
   },
   "locationstimeline": {
     "fromto": "{{location}} from {{start}} to {{end}}"
-  }
+  },
+  "back": "Back",
+  "back_to_parent": "Back to Parent",
+  "folders": "Folders",
+  "back_to_folders": "Back to Folders",
+  "show_all_subfolders": "Show all subfolders",
+  "more": "more",
+  "all_subfolders": "All subfolders",
+  "filter_folders": "Filter by name or path...",
+  "clear": "Clear",
+  "results": "Results",
+  "no_folders_found": "No folders found",
+  "showing_first": "showing first"
 }
