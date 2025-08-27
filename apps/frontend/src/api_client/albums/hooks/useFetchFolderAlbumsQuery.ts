@@ -15,6 +15,14 @@ export interface FolderNavigationResponse {
   current_path: string;
   parent_path: string | null;
   subfolders: SubfolderInfo[];
+  pagination?: {
+    page: number;
+    page_size: number;
+    total_folders: number;
+    total_pages: number;
+    has_next: boolean;
+    has_previous: boolean;
+  };
 }
 
 export const useFetchFolderSubfoldersQuery = (path?: string) =>
@@ -25,7 +33,7 @@ export const useFetchFolderSubfoldersQuery = (path?: string) =>
       try {
         const params = path ? `?path=${encodeURIComponent(path)}` : '';
         const response = await fetchClient.get(`/folders/subfolders/${params}`);
-        return response;
+        return response as FolderNavigationResponse;
       } catch (error) {
         console.error('Error fetching folder subfolders:', error);
         throw error;

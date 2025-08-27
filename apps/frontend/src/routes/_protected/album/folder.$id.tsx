@@ -13,7 +13,7 @@ import { useFetchDateAlbumsQuery, useFetchDateAlbumQuery } from "../../../api_cl
 import { PhotoListView, PhotoGroup } from "../../../components/photolist/PhotoListView";
 import { Photoset } from "../../../api_client/photos/types";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
-import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks";
+import { useFetchFolderSubfoldersQuery, useFetchFolderSubfoldersInfiniteQuery } from "../../../api_client/albums/hooks";
 import classes from './folder.module.css';
 
 export const Route = createFileRoute('/_protected/album/folder/$id')({
@@ -22,26 +22,30 @@ export const Route = createFileRoute('/_protected/album/folder/$id')({
 
 // FolderListModal component - encapsulates all modal functionality
 interface FolderListModalProps {
+  folderPath?: string;
   subfolders: any[];
   buttonSize: string;
   isMobile: boolean;
 }
 
-const FolderListModal = memo<FolderListModalProps>(({ subfolders, buttonSize, isMobile }) => {
+const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, buttonSize, isMobile }) => {
   const { t } = useTranslation();
   const [folderSearch, setFolderSearch] = useState("");
   const [opened, { open, close }] = useDisclosure(false);
 
-  const MAX_RESULTS = 200;
-  const { items: filteredSubfolders, total: totalFilteredSubfolders } = useMemo(() => {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useFetchFolderSubfoldersInfiniteQuery(folderPath);
+
+  const allSubfolders = useMemo(() => {
+    return data?.pages?.flatMap((p) => p.subfolders) || [];
+  }, [data]);
+
+  const filteredSubfolders = useMemo(() => {
     const query = folderSearch.trim().toLowerCase();
-    const all = !query
-      ? subfolders
-      : subfolders.filter((f: any) =>
-          f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query)
-        );
-    return { items: all.slice(0, MAX_RESULTS), total: all.length };
-  }, [subfolders, folderSearch]);
+    if (!query) return allSubfolders;
+    return allSubfolders.filter((f: any) =>
+      f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query)
+    );
+  }, [allSubfolders, folderSearch]);
 
   // Memoized FolderButton component with Mantine components
   const FolderButton = memo<{
@@ -176,9 +180,9 @@ const FolderListModal = memo<FolderListModalProps>(({ subfolders, buttonSize, is
             <Text size="sm" c="dimmed" fw={500}>
               {t('results', { defaultValue: 'Results' })}: {filteredSubfolders.length}
             </Text>
-            {totalFilteredSubfolders > MAX_RESULTS && (
+            {hasNextPage && (
               <Badge variant="light" color="blue" size="sm">
-                {t('showing_first', { defaultValue: 'showing first' })} {MAX_RESULTS} / {totalFilteredSubfolders}
+                {t('more_available', { defaultValue: 'More available' })}
               </Badge>
             )}
           </Group>
@@ -191,6 +195,20 @@ const FolderListModal = memo<FolderListModalProps>(({ subfolders, buttonSize, is
                   folderSearch={folderSearch}
                 />
               ))}
+              {/* Infinite scroll sentinel */}
+              <div
+                ref={(node) => {
+                  if (!node) return;
+                  const observer = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                      if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+                        fetchNextPage();
+                      }
+                    });
+                  });
+                  observer.observe(node);
+                }}
+              />
               {filteredSubfolders.length === 0 && (
                 <Box ta="center" py="xl">
                   <Stack gap="xs" align="center">
@@ -379,6 +397,7 @@ export function FolderDetail() {
 
           {/* Folder list modal with trigger button */}
           <FolderListModal
+            folderPath={folderPath}
             subfolders={subfolders}
             buttonSize={buttonSize}
             isMobile={isMobile}
