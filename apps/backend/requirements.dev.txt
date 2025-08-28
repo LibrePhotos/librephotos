@@ -2,7 +2,7 @@ ipdb==0.13.13
 ipython==9.4.0
 ipython-genutils==0.2.0
 Pygments==2.19.2
-prompt-toolkit==3.0.51
+prompt-toolkit==3.0.52
 nose==1.3.7
 pre-commit==4.3.0
 coverage==7.10.5
