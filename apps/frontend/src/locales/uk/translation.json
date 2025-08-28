@@ -692,5 +692,17 @@
     "Calculate Clip Embeddings": "Обчислити вбудовані кліпи",
     "Generate Event Albums": "Генерувати альбоми подій",
     "Train Faces": "Тренувати розпізнавання облич",
-    "Download Selected Photos": "Завантажити вибрані світлини"
+    "Download Selected Photos": "Завантажити вибрані світлини",
+    "back": "Назад",
+    "back_to_parent": "Назад до батьківської",
+    "folders": "Теки",
+    "back_to_folders": "Назад до тек",
+    "show_all_subfolders": "Показати всі підтеки",
+    "more": "більше",
+    "all_subfolders": "Усі підтеки",
+    "filter_folders": "Фільтрувати за назвою або шляхом...",
+    "clear": "Очистити",
+    "results": "Результати",
+    "no_folders_found": "Тек не знайдено",
+    "showing_first": "показувати першим"
 }
