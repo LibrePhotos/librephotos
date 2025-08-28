@@ -694,5 +694,17 @@
     "Calculate Clip Embeddings": "Calcular Clip Embeddings",
     "Generate Event Albums": "Gerar álbuns de eventos",
     "Train Faces": "Treinar Caras",
-    "Download Selected Photos": "Descarregar fotos selecionadas"
+    "Download Selected Photos": "Descarregar fotos selecionadas",
+    "back": "Retornar",
+    "back_to_parent": "Retornar ao nível anterior",
+    "folders": "Pastas",
+    "back_to_folders": "Retornar às pastas",
+    "show_all_subfolders": "Mostrar todas as subpastas",
+    "more": "mais",
+    "all_subfolders": "Todas as subpastas",
+    "filter_folders": "Filtrar por nome ou caminho...",
+    "clear": "Limpar",
+    "results": "Resultados",
+    "no_folders_found": "Nenhuma pasta encontrada",
+    "showing_first": "a mostrar primeiro"
 }
