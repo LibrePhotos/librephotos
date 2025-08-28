@@ -694,5 +694,14 @@
     "Calculate Clip Embeddings": "Berechnen von Clip-Einbettungen",
     "storage": "Speicherplatz",
     "storagetooltip": "{{usedstorage}} von{{totalstorage}} belegt",
-    "deletealbumexplanation": "Diese Aktion löscht das Album unwiederbringlich. Diese Aktion kann nicht rückgängig gemacht werden."
+    "deletealbumexplanation": "Diese Aktion löscht das Album unwiederbringlich. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "no_folders_found": "Keine Ordner gefunden",
+    "back": "Zurück",
+    "folders": "Ordner",
+    "back_to_folders": "Zurück zu den Ordnern",
+    "show_all_subfolders": "Alle Unterordner anzeigen",
+    "all_subfolders": "Alle Unterordner",
+    "filter_folders": "Nach Name oder Pfad filtern...",
+    "clear": "Leeren",
+    "results": "Ergebnisse"
 }
