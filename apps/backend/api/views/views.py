@@ -45,7 +45,7 @@ def custom_exception_handler(exc, context):
     # to get the standard error response.
     response = exception_handler(exc, context)
 
-    # Update the structure of the response data.
+    # Update the structure of the response data and enrich auth errors.
     if response is not None:
         customized_response = {"errors": []}
 
@@ -53,7 +53,22 @@ def custom_exception_handler(exc, context):
             for key, value in response.data.items():
                 error = {"field": key, "message": "".join(str(value))}
                 customized_response["errors"].append(error)
-            response.data = customized_response
+
+        # Add actionable guidance for unauthenticated/forbidden responses
+        if getattr(response, "status_code", None) in (401, 403) and settings.DEBUG:
+            customized_response["errors"].append(
+                {
+                    "field": "auth",
+                    "message": (
+                        "Authentication required. Obtain a JWT via POST /api/auth/token/obtain/ "
+                        'with JSON {"username":"<user>", "password":"<pass>"}. '
+                        "Then call APIs with header Authorization: Bearer <access_token> (or use the 'jwt' cookie set by the obtain/refresh endpoints). "
+                        "See /api/help and docs at https://docs.librephotos.com/docs/user-guide/api-authentication."
+                    ),
+                }
+            )
+
+        response.data = customized_response
 
     return response
 
@@ -194,6 +209,79 @@ class StorageStatsView(APIView):
                 "free_storage": free_storage,
             }
         )
+
+
+class ApiHelpView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, format=None):
+        base = ""
+        try:
+            base = request.build_absolute_uri("/").rstrip("/")
+        except Exception:
+            base = ""
+
+        data = {
+            "about": "LibrePhotos API Help",
+            "authentication": {
+                "default_authentication_classes": [
+                    "rest_framework_simplejwt.authentication.JWTAuthentication",
+                    "rest_framework.authentication.BasicAuthentication",
+                ],
+                "jwt": {
+                    "obtain": f"{base}/api/auth/token/obtain/",
+                    "refresh": f"{base}/api/auth/token/refresh/",
+                    "how_to": "POST username and password as JSON to obtain, then send Authorization: Bearer <access_token> or rely on 'jwt' cookie set by obtain/refresh endpoints.",
+                },
+                "basic": {
+                    "how_to": "Send Authorization: Basic base64(username:password).",
+                },
+            },
+            "useful_endpoints": {
+                "api_root": f"{base}/",  # browsable API may be disabled when serving frontend
+                "help": f"{base}/api/help",
+                "photos": f"{base}/api/photos/",
+                "search": f"{base}/api/photos/searchlist/",
+            },
+            "documentation": {
+                "api_authentication": "https://docs.librephotos.com/docs/user-guide/api-authentication",
+            },
+            "examples": {
+                "obtain_token_curl": (
+                    "curl -X POST \"{base}/api/auth/token/obtain/\" -H 'Content-Type: application/json' "
+                    "-d '{"
+                    "username"
+                    ": "
+                    "myuser"
+                    ", "
+                    "password"
+                    ": "
+                    "mypassword"
+                    "}'"
+                ),
+                "call_api_with_bearer": (
+                    "curl -H 'Authorization: Bearer <access_token>' \"{base}/api/photos/\""
+                ),
+                "call_api_with_basic": (
+                    'curl -u myuser:mypassword "{base}/api/photos/"'
+                ),
+            },
+        }
+
+        # Add schema links in DEBUG mode if available
+        try:
+            if settings.DEBUG:
+                data.setdefault("useful_endpoints", {}).update(
+                    {
+                        "openapi_schema": f"{base}/api/schema",
+                        "swagger_ui": f"{base}/api/swagger",
+                        "redoc": f"{base}/api/redoc",
+                    }
+                )
+        except Exception:
+            pass
+
+        return Response(data)
 
 
 class ImageTagView(APIView):

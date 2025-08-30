@@ -293,6 +293,7 @@ if settings.DEBUG:
         re_path(r"^api/schema", SpectacularAPIView.as_view(), name="schema"),
         re_path(r"^api/swagger", SpectacularSwaggerView.as_view(), name="swagger-ui"),
         re_path(r"^api/redoc", SpectacularRedocView.as_view(), name="redoc"),
+        re_path(r"^api/help$", views.ApiHelpView.as_view()),
     ]
 
 # Configure media and frontend serving for no-proxy (SERVE_FRONTEND) mode
