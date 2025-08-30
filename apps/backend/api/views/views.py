@@ -237,6 +237,26 @@ class ScanPhotosView(APIView):
         return self._scan_photos(request)
 
     def _scan_photos(self, request):
+        # Validate that user has a configured scan directory
+        if not request.user.scan_directory or request.user.scan_directory.strip() == "":
+            return Response(
+                {
+                    "status": False,
+                    "message": "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
+                },
+                status=400,
+            )
+
+        # Validate that the scan directory exists
+        if not os.path.exists(request.user.scan_directory):
+            return Response(
+                {
+                    "status": False,
+                    "message": f"Scan failed: Scan directory '{request.user.scan_directory}' does not exist. Please contact your administrator.",
+                },
+                status=400,
+            )
+
         chain = Chain()
         if not do_all_models_exist():
             chain.append(download_models, request.user)
@@ -255,6 +275,26 @@ class ScanPhotosView(APIView):
 # To-Do: Allow for custom paths
 class SelectiveScanPhotosView(APIView):
     def get(self, request, format=None):
+        # Validate that user has a configured scan directory
+        if not request.user.scan_directory or request.user.scan_directory.strip() == "":
+            return Response(
+                {
+                    "status": False,
+                    "message": "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
+                },
+                status=400,
+            )
+
+        # Validate that the scan directory exists
+        if not os.path.exists(request.user.scan_directory):
+            return Response(
+                {
+                    "status": False,
+                    "message": f"Scan failed: Scan directory '{request.user.scan_directory}' does not exist. Please contact your administrator.",
+                },
+                status=400,
+            )
+
         chain = Chain()
         if not do_all_models_exist():
             chain.append(download_models, request.user)

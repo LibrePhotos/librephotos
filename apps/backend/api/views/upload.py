@@ -128,6 +128,27 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 detail="Authentication credentials were not provided",
             )
 
+        user = User.objects.filter(id=token["user_id"]).first()
+        if not user or not user.is_authenticated:
+            raise ChunkedUploadError(
+                status=http_status.HTTP_403_FORBIDDEN,
+                detail="Authentication credentials were not provided",
+            )
+
+        # Validate that user has a configured scan directory
+        if not user.scan_directory or user.scan_directory.strip() == "":
+            raise ChunkedUploadError(
+                status=http_status.HTTP_400_BAD_REQUEST,
+                detail="Upload failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
+            )
+
+        # Validate that the scan directory exists
+        if not os.path.exists(user.scan_directory):
+            raise ChunkedUploadError(
+                status=http_status.HTTP_400_BAD_REQUEST,
+                detail=f"Upload failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator.",
+            )
+
         if not is_valid_media(uploaded_file.file.path):
             chunked_upload = get_object_or_404(
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
@@ -138,7 +159,6 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 detail="File type not allowed",
             )
 
-        user = User.objects.filter(id=token["user_id"]).first()
         # Sanitize file name
         filename = get_valid_filename(request.POST.get("filename"))
 

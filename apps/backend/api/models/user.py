@@ -27,7 +27,9 @@ def get_default_llm_settings():
 
 
 class User(AbstractUser):
-    scan_directory = models.CharField(max_length=512, db_index=True)
+    scan_directory = models.CharField(
+        max_length=512, db_index=True, blank=True, default=""
+    )
     confidence = models.FloatField(default=0.1, db_index=True)
     confidence_person = models.FloatField(default=0.9)
     image_scale = models.FloatField(default=1)

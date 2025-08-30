@@ -1,3 +1,15 @@
+"""
+LLM Service for LibrePhotos
+
+This service provides Large Language Model capabilities for image captioning and analysis.
+
+Note: CPU compatibility is checked by the main LibrePhotos application before starting this service.
+Services with incompatible CPUs will not be started to prevent performance issues.
+
+Usage:
+- Normal operation: python main.py (started by LibrePhotos service manager)
+"""
+
 import gevent
 import time
 from pathlib import Path
@@ -121,6 +133,10 @@ def health():
 
 if __name__ == "__main__":
     log("LLM service with multimodal support starting")
+    log(
+        "Note: CPU compatibility is verified by LibrePhotos service manager before startup"
+    )
+
     server = WSGIServer(("0.0.0.0", 8008), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])

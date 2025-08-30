@@ -9,6 +9,17 @@ from django.utils import timezone
 from api.models import Photo
 from api.util import logger
 
+# Track services that should not be restarted due to system incompatibility
+INCOMPATIBLE_SERVICES = set()
+
+# CPU features required for different services
+SERVICE_CPU_REQUIREMENTS = {
+    "llm": {
+        "required": ["avx", "sse4_2"],  # Essential for llama.cpp
+        "recommended": ["avx2", "fma", "f16c"],  # Improve performance
+    }
+}
+
 # Define all the services that can be started, with their respective ports
 SERVICES = {
     "image_similarity": 8002,
@@ -26,6 +37,10 @@ HTTP_OK = 200
 
 def check_services():
     for service in SERVICES.keys():
+        if service in INCOMPATIBLE_SERVICES:
+            logger.info(f"Skipping restart of incompatible service: {service}")
+            continue
+
         if not is_healthy(service):
             stop_service(service)
             logger.info(f"Restarting {service}")
@@ -48,6 +63,11 @@ def is_healthy(service):
 
 
 def start_service(service):
+    # Check system compatibility before attempting to start the service
+    if not is_service_compatible(service):
+        logger.error(f"Service '{service}' is not compatible with this system")
+        return False
+
     if service == "image_similarity":
         subprocess.Popen(
             [
@@ -102,6 +122,75 @@ def stop_service(service):
     except Exception as e:
         logger.error(f"An error occurred while stopping service '{service}': {e}")
         return False
+
+
+def check_cpu_features():
+    """Check for CPU instruction sets for various services"""
+    # Features to check for
+    features_to_check = ["avx", "avx2", "sse4_2", "fma", "f16c"]
+    available_features = []
+
+    if not available_features:
+        try:
+            import cpuinfo
+
+            cpu_info = cpuinfo.get_cpu_info()
+            flags = cpu_info.get("flags", [])
+            for feature in features_to_check:
+                if feature in flags:
+                    available_features.append(feature)
+        except ImportError:
+            pass
+
+    return available_features
+
+
+def has_required_cpu_features(service):
+    """Check if CPU has required features for a specific service"""
+    if service not in SERVICE_CPU_REQUIREMENTS:
+        return True  # No CPU requirements for this service
+
+    requirements = SERVICE_CPU_REQUIREMENTS[service]
+    required_features = requirements.get("required", [])
+    recommended_features = requirements.get("recommended", [])
+
+    available_features = check_cpu_features()
+
+    logger.info(f"CPU features detected for {service}: {available_features}")
+
+    missing_required = []
+    missing_recommended = []
+
+    for feature in required_features:
+        if feature not in available_features:
+            missing_required.append(feature)
+
+    for feature in recommended_features:
+        if feature not in available_features:
+            missing_recommended.append(feature)
+
+    if missing_required:
+        logger.error(f"Service '{service}' requires CPU features: {missing_required}")
+        logger.error(f"Missing required CPU features: {missing_required}")
+        return False
+
+    if missing_recommended:
+        logger.warning(
+            f"Service '{service}' performance may be degraded without: {missing_recommended}"
+        )
+
+    logger.info(f"CPU compatible with service '{service}'")
+    return True
+
+
+def is_service_compatible(service):
+    """Check if a service is compatible with the current system"""
+    # Check CPU compatibility
+    if not has_required_cpu_features(service):
+        INCOMPATIBLE_SERVICES.add(service)
+        return False
+
+    return True
 
 
 def cleanup_deleted_photos():
