@@ -221,7 +221,8 @@
     "name": "Person name",
     "share": "Share",
     "unshare": "Unshare",
-    "joined": "Joined"
+    "joined": "Joined",
+    "loading": "Loading..."
   },
   "modalalbumsshare": {
     "title": "Share Album",
@@ -662,7 +663,8 @@
     "removefacestoperson": "{{numberOfFaces}} face(s) were moved to 'Unknown - Other'",
     "removefacestopersontitle": "Remove faces from person",
     "savecaptions": "Image caption updated",
-    "captionupdate": "Update Caption"
+    "captionupdate": "Update Caption",
+    "scan_directory_required": "Scan directory not configured - contact administrator"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",

@@ -1,9 +1,10 @@
-import { ActionIcon, Progress } from "@mantine/core";
+import { ActionIcon, Progress, Tooltip } from "@mantine/core";
 import { IconUpload as Upload } from "@tabler/icons-react";
 import CryptoJS from "crypto-js";
 import MD5 from "crypto-js/md5";
 import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { useTranslation } from "react-i18next";
 import { fetchClient } from "../api_client/api";
 import { UploadExistResponse } from "../api_client/upload/hooks/useUploadExistsMutation";
 import { useGetSettingsQuery } from "../api_client/settings/hooks/useGetSettingsQuery";
@@ -11,6 +12,7 @@ import { useUploadFinishedMutation, useUploadMutation } from "../api_client/uplo
 import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 export function ChunkedUploadButton() {
+  const { t } = useTranslation();
   const [totalSize, setTotalSize] = useState(1);
   const [currentSize, setCurrentSize] = useState(1);
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
@@ -153,24 +155,36 @@ export function ChunkedUploadButton() {
         });
     });
   }
+   // Check if user has scan directory configured
+   const hasScanDirectory = userSelfDetails?.scan_directory && userSelfDetails.scan_directory.trim() !== "";
+
 
   const { getRootProps, getInputProps, open } = useDropzone({
     accept: {
       "image/*": [],
       "video/*": [],
     },
-    noClick: true,
-    noKeyboard: true,
-    onDrop,
+    noClick: !hasScanDirectory,
+    noKeyboard: !hasScanDirectory,
+    onDrop: hasScanDirectory ? onDrop : () => {},
+    disabled: !hasScanDirectory,
   });
 
+ 
   if (settings?.allow_upload) {
-    return (
+    const uploadContent = (
       <div style={{ width: "50px" }}>
         <div {...getRootProps({ className: "dropzone" })} style={{ alignContent: "center", display: "flex" }}>
           <input {...getInputProps()} />
           {currentSize / totalSize > 0.99 && (
-            <ActionIcon color="gray" variant="light" loading={currentSize / totalSize < 1} onClick={open}>
+            <ActionIcon
+              color="gray"
+              variant="light"
+              loading={currentSize / totalSize < 1}
+              onClick={hasScanDirectory ? open : undefined}
+              disabled={!hasScanDirectory}
+              style={!hasScanDirectory ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+            >
               <Upload />
             </ActionIcon>
           )}
@@ -188,6 +202,16 @@ export function ChunkedUploadButton() {
         </div>
       </div>
     );
+
+    if (!hasScanDirectory) {
+      return (
+        <Tooltip label={t("toasts.scan_directory_required")}>
+          {uploadContent}
+        </Tooltip>
+      );
+    }
+
+    return uploadContent;
   }
   return null;
 }

@@ -214,7 +214,8 @@
         "share": "Partager",
         "unshare": "Ne plus partager",
         "title": "Partager des photos",
-        "name": "Nom de la personne"
+        "name": "Nom de la personne",
+        "loading": "Chargement..."
     },
     "modalalbumsshare": {
         "joined": "Enregistré",

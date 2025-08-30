@@ -214,7 +214,8 @@
         "search": "Nutzer suchen",
         "name": "Name der Person",
         "share": "Teilen",
-        "unshare": "Teilen aufheben"
+        "unshare": "Teilen aufheben",
+        "loading": "Lädt..."
     },
     "modalalbumsshare": {
         "joined": "Beigetreten",
