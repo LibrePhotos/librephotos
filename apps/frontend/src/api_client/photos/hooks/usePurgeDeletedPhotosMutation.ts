@@ -6,6 +6,10 @@ import { fetchClient, queryClient } from "../../api";
 
 import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
 import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery';
+import { RecentlyAddedPhotosQueryKeys } from './useFetchRecentlyAddedPhotosQuery';
+import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
+import { PhotoMonthCountQueryKeys } from '../../stats/hooks/useFetchPhotoMonthCountQuery';
+import { StorageStatsQueryKeys } from '../../server/hooks/useFetchStorageStatsQuery';
 
 const PurgePhotosRequest = z.object({
   image_hashes: z.array(z.string()),
@@ -30,5 +34,9 @@ export const usePurgeDeletedPhotosMutation = () => useMutation({
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
   },
 }); 

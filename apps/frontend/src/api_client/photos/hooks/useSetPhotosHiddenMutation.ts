@@ -8,6 +8,9 @@ import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery'
 import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery';
 import { IncompleteFacesQueryKeys } from '../../faces/hooks/useFetchIncompleteFacesQuery';
 import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+import { RecentlyAddedPhotosQueryKeys } from './useFetchRecentlyAddedPhotosQuery';
+import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
+import { PhotoMonthCountQueryKeys } from '../../stats/hooks/useFetchPhotoMonthCountQuery';
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
@@ -35,6 +38,9 @@ export const useSetPhotosHiddenMutation = () => useMutation({
     queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...IncompleteFacesQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
     
     // If we have a single photo, invalidate its details
     if (image_hashes.length === 1) {

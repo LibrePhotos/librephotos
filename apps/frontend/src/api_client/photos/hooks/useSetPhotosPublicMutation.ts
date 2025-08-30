@@ -7,6 +7,7 @@ import { fetchClient, queryClient } from "../../api";
 import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
 import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery'; 
 import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+import { RecentlyAddedPhotosQueryKeys } from './useFetchRecentlyAddedPhotosQuery';
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
@@ -34,6 +35,7 @@ export const useSetPhotosPublicMutation = () => useMutation({
     // Invalidate relevant queries
     queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
     
     // If we have a single photo, invalidate its details
     if (image_hashes.length === 1) {

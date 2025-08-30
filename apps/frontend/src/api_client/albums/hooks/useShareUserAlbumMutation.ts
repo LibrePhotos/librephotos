@@ -5,6 +5,7 @@ import { fetchClient, queryClient } from "../../api";
 import { UserAlbumsQueryKeys } from './useFetchUserAlbumsQuery';
 import { UserAlbumQueryKeys } from './useFetchUserAlbumQuery';
 import { SharedAlbumsByMeQueryKeys } from './useFetchSharedAlbumsByMeQuery';
+import { SharedAlbumsWithMeQueryKeys } from './useFetchSharedAlbumsWithMeQuery';
 
 type ShareUserAlbumParams = {
   albumId: string;
@@ -26,5 +27,6 @@ export const useShareUserAlbumMutation = () => useMutation({
     queryClient.invalidateQueries({ queryKey: [...UserAlbumsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...UserAlbumQueryKeys, albumId] });
     queryClient.invalidateQueries({ queryKey: [...SharedAlbumsByMeQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: [...SharedAlbumsWithMeQueryKeys] });
   },
 }); 

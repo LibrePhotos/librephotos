@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { fetchClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+import { SearchPhotosQueryKeys } from '../../search/hooks/useSearchPhotosQuery';
 
 const StatusResponse = z.object({
   status: z.boolean(),
@@ -16,5 +17,6 @@ export const useGenerateImageToTextCaptionMutation = () => useMutation({
   },
   onSuccess: (_, { id }) => {
     queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, id] });
+    queryClient.invalidateQueries({ queryKey: [...SearchPhotosQueryKeys] });
   },
 }); 

@@ -1,6 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
-import { fetchClient } from '../../api';
+import { fetchClient, queryClient } from '../../api';
+import { RecentlyAddedPhotosQueryKeys } from '../../photos/hooks/useFetchRecentlyAddedPhotosQuery';
+import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
+import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
+import { PhotoMonthCountQueryKeys } from '../../stats/hooks/useFetchPhotoMonthCountQuery';
+import { StorageStatsQueryKeys } from '../../server/hooks/useFetchStorageStatsQuery';
 import { UploadOptions } from '../types';
 
 export const UploadResponse = z.object({
@@ -21,4 +26,11 @@ const upload = (options: UploadOptions) => {
 
 export const useUploadMutation = () => useMutation({
         mutationFn: upload,
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+          queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
+          queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
+          queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
+          queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
+        }
     });  
