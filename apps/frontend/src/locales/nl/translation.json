@@ -423,7 +423,8 @@
         "search": "Zoeken naar gebruiker",
         "share": "Delen",
         "title": "Foto's delen",
-        "unshare": "Niet meer delen"
+        "unshare": "Niet meer delen",
+        "loading": "Bezig met laden…"
     },
     "modalalbumsshare": {
         "joined": "Deelgenomen",
@@ -594,7 +595,8 @@
         "captionupdate": "Bijschrift bijwerken",
         "downloadcomplete": "De bestanden zijn gedownload",
         "downloaderror": "Het downloaden is mislukt",
-        "downloadstart": "Het downloaden is gestart"
+        "downloadstart": "Het downloaden is gestart",
+        "scan_directory_required": "Er is geen scanmap ingesteld - neem contact op met de beheerder"
     },
     "rename": "Naam wijzigen",
     "events": "Gebeurtenissen",
@@ -694,5 +696,17 @@
     "Calculate Clip Embeddings": "Clipinsluitingen berekenen",
     "Generate Event Albums": "Gebeurtenisalbums samenstellen",
     "Train Faces": "Gezichtsherkenning trainen",
-    "Download Selected Photos": "Selectie downloaden"
+    "Download Selected Photos": "Selectie downloaden",
+    "back": "Terug",
+    "back_to_parent": "Terug naar bovenliggende map",
+    "folders": "Mappen",
+    "back_to_folders": "Terug naar mappen",
+    "show_all_subfolders": "Onderliggende mappen tonen",
+    "more": "meer",
+    "all_subfolders": "Onderliggende mappen",
+    "filter_folders": "Filteren op naam of locatie…",
+    "clear": "Wissen",
+    "results": "Zoekresultatien",
+    "no_folders_found": "Er zijn geen mappen gevonden",
+    "showing_first": "getoond: eerste"
 }
