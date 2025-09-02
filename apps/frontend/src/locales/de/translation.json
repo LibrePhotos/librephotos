@@ -191,7 +191,7 @@
             "cnn": "CNN"
         },
         "min_samples": "Minimale Samples",
-        "cluster_selection_epsilon_help": "Bestimmt, welche Cluster zusammengefasst werden. Ein höherer Wert heißt, dass mehr Cluster zusammengefasst werden.",
+        "cluster_selection_epsilon_help": "Bestimmt, welche Cluster zusammengefasst werden. Ein höherer Wert bedeutet, dass mehr Cluster zusammengefasst werden.",
         "hindi": "Hindi",
         "llm": "Large Language Model Einstellungen",
         "enablellm": "Aktiviere Large Language Model für Beschreibungen",
@@ -424,7 +424,7 @@
         "map_api_key_description": "Holen Sie sich einen API-Schlüssel unter {{url}}",
         "heavyweight": "Anzahl der Worker für Bildverarbeitung kann höher als 1 eingestellt werden, allerdings benötigt jeder zusätzliche Worker 800MB Arbeitsspeicher.",
         "map_api_provider_header": "Kartenanbieter",
-        "map_api_provider_description": "Zum Abrufen von Ortsnamen aus den GPS-Metadaten von Bildern.",
+        "map_api_provider_description": "Zum Abrufen von Standortnamen der GPS-Metadaten von Bildern.",
         "llm_model_header": "Large Language Model",
         "captioning_model_description": "Wähle ein Model für die Beschreibungsgenerierung aus.",
         "ram_warning_header": "Hohe RAM-Größe möglich",
@@ -603,7 +603,8 @@
         "captionupdate": "Bildunterschrift aktualisieren",
         "downloadstart": "Download gestartet",
         "downloaderror": "Während des Downloads ist ein Fehler aufgetreten",
-        "downloadcomplete": "Dateien erfolgreich heruntergeladen"
+        "downloadcomplete": "Dateien erfolgreich heruntergeladen",
+        "scan_directory_required": "Scanordner ist nicht konfiguriert - Administrator kontaktieren"
     },
     "rules": {
         "file_property": "Dateieigenschaft verwenden: {{rule}}",
@@ -704,5 +705,8 @@
     "all_subfolders": "Alle Unterordner",
     "filter_folders": "Nach Name oder Pfad filtern...",
     "clear": "Leeren",
-    "results": "Ergebnisse"
+    "results": "Ergebnisse",
+    "back_to_parent": "Zurück zum Vorläufer",
+    "more": "mehr",
+    "showing_first": "Zeige erste zuerst"
 }
