@@ -250,7 +250,8 @@
         "unshare": "Deixar de partilhar",
         "title": "Partilhar fotos",
         "name": "Nome da pessoa",
-        "search": "Procurar utilizador"
+        "search": "Procurar utilizador",
+        "loading": "A carregar..."
     },
     "modalalbumsshare": {
         "joined": "Aderiu",
@@ -604,7 +605,8 @@
         "captionupdate": "Atualizar legenda",
         "downloadcomplete": "Ficheiros transferidos com sucesso",
         "downloaderror": "Erro de transferência",
-        "downloadstart": "Transferência iniciou"
+        "downloadstart": "Transferência iniciou",
+        "scan_directory_required": "Pasta de análise não configurada - contacte o administrador"
     },
     "deletefaceexplanation": "Esta ação vai permanentemente eliminar as caras e todos os seus dados associados. Esta ação não pode ser desfeita.",
     "rules": {
