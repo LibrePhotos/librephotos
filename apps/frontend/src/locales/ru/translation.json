@@ -268,7 +268,7 @@
             "location": "Место",
             "caption": "Подпись",
             "undotimestampmodification": "Отменить изменение временной метки",
-            "filepath": "Путь к файлу",
+            "filepath": "Путь файла",
             "generate": "Сгенерировать",
             "cancel": "Отмена",
             "scene": "Сцена",
@@ -279,7 +279,9 @@
             "removetimestamp": "Удалить временную метку",
             "categories": "Категории",
             "similarphotos": "Похожие фотографии",
-            "timetaken": "Потраченное время"
+            "timetaken": "Занятое время",
+            "places": "Места",
+            "suggestedcaption": "Предлагаемая подпись"
         }
     },
     "login": {
@@ -325,7 +327,7 @@
         "focallengthin35mmfilm": "Фокусное расстояние 35 мм эквивалент",
         "digitalzoomratio": "Коэффициент цифрового увеличения",
         "deleteduplicate": "Удалить этот дубликат?",
-        "filepath": "Путь к файлу",
+        "filepath": "Путь файла",
         "otherversions": "Другие версии",
         "duplicates": "Дубликаты",
         "showmore": "Показать больше",
@@ -439,12 +441,14 @@
         "name": "Имя личности",
         "unshare": "Поделиться",
         "title": "Показать фотографии",
-        "share": "Поделиться"
+        "share": "Поделиться",
+        "loading": "Загрузка..."
     },
     "autoalbumgallery": {
         "hidemap": "Скрыть карту",
         "showmap": "Показать карту",
-        "day": "День {{day}}"
+        "day": "День {{day}}",
+        "dateRange": "{{from}} - {{to}}"
     },
     "sync": "Сохранять метаданные на диск",
     "autoalbum": {
@@ -587,7 +591,8 @@
         "removefromalbum": "Фотография(и) {{numberOfPhotos}} была успешно удалена из альбома {{title}}",
         "sharingalbum": "Альбом общий",
         "addfacestoperson": "{{numberOfFaces}} лицо(а) были помечены как человек {{personName}}",
-        "fullscanphotos": "Сканирование фотографий (полный)…"
+        "fullscanphotos": "Сканирование фотографий (полный)…",
+        "scan_directory_required": "Сканирование папки не настроено - свяжитесь с администратором"
     },
     "rules": {
         "1": "Местное время от DATE_TIME_ORIGINAL Exif tag",
@@ -689,5 +694,17 @@
     "save": "Сохранить",
     "docs": "Документация",
     "deletefaceexplanation": "Это действие приведет к окончательному удалению лица и всех связанных с ним данных. Это действие нельзя отменить.",
-    "socialgraph": "Социальный график"
+    "socialgraph": "Социальный график",
+    "back": "Назад",
+    "folders": "Папки",
+    "back_to_folders": "Назад к папкам",
+    "show_all_subfolders": "Показать все подпапки",
+    "more": "больше",
+    "all_subfolders": "Все подпапки",
+    "filter_folders": "Фильтр по имени или пути...",
+    "clear": "Очистить",
+    "results": "Результаты",
+    "no_folders_found": "Папки не найдены",
+    "showing_first": "показание первых",
+    "back_to_parent": "Назад к родительской"
 }
