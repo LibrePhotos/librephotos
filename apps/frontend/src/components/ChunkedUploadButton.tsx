@@ -164,8 +164,12 @@ export function ChunkedUploadButton() {
       "image/*": [],
       "video/*": [],
     },
-    noClick: !hasScanDirectory,
-    noKeyboard: !hasScanDirectory,
+    // prevent react-dropzone from automatically opening the file dialog
+    // when the dropzone is clicked. We manually trigger it via the button
+    // click handler, which otherwise would result in the dialog opening
+    // twice due to event bubbling.
+    noClick: true,
+    noKeyboard: true,
     onDrop: hasScanDirectory ? onDrop : () => {},
     disabled: !hasScanDirectory,
   });
