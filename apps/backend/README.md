@@ -50,6 +50,6 @@ Step-by-step installation instructions are available in our [documentation](http
 - **Face classification/clusterization:** [scikit-learn](https://scikit-learn.org/) and [hdbscan](https://github.com/scikit-learn-contrib/hdbscan)
 - **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), 
 - **Scene classification** [places365](http://places.csail.mit.edu/)
-- **Reverse geocoding:** [Mapbox](https://www.mapbox.com/): You need to have an API key. First 50,000 geocode lookups are free every month.
+- **Reverse geocoding:** [geopy](https://github.com/geopy/geopy)
 
 [discord]: https://discord.gg/xwRvtSDGWb
