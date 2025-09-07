@@ -112,7 +112,7 @@ class FetchClient {
   }
 
   static async request<T>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const cookies = new Cookies();
@@ -180,7 +180,11 @@ class FetchClient {
       throw error;
     }
   }
-  
+
+  request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    return (this.constructor as typeof FetchClient).request<T>(endpoint, options);
+  }
+
   get<T>(endpoint: string): Promise<T> {
     return (this.constructor as typeof FetchClient).request<T>(endpoint, { method: 'GET' });
   }
