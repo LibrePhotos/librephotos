@@ -1,6 +1,6 @@
 Django==5.2.6
 django-constance==4.3.2
-django-cors-headers==4.7.0
+django-cors-headers==4.8.0
 git+https://github.com/derneuere/django-chunked-upload@master#egg=django-chunked-upload
 django-cryptography-5==2.0.3
 django-extensions==4.1
