@@ -2,6 +2,10 @@ import json
 
 from rest_framework import serializers
 
+from api.geocode.geocode import reverse_geocode
+from api.geocode import GEOCODE_VERSION
+from api import util
+
 from api.image_similarity import search_similar_image
 from api.models import AlbumDate, File, Photo
 from api.serializers.simple import SimpleUserSerializer
@@ -126,6 +130,9 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             "video",
             "exif_timestamp",
             "timestamp",
+            # Allow updating GPS location
+            "exif_gps_lat",
+            "exif_gps_lon",
         )
 
     def update(self, instance, validated_data):
@@ -134,6 +141,75 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             instance.timestamp = validated_data.pop("exif_timestamp")
             instance.save()
             instance._extract_date_time_from_exif()
+
+        # Update GPS location if provided
+        lat = validated_data.pop("exif_gps_lat", None)
+        lon = validated_data.pop("exif_gps_lon", None)
+
+        if lat is not None and lon is not None:
+            try:
+                # Track old places to update album place relations
+                old_album_places = instance._find_album_place()
+
+                instance.exif_gps_lat = float(lat)
+                instance.exif_gps_lon = float(lon)
+                instance.save()
+
+                # Reverse geocode and update geolocation/search location
+                geocode_result = reverse_geocode(
+                    instance.exif_gps_lat, instance.exif_gps_lon
+                )
+                if geocode_result:
+                    geocode_result["_v"] = GEOCODE_VERSION
+                    instance.geolocation_json = geocode_result
+
+                    # Update search location through PhotoSearch model
+                    from api.models.photo_search import PhotoSearch
+
+                    search_instance, _created = PhotoSearch.objects.get_or_create(
+                        photo=instance
+                    )
+                    search_instance.update_search_location(geocode_result)
+                    search_instance.save()
+
+                    # Update album place relations
+                    if old_album_places is not None:
+                        for old_album_place in old_album_places:
+                            old_album_place.photos.remove(instance)
+                            old_album_place.save()
+
+                    if "features" in geocode_result:
+                        for geolocation_level, feature in enumerate(
+                            geocode_result["features"]
+                        ):
+                            if (
+                                "text" not in feature.keys()
+                                or str(feature["text"]).isnumeric()
+                            ):
+                                continue
+                            album_place = api.models.album_place.get_album_place(
+                                feature["text"], owner=instance.owner
+                            )
+                            if (
+                                album_place.photos.filter(
+                                    image_hash=instance.image_hash
+                                ).count()
+                                == 0
+                            ):
+                                album_place.geolocation_level = (
+                                    len(geocode_result["features"]) - geolocation_level
+                                )
+                            album_place.photos.add(instance)
+                            album_place.save()
+
+                    instance.save()
+                else:
+                    util.logger.warning(
+                        "Reverse geocoding returned no result for provided coordinates"
+                    )
+            except Exception as e:
+                util.logger.warning(e)
+                util.logger.warning("Failed to update GPS location for photo")
         return instance
 
 
