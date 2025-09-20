@@ -13,8 +13,8 @@ const PhotoUpdateResponse = z.object({
   in_trashcan: z.boolean(),
   removed: z.boolean(),
   video: z.boolean(),
-  exif_timestamp: z.string(),
-  timestamp: z.string(),
+  exif_timestamp: z.string().nullable(),
+  timestamp: z.string().nullable(),
 });
 type PhotoUpdateResponse = z.infer<typeof PhotoUpdateResponse>;
 
