@@ -53,11 +53,9 @@ docker, where your source folders are. This should be the same path as used to c
 
 Run `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d`
 
-This will build images from scratch (can take a long time the first time). Now you can develop and benefit from code
-auto reload from both backend and frontend
+This will build images from scratch (can take a long time the first time). Now you can develop and benefit from code auto reload from both backend and frontend.
 
-If you already built this image once, when you do force rebuild you have to run the build command based on which area
-you changed with added dependencies/libraries etc.
+If you already built this image once, when you do force rebuild you have to run the build command based on which area you changed with added dependencies/libraries etc.
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml  build --no-cache frontend
@@ -70,21 +68,6 @@ Once you have rebuilt, you can run the docker compose up command again to update
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
-
-### Visual Studio Code
-
-If you use Visual Studio Code, you can also benefit from auto-completion and other goodies. For this, just run `code .`
-in your Dockerfile folder, which is `~/home/dev/librephotos/librephotos-docker` in our example.
-
-Visual Studio Code will open and ask you if you want to reopen it in the container. If you do, it will create the images
-from scratch (first time you do it can take a couple of minutes), and you will have the same Python interpreter
-LibrePhotos uses internally - and hence the same installed libraries in auto-completion, and the same development
-environment, will be shared by all devs. This includes tools like [isort](https://pycqa.github.io/isort/),
-[flake8](https://flake8.pycqa.org/en/latest/) and [pylint](https://www.pylint.org/).
-
-Alternatively, you can run the `Remote-Containers: Open Folder in Container` command from the Command Palette. Note
-in order to open this container, you must have the required dependencies installed. More details can be found
-[here](https://code.visualstudio.com/docs/remote/containers).
 
 ## Next Steps
 
