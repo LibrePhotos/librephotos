@@ -221,7 +221,8 @@
         "name": "Kişi adı",
         "unshare": "Paylaşmayı durdur",
         "share": "Paylaş",
-        "joined": "Katıldı"
+        "joined": "Katıldı",
+        "loading": "Yükleniyor..."
     },
     "modalalbumsshare": {
         "title": "Albümü Paylaş",
@@ -325,16 +326,18 @@
             "cancel": "İptal Et",
             "attributes": "Özellikler",
             "categories": "Kategoriler",
-            "timetaken": "Çekildiği Zaman",
+            "timetaken": "Çekildiği zaman",
             "details": "Ayrıntılar",
-            "filepath": "Dosya Yolu",
+            "filepath": "Dosya yolu",
             "similarphotos": "Benzer Fotoğraflar",
             "editdatetime": "Tarih ve saati düzenle",
             "withouttimestamp": "Zaman damgası olmadan",
             "removetimestamp": "Zaman damgasını kaldır",
             "undotimestampmodification": "Zaman damgası değişikliğini geri al",
             "invalidtimestamp": "Geçersiz zaman damgası",
-            "scene": "Sahne"
+            "scene": "Sahne",
+            "places": "Yerler",
+            "suggestedcaption": "Önerilen açıklama"
         }
     },
     "exif": {
@@ -492,7 +495,8 @@
         "removefacestoperson": "{{numberOfFaces}} yüz 'Bilinmeyen - Diğer' bölümüne taşındı",
         "favoritephoto": "{{numberOfPhotos}} fotoğraf beğenilenlerinize eklendi.",
         "addpublicphoto": "{{numberOfPhotos}} fotoğraf herkese açık fotoğraflarınıza eklendi. Fotoğrafların bağlantıları panoya kopyalandı.",
-        "removepublicphoto": "{{numberOfPhotos}} fotoğraf herkese açık fotoğraflarınızdan kaldırıldı."
+        "removepublicphoto": "{{numberOfPhotos}} fotoğraf herkese açık fotoğraflarınızdan kaldırıldı.",
+        "scan_directory_required": "Tarama dizini yapılandırılmadı - yöneticiyle iletişime geçin"
     },
     "joblist": {
         "reload": "Yeniden yükle",
@@ -687,5 +691,17 @@
     },
     "thingalbum": {
         "showingthings": "En iyi {{number}} nesne gösteriliyor"
-    }
+    },
+    "back": "Geri",
+    "back_to_parent": "Üste geri dön",
+    "folders": "Klasörler",
+    "back_to_folders": "Klasörlere geri dön",
+    "show_all_subfolders": "Tüm alt klasörleri göster",
+    "more": "daha fazla",
+    "all_subfolders": "Tüm alt klasörler",
+    "filter_folders": "Ad veya yola göre filtrele...",
+    "clear": "Temizle",
+    "results": "Sonuçlar",
+    "no_folders_found": "Klasör bulunamadı",
+    "showing_first": "ilk gösterilen"
 }
