@@ -340,10 +340,34 @@ class PhotoSerializer(serializers.ModelSerializer):
 
     def get_image_path(self, obj) -> list[str]:
         try:
-            paths = []
-            for file in obj.files.all():
-                paths.append(file.path)
-            return paths
+            # Return paths with a deterministic and meaningful order:
+            # 1) main_file first
+            # 2) other non-metadata files (images/videos)
+            # 3) raw files
+            # 4) metadata files (e.g., .xmp) last
+            files = list(obj.files.all())
+
+            if not files:
+                return ["Missing"]
+
+            def priority(f: File):
+                # main_file first
+                if obj.main_file and f.hash == obj.main_file.hash:
+                    return (0, f.path)
+                # non-metadata, non-raw (images/videos) next
+                if f.type in (File.IMAGE, File.VIDEO):
+                    return (1, f.path)
+                # raw afterwards
+                if f.type == File.RAW_FILE:
+                    return (2, f.path)
+                # metadata last
+                if f.type == File.METADATA_FILE:
+                    return (3, f.path)
+                # unknown at the end but before metadata just in case
+                return (2, f.path)
+
+            files.sort(key=priority)
+            return [f.path for f in files]
         except Exception:
             return ["Missing"]
 
@@ -425,6 +449,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                 "type": "video" if file.type == File.VIDEO else "image",
             }
 
+        if not obj.main_file:
+            return []
         embedded_media = obj.main_file.embedded_media.all()
         if len(embedded_media) == 0:
             return []
