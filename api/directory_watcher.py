@@ -24,6 +24,7 @@ from api.models.photo_search import PhotoSearch
 from api.models.file import (
     calculate_hash,
     is_metadata,
+    is_raw,
     is_valid_media,
     is_video,
 )
@@ -210,12 +211,18 @@ def walk_directory(directory, callback):
             if os.path.isdir(fpath):
                 walk_directory(fpath, callback)
             else:
+                # Control for skip raw files if enabled
+                if site_config.SKIP_RAW_FILES and is_raw(fpath):
+                    continue
                 callback.append(fpath)
 
 
 def walk_files(scan_files, callback):
     for fpath in scan_files:
         if os.path.isfile(fpath):
+            # Control for skip raw files if enabled
+            if site_config.SKIP_RAW_FILES and is_raw(fpath):
+                continue
             callback.append(fpath)
 
 
@@ -364,9 +371,9 @@ def scan_missing_photos(user, job_id: UUID):
         )
     lrj.save()
     try:
-        exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
+        existing_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
 
-        paginator = Paginator(exisisting_photos, 5000)
+        paginator = Paginator(existing_photos, 5000)
         lrj.progress_target = paginator.num_pages
         lrj.save()
         for page in range(1, paginator.num_pages + 1):

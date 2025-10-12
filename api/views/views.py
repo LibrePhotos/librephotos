@@ -112,6 +112,7 @@ class SiteSettingsView(APIView):
         out["allow_registration"] = site_config.ALLOW_REGISTRATION
         out["allow_upload"] = site_config.ALLOW_UPLOAD
         out["skip_patterns"] = site_config.SKIP_PATTERNS
+        out["skip_raw_files"] = site_config.SKIP_RAW_FILES
         out["heavyweight_process"] = 0
         out["map_api_provider"] = site_config.MAP_API_PROVIDER
         out["map_api_key"] = site_config.MAP_API_KEY
@@ -127,6 +128,8 @@ class SiteSettingsView(APIView):
             site_config.ALLOW_UPLOAD = request.data["allow_upload"]
         if "skip_patterns" in request.data.keys():
             site_config.SKIP_PATTERNS = request.data["skip_patterns"]
+        if "skip_raw_files" in request.data.keys():
+            site_config.SKIP_RAW_FILES = request.data["skip_raw_files"]
         if "map_api_provider" in request.data.keys():
             site_config.MAP_API_PROVIDER = request.data["map_api_provider"]
         if "map_api_key" in request.data.keys():

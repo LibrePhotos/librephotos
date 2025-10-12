@@ -143,6 +143,11 @@ CONSTANCE_CONFIG = {
         "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",
         str,
     ),
+    "SKIP_RAW_FILES": (
+        os.environ.get("SKIP_RAW_FILES", "False") in ("true", "True", "1", "t"),
+        "Skip RAW image files during scan",
+        bool,
+    ),
     "MAP_API_PROVIDER": (
         os.environ.get("MAP_API_PROVIDER", "photon"),
         "Map Provider",

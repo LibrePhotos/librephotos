@@ -16,7 +16,7 @@ from api import date_time_extractor, face_extractor, util
 from api.exif_tags import Tags
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
-from api.models.file import File
+from api.models.file import File, is_raw, is_video, is_metadata
 from api.models.user import User, get_deleted_user
 from api.util import get_metadata, logger
 
@@ -506,11 +506,45 @@ class Photo(models.Model):
                     album_thing.save()
 
     def _check_files(self):
+        from constance import config as site_config
+        
         for file in self.files.all():
+            should_remove = False
+            
+            # Check if file doesn't exist
             if not file.path or not os.path.exists(file.path):
+                should_remove = True
+            # Check if RAW files should be skipped based on current settings
+            elif site_config.SKIP_RAW_FILES and is_raw(file.path):
+                should_remove = True
+                
+            if should_remove:
+                # If we're removing the main file, clear the reference
+                if self.main_file and self.main_file.hash == file.hash:
+                    self.main_file = None
+                
                 self.files.remove(file)
                 file.missing = True
                 file.save()
+        
+        # Check if we have any non-metadata files remaining
+        remaining_files = self.files.all()
+        has_viewable_files = any(
+            not is_metadata(f.path) for f in remaining_files
+        )
+        
+        # If no files remain, or only metadata files remain, mark the photo as removed
+        if remaining_files.count() == 0 or not has_viewable_files:
+            self.removed = True
+            self.main_file = None
+        # If main_file is None OR main_file is a metadata file, set a proper main_file
+        elif self.main_file is None or (self.main_file and is_metadata(self.main_file.path)):
+            # Find first non-metadata file
+            for f in remaining_files:
+                if not is_metadata(f.path):
+                    self.main_file = f
+                    break
+        
         self.save()
 
     def manual_delete(self):
