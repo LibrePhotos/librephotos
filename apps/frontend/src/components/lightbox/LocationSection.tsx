@@ -1,24 +1,18 @@
-import { ActionIcon, Box, Text, Group, Modal, Stack, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Group, Modal, Stack, Text, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconMapPin as MapPin, IconEdit as Edit } from "@tabler/icons-react";
+import { IconEdit as Edit, IconMapPin as MapPin } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
 
 interface LocationSectionProps {
   photoDetail: PhotoType;
-  showTitle?: boolean;
   mapHeight?: number;
 }
 
-export function LocationSection({ 
-  photoDetail, 
-  showTitle = true,
-  mapHeight = 250
-}: LocationSectionProps) {
+export function LocationSection({ photoDetail, mapHeight = 250 }: LocationSectionProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
   return (
@@ -42,8 +36,13 @@ export function LocationSection({
         )}
       </Stack>
       <Modal opened={opened} onClose={close} title={t("lightbox.sidebar.pick_location", "Pick location")} centered>
-        <LocationPickerModal imageHash={photoDetail.image_hash} onClose={close} initialLat={photoDetail.exif_gps_lat ?? undefined} initialLon={photoDetail.exif_gps_lon ?? undefined} />
+        <LocationPickerModal
+          imageHash={photoDetail.image_hash}
+          onClose={close}
+          initialLat={photoDetail.exif_gps_lat ?? undefined}
+          initialLon={photoDetail.exif_gps_lon ?? undefined}
+        />
       </Modal>
     </Group>
   );
-} 
+}

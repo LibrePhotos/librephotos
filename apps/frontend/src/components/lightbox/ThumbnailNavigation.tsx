@@ -1,8 +1,7 @@
 import { Box, Group, Skeleton } from "@mantine/core";
 import React from "react";
-
-import { Tile } from "../Tile";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks/useFetchPhotoDetailsQuery";
+import { Tile } from "../Tile";
 
 export type ThumbnailNavigationProps = {
   prevSrc: string | null;
@@ -10,7 +9,6 @@ export type ThumbnailNavigationProps = {
   nextSrc: string | null;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
-  containerWidth?: string;
 };
 
 export function ThumbnailNavigation({
@@ -19,12 +17,10 @@ export function ThumbnailNavigation({
   nextSrc,
   onMovePrevRequest,
   onMoveNextRequest,
-  containerWidth,
 }: ThumbnailNavigationProps) {
-
-  const {data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading} = useFetchPhotoDetailsQuery(prevSrc ?? "");
-  const {data: mainPhotoDetail, isLoading: isMainPhotoDetailLoading} = useFetchPhotoDetailsQuery(mainSrc);
-  const {data: nextPhotoDetail, isLoading: isNextPhotoDetailLoading} = useFetchPhotoDetailsQuery(nextSrc ?? "");
+  const { data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading } = useFetchPhotoDetailsQuery(prevSrc ?? "");
+  const { data: mainPhotoDetail, isLoading: isMainPhotoDetailLoading } = useFetchPhotoDetailsQuery(mainSrc);
+  const { data: nextPhotoDetail, isLoading: isNextPhotoDetailLoading } = useFetchPhotoDetailsQuery(nextSrc ?? "");
 
   return (
     <div
@@ -85,15 +81,15 @@ export function ThumbnailNavigation({
                 width={64}
                 height={64}
                 video={prevPhotoDetail?.video}
-              style={{
-                border: "2px solid rgba(255,255,255,0.6)",
-                borderRadius: "8px",
-                overflow: "hidden",
-                backgroundColor: "rgba(0,0,0,0.3)",
+                style={{
+                  border: "2px solid rgba(255,255,255,0.6)",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  backgroundColor: "rgba(0,0,0,0.3)",
                   width: "100%",
                   height: "100%",
                 }}
-                />
+              />
             )}
           </Box>
         )}
@@ -117,11 +113,11 @@ export function ThumbnailNavigation({
               width={72}
               height={72}
               video={mainPhotoDetail?.video}
-            style={{
-              border: "3px solid #fff",
-              borderRadius: "8px",
-              overflow: "hidden",
-              width: "100%",
+              style={{
+                border: "3px solid #fff",
+                borderRadius: "8px",
+                overflow: "hidden",
+                width: "100%",
                 height: "100%",
               }}
             />
@@ -159,13 +155,13 @@ export function ThumbnailNavigation({
                 width={64}
                 height={64}
                 video={nextPhotoDetail?.video}
-              style={{
-                border: "2px solid rgba(255,255,255,0.6)",
-                borderRadius: "8px",
-                overflow: "hidden",
-                backgroundColor: "rgba(0,0,0,0.3)",
-                width: "100%",
-                height: "100%",
+                style={{
+                  border: "2px solid rgba(255,255,255,0.6)",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  backgroundColor: "rgba(0,0,0,0.3)",
+                  width: "100%",
+                  height: "100%",
                 }}
               />
             )}

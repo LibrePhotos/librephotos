@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { ContentViewer } from "./ContentViewer";
 import type { LightBoxProps } from "./lightbox.types";
@@ -20,14 +19,9 @@ function usePrevious<T>(value: T): T | undefined {
 export function Lightbox(props: ExtendedLightBoxProps) {
   const { idx2hash, isPublic, onCloseRequest, selectedImage, onChangedIndex, onImageChange } = props;
   const [lightboxImageId, setLightboxImageId] = useState(selectedImage);
-
-  const [lightboxImageIndex, setLightboxImageIndex] = useState(
-    idx2hash.findIndex(image => image.id === lightboxImageId)
-  );
-
   // Track previous idx2hash to detect when current image is deleted
   const previousIdx2hash = usePrevious(idx2hash);
-  
+
   // Stable navigation snapshot - only used when current image is deleted
   const stableNavigationSnapshot = useRef<Array<{ id: string }>>([]);
   const usingStableNavigation = useRef<boolean>(false);
@@ -38,9 +32,6 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   useEffect(() => {
     if (selectedImage !== lightboxImageId) {
       setLightboxImageId(selectedImage);
-      const newIndex = idx2hash.findIndex(image => image.id === selectedImage);
-      setLightboxImageIndex(newIndex);
-      
       // Reset to normal navigation when a new image is selected
       usingStableNavigation.current = false;
       stableNavigationSnapshot.current = [];
@@ -50,17 +41,17 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   // Detect if current image was deleted and switch to stable navigation
   useEffect(() => {
     if (!previousIdx2hash) return;
-    
+
     const currentImageExistsInNew = idx2hash.some(item => item.id === lightboxImageId);
     const currentImageExistsInPrevious = previousIdx2hash.some(item => item.id === lightboxImageId);
-    
+
     // If image existed before but doesn't exist now, it was deleted
     if (currentImageExistsInPrevious && !currentImageExistsInNew && !usingStableNavigation.current) {
       // Switch to stable navigation using the previous list
       stableNavigationSnapshot.current = [...previousIdx2hash];
       usingStableNavigation.current = true;
     }
-    
+
     // If we're using stable navigation but the image reappears, switch back to live navigation
     if (usingStableNavigation.current && currentImageExistsInNew) {
       usingStableNavigation.current = false;
@@ -72,7 +63,6 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   useEffect(() => {
     const currentIndex = idx2hash.findIndex(image => image.id === lightboxImageId);
     if (currentIndex !== -1) {
-      setLightboxImageIndex(currentIndex);
       onChangedIndex(currentIndex);
     }
     // If image doesn't exist in current idx2hash, don't update the index
@@ -81,10 +71,8 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   // Get the effective navigation list
   const getEffectiveNavigation = useCallback(() => {
     // Use stable navigation if current image was deleted, otherwise use live list
-    const effectiveIdx2hash = usingStableNavigation.current 
-      ? stableNavigationSnapshot.current 
-      : idx2hash;
-    
+    const effectiveIdx2hash = usingStableNavigation.current ? stableNavigationSnapshot.current : idx2hash;
+
     return { idx2hash: effectiveIdx2hash };
   }, [idx2hash]);
 
@@ -93,7 +81,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
     const prevIndex = (currentIndex + effectiveIdx2hash.length - 1) % effectiveIdx2hash.length;
     const newImageId = effectiveIdx2hash[prevIndex].id;
-    
+
     setLightboxImageId(newImageId);
     onImageChange?.(newImageId);
   }, [lightboxImageId, getEffectiveNavigation, onImageChange]);
@@ -103,7 +91,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
     const nextIndex = (currentIndex + effectiveIdx2hash.length + 1) % effectiveIdx2hash.length;
     const newImageId = effectiveIdx2hash[nextIndex].id;
-    
+
     setLightboxImageId(newImageId);
     onImageChange?.(newImageId);
   }, [lightboxImageId, getEffectiveNavigation, onImageChange]);
@@ -111,7 +99,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   const getPreviousId = () => {
     const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
-    
+
     if (currentIndex <= 0 || !effectiveIdx2hash || !effectiveIdx2hash.length) return null;
 
     const prevIndex = (currentIndex - 1 + effectiveIdx2hash.length) % effectiveIdx2hash.length;
@@ -127,7 +115,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   const getNextId = () => {
     const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
     const currentIndex = effectiveIdx2hash.findIndex(image => image.id === lightboxImageId);
-    
+
     if (currentIndex >= effectiveIdx2hash.length - 1 || !effectiveIdx2hash || !effectiveIdx2hash.length) return null;
 
     const nextIndex = (currentIndex + 1) % effectiveIdx2hash.length;
@@ -144,15 +132,15 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     if (photoDetails === undefined || photoDetails === null) {
       return "photo";
     }
-    
+
     if (photoDetails.video) {
       return "video";
     }
-    
+
     if (photoDetails.embedded_media && photoDetails.embedded_media.length > 0) {
       return "embedded";
     }
-    
+
     return "photo";
   };
 
@@ -179,5 +167,3 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     </div>
   );
 }
-
-export default Lightbox;
