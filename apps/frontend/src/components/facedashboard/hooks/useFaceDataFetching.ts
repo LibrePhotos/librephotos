@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import { queryClient } from "../../../api_client/api";
-import { FacesQueryKeys, fetchFaces } from "../../../api_client/faces/hooks/useFetchFacesQuery";
 import {
+  CompletePersonFaceList,
+  FaceAnalysisMethod,
+  FacesQueryKeys,
+  FacesTab,
+  fetchFaces,
   IncompleteFacesQueryKeys,
   useFetchIncompleteFacesQuery,
-} from "../../../api_client/faces/hooks/useFetchIncompleteFacesQuery";
-import { CompletePersonFaceList, FaceAnalysisMethod, FacesTab } from "../../../api_client/faces/types";
+} from "../../../api_client/faces";
 
 type OrderByType = "confidence" | "date" | "person";
 
@@ -48,18 +51,22 @@ export function useFaceDataFetching(
     labeled: labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
   };
 
+  function getTabName() {
+    if (activeTab === FacesTab.enum.labeled) return "labeled";
+    if (activeTab === FacesTab.enum.inferred) return "inferred";
+    return "unknown";
+  }
+
   // Create hash mapping based on active tab
-  const idx2hash = lists[
-    activeTab === FacesTab.enum.labeled ? "labeled" : activeTab === FacesTab.enum.inferred ? "inferred" : "unknown"
-  ]
-    .flatMap(person => person.faces)
-    .map(face => ({ id: face.photo }));
+  const idx2hash = lists[getTabName()].flatMap(person => person.faces).map(face => ({ id: face.photo }));
 
   // Fetch detailed face data when groups change
   useEffect(() => {
     if (!groups.length) return;
 
     (async () => {
+      // TODO(sickelap): find a better way to do this
+      // eslint-disable-next-line no-restricted-syntax
       for (const element of groups) {
         try {
           const queryParams = {
@@ -72,6 +79,8 @@ export function useFaceDataFetching(
           };
 
           // Fetch face data
+          // TODO(sickelap): related to the above. optimize by using prefetchQuery and checking if data is already in cache
+          // eslint-disable-next-line no-await-in-loop
           const data = await queryClient.fetchQuery({
             queryKey: [FacesQueryKeys, queryParams],
             queryFn: () => fetchFaces(queryParams),

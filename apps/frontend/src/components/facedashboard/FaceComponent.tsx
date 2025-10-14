@@ -1,12 +1,11 @@
 import { ActionIcon, Avatar, Box, Center, Indicator, useMantineTheme } from "@mantine/core";
 import { IconPhoto as Photo } from "@tabler/icons-react";
+import { getRouteApi } from "@tanstack/react-router";
 import _ from "lodash";
 import React, { useState } from "react";
-
 import { serverAddress } from "../../api_client/apiClient";
 import "./FaceComponent.css";
 import { FaceTooltip } from "./FaceTooltip";
-import { getRouteApi } from "@tanstack/react-router";
 
 type Props = Readonly<{
   cell: any;

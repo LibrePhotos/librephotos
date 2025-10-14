@@ -1,10 +1,7 @@
 import { HoverCard, Stack, Text } from "@mantine/core";
 import { t } from "i18next";
 import React from "react";
-
-import { FacesTab } from "../../api_client/faces";
-import { useFetchIncompleteFacesQuery } from "../../api_client/faces/hooks/useFetchIncompleteFacesQuery";
-import { FaceAnalysisMethod } from "../../api_client/faces/types";
+import { FaceAnalysisMethod, FacesTab, useFetchIncompleteFacesQuery } from "../../api_client/faces";
 
 type Props = Readonly<{
   tab: FacesTab;
@@ -15,22 +12,8 @@ export function FacesCountersHoverCard({ tab, children }: Props) {
   const { data: facesList = [] } = useFetchIncompleteFacesQuery({
     inferred: tab === FacesTab.enum.inferred || tab === FacesTab.enum.unknown,
     orderBy: "date",
-    method: FaceAnalysisMethod.enum.clustering
+    method: FaceAnalysisMethod.enum.clustering,
   });
-
-  const getFilteredPersons = () => {
-    if (tab === FacesTab.enum.labeled) {
-      return facesList.filter(person => person.name !== "Unknown - Other");
-    } if (tab === FacesTab.enum.inferred) {
-      return facesList.filter(person => person.name !== "Unknown - Other");
-    } 
-      return facesList.filter(person => person.name === "Unknown - Other");
-    
-  };
-
-  const getFaceCount = () => getFilteredPersons().reduce((sum, person) => sum + person.faces.length, 0);
-
-  const getPersonCount = () => getFilteredPersons().length;
 
   const getLabeledCounters = () => {
     const labeledPersons = facesList.filter(person => person.name !== "Unknown - Other");
@@ -74,9 +57,7 @@ export function FacesCountersHoverCard({ tab, children }: Props) {
 
     return (
       <Stack>
-        <Text size="sm">
-          {`${t("facesdashboard.unknownfacescounter", { count: unknownFacesCount })}`}
-        </Text>
+        <Text size="sm">{`${t("facesdashboard.unknownfacescounter", { count: unknownFacesCount })}`}</Text>
       </Stack>
     );
   };
