@@ -15,20 +15,24 @@ import {
   IconStarOff as StarOff,
   IconTrash as Trash,
 } from "@tabler/icons-react";
+import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { useLocation } from "@tanstack/react-router";
+import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
-import { useRemovePhotoFromUserAlbumMutation, useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
-import { useMarkPhotosDeletedMutation, useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation } from "../../api_client/photos/hooks";
+import { useDownloadPhotosMutation } from "../../api_client/jobs";
+import {
+  useMarkPhotosDeletedMutation,
+  useSetFavoritePhotosMutation,
+  useSetPhotosHiddenMutation,
+  useSetPhotosPublicMutation,
+} from "../../api_client/photos/hooks";
 import { copyToClipboard } from "../../util/util";
-import { useDownloadPhotosMutation } from "../../api_client/jobs/hooks";
 
 type Props = {
   selectedItems: UserAlbum[];
-  updateSelectionState: (any) => void;
+  updateSelectionState: (arg: any) => void;
   onSharePhotos: () => void;
   setAlbumCover: (actionType: string) => void;
   onShareAlbum: () => void;
@@ -42,7 +46,6 @@ export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
   const location = useLocation();
   const removePhotosFromAlbum = useRemovePhotoFromUserAlbumMutation();
-  const toggleAlbumPublic = useToggleUserAlbumPublicMutation();
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
@@ -57,7 +60,6 @@ export function SelectionActions(props: Readonly<Props>) {
     title,
     setAlbumCover,
     albumID,
-    ownerUsername,
     onAddToAlbum,
   } = props;
 
@@ -156,7 +158,7 @@ export function SelectionActions(props: Readonly<Props>) {
             leftSection={<Eye />}
             disabled={selectedItems.length === 0}
             onClick={() => {
-              setPhotosHidden.mutate  ({
+              setPhotosHidden.mutate({
                 image_hashes: selectedItems.map(i => i.id),
                 hidden: false,
               });
@@ -299,7 +301,7 @@ export function SelectionActions(props: Readonly<Props>) {
             disabled={!location.pathname.startsWith("/album/user/") || selectedItems.length === 0}
             onClick={() => {
               removePhotosFromAlbum.mutate({
-                id: `${albumID ?? ''}`,
+                id: `${albumID ?? ""}`,
                 title,
                 photos: selectedItems.map(i => i.id),
               });
