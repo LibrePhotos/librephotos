@@ -2,6 +2,8 @@ import {
   ActionIcon,
   Center,
   Loader,
+  MantineColor,
+  MantineColorScheme,
   Menu,
   Progress,
   Text,
@@ -16,11 +18,10 @@ import {
   IconCloud as Cloud,
   IconHeart as Heart,
 } from "@tabler/icons-react";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation, useNavigate } from "@tanstack/react-router";
-
-import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server/hooks";
+import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_client/server";
 import { useAuth } from "../../hooks/useAuth";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems } from "./navigation";
@@ -51,7 +52,7 @@ export function SideMenuNarrow(): JSX.Element {
 
   const { t } = useTranslation();
   const matches = useMediaQuery("(min-width: 700px)");
-  
+
   // Update active state when location changes
   useEffect(() => {
     setActive(location.pathname);
@@ -61,15 +62,20 @@ export function SideMenuNarrow(): JSX.Element {
     return <div />;
   }
 
+  function getBackgroundColor(isItemActive: undefined | boolean, colorScheme: MantineColorScheme): MantineColor {
+    if (!isItemActive) return "transparent";
+    return colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1];
+  }
+
   const links = getNavigationItems(t, isAuthenticated, !!userId).map(item => {
     if (item.display === false) {
       return null;
     }
-    
+
     // Check if this menu item or any submenu item is active
     const isSubmenuItemActive = item.submenu?.some(subitem => subitem.link && active.startsWith(subitem.link));
     const isItemActive = item.link === active || isSubmenuItemActive;
-    
+
     const link = (
       <a
         style={{
@@ -81,11 +87,7 @@ export function SideMenuNarrow(): JSX.Element {
           borderRadius: theme.radius.sm,
           fontWeight: 500,
           color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
-          backgroundColor: isItemActive
-            ? computedTheme === "dark" 
-              ? theme.colors.dark[5] 
-              : theme.colors.gray[1]
-            : "transparent",
+          backgroundColor: getBackgroundColor(isItemActive, computedTheme),
           "&:hover": {
             backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
           },
