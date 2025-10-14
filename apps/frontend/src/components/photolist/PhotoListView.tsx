@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Box,
+  Button,
   Group,
   Menu,
   NumberInput,
@@ -9,20 +10,20 @@ import {
   Tooltip,
   useComputedColorScheme,
   useMantineTheme,
-  Button,
 } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
-
-import { useQueryClient } from "@tanstack/react-query";
 import { useSetPersonAlbumCoverMutation } from "../../api_client/albums/hooks/useSetPersonAlbumCoverMutation";
 import { useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks/useSetUserAlbumCoverMutation";
-import { useUpdateUserMutation } from "../../api_client/user/hooks";
-import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
 import { serverAddress } from "../../api_client/apiClient";
+import { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
+import { useUpdateUserMutation } from "../../api_client/user/hooks";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
@@ -40,8 +41,6 @@ import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
 
 const TIMELINE_SCROLL_WIDTH = 0;
 
@@ -114,9 +113,8 @@ function PhotoListViewComponent({
 
   // Use query data directly instead of local state
   const imageScale = userSelfDetails?.image_scale ?? 1;
-  const textAlignment = (userSelfDetails?.text_alignment as 'left' | 'right') ?? 'right';
-  const headerSize = (userSelfDetails?.header_size as 'large' | 'normal' | 'small') ?? 'large';
-
+  const textAlignment = (userSelfDetails?.text_alignment as "left" | "right") ?? "right";
+  const headerSize = (userSelfDetails?.header_size as "large" | "normal" | "small") ?? "large";
 
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
@@ -137,54 +135,59 @@ function PhotoListViewComponent({
     setLightboxImageId("");
   }, []);
 
-  const handleLightboxIndexChange = useCallback((currentIndex?: number) => {
-    // Update the current image index if provided from lightbox
-    if (currentIndex !== undefined) {
-      currentImageIndexRef.current = currentIndex;
-    }
+  const handleLightboxIndexChange = useCallback(
+    (currentIndex?: number) => {
+      // Update the current image index if provided from lightbox
+      if (currentIndex !== undefined) {
+        currentImageIndexRef.current = currentIndex;
+      }
 
-    // Scroll to the current image's position
-    if (pigRef.current && idx2hash[currentImageIndexRef.current]) {
-      // Use setTimeout to ensure DOM is updated after lightbox is closed
-      setTimeout(() => {
-        try {
-          // Get all image buttons
-          const buttons = document.querySelectorAll(".pig-btn");
-          const currentImage = idx2hash[currentImageIndexRef.current];
-          const currentImageId = currentImage.id;
+      // Scroll to the current image's position
+      if (pigRef.current && idx2hash[currentImageIndexRef.current]) {
+        // Use setTimeout to ensure DOM is updated after lightbox is closed
+        setTimeout(() => {
+          try {
+            // Get all image buttons
+            const buttons = document.querySelectorAll(".pig-btn");
+            const currentImage = idx2hash[currentImageIndexRef.current];
+            const currentImageId = currentImage.id;
 
-          // Try to find by checking img contents
-          let targetButton: Element | null = Array.from(buttons).find(btn => {
-            const imgs = btn.querySelectorAll("img");
-            return Array.from(imgs).some(img => img.src.includes(currentImageId));
-          }) || null;
+            // Try to find by checking img contents
+            let targetButton: Element | null =
+              Array.from(buttons).find(btn => {
+                const imgs = btn.querySelectorAll("img");
+                return Array.from(imgs).some(img => img.src.includes(currentImageId));
+              }) || null;
 
-          // If no button found, try another approach - get index position
-          if (!targetButton && buttons.length > 0) {
-            // If there are the same number of buttons as images, use index directly
-            if (buttons.length >= currentImageIndexRef.current) {
-              targetButton = buttons[currentImageIndexRef.current];
+            // If no button found, try another approach - get index position
+            if (!targetButton && buttons.length > 0) {
+              // If there are the same number of buttons as images, use index directly
+              if (buttons.length >= currentImageIndexRef.current) {
+                targetButton = buttons[currentImageIndexRef.current];
+              }
             }
-          }
 
-          if (targetButton) {
-            // Get position
-            const rect = targetButton.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const targetY = rect.top + scrollTop - 80; // Offset to show a bit of context
+            if (targetButton) {
+              // Get position
+              const rect = targetButton.getBoundingClientRect();
+              const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              const targetY = rect.top + scrollTop - 80; // Offset to show a bit of context
 
-            // Scroll to position
-            window.scrollTo({
-              top: targetY,
-              behavior: "smooth",
-            });
+              // Scroll to position
+              window.scrollTo({
+                top: targetY,
+                behavior: "smooth",
+              });
+            }
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error("Error scrolling to image:", error);
           }
-        } catch (error) {
-          console.error("Error scrolling to image:", error);
-        }
-      }, 100);
-    }
-  }, [idx2hash]);
+        }, 100);
+      }
+    },
+    [idx2hash]
+  );
 
   const handleLightboxImageChange = useCallback((imageId: string) => {
     setLightboxImageId(imageId);
@@ -194,30 +197,28 @@ function PhotoListViewComponent({
   const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
 
   const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme('light');
+  const colorScheme = useComputedColorScheme("light");
   const idx2hashRef = useRef(idx2hash);
-  const params = { albumID } as { albumID?: string } // provide album context when available
+  const params = { albumID } as { albumID?: string }; // provide album context when available
 
   useEffect(() => {
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
 
-
-
   const handleThumbnailSizeChange = (value: number | string) => {
     // Save to server
     if (userSelfDetails?.id) {
-      const newUserDetails = { ...userSelfDetails, image_scale: typeof value === 'number' ? value : parseFloat(value) };
+      const newUserDetails = { ...userSelfDetails, image_scale: typeof value === "number" ? value : parseFloat(value) };
       updateUser.mutate(newUserDetails, {
         onSuccess: () => {
           // Invalidate the user self details query to refetch the latest data
           queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-        }
+        },
       });
     }
   };
 
-  const handleTextAlignmentChange = (alignment: 'left' | 'right') => {
+  const handleTextAlignmentChange = (alignment: "left" | "right") => {
     // Save to server
     if (userSelfDetails?.id) {
       const newUserDetails = { ...userSelfDetails, text_alignment: alignment };
@@ -225,12 +226,12 @@ function PhotoListViewComponent({
         onSuccess: () => {
           // Invalidate the user self details query to refetch the latest data
           queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-        }
+        },
       });
     }
   };
 
-  const handleHeaderSizeChange = (size: 'large' | 'normal' | 'small') => {
+  const handleHeaderSizeChange = (size: "large" | "normal" | "small") => {
     // Save to server
     if (userSelfDetails?.id) {
       const newUserDetails = { ...userSelfDetails, header_size: size };
@@ -238,7 +239,7 @@ function PhotoListViewComponent({
         onSuccess: () => {
           // Invalidate the user self details query to refetch the latest data
           queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-        }
+        },
       });
     }
   };
@@ -254,7 +255,7 @@ function PhotoListViewComponent({
   );
 
   const getUrl = useCallback((item: any, pxHeight: number) => {
-    const url = typeof item === 'string' ? item : item.url;
+    const url = typeof item === "string" ? item : item.url;
     if (pxHeight < 250) {
       return `${serverAddress}/media/square_thumbnails_small/${url.split(";")[0]}`;
     }
@@ -298,7 +299,7 @@ function PhotoListViewComponent({
     });
   };
 
-    const getDataForScrollIndicator = (): ScrollerData[] => {
+  const getDataForScrollIndicator = (): ScrollerData[] => {
     const scrollPositions: ScrollerData[] = [];
     if (pigRef.current) {
       // @ts-ignore
@@ -355,7 +356,7 @@ function PhotoListViewComponent({
     currentImageIndexRef.current = currentIndex;
 
     // If Ctrl/Cmd key is pressed, navigate to single photo view
-    if ('ctrlKey' in event && event.ctrlKey || 'metaKey' in event && event.metaKey) {
+    if (("ctrlKey" in event && event.ctrlKey) || ("metaKey" in event && event.metaKey)) {
       navigate(`/photo/${item.id}`);
       return;
     }
@@ -406,7 +407,7 @@ function PhotoListViewComponent({
                   position: "absolute",
                   top: 0,
                   right: 0,
-                  zIndex: 10
+                  zIndex: 10,
                 }}
               >
                 <Menu shadow="md" width={200} position="bottom-end">
@@ -419,7 +420,7 @@ function PhotoListViewComponent({
                         aria-label="Settings"
                         style={{
                           backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-                          borderRadius: theme.radius.sm
+                          borderRadius: theme.radius.sm,
                         }}
                       >
                         <IconSettings size={20} />
@@ -447,8 +448,8 @@ function PhotoListViewComponent({
                     <Box p="xs">
                       <Switch
                         label="Left align date & location"
-                        checked={textAlignment === 'left'}
-                        onChange={(event) => handleTextAlignmentChange(event.currentTarget.checked ? 'left' : 'right')}
+                        checked={textAlignment === "left"}
+                        onChange={event => handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")}
                         size="sm"
                       />
                     </Box>
@@ -460,22 +461,22 @@ function PhotoListViewComponent({
                       <Group>
                         <Button
                           size="xs"
-                          variant={headerSize === 'large' ? 'filled' : 'outline'}
-                          onClick={() => handleHeaderSizeChange('large')}
+                          variant={headerSize === "large" ? "filled" : "outline"}
+                          onClick={() => handleHeaderSizeChange("large")}
                         >
                           Large
                         </Button>
                         <Button
                           size="xs"
-                          variant={headerSize === 'normal' ? 'filled' : 'outline'}
-                          onClick={() => handleHeaderSizeChange('normal')}
+                          variant={headerSize === "normal" ? "filled" : "outline"}
+                          onClick={() => handleHeaderSizeChange("normal")}
                         >
                           Normal
                         </Button>
                         <Button
                           size="xs"
-                          variant={headerSize === 'small' ? 'filled' : 'outline'}
-                          onClick={() => handleHeaderSizeChange('small')}
+                          variant={headerSize === "small" ? "filled" : "outline"}
+                          onClick={() => handleHeaderSizeChange("small")}
                         >
                           Small
                         </Button>
@@ -510,7 +511,7 @@ function PhotoListViewComponent({
                 updateSelectionState={updateSelectionState}
               />
               <Group justify="flex-end">
-                  {!location.pathname.startsWith("/deleted") && (
+                {!location.pathname.startsWith("/deleted") && (
                   <SelectionActions
                     selectedItems={selectionState.selectedItems}
                     // @ts-ignore

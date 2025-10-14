@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { FacesTab } from "../../../api_client/faces/types";
 
 // Default tab scroll positions
@@ -12,10 +12,11 @@ const DEFAULT_TAB_POSITIONS = {
 export function useTabScrollPositions() {
   const [tabPositions, setTabPositions] = useState(() => {
     try {
-      const saved = localStorage.getItem('faceTabScrollPositions');
+      const saved = localStorage.getItem("faceTabScrollPositions");
       return saved ? JSON.parse(saved) : { ...DEFAULT_TAB_POSITIONS };
     } catch (e) {
-      console.error('Error loading tab positions from localStorage:', e);
+      // eslint-disable-next-line no-console
+      console.error("Error loading tab positions from localStorage:", e);
       return { ...DEFAULT_TAB_POSITIONS };
     }
   });
@@ -24,13 +25,14 @@ export function useTabScrollPositions() {
     setTabPositions(prev => {
       const newPositions = { ...prev, [tab]: position };
       try {
-        localStorage.setItem('faceTabScrollPositions', JSON.stringify(newPositions));
+        localStorage.setItem("faceTabScrollPositions", JSON.stringify(newPositions));
       } catch (e) {
-        console.error('Error saving tab positions to localStorage:', e);
+        // eslint-disable-next-line no-console
+        console.error("Error saving tab positions to localStorage:", e);
       }
       return newPositions;
     });
   }, []);
 
   return { tabPositions, updatePosition };
-} 
+}
