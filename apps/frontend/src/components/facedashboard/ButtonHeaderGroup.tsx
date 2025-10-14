@@ -25,8 +25,7 @@ import {
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useTrainFacesMutation } from "../../api_client/faces";
-import { FaceAnalysisMethod, FacesOrderOption } from "../../api_client/faces/types";
+import { FaceAnalysisMethod, FacesOrderOption, useTrainFacesMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
 
 type Props = Readonly<{

@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces/types";
+import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/ScrollScrubberTypes.zod";
 
