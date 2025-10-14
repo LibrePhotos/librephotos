@@ -17,7 +17,7 @@ export const useFetchFolderSubfoldersInfiniteQuery = (path?: string) =>
       return response as FolderNavigationResponse;
     },
     getNextPageParam: (lastPage) => {
-      const pagination = lastPage.pagination;
+      const {pagination} = lastPage;
       if (pagination && pagination.has_next) {
         return (pagination.page || 1) + 1;
       }

@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
+import { fetchClient } from "../../api";
 
-import { fetchClient } from '../../api';
-
-const FOLDER_SUBFOLDERS_QUERY_KEY = ['folderSubfolders'] as const;
+const FOLDER_SUBFOLDERS_QUERY_KEY = ["folderSubfolders"] as const;
 
 export interface SubfolderInfo {
   name: string;
@@ -29,13 +28,15 @@ export const useFetchFolderSubfoldersQuery = (path?: string) =>
   useQuery({
     queryKey: [...FOLDER_SUBFOLDERS_QUERY_KEY, path],
     queryFn: async (): Promise<FolderNavigationResponse> => {
-      console.log('Fetching folder subfolders for path:', path);
+      // eslint-disable-next-line no-console
+      console.log("Fetching folder subfolders for path:", path);
       try {
-        const params = path ? `?path=${encodeURIComponent(path)}` : '';
+        const params = path ? `?path=${encodeURIComponent(path)}` : "";
         const response = await fetchClient.get(`/folders/subfolders/${params}`);
         return response as FolderNavigationResponse;
       } catch (error) {
-        console.error('Error fetching folder subfolders:', error);
+        // eslint-disable-next-line no-console
+        console.error("Error fetching folder subfolders:", error);
         throw error;
       }
     },

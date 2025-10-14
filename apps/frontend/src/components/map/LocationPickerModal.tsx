@@ -25,7 +25,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
   const { mutateAsync, isPending } = useUpdatePhotoMutation();
 
   const handleClick = useCallback((e: L.LeafletMouseEvent) => {
-    const lat = e.latlng.lat;
+    const {lat} = e.latlng;
     const lon = e.latlng.lng;
     setPosition([lat, lon]);
   }, []);

@@ -1,10 +1,10 @@
-import { useMutation } from '@tanstack/react-query';
-import { z } from 'zod';
-import { queryClient, fetchClient } from '../../api';
-import { IncompleteFacesQueryKeys } from './useFetchIncompleteFacesQuery';
-import { FacesQueryKeys } from './useFetchFacesQuery';
-import { PeopleAlbumsQueryKeys } from '../../albums/hooks/useFetchPeopleAlbumsQuery';
-import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
+import { useMutation } from "@tanstack/react-query";
+import { z } from "zod";
+import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
+import { fetchClient, queryClient } from "../../api";
+import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
+import { FacesQueryKeys } from "./useFetchFacesQuery";
+import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
 
 export const DeleteFacesQueryKeys = ["deleteFaces"];
 
@@ -22,29 +22,31 @@ export const DeleteFacesResponse = z.object({
   not_deleted: z.array(z.string()),
 });
 
-const deleteFaces = (data: DeleteFacesRequest) => fetchClient.post<DeleteFacesResponse>('/deletefaces', { face_ids: data.faceIds })
-      .then(response => DeleteFacesResponse.parse(response));
+const deleteFaces = (data: DeleteFacesRequest) =>
+  fetchClient
+    .post<DeleteFacesResponse>("/deletefaces", { face_ids: data.faceIds })
+    .then(response => DeleteFacesResponse.parse(response));
 
-export const useDeleteFacesMutation = () => useMutation(
-    {   
-        mutationKey: [...DeleteFacesQueryKeys],
-        mutationFn: deleteFaces,
-        onSuccess: () => {
-          // Add a small delay to ensure backend processing is complete
-          setTimeout(() => {
-            // Invalidate all face-related queries
-            queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
-            queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
-            
-            // Invalidate people albums (face counts change)
-            queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
-            
-            // Invalidate statistics (num_faces, num_people, etc. change)
-            queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
-          }, 100);
-        },
-        onError: (error) => {
-          console.error('Delete faces mutation error:', error);
-        }
-    }
-);
+export const useDeleteFacesMutation = () =>
+  useMutation({
+    mutationKey: [...DeleteFacesQueryKeys],
+    mutationFn: deleteFaces,
+    onSuccess: () => {
+      // Add a small delay to ensure backend processing is complete
+      setTimeout(() => {
+        // Invalidate all face-related queries
+        queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
+        queryClient.invalidateQueries({ queryKey: FacesQueryKeys });
+
+        // Invalidate people albums (face counts change)
+        queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
+
+        // Invalidate statistics (num_faces, num_people, etc. change)
+        queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
+      }, 100);
+    },
+    onError: error => {
+      // eslint-disable-next-line no-console
+      console.error("Delete faces mutation error:", error);
+    },
+  });

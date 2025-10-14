@@ -35,9 +35,7 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useFetchFolderSubfoldersInfiniteQuery(folderPath);
 
-  const allSubfolders = useMemo(() => {
-    return data?.pages?.flatMap((p) => p.subfolders) || [];
-  }, [data]);
+  const allSubfolders = useMemo(() => data?.pages?.flatMap((p) => p.subfolders) || [], [data]);
 
   const filteredSubfolders = useMemo(() => {
     const query = folderSearch.trim().toLowerCase();
@@ -60,12 +58,12 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
       let result = parts[parts.length - 1]; // Start with filename
 
       for (let i = parts.length - 2; i >= 0; i--) {
-        const newResult = parts[i] + '/' + result;
+        const newResult = `${parts[i]  }/${  result}`;
         if (newResult.length > maxLength - 3) break; // Leave room for "..."
         result = newResult;
       }
 
-      return result.length < path.length ? '...' + result : result;
+      return result.length < path.length ? `...${  result}` : result;
     };
 
     return (
