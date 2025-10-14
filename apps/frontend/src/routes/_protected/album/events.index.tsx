@@ -1,5 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import { ActionIcon, Button, Flex, Group, Menu, Modal, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -7,22 +5,18 @@ import {
   IconSettingsAutomation as SettingsAutomation,
   IconTrash as Trash,
 } from "@tabler/icons-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "@tanstack/react-router";
 import { AutoSizer, Grid } from "react-virtualized";
-
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
+import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { i18nResolvedLanguage } from "../../../i18n";
-import { HeaderComponent } from "../../../components/HeaderComponent"; 
 
-export const Route = createFileRoute('/_protected/album/events/')({
-  component: AlbumAuto,
-})
-
+export const Route = createFileRoute("/_protected/album/events/")();
 
 export function AlbumAuto() {
   const [autoAlbumID, setAutoAlbumID] = useState("");
@@ -139,3 +133,5 @@ export function AlbumAuto() {
     </div>
   );
 }
+
+Route.update({ component: AlbumAuto });

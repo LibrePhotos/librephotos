@@ -1,21 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-
 import { IconTags as Tags } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import { useFetchThingsAlbumQuery } from "../../../api_client/albums/hooks";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 
-export const Route = createFileRoute('/_protected/album/things/$id')({
-  component: AlbumThingGallery,
-})
+export const Route = createFileRoute("/_protected/album/things/$id")();
 
 export function AlbumThingGallery() {
   const { t } = useTranslation();
   const { id: albumID } = Route.useParams();
-  const { data: groupedPhotos, isLoading: fetchingAlbumsThing } = useFetchThingsAlbumQuery(albumID || '');
+  const { data: groupedPhotos, isLoading: fetchingAlbumsThing } = useFetchThingsAlbumQuery(albumID || "");
 
   return (
     <PhotoListView
@@ -28,3 +23,5 @@ export function AlbumThingGallery() {
     />
   );
 }
+
+Route.update({ component: AlbumThingGallery });

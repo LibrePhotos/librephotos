@@ -1,19 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import { IconVideo as Video } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { PigPhoto } from "../../api_client/photos/types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
-import { PhotoListView, PhotoGroup } from "../../components/photolist/PhotoListView";
-import { Photoset } from  "../../api_client/photos/types";
+import { Photoset, PigPhoto } from "../../api_client/photos/types";
+import { PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
-
-export const Route = createFileRoute('/_protected/videos')({
-  component: OnlyVideos,
-})
+export const Route = createFileRoute("/_protected/videos")();
 
 export function OnlyVideos() {
   const { t } = useTranslation();
@@ -55,3 +49,5 @@ export function OnlyVideos() {
     />
   );
 }
+
+Route.update({ component: OnlyVideos });

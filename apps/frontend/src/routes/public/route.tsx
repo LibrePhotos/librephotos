@@ -1,18 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { AppShell, useComputedColorScheme, useMantineTheme } from "@mantine/core";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import React from "react";
-import {  Outlet } from '@tanstack/react-router';
-
 import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-export const Route = createFileRoute('/public')({
-  component: AppShellPublicWithHeader,
-})
+export const Route = createFileRoute("/public")();
 
 export function AppShellPublicWithHeader() {
   const colorScheme = useComputedColorScheme();
-  const theme = useMantineTheme();  
+  const theme = useMantineTheme();
 
   return (
     <AppShell header={{ height: TOP_MENU_HEIGHT }}>
@@ -29,3 +25,5 @@ export function AppShellPublicWithHeader() {
     </AppShell>
   );
 }
+
+Route.update({ component: AppShellPublicWithHeader });

@@ -1,22 +1,18 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { IconGlobe as Globe } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
-import { useLoaderData } from "@tanstack/react-router";
-
-import { PigPhoto, Photoset } from "../../api_client/photos/types"; 
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery, useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
+import { Photoset, PigPhoto } from "../../api_client/photos/types";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 type PhotoGroup = { id: string; page: number };
 
-export const Route = createFileRoute('/public/$users')({
-  component: UserPublicPage, 
-})
+export const Route = createFileRoute("/public/$users")();
 
 export function UserPublicPage() {
-  const { users } = Route.useParams()
+  const { users } = Route.useParams();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
@@ -25,7 +21,7 @@ export function UserPublicPage() {
     {
       photosetType: Photoset.PUBLIC,
       username: users,
-    },
+    }
     // Disable this query when a specific album is requested
   );
 
@@ -41,7 +37,7 @@ export function UserPublicPage() {
 
   // If a specific user album is requested via ?album=ID, fetch it and display instead
   const params = new URLSearchParams(window.location.search);
-  const albumId = params.get('album') ?? '';
+  const albumId = params.get("album") ?? "";
   const { data: userAlbum } = useFetchUserAlbumQuery(albumId, albumId ? { public: true, username: users } : undefined);
 
   const getAlbums = (visibleGroups: any) => {
@@ -85,3 +81,5 @@ export function UserPublicPage() {
     />
   );
 }
+
+Route.update({ component: UserPublicPage });

@@ -1,18 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-
 import { Group, Stack, Tabs, Text, Title } from "@mantine/core";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
-import { useNavigate } from  "@tanstack/react-router";
-
 import { useFetchSharedAlbumsWithMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosWithMeQuery } from "../../../api_client/photos/hooks";
 import { AlbumsSharedWithMe } from "../../../components/sharing/AlbumsSharedWithMe";
 import { PhotosSharedWithMe } from "../../../components/sharing/PhotosSharedWithMe";
 
-export const Route = createFileRoute('/_protected/shared/tome/$tab')({
-  component: SharedWithMe,
-})
+export const Route = createFileRoute("/_protected/shared/tome/$tab")();
+
 export function SharedWithMe() {
   const navigate = useNavigate();
   const { data: albums = [] } = useFetchSharedAlbumsWithMeQuery();
@@ -62,3 +57,4 @@ export function SharedWithMe() {
   );
 }
 
+Route.update({ component: SharedWithMe });

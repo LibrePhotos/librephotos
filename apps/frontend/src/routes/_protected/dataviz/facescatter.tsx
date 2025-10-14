@@ -1,10 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-
+import { createFileRoute } from "@tanstack/react-router";
 import FaceClusterScatter from "../../../components/charts/FaceClusterGraph";
 
-export const Route = createFileRoute('/_protected/dataviz/facescatter')({
-  component: FaceScatter,
-})
+export const Route = createFileRoute("/_protected/dataviz/facescatter")();
 
 export function FaceScatter() {
   return (
@@ -14,3 +11,4 @@ export function FaceScatter() {
   );
 }
 
+Route.update({ component: FaceScatter });

@@ -1,5 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import {
   Button,
   Card,
@@ -13,16 +11,13 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router"; 
-
-import { useSignUpMutation } from "../api_client/auth/hooks";
+import { useSignUpMutation } from "../api_client/auth";
 import { EMAIL_REGEX } from "../util/util";
 
-export const Route = createFileRoute('/signup')({
-  component: SignupPage,
-})
+export const Route = createFileRoute("/signup")();
 
 export function SignupPage(): JSX.Element {
   const { t } = useTranslation();
@@ -52,7 +47,7 @@ export function SignupPage(): JSX.Element {
       username: value => validateUsername(value),
     },
   });
-  const {mutate: signup, isSuccess } = useSignUpMutation();
+  const { mutate: signup, isSuccess } = useSignUpMutation();
 
   useEffect(() => {
     if (isSuccess) {
@@ -139,3 +134,4 @@ export function SignupPage(): JSX.Element {
   );
 }
 
+Route.update({ component: SignupPage });

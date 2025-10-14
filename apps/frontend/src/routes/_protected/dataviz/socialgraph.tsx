@@ -1,10 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { SocialGraph } from '../../../components/charts/SocialGraph';
+import { createFileRoute } from "@tanstack/react-router";
+import { SocialGraph } from "../../../components/charts/SocialGraph";
 
-export const Route = createFileRoute('/_protected/dataviz/socialgraph')({
-  component: Graph,
-})
-
+export const Route = createFileRoute("/_protected/dataviz/socialgraph")();
 
 export function Graph() {
   return (
@@ -13,3 +10,5 @@ export function Graph() {
     </div>
   );
 }
+
+Route.update({ component: Graph });

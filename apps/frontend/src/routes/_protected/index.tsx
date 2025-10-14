@@ -1,19 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import { IconPhoto as Photo } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { PigPhoto } from "../../api_client/photos/types";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
-import { PhotoListView, PhotoGroup } from "../../components/photolist/PhotoListView";
-import { Photoset } from  "../../api_client/photos/types";
+import { Photoset, PigPhoto } from "../../api_client/photos/types";
+import { PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
-
-export const Route = createFileRoute('/_protected/')({
-  component: TimestampPhotos,
-})
+export const Route = createFileRoute("/_protected/")();
 
 export function TimestampPhotos() {
   const { t } = useTranslation();
@@ -55,3 +49,5 @@ export function TimestampPhotos() {
     />
   );
 }
+
+Route.update({ component: TimestampPhotos });

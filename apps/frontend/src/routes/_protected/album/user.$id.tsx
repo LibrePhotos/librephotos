@@ -1,18 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import { IconBookmark as Bookmark } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import type { DatePhotosGroup, PigPhoto } from "../../../api_client/photos/types";
 import { useFetchUserAlbumQuery } from "../../../api_client/albums/hooks";
-import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import type { DatePhotosGroup, PigPhoto } from "../../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
-export const Route = createFileRoute('/_protected/album/user/$id')({
-  component: AlbumUserGallery,
-})
+export const Route = createFileRoute("/_protected/album/user/$id")();
 
 export function AlbumUserGallery() {
   const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
@@ -21,7 +17,7 @@ export function AlbumUserGallery() {
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const { id: albumID } = Route.useParams();
 
-  const { data: album, isFetching } = useFetchUserAlbumQuery(albumID ?? '');
+  const { data: album, isFetching } = useFetchUserAlbumQuery(albumID ?? "");
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -59,3 +55,5 @@ export function AlbumUserGallery() {
     />
   );
 }
+
+Route.update({ component: AlbumUserGallery });

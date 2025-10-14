@@ -1,31 +1,26 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-
 import { Anchor, Image, Loader } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Map, Marker, TileLayer } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import { AutoSizer, Grid } from "react-virtualized";
-
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import { serverAddress } from "../../../api_client/apiClient";
-import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { HeaderComponent } from "../../../components/HeaderComponent";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute('/_protected/album/places/')({
-  component: AlbumPlace,
-})  
+export const Route = createFileRoute("/_protected/album/places/")();
 
 type Props = Readonly<{
   height?: number;
 }>;
 
-export function AlbumPlace({ height }: Props) {
+function AlbumPlace({ height }: Props) {
   const { width } = useViewportSize();
   const mapRef = useRef<Map>(null);
   const { t } = useTranslation();
@@ -170,3 +165,5 @@ export function AlbumPlace({ height }: Props) {
 AlbumPlace.defaultProps = {
   height: 0,
 };
+
+Route.update({ component: AlbumPlace });

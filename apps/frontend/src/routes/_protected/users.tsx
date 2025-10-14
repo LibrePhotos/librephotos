@@ -1,16 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import { Avatar, Button, Group, Stack, Text, Title } from "@mantine/core";
 import { IconUser as User } from "@tabler/icons-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { UserList } from "../../api_client/user";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { UserList } from "../../api_client/user/types";
 
-
-export const Route = createFileRoute('/_protected/users')({
-  component: PublicUserList,
-})
+export const Route = createFileRoute("/_protected/users")();
 
 function publicUsers(items: UserList = []) {
   return items.filter(el => el.public_sharing);
@@ -62,3 +57,4 @@ export function PublicUserList() {
   );
 }
 
+Route.update({ component: PublicUserList });

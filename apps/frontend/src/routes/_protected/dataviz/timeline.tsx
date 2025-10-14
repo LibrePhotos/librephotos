@@ -1,13 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Divider } from '@mantine/core';
-import { EventCountMonthGraph } from '../../../components/charts/EventCountMonthGraph';
-import { LocationDurationStackedBar } from '../../../components/charts/LocationDurationStackedBar';
+import { Divider } from "@mantine/core";
+import { createFileRoute } from "@tanstack/react-router";
+import { EventCountMonthGraph } from "../../../components/charts/EventCountMonthGraph";
+import { LocationDurationStackedBar } from "../../../components/charts/LocationDurationStackedBar";
 
-export const Route = createFileRoute('/_protected/dataviz/timeline')({
-  component: Timeline,
-})
-
-
+export const Route = createFileRoute("/_protected/dataviz/timeline")();
 
 export function Timeline() {
   return (
@@ -20,3 +16,5 @@ export function Timeline() {
     </div>
   );
 }
+
+Route.update({ component: Timeline });
