@@ -1,6 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-
 import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -13,26 +10,22 @@ import {
   IconUser as User,
   IconUsers as Users,
 } from "@tabler/icons-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "@tanstack/react-router";
 import { AutoSizer, Grid } from "react-virtualized";
-
-import { UserAlbumInfo } from "../../../api_client/albums/types";
 import {
   useDeleteUserAlbumMutation,
   useFetchUserAlbumsQuery,
   useRenameUserAlbumMutation,
 } from "../../../api_client/albums/hooks";
-import { Tile } from "../../../components/Tile";
-import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
-import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
+import { UserAlbumInfo } from "../../../api_client/albums/types";
 import { HeaderComponent } from "../../../components/HeaderComponent";
+import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
+import { Tile } from "../../../components/Tile";
+import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute('/_protected/album/user/')({
-  component: AlbumUser,
-})
-
+export const Route = createFileRoute("/_protected/album/user/")();
 
 function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
   const [opened, { toggle, close }] = useDisclosure(false);
@@ -207,7 +200,12 @@ export function AlbumUser() {
           </Group>
         </div>
       </Modal>
-      <ModalAlbumShare isOpen={isShareDialogOpen} onRequestClose={hideShareDialog} albumID={albumID} ownerUsername={albumOwner} />
+      <ModalAlbumShare
+        isOpen={isShareDialogOpen}
+        onRequestClose={hideShareDialog}
+        albumID={albumID}
+        ownerUsername={albumOwner}
+      />
       <Modal opened={isDeleteDialogOpen} onClose={hideDeleteDialog}>
         <Stack>
           {t("deletealbumexplanation")}
@@ -245,3 +243,5 @@ export function AlbumUser() {
     </div>
   );
 }
+
+Route.update({ component: AlbumUser });

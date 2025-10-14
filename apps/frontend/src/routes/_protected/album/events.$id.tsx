@@ -1,29 +1,20 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-
-
-import { Avatar, Box,  Button, Divider, Group, Loader, Paper, Text, Title } from "@mantine/core";
+import { Avatar, Box, Button, Divider, Group, Loader, Paper, Text, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconMap2 as Map2,
-  IconSettingsAutomation as SettingsAutomation,
-} from "@tabler/icons-react";
+import { IconMap2 as Map2, IconSettingsAutomation as SettingsAutomation } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import _ from "lodash";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import { useFetchAutoAlbumQuery } from "../../../api_client/albums/hooks";
 import { serverAddress } from "../../../api_client/apiClient";
 import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
-import { PhotoListView } from "../../../components/photolist/PhotoListView"; 
+import { PhotoListView } from "../../../components/photolist/PhotoListView";
 
-export const Route = createFileRoute('/_protected/album/events/$id')({
-  component: AlbumAutoGalleryView,
-})
+export const Route = createFileRoute("/_protected/album/events/$id")();
 
 export function AlbumAutoGalleryView() {
   const { id } = Route.useParams();
-  const { data: album, isFetching } = useFetchAutoAlbumQuery(id ?? ''); // Add null check
+  const { data: album, isFetching } = useFetchAutoAlbumQuery(id ?? ""); // Add null check
   const [showMap, { toggle: toggleMap }] = useDisclosure(false);
   const { t } = useTranslation();
 
@@ -71,7 +62,7 @@ export function AlbumAutoGalleryView() {
   }));
 
   // Get all unique locations across all dates
-  const allLocations = _.flatMap(_.toPairs(byDate), ([_, datePhotos]) => 
+  const allLocations = _.flatMap(_.toPairs(byDate), ([_, datePhotos]) =>
     datePhotos
       .filter(photo => !!photo.geolocation_json.features)
       .map(photo => {
@@ -108,10 +99,10 @@ export function AlbumAutoGalleryView() {
               <>
                 {album.people.length > 0 && <Divider orientation="vertical" />}
                 {hasGPSCoordinates && (
-                  <Button 
-                    variant={showMap ? "filled" : "light"} 
-                    color={showMap ? "blue" : "gray"} 
-                    onClick={toggleMap} 
+                  <Button
+                    variant={showMap ? "filled" : "light"}
+                    color={showMap ? "blue" : "gray"}
+                    onClick={toggleMap}
                     leftSection={<Map2 size={16} />}
                     size="xs"
                   >
@@ -141,3 +132,5 @@ export function AlbumAutoGalleryView() {
     </div>
   );
 }
+
+Route.update({ component: AlbumAutoGalleryView });

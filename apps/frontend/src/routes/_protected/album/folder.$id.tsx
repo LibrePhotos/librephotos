@@ -1,29 +1,39 @@
-import { createFileRoute } from '@tanstack/react-router';
-
-import { Group, Button, Box, Modal, TextInput, ScrollArea, Stack, Text, Highlight, Badge, Avatar, UnstyledButton } from "@mantine/core";
+import {
+  Avatar,
+  Badge,
+  Box,
+  Button,
+  Group,
+  Highlight,
+  Modal,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  UnstyledButton,
+} from "@mantine/core";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { IconFolder as Folder, IconArrowLeft } from "@tabler/icons-react";
-import React, { useEffect, useState, useMemo, memo } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import React, { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMediaQuery, useDisclosure } from "@mantine/hooks";
-import { Link } from "@tanstack/react-router";
-
-
-import { PigPhoto } from "../../../api_client/photos/types";
-import { useFetchDateAlbumsQuery, useFetchDateAlbumQuery } from "../../../api_client/albums/hooks";
-import { PhotoListView, PhotoGroup } from "../../../components/photolist/PhotoListView";
-import { Photoset } from "../../../api_client/photos/types";
+import {
+  useFetchDateAlbumQuery,
+  useFetchDateAlbumsQuery,
+  useFetchFolderSubfoldersInfiniteQuery,
+  useFetchFolderSubfoldersQuery,
+} from "../../../api_client/albums/hooks";
+import { Photoset, PigPhoto } from "../../../api_client/photos/types";
+import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
-import { useFetchFolderSubfoldersQuery, useFetchFolderSubfoldersInfiniteQuery } from "../../../api_client/albums/hooks";
-import classes from './folder.module.css';
+import classes from "./folder.module.css";
 
-export const Route = createFileRoute('/_protected/album/folder/$id')({
-  component: FolderDetail,
-});
+export const Route = createFileRoute("/_protected/album/folder/$id")();
 
 // FolderListModal component - encapsulates all modal functionality
 interface FolderListModalProps {
   folderPath?: string;
-  subfolders: any[];
+  subfolders: any;
   buttonSize: string;
   isMobile: boolean;
 }
@@ -35,13 +45,13 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useFetchFolderSubfoldersInfiniteQuery(folderPath);
 
-  const allSubfolders = useMemo(() => data?.pages?.flatMap((p) => p.subfolders) || [], [data]);
+  const allSubfolders = useMemo(() => data?.pages?.flatMap(p => p.subfolders) || [], [data]);
 
   const filteredSubfolders = useMemo(() => {
     const query = folderSearch.trim().toLowerCase();
     if (!query) return allSubfolders;
-    return allSubfolders.filter((f: any) =>
-      f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query)
+    return allSubfolders.filter(
+      (f: any) => f.name.toLowerCase().includes(query) || f.path.toLowerCase().includes(query)
     );
   }, [allSubfolders, folderSearch]);
 
@@ -54,16 +64,16 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
     const truncatePath = (path: string, maxLength: number = 50) => {
       if (path.length <= maxLength) return path;
       // Try to break at folder separators
-      const parts = path.split('/');
+      const parts = path.split("/");
       let result = parts[parts.length - 1]; // Start with filename
 
       for (let i = parts.length - 2; i >= 0; i--) {
-        const newResult = `${parts[i]  }/${  result}`;
+        const newResult = `${parts[i]}/${result}`;
         if (newResult.length > maxLength - 3) break; // Leave room for "..."
         result = newResult;
       }
 
-      return result.length < path.length ? `...${  result}` : result;
+      return result.length < path.length ? `...${result}` : result;
     };
 
     return (
@@ -81,11 +91,7 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
         <Group gap="md" justify="space-between" align="center" wrap="nowrap">
           <Group gap="md" align="center" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
             {/* Folder icon */}
-            <Avatar
-              size="lg"
-              radius="md"
-              color="blue"
-            >
+            <Avatar size="lg" radius="md" color="blue">
               📁
             </Avatar>
 
@@ -93,27 +99,13 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
             <Box style={{ flex: 1, minWidth: 0 }}>
               <Stack gap={4}>
                 {/* Folder name */}
-                <Text
-                  size="sm"
-                  fw={600}
-                  lineClamp={1}
-                  ta="left"
-                >
-                  <Highlight highlight={folderSearch}>
-                    {subfolder.name}
-                  </Highlight>
+                <Text size="sm" fw={600} lineClamp={1} ta="left">
+                  <Highlight highlight={folderSearch}>{subfolder.name}</Highlight>
                 </Text>
 
                 {/* Folder path */}
-                <Text
-                  size="xs"
-                  c="dimmed"
-                  lineClamp={1}
-                  ta="left"
-                >
-                  <Highlight highlight={folderSearch}>
-                    {truncatePath(subfolder.path)}
-                  </Highlight>
+                <Text size="xs" c="dimmed" lineClamp={1} ta="left">
+                  <Highlight highlight={folderSearch}>{truncatePath(subfolder.path)}</Highlight>
                 </Text>
               </Stack>
             </Box>
@@ -124,12 +116,12 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
             variant="filled"
             color="blue"
             style={{
-              fontSize: 'var(--mantine-fontSizes-lg)',
+              fontSize: "var(--mantine-fontSizes-lg)",
               fontWeight: 700,
-              padding: '8px 16px',
-              minWidth: '56px',
-              textAlign: 'center',
-              alignSelf: 'center'
+              padding: "8px 16px",
+              minWidth: "56px",
+              textAlign: "center",
+              alignSelf: "center",
             }}
           >
             {subfolder.photo_count}
@@ -139,7 +131,7 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
     );
   });
 
-  FolderButton.displayName = 'FolderButton';
+  FolderButton.displayName = "FolderButton";
 
   const maxFolders = 6; // We only need this for the trigger button logic
 
@@ -148,8 +140,8 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
       <Modal
         opened={opened}
         onClose={close}
-        title={`${t('all_subfolders', { defaultValue: 'All subfolders' })}`}
-        size={isMobile ? '90%' : 'lg'}
+        title={`${t("all_subfolders", { defaultValue: "All subfolders" })}`}
+        size={isMobile ? "90%" : "lg"}
         centered
         scrollAreaComponent={ScrollArea.Autosize}
         withCloseButton
@@ -157,48 +149,44 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
         <Stack gap="sm">
           <TextInput
             value={folderSearch}
-            onChange={(event) => {
+            onChange={event => {
               setFolderSearch(event.currentTarget.value);
             }}
-            placeholder={t('filter_folders', { defaultValue: 'Filter by name or path...' })}
-            leftSection={<span style={{ fontSize: '16px' }}>🔍</span>}
+            placeholder={t("filter_folders", { defaultValue: "Filter by name or path..." })}
+            leftSection={<span style={{ fontSize: "16px" }}>🔍</span>}
             size="md"
             radius="md"
             styles={{
               input: {
-                '&:focus': {
-                  borderColor: 'var(--mantine-color-blue-5)',
-                  boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)'
-                }
-              }
+                "&:focus": {
+                  borderColor: "var(--mantine-color-blue-5)",
+                  boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
+                },
+              },
             }}
           />
 
           <Group justify="space-between" align="center">
             <Text size="sm" c="dimmed" fw={500}>
-              {t('results', { defaultValue: 'Results' })}: {filteredSubfolders.length}
+              {t("results", { defaultValue: "Results" })}: {filteredSubfolders.length}
             </Text>
             {hasNextPage && (
               <Badge variant="light" color="blue" size="sm">
-                {t('more_available', { defaultValue: 'More available' })}
+                {t("more_available", { defaultValue: "More available" })}
               </Badge>
             )}
           </Group>
           <ScrollArea.Autosize mah={600} type="auto">
             <Stack gap="lg" p="md">
               {filteredSubfolders.map((subfolder: any) => (
-                <FolderButton
-                  key={subfolder.path}
-                  subfolder={subfolder}
-                  folderSearch={folderSearch}
-                />
+                <FolderButton key={subfolder.path} subfolder={subfolder} folderSearch={folderSearch} />
               ))}
               {/* Infinite scroll sentinel */}
               <div
-                ref={(node) => {
+                ref={node => {
                   if (!node) return;
-                  const observer = new IntersectionObserver((entries) => {
-                    entries.forEach((entry) => {
+                  const observer = new IntersectionObserver(entries => {
+                    entries.forEach(entry => {
                       if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
                         fetchNextPage();
                       }
@@ -210,14 +198,14 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
               {filteredSubfolders.length === 0 && (
                 <Box ta="center" py="xl">
                   <Stack gap="xs" align="center">
-                    <Avatar size="lg" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-1)' }}>
+                    <Avatar size="lg" radius="xl" style={{ backgroundColor: "var(--mantine-color-gray-1)" }}>
                       📁
                     </Avatar>
                     <Text size="sm" c="dimmed" fw={500}>
-                      {t('no_folders_found', { defaultValue: 'No folders found' })}
+                      {t("no_folders_found", { defaultValue: "No folders found" })}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      {t('try_different_search', { defaultValue: 'Try adjusting your search terms' })}
+                      {t("try_different_search", { defaultValue: "Try adjusting your search terms" })}
                     </Text>
                   </Stack>
                 </Box>
@@ -235,21 +223,21 @@ const FolderListModal = memo<FolderListModalProps>(({ folderPath, subfolders, bu
           onClick={open}
           styles={{
             root: {
-              minHeight: isMobile ? '32px' : '28px',
-              padding: isMobile ? '4px 8px' : '2px 6px',
-              fontSize: isMobile ? '12px' : '13px'
-            }
+              minHeight: isMobile ? "32px" : "28px",
+              padding: isMobile ? "4px 8px" : "2px 6px",
+              fontSize: isMobile ? "12px" : "13px",
+            },
           }}
-          title={t('show_all_subfolders', { defaultValue: 'Show all subfolders' })}
+          title={t("show_all_subfolders", { defaultValue: "Show all subfolders" })}
         >
-          +{subfolders.length - maxFolders} {t('more', { defaultValue: 'more' })}
+          +{subfolders.length - maxFolders} {t("more", { defaultValue: "more" })}
         </Button>
       )}
     </>
   );
 });
 
-FolderListModal.displayName = 'FolderListModal';
+FolderListModal.displayName = "FolderListModal";
 
 export function FolderDetail() {
   const { id } = Route.useParams();
@@ -257,8 +245,8 @@ export function FolderDetail() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   // Responsive breakpoints
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const isSmallMobile = useMediaQuery('(max-width: 480px)');
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isSmallMobile = useMediaQuery("(max-width: 480px)");
 
   // Get photos from this folder using FOLDERS photoset
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
@@ -296,7 +284,7 @@ export function FolderDetail() {
   };
 
   function getSubheader() {
-    const parentPath = folderPath.substring(0, folderPath.lastIndexOf('/'));
+    const parentPath = folderPath.substring(0, folderPath.lastIndexOf("/"));
     const canGoBack = parentPath && parentPath !== folderPath && parentPath.length > 0;
 
     // Responsive settings
@@ -308,16 +296,16 @@ export function FolderDetail() {
     // Truncate folder names for mobile
     const truncateFolderName = (name: string) => {
       if (name.length <= maxFolderNameLength) return name;
-      return `${name.substring(0, maxFolderNameLength - 3)  }...`;
+      return `${name.substring(0, maxFolderNameLength - 3)}...`;
     };
 
     return (
-      <Box style={{ marginTop: isMobile ? '12px' : '16px', marginBottom: isMobile ? '12px' : '16px' }}>
+      <Box style={{ marginTop: isMobile ? "12px" : "16px", marginBottom: isMobile ? "12px" : "16px" }}>
         <Group
           gap={isSmallMobile ? "xs" : "sm"}
           style={{
-            flexWrap: 'wrap',
-            alignItems: 'center'
+            flexWrap: "wrap",
+            alignItems: "center",
           }}
         >
           {/* Back button */}
@@ -331,15 +319,14 @@ export function FolderDetail() {
               }}
               styles={{
                 root: {
-                  minHeight: isMobile ? '32px' : '28px',
-                  padding: isMobile ? '4px 8px' : '2px 6px'
-                }
+                  minHeight: isMobile ? "32px" : "28px",
+                  padding: isMobile ? "4px 8px" : "2px 6px",
+                },
               }}
             >
-              {isSmallMobile ?
-                t("back", { defaultValue: "Back" }) :
-                t("back_to_parent", { defaultValue: "Back to Parent" })
-              }
+              {isSmallMobile
+                ? t("back", { defaultValue: "Back" })
+                : t("back_to_parent", { defaultValue: "Back to Parent" })}
             </Button>
           ) : (
             <Button
@@ -347,19 +334,18 @@ export function FolderDetail() {
               size={buttonSize}
               leftSection={<IconArrowLeft size={iconSize} />}
               onClick={() => {
-                window.location.href = '/album/folder';
+                window.location.href = "/album/folder";
               }}
               styles={{
                 root: {
-                  minHeight: isMobile ? '32px' : '28px',
-                  padding: isMobile ? '4px 8px' : '2px 6px'
-                }
+                  minHeight: isMobile ? "32px" : "28px",
+                  padding: isMobile ? "4px 8px" : "2px 6px",
+                },
               }}
             >
-              {isSmallMobile ?
-                t("folders", { defaultValue: "Folders" }) :
-                t("back_to_folders", { defaultValue: "Back to Folders" })
-              }
+              {isSmallMobile
+                ? t("folders", { defaultValue: "Folders" })
+                : t("back_to_folders", { defaultValue: "Back to Folders" })}
             </Button>
           )}
 
@@ -374,16 +360,16 @@ export function FolderDetail() {
               }}
               styles={{
                 root: {
-                  minHeight: isMobile ? '32px' : '28px',
-                  padding: isMobile ? '4px 8px' : '2px 6px',
-                  fontSize: isSmallMobile ? '12px' : isMobile ? '13px' : '14px'
-                }
+                  minHeight: isMobile ? "32px" : "28px",
+                  padding: isMobile ? "4px 8px" : "2px 6px",
+                  fontSize: isSmallMobile ? "12px" : isMobile ? "13px" : "14px",
+                },
               }}
               title={subfolder.name} // Show full name on hover
             >
               {isSmallMobile ? (
                 // On very small screens, show just icon and count
-                <Group gap={4} style={{ fontSize: '11px' }}>
+                <Group gap={4} style={{ fontSize: "11px" }}>
                   📁 {subfolder.photo_count}
                 </Group>
               ) : (
@@ -401,14 +387,13 @@ export function FolderDetail() {
             isMobile={isMobile}
           />
         </Group>
-       
       </Box>
     );
   }
 
   return (
     <PhotoListView
-      title={folderPath.split('/').pop() || t("folder", { defaultValue: "Folder" })}
+      title={folderPath.split("/").pop() || t("folder", { defaultValue: "Folder" })}
       additionalSubHeader={getSubheader()}
       loading={isLoading}
       icon={<Folder size={50} />}
@@ -419,3 +404,5 @@ export function FolderDetail() {
     />
   );
 }
+
+Route.update({ component: FolderDetail });

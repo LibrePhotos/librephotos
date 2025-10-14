@@ -1,19 +1,19 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-
 import { IconUser as User } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  Person,
+  useFetchDateAlbumQuery,
+  useFetchDateAlbumsQuery,
+  useFetchPeopleAlbumsQuery,
+} from "../../../api_client/albums/hooks";
 
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
-import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../../api_client/albums/hooks";
-import { Person, useFetchPeopleAlbumsQuery } from "../../../api_client/albums/hooks";
-import { PhotoListView, PhotoGroup } from "../../../components/photolist/PhotoListView";
+import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
-export const Route = createFileRoute('/_protected/album/persons/$id')({
-  component: AlbumPersonGallery,
-})
+export const Route = createFileRoute("/_protected/album/persons/$id")();
 
 export function AlbumPersonGallery(): JSX.Element {
   const { id } = Route.useParams();
@@ -68,3 +68,5 @@ export function AlbumPersonGallery(): JSX.Element {
     />
   );
 }
+
+Route.update({ component: AlbumPersonGallery });

@@ -1,9 +1,3 @@
-
-
-import React, { useEffect } from "react";
-
-import { createFileRoute } from '@tanstack/react-router'
-
 import {
   Button,
   Card,
@@ -18,25 +12,23 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
-
+import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import React, { useEffect } from "react";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from '@tanstack/react-query';
-
-import { Navigate } from "@tanstack/react-router";
-import { useSignUpMutation } from "../api_client/auth/hooks";
-import { EMAIL_REGEX } from "../util/util";
-import { UserListQueryKeys } from '../api_client/user/hooks/useFetchUserListQuery';
-
-import { useLoginMutation, useIsAuthenticatedQuery } from "../api_client/auth";
-import { useGetSettingsQuery } from "../api_client/settings/hooks/useGetSettingsQuery";
-import { useIsFirstTimeSetupQuery } from "../api_client/auth/hooks";
+import {
+  useIsAuthenticatedQuery,
+  useIsFirstTimeSetupQuery,
+  useLoginMutation,
+  useSignUpMutation,
+} from "../api_client/auth";
+import { useGetSettingsQuery } from "../api_client/settings";
+import { UserListQueryKeys } from "../api_client/user/hooks";
 import { isStringEmpty } from "../util/stringUtils";
+import { EMAIL_REGEX } from "../util/util";
 
-export const Route = createFileRoute('/login')({
-  component: Login,
-})
+export const Route = createFileRoute("/login")();
 
 export interface LocationState {
   from: {
@@ -44,30 +36,12 @@ export interface LocationState {
   };
 }
 
-export function Login(): JSX.Element {
-  const { data: isFirstTimeSetup, isLoading } = useIsFirstTimeSetupQuery();
-  if (!isLoading && isFirstTimeSetup) {
-    return (
-      <div className="login-page">
-        <FirstTimeSetupPage />
-      </div>
-    );
-  }
-
-  return (
-    <div className="login-page">
-      <LoginPage />
-    </div>
-  );
-}
-
-
 export function LoginPage(): JSX.Element {
   const colorScheme = useComputedColorScheme("dark");
   const { t } = useTranslation();
-  const {data: isAuthenticated} = useIsAuthenticatedQuery();
+  const { data: isAuthenticated } = useIsAuthenticatedQuery();
   const { data: siteSettings } = useGetSettingsQuery();
-  const { mutate: login, isPending: isLoading, isSuccess } = useLoginMutation();
+  const { mutate: login, isPending: isLoading } = useLoginMutation();
   const form = useForm({
     initialValues: {
       username: "",
@@ -137,7 +111,6 @@ export function LoginPage(): JSX.Element {
   );
 }
 
-
 export type SignUpForm = {
   username: string;
   password: string;
@@ -145,12 +118,12 @@ export type SignUpForm = {
   lastname: string;
   passwordConfirm: string;
   email: string;
-}
+};
 
 export type SignInForm = {
   username: string;
   password: string;
-}
+};
 
 export function validateSignUpForm(form: SignUpForm): boolean {
   return (
@@ -180,7 +153,7 @@ export const initialFormState: SignUpForm = {
 export function FirstTimeSetupPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const {mutate: signup, isPending, isSuccess } = useSignUpMutation();
+  const { mutate: signup, isPending, isSuccess } = useSignUpMutation();
   const queryClient = useQueryClient();
 
   const form = useForm({
@@ -310,3 +283,21 @@ export function FirstTimeSetupPage(): JSX.Element {
   );
 }
 
+export function Login(): JSX.Element {
+  const { data: isFirstTimeSetup, isLoading } = useIsFirstTimeSetupQuery();
+  if (!isLoading && isFirstTimeSetup) {
+    return (
+      <div className="login-page">
+        <FirstTimeSetupPage />
+      </div>
+    );
+  }
+
+  return (
+    <div className="login-page">
+      <LoginPage />
+    </div>
+  );
+}
+
+Route.update({ component: Login });

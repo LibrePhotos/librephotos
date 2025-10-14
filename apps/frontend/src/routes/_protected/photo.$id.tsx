@@ -1,33 +1,42 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-import { Box, Container, Anchor, Paper, Stack, Text, Center, Loader, Grid, Title, Group, Divider, Badge, Button, useMantineTheme, SimpleGrid } from "@mantine/core";
+import {
+  Anchor,
+  Box,
+  Center,
+  Container,
+  Divider,
+  Grid,
+  Group,
+  Loader,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  useMantineTheme,
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import React from "react";
-import { DateTime } from "luxon";
 import { IconPhoto } from "@tabler/icons-react";
-
+import { createFileRoute } from "@tanstack/react-router";
+import { DateTime } from "luxon";
+import React from "react";
 import { serverAddress } from "../../api_client/apiClient";
-import { TimestampItem } from "../../components/lightbox/TimestampItem";
-import { Description } from "../../components/lightbox/Description";
-import { MediaDisplay } from "../../components/lightbox/MediaDisplay";
-import { CameraInfoComponent } from "../../components/lightbox/CameraInfoComponent";
-import type { FaceLocationType } from "../../components/lightbox/lightbox.types";
-import { FileInfoComponent } from "../../components/lightbox/FileInfoComponent";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { BreadcrumbPath } from "../../components/common/BreadcrumbPath";
-import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSection";
+import type { FaceLocationType } from "../../components/lightbox";
+import { MediaDisplay } from "../../components/lightbox";
+import { CameraInfoComponent } from "../../components/lightbox/CameraInfoComponent";
+import { Description } from "../../components/lightbox/Description";
+import { FileInfoComponent } from "../../components/lightbox/FileInfoComponent";
 import { LocationSection } from "../../components/lightbox/LocationSection";
 import { PeopleSection } from "../../components/lightbox/PeopleSection";
-import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
+import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSection";
+import { TimestampItem } from "../../components/lightbox/TimestampItem";
 
-export const Route = createFileRoute('/_protected/photo/$id')({
-  component: SinglePhotoView,
-})
-
+export const Route = createFileRoute("/_protected/photo/$id")();
 
 export function SinglePhotoView() {
   const { id: photoId } = Route.useParams();
   const { data: photoDetail } = useFetchPhotoDetailsQuery(photoId || "");
-  const [faceLocation, setFaceLocation] = React.useState<FaceLocationType>(null);
+  const [faceLocation] = React.useState<FaceLocationType>(null);
   const theme = useMantineTheme();
   const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
@@ -54,14 +63,11 @@ export function SinglePhotoView() {
     );
   }
 
-  const fileName = photoDetail.image_path && photoDetail.image_path.length > 0
-    ? photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)
-    : "Unknown filename";
-  const fileSize = Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 
-    ? `${Math.round((photoDetail.size / 1024) * 100) / 100} kB` 
-    : `${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`;
-  const dimensions = `${photoDetail.height} x ${photoDetail.width}`;
-  const timestamp = photoDetail.exif_timestamp 
+  const fileName =
+    photoDetail.image_path && photoDetail.image_path.length > 0
+      ? photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)
+      : "Unknown filename";
+  const timestamp = photoDetail.exif_timestamp
     ? DateTime.fromISO(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)
     : "Unknown timestamp";
 
@@ -72,7 +78,7 @@ export function SinglePhotoView() {
           {/* Header Section */}
           <Stack gap="xs">
             <Group justify="space-between" align="flex-start" wrap="nowrap">
-              <Group gap="xs" wrap="nowrap" style={{ maxWidth: '100%' }}>
+              <Group gap="xs" wrap="nowrap" style={{ maxWidth: "100%" }}>
                 <IconPhoto size={isMobile ? 30 : 45} />
                 <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
                   <Title size={isMobile ? "h3" : "h2"} fw={800} lineClamp={1}>
@@ -81,19 +87,22 @@ export function SinglePhotoView() {
                 </Anchor>
               </Group>
             </Group>
-            
+
             <Group>
-                <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} size="sm" />
-                {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
-                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} size="sm" />
-                ) : (
-                  <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} size="sm" />
-                )}
-                <FileInfoComponent info={timestamp} size="sm" />
-                {photoDetail.image_path && photoDetail.image_path.length > 0 && (
-                  <BreadcrumbPath fullPath={photoDetail.image_path[0].replace(/\\/g, '/').split('/').slice(0, -1).join('/')} size="sm" />
-                )}
-              </Group>
+              <FileInfoComponent info={`${photoDetail.height} x ${photoDetail.width}`} size="sm" />
+              {Math.round((photoDetail.size / 1024 / 1024) * 100) / 100 < 1 ? (
+                <FileInfoComponent info={`${Math.round((photoDetail.size / 1024) * 100) / 100} kB`} size="sm" />
+              ) : (
+                <FileInfoComponent info={`${Math.round((photoDetail.size / 1024 / 1024) * 100) / 100} MB`} size="sm" />
+              )}
+              <FileInfoComponent info={timestamp} size="sm" />
+              {photoDetail.image_path && photoDetail.image_path.length > 0 && (
+                <BreadcrumbPath
+                  fullPath={photoDetail.image_path[0].replace(/\\/g, "/").split("/").slice(0, -1).join("/")}
+                  size="sm"
+                />
+              )}
+            </Group>
           </Stack>
 
           <Divider />
@@ -116,7 +125,7 @@ export function SinglePhotoView() {
             <Grid.Col span={isMobile ? 12 : 6}>
               <Stack gap={isMobile ? "xs" : "md"}>
                 <TimestampItem isPublic={false} photoDetail={photoDetail} />
-                <PeopleSection 
+                <PeopleSection
                   photoDetail={photoDetail}
                   isPublic={false}
                   // To-Do: Implement this
@@ -129,7 +138,7 @@ export function SinglePhotoView() {
                 <Description photoDetail={photoDetail} isPublic={false} />
               </Stack>
             </Grid.Col>
-            
+
             {/* Right Column - Secondary Information */}
             <Grid.Col span={isMobile ? 12 : 6}>
               <Stack gap={isMobile ? "xs" : "md"}>
@@ -144,3 +153,5 @@ export function SinglePhotoView() {
     </Container>
   );
 }
+
+Route.update({ component: SinglePhotoView });

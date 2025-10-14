@@ -1,10 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { LocationLink } from '../../../components/locationLink';
+import { createFileRoute } from "@tanstack/react-router";
+import { LocationLink } from "../../../components/locationLink";
 
-export const Route = createFileRoute('/_protected/dataviz/placetree')({
-  component: LocationTree,
-})
-
+export const Route = createFileRoute("/_protected/dataviz/placetree")();
 
 export function LocationTree() {
   return (
@@ -13,4 +10,5 @@ export function LocationTree() {
     </div>
   );
 }
-  
+
+Route.update({ component: LocationTree });

@@ -1,10 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Divider } from '@mantine/core';
-import { WordCloud } from '../../../components/charts/WordCloud';
+import { Divider } from "@mantine/core";
+import { createFileRoute } from "@tanstack/react-router";
+import { WordCloud } from "../../../components/charts/WordCloud";
 
-export const Route = createFileRoute('/_protected/dataviz/wordclouds')({
-  component: WordClouds,
-})
+export const Route = createFileRoute("/_protected/dataviz/wordclouds")();
 
 export function WordClouds() {
   return (
@@ -18,4 +16,6 @@ export function WordClouds() {
       </div>
     </div>
   );
-} 
+}
+
+Route.update({ component: WordClouds });

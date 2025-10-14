@@ -1,18 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import { IconPhoto as Photo } from "@tabler/icons-react";
-import React, { useState, useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { PigPhoto } from "../../api_client/photos/types";
 import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery";
+import { PigPhoto } from "../../api_client/photos/types";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { addTempElementsToFlatList } from "../../util/util";
 
-
-export const Route = createFileRoute('/_protected/notimestamp')({
-  component: NoTimestampPhotosView,
-})
+export const Route = createFileRoute("/_protected/notimestamp")();
 
 export function NoTimestampPhotosView() {
   const { t } = useTranslation();
@@ -24,13 +19,12 @@ export function NoTimestampPhotosView() {
 
   useEffect(() => {
     if (photosData) {
-      let tempPhotos: PigPhoto[] = [];
+      let tempPhotos: PigPhoto[];
 
       // If we have a count but no results yet, add temp elements
       if (page === 1) {
         tempPhotos = addTempElementsToFlatList(photosData.count);
-      } 
-      else {
+      } else {
         tempPhotos = [...photosFlat];
       }
       // If we have results, update the flat list
@@ -47,14 +41,13 @@ export function NoTimestampPhotosView() {
     if (visibleItems.filter((i: any) => i.isTemp).length > 0) {
       const firstTempObject = visibleItems.filter((i: any) => i.isTemp)[0];
       // Extract the numeric part from temp IDs like "temp-0", "temp-1", etc.
-      const tempIndex = parseInt(firstTempObject.id.replace('temp-', ''), 10);
-      const page = Math.ceil((tempIndex + 1) / 100);
-      if (page > 1) {
-        setPage(page);
+      const tempIndex = parseInt(firstTempObject.id.replace("temp-", ""), 10);
+      const pageNumber = Math.ceil((tempIndex + 1) / 100);
+      if (pageNumber > 1) {
+        setPage(pageNumber);
       }
     }
   };
-
 
   return (
     <PhotoListView
@@ -69,3 +62,5 @@ export function NoTimestampPhotosView() {
     />
   );
 }
+
+Route.update({ component: NoTimestampPhotosView });

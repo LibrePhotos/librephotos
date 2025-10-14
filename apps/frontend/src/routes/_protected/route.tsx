@@ -7,9 +7,7 @@ import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
 import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, MIN_VIEWPORT_WODTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
-export const Route = createFileRoute("/_protected")({
-  component: AppShellProtected,
-});
+export const Route = createFileRoute("/_protected")();
 
 export function AppShellProtected() {
   const colorScheme = useComputedColorScheme();
@@ -54,3 +52,5 @@ export function AppShellProtected() {
     </AppShell>
   );
 }
+
+Route.update({ component: AppShellProtected });

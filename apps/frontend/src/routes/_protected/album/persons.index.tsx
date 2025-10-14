@@ -1,6 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-
 import { ActionIcon, Avatar, Button, Flex, Group, Image, Menu, Modal, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -9,25 +6,21 @@ import {
   IconTrash as Trash,
   IconUsers as Users,
 } from "@tabler/icons-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "@tanstack/react-router";
 import { AutoSizer, Grid } from "react-virtualized";
-
 import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
   useRenamePersonAlbumMutation,
 } from "../../../api_client/albums/hooks";
 import type { Person } from "../../../api_client/albums/hooks";
+import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-import { HeaderComponent } from "../../../components/HeaderComponent";
 
-export const Route = createFileRoute('/_protected/album/persons/')({
-  component: AlbumPeople,
-})
-
+export const Route = createFileRoute("/_protected/album/persons/")();
 
 export function AlbumPeople() {
   const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
@@ -209,3 +202,5 @@ export function AlbumPeople() {
     </>
   );
 }
+
+Route.update({ component: AlbumPeople });

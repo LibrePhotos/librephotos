@@ -1,15 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-
 import { IconMap as Map } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import { useFetchPlaceAlbumQuery } from "../../../api_client/albums/hooks";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 
-export const Route = createFileRoute('/_protected/album/places/$id')({
-  component: AlbumPlaceGallery,
-})
+export const Route = createFileRoute("/_protected/album/places/$id")();
 
 export function AlbumPlaceGallery() {
   const { t } = useTranslation();
@@ -27,3 +23,5 @@ export function AlbumPlaceGallery() {
     />
   );
 }
+
+Route.update({ component: AlbumPlaceGallery });

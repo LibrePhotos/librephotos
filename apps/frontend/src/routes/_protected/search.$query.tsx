@@ -1,14 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
 import { IconSearch as Search } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
-
-import { useSearchPhotosQuery } from "../../api_client/search/hooks/useSearchPhotosQuery";
-import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { useSearchPhotosQuery } from "../../api_client/search/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { PhotoListView } from "../../components/photolist/PhotoListView";
 
-export const Route = createFileRoute('/_protected/search/$query')({
-  component: SearchView,
-})
+export const Route = createFileRoute("/_protected/search/$query")();
 const DEFAULTS = {
   photosFlat: [],
   photosGroupedByDate: [],
@@ -31,3 +28,5 @@ export function SearchView() {
     />
   );
 }
+
+Route.update({ component: SearchView });
