@@ -62,7 +62,7 @@ export function AlbumAutoGalleryView() {
   }));
 
   // Get all unique locations across all dates
-  const allLocations = _.flatMap(_.toPairs(byDate), ([_, datePhotos]) =>
+  const allLocations = _.flatMap(Object.values(byDate), datePhotos =>
     datePhotos
       .filter(photo => !!photo.geolocation_json.features)
       .map(photo => {
