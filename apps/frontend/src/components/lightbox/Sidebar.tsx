@@ -2,17 +2,16 @@ import { ActionIcon, Box, Group, Stack, Title, useComputedColorScheme, useMantin
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
 import "react-virtualized/styles.css";
-
+import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { notification } from "../../service/notifications";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { Description } from "./Description";
-import { TimestampItem } from "./TimestampItem";
-import { VersionComponent } from "./VersionComponent";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
-import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
-import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { TimestampItem } from "./TimestampItem";
+import { VersionComponent } from "./VersionComponent";
 
 interface SidebarProps {
   isPublic: boolean;
@@ -36,20 +35,25 @@ const sidebarStyles = {
   },
 };
 
-const SidebarHeader: React.FC<{ closeSidepanel: () => void }> = ({ closeSidepanel }) => (
-  <Group justify="space-between">
-    <Title order={3}>Details</Title>
-    <ActionIcon variant="subtle" color="gray" onClick={closeSidepanel}>
-      <X />
-    </ActionIcon>
-  </Group>
-);
+type SidebarHeaderProps = {
+  closeSidepanel: () => void;
+};
+
+function SidebarHeader({ closeSidepanel }: SidebarHeaderProps) {
+  return (
+    <Group justify="space-between">
+      <Title order={3}>Details</Title>
+      <ActionIcon variant="subtle" color="gray" onClick={closeSidepanel}>
+        <X />
+      </ActionIcon>
+    </Group>
+  );
+}
 
 export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: SidebarProps) {
-  
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
-  
+
   const { data: photoDetail } = useFetchPhotoDetailsQuery(id);
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
 
@@ -79,7 +83,7 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
   // Apply shadow only on mobile
   const shadowStyle = {
     ...sidebarStyles.container,
-    boxShadow: window.innerWidth < 768 ? sidebarStyles.container.boxShadow : 'none',
+    boxShadow: window.innerWidth < 768 ? sidebarStyles.container.boxShadow : "none",
   };
 
   return (
@@ -110,11 +114,7 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
         <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
       </Stack>
 
-      <ModalPersonEdit
-        isOpen={personEditOpen}
-        onRequestClose={handleModalClose}
-        selectedFaces={selectedFaces}
-      />
+      <ModalPersonEdit isOpen={personEditOpen} onRequestClose={handleModalClose} selectedFaces={selectedFaces} />
     </Box>
   );
 }

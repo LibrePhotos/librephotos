@@ -1,17 +1,16 @@
 import { Carousel } from "@mantine/carousel";
 import "@mantine/carousel/styles.css";
 import { Modal, Stack } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
-import { useHotkeys } from '@mantine/hooks';
 import React, { useEffect, useState } from "react";
-
+import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { ImagePreloader } from "./ImagePreloader";
+import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { LightboxControls } from "./LightboxControls";
 import { MediaDisplay } from "./MediaDisplay";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
-import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
-import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 
 export function ContentViewer({
   mainSrc,
@@ -57,43 +56,63 @@ export function ContentViewer({
     };
 
     embla.on("select", onSlideChange);
+    // eslint-disable-next-line consistent-return
     return () => embla.off("select", onSlideChange);
   }, [embla, onMovePrevRequest, onMoveNextRequest]);
 
+  const toggleZoom = () => {
+    const newZoomState = !isZoomed;
+    setIsZoomed(newZoomState);
+    setScale(newZoomState ? 2 : 1);
+    setOffset({ x: 0, y: 0 });
+  };
+
   // Add keyboard navigation using Mantine's useHotkeys
   useHotkeys([
-    ['ArrowLeft', () => prevSrc && onMovePrevRequest()],
-    ['ArrowRight', () => nextSrc && onMoveNextRequest()],
-    ['Escape', onCloseRequest],
-    [' ', () => type === 'video' && setPlaying(prev => !prev)],
-    ['z', () => type === 'photo' && toggleZoom()],
-    ['i', () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
+    ["ArrowLeft", () => prevSrc && onMovePrevRequest()],
+    ["ArrowRight", () => nextSrc && onMoveNextRequest()],
+    ["Escape", onCloseRequest],
+    [" ", () => type === "video" && setPlaying(prev => !prev)],
+    ["z", () => type === "photo" && toggleZoom()],
+    ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
     // Additional shortcuts for photo actions (will be implemented in toolbar)
-    ['f', () => {
-      // Trigger favorite action if photo details are available and not public
-      if (photoDetails && !isPublic) {
-        // We'll trigger this via a custom event that the Toolbar can listen to
-        window.dispatchEvent(new CustomEvent('lightbox-favorite-shortcut'));
-      }
-    }],
-    ['h', () => {
-      // Trigger hide action if photo details are available and not public  
-      if (photoDetails && !isPublic) {
-        window.dispatchEvent(new CustomEvent('lightbox-hide-shortcut'));
-      }
-    }],
-    ['p', () => {
-      // Trigger public action if photo details are available and not public
-      if (photoDetails && !isPublic) {
-        window.dispatchEvent(new CustomEvent('lightbox-public-shortcut'));
-      }
-    }],
-    ['d', () => {
-      // Trigger delete action if photo details are available and not public
-      if (photoDetails && !isPublic) {
-        window.dispatchEvent(new CustomEvent('lightbox-delete-shortcut'));
-      }
-    }],
+    [
+      "f",
+      () => {
+        // Trigger favorite action if photo details are available and not public
+        if (photoDetails && !isPublic) {
+          // We'll trigger this via a custom event that the Toolbar can listen to
+          window.dispatchEvent(new CustomEvent("lightbox-favorite-shortcut"));
+        }
+      },
+    ],
+    [
+      "h",
+      () => {
+        // Trigger hide action if photo details are available and not public
+        if (photoDetails && !isPublic) {
+          window.dispatchEvent(new CustomEvent("lightbox-hide-shortcut"));
+        }
+      },
+    ],
+    [
+      "p",
+      () => {
+        // Trigger public action if photo details are available and not public
+        if (photoDetails && !isPublic) {
+          window.dispatchEvent(new CustomEvent("lightbox-public-shortcut"));
+        }
+      },
+    ],
+    [
+      "d",
+      () => {
+        // Trigger delete action if photo details are available and not public
+        if (photoDetails && !isPublic) {
+          window.dispatchEvent(new CustomEvent("lightbox-delete-shortcut"));
+        }
+      },
+    ],
   ]);
 
   const bind = useGesture({
@@ -122,13 +141,6 @@ export function ContentViewer({
       embla.reInit();
     }
   }, [lightboxSidebarShow, embla]);
-  
-  const toggleZoom = () => {
-    const newZoomState = !isZoomed;
-    setIsZoomed(newZoomState);
-    setScale(newZoomState ? 2 : 1);
-    setOffset({ x: 0, y: 0 });
-  };
 
   const handleDragStart = event => {
     event.preventDefault();
@@ -253,7 +265,6 @@ export function ContentViewer({
               nextSrc={nextSrc}
               onMovePrevRequest={onMovePrevRequest}
               onMoveNextRequest={onMoveNextRequest}
-              containerWidth={lightboxSidebarShow ? "calc(100% - 400px)" : "100%"}
             />
           </Stack>
 

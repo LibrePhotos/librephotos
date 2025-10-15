@@ -6,9 +6,8 @@ import React, { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { fetchClient } from "../api_client/api";
-import { UploadExistResponse } from "../api_client/upload/hooks/useUploadExistsMutation";
-import { useGetSettingsQuery } from "../api_client/settings/hooks/useGetSettingsQuery";
-import { useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
+import { useGetSettingsQuery } from "../api_client/settings";
+import { UploadExistResponse, useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
 import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 export function ChunkedUploadButton() {
@@ -87,8 +86,8 @@ export function ChunkedUploadButton() {
     return "";
   };
 
-  const uploadChunk = async (chunk: Blob, uploadId: string, offset: number) => {
-    if (!userSelfDetails) return;
+  const uploadChunk = async (chunk: Blob, uploadId: string, offset: number): Promise<any> => {
+    if (!userSelfDetails) return Promise.resolve();
     // only send first chunk without upload id
     const formData = new FormData();
     if (uploadId) {
@@ -155,9 +154,8 @@ export function ChunkedUploadButton() {
         });
     });
   }
-   // Check if user has scan directory configured
-   const hasScanDirectory = userSelfDetails?.scan_directory && userSelfDetails.scan_directory.trim() !== "";
-
+  // Check if user has scan directory configured
+  const hasScanDirectory = userSelfDetails?.scan_directory && userSelfDetails.scan_directory.trim() !== "";
 
   const { getRootProps, getInputProps, open } = useDropzone({
     accept: {
@@ -174,7 +172,6 @@ export function ChunkedUploadButton() {
     disabled: !hasScanDirectory,
   });
 
- 
   if (settings?.allow_upload) {
     const uploadContent = (
       <div style={{ width: "50px" }}>
@@ -187,7 +184,7 @@ export function ChunkedUploadButton() {
               loading={currentSize / totalSize < 1}
               onClick={hasScanDirectory ? open : undefined}
               disabled={!hasScanDirectory}
-              style={!hasScanDirectory ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+              style={!hasScanDirectory ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
             >
               <Upload />
             </ActionIcon>
@@ -208,11 +205,7 @@ export function ChunkedUploadButton() {
     );
 
     if (!hasScanDirectory) {
-      return (
-        <Tooltip label={t("toasts.scan_directory_required")}>
-          {uploadContent}
-        </Tooltip>
-      );
+      return <Tooltip label={t("toasts.scan_directory_required")}>{uploadContent}</Tooltip>;
     }
 
     return uploadContent;

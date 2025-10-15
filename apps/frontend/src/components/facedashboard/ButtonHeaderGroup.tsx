@@ -5,31 +5,28 @@ import {
   Divider,
   Group,
   Modal,
+  NumberInput,
   Select,
   Stack,
-  Text,
   Tooltip,
   useComputedColorScheme,
   useMantineTheme,
-  NumberInput,
 } from "@mantine/core";
 import {
   IconBarbell as Barbell,
   IconCheck as Check,
-  IconPlus as Plus,
-  IconTrash as Trash,
-  IconUserOff as UserOff,
-  IconSortDescending as SortDescending,
   IconFilter as Filter,
   IconWand,
+  IconPlus as Plus,
+  IconSortDescending as SortDescending,
+  IconTrash as Trash,
+  IconUserOff as UserOff,
 } from "@tabler/icons-react";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { FaceAnalysisMethod, FacesOrderOption, useTrainFacesMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
-import { useTrainFacesMutation } from "../../api_client/faces";
-import { FaceAnalysisMethod, FacesOrderOption } from "../../api_client/faces/types";
 
 type Props = Readonly<{
   selectMode: boolean;
@@ -60,7 +57,7 @@ export function ButtonHeaderGroup({
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
 
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch()
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -108,14 +105,14 @@ export function ButtonHeaderGroup({
               size="sm"
               style={{ width: 150 }}
               value={orderBy}
-              onChange={(value) => {
+              onChange={value => {
                 navigate({
                   to: "/faces",
-                  search: (prev) => ({
+                  search: prev => ({
                     ...prev,
                     orderBy: value as FacesOrderOption,
-                  })
-                })
+                  }),
+                });
               }}
               leftSection={<SortDescending size={16} />}
               data={[
@@ -138,14 +135,14 @@ export function ButtonHeaderGroup({
                   size="sm"
                   style={{ width: 150 }}
                   value={analysisMethod}
-                  onChange={(value) => {
+                  onChange={value => {
                     navigate({
                       to: "/faces",
-                      search: (prev) => ({
+                      search: prev => ({
                         ...prev,
                         method: value as FaceAnalysisMethod,
-                      })
-                    })
+                      }),
+                    });
                   }}
                   leftSection={<Filter size={16} />}
                   data={[
@@ -166,17 +163,17 @@ export function ButtonHeaderGroup({
                   size="sm"
                   style={{ width: 200 }}
                   value={minConfidence * 100}
-                  onChange={(value) => {
-                    if (typeof value === 'number') {
+                  onChange={value => {
+                    if (typeof value === "number") {
                       navigate({
                         to: "/faces",
-                        search: (prev) => ({
+                        search: prev => ({
                           tab: prev.tab || "inferred",
                           method: prev.method || "clustering",
                           orderBy: prev.orderBy || FacesOrderOption.enum.confidence,
                           minConfidence: value / 100,
-                        })
-                      })
+                        }),
+                      });
                     }
                   }}
                   min={0}
@@ -184,7 +181,6 @@ export function ButtonHeaderGroup({
                   step={5}
                   decimalScale={0}
                   leftSection={<IconWand size={16} />}
-
                   suffix="% confident"
                 />
               </Stack>
@@ -193,7 +189,13 @@ export function ButtonHeaderGroup({
         </Group>
         <Group gap="xs" style={{ height: 36 }}>
           <Tooltip label={t("facesdashboard.explanationadding")}>
-            <ActionIcon variant="light" color="green" disabled={selectedFaces.length === 0} onClick={addFaces} size="lg">
+            <ActionIcon
+              variant="light"
+              color="green"
+              disabled={selectedFaces.length === 0}
+              onClick={addFaces}
+              size="lg"
+            >
               <Plus />
             </ActionIcon>
           </Tooltip>

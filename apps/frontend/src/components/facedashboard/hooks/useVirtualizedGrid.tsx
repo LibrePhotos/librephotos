@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState, useEffect } from "react";
 import _ from "lodash";
-import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces/types";
-import { calculateFaceGridCellSize, calculateFaceGridCells } from "../../../util/gridUtils";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
+import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/ScrollScrubberTypes.zod";
 
 export type FaceCell = {
@@ -21,20 +21,22 @@ export type FaceSelection = {
 
 // Custom hook to manage grid functionality
 export function useVirtualizedGrid(
-  activeTab: FacesTab, 
-  lists: { 
-    labeled: any[], 
-    inferred: any[], 
-    unknown: any[] 
+  activeTab: FacesTab,
+  lists: {
+    labeled: any[];
+    inferred: any[];
+    unknown: any[];
   },
   handleCellClick: (e: React.MouseEvent, cell: FaceCell) => void,
   handleShowClick: (e: React.KeyboardEvent, item: any) => void,
-  onSectionChange: (visibleInfos: Array<{
-    page: number;
-    person: number;
-    inferred: boolean;
-    method: FaceAnalysisMethod;
-  }>) => void,
+  onSectionChange: (
+    visibleInfos: Array<{
+      page: number;
+      person: number;
+      inferred: boolean;
+      method: FaceAnalysisMethod;
+    }>
+  ) => void,
   scrollPosition: number,
   onScroll: (params: { scrollTop: number }) => void,
   selectMode: boolean,
@@ -60,12 +62,15 @@ export function useVirtualizedGrid(
   }, [width, lists, activeTab, numEntrySquaresPerRow]);
 
   // Handle scroll from scrubber
-  const handleScrubberScroll = useCallback((y: number) => {
-    if (gridRef.current) {
-      gridRef.current.scrollToPosition({ scrollTop: y });
-      onScroll({ scrollTop: y });
-    }
-  }, [onScroll]);
+  const handleScrubberScroll = useCallback(
+    (y: number) => {
+      if (gridRef.current) {
+        gridRef.current.scrollToPosition({ scrollTop: y });
+        onScroll({ scrollTop: y });
+      }
+    },
+    [onScroll]
+  );
 
   // Calculate cell contents for each tab
   const cellContents = {
@@ -73,19 +78,18 @@ export function useVirtualizedGrid(
     [FacesTab.enum.inferred]: calculateFaceGridCells(lists.inferred, numEntrySquaresPerRow).cellContents,
     [FacesTab.enum.unknown]: calculateFaceGridCells(lists.unknown, numEntrySquaresPerRow).cellContents,
   };
-  
+
   // Get cell contents for the active tab
-  const getCellContentsForTab = useCallback((tab: FacesTab) => 
-    cellContents[tab] || [], [cellContents]);
-    
+  const getCellContentsForTab = useCallback((tab: FacesTab) => cellContents[tab] || [], [cellContents]);
+
   // Get endpoint cell for section rendering
-  const getEndpointCell = useCallback((cellContents: any[][], rowStopIndex: number, columnStopIndex: number) => {
-    if (cellContents[rowStopIndex]?.[columnStopIndex]) {
-      return cellContents[rowStopIndex][columnStopIndex];
+  const getEndpointCell = useCallback((cells: any[][], rowStopIndex: number, columnStopIndex: number) => {
+    if (cells[rowStopIndex]?.[columnStopIndex]) {
+      return cells[rowStopIndex][columnStopIndex];
     }
-    return getEndpointCell(cellContents, rowStopIndex, columnStopIndex - 1);
+    return getEndpointCell(cells, rowStopIndex, columnStopIndex - 1);
   }, []);
-  
+
   // Generate scroll positions for the scrubber
   const getScrollPositions = useCallback((): ScrollerData[] => {
     const rows = getCellContentsForTab(activeTab);
@@ -96,38 +100,41 @@ export function useVirtualizedGrid(
       return positions;
     }, [] as ScrollerData[]);
   }, [activeTab, getCellContentsForTab, entrySquareSize]);
-  
-  // Handle section rendering and detect visible cells
-  const onSectionRendered = useCallback(({ 
-    rowOverscanStartIndex, columnOverscanStartIndex,
-    rowOverscanStopIndex, columnOverscanStopIndex
-  }) => {
-    const cellContents = getCellContentsForTab(activeTab);
-    const startPoint = cellContents[rowOverscanStartIndex]?.[columnOverscanStartIndex];
-    const endPoint = getEndpointCell(cellContents, rowOverscanStopIndex, columnOverscanStopIndex);
-    
-    if (!startPoint || !endPoint) return;
-    
-    const flatCells = _.flatten(cellContents);
-    const startIndex = flatCells.indexOf(startPoint);
-    const endIndex = flatCells.indexOf(endPoint);
 
-    const relevantInfos = flatCells
-      .slice(startIndex, endIndex + 1)
-      .filter((i: any) => i?.isTemp)
-      .map(i => ({
-        page: Math.ceil((parseInt(i.id, 10) + 1) / 100),
-        person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
-        inferred: activeTab !== FacesTab.enum.labeled,
-        method: analysisMethod,
-      }));
-      
-    onSectionChange(_.uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
-  }, [activeTab, analysisMethod, getCellContentsForTab, getEndpointCell, onSectionChange]);
-  
+  // Handle section rendering and detect visible cells
+  const onSectionRendered = useCallback(
+    ({ rowOverscanStartIndex, columnOverscanStartIndex, rowOverscanStopIndex, columnOverscanStopIndex }) => {
+      const cells = getCellContentsForTab(activeTab);
+      const startPoint = cells[rowOverscanStartIndex]?.[columnOverscanStartIndex];
+      const endPoint = getEndpointCell(cells, rowOverscanStopIndex, columnOverscanStopIndex);
+
+      if (!startPoint || !endPoint) return;
+
+      const flatCells = _.flatten(cells);
+      const startIndex = flatCells.indexOf(startPoint);
+      const endIndex = flatCells.indexOf(endPoint);
+
+      const relevantInfos = flatCells
+        .slice(startIndex, endIndex + 1)
+        .filter((i: any) => i?.isTemp)
+        .map(i => ({
+          page: Math.ceil((parseInt(i.id, 10) + 1) / 100),
+          person: activeTab === FacesTab.enum.unknown ? 0 : i.person,
+          inferred: activeTab !== FacesTab.enum.labeled,
+          method: analysisMethod,
+        }));
+
+      onSectionChange(_.uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
+    },
+    [activeTab, analysisMethod, getCellContentsForTab, getEndpointCell, onSectionChange]
+  );
+
   // Get flattened cell contents for cell range selection
-  const getFlattenedCells = useCallback((): FaceCell[] => _.flatten(getCellContentsForTab(activeTab)), [activeTab, getCellContentsForTab]);
-  
+  const getFlattenedCells = useCallback(
+    (): FaceCell[] => _.flatten(getCellContentsForTab(activeTab)),
+    [activeTab, getCellContentsForTab]
+  );
+
   return {
     gridRef,
     entrySquareSize,
@@ -145,6 +152,6 @@ export function useVirtualizedGrid(
     selectMode,
     selectedFaces,
     setSelectedFaces,
-    width
+    width,
   };
-} 
+}

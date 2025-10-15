@@ -1,19 +1,18 @@
 import { Box, Button, Grid, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title, Tree } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconMail as Mail, IconUser } from "@tabler/icons-react";
+import { IconUser, IconMail as Mail } from "@tabler/icons-react";
 import type { FormEvent } from "react";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
+import { useSignUpMutation } from "../../api_client/auth";
+import { useFetchDirsQuery } from "../../api_client/folders/hooks";
 import type { DirTree } from "../../api_client/folders/types";
-import { useFetchDirsQuery } from "../../api_client/folders/hooks/useFetchDirsQuery";
-import { useScanPhotosMutation } from "../../api_client/jobs/hooks";
-import { User } from "../../api_client/user/types";
+import { useScanPhotosMutation } from "../../api_client/jobs";
+import { User } from "../../api_client/user";
+import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
 import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { Leaf } from "./Leaf";
-import { useSignUpMutation } from "../../api_client/auth/hooks";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -47,7 +46,7 @@ export function ModalUserEdit(props: Props) {
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
 
-  const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");   
+  const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [path, setPath] = useState("");
   const { t } = useTranslation();
@@ -79,12 +78,12 @@ export function ModalUserEdit(props: Props) {
     return null;
   };
 
-  const validatePath = (path: string) => {
-    if (firstTimeSetup && !path) {
+  const validatePath = (scanDirectory: string) => {
+    if (firstTimeSetup && !scanDirectory) {
       return t("modalscandirectoryedit.mustspecifypath");
     }
-    if (path) {
-      if (!findPath(treeData, path)) {
+    if (scanDirectory) {
+      if (!findPath(treeData, scanDirectory)) {
         return t("modalscandirectoryedit.pathdoesnotexist");
       }
     }
@@ -107,7 +106,7 @@ export function ModalUserEdit(props: Props) {
     },
   });
 
-  useEffect(() => { 
+  useEffect(() => {
     if (!directoryTree) {
       return;
     }
@@ -155,10 +154,10 @@ export function ModalUserEdit(props: Props) {
 
   const nodeClicked = (node: { value: string }) => {
     if (inputRef.current) {
-      const path = node.value;
-      inputRef.current.value = path;
-      setPath(path);
-      form.setFieldValue("scan_directory", path);
+      const scanDirectory = node.value;
+      inputRef.current.value = scanDirectory;
+      setPath(scanDirectory);
+      form.setFieldValue("scan_directory", scanDirectory);
     }
   };
 
@@ -208,7 +207,7 @@ export function ModalUserEdit(props: Props) {
           if (newUserData.scan_directory) {
             scanPhotos.mutate();
           }
-        }
+        },
       });
     } else {
       updateUser(newUserData);

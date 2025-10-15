@@ -1,58 +1,53 @@
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { getRouteApi, useNavigate, useParams, useSearch } from "@tanstack/react-router";
-
-import { 
-  useDeleteFacesMutation, 
-  useSetFacesPersonLabelMutation
-} from "../../api_client/faces";
-import { ButtonHeaderGroup } from "./ButtonHeaderGroup";
-import { TabComponent } from "./TabComponent";
-import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { getRouteApi } from "@tanstack/react-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FaceAnalysisMethod, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
-import { 
-  FaceAnalysisMethod, 
-  FacesTab
-} from "../../api_client/faces/types";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
-import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
-import { useFaceSelection } from "./hooks/useFaceSelection";
+import { Lightbox } from "../lightbox";
+import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { ButtonHeaderGroup } from "./ButtonHeaderGroup";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
+import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
-import { Lightbox } from "../lightbox/Lightbox";
+import { useVirtualizedGrid } from "./hooks/useVirtualizedGrid";
+import { TabComponent } from "./TabComponent";
 import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 
-const routeApi = getRouteApi("/_protected/faces")
+const routeApi = getRouteApi("/_protected/faces");
 
 export function FaceDashboard() {
   const { ref, width } = useElementSize();
-  
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch()
-  
+
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
+
   // Tab scroll positions from localStorage
   const { tabPositions, updatePosition } = useTabScrollPositions();
 
   // State
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
   const [scrollTo, setScrollTo] = useState<number | null>(null);
-  const [groups, setGroups] = useState<Array<{
-    page: number;
-    person: number;
-    inferred: boolean;
-    method: FaceAnalysisMethod;
-  }>>([]);
+  const [groups, setGroups] = useState<
+    Array<{
+      page: number;
+      person: number;
+      inferred: boolean;
+      method: FaceAnalysisMethod;
+    }>
+  >([]);
 
   // Simple lightbox state management
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImageId, setLightboxImageId] = useState("");
 
-  const {
-    lists,
-    fetchingLabeledFacesList,
-    fetchingInferredFacesList,
-    idx2hash
-  } = useFaceDataFetching(groups, activeTab, analysisMethod, orderBy as any, minConfidence);
+  const { lists, fetchingLabeledFacesList, fetchingInferredFacesList, idx2hash } = useFaceDataFetching(
+    groups,
+    activeTab,
+    analysisMethod,
+    orderBy as any,
+    minConfidence
+  );
 
   const showLightbox = useCallback((imageId: string, isValid: boolean) => {
     if (isValid) {
@@ -71,19 +66,25 @@ export function FaceDashboard() {
   const { mutate: setFacesPersonLabelMutate } = useSetFacesPersonLabelMutation();
 
   // Event handlers
-  const handleShowClick = useCallback((event: React.KeyboardEvent, item: any) => {
-    const index = idx2hash.findIndex(image => image.id === item.photo);
-    showLightbox(item.photo, index >= 0);
-  }, [idx2hash, showLightbox]);
+  const handleShowClick = useCallback(
+    (event: React.KeyboardEvent, item: any) => {
+      const index = idx2hash.findIndex(image => image.id === item.photo);
+      showLightbox(item.photo, index >= 0);
+    },
+    [idx2hash, showLightbox]
+  );
 
-  const handleGridScroll = useCallback(({ scrollTop }: { scrollTop: number }) => {
-    if (scrollTo !== null && scrollTop === scrollTo) {
-      setScrollTo(null);
-    }
-    if (tabPositions[activeTab] !== scrollTop) {
-      updatePosition(activeTab, scrollTop);
-    }
-  }, [scrollTo, tabPositions, activeTab, updatePosition]);
+  const handleGridScroll = useCallback(
+    ({ scrollTop }: { scrollTop: number }) => {
+      if (scrollTo !== null && scrollTop === scrollTo) {
+        setScrollTo(null);
+      }
+      if (tabPositions[activeTab] !== scrollTop) {
+        updatePosition(activeTab, scrollTop);
+      }
+    },
+    [scrollTo, tabPositions, activeTab, updatePosition]
+  );
 
   // Create grid utilities object that we'll use for selection logic
   const gridUtils = useMemo(() => {
@@ -95,19 +96,16 @@ export function FaceDashboard() {
         const allFaces = utils.getFlattenedCells();
         const startIndex = allFaces.indexOf(start);
         const endIndex = allFaces.indexOf(end);
-        return allFaces.slice(
-          Math.min(startIndex, endIndex), 
-          Math.max(startIndex, endIndex) + 1
-        );
-      }
+        return allFaces.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
+      },
     };
     return utils;
   }, []);
-  
+
   // Create selection hook with the grid utils
-  const { 
-    selectedFaces, handleCellClick, clearSelection, setSelectedFaces 
-  } = useFaceSelection(gridUtils.getFacesInRange);
+  const { selectedFaces, handleCellClick, clearSelection, setSelectedFaces } = useFaceSelection(
+    gridUtils.getFacesInRange
+  );
 
   // Initialize the virtualized grid
   const virtualGrid = useVirtualizedGrid(
@@ -124,7 +122,7 @@ export function FaceDashboard() {
     analysisMethod,
     width
   );
-  
+
   // Update the grid utilities with actual implementation after grid is initialized
   useEffect(() => {
     gridUtils.getFlattenedCells = virtualGrid.getFlattenedCells;
@@ -132,10 +130,7 @@ export function FaceDashboard() {
       const allFaces = virtualGrid.getFlattenedCells();
       const startIndex = allFaces.indexOf(start);
       const endIndex = allFaces.indexOf(end);
-      return allFaces.slice(
-        Math.min(startIndex, endIndex), 
-        Math.max(startIndex, endIndex) + 1
-      );
+      return allFaces.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
     };
   }, [gridUtils, virtualGrid]);
 
@@ -150,9 +145,9 @@ export function FaceDashboard() {
 
   const notThisPersonFunc = useCallback(() => {
     if (selectedFaces.length > 0) {
-      setFacesPersonLabelMutate({ 
-        faceIds: selectedFaces.map(face => face.face_id), 
-        personName: "Unknown - Other" 
+      setFacesPersonLabelMutate({
+        faceIds: selectedFaces.map(face => face.face_id),
+        personName: "Unknown - Other",
       });
       notification.removeFacesFromPerson(selectedFaces.length);
       clearSelection();
@@ -225,4 +220,4 @@ export function FaceDashboard() {
       </div>
     </RemoveScroll>
   );
-} 
+}

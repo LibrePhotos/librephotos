@@ -21,12 +21,14 @@ export function BreadcrumbPath({ fullPath, size = "xs" }: BreadcrumbPathProps) {
   return (
     <Group gap={4} wrap="wrap">
       {breadcrumbs.map((bc, idx) => (
-        <Group key={`${bc.href}-${idx}`} gap={4} wrap="nowrap">
+        <Group key={`${bc.label}-${bc.href}`} gap={4} wrap="nowrap">
           <Anchor size={size} href={bc.href} underline="never">
             {bc.label}
           </Anchor>
           {idx < breadcrumbs.length - 1 && (
-            <Text size={size} c="dimmed">/</Text>
+            <Text size={size} c="dimmed">
+              /
+            </Text>
           )}
         </Group>
       ))}
@@ -35,5 +37,3 @@ export function BreadcrumbPath({ fullPath, size = "xs" }: BreadcrumbPathProps) {
 }
 
 export default BreadcrumbPath;
-
-

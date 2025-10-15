@@ -8,26 +8,29 @@ import {
   NumberInput,
   Radio,
   Select,
-  Space,  
+  Space,
   Stack,
   Switch,
   Text,
   Title,
 } from "@mantine/core";
 import { IconSettings as SettingIcon } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-
-import { useQueryClient } from "@tanstack/react-query";
-import { useUpdateUserMutation, useFetchUserSelfDetailsQuery, UserSelfDetailsQueryKeys } from "../../api_client/user/hooks";
-import { useFetchTimezonesQuery } from "../../api_client/settings/hooks/useFetchTimezonesQuery";
-import { ConfigDateTime } from "./ConfigDateTime"; 
-import { useAccessToken } from "../../api_client/auth/hooks";
+import { useAccessToken } from "../../api_client/auth";
+import { useFetchTimezonesQuery } from "../../api_client/settings";
+import {
+  useFetchUserSelfDetailsQuery,
+  UserSelfDetailsQueryKeys,
+  useUpdateUserMutation,
+} from "../../api_client/user/hooks";
+import { ConfigDateTime } from "./ConfigDateTime";
 
 export function Settings() {
-  const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);  
+  const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const { data: auth } = useAccessToken();
-  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? '');
+  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id.toString() ?? "");
   const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
   const { t } = useTranslation();
   const { data: timezoneList = [] } = useFetchTimezonesQuery();
@@ -91,7 +94,7 @@ export function Settings() {
               description={t("settings.semanticsearch.placeholder")}
               value={editedUserDetails.semantic_search_topk?.toString()}
               onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, semantic_search_topk: parseInt(value) || 0 });
+                setEditedUserDetails({ ...editedUserDetails, semantic_search_topk: parseInt(value, 10) || 0 });
               }}
             >
               <Group mt="xs">
@@ -125,7 +128,7 @@ export function Settings() {
               label={t("settings.favoriteminimum")}
               value={editedUserDetails.favorite_min_rating?.toString()}
               onChange={value => {
-                setEditedUserDetails({ ...editedUserDetails, favorite_min_rating: parseInt(value) || 3 });
+                setEditedUserDetails({ ...editedUserDetails, favorite_min_rating: parseInt(value, 10) || 3 });
               }}
             >
               <Group mt="xs">
@@ -160,10 +163,10 @@ export function Settings() {
             max={1.0}
             placeholder="0.90"
             decimalScale={2}
-            value={typeof editedUserDetails.confidence_person === 'number' ? editedUserDetails.confidence_person : 0}
+            value={typeof editedUserDetails.confidence_person === "number" ? editedUserDetails.confidence_person : 0}
             hideControls
             onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, confidence_person: typeof value === 'number' ? value : 0 });
+              setEditedUserDetails({ ...editedUserDetails, confidence_person: typeof value === "number" ? value : 0 });
             }}
           />
         </Card>
@@ -189,7 +192,7 @@ export function Settings() {
             description={t("settings.min_cluster_size_help")}
             value={editedUserDetails.min_cluster_size ? editedUserDetails.min_cluster_size.toString() : "0"}
             onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, min_cluster_size: parseInt(value) || 0 });
+              setEditedUserDetails({ ...editedUserDetails, min_cluster_size: parseInt(value, 10) || 0 });
             }}
           >
             <Group mt="xs">
@@ -205,7 +208,7 @@ export function Settings() {
             description={t("settings.min_samples_help")}
             value={editedUserDetails.min_samples ? editedUserDetails.min_samples.toString() : "1"}
             onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, min_samples: parseInt(value) || 0 });
+              setEditedUserDetails({ ...editedUserDetails, min_samples: parseInt(value, 10) || 0 });
             }}
           >
             <Group mt="xs">
@@ -220,7 +223,9 @@ export function Settings() {
             label={t("settings.cluster_selection_epsilon")}
             description={t("settings.cluster_selection_epsilon_help")}
             value={
-              editedUserDetails.cluster_selection_epsilon ? editedUserDetails.cluster_selection_epsilon.toString() : "0.1"
+              editedUserDetails.cluster_selection_epsilon
+                ? editedUserDetails.cluster_selection_epsilon.toString()
+                : "0.1"
             }
             onChange={value => {
               setEditedUserDetails({ ...editedUserDetails, cluster_selection_epsilon: parseFloat(value) || 0 });
@@ -241,10 +246,17 @@ export function Settings() {
             max={1.0}
             placeholder="0.50"
             decimalScale={2}
-            value={typeof editedUserDetails.confidence_unknown_face === 'number' ? editedUserDetails.confidence_unknown_face : 0}
+            value={
+              typeof editedUserDetails.confidence_unknown_face === "number"
+                ? editedUserDetails.confidence_unknown_face
+                : 0
+            }
             hideControls
             onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, confidence_unknown_face: typeof value === 'number' ? value : 0 });
+              setEditedUserDetails({
+                ...editedUserDetails,
+                confidence_unknown_face: typeof value === "number" ? value : 0,
+              });
             }}
           />
         </Card>
