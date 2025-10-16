@@ -260,10 +260,13 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
 
 
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
-    if not os.path.exists(os.path.join(settings.MEDIA_ROOT, "thumbnails_big")):
-        os.mkdir(os.path.join(settings.MEDIA_ROOT, "square_thumbnails_small"))
-        os.mkdir(os.path.join(settings.MEDIA_ROOT, "square_thumbnails"))
-        os.mkdir(os.path.join(settings.MEDIA_ROOT, "thumbnails_big"))
+    thumbnail_dirs = [
+        os.path.join(settings.MEDIA_ROOT, "square_thumbnails_small"),
+        os.path.join(settings.MEDIA_ROOT, "square_thumbnails"),
+        os.path.join(settings.MEDIA_ROOT, "thumbnails_big"),
+    ]
+    for directory in thumbnail_dirs:
+        os.makedirs(directory, exist_ok=True)
     if LongRunningJob.objects.filter(job_id=job_id).exists():
         lrj = LongRunningJob.objects.get(job_id=job_id)
         lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
