@@ -19,11 +19,17 @@ from transformers.modeling_outputs import (
     BaseModelOutputWithPoolingAndCrossAttentions,
     CausalLMOutputWithCrossAttentions,
 )
-from transformers.modeling_utils import (
-    PreTrainedModel,
-    find_pruneable_heads_and_indices,
-    prune_linear_layer,
-)
+from transformers.modeling_utils import PreTrainedModel
+try:  # Compatibility with transformers<4.37 where helpers lived in modeling_utils
+    from transformers.modeling_utils import (
+        find_pruneable_heads_and_indices,
+        prune_linear_layer,
+    )
+except ImportError:  # pragma: no cover - fallback for transformers>=4.37
+    from transformers.models.bert.modeling_bert import (
+        find_pruneable_heads_and_indices,
+        prune_linear_layer,
+    )
 try:  # Compatibility with transformers>=4.36 where apply_chunking_to_forward moved
     from transformers.modeling_utils import apply_chunking_to_forward
 except ImportError:  # pragma: no cover - fallback for older/newer transformers versions
