@@ -21,10 +21,13 @@ from transformers.modeling_outputs import (
 )
 from transformers.modeling_utils import (
     PreTrainedModel,
-    apply_chunking_to_forward,
     find_pruneable_heads_and_indices,
     prune_linear_layer,
 )
+try:  # Compatibility with transformers>=4.36 where apply_chunking_to_forward moved
+    from transformers.modeling_utils import apply_chunking_to_forward
+except ImportError:  # pragma: no cover - fallback for older/newer transformers versions
+    from transformers.pytorch_utils import apply_chunking_to_forward
 from transformers.models.bert.configuration_bert import BertConfig
 from transformers.utils import logging
 
