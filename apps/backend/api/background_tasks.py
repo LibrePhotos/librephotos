@@ -35,7 +35,7 @@ def geolocate(overwrite=False):
             photo._geolocate()
             photo._add_location_to_album_dates()
         except Exception:
-            logger.exception("could not geolocate photo: " + photo)
+            logger.exception("could not geolocate photo: %s", photo)
 
 
 def add_photos_to_album_things():
