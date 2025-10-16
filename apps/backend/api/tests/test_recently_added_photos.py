@@ -1,11 +1,8 @@
 from datetime import timedelta
-from unittest import skip
-
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from api.models import Photo
 from api.tests.utils import create_test_photos, create_test_user
 
 
@@ -29,12 +26,11 @@ class RecentlyAddedPhotosTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(3, len(json["results"]))
 
-    @skip("not implemented yet")
-    # TODO: implement scenario
     def test_retrieve_empty_result_when_no_photos(self):
-        Photo.objects.delete()
+        create_test_photos(number_of_photos=2, owner=self.user2)
         response = self.client.get("/api/photos/recentlyadded/")
         json = response.json()
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(0, len(json["results"]))
+        self.assertEqual([], json["results"])
+        self.assertIsNone(json["date"])
