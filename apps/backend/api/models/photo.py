@@ -177,7 +177,7 @@ class Photo(models.Model):
                 possible_old_album_date is not None
                 and possible_old_album_date.photos.filter(
                     image_hash=self.image_hash
-                ).exists
+                ).exists()
             ):
                 old_album_date = possible_old_album_date
         else:
@@ -188,7 +188,7 @@ class Photo(models.Model):
                 possible_old_album_date is not None
                 and possible_old_album_date.photos.filter(
                     image_hash=self.image_hash
-                ).exists
+                ).exists()
             ):
                 old_album_date = possible_old_album_date
         return old_album_date
