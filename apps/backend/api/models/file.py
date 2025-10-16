@@ -67,7 +67,7 @@ def is_video(path):
         return filename.find("video") != -1
     except Exception:
         util.logger.error(f"Error while checking if file is video: {path}")
-        raise False
+        return False
 
 
 def is_raw(path):
