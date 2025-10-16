@@ -29,13 +29,10 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        latest_date = (
-            Photo.visible.filter(Q(owner=self.request.user))
-            .only("added_on")
-            .order_by("-added_on")
-            .first()
-            .added_on
-        )
+        latest_photo = self._get_latest_photo()
+        if latest_photo is None:
+            return Photo.objects.none()
+        latest_date = latest_photo.added_on
         queryset = (
             Photo.visible.filter(
                 Q(owner=self.request.user)
@@ -81,15 +78,20 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
 
     def list(self, *args, **kwargs):
         queryset = self.get_queryset()
-        latest_date = (
-            Photo.visible.filter(Q(owner=self.request.user))
-            .only("added_on")
-            .order_by("-added_on")
-            .first()
-            .added_on
-        )
+        latest_photo = self._get_latest_photo()
+        latest_date = latest_photo.added_on if latest_photo else None
         serializer = PhotoSummarySerializer(queryset, many=True)
         return Response({"date": latest_date, "results": serializer.data})
+
+    def _get_latest_photo(self):
+        if not hasattr(self, "_latest_photo"):
+            self._latest_photo = (
+                Photo.visible.filter(Q(owner=self.request.user))
+                .only("added_on")
+                .order_by("-added_on")
+                .first()
+            )
+        return self._latest_photo
 
 
 class NoTimestampPhotoViewSet(ListViewSet):

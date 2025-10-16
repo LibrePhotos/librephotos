@@ -171,6 +171,8 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             os.mkdir(os.path.join(user.scan_directory, "uploads", device))
         photo = uploaded_file
         image_hash = calculate_hash_b64(user, io.BytesIO(photo.read()))
+        photo_path = ""
+
         if not Photo.objects.filter(image_hash=image_hash).exists():
             if not os.path.exists(
                 os.path.join(user.scan_directory, "uploads", device, filename)
@@ -191,7 +193,6 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                     util.logger.info(
                         f"Photo {filename} duplicated with hash {image_hash} "
                     )
-                    photo_path = ""
                 else:
                     photo_path = os.path.join(
                         user.scan_directory,
@@ -200,22 +201,30 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                         file_name + "_" + image_hash + file_name_extension,
                     )
 
-            if photo_path:
-                with open(photo_path, "wb") as f:
-                    photo.seek(0)
-                    f.write(photo.read())
-            chunked_upload = get_object_or_404(
-                ChunkedUpload, upload_id=request.POST.get("upload_id")
-            )
-            chunked_upload.delete(delete_file=True)
-            chain = Chain()
-            photo = create_new_image(user, photo_path)
-            chain.append(handle_new_image, user, photo_path, image_hash, photo)
-            chain.append(generate_captions_wrapper, photo, True)
-            chain.append(photo._geolocate)
-            chain.append(photo._add_location_to_album_dates)
-            chain.append(photo._extract_faces)
-            chain.run()
-
         else:
             util.logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+
+        if photo_path:
+            with open(photo_path, "wb") as f:
+                photo.seek(0)
+                f.write(photo.read())
+
+        chunked_upload = get_object_or_404(
+            ChunkedUpload, upload_id=request.POST.get("upload_id")
+        )
+        chunked_upload.delete(delete_file=True)
+
+        if not photo_path:
+            return Response(
+                {"detail": "Photo duplicated. No new import performed."},
+                status=http_status.HTTP_200_OK,
+            )
+
+        chain = Chain()
+        photo = create_new_image(user, photo_path)
+        chain.append(handle_new_image, user, photo_path, image_hash, photo)
+        chain.append(generate_captions_wrapper, photo, True)
+        chain.append(photo._geolocate)
+        chain.append(photo._add_location_to_album_dates)
+        chain.append(photo._extract_faces)
+        chain.run()
