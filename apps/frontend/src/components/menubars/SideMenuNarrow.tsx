@@ -2,8 +2,6 @@ import {
   ActionIcon,
   Center,
   Loader,
-  MantineColor,
-  MantineColorScheme,
   Menu,
   Progress,
   Text,
@@ -25,6 +23,7 @@ import { useFetchImageTagQuery, useFetchStorageStatsQuery } from "../../api_clie
 import { useAuth } from "../../hooks/useAuth";
 import { DOCUMENTATION_LINK, SUPPORT_LINK } from "../../ui-constants";
 import { getNavigationItems } from "./navigation";
+import classes from "./SideMenuNarrow.module.css";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return "0 Bytes";
@@ -41,7 +40,6 @@ function formatBytes(bytes: number, decimals = 2) {
 export function SideMenuNarrow(): JSX.Element {
   const { isAuthenticated, userId } = useAuth();
   const navigate = useNavigate();
-  const theme = useMantineTheme();
   const [active, setActive] = useState("/");
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
   const { data: imageInfos } = useFetchImageTagQuery();
@@ -62,11 +60,6 @@ export function SideMenuNarrow(): JSX.Element {
     return <div />;
   }
 
-  function getBackgroundColor(isItemActive: undefined | boolean, colorScheme: MantineColorScheme): MantineColor {
-    if (!isItemActive) return "transparent";
-    return colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[1];
-  }
-
   const links = getNavigationItems(t, isAuthenticated, !!userId).map(item => {
     if (item.display === false) {
       return null;
@@ -78,20 +71,7 @@ export function SideMenuNarrow(): JSX.Element {
 
     const link = (
       <a
-        style={{
-          display: "flex",
-          alignItems: "center",
-          textDecoration: "none",
-          fontSize: theme.fontSizes.sm,
-          padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-          borderRadius: theme.radius.sm,
-          fontWeight: 500,
-          color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
-          backgroundColor: getBackgroundColor(isItemActive, computedTheme),
-          "&:hover": {
-            backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
-          },
-        }}
+        className={classes.link}
         data-active={isItemActive}
         href={item.link}
         key={item.label}
@@ -105,13 +85,13 @@ export function SideMenuNarrow(): JSX.Element {
       >
         <ActionIcon
           component="span"
-          style={{ marginRight: theme.spacing.sm }}
+          className={classes.link_icon}
           color={item.color ? item.color : defaultIconColor}
           variant="light"
         >
           <item.icon />
         </ActionIcon>
-        <Text size="sm" style={{ flexGrow: 2 }}>
+        <Text className={classes.link_text} size="sm">
           {item.label}
         </Text>
         {item.submenu && <ChevronRight size={16} />}
@@ -161,39 +141,14 @@ export function SideMenuNarrow(): JSX.Element {
   });
 
   return (
-    <nav
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        height: "100vh",
-      }}
-    >
-      <div style={{ marginTop: theme.spacing.sm, marginBottom: theme.spacing.sm, alignItems: "start" }}>{links}</div>
-
-      <div
-        style={{
-          paddingBottom: theme.spacing.sm,
-          borderTop:
-            computedTheme === "dark" ? `1px solid ${theme.colors.dark[4]}` : `1px solid ${theme.colors.gray[2]}`,
-        }}
-      >
-        <div
-          style={{
-            paddingBottom: 0,
-            display: "flex",
-            alignItems: "center",
-            textDecoration: "none",
-            fontSize: theme.fontSizes.sm,
-            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-            borderRadius: theme.radius.sm,
-            fontWeight: 500,
-          }}
-        >
-          <ActionIcon style={{ marginRight: theme.spacing.sm }} variant="transparent" color={defaultIconColor}>
+    <nav className={classes.nav}>
+      <div className={classes.links}>{links}</div>
+      <div className={classes.bottom_links}>
+        <div className={classes.link} data-hover="no">
+          <ActionIcon className={classes.link_icon} variant="transparent" color={defaultIconColor}>
             <Cloud />
           </ActionIcon>
-          <span style={{ flexGrow: 2 }}>{t("storage")}</span>
+          <span>{t("storage")}</span>
         </div>
         {isLoading && (
           <Center>
@@ -208,76 +163,28 @@ export function SideMenuNarrow(): JSX.Element {
             })}
           >
             <Progress
-              style={{ margin: 10 }}
+              className={classes.progress}
               value={(storageStats.used_storage / storageStats.total_storage) * 100}
               color="grey"
             />
           </Tooltip>
         )}
-        <div
-          style={{
-            paddingTop: 0,
-            paddingBottom: 0,
-            display: "flex",
-            alignItems: "center",
-            textDecoration: "none",
-            fontSize: theme.fontSizes.sm,
-            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-            borderRadius: theme.radius.sm,
-            fontWeight: 500,
-          }}
-        >
+        <div className={classes.link} data-hover="no">
           <Tooltip label={`Backend Version: ${imageInfos?.git_hash}`}>
-            <span style={{ flexGrow: 2 }}>
-              {imageInfos?.image_tag ? t("version", { version: imageInfos?.image_tag }) : ""}
-            </span>
+            <span>{t("version", { version: imageInfos?.image_tag || "dev" })}</span>
           </Tooltip>
         </div>
-        <a
-          href={DOCUMENTATION_LINK}
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            textDecoration: "none",
-            fontSize: theme.fontSizes.sm,
-            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-            borderRadius: theme.radius.sm,
-            fontWeight: 500,
-            color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
-            "&:hover": {
-              backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
-            },
-          }}
-        >
-          <ActionIcon style={{ marginRight: theme.spacing.sm }} variant="transparent">
+        <a href={DOCUMENTATION_LINK} target="_blank" rel="noreferrer" className={classes.link}>
+          <ActionIcon className={classes.link_icon} variant="transparent">
             <Book />
           </ActionIcon>
-          <span style={{ flexGrow: 2 }}>{t("docs")}</span>
+          {t("docs")}
         </a>
-        <a
-          href={SUPPORT_LINK}
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            textDecoration: "none",
-            fontSize: theme.fontSizes.sm,
-            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-            borderRadius: theme.radius.sm,
-            fontWeight: 500,
-            color: computedTheme === "dark" ? theme.colors.gray[3] : theme.colors.dark[9],
-            "&:hover": {
-              backgroundColor: computedTheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[2],
-            },
-          }}
-        >
-          <ActionIcon style={{ marginRight: theme.spacing.sm }} variant="transparent" color="pink">
+        <a href={SUPPORT_LINK} target="_blank" rel="noreferrer" className={classes.link}>
+          <ActionIcon className={classes.link_icon} variant="transparent" color="pink">
             <Heart />
           </ActionIcon>
-          <span style={{ flexGrow: 2 }}>{t("supportus")}</span>
+          {t("supportus")}
         </a>
       </div>
     </nav>
