@@ -1,10 +1,9 @@
-import { ActionIcon, Box, Combobox, Group, Image, InputBase, Loader, Popover, Text, useCombobox } from "@mantine/core";
+import { ActionIcon, Combobox, Group, Image, InputBase, Loader, Popover, Text, useCombobox } from "@mantine/core";
 import { IconAlbum, IconMap, IconSearch, IconTag, IconUser, IconX } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
-
-import { SearchOption, SearchOptionType, useSearch } from "../service/use-search";
+import { SearchOption, SearchOptionType, useSearch } from "../../service/use-search";
 import classes from "./SiteSearch.module.css";
 
 const ICON_SIZE = 20;
@@ -124,39 +123,37 @@ export function SiteSearch() {
     ]);
 
   return (
-    <Box style={{ width: "40vw" }}>
-      <Combobox store={combobox} withinPortal onOptionSubmit={option => onOptionSubmit(option)}>
-        <Combobox.Target>
-          <InputBase
-            leftSection={<IconSearch size={16} />}
-            rightSection={getSearchRightIcon()}
-            value={value}
-            onChange={event => {
-              combobox.openDropdown();
-              combobox.updateSelectedOptionIndex();
-              setValue(event.currentTarget.value);
-              filterOptions(event.currentTarget.value);
-            }}
-            onKeyUp={event => {
-              if (event.code === "Enter") {
-                search(value);
-                combobox.closeDropdown();
-              }
-            }}
-            onClick={() => combobox.openDropdown()}
-            onFocus={() => combobox.openDropdown()}
-            onBlur={() => combobox.closeDropdown()}
-            placeholder={placeholder}
-            rightSectionPointerEvents={value === null ? "none" : "all"}
-          />
-        </Combobox.Target>
+    <Combobox store={combobox} withinPortal onOptionSubmit={option => onOptionSubmit(option)}>
+      <Combobox.Target>
+        <InputBase
+          leftSection={<IconSearch size={16} />}
+          rightSection={getSearchRightIcon()}
+          value={value}
+          onChange={event => {
+            combobox.openDropdown();
+            combobox.updateSelectedOptionIndex();
+            setValue(event.currentTarget.value);
+            filterOptions(event.currentTarget.value);
+          }}
+          onKeyUp={event => {
+            if (event.code === "Enter") {
+              search(value);
+              combobox.closeDropdown();
+            }
+          }}
+          onClick={() => combobox.openDropdown()}
+          onFocus={() => combobox.openDropdown()}
+          onBlur={() => combobox.closeDropdown()}
+          placeholder={placeholder}
+          rightSectionPointerEvents={value === null ? "none" : "all"}
+        />
+      </Combobox.Target>
 
-        <Combobox.Dropdown>
-          <Combobox.Options>
-            {isLoading ? <Combobox.Empty key="loader">{t("loading")}</Combobox.Empty> : searchOptions}
-          </Combobox.Options>
-        </Combobox.Dropdown>
-      </Combobox>
-    </Box>
+      <Combobox.Dropdown>
+        <Combobox.Options>
+          {isLoading ? <Combobox.Empty key="loader">{t("loading")}</Combobox.Empty> : searchOptions}
+        </Combobox.Options>
+      </Combobox.Dropdown>
+    </Combobox>
   );
 }
