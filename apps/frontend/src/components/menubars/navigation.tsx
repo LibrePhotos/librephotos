@@ -1,5 +1,5 @@
 import { MantineColor } from "@mantine/core";
-import type { Icon, IconProps } from "@tabler/icons-react";
+import type { Icon } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
   IconBookmark as Bookmark,
@@ -21,7 +21,7 @@ import {
   IconWand as Wand,
   IconWorld as World,
 } from "@tabler/icons-react";
-import { ForwardRefExoticComponent, RefAttributes } from "react";
+import { TFunction } from "i18next";
 
 type SubmenuItem = {
   label: string;
@@ -36,14 +36,14 @@ type SubmenuItem = {
 type MenuItem = {
   label: string;
   link: string;
-  icon: ForwardRefExoticComponent<Omit<IconProps, "ref"> & RefAttributes<Icon>>;
+  icon: Icon;
   color?: MantineColor;
   display?: boolean;
   submenu?: Array<Partial<SubmenuItem>>;
 };
 
 export function getNavigationItems(
-  t: (s: string) => string,
+  t: TFunction<"translation", undefined>,
   isAuthenticated: boolean,
   canAccess: boolean
 ): Array<MenuItem> {
