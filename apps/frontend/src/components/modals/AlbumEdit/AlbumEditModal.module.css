@@ -1,0 +1,16 @@
+.albums {
+  overflow-y: scroll;
+  height: 25vh;
+  @media (min-width: 700px) {
+    /* 50vh creates scrollbar on the whole modal */
+    height: 49vh;
+  }
+}
+
+.tile {
+  object-fit: cover;
+  width: 40px;
+  height: 40px;
+  aspect-ratio: 1;
+  border-radius: 4px;
+}

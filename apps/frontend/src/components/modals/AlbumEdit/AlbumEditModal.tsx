@@ -1,15 +1,16 @@
 import { Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
-import { useMediaQuery } from "@mantine/hooks";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useAddPhotoToUserAlbumMutation } from "../../api_client/albums/hooks/useAddPhotoToUserAlbumMutation";
-import { useCreateUserAlbumMutation } from "../../api_client/albums/hooks/useCreateUserAlbumMutation";
-import { useFetchUserAlbumsQuery } from "../../api_client/albums/hooks/useFetchUserAlbumsQuery";
-import { i18nResolvedLanguage } from "../../i18n";
-import { fuzzyMatch } from "../../util/util";
-import { Tile } from "../Tile";
+import {
+  useAddPhotoToUserAlbumMutation,
+  useCreateUserAlbumMutation,
+  useFetchUserAlbumsQuery,
+} from "../../../api_client/albums/hooks";
+import { i18nResolvedLanguage } from "../../../i18n";
+import { fuzzyMatch } from "../../../util/util";
+import { Tile } from "../../Tile";
+import classes from "./AlbumEditModal.module.css";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -17,9 +18,8 @@ type Props = Readonly<{
   selectedImages: any[];
 }>;
 
-export function ModalAlbumEdit(props: Props) {
+export function AlbumEditModal(props: Props) {
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
-  const matches = useMediaQuery("(min-width: 700px)");
   const { isOpen, onRequestClose, selectedImages } = props;
   const { t } = useTranslation();
   const { data: albumsUserList = [] } = useFetchUserAlbumsQuery();
@@ -42,13 +42,7 @@ export function ModalAlbumEdit(props: Props) {
           {selectedImages.map(image => (
             <Tile
               key={`si-${image.id}`}
-              style={{
-                objectFit: "cover",
-                width: "40px",
-                height: "40px",
-                aspectRatio: "1",
-                borderRadius: "4px",
-              }}
+              className={classes.tile}
               height={40}
               width={40}
               image_hash={image.id}
@@ -88,7 +82,7 @@ export function ModalAlbumEdit(props: Props) {
           </Button>
         </Group>
         <Divider />
-        <Stack style={{ height: matches ? "50vh" : "25vh", overflowY: "scroll" }}>
+        <Stack className={classes.albums}>
           {albumsUserList
             .filter(el => fuzzyMatch(newAlbumTitle, el.title))
             .map(item => (
@@ -107,13 +101,7 @@ export function ModalAlbumEdit(props: Props) {
                   <Tile
                     height={50}
                     width={50}
-                    style={{
-                      objectFit: "cover",
-                      width: "40px",
-                      height: "40px",
-                      aspectRatio: "1",
-                      borderRadius: "4px",
-                    }}
+                    className={classes.tile}
                     image_hash={item.cover_photo.image_hash}
                     video={item.cover_photo.video}
                   />

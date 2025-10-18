@@ -20,12 +20,15 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
-import { UserSelfDetailsQueryKeys, useUpdateUserMutation } from "../../api_client/user/hooks";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import {
+  useCurrentUserSelfDetailsQuery,
+  UserSelfDetailsQueryKeys,
+  useUpdateUserMutation,
+} from "../../api_client/user/hooks";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
-import { ModalAlbumEdit } from "../album/ModalAlbumEdit";
 import { Lightbox } from "../lightbox/Lightbox";
+import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import Pig from "../react-pig";
 import type { PigHandle } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
@@ -600,7 +603,7 @@ function PhotoListViewComponent({
       )}
 
       {!isPublic && (
-        <ModalAlbumEdit
+        <AlbumEditModal
           isOpen={modalAddToAlbumOpen}
           onRequestClose={() => {
             setModalAddToAlbumOpen(false);
