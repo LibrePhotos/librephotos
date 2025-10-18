@@ -1153,10 +1153,10 @@
     chalk "^2.4.2"
     lodash "^4.17.15"
 
-"@ianvs/prettier-plugin-sort-imports@4.6.2":
-  version "4.6.2"
-  resolved "https://registry.yarnpkg.com/@ianvs/prettier-plugin-sort-imports/-/prettier-plugin-sort-imports-4.6.2.tgz#dd3ebbc8b1610875c0c41fc4f8f7f2809f59e3fc"
-  integrity sha512-kHiL1IghIodo43clNQaJJU2rPqXEioPG+Ink4/T5za46A0ggSNvIx4NM3hGgciQ2VpDaR/X8cTJIZDKRurWjPw==
+"@ianvs/prettier-plugin-sort-imports@4.7.0":
+  version "4.7.0"
+  resolved "https://registry.yarnpkg.com/@ianvs/prettier-plugin-sort-imports/-/prettier-plugin-sort-imports-4.7.0.tgz#9e556548071744837c274d59226ce717ff4fea36"
+  integrity sha512-soa2bPUJAFruLL4z/CnMfSEKGznm5ebz29fIa9PxYtu8HHyLKNE1NXAs6dylfw1jn/ilEIfO2oLLN6uAafb7DA==
   dependencies:
     "@babel/generator" "^7.26.2"
     "@babel/parser" "^7.26.2"
