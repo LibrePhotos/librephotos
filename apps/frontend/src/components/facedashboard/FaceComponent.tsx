@@ -1,14 +1,15 @@
-import { ActionIcon, Avatar, Box, Center, Indicator, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Avatar, Box, Indicator } from "@mantine/core";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import _ from "lodash";
 import React, { useState } from "react";
 import { serverAddress } from "../../api_client/apiClient";
-import "./FaceComponent.css";
+import classes from "./FaceComponent.module.css";
 import { FaceTooltip } from "./FaceTooltip";
+import { FaceCell } from "./hooks/useVirtualizedGrid";
 
 type Props = Readonly<{
-  cell: any;
+  cell: FaceCell;
   isScrollingFast: boolean;
   selectMode: boolean;
   entrySquareSize: number;
@@ -26,6 +27,12 @@ export const calculateProbabiltyColor = (labelProbability: number) => {
 
 const routeApi = getRouteApi("/_protected/faces");
 
+function getFaceImageUrl(cell: FaceCell): string {
+  // cell.image is string e.g. http://backeng/path/to/file.jpg
+  const fileName = _.reverse(cell.image.split("/"))[0];
+  return `${serverAddress}/media/faces/${fileName}`;
+}
+
 export function FaceComponent({
   cell,
   isScrollingFast,
@@ -35,46 +42,26 @@ export function FaceComponent({
   handleClick,
   handleShowClick,
 }: Props) {
-  const theme = useMantineTheme();
-
-  const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const [tooltipOpened, setTooltipOpened] = useState(false);
+  const entrySize = entrySquareSize - (selectMode ? 30 : 10);
+  const labelProbabilityColor = calculateProbabiltyColor(cell.person_label_probability);
   const { tab: activeTab } = routeApi.useSearch();
-  // TODO: janky shit going on in the next line!
-  const faceImageSrc = `${serverAddress}/media/faces/${_.reverse(cell.image.split("/"))[0]}`;
-
-  let offset: number = 0;
-  let size: number = entrySquareSize - 10;
-  let padding: number = 0;
-  if (selectMode) {
-    // display smaller faces to distinguish between normal and select mode
-    offset = 10;
-    size = entrySquareSize - 30;
-    padding = 10;
-  }
 
   if (isScrollingFast) {
-    return <Avatar radius="xl" src="/thumbnail_placeholder.png" size={entrySquareSize - 10} />;
+    return <Avatar radius="md" src="/thumbnail_placeholder.png" size={entrySize} />;
   }
+
   return (
-    <Box
-      className={`box ${isSelected ? "selected" : ""}`}
-      style={{
-        alignContent: "center",
-        padding,
-        marginRight: 10,
-        cursor: "pointer",
-        borderRadius: theme.radius.md,
-      }}
-    >
-      <Center>
+    <Box className={classes.box} data-selected={isSelected} w="100%" h="100%" align="center">
+      <Box>
         <FaceTooltip
           tooltipOpened={tooltipOpened}
           probability={cell.person_label_probability}
           timestamp={cell.timestamp}
         >
           <Indicator
-            offset={offset}
+            offset={10}
+            withBorder
             color={labelProbabilityColor}
             onMouseEnter={() => setTooltipOpened(true)}
             onMouseLeave={() => setTooltipOpened(false)}
@@ -82,21 +69,24 @@ export function FaceComponent({
             size={15}
           >
             <Avatar
-              radius="xl"
+              radius="md"
               onClick={(e: any) => {
                 handleClick(e, cell);
               }}
-              src={faceImageSrc}
-              size={size}
+              src={getFaceImageUrl(cell)}
+              size={entrySize}
             />
           </Indicator>
         </FaceTooltip>
-        <div style={{ left: 0, bottom: 0, position: "absolute" }}>
-          <ActionIcon variant="filled" color="gray" onClick={(e: any) => handleShowClick(e, cell)}>
-            <Photo />
-          </ActionIcon>
-        </div>
-      </Center>
+        <ActionIcon
+          className={classes.action}
+          variant="filled"
+          color="gray"
+          onClick={(e: any) => handleShowClick(e, cell)}
+        >
+          <Photo />
+        </ActionIcon>
+      </Box>
     </Box>
   );
 }

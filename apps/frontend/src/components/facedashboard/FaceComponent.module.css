@@ -1,0 +1,23 @@
+.box {
+  display: block;
+  background-color: transparent;
+  align-content: center;
+  justify-items: center;
+  cursor: pointer;
+  border-radius: var(--mantine-radius-md);
+  padding: 0;
+
+  &:hover {
+    background-color: var(--mantine-color-blue-4);
+  }
+
+  &[data-selected="true"] {
+    background-color: var(--mantine-color-blue-1);
+  }
+
+  .action {
+    left: 7px;
+    bottom: 7px;
+    position: absolute;
+  }
+}
