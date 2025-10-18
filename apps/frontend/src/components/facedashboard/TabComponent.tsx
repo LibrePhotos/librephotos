@@ -1,44 +1,38 @@
 import { Group, Loader, Tabs } from "@mantine/core";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { FacesTab } from "../../api_client/faces/types";
 import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
 
 type Props = Readonly<{
-  width: number;
   fetchingLabeledFacesList: boolean;
   fetchingInferredFacesList: boolean;
 }>;
 
 const routeApi = getRouteApi("/_protected/faces");
 
-export function TabComponent({ 
-  width, 
-  fetchingLabeledFacesList, 
-  fetchingInferredFacesList,
-}: Props) {
-
-  
-  const { tab: activeTab  } = routeApi.useSearch()
-
+export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesList }: Props) {
   const navigate = useNavigate();
-  
   const { t } = useTranslation();
+  const { tab: activeTab } = routeApi.useSearch();
 
   return (
     <Group justify="apart">
-      <Tabs defaultValue={activeTab} value={activeTab} style={{ width }} onChange={
-        (value) => {
+      <Tabs
+        defaultValue={activeTab}
+        value={activeTab}
+        w="100%"
+        onChange={value => {
           navigate({
             to: "/faces",
-            search: (prev) => ({
+            search: prev => ({
               ...prev,
               tab: value as FacesTab,
-            })
-          })
-        }
-      }>
+            }),
+          });
+        }}
+      >
         <Tabs.List>
           <FacesCountersHoverCard tab={FacesTab.enum.inferred}>
             <Tabs.Tab value={FacesTab.enum.inferred}>

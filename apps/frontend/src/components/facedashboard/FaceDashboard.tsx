@@ -163,22 +163,19 @@ export function FaceDashboard() {
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
-      <div style={{ display: "flex", flexFlow: "column", height: `calc(100vh - ${TOP_MENU_HEIGHT}px)` }}>
-        <Stack>
-          <TabComponent
-            width={width}
-            fetchingLabeledFacesList={fetchingLabeledFacesList}
-            fetchingInferredFacesList={fetchingInferredFacesList}
-          />
-          <HeaderButtons
-            selectMode={selectedFaces.length > 0}
-            selectedFaces={selectedFaces}
-            changeSelectMode={clearSelection}
-            addFaces={() => selectedFaces.length > 0 && setModalPersonEditOpen(true)}
-            deleteFaces={deleteSelectedFaces}
-            notThisPerson={notThisPersonFunc}
-          />
-        </Stack>
+      <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
+        <TabComponent
+          fetchingLabeledFacesList={fetchingLabeledFacesList}
+          fetchingInferredFacesList={fetchingInferredFacesList}
+        />
+        <HeaderButtons
+          selectMode={selectedFaces.length > 0}
+          selectedFaces={selectedFaces}
+          changeSelectMode={clearSelection}
+          addFaces={() => selectedFaces.length > 0 && setModalPersonEditOpen(true)}
+          deleteFaces={deleteSelectedFaces}
+          notThisPerson={notThisPersonFunc}
+        />
         <VirtualizedGridComponent
           containerRef={ref}
           gridRef={virtualGrid.gridRef}
@@ -217,7 +214,7 @@ export function FaceDashboard() {
             onImageChange={handleLightboxImageChange}
           />
         )}
-      </div>
+      </Stack>
     </RemoveScroll>
   );
 }
