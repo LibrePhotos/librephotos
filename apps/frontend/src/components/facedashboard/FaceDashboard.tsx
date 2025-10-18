@@ -7,7 +7,7 @@ import { notification } from "../../service/notifications";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
-import { ButtonHeaderGroup } from "./ButtonHeaderGroup";
+import { HeaderButtons } from "./HeaderButtons";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
@@ -170,7 +170,7 @@ export function FaceDashboard() {
             fetchingLabeledFacesList={fetchingLabeledFacesList}
             fetchingInferredFacesList={fetchingInferredFacesList}
           />
-          <ButtonHeaderGroup
+          <HeaderButtons
             selectMode={selectedFaces.length > 0}
             selectedFaces={selectedFaces}
             changeSelectMode={clearSelection}

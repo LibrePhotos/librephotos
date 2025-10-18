@@ -1,17 +1,4 @@
-import {
-  ActionIcon,
-  Box,
-  Button,
-  Divider,
-  Group,
-  Modal,
-  NumberInput,
-  Select,
-  Stack,
-  Tooltip,
-  useComputedColorScheme,
-  useMantineTheme,
-} from "@mantine/core";
+import { ActionIcon, Button, Divider, Group, Modal, NumberInput, Select, Stack, Tooltip } from "@mantine/core";
 import {
   IconBarbell as Barbell,
   IconCheck as Check,
@@ -39,7 +26,7 @@ type Props = Readonly<{
 
 const routeApi = getRouteApi("/_protected/faces");
 
-export function ButtonHeaderGroup({
+export function HeaderButtons({
   selectMode,
   selectedFaces,
   changeSelectMode,
@@ -47,18 +34,13 @@ export function ButtonHeaderGroup({
   deleteFaces,
   notThisPerson,
 }: Props) {
-  const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const [jobType, setJobType] = useState("");
-  const trainFacesMutation = useTrainFacesMutation();
-
-  const { t } = useTranslation();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
-
-  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
+  const [queueCanAcceptJob, setQueueCanAcceptJob] = useState(false);
   const navigate = useNavigate();
+  const trainFacesMutation = useTrainFacesMutation();
+  const { t } = useTranslation();
+  const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
 
   useEffect(() => {
     if (trainFacesMutation.isPending) {
@@ -71,39 +53,21 @@ export function ButtonHeaderGroup({
   }, [trainFacesMutation.isPending]);
 
   return (
-    <Box
-      style={{
-        padding: 8,
-        backgroundColor: colorScheme === "dark" ? theme.colors.dark[7] : theme.colors.gray[2],
-        textAlign: "center",
-        cursor: "pointer",
-        borderRadius: 10,
-      }}
-    >
-      <Group
-        style={{
-          paddingLeft: 10,
-          paddingRight: 10,
-        }}
-        justify="space-between"
-        align="flex-start"
-      >
-        <Group gap="md" align="flex-start">
+    <>
+      <Group px="md" justify="space-between" align="flex-start">
+        <Group align="flex-start">
           <Button
             variant="light"
-            size="sm"
             leftSection={<Check color={selectMode ? "green" : "gray"} />}
             color={selectMode ? "blue" : "gray"}
             onClick={changeSelectMode}
-            style={{ height: 36 }}
           >
             {`${selectedFaces.length} ${t("selectionbar.selected")}`}
           </Button>
-          <Divider orientation="vertical" style={{ height: 36 }} />
-          <Stack gap={0} align="start" style={{ minWidth: 150 }}>
+          <Divider orientation="vertical" />
+          <Stack align="start">
             <Select
-              size="sm"
-              style={{ width: 150 }}
+              w={150}
               value={orderBy}
               onChange={value => {
                 navigate({
@@ -129,11 +93,10 @@ export function ButtonHeaderGroup({
           </Stack>
           {(activeTab === "inferred" || activeTab === "unknown") && (
             <>
-              <Divider orientation="vertical" style={{ height: 36 }} />
-              <Stack gap={0} align="start" style={{ minWidth: 150 }}>
+              <Divider orientation="vertical" />
+              <Stack align="start">
                 <Select
-                  size="sm"
-                  style={{ width: 150 }}
+                  w={150}
                   value={analysisMethod}
                   onChange={value => {
                     navigate({
@@ -157,11 +120,10 @@ export function ButtonHeaderGroup({
                   ]}
                 />
               </Stack>
-              <Divider orientation="vertical" style={{ height: 36 }} />
-              <Stack gap={0} align="start" style={{ minWidth: 200 }}>
+              <Divider orientation="vertical" />
+              <Stack align="start">
                 <NumberInput
-                  size="sm"
-                  style={{ width: 200 }}
+                  w={200}
                   value={minConfidence * 100}
                   onChange={value => {
                     if (typeof value === "number") {
@@ -187,15 +149,9 @@ export function ButtonHeaderGroup({
             </>
           )}
         </Group>
-        <Group gap="xs" style={{ height: 36 }}>
+        <Group h={36}>
           <Tooltip label={t("facesdashboard.explanationadding")}>
-            <ActionIcon
-              variant="light"
-              color="green"
-              disabled={selectedFaces.length === 0}
-              onClick={addFaces}
-              size="lg"
-            >
+            <ActionIcon variant="light" color="green" disabled={selectedFaces.length === 0} onClick={addFaces}>
               <Plus />
             </ActionIcon>
           </Tooltip>
@@ -205,7 +161,6 @@ export function ButtonHeaderGroup({
               color="orange"
               disabled={selectedFaces.length === 0}
               onClick={() => notThisPerson()}
-              size="lg"
             >
               <UserOff />
             </ActionIcon>
@@ -216,7 +171,6 @@ export function ButtonHeaderGroup({
               color="red"
               disabled={selectedFaces.length === 0}
               onClick={() => setOpenDeleteDialog(true)}
-              size="lg"
             >
               <Trash />
             </ActionIcon>
@@ -231,7 +185,6 @@ export function ButtonHeaderGroup({
                 trainFacesMutation.mutate();
                 notification.trainFaces();
               }}
-              size="lg"
             >
               <Barbell />
             </ActionIcon>
@@ -262,6 +215,6 @@ export function ButtonHeaderGroup({
           </Group>
         </Stack>
       </Modal>
-    </Box>
+    </>
   );
 }
