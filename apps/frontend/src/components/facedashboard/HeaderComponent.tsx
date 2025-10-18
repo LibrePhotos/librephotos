@@ -6,11 +6,10 @@ import {
   IconTrash as Trash,
   IconUserCheck as UserCheck,
 } from "@tabler/icons-react";
+import { getRouteApi } from "@tanstack/react-router";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { getRouteApi } from "@tanstack/react-router";
 import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
@@ -20,23 +19,14 @@ import { useSetFacesPersonLabelMutation } from "../../api_client/faces/hooks";
 
 type Props = {
   cell: any;
-  width: number;
   style: any;
-  entrySquareSize: number;
   setSelectedFaces: any;
   selectedFaces: any;
 };
 
 const routeApi = getRouteApi("/_protected/faces");
 
-export function HeaderComponent({
-  cell,
-  width,
-  style,
-  entrySquareSize,
-  setSelectedFaces,
-  selectedFaces,
-}: Readonly<Props>) {
+export function HeaderComponent({ cell, style, setSelectedFaces, selectedFaces }: Readonly<Props>) {
   const { tab: activeTab } = routeApi.useSearch();
   const { t } = useTranslation();
   const [checked, setChecked] = useState(false);
@@ -88,15 +78,7 @@ export function HeaderComponent({
   }, [cell.faces, selectedFaces]);
 
   return (
-    <Stack
-      gap="xs"
-      style={{
-        ...style,
-        width,
-        paddingTop: entrySquareSize / 2.0 - 35,
-        height: entrySquareSize,
-      }}
-    >
+    <Stack w="100%" justify="end" pb="xl" style={style}>
       <Group>
         <Chip variant="filled" radius="xs" size="lg" checked={checked} onChange={handleClick}>
           {cell.name}

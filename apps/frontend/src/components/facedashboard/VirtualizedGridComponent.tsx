@@ -1,16 +1,15 @@
+import cx from "clsx";
 import React, { useCallback } from "react";
-import { AutoSizer, Grid, GridCellProps } from "react-virtualized";
-import { FaceComponent } from "./FaceComponent";
-import { HeaderComponent } from "./HeaderComponent";
+import { GridCellProps } from "react-virtualized";
+import { FacesTab } from "../../api_client/faces/types";
+import { AutoSizer, Grid } from "../../proxy-types";
+import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
-import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
+import { FaceComponent } from "./FaceComponent";
+import { HeaderComponent } from "./HeaderComponent";
 import { FaceCell, FaceSelection } from "./hooks/useVirtualizedGrid";
-import { FacesTab } from "../../api_client/faces/types";
-
-// Cast components to bypass TypeScript issues
-const AutoSizerComponent = AutoSizer as any;
-const GridComponent = Grid as any;
+import classes from "./VirtualizedGridComponent.module.css";
 
 interface VirtualizedGridComponentProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -56,53 +55,60 @@ export function VirtualizedGridComponent({
   selectedFaces,
   setSelectedFaces,
   width,
-  activeTab
+  activeTab,
 }: VirtualizedGridComponentProps) {
-  
   // Cell renderer for the virtualized grid
-  const cellRenderer = useCallback(({ columnIndex, key, rowIndex, style }: GridCellProps) => {
-    const cell = getCellContentsForTab(activeTab)[rowIndex]?.[columnIndex];
-    if (!cell) return null;
+  const cellRenderer = useCallback(
+    ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
+      const cell = getCellContentsForTab(activeTab)[rowIndex]?.[columnIndex];
+      if (!cell) return null;
 
-    if (cell.name) {
+      if (cell.name) {
+        return (
+          <HeaderComponent
+            key={key}
+            style={style}
+            cell={cell}
+            selectedFaces={selectedFaces}
+            setSelectedFaces={setSelectedFaces}
+          />
+        );
+      }
+
+      if (cell.isTemp) {
+        return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
+      }
+
       return (
-        <HeaderComponent
-          key={key}
-          style={style}
-          width={width}
-          cell={cell}
-          entrySquareSize={entrySquareSize}
-          selectedFaces={selectedFaces}
-          setSelectedFaces={setSelectedFaces}
-        />
+        <div key={key} style={style}>
+          <FaceComponent
+            handleClick={handleCellClick}
+            handleShowClick={handleShowClick}
+            cell={cell}
+            isScrollingFast={false}
+            selectMode={selectMode}
+            isSelected={selectedFaces.some(face => face.face_id === cell.id)}
+            entrySquareSize={entrySquareSize}
+          />
+        </div>
       );
-    }
-    
-    if (cell.isTemp) {
-      return <div key={key} style={{ ...style, height: entrySquareSize, width: entrySquareSize }} />;
-    }
-
-    return (
-      <div key={key} style={style}>
-        <FaceComponent
-          handleClick={handleCellClick}
-          handleShowClick={handleShowClick}
-          cell={cell}
-          isScrollingFast={false}
-          selectMode={selectMode}
-          isSelected={selectedFaces.some(face => face.face_id === cell.id)}
-          entrySquareSize={entrySquareSize}
-        />
-      </div>
-    );
-  }, [
-    activeTab, width, entrySquareSize, selectedFaces, 
-    handleCellClick, handleShowClick, selectMode, getCellContentsForTab, setSelectedFaces
-  ]);
+    },
+    [
+      activeTab,
+      width,
+      entrySquareSize,
+      selectedFaces,
+      handleCellClick,
+      handleShowClick,
+      selectMode,
+      getCellContentsForTab,
+      setSelectedFaces,
+    ]
+  );
 
   return (
-    <div style={{ flexGrow: 1, padding: "0 15px" }} ref={containerRef}>
-      <AutoSizerComponent>
+    <div className={classes.container} ref={containerRef}>
+      <AutoSizer>
         {({ height, width: gridWidth }) => (
           <ScrollScrubber
             scrollPositions={getScrollPositions()}
@@ -110,10 +116,9 @@ export function VirtualizedGridComponent({
             targetHeight={gridHeight}
             type={ScrollerType.enum.alphabet}
           >
-            <GridComponent
+            <Grid
               ref={gridRef}
-              className="scrollscrubbertarget"
-              style={{ overflowX: "hidden" }}
+              className={cx(classes.grid, "scrollscrubbertarget")}
               disableHeader={false}
               cellRenderer={cellRenderer}
               columnWidth={entrySquareSize}
@@ -128,7 +133,7 @@ export function VirtualizedGridComponent({
             />
           </ScrollScrubber>
         )}
-      </AutoSizerComponent>
+      </AutoSizer>
     </div>
   );
-} 
+}
