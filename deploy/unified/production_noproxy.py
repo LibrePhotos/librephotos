@@ -261,6 +261,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Password Hashers - Argon2 is faster and more secure than PBKDF2
+# Existing passwords will continue to work (PBKDF2 fallback)
+# New passwords and password changes will use Argon2
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+]
+
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
