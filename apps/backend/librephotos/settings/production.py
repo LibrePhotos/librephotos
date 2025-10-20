@@ -223,8 +223,14 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
         "HOST": os.environ.get("DB_HOST", "db"),
         "PORT": os.environ.get("DB_PORT", "5432"),
-        "CONN_MAX_AGE": 600,
-        "CONN_HEALTH_CHECKS": True,
+        # Connection pooling is enabled below (incompatible with CONN_MAX_AGE)
+        "OPTIONS": {
+            "pool": {
+                "min_size": 2,  # Minimum number of connections in the pool
+                "max_size": 10,  # Maximum number of connections in the pool
+                "timeout": 30,  # Timeout in seconds for getting a connection
+            },
+        },
     },
 }
 

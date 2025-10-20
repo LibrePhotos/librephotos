@@ -23,6 +23,7 @@ nltk==3.9.1
 markupsafe==3.0.2
 Pillow==11.3.0
 psycopg==3.2.10
+psycopg-pool==3.2.4
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2025.2
 tzdata==2025.2
