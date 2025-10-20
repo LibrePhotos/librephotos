@@ -425,6 +425,8 @@ class PhotoSerializer(serializers.ModelSerializer):
                 "type": "video" if file.type == File.VIDEO else "image",
             }
 
+        if obj.main_file is None:
+            return []
         embedded_media = obj.main_file.embedded_media.all()
         if len(embedded_media) == 0:
             return []

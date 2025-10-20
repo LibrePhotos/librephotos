@@ -69,7 +69,7 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     "faces",
-                    queryset=Face.objects.filter(Q(person_label_is_inferred=False)),
+                    queryset=Face.objects.filter(Q(person__isnull=False)),
                 )
             )
             .prefetch_related(
@@ -259,6 +259,9 @@ class AlbumPlaceListViewSet(ListViewSet):
 class AlbumUserViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumUserSerializer
     pagination_class = StandardResultsSetPagination
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
     def get_queryset(self):
         # Support public access when explicitly requested
