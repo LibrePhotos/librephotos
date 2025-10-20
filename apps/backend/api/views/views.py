@@ -858,7 +858,7 @@ class UnifiedMediaAccessView(APIView):
                     )
                 else:
                     internal_path = quote(photo.main_file.path)
-                response["X-Accel-Redirect"] = internal_path
+                response["X-Accel-Redirect"] = iri_to_uri(internal_path)
                 return response
             try:
                 mime = magic.Magic(mime=True)
@@ -897,7 +897,7 @@ class UnifiedMediaAccessView(APIView):
                 response["Content-Disposition"] = 'inline; filename="{}"'.format(
                     photo.main_file.path.split("/")[-1]
                 )
-                response["X-Accel-Redirect"] = internal_path
+                response["X-Accel-Redirect"] = iri_to_uri(internal_path)
                 return response
             return self._serve_file_direct(photo.main_file.path)
         else:
@@ -924,7 +924,7 @@ class UnifiedMediaAccessView(APIView):
                             )
                         else:
                             internal_path = quote(photo.main_file.path)
-                        response["X-Accel-Redirect"] = internal_path
+                        response["X-Accel-Redirect"] = iri_to_uri(internal_path)
                         return response
                     return self._serve_file_direct(photo.main_file.path)
         return HttpResponse(status=404)
