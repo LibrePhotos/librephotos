@@ -48,3 +48,4 @@ timm==1.0.19
 transformers==4.56.2
 # Dependencies for mistral quantized and multimodal models like Moondream
 llama-cpp-python==0.3.16
+argon2-cffi==23.1.0
