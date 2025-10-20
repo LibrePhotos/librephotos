@@ -377,7 +377,16 @@ class PhotoViewSet(viewsets.ModelViewSet):
         if self.request.user.is_anonymous:
             return Photo.visible.filter(Q(public=True)).order_by("-exif_timestamp")
         else:
-            return Photo.objects.order_by("-exif_timestamp")
+            # Include photos that are:
+            # 1. Owned by the user
+            # 2. Shared directly with the user
+            # 3. Public (for retrieve access)
+            # Note: Photos in shared albums are handled by the permission class
+            return Photo.visible.filter(
+                Q(owner=self.request.user)
+                | Q(shared_to=self.request.user)
+                | Q(public=True)
+            ).order_by("-exif_timestamp")
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
