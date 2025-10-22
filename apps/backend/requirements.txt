@@ -19,7 +19,7 @@ geopy==2.4.1
 gunicorn==23.0.0
 hdbscan==0.8.40
 networkx==3.4.2
-nltk==3.9.1
+nltk==3.9.2
 markupsafe==3.0.2
 Pillow==11.3.0
 psycopg==3.2.10
