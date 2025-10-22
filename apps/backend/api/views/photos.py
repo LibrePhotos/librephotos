@@ -370,7 +370,10 @@ class PhotoViewSet(viewsets.ModelViewSet):
         if self.action in ("list", "retrieve", "summary"):
             permission_classes = [IsPhotoOrAlbumSharedTo]
         else:  # pragma: no cover - unused
-            permission_classes = [IsAdminUser or IsOwnerOrReadOnly]
+            if getattr(self.request, "user", None) and self.request.user.is_staff:
+                permission_classes = [IsAdminUser]
+            else:
+                permission_classes = [IsOwnerOrReadOnly]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
