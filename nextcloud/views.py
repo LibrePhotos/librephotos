@@ -1,6 +1,4 @@
 import uuid
-from urllib.parse import urlparse
-
 import owncloud as nextcloud
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
@@ -9,6 +7,7 @@ from rest_framework.views import APIView
 
 from api.util import logger
 from nextcloud.directory_watcher import scan_photos
+from nextcloud.utils import valid_url
 
 
 class ListDir(APIView):
@@ -38,15 +37,6 @@ class ListDir(APIView):
             )
         except nextcloud.HTTPResponseError:
             return Response(status=400)
-
-
-def valid_url(url):
-    try:
-        urlparse(url)
-        return True
-    except BaseException:
-        return False
-
 
 class ScanPhotosView(APIView):
     def post(self, request, format=None):
