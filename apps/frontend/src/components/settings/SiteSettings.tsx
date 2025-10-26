@@ -38,6 +38,7 @@ export function SiteSettings() {
   const [mapApiProvider, setMapApiProvider] = useState<string>("proton");
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
+  const [skipRawFiles, setSkipRawFiles] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
   const [llmModel, setLlmModel] = useState("none");
   const [warning, setWarning] = useState("none");
@@ -62,6 +63,7 @@ export function SiteSettings() {
       setMapApiProvider(settings.map_api_provider);
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
+      setSkipRawFiles(settings.skip_raw_files);
       setCaptioningModel(settings.captioning_model);
       setLlmModel(settings.llm_model);
     }
@@ -124,6 +126,11 @@ export function SiteSettings() {
             label={t("sitesettings.headerupload")}
             onChange={() => saveSettings({ allow_upload: !allowUpload })}
             checked={allowUpload}
+          />
+          <Switch
+            label={t("sitesettings.skip_raw_files")}
+            onChange={() => saveSettings({ skip_raw_files: !skipRawFiles })}
+            checked={skipRawFiles}
           />
 
           <Grid justify="flex-end">

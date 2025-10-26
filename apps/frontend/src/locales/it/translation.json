@@ -196,7 +196,8 @@
         "allow": "Autorizza",
         "noallow": "Non autorizzare",
         "header": "Permetti la registrazione degli utenti",
-        "headerupload": "Permetti uploads"
+        "headerupload": "Permetti uploads",
+        "skip_raw_files": "Salta i file RAW"
     },
     "modalscandirectoryedit": {
         "explanation1": "Quando l'utente",

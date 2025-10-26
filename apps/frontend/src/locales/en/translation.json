@@ -451,6 +451,7 @@
     "allow": "Allow",
     "noallow": "Do not allow",
     "headerupload": "Allow uploads",
+    "skip_raw_files": "Skip RAW files",
     "headerskippatterns": "Skip patterns",
     "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for Synology devices)",
     "map_api_provider_header": "Map Provider",
