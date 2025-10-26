@@ -117,6 +117,7 @@
     "rescanfacestitle": "Rescan Faces",
     "rescanfacesdescription": "Look for faces on the library",
     "rescanfaces": "Rescan",
+  "skip_raw_files_note": "When enabled, new RAW files are ignored during scans. Existing RAW files remain in your library. To remove them, enable this option, run a full rescan, then use 'Remove missing photos'.",
     "scanoptions": "Scanning Options",
     "sceneconfidence": "Scene confidence",
     "confidencelevel": "Confidence level",
