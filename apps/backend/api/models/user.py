@@ -91,6 +91,7 @@ class User(AbstractUser):
         SMALL = "small"
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
+    skip_raw_files = models.BooleanField(default=False)
 
 
 def get_admin_user():

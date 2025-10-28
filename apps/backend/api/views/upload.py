@@ -149,7 +149,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 detail=f"Upload failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator.",
             )
 
-        if not is_valid_media(uploaded_file.file.path):
+        if not is_valid_media(uploaded_file.file.path, user):
             chunked_upload = get_object_or_404(
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )

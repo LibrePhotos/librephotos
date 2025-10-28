@@ -122,8 +122,12 @@ def is_metadata(path):
     return fileextension.upper() in rawformats
 
 
-def is_valid_media(path):
-    if is_video(path) or is_raw(path) or is_metadata(path):
+def is_valid_media(path, user) -> bool:
+    if is_video(path=path) or is_metadata(path):
+        return True
+    if is_raw(path=path):
+        if user.skip_raw_files:
+            return False
         return True
     try:
         pyvips.Image.thumbnail(path, 10000, height=200, size=pyvips.enums.Size.DOWN)
