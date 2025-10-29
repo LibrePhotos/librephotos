@@ -485,7 +485,9 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             )
             for photo in photos_with_missing_aspect_ratio:
                 try:
-                    photo.thumbnail._calculate_aspect_ratio()
+                    thumbnail = getattr(photo, 'thumbnail', None)
+                    if thumbnail and isinstance(thumbnail, Thumbnail):
+                        thumbnail._calculate_aspect_ratio()
                 except Exception as e:
                     util.logger.exception(
                         f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
