@@ -227,6 +227,102 @@ def _file_was_modified_after(filepath, time):
     return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
 
 
+def wait_for_group_and_process_metadata(
+    group_id: str,
+    metadata_paths: list[str],
+    user_id: int,
+    full_scan: bool,
+    job_id: UUID | str,
+    expected_count: int,
+    *,
+    attempt: int = 1,
+    max_attempts: int = 2,
+):
+    """
+    Sentinel task: waits until the expected number of image/video tasks in the group complete,
+    then processes metadata files. It runs inside a django-q worker (non-blocking for the caller).
+
+    Failure handling:
+    - If the group is not complete yet, it will re-enqueue itself up to `max_attempts`.
+    - After exhausting attempts, it proceeds with metadata processing anyway (best-effort). 
+    """
+    from django_q.tasks import count_group
+    from django.contrib.auth import get_user_model
+
+    util.logger.info(
+        f"Sentinel attempt {attempt}/{max_attempts} for group {group_id} (expecting {expected_count} tasks)"
+    )
+
+    # Check current completion count for the group
+    try:
+        completed = count_group(group_id)  # counts successes by default
+    except Exception as e:
+        util.logger.warning(
+            f"Could not read group status for {group_id}: {e}. Treating as incomplete."
+        )
+        completed = 0
+
+    # Normalize to an int to avoid None-related type issues
+    completed_int = int(completed or 0)
+
+    if completed_int < expected_count and attempt < max_attempts:
+        util.logger.info(
+            f"Group {group_id} not complete yet: {completed_int}/{expected_count}. Re-enqueue sentinel (attempt {attempt+1})."
+        )
+        # Requeue the sentinel to check again later
+        AsyncTask(
+            wait_for_group_and_process_metadata,
+            group_id,
+            metadata_paths,
+            user_id,
+            full_scan,
+            job_id,
+            expected_count,
+            attempt=attempt + 1,
+            max_attempts=max_attempts,
+        ).run()
+        return
+
+    # Proceed with metadata processing (either completed or after exhausting attempts)
+    if completed_int < expected_count:
+        util.logger.warning(
+            f"Proceeding with metadata despite incomplete image group {group_id}: {completed_int}/{expected_count}."
+        )
+    else:
+        util.logger.info(
+            f"Image group {group_id} completed. Processing {len(metadata_paths)} metadata files"
+        )
+
+    if not metadata_paths:
+        util.logger.info("No metadata files to process after images completion")
+        return
+
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        util.logger.warning(
+            f"User {user_id} not found when processing metadata for job {job_id}"
+        )
+        return
+
+    last_scan = (
+        LongRunningJob.objects.filter(finished=True)
+        .filter(job_type=LongRunningJob.JOB_SCAN_PHOTOS)
+        .filter(started_by=user)
+        .order_by("-finished_at")
+        .first()
+    )
+
+    for path in metadata_paths:
+        try:
+            photo_scanner(user, last_scan, full_scan, path, job_id)
+        except Exception as e:
+            util.logger.exception(
+                f"Failed processing metadata {path} for job {job_id}: {e}"
+            )
+
+
 def update_scan_counter(job_id, failed=False):
     # Increment the current progress
     LongRunningJob.objects.filter(job_id=job_id).update(
@@ -254,6 +350,8 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
             [_file_was_modified_after(p, last_scan.finished_at) for p in files_to_check]
         )
     ):
+        # Queue processing for this file. Metadata is queued here without grouping on purpose,
+        # because grouping is managed at the higher-level scan phase to ensure images complete first.
         AsyncTask(handle_new_image, user, path, job_id).run()
     else:
         update_scan_counter(job_id)
@@ -297,17 +395,78 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             .order_by("-finished_at")
             .first()
         )
-        all = []
+        
+        # Separate images/videos from metadata files to ensure we process media first
+        # and only then attach metadata (e.g., XMP sidecars) once the matching Photo exists.
+        images_and_videos = []
+        metadata_paths: list[str] = []
         for path in photo_list:
-            all.append((user, last_scan, full_scan, path, job_id))
+            if is_metadata(path):
+                metadata_paths.append(path)
+            else:
+                images_and_videos.append((user, last_scan, full_scan, path, job_id))
 
         lrj.progress_current = 0
         lrj.progress_target = files_found
         lrj.save()
         db.connections.close_all()
 
-        for photo in all:
-            photo_scanner(*photo)
+    # Phase 1: Decide which images/videos to process; group them so we can wait before metadata
+        image_group_id = str(uuid.uuid4())
+        queue_candidates: list[tuple] = []
+
+        for user_data, last_scan_data, full_scan_flag, path, job_id_data in images_and_videos:
+            files_to_check = [path]
+            files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
+            if (
+                not Photo.objects.filter(files__path=path).exists()
+                or full_scan_flag
+                or not last_scan_data
+                or any([
+                    _file_was_modified_after(p, last_scan_data.finished_at)
+                    for p in files_to_check
+                ])
+            ):
+                queue_candidates.append((user_data, path, job_id_data))
+            else:
+                update_scan_counter(job_id_data)
+
+        util.logger.info(f"Queueing {len(queue_candidates)} images/videos")
+
+        # Enqueue image/video tasks
+        for user_data, path, job_id_data in queue_candidates:
+            AsyncTask(
+                handle_new_image,
+                user_data,
+                path,
+                job_id_data,
+                group=image_group_id,
+            ).run()
+
+        # If there are only metadata files (no images queued), process metadata now
+        if not queue_candidates and metadata_paths:
+            util.logger.info(
+                f"No images to process, processing {len(metadata_paths)} metadata files directly"
+            )
+            for path in metadata_paths:
+                photo_scanner(user, last_scan, full_scan, path, job_id)
+
+        # If there are images and metadata, enqueue a sentinel task that waits for the image group
+        if queue_candidates and metadata_paths:
+            util.logger.info(
+                f"Scheduling sentinel to process {len(metadata_paths)} metadata files after {len(queue_candidates)} images"
+            )
+            AsyncTask(
+                wait_for_group_and_process_metadata,
+                image_group_id,
+                metadata_paths,
+                user.id,
+                full_scan,
+                job_id,
+                len(queue_candidates),
+                attempt=1,
+                max_attempts=2,
+            ).run()
 
         util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
 
