@@ -30,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=${dbPass}
       - POSTGRES_DB=${dbName}
     volumes:
-      - ${data}/db:/var/lib/postgresql/data
+      - ${data}/db:/var/lib/postgresql
     healthcheck:
       test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
       interval: 5s
