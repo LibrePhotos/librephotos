@@ -26,9 +26,6 @@ DB_BACKEND=${DB_BACKEND:-sqlite}
 
 if [ "$DB_BACKEND" = "sqlite" ]; then
     echo "Using production-optimized SQLite database mode"
-    # Ensure database directory exists
-    mkdir -p /data/db
-    
     # Run migrations for both default and cache databases
     python manage.py migrate
     
