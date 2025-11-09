@@ -244,7 +244,7 @@ def wait_for_group_and_process_metadata(
 
     Failure handling:
     - If the group is not complete yet, it will re-enqueue itself up to `max_attempts`.
-    - After exhausting attempts, it proceeds with metadata processing anyway (best-effort). 
+    - After exhausting attempts, it proceeds with metadata processing anyway (best-effort).
     """
     from django_q.tasks import count_group
     from django.contrib.auth import get_user_model
@@ -280,6 +280,7 @@ def wait_for_group_and_process_metadata(
             expected_count,
             attempt=attempt + 1,
             max_attempts=max_attempts,
+            schedule=datetime.timedelta(seconds=5),
         ).run()
         return
 
@@ -395,7 +396,6 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             .order_by("-finished_at")
             .first()
         )
-        
         # Separate images/videos from metadata files to ensure we process media first
         # and only then attach metadata (e.g., XMP sidecars) once the matching Photo exists.
         images_and_videos = []

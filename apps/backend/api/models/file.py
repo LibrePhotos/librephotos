@@ -123,7 +123,7 @@ def is_metadata(path):
 
 
 def is_valid_media(path, user) -> bool:
-    if is_video(path=path) or is_metadata(path):
+    if is_video(path=path) or is_metadata(path=path):
         return True
     if is_raw(path=path):
         if user.skip_raw_files:

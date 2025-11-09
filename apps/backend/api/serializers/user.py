@@ -240,7 +240,7 @@ class UserSerializer(serializers.ModelSerializer):
         if "skip_raw_files" in validated_data:
             instance.skip_raw_files = validated_data.pop("skip_raw_files")
             instance.save()
-            logger.info(f"Updated skip_raw_files for user {instance.skip_raw_files}")
+            logger.info(f"Updated skip_raw_files to {instance.skip_raw_files} for user {instance.username}")
 
         return instance
 
