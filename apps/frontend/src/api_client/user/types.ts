@@ -35,6 +35,8 @@ export const User = z.object({
   save_metadata_to_disk: z.string(),
   datetime_rules: z.string(),
   default_timezone: z.string(),
+  // Skip RAW files during scans (backend field present in User model)
+  skip_raw_files: z.boolean().optional().default(false),
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
   public_sharing: z.boolean(),
@@ -59,6 +61,8 @@ export const ManageUser = z.object({
   save_metadata_to_disk: z.string(),
   scan_directory: z.string().nullish(),
   semantic_search_topk: z.number(),
+  // Allow admin to toggle per-user RAW skipping
+  skip_raw_files: z.boolean().optional(),
   username: z.string().optional(),
   email: z.string().nullable(),
   first_name: z.string().nullable(),

@@ -15,6 +15,7 @@ import {
   Loader,
   Menu,
   Modal,
+  Switch,
   Space,
   Stack,
   Text,
@@ -219,6 +220,28 @@ export function Library() {
                 </Stack>
               </Modal>
             </Title>
+
+            {/* Skip RAW files toggle (per-user) */}
+            <Grid>
+              <Grid.Col span={{ base: 12, sm: 10 }}>
+                <Stack gap={0}>
+                  <Text>{t("sitesettings.skip_raw_files")}</Text>
+                  <Text fz="sm" c="dimmed">
+                    {t("settings.skip_raw_files_note")}
+                  </Text>
+                </Stack>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, sm: 2 }}>
+                <Switch
+                  checked={!!editedUser?.skip_raw_files}
+                  onChange={() =>
+                    editedUser &&
+                    setEditedUser({ ...editedUser, skip_raw_files: !Boolean(editedUser.skip_raw_files) })
+                  }
+                />
+              </Grid.Col>
+            </Grid>
+            
             <Grid>
               <Grid.Col span={{ base: 12, sm: 10 }}>
                 <Stack gap={0}>

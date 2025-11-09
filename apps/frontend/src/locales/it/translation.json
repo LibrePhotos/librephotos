@@ -110,6 +110,7 @@
         "facedashboard": "Sinottica dei volti",
         "rescanfacestitle": "Ri-scansiona i volti",
         "rescanfaces": "Ri-scansiona",
+    "skip_raw_files_note": "Se abilitato, i nuovi file RAW vengono ignorati durante le scansioni. I RAW già presenti restano nella libreria. Per rimuoverli, abilita questa opzione, esegui una nuova scansione completa e poi usa 'Rimozione foto mancanti'.",
         "scanoptions": "Opzioni scansione",
         "confidencelevel": "Livello di Confidenza",
         "portuguesebr": "Portoghese (Brasile)",
@@ -196,7 +197,8 @@
         "allow": "Autorizza",
         "noallow": "Non autorizzare",
         "header": "Permetti la registrazione degli utenti",
-        "headerupload": "Permetti uploads"
+        "headerupload": "Permetti uploads",
+        "skip_raw_files": "Salta i file RAW"
     },
     "modalscandirectoryedit": {
         "explanation1": "Quando l'utente",
