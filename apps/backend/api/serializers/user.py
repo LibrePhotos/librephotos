@@ -38,6 +38,7 @@ class UserSerializer(serializers.ModelSerializer):
             "save_metadata_to_disk": {"required": False},
             "text_alignment": {"required": False},
             "header_size": {"required": False},
+            "skip_raw_files": {"required": False},
         }
         fields = (
             "id",
@@ -76,6 +77,7 @@ class UserSerializer(serializers.ModelSerializer):
             "confidence_unknown_face",
             "min_samples",
             "cluster_selection_epsilon",
+            "skip_raw_files",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -235,6 +237,10 @@ class UserSerializer(serializers.ModelSerializer):
         if "llm_settings" in validated_data:
             instance.llm_settings = validated_data.pop("llm_settings")
             instance.save()
+        if "skip_raw_files" in validated_data:
+            instance.skip_raw_files = validated_data.pop("skip_raw_files")
+            instance.save()
+            logger.info(f"Updated skip_raw_files to {instance.skip_raw_files} for user {instance.username}")
 
         return instance
 
