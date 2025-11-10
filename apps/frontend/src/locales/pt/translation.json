@@ -202,7 +202,8 @@
         "addlocation": "Adicionar locais às legendas",
         "llm": "Definições de modelo de linguagem grande",
         "addperson": "Adicionar pessoas às legendas",
-        "hindi": "Hindi"
+        "hindi": "Hindi",
+        "skip_raw_files_note": "Quando ativado, novos ficheiros RAW serão ignorados durante a análise. Ficheiros RAW existentes permanecerão na biblioteca, para o eliminar, ative esta opção, corra uma análise completa e de seguida use a opção \"Remover fotos em falta\"."
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -441,7 +442,8 @@
         "ram_warning_header": "Tamanho grande de RAM possível",
         "blip_warning": "Esta função necessita de 3GB de RAM adicionais para funcionar corretamente, tenha isto em conta antes de proceder.",
         "llm_model_header": "Modelo de linguagem grande",
-        "llm_model_description": "Selecione um modelo para pós-processar a legenda com um modelo de linguagem grande."
+        "llm_model_description": "Selecione um modelo para pós-processar a legenda com um modelo de linguagem grande.",
+        "skip_raw_files": "Ignorar ficheiros RAW"
     },
     "countstats": {
         "photos": "Fotos"
