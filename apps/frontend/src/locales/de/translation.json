@@ -431,7 +431,8 @@
         "llm_model_description": "Wähle ein Model für die Nachbearbeitung von Beschreibungen mit Hilfe eines Large Language Models.",
         "heavyweight_process_warning": "Bitte beachten, dass eine Anzahl schwergewichtiger Prozesse von über 3 mehr als 16GB RAM verbrauchen kann.",
         "blip_warning": "Bitte beachten, dass dieses Feature zusätzliche 3GB RAM benötigt, um zu funktionieren.",
-        "captioning_model_header": "Modell für Untertitel"
+        "captioning_model_header": "Modell für Untertitel",
+        "skip_raw_files": "RAW-Dateien überspringen"
     },
     "countstats": {
         "photos": "Fotos"
