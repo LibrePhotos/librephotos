@@ -472,6 +472,12 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 
         util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
 
+        # If no files were queued for processing (empty directory or all files already processed),
+        # mark the job as finished immediately since progress_current will equal progress_target (both 0)
+        LongRunningJob.objects.filter(
+            job_id=job_id, progress_current=F("progress_target")
+        ).update(finished=True, finished_at=timezone.now())
+
         util.logger.info("Finished updating album things")
 
         # Check for photos with missing aspect ratios but existing thumbnails
