@@ -149,7 +149,6 @@ def handle_new_image(user, path, job_id, photo=None):
         This function is used, when uploading a picture, because rescanning does not perform machine learning tasks
 
     """
-    update_scan_counter(job_id)
     try:
         start = datetime.datetime.now()
         if photo is None:
@@ -201,6 +200,8 @@ def handle_new_image(user, path, job_id, photo=None):
             )
         except Exception:
             util.logger.exception(f"job {job_id}: could not load image {path}")
+    finally:
+        update_scan_counter(job_id)
 
 
 def walk_directory(directory, callback):
@@ -237,6 +238,7 @@ def wait_for_group_and_process_metadata(
     *,
     attempt: int = 1,
     max_attempts: int = 2,
+    **kwargs  # Django-Q may pass additional arguments like 'schedule'
 ):
     """
     Sentinel task: waits until the expected number of image/video tasks in the group complete,
@@ -469,6 +471,12 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             ).run()
 
         util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
+
+        # If no files were queued for processing (empty directory or all files already processed),
+        # mark the job as finished immediately since progress_current will equal progress_target (both 0)
+        LongRunningJob.objects.filter(
+            job_id=job_id, progress_current=F("progress_target")
+        ).update(finished=True, finished_at=timezone.now())
 
         util.logger.info("Finished updating album things")
 
