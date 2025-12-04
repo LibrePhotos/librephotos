@@ -66,6 +66,58 @@
         "appearance": "Välimus",
         "thumbnailsize": "Pisipildi suurus",
         "big": "Suur",
-        "small": "Väike"
+        "small": "Väike",
+        "nextcloudupdate": "Uuenda Nextcloud kasutajanime/salasõna",
+        "colorscheme": {
+            "title": "Kasutatavad värvid",
+            "light": "Hele kujundus",
+            "dark": "Tume kujundus"
+        },
+        "library": "Pildikogu",
+        "photos": "Fotod",
+        "helptranslating": "Aita tõlkida",
+        "scanphotosdescription": "Otsi oma fotokogu jaoks uusi pilte",
+        "statusscanphotostrue": "Skaneerin fotosid",
+        "statusscanphotosfalse": "Skaneeri",
+        "scannextcloudphotos": "Skaneeri",
+        "password": {
+            "errormustmatch": "Salasõnad peavad olema identsed",
+            "errorcannotbeblank": "Salasõnad ei tohi jääda tühjaks",
+            "errormustretype": "Sa pead salasõna uuesti sisestama",
+            "titlechangepassword": "Muuda salasõna",
+            "titlesetpassword": "Sisesta salasõna",
+            "tooltipeditbutton": "Salasõna muutmiseks klõpsa"
+        },
+        "public_sharing": "Avalik jagamine",
+        "add_rule": "Lisa reegel",
+        "statusrescanphotostrue": "Skaneerin uuesti",
+        "statusrescanphotosfalse": "Skaneeri uuesti",
+        "faces": "Näod",
+        "people": "Inimesed",
+        "facesbutton": "Koolita",
+        "facessmall": "näod",
+        "labeled": "Sildistatud",
+        "unknown": "Tundmatu",
+        "rescanfaces": "Skaneeri uuesti",
+        "confidence": {
+            "high": "Kõrge",
+            "standard": "Standardne",
+            "low": "Madal",
+            "none": "Puudub"
+        },
+        "semanticsearch": {
+            "top0": "Pole kasutusel"
+        },
+        "semanticsearchupdate": "Uuenda"
+    },
+    "sidemenu": {
+        "photos": "Fotod",
+        "videos": "Videod",
+        "albums": "Albumid",
+        "people": "Inimesed",
+        "places": "Asukohad",
+        "things": "Asjad",
+        "myalbums": "Minu albumid",
+        "autoalbums": "Automaatselt koostatud albumid"
     }
 }
