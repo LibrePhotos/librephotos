@@ -4,14 +4,16 @@ import {
   Button,
   Group,
   Menu,
-  NumberInput,
   RemoveScroll,
+  Slider,
+  Stack,
   Switch,
+  Text,
   Tooltip,
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import { useViewportSize } from "@mantine/hooks";
+import { useDebouncedCallback, useViewportSize } from "@mantine/hooks";
 import { IconSettings } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -26,6 +28,7 @@ import {
   UserSelfDetailsQueryKeys,
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
+import type { User } from "../../api_client/user/types";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
 import { Lightbox } from "../lightbox/Lightbox";
@@ -139,10 +142,13 @@ function PhotoListViewComponent({
     auth.access.is_admin &&
     !userSelfDetails?.scan_directory;
 
-  // Use query data directly instead of local state
   const imageScale = userSelfDetails?.image_scale ?? 1;
   const textAlignment = (userSelfDetails?.text_alignment as "left" | "right") ?? "right";
   const headerSize = (userSelfDetails?.header_size as "large" | "normal" | "small") ?? "large";
+
+  const [localImageScale, setLocalImageScale] = useState(imageScale);
+  const [localTextAlignment, setLocalTextAlignment] = useState<"left" | "right">(textAlignment);
+  const [localHeaderSize, setLocalHeaderSize] = useState<"large" | "normal" | "small">(headerSize);
 
   const currentImageIndexRef = useRef(0);
   const navigate = useNavigate();
@@ -233,43 +239,40 @@ function PhotoListViewComponent({
     idx2hashRef.current = idx2hash;
   }, [idx2hash]);
 
-  const handleThumbnailSizeChange = (value: number | string) => {
-    // Save to server
-    if (userSelfDetails?.id) {
-      const newUserDetails = { ...userSelfDetails, image_scale: typeof value === "number" ? value : parseFloat(value) };
-      updateUser.mutate(newUserDetails, {
-        onSuccess: () => {
-          // Invalidate the user self details query to refetch the latest data
-          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-        },
-      });
-    }
+  useEffect(() => {
+    setLocalImageScale(imageScale);
+    setLocalTextAlignment(textAlignment);
+    setLocalHeaderSize(headerSize);
+  }, [imageScale, textAlignment, headerSize]);
+
+  const debouncedSavePreferences = useDebouncedCallback(
+    (partial: Partial<User>) => {
+      if (userSelfDetails?.id) {
+        const newUserDetails = { ...userSelfDetails, ...partial };
+        updateUser.mutate(newUserDetails, {
+          context: { silent: true },
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+          },
+        });
+      }
+    },
+    500
+  );
+
+  const handleThumbnailSizeChange = (value: number) => {
+    setLocalImageScale(value);
+    debouncedSavePreferences({ image_scale: value });
   };
 
   const handleTextAlignmentChange = (alignment: "left" | "right") => {
-    // Save to server
-    if (userSelfDetails?.id) {
-      const newUserDetails = { ...userSelfDetails, text_alignment: alignment };
-      updateUser.mutate(newUserDetails, {
-        onSuccess: () => {
-          // Invalidate the user self details query to refetch the latest data
-          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-        },
-      });
-    }
+    setLocalTextAlignment(alignment);
+    debouncedSavePreferences({ text_alignment: alignment });
   };
 
   const handleHeaderSizeChange = (size: "large" | "normal" | "small") => {
-    // Save to server
-    if (userSelfDetails?.id) {
-      const newUserDetails = { ...userSelfDetails, header_size: size };
-      updateUser.mutate(newUserDetails, {
-        onSuccess: () => {
-          // Invalidate the user self details query to refetch the latest data
-          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-        },
-      });
-    }
+    setLocalHeaderSize(size);
+    debouncedSavePreferences({ header_size: size });
   };
 
   const throttledUpdateGroups = useCallback(
@@ -459,16 +462,27 @@ function PhotoListViewComponent({
                   <Menu.Dropdown>
                     <Menu.Label>Photo Size</Menu.Label>
                     <Box p="xs">
-                      <NumberInput
-                        value={imageScale}
-                        onChange={handleThumbnailSizeChange}
-                        min={0.25}
-                        max={3}
-                        step={0.05}
-                        description="Lower = bigger thumbnails"
-                        allowDecimal
-                        hideControls={false}
-                      />
+                      <Stack gap={6}>
+                        <Slider
+                          mb={20}
+                          value={localImageScale}
+                          onChange={handleThumbnailSizeChange}
+                          min={0.25}
+                          max={3}
+                          step={0.05}
+                          marks={[
+                            { value: 0.5, label: "0.5" },
+                            { value: 1, label: "1" },
+                            { value: 2, label: "2" },
+                          ]}
+                        />
+                        <Text size="xs" c="dimmed">
+                          Lower = bigger thumbnails
+                        </Text>
+                        <Text size="xs" fw={500}>
+                          Current: {localImageScale.toFixed(2)}
+                        </Text>
+                      </Stack>
                     </Box>
 
                     <Menu.Divider />
@@ -477,7 +491,7 @@ function PhotoListViewComponent({
                     <Box p="xs">
                       <Switch
                         label="Left align date & location"
-                        checked={textAlignment === "left"}
+                        checked={localTextAlignment === "left"}
                         onChange={event => handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")}
                         size="sm"
                       />
@@ -490,21 +504,21 @@ function PhotoListViewComponent({
                       <Group>
                         <Button
                           size="xs"
-                          variant={headerSize === "large" ? "filled" : "outline"}
+                          variant={localHeaderSize === "large" ? "filled" : "outline"}
                           onClick={() => handleHeaderSizeChange("large")}
                         >
                           Large
                         </Button>
                         <Button
                           size="xs"
-                          variant={headerSize === "normal" ? "filled" : "outline"}
+                          variant={localHeaderSize === "normal" ? "filled" : "outline"}
                           onClick={() => handleHeaderSizeChange("normal")}
                         >
                           Normal
                         </Button>
                         <Button
                           size="xs"
-                          variant={headerSize === "small" ? "filled" : "outline"}
+                          variant={localHeaderSize === "small" ? "filled" : "outline"}
                           onClick={() => handleHeaderSizeChange("small")}
                         >
                           Small
@@ -592,7 +606,7 @@ function PhotoListViewComponent({
               selectedItems={selectionStateRef.current.selectedItems}
               handleSelection={handleSelection}
               handleClick={handleClick}
-              scaleOfImages={imageScale}
+              scaleOfImages={localImageScale}
               groupByDate={isDateView}
               getUrl={getUrl}
               toprightoverlay={FavoritedOverlay}
@@ -601,8 +615,8 @@ function PhotoListViewComponent({
               updateItems={updateItems ? throttledUpdateItems : () => {}}
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
               bgColor="inherit"
-              textAlignment={textAlignment}
-              headerSize={headerSize}
+              textAlignment={localTextAlignment}
+              headerSize={localHeaderSize}
             />
           </Box>
         </ScrollScrubber>

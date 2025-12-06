@@ -7,15 +7,14 @@ import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client
 
 
 const MAP_API_PROVIDERS = [
-  { value: "mapbox", label: "Mapbox", data: { use_api_key: true, url: "https://www.mapbox.com/" } },
-  { value: "maptiler", label: "MapTiler", data: { use_api_key: true, url: "https://www.maptiler.com/" } },
   {
     value: "nominatim",
     label: "Nominatim (OpenStreetMap)",
     data: { use_api_key: false, url: "https://nominatim.org/" },
   },
+  { value: "mapbox", label: "Mapbox", data: { use_api_key: true, url: "https://www.mapbox.com/" } },
+  { value: "maptiler", label: "MapTiler", data: { use_api_key: true, url: "https://www.maptiler.com/" } },
   { value: "opencage", label: "OpenCage", data: { use_api_key: true, url: "https://opencagedata.com/" } },
-  { value: "photon", label: "Photon", data: { use_api_key: false, url: "https://photon.komoot.io/" } },
   { value: "tomtom", label: "TomTom", data: { use_api_key: true, url: "https://www.tomtom.com/" } },
 ];
 
@@ -35,7 +34,7 @@ const LLM_MODELS = [
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
-  const [mapApiProvider, setMapApiProvider] = useState<string>("proton");
+  const [mapApiProvider, setMapApiProvider] = useState<string>("nominatim");
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
