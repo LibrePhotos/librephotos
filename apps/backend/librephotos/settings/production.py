@@ -144,7 +144,7 @@ CONSTANCE_CONFIG = {
         str,
     ),
     "MAP_API_PROVIDER": (
-        os.environ.get("MAP_API_PROVIDER", "photon"),
+        os.environ.get("MAP_API_PROVIDER", "nominatim"),
         "Map Provider",
         "map_api_provider",
     ),

@@ -39,6 +39,7 @@ from api.views import (
     albums,
     dataviz,
     faces,
+    geocode,
     jobs,
     photos,
     public_albums,
@@ -276,6 +277,7 @@ urlpatterns = [
     # Toggle album public flag
     re_path(r"^api/useralbum/makepublic", public_albums.SetUserAlbumPublic.as_view()),
     re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
+    re_path(r"^api/geocode/search", geocode.GeocodeSearchView.as_view()),
     re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view()),
     re_path(r"api/upload/", upload.UploadPhotosChunked.as_view()),
 ]

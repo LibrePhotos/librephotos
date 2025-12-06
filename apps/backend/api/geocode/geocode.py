@@ -1,3 +1,5 @@
+from typing import List
+
 import geopy
 from constance import config as site_config
 
@@ -27,6 +29,28 @@ class Geocode:
         location = self._geocoder.reverse(f"{lat},{lon}")
         return self._parser(location)
 
+    def search(self, query: str, limit: int = 5) -> List[dict]:
+        """Forward geocoding: search for locations by name/address."""
+        if (
+            "api_key" in self._provider_config
+            and self._provider_config["api_key"] is None
+        ):
+            util.logger.warning(
+                "No API key found for map provider. Please set MAP_API_KEY in the admin panel or switch map provider."
+            )
+            return []
+        locations = self._geocoder.geocode(query, exactly_one=False, limit=limit)
+        if not locations:
+            return []
+        return [
+            {
+                "display_name": loc.address,
+                "lat": loc.latitude,
+                "lon": loc.longitude,
+            }
+            for loc in locations
+        ]
+
 
 def reverse_geocode(lat: float, lon: float) -> dict:
     try:
@@ -34,3 +58,12 @@ def reverse_geocode(lat: float, lon: float) -> dict:
     except Exception as e:
         util.logger.warning(f"Error while reverse geocoding: {e}")
         return {}
+
+
+def search_location(query: str, limit: int = 5) -> List[dict]:
+    """Search for locations by name/address using the configured map provider."""
+    try:
+        return Geocode(site_config.MAP_API_PROVIDER).search(query, limit)
+    except Exception as e:
+        util.logger.warning(f"Error while searching location: {e}")
+        return []
