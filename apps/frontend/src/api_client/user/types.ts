@@ -48,6 +48,7 @@ export const User = z.object({
   llm_settings: z.any().nullable(),
   text_alignment: z.enum(['left', 'right']).default('right'),
   header_size: z.enum(['large', 'normal', 'small']).default('large'),
+  slideshow_interval: z.number().default(5),
 }); 
 
 export const ManageUser = z.object({

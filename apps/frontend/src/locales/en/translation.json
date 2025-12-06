@@ -165,6 +165,9 @@
     "on": "On",
     "off": "Off",
     "experimentalupdate": "Update",
+    "interface": "Interface",
+    "slideshowinterval": "Default Slideshow Interval",
+    "slideshowintervaldesc": "The default time to display each image before advancing in slideshow mode",
     "configdatetime": "Set date and time parsing rules",
     "password": {
       "errormustmatch": "Passwords must match",
@@ -361,7 +364,9 @@
       "fullscreen": "Fullscreen (G)",
       "exitfullscreen": "Exit Fullscreen (G)",
       "zoom": "Zoom (Z)",
-      "close": "Close (Escape)"
+      "close": "Close (Escape)",
+      "slideshow": "Slideshow (S)",
+      "stopslideshow": "Stop Slideshow (S)"
     }
   },
   "exif": {

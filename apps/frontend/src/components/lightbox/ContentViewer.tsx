@@ -3,8 +3,10 @@ import "@mantine/carousel/styles.css";
 import { Modal, Stack } from "@mantine/core";
 import { useFullscreen, useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
-import React, { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { ImagePreloader } from "./ImagePreloader";
 import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { LightboxControls } from "./LightboxControls";
@@ -31,16 +33,74 @@ export function ContentViewer({
   const [embla, setEmbla] = useState<any | null>(null);
   const [playing, setPlaying] = useState(true);
 
+  // Slideshow state
+  const [isSlideshowActive, setIsSlideshowActive] = useState(false);
+  const [localSlideshowInterval, setLocalSlideshowInterval] = useState<number | null>(null);
+  const [slideshowProgress, setSlideshowProgress] = useState(0);
+
   // Fullscreen support
   const contentRef = useRef<HTMLDivElement>(null);
   const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen(contentRef);
+
+  // Fetch user settings for default slideshow interval
+  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
+  const defaultSlideshowInterval = userSelfDetails?.slideshow_interval ?? 5;
+  const slideshowInterval = localSlideshowInterval ?? defaultSlideshowInterval;
 
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrc);
 
   // Reset playing state when slide changes
   useEffect(() => {
     setPlaying(true);
+    setSlideshowProgress(0);
   }, [mainSrc]);
+
+  // Slideshow timer and progress for images
+  useEffect(() => {
+    if (!isSlideshowActive || type === "video" || type === "embedded") {
+      setSlideshowProgress(0);
+      return;
+    }
+
+    // Progress update interval (update every 50ms for smooth animation)
+    const progressInterval = 50;
+    const totalDuration = slideshowInterval * 1000;
+    let elapsed = 0;
+
+    const progressTimer = setInterval(() => {
+      elapsed += progressInterval;
+      const progress = Math.min((elapsed / totalDuration) * 100, 100);
+      setSlideshowProgress(progress);
+
+      if (elapsed >= totalDuration) {
+        clearInterval(progressTimer);
+        if (nextSrc) {
+          onMoveNextRequest();
+        } else {
+          // Stop slideshow if no more images
+          setIsSlideshowActive(false);
+        }
+      }
+    }, progressInterval);
+
+    // eslint-disable-next-line consistent-return
+    return () => clearInterval(progressTimer);
+  }, [isSlideshowActive, type, mainSrc, slideshowInterval, nextSrc, onMoveNextRequest]);
+
+  // Handle video ended - advance to next if slideshow is active
+  const handleVideoEnded = useCallback(() => {
+    if (isSlideshowActive && nextSrc) {
+      onMoveNextRequest();
+    } else if (isSlideshowActive && !nextSrc) {
+      // Stop slideshow if no more items
+      setIsSlideshowActive(false);
+    }
+  }, [isSlideshowActive, nextSrc, onMoveNextRequest]);
+
+  // Toggle slideshow function
+  const toggleSlideshow = useCallback(() => {
+    setIsSlideshowActive(prev => !prev);
+  }, []);
 
   // Setup slide change handler for Embla
   useEffect(() => {
@@ -126,6 +186,7 @@ export function ContentViewer({
       },
     ],
     ["g", toggleFullscreen], // Toggle fullscreen mode
+    ["s", toggleSlideshow], // Toggle slideshow mode
   ]);
 
   const bind = useGesture({
@@ -203,6 +264,11 @@ export function ContentViewer({
               setPlaying={setPlaying}
               isFullscreen={isFullscreen}
               toggleFullscreen={toggleFullscreen}
+              isSlideshowActive={isSlideshowActive}
+              toggleSlideshow={toggleSlideshow}
+              slideshowInterval={slideshowInterval}
+              setSlideshowInterval={setLocalSlideshowInterval}
+              slideshowProgress={slideshowProgress}
             />
 
             {/* Main photo/video with swipe navigation */}
@@ -243,19 +309,37 @@ export function ContentViewer({
 
                 {/* Current slide */}
                 <Carousel.Slide>
-                  <MediaDisplay
-                    id={mainSrc}
-                    isMainContent
-                    type={type}
-                    bind={bind}
-                    faceLocation={faceLocation}
-                    toggleZoom={toggleZoom}
-                    scale={scale}
-                    offset={offset}
-                    handleDragStart={handleDragStart}
-                    playing={playing}
-                    {...(photoDetails ? { photoDetails } : {})}
-                  />
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={mainSrc}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.05 }}
+                      transition={{
+                        duration: 0.4,
+                        ease: [0.4, 0, 0.2, 1],
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                      }}
+                    >
+                      <MediaDisplay
+                        id={mainSrc}
+                        isMainContent
+                        type={type}
+                        bind={bind}
+                        faceLocation={faceLocation}
+                        toggleZoom={toggleZoom}
+                        scale={scale}
+                        offset={offset}
+                        handleDragStart={handleDragStart}
+                        playing={playing}
+                        onEnded={handleVideoEnded}
+                        {...(photoDetails ? { photoDetails } : {})}
+                      />
+                    </motion.div>
+                  </AnimatePresence>
                 </Carousel.Slide>
 
                 {/* Next slide */}

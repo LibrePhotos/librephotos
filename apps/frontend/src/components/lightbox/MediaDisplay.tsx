@@ -19,6 +19,7 @@ export type MediaDisplayProps = {
   fullHeight?: boolean;
   playing?: boolean;
   photoDetails?: any | null; // Allow null values from the API
+  onEnded?: () => void;
 };
 
 
@@ -35,6 +36,7 @@ export function MediaDisplay({
   fullHeight = false,
   playing = false,
   photoDetails,
+  onEnded,
 }: MediaDisplayProps) {
   // Hooks must be called unconditionally at the top of the component
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -82,6 +84,7 @@ export function MediaDisplay({
           overflow: "hidden",
         }}
         onError={() => setVideoError(true)}
+        onEnded={isMainContent ? onEnded : undefined}
       />
     );
   }
@@ -100,6 +103,7 @@ export function MediaDisplay({
           borderRadius: "8px",
           overflow: "hidden",
         }}
+        onEnded={isMainContent ? onEnded : undefined}
       />
     );
   }

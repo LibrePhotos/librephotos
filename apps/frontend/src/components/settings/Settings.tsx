@@ -331,6 +331,31 @@ export function Settings() {
             />
           </Stack>
         </Card>
+        <Card shadow="md">
+          <Title order={4} mb={16}>
+            <Trans i18nKey="settings.interface">Interface</Trans>
+          </Title>
+          <Flex align="flex-start" direction="column" gap="md">
+            <Select
+              label={t("settings.slideshowinterval")}
+              description={t("settings.slideshowintervaldesc")}
+              value={(editedUserDetails.slideshow_interval ?? 5).toString()}
+              onChange={value => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  slideshow_interval: parseInt(value || "5", 10),
+                });
+              }}
+              data={[
+                { value: "3", label: "3 seconds" },
+                { value: "5", label: "5 seconds" },
+                { value: "10", label: "10 seconds" },
+                { value: "15", label: "15 seconds" },
+                { value: "30", label: "30 seconds" },
+              ]}
+            />
+          </Flex>
+        </Card>
         <Space h="xl" />
       </Stack>
       <Dialog

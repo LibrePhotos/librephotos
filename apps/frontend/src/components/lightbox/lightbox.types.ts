@@ -47,6 +47,7 @@ export type MediaDisplayProps = {
   handleDragStart: (event: React.DragEvent) => void;
   fullHeight?: boolean;
   playing?: boolean;
+  onEnded?: () => void;
 };
 
 export type LightboxControlsProps = {
@@ -64,6 +65,11 @@ export type LightboxControlsProps = {
   setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   isFullscreen: boolean;
   toggleFullscreen: () => void;
+  isSlideshowActive: boolean;
+  toggleSlideshow: () => void;
+  slideshowInterval: number;
+  setSlideshowInterval: (interval: number) => void;
+  slideshowProgress: number; // 0-100 percentage for progress ring
 };
 
 export type ThumbnailNavigationProps = {
