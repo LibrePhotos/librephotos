@@ -13,29 +13,32 @@ import {
   Title,
 } from "@mantine/core";
 import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
 import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
 import Dropzone from "react-dropzone";
 import { Trans, useTranslation } from "react-i18next";
-
-import { useQueryClient } from "@tanstack/react-query"; 
 import { serverAddress } from "../../api_client/apiClient";
-import { useUpdateAvatarMutation, useUpdateUserMutation, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
-import { PasswordEntry } from "./PasswordEntry";
 import { useAccessToken } from "../../api_client/auth/hooks";
-import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";  
+import {
+  useFetchUserSelfDetailsQuery,
+  useUpdateAvatarMutation,
+  useUpdateUserMutation,
+} from "../../api_client/user/hooks";
+import { UserSelfDetailsQueryKeys } from "../../api_client/user/hooks/useFetchUserSelfDetailsQuery";
+import { PasswordEntry } from "./PasswordEntry";
 
 export function Profile() {
   const [isOpenUpdateDialog, setIsOpenUpdateDialog] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const { data: auth } = useAccessToken();
-  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? '');
+  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? "");
   const [editedUserDetails, setEditedUserDetails] = useState(userSelfDetails);
   const { t, i18n } = useTranslation();
   const updateAvatar = useUpdateAvatarMutation();
-  const updateUser = useUpdateUserMutation(); 
+  const updateUser = useUpdateUserMutation();
   let editorRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -54,7 +57,7 @@ export function Profile() {
 
   const onPasswordValidate = (pass: string, valid: boolean) => {
     if (!editedUserDetails) return;
-    
+
     const newUserDetails = { ...editedUserDetails };
     if (pass && valid) {
       newUserDetails.password = pass;
@@ -246,12 +249,24 @@ export function Profile() {
                   label: t("settings.english"),
                 },
                 {
+                  value: "ca",
+                  label: t("settings.catalan"),
+                },
+                {
                   value: "de",
                   label: t("settings.german"),
                 },
                 {
                   value: "es",
                   label: t("settings.spanish"),
+                },
+                {
+                  value: "eo",
+                  label: t("settings.esperanto"),
+                },
+                {
+                  value: "et",
+                  label: t("settings.estonian"),
                 },
                 {
                   value: "fr",
@@ -334,6 +349,10 @@ export function Profile() {
                   label: t("settings.portuguesebr"),
                 },
                 {
+                  value: "ro",
+                  label: t("settings.romanian"),
+                },
+                {
                   value: "sk",
                   label: t("settings.slovak"),
                 },
@@ -344,6 +363,14 @@ export function Profile() {
                 {
                   value: "hi",
                   label: t("settings.hindi"),
+                },
+                {
+                  value: "ta",
+                  label: t("settings.tamil"),
+                },
+                {
+                  value: "tr",
+                  label: t("settings.turkish"),
                 },
               ]}
             />
