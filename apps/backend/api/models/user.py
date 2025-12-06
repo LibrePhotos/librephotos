@@ -92,6 +92,7 @@ class User(AbstractUser):
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
     skip_raw_files = models.BooleanField(default=False)
+    slideshow_interval = models.IntegerField(default=5)
 
 
 def get_admin_user():

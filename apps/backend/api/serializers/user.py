@@ -39,6 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
             "text_alignment": {"required": False},
             "header_size": {"required": False},
             "skip_raw_files": {"required": False},
+            "slideshow_interval": {"required": False},
         }
         fields = (
             "id",
@@ -78,6 +79,7 @@ class UserSerializer(serializers.ModelSerializer):
             "min_samples",
             "cluster_selection_epsilon",
             "skip_raw_files",
+            "slideshow_interval",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -241,6 +243,10 @@ class UserSerializer(serializers.ModelSerializer):
             instance.skip_raw_files = validated_data.pop("skip_raw_files")
             instance.save()
             logger.info(f"Updated skip_raw_files to {instance.skip_raw_files} for user {instance.username}")
+        if "slideshow_interval" in validated_data:
+            instance.slideshow_interval = validated_data.pop("slideshow_interval")
+            instance.save()
+            logger.info(f"Updated slideshow_interval to {instance.slideshow_interval} for user {instance.username}")
 
         return instance
 
