@@ -59,7 +59,8 @@ These are settings that apply to the whole instance.
 - `Allow user registration` will enable a sign up button on the login page.
 - `Allow uploads` sets if uploading should be possible or not
 - `Skip patterns` Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)
-- `Mapbox API Key` Do you want to see on a map where all your photos where taken (if a location is stored in your photos). Get a Map box API Key https://account.mapbox.com/auth/signup/
+- `Map API Provider` Select which geocoding service to use for converting GPS coordinates to place names. Options include Nominatim (free, no key required), Mapbox, MapTiler, OpenCage, and TomTom.
+- `Map API Key` Required only if using a commercial geocoding provider (Mapbox, MapTiler, OpenCage, or TomTom). Not needed for Nominatim.
 
 ## Users
 

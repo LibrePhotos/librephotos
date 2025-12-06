@@ -88,4 +88,12 @@ sudo docker run -d \
   reallibrephotos/librephotos-unified:latest
 ```
 
-**Next:** [First Steps](../user-guide/first-steps.md) to configure photo scanning and features. 
+## Next Steps
+
+Once LibrePhotos is running, you'll be guided through a **First Time Setup Wizard** that will help you:
+
+1. Create your admin account
+2. Configure site settings (uploads, user registration)
+3. Set up your photo scan directory
+
+For more details, see the [first steps guide](../user-guide/first-steps.md). 

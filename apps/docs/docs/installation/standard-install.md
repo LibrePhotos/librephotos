@@ -40,7 +40,13 @@ You should have LibrePhotos accessible after a few minutes of boot-up on [localh
 
 ## Next Steps
 
-Next, take a look at the [first steps after setup](../user-guide/first-steps.md).
+Once LibrePhotos is running, you'll be guided through a **First Time Setup Wizard** that will help you:
+
+1. Create your admin account
+2. Configure site settings (uploads, user registration)
+3. Set up your photo scan directory
+
+For more details, see the [first steps guide](../user-guide/first-steps.md).
 
 ### Updating
 
