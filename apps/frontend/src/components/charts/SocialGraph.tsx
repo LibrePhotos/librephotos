@@ -1,3 +1,4 @@
+import { IconShare } from "@tabler/icons-react";
 import { Group, Loader, Text, useComputedColorScheme } from "@mantine/core";
 import React from "react";
 import useDimensions from "react-cool-dimensions";
@@ -5,6 +6,7 @@ import { Graph } from "react-d3-graph";
 import { useTranslation } from "react-i18next";
 
 import { useFetchSocialGraphQuery } from "../../api_client/stats/hooks";
+import { EmptyState } from "../common/EmptyState";
 
 type Props = Readonly<{
   height: number;
@@ -48,7 +50,15 @@ export function SocialGraph({ height }: Props) {
       </Group>
     );
   } else {
-    graph = <Text>{t("nosocialgraph")}</Text>;
+    graph = (
+      <EmptyState
+        icon={<IconShare size={40} />}
+        title={t("emptystate.socialgraph.title")}
+        description={t("emptystate.socialgraph.description")}
+        actionLabel={t("emptystate.goToFaces")}
+        actionLink="/faces"
+      />
+    );
   }
   return <div ref={observeChange}>{graph}</div>;
 }

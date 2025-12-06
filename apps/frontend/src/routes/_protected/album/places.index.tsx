@@ -11,6 +11,7 @@ import { AutoSizer, Grid } from "react-virtualized";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import { serverAddress } from "../../../api_client/apiClient";
+import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
@@ -115,6 +116,7 @@ function AlbumPlace({ height }: Props) {
   }
 
   const markers = createMarkers();
+  const hasPlaces = albums && albums.length > 0;
 
   return (
     <div>
@@ -126,38 +128,50 @@ function AlbumPlace({ height }: Props) {
           number: visibleAlbums.length,
         })}
       />
-      <div style={{ marginLeft: -5 }}>
-        <Map
-          ref={mapRef}
-          className="markercluster-map"
-          style={{
-            height: 240,
-          }}
-          onViewportChanged={onViewportChanged}
-          center={[40, 0]}
-          zoom={2}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <MarkerClusterGroup>{markers}</MarkerClusterGroup>
-        </Map>
-      </div>
-      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width: gridWidth }) => (
-          <Grid
-            style={{ outline: "none" }}
-            cellRenderer={props => renderCell(props)}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            height={gridHeight}
-            width={gridWidth}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
-          />
-        )}
-      </AutoSizer>
+      {!isFetchingAlbums && !hasPlaces ? (
+        <EmptyState
+          icon={<Map2 size={40} />}
+          title={t("emptystate.places.title")}
+          description={t("emptystate.places.description")}
+          actionLabel={t("emptystate.goToLibrary")}
+          actionLink="/library"
+        />
+      ) : (
+        <>
+          <div style={{ marginLeft: -5 }}>
+            <Map
+              ref={mapRef}
+              className="markercluster-map"
+              style={{
+                height: 240,
+              }}
+              onViewportChanged={onViewportChanged}
+              center={[40, 0]}
+              zoom={2}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <MarkerClusterGroup>{markers}</MarkerClusterGroup>
+            </Map>
+          </div>
+          <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
+            {({ width: gridWidth }) => (
+              <Grid
+                style={{ outline: "none" }}
+                cellRenderer={props => renderCell(props)}
+                columnWidth={entrySquareSize}
+                columnCount={entriesPerRow}
+                height={gridHeight}
+                width={gridWidth}
+                rowHeight={entrySquareSize + 60}
+                rowCount={numberOfRows}
+              />
+            )}
+          </AutoSizer>
+        </>
+      )}
     </div>
   );
 }

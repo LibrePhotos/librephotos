@@ -19,6 +19,7 @@ import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
+import { useAccessToken } from "../../api_client/auth/hooks";
 import { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
 import {
   useCurrentUserSelfDetailsQuery,
@@ -36,6 +37,7 @@ import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
+import { EmptyState } from "../common/EmptyState";
 import { DefaultHeader } from "./DefaultHeader";
 import { FavoritedOverlay } from "./FavoritedOverlay";
 import { SelectionActions } from "./SelectionActions";
@@ -49,6 +51,19 @@ export type PhotoGroup = {
   id: string;
   page: number;
   items?: PigPhoto[];
+};
+
+export type EmptyStateConfig = {
+  icon?: React.ReactNode;
+  title: string;
+  description: string;
+  actionLabel?: string;
+  actionLink?: string;
+  onAction?: () => void;
+  progress?: {
+    current: number;
+    target: number;
+  };
 };
 
 type Props = Readonly<{
@@ -68,6 +83,7 @@ type Props = Readonly<{
   additionalSubHeader?: any;
   albumID?: string;
   ownerUsername?: string;
+  emptyStateConfig?: EmptyStateConfig;
 }>;
 
 type SelectionState = {
@@ -92,6 +108,7 @@ function PhotoListViewComponent({
   additionalSubHeader = null,
   albumID,
   ownerUsername,
+  emptyStateConfig,
 }: Props) {
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle>(null);
@@ -108,9 +125,19 @@ function PhotoListViewComponent({
   const queryClient = useQueryClient();
   const location = useLocation();
   const { data: userSelfDetails, isLoading: userDetailsLoading } = useCurrentUserSelfDetailsQuery();
+  const { data: auth } = useAccessToken();
 
   // Combined loading state - wait for both parent loading and user details
   const isLoading = loading || userDetailsLoading;
+
+  // Check if we're in first-time setup mode (DefaultHeader shows setup dialog)
+  // Don't show EmptyState in this case to avoid duplicate messages
+  const isFirstTimeSetup =
+    !isLoading &&
+    auth?.access &&
+    location.pathname === "/" &&
+    auth.access.is_admin &&
+    !userSelfDetails?.scan_directory;
 
   // Use query data directly instead of local state
   const imageScale = userSelfDetails?.image_scale ?? 1;
@@ -401,6 +428,7 @@ function PhotoListViewComponent({
               dayHeaderPrefix={dayHeaderPrefix}
               date={date}
               additionalSubHeader={additionalSubHeader}
+              hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
             />
             {!isLoading && !isPublic && getNumPhotos() > 0 && (
               <Box
@@ -578,6 +606,16 @@ function PhotoListViewComponent({
             />
           </Box>
         </ScrollScrubber>
+      ) : !isLoading && emptyStateConfig && !isFirstTimeSetup ? (
+        <EmptyState
+          icon={emptyStateConfig.icon}
+          title={emptyStateConfig.title}
+          description={emptyStateConfig.description}
+          actionLabel={emptyStateConfig.actionLabel}
+          actionLink={emptyStateConfig.actionLink}
+          onAction={emptyStateConfig.onAction}
+          progress={emptyStateConfig.progress}
+        />
       ) : (
         <div />
       )}

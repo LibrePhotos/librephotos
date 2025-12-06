@@ -1,10 +1,10 @@
 import { IconStar as Star } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
-import { PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/favorites")();
@@ -37,6 +37,15 @@ export function FavoritePhotos() {
     });
   };
 
+  const emptyStateConfig: EmptyStateConfig = useMemo(
+    () => ({
+      icon: <Star size={40} />,
+      title: t("emptystate.favorites.title"),
+      description: t("emptystate.favorites.description"),
+    }),
+    [t]
+  );
+
   return (
     <PhotoListView
       title={t("photos.favorite")}
@@ -46,6 +55,7 @@ export function FavoritePhotos() {
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
+      emptyStateConfig={emptyStateConfig}
     />
   );
 }

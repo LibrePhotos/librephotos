@@ -1,3 +1,4 @@
+import { IconMoodSmile } from "@tabler/icons-react";
 import { Image, Loader, Stack, Text, Title } from "@mantine/core";
 import React, { useState } from "react";
 import useDimensions from "react-cool-dimensions";
@@ -6,6 +7,7 @@ import { Hint, HorizontalGridLines, MarkSeries, VerticalGridLines, XYPlot } from
 
 import { serverAddress } from "../../api_client/apiClient";
 import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
+import { EmptyState } from "../common/EmptyState";
 
 type Props = Readonly<{
   height: number;
@@ -22,6 +24,7 @@ export function FaceClusterGraph({ height }: Props) {
   const { data: facesVis, isFetching: clustering, isSuccess: clustered } = useClusterFacesQuery();
 
   const personNames = facesVis?.data ? [...new Set(facesVis.data.map((el: any) => el.person_name))] : [];
+  const hasData = personNames.length > 0;
 
   const mappedScatter = personNames.map(name => {
     const thisPersonVis = facesVis?.data?.filter((el: any) => name === el.person_name) ?? [];
@@ -47,7 +50,16 @@ export function FaceClusterGraph({ height }: Props) {
     );
     // @ts-ignore
   }, this);
-  if (clustered) {
+
+  if (clustering) {
+    return (
+      <Stack>
+        <Loader />
+      </Stack>
+    );
+  }
+
+  if (clustered && hasData) {
     return (
       <Stack ref={observeChange}>
         <div>
@@ -70,20 +82,20 @@ export function FaceClusterGraph({ height }: Props) {
       </Stack>
     );
   }
-  if (clustering) {
-    return (
-      <Stack>
-        <Loader />
-      </Stack>
-    );
-  }
+
   return (
-    <Stack>
+    <Stack ref={observeChange}>
       <div>
         <Title order={3}>{t("facecluster")}</Title>
         <Text c="dimmed">{t("faceclusterexplanation")}</Text>
       </div>
-      <Text>{t("nofaces")}</Text>
+      <EmptyState
+        icon={<IconMoodSmile size={40} />}
+        title={t("emptystate.faces.title")}
+        description={t("emptystate.faces.description")}
+        actionLabel={t("emptystate.goToLibrary")}
+        actionLink="/library"
+      />
     </Stack>
   );
 }

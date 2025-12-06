@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Cookies } from 'react-cookie';
-import { z} from "zod";
-import { useNavigate } from '@tanstack/react-router'; 
+import { z } from "zod";
+import { useNavigate } from '@tanstack/react-router';
 import { fetchClient } from '../../api';
 
 export const LoginPost = z.object({
@@ -28,15 +28,22 @@ const login =  (credentials: LoginPost) =>
       return data;
     })
 
-export const useLoginMutation = () => {
+type UseLoginOptions = {
+  navigateOnSuccess?: boolean;
+};
+
+export const useLoginMutation = (options?: UseLoginOptions) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const navigateOnSuccess = options?.navigateOnSuccess ?? true;
 
   return useMutation({
     mutationFn: login,
     onSuccess: () => {
       queryClient.invalidateQueries();
-      navigate({to: "/"});
+      if (navigateOnSuccess) {
+        navigate({ to: "/" });
+      }
     },
   });
 }; 

@@ -1,18 +1,16 @@
-import { Box, Button, Grid, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title, Tree } from "@mantine/core";
+import { Box, Button, Modal, ScrollArea, SimpleGrid, Space, Text, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconUser, IconMail as Mail } from "@tabler/icons-react";
 import type { FormEvent } from "react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../../api_client/auth";
-import { useFetchDirsQuery } from "../../api_client/folders/hooks";
-import type { DirTree } from "../../api_client/folders/types";
 import { useScanPhotosMutation } from "../../api_client/jobs";
 import { User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
-import { EMAIL_REGEX, mergeDirTree } from "../../util/util";
+import { EMAIL_REGEX } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
-import { Leaf } from "./Leaf";
+import { DirectoryPicker } from "../setup/DirectoryPicker";
 
 type Props = Readonly<{
   isOpen: boolean;
@@ -25,36 +23,17 @@ type Props = Readonly<{
   firstTimeSetup?: boolean;
 }>;
 
-const findPath = (tree: DirTree[], path: string): boolean => {
-  let result = false;
-  tree.forEach(folder => {
-    if (path === folder.absolute_path) {
-      result = result || true;
-    }
-    if (path.startsWith(folder.absolute_path)) {
-      const resultChildren = findPath(folder.children, path);
-      result = result || resultChildren;
-    }
-    return result || false;
-  });
-  return result;
-};
-
 export function ModalUserEdit(props: Props) {
   const { isOpen, updateAndScan, onRequestClose: closeModal, userList, createNew, firstTimeSetup, userToEdit } = props;
-  const [treeData, setTreeData] = useState<DirTree[]>([]);
   const [userPassword, setUserPassword] = useState("");
   const [newPasswordIsValid, setNewPasswordIsValid] = useState(true);
-
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [path, setPath] = useState("");
   const { t } = useTranslation();
   const [closing, setClosing] = useState(false);
   const { mutate: signup } = useSignUpMutation();
   const { mutate: updateUser } = useManageUpdateUserMutation();
-  const { data: directoryTree } = useFetchDirsQuery(path);
   const scanPhotos = useScanPhotosMutation();
+  const [isPathValid, setIsPathValid] = useState(true);
 
   const validateUsername = (username: string) => {
     if (!username) {
@@ -82,10 +61,8 @@ export function ModalUserEdit(props: Props) {
     if (firstTimeSetup && !scanDirectory) {
       return t("modalscandirectoryedit.mustspecifypath");
     }
-    if (scanDirectory) {
-      if (!findPath(treeData, scanDirectory)) {
-        return t("modalscandirectoryedit.pathdoesnotexist");
-      }
+    if (scanDirectory && !isPathValid) {
+      return t("modalscandirectoryedit.pathdoesnotexist");
     }
     return null;
   };
@@ -105,18 +82,6 @@ export function ModalUserEdit(props: Props) {
       scan_directory: value => validatePath(value),
     },
   });
-
-  useEffect(() => {
-    if (!directoryTree) {
-      return;
-    }
-    if (treeData.length === 0) {
-      setTreeData(directoryTree);
-    } else {
-      const tree = mergeDirTree(treeData, directoryTree[0]);
-      setTreeData([...tree]);
-    }
-  }, [directoryTree]);
 
   useEffect(() => {
     if (userToEdit) {
@@ -143,23 +108,6 @@ export function ModalUserEdit(props: Props) {
       setScanDirectoryPlaceholder(form.values.scan_directory);
     }
   }, [form.values.scan_directory]);
-
-  // Convert DirTree data to the format expected by Mantine Tree
-  const convertToMantineTreeData = (data: DirTree[]) =>
-    data.map(item => ({
-      value: item.absolute_path,
-      label: item.title,
-      children: item.children.length > 0 ? convertToMantineTreeData(item.children) : undefined,
-    }));
-
-  const nodeClicked = (node: { value: string }) => {
-    if (inputRef.current) {
-      const scanDirectory = node.value;
-      inputRef.current.value = scanDirectory;
-      setPath(scanDirectory);
-      form.setFieldValue("scan_directory", scanDirectory);
-    }
-  };
 
   const validateAndClose = () => {
     setClosing(true);
@@ -285,31 +233,20 @@ export function ModalUserEdit(props: Props) {
               {form.values.username ? form.values.username : "\u2026"}&quot; {t("modalscandirectoryedit.explanation2")}
             </Text>
             <Space h="md" />
-            <Grid grow>
-              <Grid.Col span={9}>
-                <TextInput
-                  label={
-                    <Text fw="bold" span>
-                      {t("modalscandirectoryedit.currentdirectory")}
-                    </Text>
-                  }
-                  ref={inputRef}
-                  required={firstTimeSetup}
-                  placeholder={scanDirectoryPlaceholder}
-                  name="scan_directory"
-                  {...form.getInputProps("scan_directory")}
-                />
-              </Grid.Col>
-            </Grid>
-            <Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>
-            <div style={{ height: "150px", overflow: "auto" }}>
-              <Tree
-                data={convertToMantineTreeData(treeData)}
-                selectOnClick
-                clearSelectionOnOutsideClick
-                renderNode={payload => <Leaf {...payload} nodeClicked={nodeClicked} />}
-              />
-            </div>
+            <DirectoryPicker
+              value={form.values.scan_directory}
+              onChange={next => form.setFieldValue("scan_directory", next)}
+              onValidityChange={setIsPathValid}
+              required={firstTimeSetup}
+              placeholder={scanDirectoryPlaceholder}
+              label={
+                <Text fw="bold" span>
+                  {t("modalscandirectoryedit.currentdirectory")}
+                </Text>
+              }
+              description={<Title order={6}>{t("modalscandirectoryedit.explanation3")}</Title>}
+              missingPathError={t("modalscandirectoryedit.pathdoesnotexist")}
+            />
           </>
         )}
         <div style={{ display: "flex", justifyContent: "flex-end" }}>

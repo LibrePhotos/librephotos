@@ -1,3 +1,4 @@
+import { IconMapPin } from "@tabler/icons-react";
 import { Loader, Stack, Text, Title } from "@mantine/core";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
@@ -7,6 +8,7 @@ import { Hint, HorizontalBarSeries, XAxis, XYPlot } from "react-vis";
 
 import { useLocationTimelineQuery } from "../../api_client/stats/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
+import { EmptyState } from "../common/EmptyState";
 
 type HintProps = {
   y: number;
@@ -25,7 +27,7 @@ export function LocationDurationStackedBar() {
     useBorderBoxSize: true, // Tell the hook to measure based on the border-box size, default is false
     polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers
   });
-  const { data: locationTimeline = [], isSuccess: fetchedLocationTimeline } = useLocationTimelineQuery();
+  const { data: locationTimeline = [], isSuccess: fetchedLocationTimeline, isLoading } = useLocationTimelineQuery();
   const [hintValue, setHintValue] = useState<HintProps>({} as HintProps);
   const { t } = useTranslation();
 
@@ -47,9 +49,17 @@ export function LocationDurationStackedBar() {
   return (
     <Stack ref={observe}>
       <Title order={3}>{t("locationtimeline")}</Title>
-      {!fetchedLocationTimeline && <Loader />}
-      {locationTimeline.length === 0 && fetchedLocationTimeline && <Text c="dimmed">{t("nodata")}</Text>}
-      {fetchedLocationTimeline && (
+      {isLoading && <Loader />}
+      {locationTimeline.length === 0 && fetchedLocationTimeline && !isLoading && (
+        <EmptyState
+          icon={<IconMapPin size={40} />}
+          title={t("emptystate.places.title")}
+          description={t("emptystate.places.description")}
+          actionLabel={t("emptystate.goToLibrary")}
+          actionLink="/library"
+        />
+      )}
+      {fetchedLocationTimeline && locationTimeline.length > 0 && (
         <div>
           <XYPlot width={width - 30} height={300} stackBy="x">
             <XAxis

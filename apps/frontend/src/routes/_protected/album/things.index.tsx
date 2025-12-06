@@ -5,6 +5,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
 import { useFetchThingsAlbumsQuery } from "../../../api_client/albums/hooks";
+import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
@@ -15,6 +16,7 @@ export function AlbumThing() {
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchThingsAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
+  const hasAlbums = albums && albums.length > 0;
 
   function renderCell({ columnIndex, key, rowIndex, style }) {
     if (!albums || albums.length === 0) {
@@ -61,21 +63,31 @@ export function AlbumThing() {
           number: (albums && albums.length) || 0,
         })}
       />
-      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width: containerWidth }) => (
-          <Grid
-            style={{ outline: "none" }}
-            disableHeader={false}
-            cellRenderer={props => renderCell(props)}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            height={gridHeight}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
-            width={containerWidth}
-          />
-        )}
-      </AutoSizer>
+      {!isFetching && !hasAlbums ? (
+        <EmptyState
+          icon={<Tags size={40} />}
+          title={t("emptystate.things.title")}
+          description={t("emptystate.things.description")}
+          actionLabel={t("emptystate.goToLibrary")}
+          actionLink="/library"
+        />
+      ) : (
+        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
+          {({ width: containerWidth }) => (
+            <Grid
+              style={{ outline: "none" }}
+              disableHeader={false}
+              cellRenderer={props => renderCell(props)}
+              columnWidth={entrySquareSize}
+              columnCount={entriesPerRow}
+              height={gridHeight}
+              rowHeight={entrySquareSize + 60}
+              rowCount={numberOfRows}
+              width={containerWidth}
+            />
+          )}
+        </AutoSizer>
+      )}
     </div>
   );
 }

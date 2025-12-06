@@ -1,10 +1,10 @@
 import { IconTrash as Trash } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
-import { PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/deleted")();
@@ -37,6 +37,15 @@ export function DeletedPhotos() {
     });
   };
 
+  const emptyStateConfig: EmptyStateConfig = useMemo(
+    () => ({
+      icon: <Trash size={40} />,
+      title: t("emptystate.deleted.title"),
+      description: t("emptystate.deleted.description"),
+    }),
+    [t]
+  );
+
   return (
     <PhotoListView
       title={t("photos.deleted")}
@@ -46,6 +55,7 @@ export function DeletedPhotos() {
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
+      emptyStateConfig={emptyStateConfig}
     />
   );
 }

@@ -1,10 +1,10 @@
-import { IconPhoto as Photo } from "@tabler/icons-react";
+import { IconCalendarOff as CalendarOff } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPhotosWithoutTimestampQuery } from "../../api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery";
 import { PigPhoto } from "../../api_client/photos/types";
-import { PhotoListView } from "../../components/photolist/PhotoListView";
+import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 import { addTempElementsToFlatList } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/notimestamp")();
@@ -49,16 +49,26 @@ export function NoTimestampPhotosView() {
     }
   };
 
+  const emptyStateConfig: EmptyStateConfig = useMemo(
+    () => ({
+      icon: <CalendarOff size={40} />,
+      title: t("emptystate.notimestamp.title"),
+      description: t("emptystate.notimestamp.description"),
+    }),
+    [t]
+  );
+
   return (
     <PhotoListView
       title={t("photos.notimestamp")}
       loading={status === "pending"}
-      icon={<Photo size={50} />}
+      icon={<CalendarOff size={50} />}
       photoset={photosFlat}
       idx2hash={photosFlat}
       numberOfItems={photosFlat?.length}
       updateItems={getImages}
       selectable
+      emptyStateConfig={emptyStateConfig}
     />
   );
 }

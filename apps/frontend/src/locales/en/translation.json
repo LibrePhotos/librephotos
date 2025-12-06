@@ -289,8 +289,9 @@
     "select": "Select all"
   },
   "defaultheader": {
-    "setup": "To begin using LibrePhotos, edit your user's scan directory.",
-    "gettingstarted": "Edit User",
+    "welcome": "Welcome to LibrePhotos",
+    "setup": "Set up your scan directory to start organizing your photo library.",
+    "gettingstarted": "Set Up Library",
     "loading": "Loading...",
     "noimages": "No images found",
     "days": "days",
@@ -384,7 +385,8 @@
     "errorusernameexists": "A user with that username already exists.",
     "erroremail": "Enter a valid email address.",
     "tagline": "A comfy place for your photos.",
-    "firsttimesetup": "First time setup"
+    "firsttimesetup": "First time setup",
+    "setupdatadirectory": "Choose your scan directory"
   },
   "search": {
     "search": "Search",
@@ -705,5 +707,83 @@
   "clear": "Clear",
   "results": "Results",
   "no_folders_found": "No folders found",
-  "showing_first": "showing first"
+  "showing_first": "showing first",
+  "emptystate": {
+    "photos": {
+      "title": "No photos yet",
+      "description": "Scan your photo library to see your photos here."
+    },
+    "favorites": {
+      "title": "No favorites yet",
+      "description": "Mark photos as favorites and they'll appear here."
+    },
+    "hidden": {
+      "title": "No hidden photos",
+      "description": "Photos you hide will appear here."
+    },
+    "deleted": {
+      "title": "Trash is empty",
+      "description": "Photos you delete will appear here before being permanently removed."
+    },
+    "videos": {
+      "title": "No videos yet",
+      "description": "Scan your library to see your videos here."
+    },
+    "recent": {
+      "title": "No recently added photos",
+      "description": "Recently scanned photos will appear here."
+    },
+    "notimestamp": {
+      "title": "No photos without timestamps",
+      "description": "Photos without date information will appear here."
+    },
+    "events": {
+      "title": "No events detected",
+      "description": "Events are auto-generated from your photos based on time and location. Generate events to group your photos into meaningful albums."
+    },
+    "people": {
+      "title": "No people found",
+      "description": "Scan your library for faces and start labeling them to organize photos by person."
+    },
+    "places": {
+      "title": "No places found",
+      "description": "Photos with GPS location data will be automatically grouped by place."
+    },
+    "things": {
+      "title": "No things detected",
+      "description": "Objects and scenes are detected automatically during photo scanning."
+    },
+    "faces": {
+      "title": "No faces found",
+      "description": "Scan your photos to detect faces. Once detected, you can label them to organize your photos by person."
+    },
+    "dataviz": {
+      "title": "Not enough data",
+      "description": "Add more photos to your library to see visualizations and statistics."
+    },
+    "socialgraph": {
+      "title": "No social connections found",
+      "description": "The social graph shows connections between people who appear together in photos. Label faces to see relationships."
+    },
+    "wordcloud": {
+      "title": "No data available",
+      "description": "Scan your photos to generate word clouds based on detected objects, places, and people."
+    },
+    "timeline": {
+      "title": "No timeline data",
+      "description": "Add photos with timestamps to see your photo timeline."
+    },
+    "scanning": {
+      "title": "Scan in progress",
+      "processed": "items processed",
+      "refresh": "Refresh the page to see newly scanned photos.",
+      "refreshButton": "Refresh"
+    },
+    "goToLibrary": "Go to Library",
+    "goToFaces": "Go to Faces",
+    "generateEvents": "Generate Events",
+    "scanPhotos": "Scan Photos"
+  },
+  "skip": "Skip",
+  "continue": "Continue"
 }

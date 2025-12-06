@@ -1,10 +1,10 @@
 import { IconVideo as Video } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
-import { PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/videos")();
@@ -37,6 +37,17 @@ export function OnlyVideos() {
     });
   };
 
+  const emptyStateConfig: EmptyStateConfig = useMemo(
+    () => ({
+      icon: <Video size={40} />,
+      title: t("emptystate.videos.title"),
+      description: t("emptystate.videos.description"),
+      actionLabel: t("emptystate.goToLibrary"),
+      actionLink: "/library",
+    }),
+    [t]
+  );
+
   return (
     <PhotoListView
       title={t("photos.videos")}
@@ -46,6 +57,7 @@ export function OnlyVideos() {
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
+      emptyStateConfig={emptyStateConfig}
     />
   );
 }

@@ -16,6 +16,7 @@ import {
   useRenamePersonAlbumMutation,
 } from "../../../api_client/albums/hooks";
 import type { Person } from "../../../api_client/albums/hooks";
+import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
@@ -39,6 +40,7 @@ export function AlbumPeople() {
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
   const renamePersonMutation = useRenamePersonAlbumMutation();
   const deletePersonMutation = useDeletePersonAlbumMutation();
+  const hasAlbums = albums && albums.length > 0;
 
   function openDeleteDialog(album: Person) {
     setSelectedAlbum(album);
@@ -129,22 +131,32 @@ export function AlbumPeople() {
           peoplelength: (albums && albums.length) || 0,
         })}
       />
-      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width }) => (
-          <Grid
-            style={{ outline: "none" }}
-            headerHeight={100}
-            disableHeader={false}
-            cellRenderer={props => renderCell(props)}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            height={gridHeight}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
-            width={width}
-          />
-        )}
-      </AutoSizer>
+      {!isFetching && !hasAlbums ? (
+        <EmptyState
+          icon={<Users size={40} />}
+          title={t("emptystate.people.title")}
+          description={t("emptystate.people.description")}
+          actionLabel={t("emptystate.goToFaces")}
+          actionLink="/faces"
+        />
+      ) : (
+        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
+          {({ width }) => (
+            <Grid
+              style={{ outline: "none" }}
+              headerHeight={100}
+              disableHeader={false}
+              cellRenderer={props => renderCell(props)}
+              columnWidth={entrySquareSize}
+              columnCount={entriesPerRow}
+              height={gridHeight}
+              rowHeight={entrySquareSize + 60}
+              rowCount={numberOfRows}
+              width={width}
+            />
+          )}
+        </AutoSizer>
+      )}
 
       <Modal
         title={t("personalbum.renamepersonheader", { name: selectedAlbum.name })}

@@ -11,6 +11,8 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
+import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
+import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
@@ -25,7 +27,9 @@ export function AlbumAuto() {
   const { data: albums, isFetching } = useFetchAutoAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
   const { mutate: deleteAutoAlbum } = useDeleteAutoAlbumMutation();
+  const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const { t } = useTranslation();
+  const hasAlbums = albums && albums.length > 0;
 
   function deleteAlbum(album) {
     setAutoAlbumID(album.id);
@@ -98,21 +102,31 @@ export function AlbumAuto() {
         })}
       />
 
-      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width: containerWidth }) => (
-          <Grid
-            style={{ outline: "none" }}
-            disableHeader={false}
-            cellRenderer={props => cellRenderer(props)}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            height={gridHeight}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
-            width={containerWidth}
-          />
-        )}
-      </AutoSizer>
+      {!isFetching && !hasAlbums ? (
+        <EmptyState
+          icon={<SettingsAutomation size={40} />}
+          title={t("emptystate.events.title")}
+          description={t("emptystate.events.description")}
+          actionLabel={t("emptystate.generateEvents")}
+          onAction={() => generateAutoAlbums()}
+        />
+      ) : (
+        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
+          {({ width: containerWidth }) => (
+            <Grid
+              style={{ outline: "none" }}
+              disableHeader={false}
+              cellRenderer={props => cellRenderer(props)}
+              columnWidth={entrySquareSize}
+              columnCount={entriesPerRow}
+              height={gridHeight}
+              rowHeight={entrySquareSize + 60}
+              rowCount={numberOfRows}
+              width={containerWidth}
+            />
+          )}
+        </AutoSizer>
+      )}
 
       <Modal opened={deleteDialogVisible} title={t("autoalbum.delete")} onClose={closeDeleteDialog}>
         <Text size="lg">{autoAlbumTitle}</Text>

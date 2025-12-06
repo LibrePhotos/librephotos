@@ -1,3 +1,4 @@
+import { IconCloud } from "@tabler/icons-react";
 import { Loader, Title } from "@mantine/core";
 import React from "react";
 import useDimensions from "react-cool-dimensions";
@@ -5,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Chart, Cloud, Transform } from "rumble-charts";
 
 import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
+import { EmptyState } from "../common/EmptyState";
 
 type Props = Readonly<{
   type: string;
@@ -20,7 +22,7 @@ export function WordCloud(props: Props) {
     polyfill: ResizeObserver, // Use polyfill to make this feature works on more browsers);
   });
   const { height } = props;
-  const { data: wordCloud } = useFetchWordCloudQuery();
+  const { data: wordCloud, isLoading } = useFetchWordCloudQuery();
   const { t } = useTranslation();
 
   const title = () => {
@@ -51,8 +53,28 @@ export function WordCloud(props: Props) {
     return [];
   };
 
-  if (!wordCloud) {
+  const hasData = () => {
+    const seriesData = series();
+    return seriesData.length > 0 && seriesData[0].data && seriesData[0].data.length > 0;
+  };
+
+  if (isLoading) {
     return <Loader />;
+  }
+
+  if (!wordCloud || !hasData()) {
+    return (
+      <div ref={observeChange}>
+        <Title order={3}>{title()}</Title>
+        <EmptyState
+          icon={<IconCloud size={40} />}
+          title={t("emptystate.wordcloud.title")}
+          description={t("emptystate.wordcloud.description")}
+          actionLabel={t("emptystate.goToLibrary")}
+          actionLink="/library"
+        />
+      </div>
+    );
   }
 
   return (

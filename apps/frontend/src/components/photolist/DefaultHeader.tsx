@@ -1,9 +1,10 @@
-import { Button, Group, Loader, Menu, Stack, Text, Title } from "@mantine/core";
+import { Box, Button, Center, Group, Loader, Menu, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import {
   IconCalendar as Calendar,
   IconChevronDown as ChevronDown,
   IconClock as Clock,
   IconEyeOff as EyeOff,
+  IconFolderSearch,
   IconGlobe as Globe,
   IconPhoto as Photo,
   IconStar as Star,
@@ -28,6 +29,7 @@ type Props = Readonly<{
   additionalSubHeader: React.ReactNode;
   dayHeaderPrefix: string;
   date: string;
+  hasEmptyState?: boolean;
 }>;
 
 export function DefaultHeader(props: Props) {
@@ -60,15 +62,26 @@ export function DefaultHeader(props: Props) {
 
   const isScanView = () => location.pathname === "/";
 
-  const { loading, numPhotosetItems, icon, numPhotos, title, additionalSubHeader, date, dayHeaderPrefix } = props;
+  const { loading, numPhotosetItems, icon, numPhotos, title, additionalSubHeader, date, dayHeaderPrefix, hasEmptyState } = props;
 
   function getPhotoCounter() {
-    if (loading || numPhotosetItems < 1) {
+    if (loading) {
       return (
         <Text ta="left" c="dimmed">
-          {loading ? t("defaultheader.loading") : null}
-          {!loading && numPhotosetItems < 1 ? t("defaultheader.noimages") : null}
-          {loading ? <Loader size={20} /> : null}
+          {t("defaultheader.loading")}
+          <Loader size={20} />
+        </Text>
+      );
+    }
+
+    if (numPhotosetItems < 1) {
+      // Don't show "No images found" if an EmptyState will be displayed below
+      if (hasEmptyState) {
+        return null;
+      }
+      return (
+        <Text ta="left" c="dimmed">
+          {t("defaultheader.noimages")}
         </Text>
       );
     }
@@ -86,29 +99,41 @@ export function DefaultHeader(props: Props) {
 
   if (!loading && auth?.access && isScanView() && auth.access.is_admin && !userSelfDetails?.scan_directory && numPhotosetItems < 1) {
     return (
-      <Stack align="center">
-        <Title order={3}>{t("defaultheader.setup")}</Title>
-        <Button
-          color="green"
-          onClick={() => {
-            setUserToEdit({ ...userSelfDetails });
-            setModalOpen(true);
-          }}
-        >
-          {t("defaultheader.gettingstarted")}
-        </Button>
-        <ModalUserEdit
-          onRequestClose={() => {
-            setModalOpen(false);
-          }}
-          userToEdit={userToEdit}
-          isOpen={modalOpen}
-          updateAndScan
-          userList={userList}
-          createNew={false}
-          firstTimeSetup
-        />
-      </Stack>
+      <Center style={{ height: "calc(100vh - 120px)" }}>
+        <Stack align="center" gap="lg">
+          <ThemeIcon size={80} radius="xl" variant="light" color="green">
+            <IconFolderSearch size={45} />
+          </ThemeIcon>
+          <Box ta="center">
+            <Title order={2} mb="xs">{t("defaultheader.welcome")}</Title>
+            <Text c="dimmed" size="lg" maw={400}>
+              {t("defaultheader.setup")}
+            </Text>
+          </Box>
+          <Button
+            size="md"
+            color="green"
+            leftSection={<Photo size={18} />}
+            onClick={() => {
+              setUserToEdit({ ...userSelfDetails });
+              setModalOpen(true);
+            }}
+          >
+            {t("defaultheader.gettingstarted")}
+          </Button>
+          <ModalUserEdit
+            onRequestClose={() => {
+              setModalOpen(false);
+            }}
+            userToEdit={userToEdit}
+            isOpen={modalOpen}
+            updateAndScan
+            userList={userList}
+            createNew={false}
+            firstTimeSetup
+          />
+        </Stack>
+      </Center>
     );
   }
 
@@ -182,16 +207,18 @@ export function DefaultHeader(props: Props) {
             {getPhotoCounter()}
           </div>
         </Group>
-        <Group justify="right">
-          <Text>
-            <b>
-              {dayHeaderPrefix}
-              {DateTime.fromISO(date).isValid
-                ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)
-                : date}
-            </b>
-          </Text>
-        </Group>
+        {(!hasEmptyState || numPhotosetItems > 0) && (dayHeaderPrefix || date) && (
+          <Group justify="right">
+            <Text>
+              <b>
+                {dayHeaderPrefix}
+                {DateTime.fromISO(date).isValid
+                  ? DateTime.fromISO(date).setLocale(i18nResolvedLanguage()).toLocaleString(DateTime.DATE_HUGE)
+                  : date}
+              </b>
+            </Text>
+          </Group>
+        )}
       </Group>
     </div>
   );

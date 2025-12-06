@@ -5,3 +5,4 @@ export * from "./useFetchUserSelfDetailsQuery";
 export * from "./useManageUpdateUserMutation";
 export * from "./useUpdateAvatarMutation";
 export * from "./useUpdateUserMutation";
+export * from "./useUpdateUserScanDirectoryMutation";

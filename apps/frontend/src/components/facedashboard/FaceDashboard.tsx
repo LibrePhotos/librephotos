@@ -1,10 +1,13 @@
+import { IconFaceId } from "@tabler/icons-react";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { getRouteApi } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FaceAnalysisMethod, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useTranslation } from "react-i18next";
+import { FaceAnalysisMethod, FacesTab, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
+import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { HeaderButtons } from "./HeaderButtons";
@@ -19,6 +22,7 @@ const routeApi = getRouteApi("/_protected/faces");
 
 export function FaceDashboard() {
   const { ref, width } = useElementSize();
+  const { t } = useTranslation();
 
   const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();
 
@@ -161,6 +165,17 @@ export function FaceDashboard() {
     setLightboxImageId(imageId);
   }, []);
 
+  // Check if the current tab has any faces
+  const isFetching =
+    activeTab === FacesTab.enum.labeled ? fetchingLabeledFacesList : fetchingInferredFacesList;
+  const currentTabList =
+    activeTab === FacesTab.enum.labeled
+      ? lists.labeled
+      : activeTab === FacesTab.enum.inferred
+        ? lists.inferred
+        : lists.unknown;
+  const hasFaces = currentTabList.length > 0;
+
   return (
     <RemoveScroll enabled={lightboxOpen}>
       <Stack h={`calc(100vh - ${TOP_MENU_HEIGHT}px)`}>
@@ -176,26 +191,36 @@ export function FaceDashboard() {
           deleteFaces={deleteSelectedFaces}
           notThisPerson={notThisPersonFunc}
         />
-        <VirtualizedGridComponent
-          containerRef={ref}
-          gridRef={virtualGrid.gridRef}
-          entrySquareSize={virtualGrid.entrySquareSize}
-          numEntrySquaresPerRow={virtualGrid.numEntrySquaresPerRow}
-          gridHeight={virtualGrid.gridHeight}
-          getCellContentsForTab={virtualGrid.getCellContentsForTab}
-          getScrollPositions={virtualGrid.getScrollPositions}
-          handleScrubberScroll={virtualGrid.handleScrubberScroll}
-          onSectionRendered={virtualGrid.onSectionRendered}
-          scrollPosition={virtualGrid.scrollPosition}
-          onScroll={virtualGrid.onScroll}
-          handleCellClick={virtualGrid.handleCellClick}
-          handleShowClick={virtualGrid.handleShowClick}
-          selectMode={virtualGrid.selectMode}
-          selectedFaces={virtualGrid.selectedFaces}
-          setSelectedFaces={virtualGrid.setSelectedFaces}
-          width={virtualGrid.width}
-          activeTab={activeTab}
-        />
+        {!isFetching && !hasFaces ? (
+          <EmptyState
+            icon={<IconFaceId size={40} />}
+            title={t("emptystate.faces.title")}
+            description={t("emptystate.faces.description")}
+            actionLabel={t("emptystate.goToLibrary")}
+            actionLink="/library"
+          />
+        ) : (
+          <VirtualizedGridComponent
+            containerRef={ref}
+            gridRef={virtualGrid.gridRef}
+            entrySquareSize={virtualGrid.entrySquareSize}
+            numEntrySquaresPerRow={virtualGrid.numEntrySquaresPerRow}
+            gridHeight={virtualGrid.gridHeight}
+            getCellContentsForTab={virtualGrid.getCellContentsForTab}
+            getScrollPositions={virtualGrid.getScrollPositions}
+            handleScrubberScroll={virtualGrid.handleScrubberScroll}
+            onSectionRendered={virtualGrid.onSectionRendered}
+            scrollPosition={virtualGrid.scrollPosition}
+            onScroll={virtualGrid.onScroll}
+            handleCellClick={virtualGrid.handleCellClick}
+            handleShowClick={virtualGrid.handleShowClick}
+            selectMode={virtualGrid.selectMode}
+            selectedFaces={virtualGrid.selectedFaces}
+            setSelectedFaces={virtualGrid.setSelectedFaces}
+            width={virtualGrid.width}
+            activeTab={activeTab}
+          />
+        )}
         <ModalPersonEdit
           isOpen={modalPersonEditOpen}
           onRequestClose={() => {

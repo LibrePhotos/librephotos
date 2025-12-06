@@ -1,10 +1,10 @@
 import { IconEyeOff as EyeOff } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
-import { PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
+import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/hidden")();
@@ -37,6 +37,15 @@ export function HiddenPhotos() {
     });
   };
 
+  const emptyStateConfig: EmptyStateConfig = useMemo(
+    () => ({
+      icon: <EyeOff size={40} />,
+      title: t("emptystate.hidden.title"),
+      description: t("emptystate.hidden.description"),
+    }),
+    [t]
+  );
+
   return (
     <PhotoListView
       title={t("photos.hidden")}
@@ -46,6 +55,7 @@ export function HiddenPhotos() {
       updateGroups={getAlbums}
       idx2hash={photosFlat}
       selectable
+      emptyStateConfig={emptyStateConfig}
     />
   );
 }
