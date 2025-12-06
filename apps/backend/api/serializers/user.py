@@ -342,6 +342,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         fields = (
             "username",
             "scan_directory",
+            "skip_raw_files",
             "confidence",
             "semantic_search_topk",
             "last_login",
@@ -359,6 +360,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "password": {"write_only": True},
             "scan_directory": {"required": False},
+            "skip_raw_files": {"required": False},
         }
 
     def get_photo_count(self, obj) -> int:
@@ -388,6 +390,9 @@ class ManageUserSerializer(serializers.ModelSerializer):
                     )
                 else:
                     raise ValidationError("Scan directory does not exist")
+        if "skip_raw_files" in validated_data:
+            instance.skip_raw_files = validated_data.pop("skip_raw_files")
+
         if "username" in validated_data:
             username = validated_data.pop("username")
             if username != "":

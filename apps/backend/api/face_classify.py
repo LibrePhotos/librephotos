@@ -37,6 +37,7 @@ def cluster_faces(user, inferred=True):
     p2c = dict(zip(persons, sns.color_palette(n_colors=len(persons)).as_hex()))
 
     face_encoding = []
+    faces_with_encoding = []
     # Fetch faces that belong to the user and are not deleted
     faces = Face.objects.filter(Q(photo__owner=user) & Q(deleted=False))
     paginator = Paginator(faces, 5000)
@@ -45,13 +46,18 @@ def cluster_faces(user, inferred=True):
         for face in paginator.page(page).object_list:
             if ((not face.person) or inferred) and face.encoding:
                 face_encoding.append(face.get_encoding_array())
+                faces_with_encoding.append(face)
+
+    # Return empty result if no faces with encodings
+    if len(face_encoding) == 0:
+        return {"status": True, "data": []}
 
     # Perform PCA for dimensionality reduction
     pca = PCA(n_components=3)
     vis_all = pca.fit_transform(face_encoding)
 
     res = []
-    for face, vis in zip(faces, vis_all):
+    for face, vis in zip(faces_with_encoding, vis_all):
         person_id = face.person.id if face.person else UNKNOWN_CLUSTER_ID
         person_name = face.person.name if face.person else "unknown"
 
@@ -72,7 +78,7 @@ def cluster_faces(user, inferred=True):
                 "value": {"x": vis[0], "y": vis[1], "size": vis[2]},
             }
         )
-    return res
+    return {"status": True, "data": res}
 
 
 def cluster_all_faces(user, job_id) -> bool:
