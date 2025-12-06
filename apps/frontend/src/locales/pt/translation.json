@@ -203,7 +203,13 @@
         "llm": "Definições de modelo de linguagem grande",
         "addperson": "Adicionar pessoas às legendas",
         "hindi": "Hindi",
-        "skip_raw_files_note": "Quando ativado, novos ficheiros RAW serão ignorados durante a análise. Ficheiros RAW existentes permanecerão na biblioteca, para o eliminar, ative esta opção, corra uma análise completa e de seguida use a opção \"Remover fotos em falta\"."
+        "skip_raw_files_note": "Quando ativado, novos ficheiros RAW serão ignorados durante a análise. Ficheiros RAW existentes permanecerão na biblioteca, para o eliminar, ative esta opção, corra uma análise completa e de seguida use a opção \"Remover fotos em falta\".",
+        "catalan": "Catalão",
+        "esperanto": "Esperanto",
+        "estonian": "Estoniano",
+        "romanian": "Romeno",
+        "tamil": "Tâmil",
+        "turkish": "Turco"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -367,7 +373,8 @@
         "error": {
             "token": "Problema de token",
             "token_not_valid": "A sessão expirou, por favor inicie sessão novamente."
-        }
+        },
+        "setupdatadirectory": "Selecione a sua pasta de análise"
     },
     "search": {
         "search": "Pesquisar",
@@ -711,5 +718,83 @@
     "clear": "Limpar",
     "results": "Resultados",
     "no_folders_found": "Nenhuma pasta encontrada",
-    "showing_first": "a mostrar primeiro"
+    "showing_first": "a mostrar primeiro",
+    "emptystate": {
+        "photos": {
+            "title": "Ainda sem fotos",
+            "description": "Analise a sua biblioteca para ver as suas fotos aqui."
+        },
+        "favorites": {
+            "title": "Ainda sem favoritos",
+            "description": "Marque fotos como favoritas e irão aparecer aqui."
+        },
+        "hidden": {
+            "title": "Sem fotos ocultas",
+            "description": "Fotos ocultas aparecerão aqui."
+        },
+        "deleted": {
+            "title": "Lixo está vazio",
+            "description": "Fotos eliminadas aparecerão aqui antes de serem permanentemente removidas."
+        },
+        "videos": {
+            "title": "Ainda sem vídeos",
+            "description": "Analise a sua biblioteca para ver os seus vídeos aqui."
+        },
+        "recent": {
+            "title": "Sem fotos recentemente adicionadas",
+            "description": "Fotos recentemente analisadas aparecerão aqui."
+        },
+        "notimestamp": {
+            "title": "Não existem fotos sem carimbo de hora/data",
+            "description": "Fotos sem informação de data/hora aparecerão aqui."
+        },
+        "events": {
+            "title": "Nenhum evento detetado",
+            "description": "Eventos são gerados automaticamente a partir das suas fotos, baseados na hora e local. Gira eventos para agrupar as suas fotos em albums significativos."
+        },
+        "people": {
+            "title": "Não foram encontradas pessoas",
+            "description": "Analise caras na sua biblioteca e comece a legendá-las para organizar fotos por pessoa."
+        },
+        "places": {
+            "title": "Não foram encontrados locais",
+            "description": "Fotos com dados GPS serão automaticamente agrupadas por local."
+        },
+        "things": {
+            "title": "Não foram detetadas coisas",
+            "description": "Objetos e cenas são detetados automaticamente durante a analise de fotos."
+        },
+        "faces": {
+            "title": "Não foram encontradas caras",
+            "description": "Analise as suas fotos para detetar caras. Uma vez detetadas pode legendá-las para organizar as suas fotos por pessoa."
+        },
+        "dataviz": {
+            "title": "Dados insuficientes",
+            "description": "Adicione mais fotos à sua biblioteca para ver visualizações e estatísticas."
+        },
+        "socialgraph": {
+            "title": "Não foram encontradas ligações sociais",
+            "description": "O gráfico social mostra ligações entre pessoas que aparecem juntas em fotos. Legende caras para ver relações."
+        },
+        "wordcloud": {
+            "title": "Dados não disponíveis",
+            "description": "Analise as suas fotos para gerar nuvens de palavras baseadas nos objetos, locais e pessoas detetados."
+        },
+        "timeline": {
+            "title": "Sem dados de linha de tempo",
+            "description": "Adicione fotos com carimbo de hora/data para ver a sua linha de tempo das fotos."
+        },
+        "scanning": {
+            "title": "Analise em curso",
+            "processed": "items processados",
+            "refresh": "Atualize a página para ver fotos recentemente analisadas.",
+            "refreshButton": "Atualizar"
+        },
+        "goToLibrary": "Ir para Biblioteca",
+        "goToFaces": "Ir para Caras",
+        "generateEvents": "Gerar Eventos",
+        "scanPhotos": "Analisar Fotos"
+    },
+    "skip": "Pular",
+    "continue": "Continuar"
 }
