@@ -62,6 +62,8 @@ export type LightboxControlsProps = {
   onCloseRequest: () => void;
   playing: boolean;
   setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
+  isFullscreen: boolean;
+  toggleFullscreen: () => void;
 };
 
 export type ThumbnailNavigationProps = {

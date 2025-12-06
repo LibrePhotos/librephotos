@@ -1,6 +1,13 @@
 import { ActionIcon, Group, Tooltip } from "@mantine/core";
-import { IconX as X, IconZoomIn as ZoomIn, IconZoomOut as ZoomOut } from "@tabler/icons-react";
+import {
+  IconArrowsMaximize as Maximize,
+  IconArrowsMinimize as Minimize,
+  IconX as X,
+  IconZoomIn as ZoomIn,
+  IconZoomOut as ZoomOut,
+} from "@tabler/icons-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { LightboxControlsProps } from "./lightbox.types";
 import { Toolbar } from "./Toolbar";
 
@@ -15,7 +22,11 @@ export function LightboxControls({
   isZoomed,
   toggleZoom,
   onCloseRequest,
+  isFullscreen,
+  toggleFullscreen,
 }: LightboxControlsProps) {
+  const { t } = useTranslation();
+
   return (
     <Group justify="flex-end" style={{ background: "transparent" }}>
       <Toolbar
@@ -27,7 +38,7 @@ export function LightboxControls({
       />
       {enableZoom && type === "photo" && (
         <div style={{ marginBottom: 5 }}>
-          <Tooltip label="Zoom (Z)" position="bottom" withArrow>
+          <Tooltip label={t("lightbox.controls.zoom")} position="bottom" withArrow>
             <ActionIcon variant="subtle" color="gray" onClick={toggleZoom}>
               {isZoomed ? <ZoomOut /> : <ZoomIn />}
             </ActionIcon>
@@ -35,7 +46,18 @@ export function LightboxControls({
         </div>
       )}
       <div style={{ marginBottom: 5 }}>
-        <Tooltip label="Close (Escape)" position="bottom" withArrow>
+        <Tooltip
+          label={isFullscreen ? t("lightbox.controls.exitfullscreen") : t("lightbox.controls.fullscreen")}
+          position="bottom"
+          withArrow
+        >
+          <ActionIcon variant="subtle" color="gray" onClick={toggleFullscreen}>
+            {isFullscreen ? <Minimize /> : <Maximize />}
+          </ActionIcon>
+        </Tooltip>
+      </div>
+      <div style={{ marginBottom: 5 }}>
+        <Tooltip label={t("lightbox.controls.close")} position="bottom" withArrow>
           <ActionIcon variant="subtle" color="gray" onClick={onCloseRequest}>
             <X />
           </ActionIcon>

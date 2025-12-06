@@ -1,9 +1,9 @@
 import { Carousel } from "@mantine/carousel";
 import "@mantine/carousel/styles.css";
 import { Modal, Stack } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useFullscreen, useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { ImagePreloader } from "./ImagePreloader";
 import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
@@ -30,6 +30,10 @@ export function ContentViewer({
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
   const [embla, setEmbla] = useState<any | null>(null);
   const [playing, setPlaying] = useState(true);
+
+  // Fullscreen support
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen(contentRef);
 
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrc);
 
@@ -67,11 +71,19 @@ export function ContentViewer({
     setOffset({ x: 0, y: 0 });
   };
 
+  // Handle close - exit fullscreen first if active
+  const handleClose = () => {
+    if (isFullscreen) {
+      document.exitFullscreen?.();
+    }
+    onCloseRequest();
+  };
+
   // Add keyboard navigation using Mantine's useHotkeys
   useHotkeys([
     ["ArrowLeft", () => prevSrc && onMovePrevRequest()],
     ["ArrowRight", () => nextSrc && onMoveNextRequest()],
-    ["Escape", onCloseRequest],
+    ["Escape", handleClose],
     [" ", () => type === "video" && setPlaying(prev => !prev)],
     ["z", () => type === "photo" && toggleZoom()],
     ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
@@ -113,6 +125,7 @@ export function ContentViewer({
         }
       },
     ],
+    ["g", toggleFullscreen], // Toggle fullscreen mode
   ]);
 
   const bind = useGesture({
@@ -147,10 +160,11 @@ export function ContentViewer({
   };
 
   return (
-    <Modal.Root opened onClose={onCloseRequest} fullScreen>
+    <Modal.Root opened onClose={handleClose} fullScreen>
       <Modal.Overlay blur={5} backgroundOpacity={0.8} />
       <Modal.Content style={{ background: "transparent" }}>
         <Modal.Body
+          ref={contentRef}
           style={{
             width: `100vw`,
             height: "100vh",
@@ -158,6 +172,7 @@ export function ContentViewer({
             alignItems: "stretch",
             padding: 0,
             position: "relative", // For absolute positioning
+            background: isFullscreen ? "black" : "transparent",
           }}
         >
           <Stack
@@ -183,9 +198,11 @@ export function ContentViewer({
               type={type}
               isZoomed={isZoomed}
               toggleZoom={toggleZoom}
-              onCloseRequest={onCloseRequest}
+              onCloseRequest={handleClose}
               playing={playing}
               setPlaying={setPlaying}
+              isFullscreen={isFullscreen}
+              toggleFullscreen={toggleFullscreen}
             />
 
             {/* Main photo/video with swipe navigation */}

@@ -356,6 +356,12 @@
       "undotimestampmodification": "Undo timestamp modification",
       "places": "Places",
       "suggestedcaption": "Suggested caption"
+    },
+    "controls": {
+      "fullscreen": "Fullscreen (G)",
+      "exitfullscreen": "Exit Fullscreen (G)",
+      "zoom": "Zoom (Z)",
+      "close": "Close (Escape)"
     }
   },
   "exif": {
