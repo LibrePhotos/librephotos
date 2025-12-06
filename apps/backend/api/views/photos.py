@@ -6,9 +6,10 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import File, Photo, User
+from api.models import AlbumUser, File, Photo, User
 from api.models.photo_caption import PhotoCaption
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
+from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
     PhotoDetailsSummarySerializer,
     PhotoEditSerializer,
@@ -366,8 +367,25 @@ class PhotoViewSet(viewsets.ModelViewSet):
         serializer = PhotoDetailsSummarySerializer(queryset, many=False)
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=["get"],
+        name="albums",
+        serializer_class=AlbumUserListSerializer,
+    )
+    def albums(self, request, pk):
+        """Return user albums that contain this photo."""
+        photo = Photo.objects.filter(image_hash=pk).first()
+        if not photo:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        albums = AlbumUser.objects.filter(
+            Q(photos=photo) & (Q(owner=request.user) | Q(shared_to=request.user))
+        ).distinct()
+        serializer = AlbumUserListSerializer(albums, many=True)
+        return Response({"results": serializer.data})
+
     def get_permissions(self):
-        if self.action in ("list", "retrieve", "summary"):
+        if self.action in ("list", "retrieve", "summary", "albums"):
             permission_classes = [IsPhotoOrAlbumSharedTo]
         else:  # pragma: no cover - unused
             if getattr(self.request, "user", None) and self.request.user.is_staff:
