@@ -127,13 +127,15 @@ export function AlbumsSharedWithMe({ showSidebar }: any) {
       return (
         <div key={key} style={{ ...style, padding: 1 }}>
           <Anchor href={`/album/user/${cell.id}`}>
-            <Tile
-              style={{ objectFit: "cover" }}
-              width={entrySquareSize - 2}
-              height={entrySquareSize - 2}
-              image_hash={cell.cover_photo.image_hash}
-              video={cell.cover_photo.video}
-            />
+            {cell.cover_photo && (
+              <Tile
+                style={{ objectFit: "cover" }}
+                width={entrySquareSize - 2}
+                height={entrySquareSize - 2}
+                image_hash={cell.cover_photo.image_hash}
+                video={cell.cover_photo.video}
+              />
+            )}
           </Anchor>
           <Text fw={700}>{cell.title}</Text>
           <Text size="sm" c="dimmed">

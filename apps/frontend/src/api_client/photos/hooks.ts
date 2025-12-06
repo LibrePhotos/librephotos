@@ -1,3 +1,4 @@
+export * from "./hooks/useFetchPhotoAlbumsQuery";
 export * from "./hooks/useFetchPhotoDetailsQuery";
 export * from "./hooks/useFetchPhotosWithoutTimestampQuery";
 export * from "./hooks/useFetchRecentlyAddedPhotosQuery";

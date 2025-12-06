@@ -101,12 +101,14 @@ export function AlbumUser() {
       <div key={key} style={style}>
         <div style={{ padding: 5, height: entrySquareSize, width: entrySquareSize }}>
           <Link to="/album/user/$id" params={{ id: album.id.toString() }}>
-            <Tile
-              video={albums[index].cover_photo.video === true}
-              height={entrySquareSize - 10}
-              width={entrySquareSize - 10}
-              image_hash={albums[index].cover_photo.image_hash}
-            />
+            {album.cover_photo && (
+              <Tile
+                video={album.cover_photo.video === true}
+                height={entrySquareSize - 10}
+                width={entrySquareSize - 10}
+                image_hash={album.cover_photo.image_hash}
+              />
+            )}
           </Link>
 
           <div style={{ position: "absolute", top: 10, right: 10 }}>

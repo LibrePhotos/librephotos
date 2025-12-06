@@ -123,7 +123,7 @@ export type ThingAlbum = z.infer<typeof ThingAlbum>;
 export const UserAlbumInfo = z.object({
   id: z.number(),
   title: z.string(),
-  cover_photo: PhotoSuperSimple,
+  cover_photo: PhotoSuperSimple.nullable(),
   photo_count: z.number(),
   owner: SimpleUser,
   shared_to: SimpleUser.array(),

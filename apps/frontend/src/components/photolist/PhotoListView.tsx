@@ -40,6 +40,7 @@ import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
+import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { EmptyState } from "../common/EmptyState";
 import { DefaultHeader } from "./DefaultHeader";
 import { FavoritedOverlay } from "./FavoritedOverlay";
@@ -118,6 +119,8 @@ function PhotoListViewComponent({
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
+  const [modalCoverPickerOpen, setModalCoverPickerOpen] = useState(false);
+  const [coverPickerAlbumType, setCoverPickerAlbumType] = useState<"person" | "useralbum" | null>(null);
   const [selectionState, setSelectionState] = useState<SelectionState>({ selectedItems: [], selectMode: false });
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<ScrollerData[]>([]);
@@ -561,19 +564,44 @@ function PhotoListViewComponent({
                     albumID={params ? params.albumID : undefined}
                     ownerUsername={ownerUsername}
                     title={title}
-                    setAlbumCover={actionType => {
-                      if (actionType === "person") {
-                        setPersonAlbumCover.mutate({
-                          id: `${params.albumID}`,
-                          cover_photo: selectionState.selectedItems[0].id,
-                        });
+                    setAlbumCover={(actionType, photoId) => {
+                      // If photoId is provided (from modal), use it directly
+                      if (photoId) {
+                        if (actionType === "person") {
+                          setPersonAlbumCover.mutate({
+                            id: `${params.albumID}`,
+                            cover_photo: photoId,
+                          });
+                        }
+                        if (actionType === "useralbum") {
+                          setUserAlbumCover.mutate({
+                            id: `${params.albumID}`,
+                            photo: photoId,
+                          });
+                        }
+                        return;
                       }
-                      if (actionType === "useralbum") {
-                        setUserAlbumCover.mutate({
-                          id: `${params.albumID}`,
-                          photo: selectionState.selectedItems[0].id,
-                        });
+
+                      // If exactly 1 item selected, use it
+                      if (selectionState.selectedItems.length === 1) {
+                        if (actionType === "person") {
+                          setPersonAlbumCover.mutate({
+                            id: `${params.albumID}`,
+                            cover_photo: selectionState.selectedItems[0].id,
+                          });
+                        }
+                        if (actionType === "useralbum") {
+                          setUserAlbumCover.mutate({
+                            id: `${params.albumID}`,
+                            photo: selectionState.selectedItems[0].id,
+                          });
+                        }
+                      } else if (selectionState.selectedItems.length === 0) {
+                        // No selection - open modal picker
+                        setCoverPickerAlbumType(actionType as "person" | "useralbum");
+                        setModalCoverPickerOpen(true);
                       }
+                      // Multiple selected: action is disabled at menu level
                     }}
                     onSharePhotos={() => setModalSharePhotosOpen(true)}
                     onShareAlbum={() => setModalAlbumShareOpen(true)}
@@ -680,6 +708,31 @@ function PhotoListViewComponent({
             setModalAlbumShareOpen(false);
           }}
           albumID={albumID ?? ""}
+        />
+      )}
+      {!isPublic && coverPickerAlbumType && (
+        <AlbumCoverPickerModal
+          isOpen={modalCoverPickerOpen}
+          onRequestClose={() => {
+            setModalCoverPickerOpen(false);
+            setCoverPickerAlbumType(null);
+          }}
+          photos={idx2hash}
+          albumTitle={title}
+          onSelectCover={(photoId: string) => {
+            if (coverPickerAlbumType === "person") {
+              setPersonAlbumCover.mutate({
+                id: `${params.albumID}`,
+                cover_photo: photoId,
+              });
+            }
+            if (coverPickerAlbumType === "useralbum") {
+              setUserAlbumCover.mutate({
+                id: `${params.albumID}`,
+                photo: photoId,
+              });
+            }
+          }}
         />
       )}
     </RemoveScroll>

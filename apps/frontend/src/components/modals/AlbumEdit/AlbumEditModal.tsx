@@ -1,5 +1,4 @@
 import { Button, Divider, Group, Modal, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
-import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -7,8 +6,8 @@ import {
   useCreateUserAlbumMutation,
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
-import { i18nResolvedLanguage } from "../../../i18n";
 import { fuzzyMatch } from "../../../util/util";
+import { AlbumListItem } from "../../album/AlbumListItem";
 import { Tile } from "../../Tile";
 import classes from "./AlbumEditModal.module.css";
 
@@ -97,26 +96,7 @@ export function AlbumEditModal(props: Props) {
                   onRequestClose();
                 }}
               >
-                <Group>
-                  <Tile
-                    height={50}
-                    width={50}
-                    className={classes.tile}
-                    image_hash={item.cover_photo.image_hash}
-                    video={item.cover_photo.video}
-                  />
-                  <div>
-                    <Title order={4}>{item.title}</Title>
-                    <Text size="sm" c="dimmed">
-                      {t("modalalbum.items", { count: item.photo_count })}
-                      <br />
-                      {t("modalalbum.updated", {
-                        duration: DateTime.fromISO(item.created_on).setLocale(i18nResolvedLanguage()).toRelative(),
-                      })}
-                      {}
-                    </Text>
-                  </div>
-                </Group>
+                <AlbumListItem album={item} showUpdatedTime />
               </UnstyledButton>
             ))}
         </Stack>

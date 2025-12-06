@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Menu } from "@mantine/core";
+import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
 import {
   IconAlbum as Album,
   IconDotsVertical as DotsVertical,
@@ -34,7 +34,7 @@ type Props = {
   selectedItems: UserAlbum[];
   updateSelectionState: (arg: any) => void;
   onSharePhotos: () => void;
-  setAlbumCover: (actionType: string) => void;
+  setAlbumCover: (actionType: string, photoId?: string) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
   title: string;
@@ -262,57 +262,71 @@ export function SelectionActions(props: Readonly<Props>) {
             {`${t("selectionactions.sharing")}`}
           </Menu.Item>
 
-          <Menu.Divider />
+          {/* Album Actions - only show on album pages */}
+          {(location.pathname.startsWith("/album/persons/") || location.pathname.startsWith("/album/user/")) && (
+            <>
+              <Menu.Divider />
 
-          <Menu.Label>{t("selectionactions.albumactions")}</Menu.Label>
+              <Menu.Label>{t("selectionactions.albumactions")}</Menu.Label>
 
-          <Menu.Item
-            disabled={
-              (!location.pathname.startsWith("/person/") && !location.pathname.startsWith("/useralbum/")) ||
-              selectedItems.length !== 1
-            }
-            leftSection={<Photo />}
-            onClick={() => {
-              if (location.pathname.startsWith("/person/")) {
-                setAlbumCover("person");
-              }
-              if (location.pathname.startsWith("/useralbum/")) {
-                setAlbumCover("useralbum");
-              }
-              updateSelectionState({
-                selectMode: false,
-                selectedItems: [],
-              });
-            }}
-          >
-            {`${t("selectionactions.albumcover")}`}
-          </Menu.Item>
+              <Tooltip
+                label={t("selectionactions.albumcovermultiselect")}
+                disabled={selectedItems.length <= 1}
+                position="left"
+              >
+                <Menu.Item
+                  disabled={selectedItems.length > 1}
+                  leftSection={<Photo />}
+                  onClick={() => {
+                    if (location.pathname.startsWith("/album/persons/")) {
+                      setAlbumCover("person");
+                    }
+                    if (location.pathname.startsWith("/album/user/")) {
+                      setAlbumCover("useralbum");
+                    }
+                    // Only clear selection if exactly 1 item was selected (used directly)
+                    if (selectedItems.length === 1) {
+                      updateSelectionState({
+                        selectMode: false,
+                        selectedItems: [],
+                      });
+                    }
+                  }}
+                >
+                  {`${t("selectionactions.albumcover")}`}
+                </Menu.Item>
+              </Tooltip>
 
-          <Menu.Item
-            leftSection={<Share />}
-            disabled={!location.pathname.startsWith("/album/user/")}
-            onClick={onShareAlbum}
-          >
-            {`  ${t("selectionactions.sharing")}`}
-          </Menu.Item>
+              {location.pathname.startsWith("/album/user/") && (
+                <>
+                  <Menu.Item
+                    leftSection={<Share />}
+                    onClick={onShareAlbum}
+                  >
+                    {`  ${t("selectionactions.sharing")}`}
+                  </Menu.Item>
 
-          <Menu.Item
-            leftSection={<FileMinus />}
-            disabled={!location.pathname.startsWith("/album/user/") || selectedItems.length === 0}
-            onClick={() => {
-              removePhotosFromAlbum.mutate({
-                id: `${albumID ?? ""}`,
-                title,
-                photos: selectedItems.map(i => i.id),
-              });
-              updateSelectionState({
-                selectMode: false,
-                selectedItems: [],
-              });
-            }}
-          >
-            {`  ${t("selectionactions.removephotos")}`}
-          </Menu.Item>
+                  <Menu.Item
+                    leftSection={<FileMinus />}
+                    disabled={selectedItems.length === 0}
+                    onClick={() => {
+                      removePhotosFromAlbum.mutate({
+                        id: `${albumID ?? ""}`,
+                        title,
+                        photos: selectedItems.map(i => i.id),
+                      });
+                      updateSelectionState({
+                        selectMode: false,
+                        selectedItems: [],
+                      });
+                    }}
+                  >
+                    {`  ${t("selectionactions.removephotos")}`}
+                  </Menu.Item>
+                </>
+              )}
+            </>
+          )}
         </Menu.Dropdown>
       </Menu>
     </Group>

@@ -6,6 +6,7 @@ import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { notification } from "../../service/notifications";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { AlbumsSection } from "./AlbumsSection";
 import { Description } from "./Description";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
@@ -111,6 +112,7 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
           notThisPerson={notThisPerson}
         />
         <Description photoDetail={photoDetail} isPublic={isPublic} />
+        {!isPublic && <AlbumsSection imageHash={photoDetail.image_hash} />}
         <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
       </Stack>
 

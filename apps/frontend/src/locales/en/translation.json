@@ -214,6 +214,14 @@
     "items": "{{count}} Item(s)",
     "updated": "Updated {{duration}}"
   },
+  "modalalbumcover": {
+    "title": "Choose Album Cover",
+    "selectphoto": "Select a photo to use as the cover for {{album}}",
+    "nophotos": "No photos available in this album",
+    "tip": "Tip: You can also select a single photo in the album and click \"Set album cover\" from the menu.",
+    "loadmore": "Load {{count}} more photos",
+    "showing": "Showing {{visible}} of {{total}} photos"
+  },
   "modalnextcloud": {
     "setdirectory": "Set your Nextcloud scan directory",
     "currentdirectory": "Current Nextcloud scan directory",
@@ -319,6 +327,7 @@
     "albumactions": "Album Actions",
     "albumcover": "Set album cover",
     "albumcoverdescription": "Set the album cover for the current album",
+    "albumcovermultiselect": "Select only one photo to set as cover",
     "albumsharingdescription": "Open sharing panel for the current album",
     "removephotos": "Remove Photos",
     "removephotosdescription": "Remove the selected photos from the current album",
@@ -339,6 +348,7 @@
       "attributes": "Attributes",
       "categories": "Categories",
       "similarphotos": "Similar Photos",
+      "albums": "Albums",
       "editdatetime": "Edit date and time",
       "withouttimestamp": "Without timestamp",
       "invalidtimestamp": "Invalid timestamp",
