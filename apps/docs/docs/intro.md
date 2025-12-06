@@ -22,6 +22,7 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 - Object / Scene detection
 - Semantic image search
 - Search by metadata
+- Photo details sidebar showing location, people, albums, and similar photos
 
 ## What does it use?
 
