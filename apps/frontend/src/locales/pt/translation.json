@@ -209,7 +209,10 @@
         "estonian": "Estoniano",
         "romanian": "Romeno",
         "tamil": "Tâmil",
-        "turkish": "Turco"
+        "turkish": "Turco",
+        "interface": "Interface",
+        "slideshowinterval": "Intervalo de apresentação de slides predefinido",
+        "slideshowintervaldesc": "O tempo predefinido para apresentar cada imagem antes de avançar no modo de apresentação de slides"
     },
     "sidemenu": {
         "myalbums": "Meus álbuns",
@@ -305,7 +308,8 @@
         "albumsharingdescription": "Abrir painel de partilha para o álbum atual",
         "albumcover": "Definir capa de álbum",
         "removephotos": "Remover fotos",
-        "removephotosdescription": "Remover as fotos selecionadas deste álbum"
+        "removephotosdescription": "Remover as fotos selecionadas deste álbum",
+        "albumcovermultiselect": "Selecione apenas uma foto para definir como capa"
     },
     "modalalbum": {
         "title": "Adicionar ao Álbum",
@@ -339,7 +343,16 @@
             "removetimestamp": "Remover etiqueta de data/hora",
             "undotimestampmodification": "Anular alteração de etiqueta de data/hora",
             "suggestedcaption": "Legenda sugerida",
-            "places": "Locais"
+            "places": "Locais",
+            "albums": "Álbuns"
+        },
+        "controls": {
+            "fullscreen": "Ecrã inteiro (G)",
+            "exitfullscreen": "Sair do modo de ecrã inteiro (G)",
+            "zoom": "Zoom (Z)",
+            "close": "Fechar (ESC)",
+            "slideshow": "Apresentação de slides (S)",
+            "stopslideshow": "Terminar apresentação de slides (S)"
         }
     },
     "photos": {
@@ -796,5 +809,13 @@
         "scanPhotos": "Analisar Fotos"
     },
     "skip": "Pular",
-    "continue": "Continuar"
+    "continue": "Continuar",
+    "modalalbumcover": {
+        "title": "Escolher capa de álbum",
+        "selectphoto": "Selecione uma foto para usar como capa para {{album}}",
+        "nophotos": "Nenhuma foto disponível neste álbum",
+        "tip": "Sugestão: Também pode selecionar uma foto no álbum e clicar \"Definir como capa de álbum\" no menu.",
+        "loadmore": "Carregar mais {{count}} fotos",
+        "showing": "A mostrar {{visible}} de {{total}} fotos"
+    }
 }
