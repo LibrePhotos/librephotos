@@ -273,11 +273,12 @@
     },
     "defaultheader": {
         "photos": "fotos",
-        "setup": "Para começar a usar o LibrePhotos, defina a sua pasta de análise.",
-        "gettingstarted": "Editar utilizador",
+        "setup": "Defina a sua pasta de análise para começar a organizar a sua biblioteca de fotos.",
+        "gettingstarted": "Configurar biblioteca",
         "loading": "A carregar...",
         "noimages": "Nenhuma imagem encontrada",
-        "days": "dias"
+        "days": "dias",
+        "welcome": "Bem-vindo ao LibrePhotos"
     },
     "selectionactions": {
         "deleted": "Mover para o lixo",
