@@ -15,11 +15,12 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconCurrentLocation, IconSearch } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Map, Marker, TileLayer } from "react-leaflet";
-import L from "leaflet";
+import MapGL, { AttributionControl, Marker, MapRef, MarkerDragEvent, MapLayerMouseEvent, NavigationControl } from "react-map-gl/maplibre";
 
 import { useGeocodeSearchQuery } from "../../api_client/geocode";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
+
+const MAP_STYLE = "https://cdn.photoprism.app/maps/default.json";
 
 type Props = Readonly<{
   imageHash: string;
@@ -30,7 +31,7 @@ type Props = Readonly<{
 
 export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon }: Props) {
   const { t } = useTranslation();
-  const mapRef = useRef<Map>(null);
+  const mapRef = useRef<MapRef>(null);
 
   const [position, setPosition] = useState<[number, number] | null>(
     initialLat !== undefined && initialLon !== undefined ? [initialLat, initialLon] : null
@@ -46,15 +47,19 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
   const { data: searchResults, isLoading: isSearching } = useGeocodeSearchQuery(debouncedSearch);
 
-  const center = useMemo<[number, number]>(() => position ?? [48.8566, 2.3522], [position]); // Default to Paris if no position
-  const zoom = position ? 13 : 3;
+  const initialCenter = useMemo<[number, number]>(() => position ?? [48.8566, 2.3522], []);
+  const initialZoom = position ? 13 : 3;
 
   const { mutateAsync, isPending } = useUpdatePhotoMutation();
 
-  const handleMapClick = useCallback((e: L.LeafletMouseEvent) => {
-    const { lat } = e.latlng;
-    const lon = e.latlng.lng;
-    setPosition([lat, lon]);
+  const handleMapClick = useCallback((e: MapLayerMouseEvent) => {
+    const { lat, lng } = e.lngLat;
+    setPosition([lat, lng]);
+  }, []);
+
+  const handleMarkerDragEnd = useCallback((e: MarkerDragEvent) => {
+    const { lat, lng } = e.lngLat;
+    setPosition([lat, lng]);
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -70,9 +75,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       setSearchValue("");
       combobox.closeDropdown();
       // Pan map to the selected location
-      if (mapRef.current) {
-        mapRef.current.leafletElement.setView([lat, lon], 13);
-      }
+      mapRef.current?.flyTo({ center: [lon, lat], zoom: 13 });
     },
     [combobox]
   );
@@ -92,9 +95,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
         setPosition([latitude, longitude]);
         setIsGeolocating(false);
         // Pan map to the user's location
-        if (mapRef.current) {
-          mapRef.current.leafletElement.setView([latitude, longitude], 13);
-        }
+        mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 13 });
       },
       (error) => {
         setIsGeolocating(false);
@@ -122,9 +123,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
-          if (mapRef.current) {
-            mapRef.current.leafletElement.setView([latitude, longitude], 5);
-          }
+          mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 5 });
         },
         () => {
           // Silently fail - we'll use the default center
@@ -211,29 +210,30 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       </Text>
 
       <Box style={{ height: 350 }}>
-        <Map
+        <MapGL
           ref={mapRef}
-          center={center}
-          zoom={zoom}
-          style={{ height: 350 }}
-          onclick={handleMapClick as any}
+          initialViewState={{
+            longitude: initialCenter[1],
+            latitude: initialCenter[0],
+            zoom: initialZoom,
+          }}
+          style={{ width: "100%", height: 350 }}
+          mapStyle={MAP_STYLE}
+          onClick={handleMapClick}
+          attributionControl={false}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <NavigationControl position="top-right" />
+          <AttributionControl compact={true} />
           {position && (
             <Marker
-              position={position}
+              longitude={position[1]}
+              latitude={position[0]}
+              anchor="bottom"
               draggable
-              ondragend={(e: any) => {
-                const marker = e.target as L.Marker;
-                const { lat, lng } = marker.getLatLng();
-                setPosition([lat, lng]);
-              }}
+              onDragEnd={handleMarkerDragEnd}
             />
           )}
-        </Map>
+        </MapGL>
       </Box>
 
       {position && (
