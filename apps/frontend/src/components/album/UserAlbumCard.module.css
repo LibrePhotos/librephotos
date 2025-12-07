@@ -1,0 +1,70 @@
+.card {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.coverLink {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cover {
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--mantine-color-gray-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-mantine-color-scheme="dark"] .cover {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.coverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+}
+
+.publicIcon {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+}
+
+[data-mantine-color-scheme="dark"] .publicIcon {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.info {
+  margin-top: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+.sharedIcon {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--mantine-color-blue-6);
+}
+
+.sharedIcon:hover {
+  color: var(--mantine-color-blue-8);
+}
+

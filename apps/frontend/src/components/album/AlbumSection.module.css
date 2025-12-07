@@ -1,0 +1,224 @@
+.section {
+  margin-bottom: 1.5rem;
+}
+
+.sectionCompact {
+  margin-bottom: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding: 0 0.5rem;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Scroll variant (default) */
+.scrollContainer {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mantine-color-gray-4) transparent;
+}
+
+.scrollContainer::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scrollContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb {
+  background-color: var(--mantine-color-gray-4);
+  border-radius: 3px;
+}
+
+.albumCard {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: 140px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.albumCover {
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--mantine-color-gray-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-mantine-color-scheme="dark"] .albumCover {
+  background-color: var(--mantine-color-dark-6);
+}
+
+.albumCoverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.albumInfo {
+  margin-top: 0.5rem;
+  padding: 0 0.25rem;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: var(--mantine-color-dimmed);
+}
+
+.loadingContainer {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem;
+}
+
+.skeleton {
+  flex-shrink: 0;
+  width: 140px;
+}
+
+/* Avatar Grid variant for People */
+.avatarGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.avatarItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  width: 70px;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--mantine-color-gray-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--mantine-color-gray-3);
+}
+
+[data-mantine-color-scheme="dark"] .avatar {
+  background-color: var(--mantine-color-dark-5);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatarName {
+  margin-top: 0.25rem;
+  text-align: center;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Card variant for dashboard tiles */
+.cardContainer {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--mantine-color-gray-0);
+  border: 2px solid var(--mantine-color-gray-2);
+  height: 100%;
+}
+
+[data-mantine-color-scheme="dark"] .cardContainer {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+.cardCover {
+  width: 100%;
+  height: 120px;
+  background-color: var(--mantine-color-gray-1);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  overflow: hidden;
+}
+
+[data-mantine-color-scheme="dark"] .cardCover {
+  background-color: var(--mantine-color-dark-5);
+}
+
+.cardCoverSingle {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.cardCoverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardCoverThumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardBody {
+  padding: 0.75rem;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Loading states for variants */
+.avatarGridLoading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.cardLoading {
+  border-radius: 12px;
+  overflow: hidden;
+}

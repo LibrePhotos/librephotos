@@ -28,6 +28,7 @@ import { Route as ProtectedFavoritesRouteImport } from './routes/_protected/favo
 import { Route as ProtectedFacesRouteImport } from './routes/_protected/faces'
 import { Route as ProtectedDeletedRouteImport } from './routes/_protected/deleted'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
+import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
 import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
 import { Route as ProtectedSearchQueryRouteImport } from './routes/_protected/search.$query'
 import { Route as ProtectedPhotoIdRouteImport } from './routes/_protected/photo.$id'
@@ -143,6 +144,11 @@ const ProtectedDeletedRoute = ProtectedDeletedRouteImport.update({
 const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedAlbumIndexRoute = ProtectedAlbumIndexRouteImport.update({
+  id: '/album/',
+  path: '/album/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const PublicSSlugRoute = PublicSSlugRouteImport.update({
@@ -294,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
   '/public/s/$slug': typeof PublicSSlugRoute
+  '/album': typeof ProtectedAlbumIndexRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -336,6 +343,7 @@ export interface FileRoutesByTo {
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
   '/public/s/$slug': typeof PublicSSlugRoute
+  '/album': typeof ProtectedAlbumIndexRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -380,6 +388,7 @@ export interface FileRoutesById {
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
   '/public/s/$slug': typeof PublicSSlugRoute
+  '/_protected/album/': typeof ProtectedAlbumIndexRoute
   '/_protected/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/_protected/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/_protected/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -424,6 +433,7 @@ export interface FileRouteTypes {
     | '/photo/$id'
     | '/search/$query'
     | '/public/s/$slug'
+    | '/album'
     | '/album/events/$id'
     | '/album/folder/$id'
     | '/album/persons/$id'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/photo/$id'
     | '/search/$query'
     | '/public/s/$slug'
+    | '/album'
     | '/album/events/$id'
     | '/album/folder/$id'
     | '/album/persons/$id'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/_protected/photo/$id'
     | '/_protected/search/$query'
     | '/public/s/$slug'
+    | '/_protected/album/'
     | '/_protected/album/events/$id'
     | '/_protected/album/folder/$id'
     | '/_protected/album/persons/$id'
@@ -665,6 +677,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof ProtectedAdminRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/album/': {
+      id: '/_protected/album/'
+      path: '/album'
+      fullPath: '/album'
+      preLoaderRoute: typeof ProtectedAlbumIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/public/s/$slug': {
@@ -846,6 +865,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedDatavizWordcloudsRoute: typeof ProtectedDatavizWordcloudsRoute
   ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute
   ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute
+  ProtectedAlbumIndexRoute: typeof ProtectedAlbumIndexRoute
   ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute
   ProtectedAlbumFolderIdRoute: typeof ProtectedAlbumFolderIdRoute
   ProtectedAlbumPersonsIdRoute: typeof ProtectedAlbumPersonsIdRoute
@@ -884,6 +904,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedDatavizWordcloudsRoute: ProtectedDatavizWordcloudsRoute,
   ProtectedPhotoIdRoute: ProtectedPhotoIdRoute,
   ProtectedSearchQueryRoute: ProtectedSearchQueryRoute,
+  ProtectedAlbumIndexRoute: ProtectedAlbumIndexRoute,
   ProtectedAlbumEventsIdRoute: ProtectedAlbumEventsIdRoute,
   ProtectedAlbumFolderIdRoute: ProtectedAlbumFolderIdRoute,
   ProtectedAlbumPersonsIdRoute: ProtectedAlbumPersonsIdRoute,

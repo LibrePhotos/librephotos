@@ -22,3 +22,4 @@ export const useFetchPhotoAlbumsQuery = (hash: string) => useQuery({
   enabled: Boolean(hash),
 });
 
+

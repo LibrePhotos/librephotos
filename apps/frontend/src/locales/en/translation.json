@@ -299,6 +299,15 @@
     "youshared": "You shared",
     "sharedwithyou": "Shared with you"
   },
+  "explore": {
+    "title": "Explore Albums",
+    "subtitle": "Browse all your album collections",
+    "viewAll": "View All",
+    "albumCount_one": "{{count}} album",
+    "albumCount_other": "{{count}} albums",
+    "noAlbums": "No albums yet",
+    "noCover": "No cover"
+  },
   "selectionbar": {
     "selected": "selected",
     "toggle": "Toggle select mode",

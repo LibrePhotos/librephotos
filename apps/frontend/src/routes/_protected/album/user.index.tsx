@@ -1,16 +1,7 @@
-import { ActionIcon, Button, Group, Menu, Modal, Popover, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconAlbum as Album,
-  IconDotsVertical as DotsVertical,
-  IconEdit as Edit,
-  IconLink as LinkIcon,
-  IconShare as Share,
-  IconTrash as Trash,
-  IconUser as User,
-  IconUsers as Users,
-} from "@tabler/icons-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { IconAlbum as Album } from "@tabler/icons-react";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
@@ -19,36 +10,12 @@ import {
   useFetchUserAlbumsQuery,
   useRenameUserAlbumMutation,
 } from "../../../api_client/albums/hooks";
-import { UserAlbumInfo } from "../../../api_client/albums/types";
+import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
-import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/user/")();
-
-function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
-  const [opened, { toggle, close }] = useDisclosure(false);
-  // To-Do: Figure out, why album is an array / json <- is it still the case?
-  return (
-    <Popover opened={opened} position="bottom" width={260} onClose={close}>
-      <Popover.Target>
-        <Users size={20} onClick={toggle} />
-      </Popover.Target>
-      <Popover.Dropdown>
-        <Stack>
-          <Title order={5}>Shared with:</Title>
-          {album.shared_to.map(el => (
-            <Group key={el.username}>
-              <User />
-              <b>{el.username}</b>
-            </Group>
-          ))}
-        </Stack>
-      </Popover.Dropdown>
-    </Popover>
-  );
-}
 
 export function AlbumUser() {
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
@@ -84,10 +51,6 @@ export function AlbumUser() {
     if (album) setAlbumOwner(album.owner.username);
   };
 
-  function isShared(album: UserAlbumInfo) {
-    return album.shared_to.length > 0;
-  }
-
   function renderCell({ columnIndex, key, rowIndex, style }) {
     if (!albums || albums.length === 0) {
       return null;
@@ -99,59 +62,15 @@ export function AlbumUser() {
     const album = albums[index];
     return (
       <div key={key} style={style}>
-        <div style={{ padding: 5, height: entrySquareSize, width: entrySquareSize }}>
-          <Link to="/album/user/$id" params={{ id: album.id.toString() }}>
-            {album.cover_photo && (
-              <Tile
-                video={album.cover_photo.video === true}
-                height={entrySquareSize - 10}
-                width={entrySquareSize - 10}
-                image_hash={album.cover_photo.image_hash}
-              />
-            )}
-          </Link>
-
-          <div style={{ position: "absolute", top: 10, right: 10 }}>
-            <Menu position="bottom-end">
-              <Menu.Target>
-                <ActionIcon variant="subtle" c="gray">
-                  <DotsVertical />
-                </ActionIcon>
-              </Menu.Target>
-
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<Edit />} onClick={() => openRenameDialog(`${album.id}`, album.title)}>
-                  {t("rename")}
-                </Menu.Item>
-                <Menu.Item leftSection={<Share />} onClick={() => openShareDialog(`${album.id}`, album.title)}>
-                  {t("sidemenu.sharing")}
-                </Menu.Item>
-                <Menu.Item leftSection={<Trash />} onClick={() => openDeleteDialog(`${album.id}`, album.title)}>
-                  {t("delete")}
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          </div>
-          {album.public && (
-            <div style={{ position: "absolute", top: 10, left: 10 }}>
-              <Tooltip label="This album is public">
-                <span>
-                  <LinkIcon size={18} />
-                </span>
-              </Tooltip>
-            </div>
-          )}
-        </div>
-        <div className="personCardName" style={{ paddingLeft: 15, paddingRight: 15, height: 50 }}>
-          <Group>
-            {isShared(album) && <SharedWith album={album} />}
-            <Text fw="bold" lineClamp={1}>
-              {album.title}
-            </Text>
-          </Group>
-          {t("numberofphotos", {
-            number: album.photo_count,
-          })}
+        <div style={{ padding: 5 }}>
+          <UserAlbumCard
+            album={album}
+            size={entrySquareSize - 10}
+            showActions
+            onRename={openRenameDialog}
+            onShare={openShareDialog}
+            onDelete={openDeleteDialog}
+          />
         </div>
       </div>
     );

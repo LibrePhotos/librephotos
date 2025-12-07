@@ -2,23 +2,18 @@ import { MantineColor } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
-  IconBookmark as Bookmark,
   IconChartBar as ChartBar,
   IconChartLine as ChartLine,
   IconCloud as Cloud,
   IconDownload as Download,
   IconFaceId as FaceId,
-  IconFolder as Folder,
-  IconMap as Map,
   IconMoodSmile as MoodSmile,
   IconPhoto as Photo,
   IconShare as Share,
-  IconTags as Tags,
   IconTrash as Trash,
   IconUpload as Upload,
   IconUsers as Users,
   IconVectorTriangle as VectorTriangle,
-  IconWand as Wand,
   IconWorld as World,
 } from "@tabler/icons-react";
 import { TFunction } from "i18next";
@@ -49,22 +44,7 @@ export function getNavigationItems(
 ): Array<MenuItem> {
   return [
     { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
-    {
-      label: t("sidemenu.albums"),
-      link: "/album/persons",
-      icon: Album,
-      color: "blue",
-      submenu: [
-        { header: t("sidemenu.albums") },
-        { label: t("sidemenu.people"), link: "/album/persons", icon: Users },
-        { label: t("sidemenu.places"), link: "/album/places", icon: Map },
-        { label: t("sidemenu.things"), link: "/album/things", icon: Tags },
-        { separator: true },
-        { label: t("sidemenu.myalbums"), link: "/album/user", icon: Bookmark },
-        { label: t("folders", { defaultValue: "Folders" }), link: "/album/folder", icon: Folder },
-        { label: t("sidemenu.autoalbums"), link: "/album/events", icon: Wand },
-      ],
-    },
+    { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
     {
       label: t("sidemenu.datavizsmall"),
       link: "/placetree",
