@@ -243,7 +243,8 @@
         "publicphotos": "Fotos públicas",
         "youshared": "Partilhadas por si",
         "sharedwithyou": "Partilhadas consigo",
-        "videos": "Vídeos"
+        "videos": "Vídeos",
+        "statistics": "Estatísticas"
     },
     "modalnextcloud": {
         "cancel": "Cancelar",
@@ -467,7 +468,8 @@
         "skip_raw_files": "Ignorar ficheiros RAW"
     },
     "countstats": {
-        "photos": "Fotos"
+        "photos": "Fotos",
+        "explorecharts": "Explorar gráficos"
     },
     "autoalbum": {
         "subtitle": "A mostrar {{ autoalbumlength }} albuns gerados automaticamente",
@@ -541,7 +543,7 @@
     "nodata": "Sem dados",
     "nosocialgraph": "Nenhum gráfico social",
     "fetchingsocialgraph": "A carregar gráfico social…",
-    "faceclusterexplanation": "Pessoas com caras semelhantes deverão estar agrupadas próximas umas das outras aqui (clique num ponto para ver a legenda).",
+    "faceclusterexplanation": "Pessoas com caras semelhantes deverão estar agrupadas próximas umas das outras aqui. Clique numa cara para ver detalhes.",
     "dataviz": "Visualização de dados",
     "locationtimeline": "Linha do tempo de locais",
     "faces": "Caras",
@@ -655,7 +657,25 @@
         "source_tz": "Transformar da regra {{rule}}",
         "rule_type": "Tipo de regra: {{rule}}"
     },
-    "placetree": "Árvore de locais",
+    "placetree": {
+        "loading": "A carregar árvore de lugares...",
+        "layout": "Layout",
+        "cartesian": "Árvore",
+        "polar": "Radial",
+        "orientation": "Direção",
+        "horizontal": "Horizontal",
+        "vertical": "Vertical",
+        "linkStyle": "Ligações",
+        "curve": "Suave",
+        "step": "Degrau",
+        "line": "Linha",
+        "zoomIn": "Ampliar (+)",
+        "zoomOut": "Reduzir (-)",
+        "reset": "Redefinir vista (0)",
+        "hint": "Clique nos nós para expandir • Arraste para deslocar • Use o scroll para fazer zoom",
+        "ariaLabel": "Visualização interativa da árvore de lugares",
+        "clickToExpand": "Clique para expandir/colapsar"
+    },
     "thingalbum": {
         "showingthings": "A mostrar top {{number}} coisas"
     },
@@ -806,7 +826,11 @@
         "goToLibrary": "Ir para Biblioteca",
         "goToFaces": "Ir para Caras",
         "generateEvents": "Gerar Eventos",
-        "scanPhotos": "Analisar Fotos"
+        "scanPhotos": "Analisar Fotos",
+        "placetree": {
+            "title": "Ainda sem dados de localização",
+            "description": "Carregue fotos com informação de localização para ver os seus lugares como uma árvore."
+        }
     },
     "skip": "Pular",
     "continue": "Continuar",
@@ -817,5 +841,22 @@
         "tip": "Sugestão: Também pode selecionar uma foto no álbum e clicar \"Definir como capa de álbum\" no menu.",
         "loadmore": "Carregar mais {{count}} fotos",
         "showing": "A mostrar {{visible}} de {{total}} fotos"
-    }
+    },
+    "explore": {
+        "title": "Explorar Álbuns",
+        "subtitle": "Explorar todas as suas coleções de álbuns",
+        "viewAll": "Ver todos",
+        "albumCount_one": "{{count}} álbum",
+        "albumCount_other": "{{count}} álbuns",
+        "noAlbums": "Ainda sem álbuns",
+        "noCover": "Sem capa"
+    },
+    "statistics": {
+        "title": "Estatísticas"
+    },
+    "faceclusterloading": "A analisar aglomerados de caras...",
+    "all": "Todos",
+    "clicktoview": "Clique para ver foto",
+    "identifiedpeople": "Pessoas identificadas",
+    "totalfaces": "Total de caras"
 }
