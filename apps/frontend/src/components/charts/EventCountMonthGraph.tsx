@@ -1,46 +1,39 @@
 import { IconChartBar } from "@tabler/icons-react";
-import { Loader, Stack, Title, useComputedColorScheme } from "@mantine/core";
+import { Loader, Stack, Title } from "@mantine/core";
+import { BarChart } from "@mantine/charts";
+import { DateTime } from "luxon";
 import React from "react";
-import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-import { Bars, Chart, Layer, Ticks } from "rumble-charts";
 
 import { useFetchPhotoMonthCountQuery } from "../../api_client/stats/hooks";
+import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
 
 export function EventCountMonthGraph() {
-  const colorScheme = useComputedColorScheme();
   const { t } = useTranslation();
-  const { observe: observeChange, width } = useDimensions({
-    onResize: ({ observe, unobserve }) => {
-      observe();
-      unobserve(); // To stop observing the current target element
-    },
-  });
   const { data: photoMonthCounts, isSuccess: fetchedPhotoMonthCounts, isLoading } = useFetchPhotoMonthCountQuery();
 
-  let series: Array<{ y: number; month: string }> = [];
-  let xticks: Array<string> = [];
-  if (fetchedPhotoMonthCounts && photoMonthCounts) {
-    const countDict = photoMonthCounts;
-    series = countDict.map((el: any) => ({ y: el.count, month: el.month }));
-    xticks = countDict.map((el: any) => el.month);
-  }
+  const chartData = fetchedPhotoMonthCounts && photoMonthCounts
+    ? photoMonthCounts.map((el: { count: number; month: string }) => {
+        // Parse the month string (format: "YYYY-M") and format by locale
+        const [year, month] = el.month.split("-");
+        const date = DateTime.fromObject({ year: parseInt(year, 10), month: parseInt(month, 10) });
+        const formattedMonth = date
+          .setLocale(i18nResolvedLanguage())
+          .toLocaleString({ year: "2-digit", month: "short" });
+        
+        return {
+          month: formattedMonth,
+          Photos: el.count,
+        };
+      })
+    : [];
 
-  const hasData = series.length > 0;
-
-  const data = [
-    {
-      data: series,
-    },
-    {
-      data: [0, 1, 2],
-    },
-  ];
+  const hasData = chartData.length > 0;
 
   return (
-    <Stack ref={observeChange}>
-      <Title order={3}>Monthly Photo Counts</Title>
+    <Stack>
+      <Title order={3}>{t("sidemenu.timeline")}</Title>
       {isLoading && <Loader />}
       {!isLoading && !hasData && (
         <EmptyState
@@ -51,39 +44,38 @@ export function EventCountMonthGraph() {
           actionLink="/library"
         />
       )}
-      {fetchedPhotoMonthCounts && hasData && width > 0 && (
-        <div>
-          <Chart width={width} height={300} series={[data[0]]}>
-            <Layer width="85%" height="85%" position="middle center">
-              <Ticks
-                axis="y"
-                lineLength="100%"
-                lineVisible
-                lineStyle={{ stroke: "lightgray" }}
-                labelStyle={{
-                  textAnchor: "end",
-                  dominantBaseline: "middle",
-                  fill: colorScheme === "dark" ? "grey" : "black",
-                }}
-                labelAttributes={{ x: -15 }}
-                labelFormat={(label: any) => label}
-              />
-              <Ticks
-                lineVisible
-                lineLength="100%"
-                axis="x"
-                labelFormat={(label: any) => xticks[label]}
-                labelStyle={{
-                  textAnchor: "middle",
-                  dominantBaseline: "text-before-edge",
-                  fill: colorScheme === "dark" ? "grey" : "black",
-                }}
-                labelAttributes={{ y: 5 }}
-              />
-              <Bars />
-            </Layer>
-          </Chart>
-        </div>
+      {fetchedPhotoMonthCounts && hasData && (
+        <BarChart
+          h={350}
+          data={chartData}
+          dataKey="month"
+          series={[{ name: "Photos", color: "blue.6" }]}
+          tickLine="y"
+          gridAxis="y"
+          withTooltip
+          tooltipAnimationDuration={200}
+          cursorFill="var(--mantine-color-blue-light)"
+          tooltipProps={{
+            content: ({ payload }) => {
+              if (!payload || payload.length === 0) return null;
+              const data = payload[0].payload;
+              return (
+                <div style={{
+                  background: "var(--mantine-color-body)",
+                  border: "1px solid var(--mantine-color-default-border)",
+                  borderRadius: "var(--mantine-radius-sm)",
+                  padding: "8px 12px",
+                  boxShadow: "var(--mantine-shadow-md)",
+                }}>
+                  <div style={{ fontWeight: 500, marginBottom: 4 }}>{data.month}</div>
+                  <div style={{ color: "var(--mantine-color-blue-6)" }}>
+                    {data.Photos} {t("photos.photos")}
+                  </div>
+                </div>
+              );
+            },
+          }}
+        />
       )}
     </Stack>
   );

@@ -5,6 +5,7 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite'
 export default defineConfig({
   base: "/",
   plugins: [tanstackRouter({target: "react", autoCodeSplitting: true}), react()],
+  appType: 'spa',
   server: {
     host: "0.0.0.0",
     port: 3000,

@@ -1,0 +1,340 @@
+.container {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, 
+    var(--mantine-color-dark-8) 0%, 
+    var(--mantine-color-dark-7) 50%,
+    color-mix(in srgb, var(--mantine-color-blue-9) 15%, var(--mantine-color-dark-7)) 100%
+  );
+  border-radius: var(--mantine-radius-lg);
+  border: 1px solid var(--mantine-color-dark-5);
+}
+
+[data-mantine-color-scheme="light"] .container {
+  background: linear-gradient(135deg, 
+    var(--mantine-color-gray-0) 0%, 
+    var(--mantine-color-gray-1) 50%,
+    color-mix(in srgb, var(--mantine-color-blue-1) 30%, var(--mantine-color-gray-1)) 100%
+  );
+  border-color: var(--mantine-color-gray-3);
+}
+
+.controlsToolbar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: color-mix(in srgb, var(--mantine-color-dark-7) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 60%, transparent);
+  border-radius: 999px;
+  padding: 6px 10px;
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-mantine-color-scheme="light"] .controlsToolbar {
+  background: color-mix(in srgb, white 92%, transparent);
+  border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 20px;
+  background: var(--mantine-color-dark-4);
+  margin: 0 6px;
+  opacity: 0.6;
+}
+
+[data-mantine-color-scheme="light"] .toolbarDivider {
+  background: var(--mantine-color-gray-3);
+}
+
+.toolbarButton {
+  transition: all 0.15s ease;
+}
+
+.toolbarButton:hover {
+  transform: scale(1.05);
+}
+
+.zoomControls {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  background: color-mix(in srgb, var(--mantine-color-dark-7) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 60%, transparent);
+  border-radius: 24px;
+  padding: 6px;
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-mantine-color-scheme="light"] .zoomControls {
+  background: color-mix(in srgb, white 92%, transparent);
+  border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.zoomButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--mantine-color-gray-4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.zoomButton:hover {
+  background: var(--mantine-color-dark-5);
+  color: white;
+}
+
+.zoomButton:active {
+  transform: scale(0.92);
+}
+
+[data-mantine-color-scheme="light"] .zoomButton {
+  color: var(--mantine-color-dark-3);
+}
+
+[data-mantine-color-scheme="light"] .zoomButton:hover {
+  background: var(--mantine-color-gray-2);
+  color: var(--mantine-color-dark-6);
+}
+
+.zoomDivider {
+  width: 16px;
+  height: 1px;
+  background: var(--mantine-color-dark-4);
+  margin: 2px 0;
+  opacity: 0.5;
+}
+
+[data-mantine-color-scheme="light"] .zoomDivider {
+  background: var(--mantine-color-gray-4);
+}
+
+.zoomLevel {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--mantine-color-dimmed);
+  padding: 4px 0;
+  min-width: 32px;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-mantine-color-scheme="light"] .zoomLevel {
+  color: var(--mantine-color-dark-4);
+}
+
+.svgCanvas {
+  cursor: grab;
+  outline: none;
+}
+
+.svgCanvas:active {
+  cursor: grabbing;
+}
+
+.hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mantine-color-dimmed);
+  background: color-mix(in srgb, var(--mantine-color-dark-7) 75%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 50%, transparent);
+  opacity: 0.9;
+  pointer-events: none;
+  animation: fadeInHint 0.4s ease;
+}
+
+@keyframes fadeInHint {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 0.9;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+[data-mantine-color-scheme="light"] .hint {
+  background: color-mix(in srgb, white 85%, transparent);
+  border-color: color-mix(in srgb, var(--mantine-color-gray-3) 70%, transparent);
+}
+
+/* Node styles */
+.nodeGroup {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.nodeGroup:hover {
+  filter: brightness(1.1);
+}
+
+.nodeRect {
+  transition: all 0.2s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.nodeGroup:hover .nodeRect {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.nodeText {
+  pointer-events: none;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.expandIndicator {
+  font-size: 10px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Link styles */
+.link {
+  transition: stroke-opacity 0.2s ease;
+}
+
+/* Loading overlay */
+.loadingOverlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  min-height: 400px;
+}
+
+.emptyContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* Tooltip */
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: color-mix(in srgb, var(--mantine-color-dark-7) 92%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 60%, transparent);
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  max-width: 250px;
+  animation: tooltipIn 0.15s ease;
+}
+
+@keyframes tooltipIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+[data-mantine-color-scheme="light"] .tooltip {
+  background: color-mix(in srgb, white 95%, transparent);
+  border-color: color-mix(in srgb, var(--mantine-color-gray-3) 80%, transparent);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.tooltipTitle {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--mantine-color-gray-0);
+  margin-bottom: 3px;
+}
+
+[data-mantine-color-scheme="light"] .tooltipTitle {
+  color: var(--mantine-color-dark-7);
+}
+
+.tooltipCount {
+  font-size: 11px;
+  color: var(--mantine-color-blue-4);
+  font-weight: 500;
+}
+
+[data-mantine-color-scheme="light"] .tooltipCount {
+  color: var(--mantine-color-blue-6);
+}
+
+.tooltipHint {
+  font-size: 10px;
+  color: var(--mantine-color-dimmed);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--mantine-color-dark-4) 40%, transparent);
+  font-style: normal;
+  opacity: 0.8;
+}
+
+[data-mantine-color-scheme="light"] .tooltipHint {
+  border-top-color: color-mix(in srgb, var(--mantine-color-gray-3) 60%, transparent);
+}
+

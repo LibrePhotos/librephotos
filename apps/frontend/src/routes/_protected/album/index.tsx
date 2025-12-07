@@ -25,7 +25,6 @@ import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks/
 import { AlbumSection } from "../../../components/album/AlbumSection";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
-import { HeaderComponent } from "../../../components/HeaderComponent";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import classes from "../../../components/album/AlbumSection.module.css";
 
@@ -118,14 +117,15 @@ export function AlbumExplore() {
 
   return (
     <Box p={10}>
-      <HeaderComponent
-        icon={<IconAlbum size={50} />}
-        title={t("explore.title")}
-        fetching={false}
-        subtitle={t("explore.subtitle")}
-      />
+      <Group justify="left" mb="md">
+        <IconAlbum size={40} stroke={1.5} />
+        <div>
+          <Title order={2}>{t("explore.title")}</Title>
+          <Text c="dimmed">{t("explore.subtitle")}</Text>
+        </div>
+      </Group>
 
-      <Stack gap="md" mt="md">
+      <Stack gap="md">
         {/* My Albums - using UserAlbumCard component */}
         <div className={classes.section}>
           <div className={classes.header}>

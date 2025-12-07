@@ -49,7 +49,7 @@ import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
 import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
-import { CountStats } from "../statistics";
+import { CountStats } from "../CountStats";
 import { notification } from "../../service/notifications";
 import { User } from "../../api_client/user/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";

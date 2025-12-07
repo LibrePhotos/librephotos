@@ -291,6 +291,7 @@
     "socialgraph": "Social Graph",
     "facecluster": "Face Clusters",
     "datavizsmall": "Data",
+    "statistics": "Statistics",
     "facerecognition": "Faces",
     "library": "Library",
     "dashboards": "Dashboards",
@@ -508,7 +509,11 @@
     "blip_warning": "This feature needs an additional 3GBs of RAM to work properly. Please consider this before proceeding."
   },
   "countstats": {
-    "photos": "Photos"
+    "photos": "Photos",
+    "explorecharts": "Explore charts"
+  },
+  "statistics": {
+    "title": "Statistics"
   },
   "autoalbum": {
     "subtitle": "Showing {{ autoalbumlength }} Auto created albums",
@@ -595,7 +600,12 @@
   "nodata": "No data",
   "nosocialgraph": "No social graph",
   "fetchingsocialgraph": "Fetching social graph…",
-  "faceclusterexplanation": "People with similar looking faces should be grouped closer together in this plot (Click on a point to see the label).",
+  "faceclusterexplanation": "People with similar looking faces should be grouped closer together in this plot. Click on a face to see details.",
+  "faceclusterloading": "Analyzing face clusters...",
+  "all": "All",
+  "clicktoview": "Click to view photo",
+  "identifiedpeople": "Identified people",
+  "totalfaces": "Total faces",
   "dataviz": "Data Visualization",
   "placetree": "Place Tree",
   "wordclouds": "Word Clouds",
@@ -744,7 +754,30 @@
   "results": "Results",
   "no_folders_found": "No folders found",
   "showing_first": "showing first",
+  "placetree": {
+    "loading": "Loading place tree...",
+    "layout": "Layout",
+    "cartesian": "Tree",
+    "polar": "Radial",
+    "orientation": "Direction",
+    "horizontal": "Horizontal",
+    "vertical": "Vertical",
+    "linkStyle": "Connections",
+    "curve": "Smooth",
+    "step": "Step",
+    "line": "Line",
+    "zoomIn": "Zoom in (+)",
+    "zoomOut": "Zoom out (-)",
+    "reset": "Reset view (0)",
+    "hint": "Click nodes to expand • Drag to pan • Scroll to zoom",
+    "ariaLabel": "Interactive place tree visualization",
+    "clickToExpand": "Click to expand/collapse"
+  },
   "emptystate": {
+    "placetree": {
+      "title": "No location data yet",
+      "description": "Upload photos with location information to see your places visualized as a tree."
+    },
     "photos": {
       "title": "No photos yet",
       "description": "Scan your photo library to see your photos here."

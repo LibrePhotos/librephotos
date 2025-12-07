@@ -2,18 +2,13 @@ import { MantineColor } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
-  IconChartBar as ChartBar,
   IconChartLine as ChartLine,
-  IconCloud as Cloud,
   IconDownload as Download,
   IconFaceId as FaceId,
-  IconMoodSmile as MoodSmile,
   IconPhoto as Photo,
-  IconShare as Share,
   IconTrash as Trash,
   IconUpload as Upload,
   IconUsers as Users,
-  IconVectorTriangle as VectorTriangle,
   IconWorld as World,
 } from "@tabler/icons-react";
 import { TFunction } from "i18next";
@@ -45,20 +40,7 @@ export function getNavigationItems(
   return [
     { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
     { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
-    {
-      label: t("sidemenu.datavizsmall"),
-      link: "/placetree",
-      icon: ChartLine,
-      color: "yellow",
-      submenu: [
-        { header: t("sidemenu.dataviz") },
-        { label: t("sidemenu.placetree"), link: "/dataviz/placetree", icon: VectorTriangle },
-        { label: t("sidemenu.wordclouds"), link: "/dataviz/wordclouds", icon: Cloud },
-        { label: t("sidemenu.timeline"), link: "/dataviz/timeline", icon: ChartBar },
-        { label: t("sidemenu.socialgraph"), link: "/dataviz/socialgraph", icon: Share },
-        { label: t("sidemenu.facecluster"), link: "/dataviz/facescatter", icon: MoodSmile },
-      ],
-    },
+    { label: t("sidemenu.statistics"), link: "/statistics", icon: ChartLine, color: "yellow" },
     { label: t("sidemenu.facerecognition"), link: "/faces", icon: FaceId, color: "orange" },
     {
       label: t("sidemenu.sharing"),

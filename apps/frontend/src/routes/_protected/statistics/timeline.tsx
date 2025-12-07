@@ -1,19 +1,20 @@
-import { Divider } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
+
+import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 import { EventCountMonthGraph } from "../../../components/charts/EventCountMonthGraph";
 import { LocationDurationStackedBar } from "../../../components/charts/LocationDurationStackedBar";
 
-export const Route = createFileRoute("/_protected/dataviz/timeline")();
+export const Route = createFileRoute("/_protected/statistics/timeline")();
 
-export function Timeline() {
+function Timeline() {
   return (
-    <div style={{ padding: 10 }}>
-      <div>
+    <StatisticsNav>
+      <Stack gap="xl">
         <EventCountMonthGraph />
-        <Divider hidden />
         <LocationDurationStackedBar />
-      </div>
-    </div>
+      </Stack>
+    </StatisticsNav>
   );
 }
 

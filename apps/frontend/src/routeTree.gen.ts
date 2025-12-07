@@ -28,15 +28,16 @@ import { Route as ProtectedFavoritesRouteImport } from './routes/_protected/favo
 import { Route as ProtectedFacesRouteImport } from './routes/_protected/faces'
 import { Route as ProtectedDeletedRouteImport } from './routes/_protected/deleted'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
+import { Route as ProtectedStatisticsIndexRouteImport } from './routes/_protected/statistics/index'
 import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
 import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
+import { Route as ProtectedStatisticsWordcloudsRouteImport } from './routes/_protected/statistics/wordclouds'
+import { Route as ProtectedStatisticsTimelineRouteImport } from './routes/_protected/statistics/timeline'
+import { Route as ProtectedStatisticsSocialgraphRouteImport } from './routes/_protected/statistics/socialgraph'
+import { Route as ProtectedStatisticsPlacetreeRouteImport } from './routes/_protected/statistics/placetree'
+import { Route as ProtectedStatisticsFaceclustersRouteImport } from './routes/_protected/statistics/faceclusters'
 import { Route as ProtectedSearchQueryRouteImport } from './routes/_protected/search.$query'
 import { Route as ProtectedPhotoIdRouteImport } from './routes/_protected/photo.$id'
-import { Route as ProtectedDatavizWordcloudsRouteImport } from './routes/_protected/dataviz/wordclouds'
-import { Route as ProtectedDatavizTimelineRouteImport } from './routes/_protected/dataviz/timeline'
-import { Route as ProtectedDatavizSocialgraphRouteImport } from './routes/_protected/dataviz/socialgraph'
-import { Route as ProtectedDatavizPlacetreeRouteImport } from './routes/_protected/dataviz/placetree'
-import { Route as ProtectedDatavizFacescatterRouteImport } from './routes/_protected/dataviz/facescatter'
 import { Route as ProtectedAlbumUserIndexRouteImport } from './routes/_protected/album/user.index'
 import { Route as ProtectedAlbumThingsIndexRouteImport } from './routes/_protected/album/things.index'
 import { Route as ProtectedAlbumPlacesIndexRouteImport } from './routes/_protected/album/places.index'
@@ -146,6 +147,12 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedStatisticsIndexRoute =
+  ProtectedStatisticsIndexRouteImport.update({
+    id: '/statistics/',
+    path: '/statistics/',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
 const ProtectedAlbumIndexRoute = ProtectedAlbumIndexRouteImport.update({
   id: '/album/',
   path: '/album/',
@@ -156,6 +163,36 @@ const PublicSSlugRoute = PublicSSlugRouteImport.update({
   path: '/s/$slug',
   getParentRoute: () => PublicRouteRoute,
 } as any)
+const ProtectedStatisticsWordcloudsRoute =
+  ProtectedStatisticsWordcloudsRouteImport.update({
+    id: '/statistics/wordclouds',
+    path: '/statistics/wordclouds',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
+const ProtectedStatisticsTimelineRoute =
+  ProtectedStatisticsTimelineRouteImport.update({
+    id: '/statistics/timeline',
+    path: '/statistics/timeline',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
+const ProtectedStatisticsSocialgraphRoute =
+  ProtectedStatisticsSocialgraphRouteImport.update({
+    id: '/statistics/socialgraph',
+    path: '/statistics/socialgraph',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
+const ProtectedStatisticsPlacetreeRoute =
+  ProtectedStatisticsPlacetreeRouteImport.update({
+    id: '/statistics/placetree',
+    path: '/statistics/placetree',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
+const ProtectedStatisticsFaceclustersRoute =
+  ProtectedStatisticsFaceclustersRouteImport.update({
+    id: '/statistics/faceclusters',
+    path: '/statistics/faceclusters',
+    getParentRoute: () => ProtectedRouteRoute,
+  } as any)
 const ProtectedSearchQueryRoute = ProtectedSearchQueryRouteImport.update({
   id: '/search/$query',
   path: '/search/$query',
@@ -166,36 +203,6 @@ const ProtectedPhotoIdRoute = ProtectedPhotoIdRouteImport.update({
   path: '/photo/$id',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
-const ProtectedDatavizWordcloudsRoute =
-  ProtectedDatavizWordcloudsRouteImport.update({
-    id: '/dataviz/wordclouds',
-    path: '/dataviz/wordclouds',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedDatavizTimelineRoute =
-  ProtectedDatavizTimelineRouteImport.update({
-    id: '/dataviz/timeline',
-    path: '/dataviz/timeline',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedDatavizSocialgraphRoute =
-  ProtectedDatavizSocialgraphRouteImport.update({
-    id: '/dataviz/socialgraph',
-    path: '/dataviz/socialgraph',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedDatavizPlacetreeRoute =
-  ProtectedDatavizPlacetreeRouteImport.update({
-    id: '/dataviz/placetree',
-    path: '/dataviz/placetree',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedDatavizFacescatterRoute =
-  ProtectedDatavizFacescatterRouteImport.update({
-    id: '/dataviz/facescatter',
-    path: '/dataviz/facescatter',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
 const ProtectedAlbumUserIndexRoute = ProtectedAlbumUserIndexRouteImport.update({
   id: '/album/user/',
   path: '/album/user/',
@@ -292,15 +299,16 @@ export interface FileRoutesByFullPath {
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
-  '/dataviz/facescatter': typeof ProtectedDatavizFacescatterRoute
-  '/dataviz/placetree': typeof ProtectedDatavizPlacetreeRoute
-  '/dataviz/socialgraph': typeof ProtectedDatavizSocialgraphRoute
-  '/dataviz/timeline': typeof ProtectedDatavizTimelineRoute
-  '/dataviz/wordclouds': typeof ProtectedDatavizWordcloudsRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
+  '/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
+  '/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
+  '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
+  '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
+  '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/album': typeof ProtectedAlbumIndexRoute
+  '/statistics': typeof ProtectedStatisticsIndexRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -335,15 +343,16 @@ export interface FileRoutesByTo {
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
-  '/dataviz/facescatter': typeof ProtectedDatavizFacescatterRoute
-  '/dataviz/placetree': typeof ProtectedDatavizPlacetreeRoute
-  '/dataviz/socialgraph': typeof ProtectedDatavizSocialgraphRoute
-  '/dataviz/timeline': typeof ProtectedDatavizTimelineRoute
-  '/dataviz/wordclouds': typeof ProtectedDatavizWordcloudsRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
+  '/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
+  '/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
+  '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
+  '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
+  '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/album': typeof ProtectedAlbumIndexRoute
+  '/statistics': typeof ProtectedStatisticsIndexRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -380,15 +389,16 @@ export interface FileRoutesById {
   '/_protected/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/_protected/': typeof ProtectedIndexRoute
-  '/_protected/dataviz/facescatter': typeof ProtectedDatavizFacescatterRoute
-  '/_protected/dataviz/placetree': typeof ProtectedDatavizPlacetreeRoute
-  '/_protected/dataviz/socialgraph': typeof ProtectedDatavizSocialgraphRoute
-  '/_protected/dataviz/timeline': typeof ProtectedDatavizTimelineRoute
-  '/_protected/dataviz/wordclouds': typeof ProtectedDatavizWordcloudsRoute
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
+  '/_protected/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
+  '/_protected/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
+  '/_protected/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
+  '/_protected/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
+  '/_protected/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/_protected/album/': typeof ProtectedAlbumIndexRoute
+  '/_protected/statistics/': typeof ProtectedStatisticsIndexRoute
   '/_protected/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/_protected/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/_protected/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -425,15 +435,16 @@ export interface FileRouteTypes {
     | '/videos'
     | '/public/$users'
     | '/'
-    | '/dataviz/facescatter'
-    | '/dataviz/placetree'
-    | '/dataviz/socialgraph'
-    | '/dataviz/timeline'
-    | '/dataviz/wordclouds'
     | '/photo/$id'
     | '/search/$query'
+    | '/statistics/faceclusters'
+    | '/statistics/placetree'
+    | '/statistics/socialgraph'
+    | '/statistics/timeline'
+    | '/statistics/wordclouds'
     | '/public/s/$slug'
     | '/album'
+    | '/statistics'
     | '/album/events/$id'
     | '/album/folder/$id'
     | '/album/persons/$id'
@@ -468,15 +479,16 @@ export interface FileRouteTypes {
     | '/videos'
     | '/public/$users'
     | '/'
-    | '/dataviz/facescatter'
-    | '/dataviz/placetree'
-    | '/dataviz/socialgraph'
-    | '/dataviz/timeline'
-    | '/dataviz/wordclouds'
     | '/photo/$id'
     | '/search/$query'
+    | '/statistics/faceclusters'
+    | '/statistics/placetree'
+    | '/statistics/socialgraph'
+    | '/statistics/timeline'
+    | '/statistics/wordclouds'
     | '/public/s/$slug'
     | '/album'
+    | '/statistics'
     | '/album/events/$id'
     | '/album/folder/$id'
     | '/album/persons/$id'
@@ -512,15 +524,16 @@ export interface FileRouteTypes {
     | '/_protected/videos'
     | '/public/$users'
     | '/_protected/'
-    | '/_protected/dataviz/facescatter'
-    | '/_protected/dataviz/placetree'
-    | '/_protected/dataviz/socialgraph'
-    | '/_protected/dataviz/timeline'
-    | '/_protected/dataviz/wordclouds'
     | '/_protected/photo/$id'
     | '/_protected/search/$query'
+    | '/_protected/statistics/faceclusters'
+    | '/_protected/statistics/placetree'
+    | '/_protected/statistics/socialgraph'
+    | '/_protected/statistics/timeline'
+    | '/_protected/statistics/wordclouds'
     | '/public/s/$slug'
     | '/_protected/album/'
+    | '/_protected/statistics/'
     | '/_protected/album/events/$id'
     | '/_protected/album/folder/$id'
     | '/_protected/album/persons/$id'
@@ -679,6 +692,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAdminRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/statistics/': {
+      id: '/_protected/statistics/'
+      path: '/statistics'
+      fullPath: '/statistics'
+      preLoaderRoute: typeof ProtectedStatisticsIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/album/': {
       id: '/_protected/album/'
       path: '/album'
@@ -693,6 +713,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicSSlugRouteImport
       parentRoute: typeof PublicRouteRoute
     }
+    '/_protected/statistics/wordclouds': {
+      id: '/_protected/statistics/wordclouds'
+      path: '/statistics/wordclouds'
+      fullPath: '/statistics/wordclouds'
+      preLoaderRoute: typeof ProtectedStatisticsWordcloudsRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/statistics/timeline': {
+      id: '/_protected/statistics/timeline'
+      path: '/statistics/timeline'
+      fullPath: '/statistics/timeline'
+      preLoaderRoute: typeof ProtectedStatisticsTimelineRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/statistics/socialgraph': {
+      id: '/_protected/statistics/socialgraph'
+      path: '/statistics/socialgraph'
+      fullPath: '/statistics/socialgraph'
+      preLoaderRoute: typeof ProtectedStatisticsSocialgraphRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/statistics/placetree': {
+      id: '/_protected/statistics/placetree'
+      path: '/statistics/placetree'
+      fullPath: '/statistics/placetree'
+      preLoaderRoute: typeof ProtectedStatisticsPlacetreeRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/statistics/faceclusters': {
+      id: '/_protected/statistics/faceclusters'
+      path: '/statistics/faceclusters'
+      fullPath: '/statistics/faceclusters'
+      preLoaderRoute: typeof ProtectedStatisticsFaceclustersRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/search/$query': {
       id: '/_protected/search/$query'
       path: '/search/$query'
@@ -705,41 +760,6 @@ declare module '@tanstack/react-router' {
       path: '/photo/$id'
       fullPath: '/photo/$id'
       preLoaderRoute: typeof ProtectedPhotoIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/dataviz/wordclouds': {
-      id: '/_protected/dataviz/wordclouds'
-      path: '/dataviz/wordclouds'
-      fullPath: '/dataviz/wordclouds'
-      preLoaderRoute: typeof ProtectedDatavizWordcloudsRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/dataviz/timeline': {
-      id: '/_protected/dataviz/timeline'
-      path: '/dataviz/timeline'
-      fullPath: '/dataviz/timeline'
-      preLoaderRoute: typeof ProtectedDatavizTimelineRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/dataviz/socialgraph': {
-      id: '/_protected/dataviz/socialgraph'
-      path: '/dataviz/socialgraph'
-      fullPath: '/dataviz/socialgraph'
-      preLoaderRoute: typeof ProtectedDatavizSocialgraphRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/dataviz/placetree': {
-      id: '/_protected/dataviz/placetree'
-      path: '/dataviz/placetree'
-      fullPath: '/dataviz/placetree'
-      preLoaderRoute: typeof ProtectedDatavizPlacetreeRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/dataviz/facescatter': {
-      id: '/_protected/dataviz/facescatter'
-      path: '/dataviz/facescatter'
-      fullPath: '/dataviz/facescatter'
-      preLoaderRoute: typeof ProtectedDatavizFacescatterRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/album/user/': {
@@ -858,14 +878,15 @@ interface ProtectedRouteRouteChildren {
   ProtectedUsersRoute: typeof ProtectedUsersRoute
   ProtectedVideosRoute: typeof ProtectedVideosRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
-  ProtectedDatavizFacescatterRoute: typeof ProtectedDatavizFacescatterRoute
-  ProtectedDatavizPlacetreeRoute: typeof ProtectedDatavizPlacetreeRoute
-  ProtectedDatavizSocialgraphRoute: typeof ProtectedDatavizSocialgraphRoute
-  ProtectedDatavizTimelineRoute: typeof ProtectedDatavizTimelineRoute
-  ProtectedDatavizWordcloudsRoute: typeof ProtectedDatavizWordcloudsRoute
   ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute
   ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute
+  ProtectedStatisticsFaceclustersRoute: typeof ProtectedStatisticsFaceclustersRoute
+  ProtectedStatisticsPlacetreeRoute: typeof ProtectedStatisticsPlacetreeRoute
+  ProtectedStatisticsSocialgraphRoute: typeof ProtectedStatisticsSocialgraphRoute
+  ProtectedStatisticsTimelineRoute: typeof ProtectedStatisticsTimelineRoute
+  ProtectedStatisticsWordcloudsRoute: typeof ProtectedStatisticsWordcloudsRoute
   ProtectedAlbumIndexRoute: typeof ProtectedAlbumIndexRoute
+  ProtectedStatisticsIndexRoute: typeof ProtectedStatisticsIndexRoute
   ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute
   ProtectedAlbumFolderIdRoute: typeof ProtectedAlbumFolderIdRoute
   ProtectedAlbumPersonsIdRoute: typeof ProtectedAlbumPersonsIdRoute
@@ -897,14 +918,15 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedUsersRoute: ProtectedUsersRoute,
   ProtectedVideosRoute: ProtectedVideosRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
-  ProtectedDatavizFacescatterRoute: ProtectedDatavizFacescatterRoute,
-  ProtectedDatavizPlacetreeRoute: ProtectedDatavizPlacetreeRoute,
-  ProtectedDatavizSocialgraphRoute: ProtectedDatavizSocialgraphRoute,
-  ProtectedDatavizTimelineRoute: ProtectedDatavizTimelineRoute,
-  ProtectedDatavizWordcloudsRoute: ProtectedDatavizWordcloudsRoute,
   ProtectedPhotoIdRoute: ProtectedPhotoIdRoute,
   ProtectedSearchQueryRoute: ProtectedSearchQueryRoute,
+  ProtectedStatisticsFaceclustersRoute: ProtectedStatisticsFaceclustersRoute,
+  ProtectedStatisticsPlacetreeRoute: ProtectedStatisticsPlacetreeRoute,
+  ProtectedStatisticsSocialgraphRoute: ProtectedStatisticsSocialgraphRoute,
+  ProtectedStatisticsTimelineRoute: ProtectedStatisticsTimelineRoute,
+  ProtectedStatisticsWordcloudsRoute: ProtectedStatisticsWordcloudsRoute,
   ProtectedAlbumIndexRoute: ProtectedAlbumIndexRoute,
+  ProtectedStatisticsIndexRoute: ProtectedStatisticsIndexRoute,
   ProtectedAlbumEventsIdRoute: ProtectedAlbumEventsIdRoute,
   ProtectedAlbumFolderIdRoute: ProtectedAlbumFolderIdRoute,
   ProtectedAlbumPersonsIdRoute: ProtectedAlbumPersonsIdRoute,
