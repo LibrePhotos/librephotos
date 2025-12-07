@@ -73,10 +73,10 @@
             "light": "Hele kujundus",
             "dark": "Tume kujundus"
         },
-        "library": "Pildikogu",
+        "library": "Meediakogu",
         "photos": "Fotod",
         "helptranslating": "Aita tõlkida",
-        "scanphotosdescription": "Otsi oma fotokogu jaoks uusi pilte",
+        "scanphotosdescription": "Otsi oma meediakogu jaoks uusi pilte",
         "statusscanphotostrue": "Skaneerin fotosid",
         "statusscanphotosfalse": "Skaneeri",
         "scannextcloudphotos": "Skaneeri",
@@ -108,7 +108,21 @@
         "semanticsearch": {
             "top0": "Pole kasutusel"
         },
-        "semanticsearchupdate": "Uuenda"
+        "semanticsearchupdate": "Uuenda",
+        "catalan": "katalaani keel",
+        "esperanto": "esperanto keel",
+        "estonian": "eesti keel",
+        "romanian": "rumeenia keel",
+        "tamil": "tamili keel",
+        "turkish": "türgi keel",
+        "size": {
+            "auto": "Automaatne",
+            "small": "Väike",
+            "normal": "Tavaline",
+            "high": "Kõrge",
+            "off": "Pole kasutusel"
+        },
+        "rescanfacesdescription": "Otsi meediakogust näopilte"
     },
     "sidemenu": {
         "photos": "Fotod",
@@ -118,7 +132,8 @@
         "places": "Asukohad",
         "things": "Asjad",
         "myalbums": "Minu albumid",
-        "autoalbums": "Automaatselt koostatud albumid"
+        "autoalbums": "Automaatselt koostatud albumid",
+        "library": "Meediakogu"
     },
     "joblist": {
         "reload": "Laadi uuesti",
@@ -134,5 +149,27 @@
         "sortbydate": "Kuupäev",
         "show": "Näita"
     },
-    "scan": "Skaneeri"
+    "scan": "Skaneeri",
+    "modalalbum": {
+        "create": "Loo"
+    },
+    "modalnextcloud": {
+        "browse": "Sirvi"
+    },
+    "modalalbumsshare": {
+        "joined": "Liitunud"
+    },
+    "topmenu": {
+        "running": "Töös",
+        "busy": "Hõivatud...",
+        "settings": "Seadistused",
+        "profile": "Profiil",
+        "library": "Meediakogu"
+    },
+    "defaultheader": {
+        "gettingstarted": "Seadista meediakogu"
+    },
+    "emptystate": {
+        "goToLibrary": "Vaata meediakogu"
+    }
 }
