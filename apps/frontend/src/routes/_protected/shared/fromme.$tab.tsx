@@ -22,7 +22,9 @@ export function SharedByMe() {
         </Text>
       );
     }
-    return <Text>You shared {albums.length} albums</Text>;
+    // albums is grouped by recipient, so we need to count total unique albums
+    const totalAlbums = new Set(albums.flatMap(g => g.albums.map(a => a.id))).size;
+    return <Text>You shared {totalAlbums} album(s)</Text>;
   };
 
   return (
@@ -41,11 +43,11 @@ export function SharedByMe() {
           <Tabs.Tab value="albums">Albums</Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="photos">
+        <Tabs.Panel value="photos" keepMounted={false}>
           <PhotosSharedByMe />
         </Tabs.Panel>
 
-        <Tabs.Panel value="albums">
+        <Tabs.Panel value="albums" keepMounted={false}>
           <AlbumsSharedByMe />
         </Tabs.Panel>
       </Tabs>

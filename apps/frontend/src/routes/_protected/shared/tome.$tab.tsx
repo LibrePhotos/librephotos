@@ -45,11 +45,11 @@ export function SharedWithMe() {
           <Tabs.Tab value="albums">Albums</Tabs.Tab>
         </Tabs.List>
 
-        <Tabs.Panel value="photos">
+        <Tabs.Panel value="photos" keepMounted={false}>
           <PhotosSharedWithMe />
         </Tabs.Panel>
 
-        <Tabs.Panel value="albums">
+        <Tabs.Panel value="albums" keepMounted={false}>
           <AlbumsSharedWithMe />
         </Tabs.Panel>
       </Tabs>

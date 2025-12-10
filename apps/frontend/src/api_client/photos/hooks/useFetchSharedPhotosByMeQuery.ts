@@ -5,7 +5,7 @@ import { z } from "zod";
 import { PigPhoto, SimpleUser } from "../types";
 import { fetchClient } from "../../api";
 
-export const SharedPhotosByMeQueryKeys = ["sharedAlbumsByMe"] as const;
+export const SharedPhotosByMeQueryKeys = ["sharedPhotosByMe"] as const;
 
 const SharedPhotosByMeResponse = z.object({
   results: z
@@ -22,9 +22,10 @@ export const useFetchSharedPhotosByMeQuery = () => useQuery({
   queryFn: async () => {
     const response = await fetchClient.get('/photos/shared/fromme/');
     const { results } = SharedPhotosByMeResponse.parse(response);
-    return _.toPairs(_.groupBy(results, "user_id")).map(el => ({
+    const grouped = _.toPairs(_.groupBy(results, "user_id")).map(el => ({
       userId: parseInt(el[0], 10),
       photos: el[1].map(item => item.photo),
     }));
+    return grouped;
   },
 }); 

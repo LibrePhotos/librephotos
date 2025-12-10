@@ -8,7 +8,7 @@ import { AutoSizer, Grid } from "react-virtualized";
 import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
-import { calculateGridCellSize, calculateSharedPhotoGridCells } from "../../util/gridUtils";
+import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util/gridUtils";
 import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
 import { Tile } from "../Tile";
  
@@ -34,7 +34,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
     if (!isSuccess) {
       return;
     }
-    const contents = calculateSharedPhotoGridCells(albums, numEntrySquaresPerRow).cellContents;
+    const contents = calculateSharedAlbumGridCells(albums, numEntrySquaresPerRow).cellContents;
     setAlbumGridContents(contents);
   }, [albums, isSuccess]);
 
@@ -116,7 +116,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
                 </Text>
                 <Text size="xs" style={{ display: "flex", alignItems: "center" }}>
                   <Polaroid size={16} style={{ marginRight: 5 }} />
-                  shared {cell.albums.length} albums with you
+                  you shared {cell.albums.length} album(s) with them
                 </Text>
               </div>
             </div>
@@ -126,7 +126,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
       // photo cell
       return (
         <div key={key} style={{ ...style, padding: 1 }}>
-          <Anchor href={`/useralbum/${cell.id}/`}>
+          <Anchor href={`/album/user/${cell.id}`}>
             {cell.cover_photo && (
               <Tile
                 style={{ objectFit: "cover" }}
