@@ -18,6 +18,11 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+
+  &.headerReset {
+    text-decoration: none;
+    color: inherit;
+  }
 }
 
 /* Scroll variant (default) */
@@ -147,6 +152,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.avatarSkeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 70px;
 }
 
 /* Card variant for dashboard tiles */
