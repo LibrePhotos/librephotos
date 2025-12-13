@@ -354,6 +354,19 @@
             "close": "Fechar (ESC)",
             "slideshow": "Apresentação de slides (S)",
             "stopslideshow": "Terminar apresentação de slides (S)"
+        },
+        "toolbar": {
+            "pauseVideo": "Pausar vídeo (espaço)",
+            "playVideo": "Reproduzir vídeo (espaço)",
+            "showPhoto": "Mostrar foto (H)",
+            "hidePhoto": "Ocultar foto (H)",
+            "addToFavorites": "Adicionar aos favoritos (F)",
+            "removeFromFavorites": "Remover dos favoritos (F)",
+            "makePublic": "Tornar pública (P)",
+            "makePrivate": "Tornar privada (P)",
+            "showInfoPanel": "Mostrar painel de informações (I)",
+            "hideInfoPanel": "Ocultar painel de informações (I)",
+            "deletePhoto": "Eliminar foto (D)"
         }
     },
     "photos": {
@@ -489,7 +502,8 @@
         "nameplaceholder": "Nome",
         "deleteperson": "Eliminar Pessoa",
         "deletepersondescription": "De certeza que pretende eliminar esta pessoa?",
-        "renamepersonheader": "Para que você deseja renomear {{name}}?"
+        "renamepersonheader": "Para que você deseja renomear {{name}}?",
+        "managefaces": "Gerir caras"
     },
     "placealbum": {
         "showingplaces": "A mostrar {{number}} locais no mapa",
@@ -499,7 +513,9 @@
         "numberof": "A mostrar {{number}} álbuns criados pelo utilizador",
         "renamealbum": "Renomear álbum",
         "albumalreadyexists": "Já existe um álbum com o nome {{name}}.",
-        "albumplaceholder": "Título do álbum"
+        "albumplaceholder": "Título do álbum",
+        "sharedWith": "Partilhado com:",
+        "albumIsPublic": "Este álbum é público"
     },
     "personedit": {
         "newperson": "Nova pessoa",
@@ -778,7 +794,7 @@
             "description": "Fotos recentemente analisadas aparecerão aqui."
         },
         "notimestamp": {
-            "title": "Não existem fotos sem carimbo de hora/data",
+            "title": "Não existem fotos sem etiqueta de hora/data",
             "description": "Fotos sem informação de data/hora aparecerão aqui."
         },
         "events": {
@@ -815,7 +831,7 @@
         },
         "timeline": {
             "title": "Sem dados de linha de tempo",
-            "description": "Adicione fotos com carimbo de hora/data para ver a sua linha de tempo das fotos."
+            "description": "Adicione fotos com etiqueta de hora/data para ver a sua linha de tempo das fotos."
         },
         "scanning": {
             "title": "Analise em curso",
@@ -858,5 +874,149 @@
     "all": "Todos",
     "clicktoview": "Clique para ver foto",
     "identifiedpeople": "Pessoas identificadas",
-    "totalfaces": "Total de caras"
+    "totalfaces": "Total de caras",
+    "sharing": {
+        "subtitle": "Fotos e álbuns partilhados com outras pessoas",
+        "userCount_one": "{{count}} utilizador",
+        "userCount_other": "{{count}} utilizadores",
+        "itemCount": "{{photos}} fotos, {{albums}} álbuns",
+        "noPublicUsers": "Não existem utilizadores com fotos públicas",
+        "nothingSharedWithYou": "Ninguém partilhou nada consigo",
+        "nothingSharedByYou": "Não partilhou nada ainda",
+        "photosYouShared": "Fotos partilhadas por si",
+        "albumsYouShared": "Álbuns que partilhou",
+        "photosOthersShared": "Fotos partilhadas por outros utilizadores",
+        "albumsOthersShared": "Álbuns que outros utilizadores partilharam",
+        "photoSharesWithUsers": "{{photoCount}} partilha(s) de fotos com {{userCount}} utilizador(es)",
+        "youSharedAlbums": "Partilhou {{count}} álbuns",
+        "usersSharedPhotosWithYou": "{{userCount}} utilizador(es) partilharam {{photoCount}} foto(s) consigo",
+        "usersSharedAlbumsWithYou": "{{userCount}} utilizador(es) partilharam {{albumCount}} álbun(s) consigo",
+        "sharedPhotosWithYou": "partilhou {{count}} fotos consigo",
+        "youSharedPhotos": "{{count}} fotos partilhadas por si",
+        "sharedAlbumsWithYou": "partilhou {{count}} álbuns consigo",
+        "youSharedAlbumsWithThem": "{{count}} álbun(s) partilhados com eles",
+        "loadingPhotosSharedByYou": "A carregar fotos partilhadas por si...",
+        "loadingPhotosSharedWithYou": "A carregar fotos partilhadas consigo...",
+        "loadingAlbumsSharedByYou": "A carregar álbuns partilhados por si...",
+        "loadingAlbumsSharedWithYou": "A carregar álbuns partilhados consigo...",
+        "noAlbumsSharedByYou": "Ainda não partilhou qualquer álbum.",
+        "noAlbumsSharedWithYou": "Ainda ninguém partilhou qualquer álbum consigo.",
+        "photoCount": "{{count}} foto(s)",
+        "customUrl": "URL personalizado (opcional)",
+        "customUrlPlaceholder": "meu-album-de-família",
+        "customUrlError": "Use letrs minúsculas, números e hífens (3-64).",
+        "urlTaken": "Este URL já está a ser usado.",
+        "expiration": "Expiração (opcional)",
+        "pickExpiration": "Escolha expiração",
+        "days7": "7 dias",
+        "days30": "30 dias",
+        "days90": "90 dias",
+        "never": "Nunca",
+        "generating": "A gerar...",
+        "copied": "Copiado",
+        "copyLink": "Copiar endereço",
+        "openPublicLink": "Abrir endereço público",
+        "saveLinkSettings": "Guardar definições de endereço",
+        "saveLinkError": "Não foi possível guardar definições de endereço. Tente um URL diferente.",
+        "publicLinks": "Endereços públicos",
+        "publicLinksDescription": "Álbuns e fotos que tornou publicas através de um endereço partilhável",
+        "noPublicLinks": "Ainda não tornou nada público via endereço",
+        "noPublicAlbums": "Nenhum álbum foi tornado público via endereço",
+        "noPublicPhotos": "Nenhuma foto foi tornada pública",
+        "publicPhotos": "Fotos públicas"
+    },
+    "trash": {
+        "restorePhoto": "Restaurar foto",
+        "restorePhotos": "Restaurar {{count}} fotos",
+        "deletePermanently": "Eliminar permanentemente",
+        "deletePhotosPermanently": "Eliminar {{count}} fotos permanentemente",
+        "permanentDeleteWarning": "Está prestes a eliminar permanentemente {{count}} foto(s). Estas fotos serão completamente removidas das sua biblioteca e armazenamento."
+    },
+    "spotlight": {
+        "placeholder": "Procurar fotos, correr comandos...",
+        "triggerPlaceholder": "Pesquise ou pressione",
+        "nothingFound": "Não foram encontrados resultados",
+        "searchFor": "Pesquisar {{query}}",
+        "groups": {
+            "search": "Resultados da pesquisa",
+            "navigation": "Navegação",
+            "actions": "Ações",
+            "quickActions": "Ações rápidas"
+        },
+        "nav": {
+            "photos": "Ir para fotos",
+            "albums": "Ir para álbuns",
+            "people": "Ir para pessoas",
+            "places": "Ir para lugares",
+            "things": "Ir para coisas",
+            "favorites": "Ir para favoritos",
+            "hidden": "Ir para ocultos",
+            "videos": "Ir para vídeos",
+            "trash": "Ir para lixo",
+            "recent": "Ir para recentemente adicionados",
+            "noTimestamp": "Ir para fotos sem etiqueta de data/hora",
+            "events": "Ir para eventos",
+            "folders": "Ir para pastas",
+            "myAlbums": "Ir para os meus álbuns",
+            "sharing": "ir para partilhados",
+            "faces": "Ir para a dashboard de caras",
+            "settings": "Ir para definições",
+            "profile": "Ir para perfil",
+            "library": "Ir para biblioteca",
+            "statistics": "Ir para estatísticas",
+            "placeTree": "Ir para árvore de lugares",
+            "wordClouds": "Ir para núvem de palavras",
+            "timeline": "Ir para linha do tempo",
+            "socialGraph": "Ir para gráfico social",
+            "faceClusters": "Ir para aglomerado de caras",
+            "admin": "Ir para área de administração",
+            "scanSettings": "Opções de análise",
+            "scanSettingsDesc": "Definições de confiança da cena e pesquisa semântica",
+            "metadataSettings": "Definições de metadados",
+            "metadataSettingsDesc": "Sincronizar para disco, fuso horário, favoritos",
+            "faceSettings": "Definições de reconhecimento facial",
+            "faceSettingsDesc": "Modelo de reconhecimento, opções de aglomerados",
+            "llmSettings": "Definições de IA e LLM",
+            "llmSettingsDesc": "Geração de legendas, modelo de linguagem",
+            "changeLanguage": "Alterar língua",
+            "changeLanguageDesc": "Alterar língua da interface",
+            "changePassword": "Alterar palavra passe",
+            "changePasswordDesc": "Atualizar palavra passe da conta",
+            "changeAvatar": "Alterar avatar",
+            "changeAvatarDesc": "Alterar imagem de perfil"
+        },
+        "actions": {
+            "scanPhotos": "Analisar fotos",
+            "rescanPhotos": "Reanalisar todas as fotos",
+            "trainFaces": "Treinar reconhecimento facial",
+            "rescanFaces": "Detetar caras em fotos",
+            "generateEvents": "Gerar álbuns de eventos",
+            "deleteMissing": "Eliminar fotos em falta",
+            "scanNextcloud": "Analisar fotos da NextCloud"
+        },
+        "quick": {
+            "toggleTheme": "Alternar modo escuro"
+        }
+    },
+    "publicalbum": {
+        "notFound": "Álbum não encontrado ou o endereço expirou",
+        "checkUrl": "Por favor verifique o URL ou peça ao dono para gerar um novo.",
+        "goHome": "Ir para página principal"
+    },
+    "photodisplay": {
+        "settings": "Definições de visualização de fotos",
+        "photoSize": "Tamanho das fotos",
+        "lowerBigger": "Menor = miniaturas maiores",
+        "current": "Atual: {{value}}",
+        "textAlignment": "Alinhamento do texto",
+        "leftAlign": "Alinhar data e local à esquerda",
+        "headerSize": "Tamanho do cabeçalho",
+        "large": "Grande",
+        "normal": "Normal",
+        "small": "Pequeno"
+    },
+    "library": {
+        "exploredata": "Explorar dados",
+        "exploredatadescription": "Visualize e explore a sua biblioteca de fotos"
+    }
 }
