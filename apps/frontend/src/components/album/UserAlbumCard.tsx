@@ -12,7 +12,6 @@ import {
 import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { Tile } from "../Tile";
 import classes from "./UserAlbumCard.module.css";
@@ -35,7 +34,21 @@ function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
   return (
     <Popover opened={opened} position="bottom" width={260} onClose={close}>
       <Popover.Target>
-        <span className={classes.sharedIcon} onClick={(e) => { e.preventDefault(); toggle(); }}>
+        <span
+          className={classes.sharedIcon}
+          onClick={e => {
+            e.preventDefault();
+            toggle();
+          }}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggle();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
           <Users size={16} />
         </span>
       </Popover.Target>
@@ -45,7 +58,9 @@ function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
           {album.shared_to.map(el => (
             <Group key={el.username} gap="xs">
               <User size={14} />
-              <Text size="sm" fw={500}>{el.username}</Text>
+              <Text size="sm" fw={500}>
+                {el.username}
+              </Text>
             </Group>
           ))}
         </Stack>
@@ -77,7 +92,9 @@ export function UserAlbumCard({
               className={classes.coverImage}
             />
           ) : (
-            <Text c="dimmed" size="xs">{t("explore.noCover")}</Text>
+            <Text c="dimmed" size="xs">
+              {t("explore.noCover")}
+            </Text>
           )}
         </div>
       </Link>
@@ -87,7 +104,7 @@ export function UserAlbumCard({
         <div className={classes.actions}>
           <Menu position="bottom-end">
             <Menu.Target>
-              <ActionIcon variant="subtle" c="gray" size="sm" onClick={(e) => e.preventDefault()}>
+              <ActionIcon variant="subtle" c="gray" size="sm" onClick={e => e.preventDefault()}>
                 <DotsVertical size={16} />
               </ActionIcon>
             </Menu.Target>
@@ -138,9 +155,3 @@ export function UserAlbumCard({
     </div>
   );
 }
-
-
-
-
-
-

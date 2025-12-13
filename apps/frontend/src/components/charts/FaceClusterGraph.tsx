@@ -1,4 +1,3 @@
-import { IconMoodSmile, IconUser, IconUserQuestion } from "@tabler/icons-react";
 import {
   Avatar,
   Badge,
@@ -7,6 +6,7 @@ import {
   Group,
   Loader,
   Paper,
+  RemoveScroll,
   ScrollArea,
   Stack,
   Text,
@@ -14,11 +14,10 @@ import {
   Tooltip,
   useComputedColorScheme,
 } from "@mantine/core";
-import { RemoveScroll } from "@mantine/core";
+import { IconMoodSmile, IconUser, IconUserQuestion } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-
 import { serverAddress } from "../../api_client/apiClient";
 import { useClusterFacesQuery } from "../../api_client/faces/hooks/useClusterFacesQuery";
 import { EmptyState } from "../common/EmptyState";
@@ -104,18 +103,21 @@ export function FaceClusterGraph({ height }: Props) {
 
     const allPoints: FacePoint[] = [];
     const stats = new Map<string, { count: number; color: string; face_url: string; person_id: number }>();
-    
+
     // Get unique person names (excluding unknown first for color assignment)
     const uniqueNames = [...new Set(facesVis.data.map((el: any) => el.person_name))];
     const knownNames = uniqueNames.filter(n => n !== "unknown");
     const nameColorMap = new Map<string, string>();
-    
+
     knownNames.forEach((name, index) => {
       nameColorMap.set(name as string, getColorForPerson(name as string, index));
     });
     nameColorMap.set("unknown", getColorForPerson("unknown", 0));
 
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
 
     facesVis.data.forEach((el: any) => {
       const color = nameColorMap.get(el.person_name) || "rgba(100, 100, 100, 0.4)";
@@ -181,20 +183,6 @@ export function FaceClusterGraph({ height }: Props) {
     [bounds]
   );
 
-  // Convert canvas coordinates to data coordinates
-  const toDataCoords = useCallback(
-    (cx: number, cy: number, canvasWidth: number, canvasHeight: number) => {
-      const { minX, maxX, minY, maxY } = bounds;
-      const scaleX = (maxX - minX) / canvasWidth;
-      const scaleY = (maxY - minY) / canvasHeight;
-      return {
-        x: cx * scaleX + minX,
-        y: (canvasHeight - cy) * scaleY + minY,
-      };
-    },
-    [bounds]
-  );
-
   // Calculate actual canvas dimensions
   const canvasWidth = Math.max(0, width - 30);
   const canvasHeight = Math.max(0, height - 120);
@@ -222,7 +210,7 @@ export function FaceClusterGraph({ height }: Props) {
     // Draw grid
     ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.05)";
     ctx.lineWidth = 1;
-    
+
     const gridSize = 50;
     for (let x = 0; x < canvasWidth; x += gridSize) {
       ctx.beginPath();
@@ -250,7 +238,7 @@ export function FaceClusterGraph({ height }: Props) {
     });
 
     // Draw points
-    sortedPoints.forEach((point) => {
+    sortedPoints.forEach(point => {
       const { cx, cy } = toCanvasCoords(point.x, point.y, canvasWidth, canvasHeight);
       const isFiltered = selectedPerson && point.name !== selectedPerson;
       const isSelected = selectedPerson === point.name;
@@ -270,7 +258,7 @@ export function FaceClusterGraph({ height }: Props) {
       if (!isUnknown && !isFiltered) {
         const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 2);
         gradient.addColorStop(0, point.color);
-        gradient.addColorStop(0.5, point.color + "80");
+        gradient.addColorStop(0.5, `${point.color}80`);
         gradient.addColorStop(1, "transparent");
         ctx.beginPath();
         ctx.arc(cx, cy, radius * 2, 0, Math.PI * 2);
@@ -282,11 +270,7 @@ export function FaceClusterGraph({ height }: Props) {
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.fillStyle =
-        isFiltered && !isUnknown
-          ? point.color + "40"
-          : isUnknown
-            ? `rgba(100, 100, 100, ${alpha * 0.3})`
-            : point.color;
+        isFiltered && !isUnknown ? `${point.color}40` : isUnknown ? `rgba(100, 100, 100, ${alpha * 0.3})` : point.color;
       ctx.fill();
 
       // Border for known faces
@@ -317,7 +301,7 @@ export function FaceClusterGraph({ height }: Props) {
       let closestPoint: FacePoint | null = null;
       let minDist = 20; // Detection radius in pixels
 
-      points.forEach((point) => {
+      points.forEach(point => {
         if (selectedPerson && point.name !== selectedPerson) return;
 
         const { cx, cy } = toCanvasCoords(point.x, point.y, canvasWidth, canvasHeight);
@@ -352,7 +336,7 @@ export function FaceClusterGraph({ height }: Props) {
       let clickedPoint: FacePoint | null = null;
       let minDist = 20;
 
-      points.forEach((point) => {
+      points.forEach(point => {
         if (selectedPerson && point.name !== selectedPerson) return;
 
         const { cx, cy } = toCanvasCoords(point.x, point.y, canvasWidth, canvasHeight);
@@ -384,7 +368,7 @@ export function FaceClusterGraph({ height }: Props) {
   // Create idx2hash for lightbox navigation (unique photos only)
   const idx2hash = useMemo(() => {
     const uniquePhotos = new Map<string, { id: string }>();
-    points.forEach((point) => {
+    points.forEach(point => {
       if (point.photo && !uniquePhotos.has(point.photo)) {
         uniquePhotos.set(point.photo, { id: point.photo });
       }
@@ -395,9 +379,7 @@ export function FaceClusterGraph({ height }: Props) {
   // Sort person stats for legend
   const sortedPersonStats = useMemo(() => {
     const entries = Array.from(personStats.entries());
-    return entries
-      .filter(([name]) => name !== "unknown")
-      .sort((a, b) => b[1].count - a[1].count);
+    return entries.filter(([name]) => name !== "unknown").sort((a, b) => b[1].count - a[1].count);
   }, [personStats]);
 
   const unknownCount = personStats.get("unknown")?.count || 0;
@@ -453,8 +435,7 @@ export function FaceClusterGraph({ height }: Props) {
                     variant={selectedPerson === name ? "filled" : "light"}
                     style={{
                       cursor: "pointer",
-                      backgroundColor:
-                        selectedPerson === name ? stat.color : `${stat.color}20`,
+                      backgroundColor: selectedPerson === name ? stat.color : `${stat.color}20`,
                       color: selectedPerson === name ? "white" : stat.color,
                       borderColor: stat.color,
                     }}
@@ -471,9 +452,7 @@ export function FaceClusterGraph({ height }: Props) {
                   color="gray"
                   size="lg"
                   style={{ cursor: "pointer" }}
-                  onClick={() =>
-                    setSelectedPerson(selectedPerson === "unknown" ? null : "unknown")
-                  }
+                  onClick={() => setSelectedPerson(selectedPerson === "unknown" ? null : "unknown")}
                   leftSection={<IconUserQuestion size={14} />}
                 >
                   {t("unknown")} ({unknownCount})

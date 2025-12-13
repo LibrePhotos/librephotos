@@ -1,10 +1,10 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { fixupConfigRules } from "@eslint/compat";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import prettier from "eslint-plugin-prettier";
 import globals from "globals";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +52,7 @@ export default [
     },
 
     rules: {
+      "no-nested-ternary": "off",
       "import/prefer-default-export": "off",
       "import/no-named-as-default": "off",
       "import/no-named-as-default-member": "off",
@@ -81,11 +82,7 @@ export default [
       "import/no-extraneous-dependencies": [
         "error",
         {
-          devDependencies: [
-            "**/src/wdyr.ts",
-            "**/*.test.{ts,tsx}",
-            "**/e2e/**/*.{ts,tsx}",
-          ],
+          devDependencies: ["**/src/wdyr.ts", "**/*.test.{ts,tsx}", "**/e2e/**/*.{ts,tsx}"],
         },
       ],
       "react/jsx-props-no-spreading": "off",

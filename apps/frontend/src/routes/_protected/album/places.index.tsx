@@ -3,10 +3,10 @@ import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import _ from "lodash";
+import type { CircleLayer, GeoJSONSource, SymbolLayer } from "maplibre-gl";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import MapGL, { AttributionControl, Source, Layer, MapRef, NavigationControl } from "react-map-gl/maplibre";
-import type { CircleLayer, SymbolLayer, GeoJSONSource } from "maplibre-gl";
+import MapGL, { AttributionControl, Layer, MapRef, NavigationControl, Source } from "react-map-gl/maplibre";
 import { AutoSizer, Grid } from "react-virtualized";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
@@ -78,7 +78,7 @@ function AlbumPlace({ height }: Props) {
       return { type: "FeatureCollection" as const, features: [] };
     }
     const features = locationClusters
-      .filter((loc) => loc[0] !== 0)
+      .filter(loc => loc[0] !== 0)
       .map((loc, idx) => ({
         type: "Feature" as const,
         properties: {
@@ -103,14 +103,14 @@ function AlbumPlace({ height }: Props) {
       const ne = bounds.getNorthEast();
       const sw = bounds.getSouthWest();
 
-      const markers = locationClusters.filter((loc) => {
+      const markers = locationClusters.filter(loc => {
         const markerLng = loc[0];
         const markerLat = loc[1];
         return markerLat < ne.lat && markerLat > sw.lat && markerLng < ne.lng && markerLng > sw.lng;
       });
 
-      const visiblePlaceNames = markers.map((el) => el[2]);
-      const visiblePlaceAlbums = albums.filter((el) => visiblePlaceNames.includes(el.title));
+      const visiblePlaceNames = markers.map(el => el[2]);
+      const visiblePlaceAlbums = albums.filter(el => visiblePlaceNames.includes(el.title));
       setVisibleAlbums(_.sortBy(visiblePlaceAlbums, ["geolocation_level", "photo_count"]));
     },
     [albums, locationClusters]
@@ -141,12 +141,9 @@ function AlbumPlace({ height }: Props) {
       if (mapboxSource && clusterId !== undefined) {
         try {
           const zoom = await mapboxSource.getClusterExpansionZoom(clusterId);
-          const coordinates = (features[0].geometry as any).coordinates;
+          const { coordinates: center } = features[0].geometry;
 
-          mapRef.current.easeTo({
-            center: coordinates,
-            zoom: zoom,
-          });
+          mapRef.current.easeTo({ center, zoom });
         } catch (err) {
           console.error("Error getting cluster expansion zoom:", err);
         }
@@ -171,7 +168,7 @@ function AlbumPlace({ height }: Props) {
     return (
       <div key={key} style={style}>
         <div style={{ padding: 5 }}>
-          {place.cover_photos.slice(0, 1).map((photo) => (
+          {place.cover_photos.slice(0, 1).map(photo => (
             <Anchor key={index} href={`/album/places/${place.id}`} pathParams={{ id: place.id }}>
               <Image
                 width={entrySquareSize - 10}
@@ -258,7 +255,7 @@ function AlbumPlace({ height }: Props) {
             {({ width: gridWidth }) => (
               <Grid
                 style={{ outline: "none" }}
-                cellRenderer={(props) => renderCell(props)}
+                cellRenderer={props => renderCell(props)}
                 columnWidth={entrySquareSize}
                 columnCount={entriesPerRow}
                 height={gridHeight}

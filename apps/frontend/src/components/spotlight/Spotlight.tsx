@@ -1,9 +1,8 @@
 import { Group, Kbd, Text, UnstyledButton } from "@mantine/core";
 import { Spotlight as MantineSpotlight, spotlight } from "@mantine/spotlight";
-import { IconCommand, IconSearch } from "@tabler/icons-react";
+import { IconSearch } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useSpotlightActions } from "./useSpotlightActions";
 
 type SpotlightTriggerProps = {
@@ -80,4 +79,3 @@ export function SpotlightProvider() {
 }
 
 export { spotlight };
-

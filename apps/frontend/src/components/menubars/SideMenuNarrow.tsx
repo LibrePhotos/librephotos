@@ -38,7 +38,7 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function SideMenuNarrow(): JSX.Element {
-  const { isAuthenticated, userId } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [active, setActive] = useState("/");
   const { data: storageStats, isLoading } = useFetchStorageStatsQuery();
@@ -60,7 +60,7 @@ export function SideMenuNarrow(): JSX.Element {
     return <div />;
   }
 
-  const links = getNavigationItems(t, isAuthenticated, !!userId).map(item => {
+  const links = getNavigationItems(t, isAuthenticated).map(item => {
     if (item.display === false) {
       return null;
     }

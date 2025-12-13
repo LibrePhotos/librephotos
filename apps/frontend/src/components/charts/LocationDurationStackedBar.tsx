@@ -1,10 +1,9 @@
-import { IconMapPin } from "@tabler/icons-react";
-import { Loader, Stack, Title, ScrollArea } from "@mantine/core";
 import { BarChart } from "@mantine/charts";
+import { Loader, ScrollArea, Stack, Title } from "@mantine/core";
+import { IconMapPin } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useLocationTimelineQuery } from "../../api_client/stats/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import { EmptyState } from "../common/EmptyState";
@@ -15,12 +14,19 @@ export function LocationDurationStackedBar() {
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
 
   // Transform data for Mantine BarChart - stacked timeline
-  const chartData = fetchedLocationTimeline && locationTimeline.length > 0
-    ? [locationTimeline.reduce((acc: Record<string, number | string>, el: { loc: string; data: number[] }) => {
-        acc[el.loc] = el.data[0];
-        return acc;
-      }, { label: "" })]
-    : [];
+  const chartData =
+    fetchedLocationTimeline && locationTimeline.length > 0
+      ? [
+          locationTimeline.reduce(
+            (acc: Record<string, number | string>, el: { loc: string; data: number[] }) => {
+              const [first] = el.data;
+              acc[el.loc] = first;
+              return acc;
+            },
+            { label: "" }
+          ),
+        ]
+      : [];
 
   const series = locationTimeline.map((el: { loc: string; color: string }) => ({
     name: el.loc,
@@ -28,10 +34,56 @@ export function LocationDurationStackedBar() {
   }));
 
   // Build a lookup for tooltip
-  const locationLookup = locationTimeline.reduce((acc: Record<string, { start: number; end: number }>, el: { loc: string; start: number; end: number }) => {
-    acc[el.loc] = { start: el.start, end: el.end };
-    return acc;
-  }, {});
+  const locationLookup = locationTimeline.reduce(
+    (acc: Record<string, { start: number; end: number }>, el: { loc: string; start: number; end: number }) => {
+      acc[el.loc] = { start: el.start, end: el.end };
+      return acc;
+    },
+    {}
+  );
+
+  function getTooltipContent(active: boolean) {
+    if (!active || !hoveredSegment) return null;
+
+    const locData = locationLookup[hoveredSegment];
+    if (!locData) return null;
+
+    const segmentColor = series.find(s => s.name === hoveredSegment)?.color;
+    const startDate = DateTime.fromSeconds(locData.start)
+      .setLocale(i18nResolvedLanguage())
+      .toLocaleString({ year: "numeric", month: "short" });
+    const endDate = DateTime.fromSeconds(locData.end)
+      .setLocale(i18nResolvedLanguage())
+      .toLocaleString({ year: "numeric", month: "short" });
+
+    return (
+      <div
+        style={{
+          background: "var(--mantine-color-body)",
+          border: "1px solid var(--mantine-color-default-border)",
+          borderRadius: "var(--mantine-radius-sm)",
+          padding: "8px 12px",
+          boxShadow: "var(--mantine-shadow-md)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 2,
+              backgroundColor: segmentColor,
+              flexShrink: 0,
+            }}
+          />
+          <div style={{ fontWeight: 500 }}>{hoveredSegment}</div>
+        </div>
+        <div style={{ color: "var(--mantine-color-dimmed)", fontSize: "0.875rem", marginTop: 4 }}>
+          {startDate} – {endDate}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Stack>
@@ -70,57 +122,20 @@ export function LocationDurationStackedBar() {
             }}
             tooltipAnimationDuration={200}
             cursorFill="var(--mantine-color-gray-light)"
-            tooltipProps={{
-              content: ({ active }) => {
-                if (!active || !hoveredSegment) return null;
-                
-                const locData = locationLookup[hoveredSegment];
-                if (!locData) return null;
-                
-                const segmentColor = series.find((s) => s.name === hoveredSegment)?.color;
-                const startDate = DateTime.fromSeconds(locData.start)
-                  .setLocale(i18nResolvedLanguage())
-                  .toLocaleString({ year: "numeric", month: "short" });
-                const endDate = DateTime.fromSeconds(locData.end)
-                  .setLocale(i18nResolvedLanguage())
-                  .toLocaleString({ year: "numeric", month: "short" });
-                
-                return (
-                  <div style={{
-                    background: "var(--mantine-color-body)",
-                    border: "1px solid var(--mantine-color-default-border)",
-                    borderRadius: "var(--mantine-radius-sm)",
-                    padding: "8px 12px",
-                    boxShadow: "var(--mantine-shadow-md)",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 2,
-                        backgroundColor: segmentColor,
-                        flexShrink: 0,
-                      }} />
-                      <div style={{ fontWeight: 500 }}>{hoveredSegment}</div>
-                    </div>
-                    <div style={{ color: "var(--mantine-color-dimmed)", fontSize: "0.875rem", marginTop: 4 }}>
-                      {startDate} – {endDate}
-                    </div>
-                  </div>
-                );
-              },
-            }}
+            tooltipProps={{ content: ({ active }) => getTooltipContent(active) }}
           />
           <ScrollArea type="auto" offsetScrollbars>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px", paddingTop: 8 }}>
-              {series.map((s) => (
+              {series.map(s => (
                 <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 2,
-                    backgroundColor: s.color,
-                  }} />
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: 2,
+                      backgroundColor: s.color,
+                    }}
+                  />
                   <span style={{ fontSize: "0.75rem" }}>{s.name}</span>
                 </div>
               ))}

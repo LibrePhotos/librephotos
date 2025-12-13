@@ -1,20 +1,18 @@
 import { Group, Loader, Stack, Tabs, Text, Title } from "@mantine/core";
 import { IconLink } from "@tabler/icons-react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
-import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 import { PublicAlbumsGrid } from "../../../components/sharing/PublicAlbumsGrid";
+import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/sharing/links")();
 
 export function PublicLinksPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("albums");
 
   // Fetch public albums (albums with public=true)
@@ -22,7 +20,9 @@ export function PublicLinksPage() {
   const publicAlbums = useMemo(() => userAlbums.filter(album => album.public), [userAlbums]);
 
   // Fetch public photos
-  const { data: publicPhotosGrouped, isLoading: isLoadingPhotos } = useFetchDateAlbumsQuery({ photosetType: Photoset.PUBLIC });
+  const { data: publicPhotosGrouped, isLoading: isLoadingPhotos } = useFetchDateAlbumsQuery({
+    photosetType: Photoset.PUBLIC,
+  });
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   useEffect(() => {

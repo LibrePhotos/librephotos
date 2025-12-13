@@ -3,7 +3,6 @@ import type { SpotlightActionData, SpotlightActionGroupData } from "@mantine/spo
 import {
   IconAlbum,
   IconBook,
-  IconBrandNextcloud,
   IconCalendarEvent,
   IconChartBar,
   IconClock,
@@ -15,13 +14,11 @@ import {
   IconFolders,
   IconGraph,
   IconHeart,
-  IconHome,
   IconLanguage,
   IconLock,
   IconMap,
   IconMoodSmile,
   IconMoon,
-  IconPalette,
   IconPhoto,
   IconPhotoX,
   IconRefresh,
@@ -41,17 +38,21 @@ import {
   IconVideo,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { serverAddress } from "../../api_client/apiClient";
-
-import { useTrainFacesMutation } from "../../api_client/faces";
-import { useGenerateAutoAlbumsMutation, useRescanPhotosMutation, useScanPhotosMutation, useWorkerQuery } from "../../api_client/jobs/hooks";
-import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { fetchClient } from "../../api_client/api";
-import { notification } from "../../service/notifications";
-import { useSearch, SearchOptionType, type SearchOption } from "../../service/use-search";
+import { serverAddress } from "../../api_client/apiClient";
+import { useTrainFacesMutation } from "../../api_client/faces";
+import {
+  useGenerateAutoAlbumsMutation,
+  useRescanPhotosMutation,
+  useScanPhotosMutation,
+  useWorkerQuery,
+} from "../../api_client/jobs/hooks";
+import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { useAuth } from "../../hooks/useAuth";
+import { notification } from "../../service/notifications";
+import { SearchOptionType, useSearch, type SearchOption } from "../../service/use-search";
 
 const ICON_SIZE = 20;
 const AVATAR_SIZE = 28;
@@ -503,7 +504,7 @@ export function useSpotlightActions(query: string = "") {
 
   // Convert search options to actions
   const searchActions: SpotlightAction[] = useMemo(
-    () => searchOptions.map((option) => searchOptionToAction(option, navigate)),
+    () => searchOptions.map(option => searchOptionToAction(option, navigate)),
     [searchOptions, navigate]
   );
 
@@ -565,4 +566,3 @@ export function useSpotlightActions(query: string = "") {
     isLoading: isSearchLoading,
   };
 }
-

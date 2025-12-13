@@ -1,12 +1,12 @@
-import { IconPhoto as Photo, IconRefresh } from "@tabler/icons-react";
+import { IconPhoto as Photo } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumQuery, useFetchDateAlbumsQuery } from "../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
-import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
+import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 export const Route = createFileRoute("/_protected/")();
 
@@ -40,9 +40,10 @@ export function TimestampPhotos() {
   };
 
   // Check if a scan-related job is running
-  const isScanRunning = workerRunningJob && 
-    (workerRunningJob.job_type_str?.toLowerCase().includes("scan") || 
-     workerRunningJob.job_type_str?.toLowerCase().includes("photo"));
+  const isScanRunning =
+    workerRunningJob &&
+    (workerRunningJob.job_type_str?.toLowerCase().includes("scan") ||
+      workerRunningJob.job_type_str?.toLowerCase().includes("photo"));
 
   const emptyStateConfig: EmptyStateConfig = useMemo(() => {
     if (isScanRunning && workerRunningJob) {
@@ -58,7 +59,7 @@ export function TimestampPhotos() {
         },
       };
     }
-    
+
     return {
       icon: <Photo size={40} />,
       title: t("emptystate.photos.title"),
