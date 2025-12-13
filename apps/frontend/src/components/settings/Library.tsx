@@ -28,23 +28,15 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconBook as Book,
   IconBrandNextcloud as BrandNextcloud,
-  IconChartBar,
-  IconChartLine,
   IconCheck as Check,
   IconChevronDown as ChevronDown,
-  IconChevronRight,
-  IconCloud,
   IconFaceId as FaceId,
   IconFolder as Folder,
-  IconMoodSmile,
   IconQuestionMark as QuestionMark,
   IconRefresh as Refresh,
   IconRefreshDot as RefreshDot,
-  IconShare,
-  IconVectorTriangle,
   IconX as X,
 } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -198,112 +190,6 @@ export function Library() {
 
       <Stack>
         <CountStats />
-
-        {/* Explore Data Section */}
-        <Card shadow="md" p="md">
-          <Group justify="space-between" mb="md">
-            <Group gap="sm">
-              <IconChartLine size={24} color="var(--mantine-color-yellow-6)" />
-              <div>
-                <Title order={4}>{t("library.exploredata")}</Title>
-                <Text size="sm" c="dimmed">{t("library.exploredatadescription")}</Text>
-              </div>
-            </Group>
-          </Group>
-          <Grid>
-            <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
-              <Card
-                component={Link}
-                to="/statistics/placetree"
-                padding="md"
-                radius="md"
-                withBorder
-                style={{ textDecoration: "none", cursor: "pointer" }}
-              >
-                <Group justify="space-between" wrap="nowrap">
-                  <Group gap="xs">
-                    <IconVectorTriangle size={20} color="var(--mantine-color-yellow-6)" />
-                    <Text size="sm" fw={500}>{t("sidemenu.placetree")}</Text>
-                  </Group>
-                  <IconChevronRight size={16} color="var(--mantine-color-dimmed)" />
-                </Group>
-              </Card>
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
-              <Card
-                component={Link}
-                to="/statistics/timeline"
-                padding="md"
-                radius="md"
-                withBorder
-                style={{ textDecoration: "none", cursor: "pointer" }}
-              >
-                <Group justify="space-between" wrap="nowrap">
-                  <Group gap="xs">
-                    <IconChartBar size={20} color="var(--mantine-color-yellow-6)" />
-                    <Text size="sm" fw={500}>{t("sidemenu.timeline")}</Text>
-                  </Group>
-                  <IconChevronRight size={16} color="var(--mantine-color-dimmed)" />
-                </Group>
-              </Card>
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
-              <Card
-                component={Link}
-                to="/statistics/wordclouds"
-                padding="md"
-                radius="md"
-                withBorder
-                style={{ textDecoration: "none", cursor: "pointer" }}
-              >
-                <Group justify="space-between" wrap="nowrap">
-                  <Group gap="xs">
-                    <IconCloud size={20} color="var(--mantine-color-yellow-6)" />
-                    <Text size="sm" fw={500}>{t("sidemenu.wordclouds")}</Text>
-                  </Group>
-                  <IconChevronRight size={16} color="var(--mantine-color-dimmed)" />
-                </Group>
-              </Card>
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
-              <Card
-                component={Link}
-                to="/statistics/socialgraph"
-                padding="md"
-                radius="md"
-                withBorder
-                style={{ textDecoration: "none", cursor: "pointer" }}
-              >
-                <Group justify="space-between" wrap="nowrap">
-                  <Group gap="xs">
-                    <IconShare size={20} color="var(--mantine-color-yellow-6)" />
-                    <Text size="sm" fw={500}>{t("sidemenu.socialgraph")}</Text>
-                  </Group>
-                  <IconChevronRight size={16} color="var(--mantine-color-dimmed)" />
-                </Group>
-              </Card>
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, sm: 4, md: 2.4 }}>
-              <Card
-                component={Link}
-                to="/statistics/faceclusters"
-                padding="md"
-                radius="md"
-                withBorder
-                style={{ textDecoration: "none", cursor: "pointer" }}
-              >
-                <Group justify="space-between" wrap="nowrap">
-                  <Group gap="xs">
-                    <IconMoodSmile size={20} color="var(--mantine-color-yellow-6)" />
-                    <Text size="sm" fw={500}>{t("sidemenu.facecluster")}</Text>
-                  </Group>
-                  <IconChevronRight size={16} color="var(--mantine-color-dimmed)" />
-                </Group>
-              </Card>
-            </Grid.Col>
-          </Grid>
-        </Card>
-
         <Card shadow="md">
           <Stack>
             <Title order={4} mb={16}>
