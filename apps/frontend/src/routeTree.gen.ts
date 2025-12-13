@@ -16,7 +16,6 @@ import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
 import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
 import { Route as PublicUsersRouteImport } from './routes/public/$users'
 import { Route as ProtectedVideosRouteImport } from './routes/_protected/videos'
-import { Route as ProtectedUsersRouteImport } from './routes/_protected/users'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedRecentRouteImport } from './routes/_protected/recent'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
@@ -29,6 +28,7 @@ import { Route as ProtectedFacesRouteImport } from './routes/_protected/faces'
 import { Route as ProtectedDeletedRouteImport } from './routes/_protected/deleted'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedStatisticsIndexRouteImport } from './routes/_protected/statistics/index'
+import { Route as ProtectedSharingIndexRouteImport } from './routes/_protected/sharing/index'
 import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
 import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
 import { Route as ProtectedStatisticsWordcloudsRouteImport } from './routes/_protected/statistics/wordclouds'
@@ -36,6 +36,8 @@ import { Route as ProtectedStatisticsTimelineRouteImport } from './routes/_prote
 import { Route as ProtectedStatisticsSocialgraphRouteImport } from './routes/_protected/statistics/socialgraph'
 import { Route as ProtectedStatisticsPlacetreeRouteImport } from './routes/_protected/statistics/placetree'
 import { Route as ProtectedStatisticsFaceclustersRouteImport } from './routes/_protected/statistics/faceclusters'
+import { Route as ProtectedSharingPublicRouteImport } from './routes/_protected/sharing/public'
+import { Route as ProtectedSharingLinksRouteImport } from './routes/_protected/sharing/links'
 import { Route as ProtectedSearchQueryRouteImport } from './routes/_protected/search.$query'
 import { Route as ProtectedPhotoIdRouteImport } from './routes/_protected/photo.$id'
 import { Route as ProtectedAlbumUserIndexRouteImport } from './routes/_protected/album/user.index'
@@ -44,8 +46,8 @@ import { Route as ProtectedAlbumPlacesIndexRouteImport } from './routes/_protect
 import { Route as ProtectedAlbumPersonsIndexRouteImport } from './routes/_protected/album/persons.index'
 import { Route as ProtectedAlbumFolderIndexRouteImport } from './routes/_protected/album/folder.index'
 import { Route as ProtectedAlbumEventsIndexRouteImport } from './routes/_protected/album/events.index'
-import { Route as ProtectedSharedTomeTabRouteImport } from './routes/_protected/shared/tome.$tab'
-import { Route as ProtectedSharedFrommeTabRouteImport } from './routes/_protected/shared/fromme.$tab'
+import { Route as ProtectedSharingWithmeTabRouteImport } from './routes/_protected/sharing/withme.$tab'
+import { Route as ProtectedSharingBymeTabRouteImport } from './routes/_protected/sharing/byme.$tab'
 import { Route as ProtectedAlbumUserIdRouteImport } from './routes/_protected/album/user.$id'
 import { Route as ProtectedAlbumThingsIdRouteImport } from './routes/_protected/album/things.$id'
 import { Route as ProtectedAlbumPlacesIdRouteImport } from './routes/_protected/album/places.$id'
@@ -85,11 +87,6 @@ const PublicUsersRoute = PublicUsersRouteImport.update({
 const ProtectedVideosRoute = ProtectedVideosRouteImport.update({
   id: '/videos',
   path: '/videos',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedUsersRoute = ProtectedUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
@@ -153,6 +150,11 @@ const ProtectedStatisticsIndexRoute =
     path: '/statistics/',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
+const ProtectedSharingIndexRoute = ProtectedSharingIndexRouteImport.update({
+  id: '/sharing/',
+  path: '/sharing/',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ProtectedAlbumIndexRoute = ProtectedAlbumIndexRouteImport.update({
   id: '/album/',
   path: '/album/',
@@ -193,6 +195,16 @@ const ProtectedStatisticsFaceclustersRoute =
     path: '/statistics/faceclusters',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
+const ProtectedSharingPublicRoute = ProtectedSharingPublicRouteImport.update({
+  id: '/sharing/public',
+  path: '/sharing/public',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedSharingLinksRoute = ProtectedSharingLinksRouteImport.update({
+  id: '/sharing/links',
+  path: '/sharing/links',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ProtectedSearchQueryRoute = ProtectedSearchQueryRouteImport.update({
   id: '/search/$query',
   path: '/search/$query',
@@ -238,17 +250,17 @@ const ProtectedAlbumEventsIndexRoute =
     path: '/album/events/',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
-const ProtectedSharedTomeTabRoute = ProtectedSharedTomeTabRouteImport.update({
-  id: '/shared/tome/$tab',
-  path: '/shared/tome/$tab',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedSharedFrommeTabRoute =
-  ProtectedSharedFrommeTabRouteImport.update({
-    id: '/shared/fromme/$tab',
-    path: '/shared/fromme/$tab',
+const ProtectedSharingWithmeTabRoute =
+  ProtectedSharingWithmeTabRouteImport.update({
+    id: '/sharing/withme/$tab',
+    path: '/sharing/withme/$tab',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
+const ProtectedSharingBymeTabRoute = ProtectedSharingBymeTabRouteImport.update({
+  id: '/sharing/byme/$tab',
+  path: '/sharing/byme/$tab',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ProtectedAlbumUserIdRoute = ProtectedAlbumUserIdRouteImport.update({
   id: '/album/user/$id',
   path: '/album/user/$id',
@@ -295,12 +307,13 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProtectedProfileRoute
   '/recent': typeof ProtectedRecentRoute
   '/settings': typeof ProtectedSettingsRoute
-  '/users': typeof ProtectedUsersRoute
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
+  '/sharing/links': typeof ProtectedSharingLinksRoute
+  '/sharing/public': typeof ProtectedSharingPublicRoute
   '/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
   '/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
   '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
@@ -308,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/album': typeof ProtectedAlbumIndexRoute
+  '/sharing': typeof ProtectedSharingIndexRoute
   '/statistics': typeof ProtectedStatisticsIndexRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
@@ -315,8 +329,8 @@ export interface FileRoutesByFullPath {
   '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
   '/album/things/$id': typeof ProtectedAlbumThingsIdRoute
   '/album/user/$id': typeof ProtectedAlbumUserIdRoute
-  '/shared/fromme/$tab': typeof ProtectedSharedFrommeTabRoute
-  '/shared/tome/$tab': typeof ProtectedSharedTomeTabRoute
+  '/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
+  '/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
   '/album/events': typeof ProtectedAlbumEventsIndexRoute
   '/album/folder': typeof ProtectedAlbumFolderIndexRoute
   '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
@@ -339,12 +353,13 @@ export interface FileRoutesByTo {
   '/profile': typeof ProtectedProfileRoute
   '/recent': typeof ProtectedRecentRoute
   '/settings': typeof ProtectedSettingsRoute
-  '/users': typeof ProtectedUsersRoute
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
+  '/sharing/links': typeof ProtectedSharingLinksRoute
+  '/sharing/public': typeof ProtectedSharingPublicRoute
   '/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
   '/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
   '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
@@ -352,6 +367,7 @@ export interface FileRoutesByTo {
   '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/album': typeof ProtectedAlbumIndexRoute
+  '/sharing': typeof ProtectedSharingIndexRoute
   '/statistics': typeof ProtectedStatisticsIndexRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
@@ -359,8 +375,8 @@ export interface FileRoutesByTo {
   '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
   '/album/things/$id': typeof ProtectedAlbumThingsIdRoute
   '/album/user/$id': typeof ProtectedAlbumUserIdRoute
-  '/shared/fromme/$tab': typeof ProtectedSharedFrommeTabRoute
-  '/shared/tome/$tab': typeof ProtectedSharedTomeTabRoute
+  '/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
+  '/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
   '/album/events': typeof ProtectedAlbumEventsIndexRoute
   '/album/folder': typeof ProtectedAlbumFolderIndexRoute
   '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
@@ -385,12 +401,13 @@ export interface FileRoutesById {
   '/_protected/profile': typeof ProtectedProfileRoute
   '/_protected/recent': typeof ProtectedRecentRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
-  '/_protected/users': typeof ProtectedUsersRoute
   '/_protected/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
+  '/_protected/sharing/links': typeof ProtectedSharingLinksRoute
+  '/_protected/sharing/public': typeof ProtectedSharingPublicRoute
   '/_protected/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
   '/_protected/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
   '/_protected/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
@@ -398,6 +415,7 @@ export interface FileRoutesById {
   '/_protected/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/_protected/album/': typeof ProtectedAlbumIndexRoute
+  '/_protected/sharing/': typeof ProtectedSharingIndexRoute
   '/_protected/statistics/': typeof ProtectedStatisticsIndexRoute
   '/_protected/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/_protected/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
@@ -405,8 +423,8 @@ export interface FileRoutesById {
   '/_protected/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
   '/_protected/album/things/$id': typeof ProtectedAlbumThingsIdRoute
   '/_protected/album/user/$id': typeof ProtectedAlbumUserIdRoute
-  '/_protected/shared/fromme/$tab': typeof ProtectedSharedFrommeTabRoute
-  '/_protected/shared/tome/$tab': typeof ProtectedSharedTomeTabRoute
+  '/_protected/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
+  '/_protected/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
   '/_protected/album/events/': typeof ProtectedAlbumEventsIndexRoute
   '/_protected/album/folder/': typeof ProtectedAlbumFolderIndexRoute
   '/_protected/album/persons/': typeof ProtectedAlbumPersonsIndexRoute
@@ -431,12 +449,13 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recent'
     | '/settings'
-    | '/users'
     | '/videos'
     | '/public/$users'
     | '/'
     | '/photo/$id'
     | '/search/$query'
+    | '/sharing/links'
+    | '/sharing/public'
     | '/statistics/faceclusters'
     | '/statistics/placetree'
     | '/statistics/socialgraph'
@@ -444,6 +463,7 @@ export interface FileRouteTypes {
     | '/statistics/wordclouds'
     | '/public/s/$slug'
     | '/album'
+    | '/sharing'
     | '/statistics'
     | '/album/events/$id'
     | '/album/folder/$id'
@@ -451,8 +471,8 @@ export interface FileRouteTypes {
     | '/album/places/$id'
     | '/album/things/$id'
     | '/album/user/$id'
-    | '/shared/fromme/$tab'
-    | '/shared/tome/$tab'
+    | '/sharing/byme/$tab'
+    | '/sharing/withme/$tab'
     | '/album/events'
     | '/album/folder'
     | '/album/persons'
@@ -475,12 +495,13 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recent'
     | '/settings'
-    | '/users'
     | '/videos'
     | '/public/$users'
     | '/'
     | '/photo/$id'
     | '/search/$query'
+    | '/sharing/links'
+    | '/sharing/public'
     | '/statistics/faceclusters'
     | '/statistics/placetree'
     | '/statistics/socialgraph'
@@ -488,6 +509,7 @@ export interface FileRouteTypes {
     | '/statistics/wordclouds'
     | '/public/s/$slug'
     | '/album'
+    | '/sharing'
     | '/statistics'
     | '/album/events/$id'
     | '/album/folder/$id'
@@ -495,8 +517,8 @@ export interface FileRouteTypes {
     | '/album/places/$id'
     | '/album/things/$id'
     | '/album/user/$id'
-    | '/shared/fromme/$tab'
-    | '/shared/tome/$tab'
+    | '/sharing/byme/$tab'
+    | '/sharing/withme/$tab'
     | '/album/events'
     | '/album/folder'
     | '/album/persons'
@@ -520,12 +542,13 @@ export interface FileRouteTypes {
     | '/_protected/profile'
     | '/_protected/recent'
     | '/_protected/settings'
-    | '/_protected/users'
     | '/_protected/videos'
     | '/public/$users'
     | '/_protected/'
     | '/_protected/photo/$id'
     | '/_protected/search/$query'
+    | '/_protected/sharing/links'
+    | '/_protected/sharing/public'
     | '/_protected/statistics/faceclusters'
     | '/_protected/statistics/placetree'
     | '/_protected/statistics/socialgraph'
@@ -533,6 +556,7 @@ export interface FileRouteTypes {
     | '/_protected/statistics/wordclouds'
     | '/public/s/$slug'
     | '/_protected/album/'
+    | '/_protected/sharing/'
     | '/_protected/statistics/'
     | '/_protected/album/events/$id'
     | '/_protected/album/folder/$id'
@@ -540,8 +564,8 @@ export interface FileRouteTypes {
     | '/_protected/album/places/$id'
     | '/_protected/album/things/$id'
     | '/_protected/album/user/$id'
-    | '/_protected/shared/fromme/$tab'
-    | '/_protected/shared/tome/$tab'
+    | '/_protected/sharing/byme/$tab'
+    | '/_protected/sharing/withme/$tab'
     | '/_protected/album/events/'
     | '/_protected/album/folder/'
     | '/_protected/album/persons/'
@@ -606,13 +630,6 @@ declare module '@tanstack/react-router' {
       path: '/videos'
       fullPath: '/videos'
       preLoaderRoute: typeof ProtectedVideosRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/users': {
-      id: '/_protected/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof ProtectedUsersRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/settings': {
@@ -699,6 +716,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedStatisticsIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/sharing/': {
+      id: '/_protected/sharing/'
+      path: '/sharing'
+      fullPath: '/sharing'
+      preLoaderRoute: typeof ProtectedSharingIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/album/': {
       id: '/_protected/album/'
       path: '/album'
@@ -746,6 +770,20 @@ declare module '@tanstack/react-router' {
       path: '/statistics/faceclusters'
       fullPath: '/statistics/faceclusters'
       preLoaderRoute: typeof ProtectedStatisticsFaceclustersRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/sharing/public': {
+      id: '/_protected/sharing/public'
+      path: '/sharing/public'
+      fullPath: '/sharing/public'
+      preLoaderRoute: typeof ProtectedSharingPublicRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/sharing/links': {
+      id: '/_protected/sharing/links'
+      path: '/sharing/links'
+      fullPath: '/sharing/links'
+      preLoaderRoute: typeof ProtectedSharingLinksRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/search/$query': {
@@ -804,18 +842,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAlbumEventsIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/shared/tome/$tab': {
-      id: '/_protected/shared/tome/$tab'
-      path: '/shared/tome/$tab'
-      fullPath: '/shared/tome/$tab'
-      preLoaderRoute: typeof ProtectedSharedTomeTabRouteImport
+    '/_protected/sharing/withme/$tab': {
+      id: '/_protected/sharing/withme/$tab'
+      path: '/sharing/withme/$tab'
+      fullPath: '/sharing/withme/$tab'
+      preLoaderRoute: typeof ProtectedSharingWithmeTabRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/shared/fromme/$tab': {
-      id: '/_protected/shared/fromme/$tab'
-      path: '/shared/fromme/$tab'
-      fullPath: '/shared/fromme/$tab'
-      preLoaderRoute: typeof ProtectedSharedFrommeTabRouteImport
+    '/_protected/sharing/byme/$tab': {
+      id: '/_protected/sharing/byme/$tab'
+      path: '/sharing/byme/$tab'
+      fullPath: '/sharing/byme/$tab'
+      preLoaderRoute: typeof ProtectedSharingBymeTabRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/album/user/$id': {
@@ -875,17 +913,19 @@ interface ProtectedRouteRouteChildren {
   ProtectedProfileRoute: typeof ProtectedProfileRoute
   ProtectedRecentRoute: typeof ProtectedRecentRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRoute
-  ProtectedUsersRoute: typeof ProtectedUsersRoute
   ProtectedVideosRoute: typeof ProtectedVideosRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
   ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute
   ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute
+  ProtectedSharingLinksRoute: typeof ProtectedSharingLinksRoute
+  ProtectedSharingPublicRoute: typeof ProtectedSharingPublicRoute
   ProtectedStatisticsFaceclustersRoute: typeof ProtectedStatisticsFaceclustersRoute
   ProtectedStatisticsPlacetreeRoute: typeof ProtectedStatisticsPlacetreeRoute
   ProtectedStatisticsSocialgraphRoute: typeof ProtectedStatisticsSocialgraphRoute
   ProtectedStatisticsTimelineRoute: typeof ProtectedStatisticsTimelineRoute
   ProtectedStatisticsWordcloudsRoute: typeof ProtectedStatisticsWordcloudsRoute
   ProtectedAlbumIndexRoute: typeof ProtectedAlbumIndexRoute
+  ProtectedSharingIndexRoute: typeof ProtectedSharingIndexRoute
   ProtectedStatisticsIndexRoute: typeof ProtectedStatisticsIndexRoute
   ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute
   ProtectedAlbumFolderIdRoute: typeof ProtectedAlbumFolderIdRoute
@@ -893,8 +933,8 @@ interface ProtectedRouteRouteChildren {
   ProtectedAlbumPlacesIdRoute: typeof ProtectedAlbumPlacesIdRoute
   ProtectedAlbumThingsIdRoute: typeof ProtectedAlbumThingsIdRoute
   ProtectedAlbumUserIdRoute: typeof ProtectedAlbumUserIdRoute
-  ProtectedSharedFrommeTabRoute: typeof ProtectedSharedFrommeTabRoute
-  ProtectedSharedTomeTabRoute: typeof ProtectedSharedTomeTabRoute
+  ProtectedSharingBymeTabRoute: typeof ProtectedSharingBymeTabRoute
+  ProtectedSharingWithmeTabRoute: typeof ProtectedSharingWithmeTabRoute
   ProtectedAlbumEventsIndexRoute: typeof ProtectedAlbumEventsIndexRoute
   ProtectedAlbumFolderIndexRoute: typeof ProtectedAlbumFolderIndexRoute
   ProtectedAlbumPersonsIndexRoute: typeof ProtectedAlbumPersonsIndexRoute
@@ -915,17 +955,19 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedProfileRoute: ProtectedProfileRoute,
   ProtectedRecentRoute: ProtectedRecentRoute,
   ProtectedSettingsRoute: ProtectedSettingsRoute,
-  ProtectedUsersRoute: ProtectedUsersRoute,
   ProtectedVideosRoute: ProtectedVideosRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
   ProtectedPhotoIdRoute: ProtectedPhotoIdRoute,
   ProtectedSearchQueryRoute: ProtectedSearchQueryRoute,
+  ProtectedSharingLinksRoute: ProtectedSharingLinksRoute,
+  ProtectedSharingPublicRoute: ProtectedSharingPublicRoute,
   ProtectedStatisticsFaceclustersRoute: ProtectedStatisticsFaceclustersRoute,
   ProtectedStatisticsPlacetreeRoute: ProtectedStatisticsPlacetreeRoute,
   ProtectedStatisticsSocialgraphRoute: ProtectedStatisticsSocialgraphRoute,
   ProtectedStatisticsTimelineRoute: ProtectedStatisticsTimelineRoute,
   ProtectedStatisticsWordcloudsRoute: ProtectedStatisticsWordcloudsRoute,
   ProtectedAlbumIndexRoute: ProtectedAlbumIndexRoute,
+  ProtectedSharingIndexRoute: ProtectedSharingIndexRoute,
   ProtectedStatisticsIndexRoute: ProtectedStatisticsIndexRoute,
   ProtectedAlbumEventsIdRoute: ProtectedAlbumEventsIdRoute,
   ProtectedAlbumFolderIdRoute: ProtectedAlbumFolderIdRoute,
@@ -933,8 +975,8 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAlbumPlacesIdRoute: ProtectedAlbumPlacesIdRoute,
   ProtectedAlbumThingsIdRoute: ProtectedAlbumThingsIdRoute,
   ProtectedAlbumUserIdRoute: ProtectedAlbumUserIdRoute,
-  ProtectedSharedFrommeTabRoute: ProtectedSharedFrommeTabRoute,
-  ProtectedSharedTomeTabRoute: ProtectedSharedTomeTabRoute,
+  ProtectedSharingBymeTabRoute: ProtectedSharingBymeTabRoute,
+  ProtectedSharingWithmeTabRoute: ProtectedSharingWithmeTabRoute,
   ProtectedAlbumEventsIndexRoute: ProtectedAlbumEventsIndexRoute,
   ProtectedAlbumFolderIndexRoute: ProtectedAlbumFolderIndexRoute,
   ProtectedAlbumPersonsIndexRoute: ProtectedAlbumPersonsIndexRoute,

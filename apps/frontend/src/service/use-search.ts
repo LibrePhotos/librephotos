@@ -30,15 +30,32 @@ function toExampleOption(item: string): SearchOption {
 }
 
 function toPlaceOption(item: any): SearchOption {
-  return { value: item.title, type: SearchOptionType.PLACE_ALBUM, data: item.id };
+  const coverHash = item.cover_photos?.[0]?.image_hash;
+  return {
+    value: item.title,
+    type: SearchOptionType.PLACE_ALBUM,
+    data: item.id,
+    thumbnail: coverHash,
+  };
 }
 
 function toThingOption(item: any): SearchOption {
-  return { value: item.title, type: SearchOptionType.THING_ALBUM, data: item.id };
+  const coverHash = item.cover_photos?.[0]?.image_hash;
+  return {
+    value: item.title,
+    type: SearchOptionType.THING_ALBUM,
+    data: item.id,
+    thumbnail: coverHash,
+  };
 }
 
 function toUserAlbumOption(item: any): SearchOption {
-  return { value: item.title, type: SearchOptionType.USER_ALBUM, data: item.id };
+  return {
+    value: item.title,
+    type: SearchOptionType.USER_ALBUM,
+    data: item.id,
+    thumbnail: item.cover_photo?.image_hash,
+  };
 }
 
 function toPersonOption(item: any): SearchOption {

@@ -3,10 +3,11 @@ import { useDisclosure } from "@mantine/hooks";
 import {
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
+  IconFaceId as FaceId,
   IconTrash as Trash,
   IconUsers as Users,
 } from "@tabler/icons-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
@@ -24,6 +25,7 @@ import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 export const Route = createFileRoute("/_protected/album/persons/")();
 
 export function AlbumPeople() {
+  const navigate = useNavigate();
   const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
   const [selectedAlbum, setSelectedAlbum] = useState<Person>({
@@ -123,14 +125,24 @@ export function AlbumPeople() {
 
   return (
     <>
-      <HeaderComponent
-        icon={<Users size={50} />}
-        title={t("people")}
-        fetching={isFetching}
-        subtitle={t("personalbum.numberofpeople", {
-          peoplelength: (albums && albums.length) || 0,
-        })}
-      />
+      <Group justify="space-between" align="flex-start" pr="md">
+        <HeaderComponent
+          icon={<Users size={50} />}
+          title={t("people")}
+          fetching={isFetching}
+          subtitle={t("personalbum.numberofpeople", {
+            peoplelength: (albums && albums.length) || 0,
+          })}
+        />
+        <Button
+          leftSection={<FaceId size={18} />}
+          variant="light"
+          color="orange"
+          onClick={() => navigate({ to: "/faces" })}
+        >
+          {t("personalbum.managefaces")}
+        </Button>
+      </Group>
       {!isFetching && !hasAlbums ? (
         <EmptyState
           icon={<Users size={40} />}

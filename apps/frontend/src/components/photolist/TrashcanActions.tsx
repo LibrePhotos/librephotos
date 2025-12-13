@@ -39,7 +39,7 @@ export function TrashcanActions(props: Readonly<Props>) {
       {location.pathname.startsWith("/deleted") && (
         <>
           <Tooltip 
-            label={selectedCount === 1 ? "Restore photo" : `Restore ${selectedCount} photos`} 
+            label={selectedCount === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count: selectedCount })} 
             position="bottom" 
             withArrow
           >
@@ -64,7 +64,7 @@ export function TrashcanActions(props: Readonly<Props>) {
           </Tooltip>
           
           <Tooltip 
-            label={selectedCount === 1 ? "Delete permanently" : `Delete ${selectedCount} photos permanently`} 
+            label={selectedCount === 1 ? t("trash.deletePermanently") : t("trash.deletePhotosPermanently", { count: selectedCount })} 
             position="bottom" 
             withArrow
           >
@@ -99,8 +99,7 @@ export function TrashcanActions(props: Readonly<Props>) {
       >
         <Stack>
           <Text size="sm">
-            You are about to permanently delete {selectedCount} {selectedCount === 1 ? 'image' : 'images'}. 
-            {selectedCount === 1 ? 'This image' : 'These images'} will be completely removed from your library and storage.
+            {t("trash.permanentDeleteWarning", { count: selectedCount })}
           </Text>
           
           <Text size="sm" c="red" fw={500}>

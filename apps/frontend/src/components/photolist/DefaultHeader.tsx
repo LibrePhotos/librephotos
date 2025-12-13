@@ -208,8 +208,8 @@ export function DefaultHeader(props: Props) {
           </div>
         </Group>
         {(!hasEmptyState || numPhotosetItems > 0) && (dayHeaderPrefix || date) && (
-          <Group justify="right">
-            <Text>
+          <Group justify="right" wrap="nowrap">
+            <Text style={{ whiteSpace: "nowrap" }}>
               <b>
                 {dayHeaderPrefix}
                 {DateTime.fromISO(date).isValid

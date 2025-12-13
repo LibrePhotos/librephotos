@@ -1540,6 +1540,18 @@
     "@mantine/store" "8.3.5"
     react-transition-group "4.4.5"
 
+"@mantine/spotlight@^8.3.0":
+  version "8.3.10"
+  resolved "https://registry.yarnpkg.com/@mantine/spotlight/-/spotlight-8.3.10.tgz#01f2eac0396b7037955079a887d7ccb2438b9e8c"
+  integrity sha512-0GfQd/smRcd5u0o6Ad7J9ZEWLcZZ81h9/Z9qUnzIlJeYjXqJdr40MMqDxNsXgZEDKscPJkggZMqMiRZXhFbdNQ==
+  dependencies:
+    "@mantine/store" "8.3.10"
+
+"@mantine/store@8.3.10":
+  version "8.3.10"
+  resolved "https://registry.yarnpkg.com/@mantine/store/-/store-8.3.10.tgz#86d5cc35c2f16c3855840ff153a24a2787706f45"
+  integrity sha512-38t1UivcucZo9hQq27F/eqR5GvovNs4NHEz6DchOuZzV5IJWqO8+T07ivb8wct47ovYe42rPfLcaOdnIEvMsJA==
+
 "@mantine/store@8.3.5":
   version "8.3.5"
   resolved "https://registry.yarnpkg.com/@mantine/store/-/store-8.3.5.tgz#46da04f11dea4777543296895980901ebd80e154"

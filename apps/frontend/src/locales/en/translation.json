@@ -309,6 +309,56 @@
     "noAlbums": "No albums yet",
     "noCover": "No cover"
   },
+  "sharing": {
+    "subtitle": "Photos and albums shared with others",
+    "userCount_one": "{{count}} user",
+    "userCount_other": "{{count}} users",
+    "itemCount": "{{photos}} photos, {{albums}} albums",
+    "noPublicUsers": "No users with public photos",
+    "nothingSharedWithYou": "No one has shared anything with you yet",
+    "nothingSharedByYou": "You haven't shared anything yet",
+    "photosYouShared": "Photos you shared",
+    "albumsYouShared": "Albums you shared",
+    "photosOthersShared": "Photos others shared",
+    "albumsOthersShared": "Albums others shared",
+    "photoSharesWithUsers": "{{photoCount}} photo share(s) with {{userCount}} user(s)",
+    "youSharedAlbums": "You shared {{count}} album(s)",
+    "usersSharedPhotosWithYou": "{{userCount}} user(s) shared {{photoCount}} photo(s) with you",
+    "usersSharedAlbumsWithYou": "{{userCount}} user(s) shared {{albumCount}} album(s) with you",
+    "sharedPhotosWithYou": "shared {{count}} photos with you",
+    "youSharedPhotos": "you shared {{count}} photos",
+    "sharedAlbumsWithYou": "shared {{count}} albums with you",
+    "youSharedAlbumsWithThem": "you shared {{count}} album(s) with them",
+    "loadingPhotosSharedByYou": "Loading photos shared by you...",
+    "loadingPhotosSharedWithYou": "Loading photos shared with you...",
+    "loadingAlbumsSharedByYou": "Loading albums shared by you...",
+    "loadingAlbumsSharedWithYou": "Loading albums shared with you...",
+    "noAlbumsSharedByYou": "You have not shared any albums yet.",
+    "noAlbumsSharedWithYou": "No one has shared any albums with you yet.",
+    "photoCount": "{{count}} photo(s)",
+    "customUrl": "Custom URL (optional)",
+    "customUrlPlaceholder": "my-family-album",
+    "customUrlError": "Use lowercase letters, numbers and hyphens (3-64).",
+    "urlTaken": "This URL is already taken.",
+    "expiration": "Expiration (optional)",
+    "pickExpiration": "Pick expiration",
+    "days7": "7 days",
+    "days30": "30 days",
+    "days90": "90 days",
+    "never": "Never",
+    "generating": "Generating...",
+    "copied": "Copied",
+    "copyLink": "Copy link",
+    "openPublicLink": "Open public link",
+    "saveLinkSettings": "Save link settings",
+    "saveLinkError": "Could not save link settings. Try a different URL.",
+    "publicLinks": "Public Links",
+    "publicLinksDescription": "Albums and photos you've made public via shareable link",
+    "noPublicLinks": "You haven't made anything public via link yet",
+    "noPublicAlbums": "No albums have been made public via link",
+    "noPublicPhotos": "No photos have been made public",
+    "publicPhotos": "Public Photos"
+  },
   "selectionbar": {
     "selected": "selected",
     "toggle": "Toggle select mode",
@@ -377,6 +427,19 @@
       "close": "Close (Escape)",
       "slideshow": "Slideshow (S)",
       "stopslideshow": "Stop Slideshow (S)"
+    },
+    "toolbar": {
+      "pauseVideo": "Pause video (Space)",
+      "playVideo": "Play video (Space)",
+      "showPhoto": "Show photo (H)",
+      "hidePhoto": "Hide photo (H)",
+      "addToFavorites": "Add to favorites (F)",
+      "removeFromFavorites": "Remove from favorites (F)",
+      "makePublic": "Make public (P)",
+      "makePrivate": "Make private (P)",
+      "showInfoPanel": "Show info panel (I)",
+      "hideInfoPanel": "Hide info panel (I)",
+      "deletePhoto": "Delete photo (D)"
     }
   },
   "exif": {
@@ -400,6 +463,13 @@
     "favorite": "Favorite Photos",
     "videos": "Videos",
     "deleted": "Trash"
+  },
+  "trash": {
+    "restorePhoto": "Restore photo",
+    "restorePhotos": "Restore {{count}} photos",
+    "deletePermanently": "Delete permanently",
+    "deletePhotosPermanently": "Delete {{count}} photos permanently",
+    "permanentDeleteWarning": "You are about to permanently delete {{count}} image(s). These images will be completely removed from your library and storage."
   },
   "login": {
     "name": "LibrePhotos",
@@ -429,6 +499,72 @@
     "search": "Search",
     "default": "Search...",
     "loading": "Loading..."
+  },
+  "spotlight": {
+    "placeholder": "Search photos, run commands...",
+    "triggerPlaceholder": "Search or press",
+    "nothingFound": "No results found",
+    "searchFor": "Search for \"{{query}}\"",
+    "groups": {
+      "search": "Search Results",
+      "navigation": "Navigation",
+      "actions": "Actions",
+      "quickActions": "Quick Actions"
+    },
+    "nav": {
+      "photos": "Go to Photos",
+      "albums": "Go to Albums",
+      "people": "Go to People",
+      "places": "Go to Places",
+      "things": "Go to Things",
+      "favorites": "Go to Favorites",
+      "hidden": "Go to Hidden",
+      "videos": "Go to Videos",
+      "trash": "Go to Trash",
+      "recent": "Go to Recently Added",
+      "noTimestamp": "Go to Photos Without Timestamps",
+      "events": "Go to Events",
+      "folders": "Go to Folders",
+      "myAlbums": "Go to My Albums",
+      "sharing": "Go to Sharing",
+      "faces": "Go to Faces Dashboard",
+      "settings": "Go to Settings",
+      "profile": "Go to Profile",
+      "library": "Go to Library",
+      "statistics": "Go to Statistics",
+      "placeTree": "Go to Place Tree",
+      "wordClouds": "Go to Word Clouds",
+      "timeline": "Go to Timeline",
+      "socialGraph": "Go to Social Graph",
+      "faceClusters": "Go to Face Clusters",
+      "admin": "Go to Admin Area",
+      "scanSettings": "Scan Options",
+      "scanSettingsDesc": "Scene confidence, semantic search settings",
+      "metadataSettings": "Metadata Settings",
+      "metadataSettingsDesc": "Sync to disk, timezone, favorites",
+      "faceSettings": "Face Recognition Settings",
+      "faceSettingsDesc": "Recognition model, clustering options",
+      "llmSettings": "AI & LLM Settings",
+      "llmSettingsDesc": "Caption generation, language model",
+      "changeLanguage": "Change Language",
+      "changeLanguageDesc": "Change the interface language",
+      "changePassword": "Change Password",
+      "changePasswordDesc": "Update your account password",
+      "changeAvatar": "Change Avatar",
+      "changeAvatarDesc": "Update your profile picture"
+    },
+    "actions": {
+      "scanPhotos": "Scan Photos",
+      "rescanPhotos": "Rescan All Photos",
+      "trainFaces": "Train Face Recognition",
+      "rescanFaces": "Detect Faces in Photos",
+      "generateEvents": "Generate Event Albums",
+      "deleteMissing": "Delete Missing Photos",
+      "scanNextcloud": "Scan Nextcloud Photos"
+    },
+    "quick": {
+      "toggleTheme": "Toggle Dark Mode"
+    }
   },
   "adminarea": {
     "header": "Admin Area",
@@ -533,7 +669,8 @@
     "renameperson": "Rename Person",
     "renamepersonheader": "What do you want to rename {{name}} to?",
     "personalreadyexists": "Person {{name}} already exists.",
-    "nameplaceholder": "Name"
+    "nameplaceholder": "Name",
+    "managefaces": "Manage Faces"
   },
   "placealbum": {
     "showingplaces": "Showing {{number}} places on the map",
@@ -772,6 +909,31 @@
     "hint": "Click nodes to expand • Drag to pan • Scroll to zoom",
     "ariaLabel": "Interactive place tree visualization",
     "clickToExpand": "Click to expand/collapse"
+  },
+  "publicalbum": {
+    "notFound": "Album not found or the link has expired",
+    "checkUrl": "Please check the URL or ask the owner to regenerate a new link.",
+    "goHome": "Go to Home"
+  },
+  "photodisplay": {
+    "settings": "Photo Display Settings",
+    "photoSize": "Photo Size",
+    "lowerBigger": "Lower = bigger thumbnails",
+    "current": "Current: {{value}}",
+    "textAlignment": "Text Alignment",
+    "leftAlign": "Left align date & location",
+    "headerSize": "Header Size",
+    "large": "Large",
+    "normal": "Normal",
+    "small": "Small"
+  },
+  "useralbum": {
+    "sharedWith": "Shared with:",
+    "albumIsPublic": "This album is public"
+  },
+  "library": {
+    "exploredata": "Explore Data",
+    "exploredatadescription": "Visualize and explore your photo library"
   },
   "emptystate": {
     "placetree": {

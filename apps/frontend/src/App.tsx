@@ -1,6 +1,7 @@
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
+import "@mantine/spotlight/styles.css";
 import React from "react";
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 

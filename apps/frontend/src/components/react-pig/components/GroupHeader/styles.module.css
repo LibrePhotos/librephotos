@@ -23,7 +23,6 @@
 .date {
   font-weight: bold;
   text-align: right;
-  flex: 1;
 }
 
 @media (min-width: 600px) {
@@ -99,7 +98,6 @@
 .leftAligned .date {
   margin-right: 1rem;
   text-align: left;
-  flex: 1;
 }
 
 /* Right alignment styles - Date first, then Location */
@@ -109,7 +107,6 @@
 
 .rightAligned .date {
   text-align: right;
-  flex: 1;
   margin-left: 1rem;
 }
 

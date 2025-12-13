@@ -1,6 +1,7 @@
 import { Loader, Stack, Text } from "@mantine/core";
 import { IconPhoto as Photo, IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useFetchSharedPhotosByMeQuery } from "../../api_client/photos/hooks";
@@ -15,6 +16,7 @@ type GroupHeaderProps = {
 };
 
 function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
+  const { t } = useTranslation();
   const { data: users } = useFetchUserListQuery();
 
   function getUserName(userId: number) {
@@ -47,8 +49,8 @@ function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
           <Text size="xs" c="dimmed" style={{ display: "flex", alignItems: "center" }}>
             <Polaroid size={16} style={{ marginRight: 5 }} />
             {isSharedToMe
-              ? `shared ${group.photos.length} photos with you`
-              : `you shared ${group.photos.length} photos`}
+              ? t("sharing.sharedPhotosWithYou", { count: group.photos.length })
+              : t("sharing.youSharedPhotos", { count: group.photos.length })}
           </Text>
         </div>
       </div>
@@ -57,13 +59,14 @@ function GroupHeader({ group, isSharedToMe }: Readonly<GroupHeaderProps>) {
 }
 
 export function PhotosSharedByMe() {
+  const { t } = useTranslation();
   const { data: photos = [], isFetching } = useFetchSharedPhotosByMeQuery();
 
   if (isFetching) {
     return (
       <Stack align="center">
         <Loader />
-        <Text>Loading photos shared by you...</Text>
+        <Text>{t("sharing.loadingPhotosSharedByYou")}</Text>
       </Stack>
     );
   }
@@ -73,7 +76,7 @@ export function PhotosSharedByMe() {
       {photos.map(group => (
         <PhotoListView
           key={group.userId}
-          title="Photos"
+          title={t("sidemenu.photos")}
           loading={isFetching}
           icon={<Photo size={50} />}
           photoset={group.photos}

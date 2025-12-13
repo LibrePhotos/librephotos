@@ -4,6 +4,7 @@ import {
   IconAlbum,
   IconBookmark,
   IconChevronRight,
+  IconFaceId,
   IconFolder,
   IconTags,
   IconUsers,
@@ -188,6 +189,10 @@ export function AlbumExplore() {
           count={peopleAlbums?.length}
           variant="avatarGrid"
           maxItems={16}
+          actionLink="/faces"
+          actionLabel={t("personalbum.managefaces")}
+          actionIcon={<IconFaceId size={16} />}
+          actionColor="orange"
         />
 
         {/* Category cards - 4 columns on large screens */}

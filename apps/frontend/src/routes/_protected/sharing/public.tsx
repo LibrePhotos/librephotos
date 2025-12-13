@@ -2,10 +2,10 @@ import { Avatar, Button, Group, Stack, Text, Title } from "@mantine/core";
 import { IconUser as User } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React from "react";
-import { UserList } from "../../api_client/user";
-import { useFetchUserListQuery } from "../../api_client/user/hooks";
+import { UserList } from "../../../api_client/user";
+import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 
-export const Route = createFileRoute("/_protected/users")();
+export const Route = createFileRoute("/_protected/sharing/public")();
 
 function publicUsers(items: UserList = []) {
   return items.filter(el => el.public_sharing);
@@ -16,7 +16,7 @@ export function PublicUserList() {
   const { data: users } = useFetchUserListQuery();
 
   return (
-    <Stack align="flex-start">
+    <Stack align="flex-start" p="md">
       <Title order={2}>
         <div>
           <Group>

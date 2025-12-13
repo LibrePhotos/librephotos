@@ -3,6 +3,7 @@ import { useResizeObserver } from "@mantine/hooks";
 import { IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
 import debounce from "lodash/debounce";
 import React, { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
 
 import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
@@ -17,6 +18,7 @@ const SPEED_THRESHOLD = 300;
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export function AlbumsSharedByMe({ showSidebar }: any) {
+  const { t } = useTranslation();
   const [albumGridContents, setAlbumGridContents] = React.useState<any[]>([]);
   const [entrySquareSize, setEntrySquareSize] = React.useState(200);
   const [height, setHeight] = React.useState(window.innerHeight);
@@ -116,7 +118,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
                 </Text>
                 <Text size="xs" style={{ display: "flex", alignItems: "center" }}>
                   <Polaroid size={16} style={{ marginRight: 5 }} />
-                  you shared {cell.albums.length} album(s) with them
+                  {t("sharing.youSharedAlbumsWithThem", { count: cell.albums.length })}
                 </Text>
               </div>
             </div>
@@ -139,7 +141,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
           </Anchor>
           <Text fw={700}>{cell.title}</Text>
           <Text size="sm" c="dimmed">
-            {cell.photo_count} photo(s)
+            {t("sharing.photoCount", { count: cell.photo_count })}
           </Text>
         </div>
       );
@@ -153,11 +155,11 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
       {isFetching && (
         <Stack align="center">
           <Loader />
-          Loading albums shared by you...
+          {t("sharing.loadingAlbumsSharedByYou")}
         </Stack>
       )}
 
-      {albumGridContents.length === 0 && isSuccess && <div>You have not shared any albums yet.</div>}
+      {albumGridContents.length === 0 && isSuccess && <div>{t("sharing.noAlbumsSharedByYou")}</div>}
 
       {albumGridContents.length > 0 && (
         <div>

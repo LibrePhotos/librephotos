@@ -27,6 +27,7 @@ type UserAlbumCardProps = {
 };
 
 function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
+  const { t } = useTranslation();
   const [opened, { toggle, close }] = useDisclosure(false);
 
   if (album.shared_to.length === 0) return null;
@@ -40,7 +41,7 @@ function SharedWith({ album }: Readonly<{ album: UserAlbumInfo }>) {
       </Popover.Target>
       <Popover.Dropdown>
         <Stack gap="xs">
-          <Title order={6}>Shared with:</Title>
+          <Title order={6}>{t("useralbum.sharedWith")}</Title>
           {album.shared_to.map(el => (
             <Group key={el.username} gap="xs">
               <User size={14} />
@@ -114,7 +115,7 @@ export function UserAlbumCard({
       {/* Public indicator */}
       {album.public && (
         <div className={classes.publicIcon}>
-          <Tooltip label="This album is public">
+          <Tooltip label={t("useralbum.albumIsPublic")}>
             <span>
               <LinkIcon size={14} />
             </span>

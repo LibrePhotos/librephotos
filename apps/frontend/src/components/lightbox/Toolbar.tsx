@@ -10,6 +10,7 @@ import {
   IconTrash as Trash,
 } from "@tabler/icons-react";
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { shareAddress } from "../../api_client/apiClient";
 import { useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation, useMarkPhotosDeletedMutation } from "../../api_client/photos/hooks";
@@ -27,6 +28,7 @@ type Props = Readonly<{
 }>;
 
 export function Toolbar(props: Props) {
+  const { t } = useTranslation();
   const { photosDetail, isPublic, lightboxSidebarShow, closeSidepanel, isPhotoDetailsLoading } = props;
   const [playerPlaying, setPlayerPlaying] = useState(false);
   // Fetch user details using TanStack Query
@@ -104,7 +106,7 @@ export function Toolbar(props: Props) {
       }
     }
     return (
-      <Tooltip label={playerPlaying ? "Pause video (Space)" : "Play video (Space)"} position="bottom" withArrow>
+      <Tooltip label={playerPlaying ? t("lightbox.toolbar.pauseVideo") : t("lightbox.toolbar.playVideo")} position="bottom" withArrow>
         <ActionIcon onClick={() => togglePlay()} variant="transparent">
           {playerPlaying && <Loader color="grey" />}
           {!playerPlaying && playerPlaying ? <PlayerPause /> : <PlayerPlay />}
@@ -132,7 +134,7 @@ export function Toolbar(props: Props) {
       )}
       {playButton(photosDetail)}
       {!isPhotoDetailsLoading && photosDetail && !isPublic && (
-        <Tooltip label={photosDetail.hidden ? "Show photo (H)" : "Hide photo (H)"} position="bottom" withArrow>
+        <Tooltip label={photosDetail.hidden ? t("lightbox.toolbar.showPhoto") : t("lightbox.toolbar.hidePhoto")} position="bottom" withArrow>
           <ActionIcon
             variant="transparent"
             onClick={() => {
@@ -146,7 +148,7 @@ export function Toolbar(props: Props) {
         </Tooltip>
       )}
       {photosDetail && !isPublic && (
-        <Tooltip label={photosDetail.rating >= favoriteMinRating ? "Remove from favorites (F)" : "Add to favorites (F)"} position="bottom" withArrow>
+        <Tooltip label={photosDetail.rating >= favoriteMinRating ? t("lightbox.toolbar.removeFromFavorites") : t("lightbox.toolbar.addToFavorites")} position="bottom" withArrow>
           <ActionIcon
             variant="transparent"
             onClick={() => {
@@ -160,7 +162,7 @@ export function Toolbar(props: Props) {
         </Tooltip>
       )}
       {photosDetail && !isPublic && (
-        <Tooltip label={photosDetail.public ? "Make private (P)" : "Make public (P)"} position="bottom" withArrow>
+        <Tooltip label={photosDetail.public ? t("lightbox.toolbar.makePrivate") : t("lightbox.toolbar.makePublic")} position="bottom" withArrow>
           <ActionIcon
             variant="transparent"
             onClick={() => {
@@ -176,13 +178,13 @@ export function Toolbar(props: Props) {
           </ActionIcon>
         </Tooltip>
       )}
-      <Tooltip label={lightboxSidebarShow ? "Hide info panel (I)" : "Show info panel (I)"} position="bottom" withArrow>
+      <Tooltip label={lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel")} position="bottom" withArrow>
         <ActionIcon onClick={() => closeSidepanel()} variant="transparent">
           <InfoCircle color={lightboxSidebarShow ? "white" : "grey"} />
         </ActionIcon>
       </Tooltip>
       {photosDetail && !isPublic && (
-        <Tooltip label="Delete photo (D)" position="bottom" withArrow>
+        <Tooltip label={t("lightbox.toolbar.deletePhoto")} position="bottom" withArrow>
           <ActionIcon
             variant="transparent"
             onClick={() => {

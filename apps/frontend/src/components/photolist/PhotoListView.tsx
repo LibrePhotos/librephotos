@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { throttle } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth/hooks";
@@ -114,6 +115,7 @@ function PhotoListViewComponent({
   ownerUsername,
   emptyStateConfig,
 }: Props) {
+  const { t } = useTranslation();
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle>(null);
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
@@ -447,12 +449,12 @@ function PhotoListViewComponent({
               >
                 <Menu shadow="md" width={200} position="bottom-end">
                   <Menu.Target>
-                    <Tooltip label="Photo Display Settings" position="bottom">
+                    <Tooltip label={t("photodisplay.settings")} position="bottom">
                       <ActionIcon
                         variant="subtle"
                         color="gray"
                         size="lg"
-                        aria-label="Settings"
+                        aria-label={t("photodisplay.settings")}
                         style={{
                           backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
                           borderRadius: theme.radius.sm,
@@ -463,7 +465,7 @@ function PhotoListViewComponent({
                     </Tooltip>
                   </Menu.Target>
                   <Menu.Dropdown>
-                    <Menu.Label>Photo Size</Menu.Label>
+                    <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
                     <Box p="xs">
                       <Stack gap={6}>
                         <Slider
@@ -480,20 +482,20 @@ function PhotoListViewComponent({
                           ]}
                         />
                         <Text size="xs" c="dimmed">
-                          Lower = bigger thumbnails
+                          {t("photodisplay.lowerBigger")}
                         </Text>
                         <Text size="xs" fw={500}>
-                          Current: {localImageScale.toFixed(2)}
+                          {t("photodisplay.current", { value: localImageScale.toFixed(2) })}
                         </Text>
                       </Stack>
                     </Box>
 
                     <Menu.Divider />
 
-                    <Menu.Label>Text Alignment</Menu.Label>
+                    <Menu.Label>{t("photodisplay.textAlignment")}</Menu.Label>
                     <Box p="xs">
                       <Switch
-                        label="Left align date & location"
+                        label={t("photodisplay.leftAlign")}
                         checked={localTextAlignment === "left"}
                         onChange={event => handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")}
                         size="sm"
@@ -502,7 +504,7 @@ function PhotoListViewComponent({
 
                     <Menu.Divider />
 
-                    <Menu.Label>Header Size</Menu.Label>
+                    <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
                     <Box p="xs">
                       <Group>
                         <Button
@@ -510,21 +512,21 @@ function PhotoListViewComponent({
                           variant={localHeaderSize === "large" ? "filled" : "outline"}
                           onClick={() => handleHeaderSizeChange("large")}
                         >
-                          Large
+                          {t("photodisplay.large")}
                         </Button>
                         <Button
                           size="xs"
                           variant={localHeaderSize === "normal" ? "filled" : "outline"}
                           onClick={() => handleHeaderSizeChange("normal")}
                         >
-                          Normal
+                          {t("photodisplay.normal")}
                         </Button>
                         <Button
                           size="xs"
                           variant={localHeaderSize === "small" ? "filled" : "outline"}
                           onClick={() => handleHeaderSizeChange("small")}
                         >
-                          Small
+                          {t("photodisplay.small")}
                         </Button>
                       </Group>
                     </Box>

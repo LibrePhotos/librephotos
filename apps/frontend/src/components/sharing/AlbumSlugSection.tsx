@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
 import { copyToClipboard } from "../../util/util";
@@ -21,6 +22,7 @@ type SlugProps = Readonly<{
 }>;
 
 function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugProps) {
+  const { t } = useTranslation();
   const slugRegex = useMemo(() => /^[a-z0-9-]{3,64}$/i, []);
   const valid = slugRegex.test(value.trim());
 
@@ -48,15 +50,15 @@ function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugP
   }, [valid, available, isFetching, onMetaChange]);
 
   function getErrorMessage(): string | undefined {
-    if (!valid) return "Use lowercase letters, numbers and hyphens (3-64).";
-    if (!available) return "This URL is already taken.";
+    if (!valid) return t("sharing.customUrlError");
+    if (!available) return t("sharing.urlTaken");
     return undefined;
   }
 
   return (
     <TextInput
-      label="Custom URL (optional)"
-      placeholder="my-family-album"
+      label={t("sharing.customUrl")}
+      placeholder={t("sharing.customUrlPlaceholder")}
       value={value}
       onChange={e => onChange(e.currentTarget.value)}
       error={getErrorMessage()}
@@ -71,11 +73,12 @@ type ExpiresProps = Readonly<{
 }>;
 
 function ExpiresSetting({ value, onChange }: ExpiresProps) {
+  const { t } = useTranslation();
   return (
     <Stack gap="xs">
       <DateTimePicker
-        label="Expiration (optional)"
-        placeholder="Pick expiration"
+        label={t("sharing.expiration")}
+        placeholder={t("sharing.pickExpiration")}
         withSeconds
         clearable
         value={value ? dayjs(value).format("YYYY-MM-DD HH:mm:ss") : ""}
@@ -88,14 +91,14 @@ function ExpiresSetting({ value, onChange }: ExpiresProps) {
           onChange(parsed.isValid() ? parsed.toDate().toISOString() : "");
         }}
         presets={[
-          { value: dayjs().add(7, "day").format("YYYY-MM-DD HH:mm:ss"), label: "7 days" },
-          { value: dayjs().add(30, "day").format("YYYY-MM-DD HH:mm:ss"), label: "30 days" },
-          { value: dayjs().add(90, "day").format("YYYY-MM-DD HH:mm:ss"), label: "90 days" },
+          { value: dayjs().add(7, "day").format("YYYY-MM-DD HH:mm:ss"), label: t("sharing.days7") },
+          { value: dayjs().add(30, "day").format("YYYY-MM-DD HH:mm:ss"), label: t("sharing.days30") },
+          { value: dayjs().add(90, "day").format("YYYY-MM-DD HH:mm:ss"), label: t("sharing.days90") },
         ]}
       />
       <Group gap="xs">
         <Button size="xs" variant="subtle" onClick={() => onChange("")}>
-          Never
+          {t("sharing.never")}
         </Button>
       </Group>
     </Stack>
@@ -111,6 +114,7 @@ type Props = Readonly<{
 }>;
 
 export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refetch }: Props) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [customSlug, setCustomSlug] = useState("");
   const [expiresAt, setExpiresAt] = useState<string>("");
@@ -164,7 +168,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
           setSlugDirty(false);
           setExpiresDirty(false);
         },
-        onError: () => setErrorMsg("Could not save link settings. Try a different URL."),
+        onError: () => setErrorMsg(t("sharing.saveLinkError")),
       }
     );
   }, [albumID, effectiveSlug, effectiveExpires, slugDirty, expiresDirty, toggleAlbumPublic, refetch]);
@@ -178,15 +182,15 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
       <Group mt="sm" align="flex-end">
         <TextInput
           style={{ flexGrow: 1 }}
-          value={slugLink || "Generating..."}
+          value={slugLink || t("sharing.generating")}
           readOnly
           leftSection={<LinkIcon size={16} />}
         />
-        <Tooltip label={copied ? "Copied" : "Copy link"} opened={copied ? true : undefined}>
+        <Tooltip label={copied ? t("sharing.copied") : t("sharing.copyLink")} opened={copied ? true : undefined}>
           <ActionIcon
             variant="light"
             size="lg"
-            aria-label="Copy slug link"
+            aria-label={t("sharing.copyLink")}
             disabled={!slugLink}
             onClick={() => {
               if (!slugLink) return;
@@ -198,8 +202,8 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
             <CopyIcon size={18} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label="Open public link">
-          <ActionIcon variant="light" size="lg" aria-label="Open public link" disabled={!slugLink} onClick={openLink}>
+        <Tooltip label={t("sharing.openPublicLink")}>
+          <ActionIcon variant="light" size="lg" aria-label={t("sharing.openPublicLink")} disabled={!slugLink} onClick={openLink}>
             <LinkIcon size={18} />
           </ActionIcon>
         </Tooltip>
@@ -230,7 +234,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
           />
           <Group>
             <Button variant="default" disabled={!canSave} onClick={onSave}>
-              Save link settings
+              {t("sharing.saveLinkSettings")}
             </Button>
           </Group>
           {errorMsg && (

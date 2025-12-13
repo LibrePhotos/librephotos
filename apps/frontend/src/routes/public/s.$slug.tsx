@@ -3,6 +3,7 @@ import { IconGlobe as Globe, IconAlertCircle } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
@@ -10,6 +11,7 @@ import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 export const Route = createFileRoute("/public/s/$slug")();
 
 function PublicAlbumBySlug() {
+  const { t } = useTranslation();
   const { slug } = Route.useParams();
 
   const {
@@ -35,13 +37,13 @@ function PublicAlbumBySlug() {
       <Center style={{ minHeight: "60vh" }}>
         <Stack align="center" gap="xs">
           <IconAlertCircle size={48} />
-          <Text fw={600}>Album not found or the link has expired</Text>
+          <Text fw={600}>{t("publicalbum.notFound")}</Text>
           <Text c="dimmed" size="sm">
-            Please check the URL or ask the owner to regenerate a new link.
+            {t("publicalbum.checkUrl")}
           </Text>
           <Group gap="xs">
             <Button component={Link} to="/" variant="light">
-              Go to Home
+              {t("publicalbum.goHome")}
             </Button>
           </Group>
         </Stack>
@@ -51,7 +53,7 @@ function PublicAlbumBySlug() {
 
   return (
     <PhotoListView
-      title={album ? album.title : "Loading"}
+      title={album ? album.title : t("loading")}
       loading={isLoading}
       icon={<Globe size={50} />}
       photoset={album ? album.grouped_photos : []}

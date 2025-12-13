@@ -1,6 +1,6 @@
-import { Avatar, Group, Image, Skeleton, Text, Title } from "@mantine/core";
+import { Avatar, Button, Group, Image, Skeleton, Text, Title } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -31,6 +31,10 @@ type AlbumSectionProps = {
   count?: number;
   variant?: AlbumSectionVariant;
   maxItems?: number;
+  actionLink?: string;
+  actionLabel?: string;
+  actionIcon?: React.ReactNode;
+  actionColor?: string;
 };
 
 export function AlbumSection({
@@ -43,8 +47,13 @@ export function AlbumSection({
   count,
   variant = "scroll",
   maxItems,
+  actionLink,
+  actionLabel,
+  actionIcon,
+  actionColor = "blue",
 }: AlbumSectionProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const displayCount = count ?? albums.length;
   const isCompact = variant === "card";
 
@@ -158,7 +167,7 @@ export function AlbumSection({
   if (variant === "avatarGrid") {
     return (
       <div className={classes.section}>
-        <div className={classes.header}>
+        <Group justify="space-between" align="flex-start" pr="md" className={classes.header}>
           <Link to={viewAllLink} className={classes.headerLeft} style={{ textDecoration: 'none', color: 'inherit' }}>
             {icon}
             <div>
@@ -175,7 +184,18 @@ export function AlbumSection({
               </Group>
             </div>
           </Link>
-        </div>
+          {actionLink && actionLabel && (
+            <Button
+              leftSection={actionIcon}
+              variant="light"
+              color={actionColor}
+              size="xs"
+              onClick={() => navigate({ to: actionLink })}
+            >
+              {actionLabel}
+            </Button>
+          )}
+        </Group>
 
         {albums.length === 0 ? (
           <div className={classes.emptyState}>
