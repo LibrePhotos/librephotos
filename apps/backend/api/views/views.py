@@ -574,6 +574,16 @@ class UnifiedMediaAccessView(APIView):
     def _generate_response_proxy(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
             response = HttpResponse()
+
+            # thumbnails_big is always .webp (static image), even for videos
+            if "thumbnails_big" in path:
+                response["Content-Type"] = "image/webp"
+                response["X-Accel-Redirect"] = self._protected_media_url(
+                    path, fname + ".webp"
+                )
+                return response
+
+            # For square_thumbnails, use the actual extension from the model
             ext = (
                 os.path.splitext(getattr(photo.thumbnail, "square_thumbnail").path)[1]
                 if hasattr(photo, "thumbnail")
