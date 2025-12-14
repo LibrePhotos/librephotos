@@ -3,7 +3,9 @@
         "toggle": "Alternar modo de seleção",
         "select": "Selecionar todas",
         "selected": "selecionadas",
-        "deselect": "Deselecionar todas"
+        "deselect": "Deselecionar todas",
+        "excluded": "excluído",
+        "all": "Todos"
     },
     "settings": {
         "scannextclouddescription": {
