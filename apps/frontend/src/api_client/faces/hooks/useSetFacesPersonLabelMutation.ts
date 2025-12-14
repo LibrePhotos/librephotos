@@ -8,6 +8,7 @@ import { IncompleteFacesQueryKeys } from './useFetchIncompleteFacesQuery';
 import { FacesQueryKeys } from './useFetchFacesQuery';
 import { PeopleAlbumsQueryKeys } from '../../albums/hooks/useFetchPeopleAlbumsQuery';
 import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
+import { PhotoDetailsQueryKeys } from '../../photos/hooks/useFetchPhotoDetailsQuery';
 
 export type SetFacesLabelRequest = z.infer<typeof SetFacesLabelRequest>;
 export const SetFacesLabelRequest = z.object({
@@ -47,6 +48,9 @@ export const useSetFacesPersonLabelMutation = () => useMutation({
         
         // Invalidate statistics (num_faces, num_people, etc. change)
         queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
+        
+        // Invalidate photo details (people array changes)
+        queryClient.invalidateQueries({ queryKey: PhotoDetailsQueryKeys });
       }, 100);
     }
   });

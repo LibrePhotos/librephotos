@@ -3,6 +3,7 @@ import { z } from "zod";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
+import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
 
@@ -43,6 +44,9 @@ export const useDeleteFacesMutation = () =>
 
         // Invalidate statistics (num_faces, num_people, etc. change)
         queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
+
+        // Invalidate photo details (people array changes)
+        queryClient.invalidateQueries({ queryKey: PhotoDetailsQueryKeys });
       }, 100);
     },
     onError: error => {
