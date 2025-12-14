@@ -146,8 +146,34 @@ class NoTimestampPhotoViewSet(ListViewSet):
 
 class SetPhotosDeleted(APIView):
     def post(self, request, format=None):
+        from api.views.photo_filters import build_photo_queryset
+
         data = dict(request.data)
-        val_hidden = data["deleted"]
+        val_deleted = data["deleted"]
+
+        # NEW: Support select_all mode for bulk operations
+        if data.get("select_all"):
+            query_params = data.get("query", {})
+            excluded_hashes = data.get("excluded_hashes", [])
+
+            photos_qs = build_photo_queryset(request.user, query_params)
+            if excluded_hashes:
+                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+
+            count = photos_qs.update(in_trashcan=val_deleted)
+
+            if val_deleted:
+                logger.info(
+                    f"{count} photos were moved to trash via select_all for user {request.user.id}."
+                )
+            else:
+                logger.info(
+                    f"{count} photos were restored from trash via select_all for user {request.user.id}."
+                )
+
+            return Response({"status": True, "count": count})
+
+        # Existing logic for individual hashes
         image_hashes = data["image_hashes"]
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
@@ -168,9 +194,9 @@ class SetPhotosDeleted(APIView):
         not_updated_data = []
 
         for photo in photos:
-            if photo.in_trashcan != val_hidden:
+            if photo.in_trashcan != val_deleted:
                 photos_to_update.append(photo.image_hash)
-                photo.in_trashcan = val_hidden
+                photo.in_trashcan = val_deleted
                 updated_data.append(PhotoSerializer(photo).data)
             else:
                 not_updated_data.append(PhotoSerializer(photo).data)
@@ -179,23 +205,23 @@ class SetPhotosDeleted(APIView):
         if photos_to_update:
             Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
-            ).update(in_trashcan=val_hidden)
+            ).update(in_trashcan=val_deleted)
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}
         missing_hashes = set(image_hashes) - found_hashes
         for missing_hash in missing_hashes:
             logger.warning(
-                f"Could not set photo {missing_hash} to hidden. It does not exist or is not owned by user."
+                f"Could not set photo {missing_hash} to deleted. It does not exist or is not owned by user."
             )
 
-        if val_hidden:
+        if val_deleted:
             logger.info(
-                f"{len(updated_data)} photos were set hidden. {len(not_updated_data)} photos were already deleted."
+                f"{len(updated_data)} photos were moved to trash. {len(not_updated_data)} photos were already in trash."
             )
         else:
             logger.info(
-                f"{len(updated_data)} photos were set unhidden. {len(not_updated_data)} photos were already recovered."
+                f"{len(updated_data)} photos were restored from trash. {len(not_updated_data)} photos were already restored."
             )
         return Response(
             {
@@ -209,8 +235,41 @@ class SetPhotosDeleted(APIView):
 
 class SetPhotosFavorite(APIView):
     def post(self, request, format=None):
+        from api.views.photo_filters import build_photo_queryset
+
         data = dict(request.data)
         val_favorite = data["favorite"]
+        user = request.user
+
+        # NEW: Support select_all mode for bulk operations
+        if data.get("select_all"):
+            query_params = data.get("query", {})
+            excluded_hashes = data.get("excluded_hashes", [])
+
+            photos_qs = build_photo_queryset(request.user, query_params)
+            if excluded_hashes:
+                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+
+            if val_favorite:
+                # Only update photos that aren't already favorites
+                count = photos_qs.filter(rating__lt=user.favorite_min_rating).update(
+                    rating=user.favorite_min_rating
+                )
+                logger.info(
+                    f"{count} photos were added to favorites via select_all for user {user.id}."
+                )
+            else:
+                # Only update photos that are currently favorites
+                count = photos_qs.filter(rating__gte=user.favorite_min_rating).update(
+                    rating=0
+                )
+                logger.info(
+                    f"{count} photos were removed from favorites via select_all for user {user.id}."
+                )
+
+            return Response({"status": True, "count": count})
+
+        # Existing logic for individual hashes
         image_hashes = data["image_hashes"]
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
@@ -223,7 +282,6 @@ class SetPhotosFavorite(APIView):
                 "files", "faces__person", "shared_to", "main_file__embedded_media"
             )
         )
-        user = request.user
 
         # Group photos by whether they need updating
         photos_to_favorite = []
@@ -282,8 +340,34 @@ class SetPhotosFavorite(APIView):
 
 class SetPhotosHidden(APIView):
     def post(self, request, format=None):
+        from api.views.photo_filters import build_photo_queryset
+
         data = dict(request.data)
         val_hidden = data["hidden"]
+
+        # NEW: Support select_all mode for bulk operations
+        if data.get("select_all"):
+            query_params = data.get("query", {})
+            excluded_hashes = data.get("excluded_hashes", [])
+
+            photos_qs = build_photo_queryset(request.user, query_params)
+            if excluded_hashes:
+                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+
+            count = photos_qs.update(hidden=val_hidden)
+
+            if val_hidden:
+                logger.info(
+                    f"{count} photos were set hidden via select_all for user {request.user.id}."
+                )
+            else:
+                logger.info(
+                    f"{count} photos were set unhidden via select_all for user {request.user.id}."
+                )
+
+            return Response({"status": True, "count": count})
+
+        # Existing logic for individual hashes
         image_hashes = data["image_hashes"]
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
@@ -436,10 +520,27 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
 
 class SetPhotosShared(APIView):
     def post(self, request, format=None):
+        from api.views.photo_filters import build_photo_queryset
+
         data = dict(request.data)
         shared = data["val_shared"]  # bool
         target_user_id = data["target_user_id"]  # user pk, int
-        image_hashes = data["image_hashes"]
+
+        through_model = Photo.shared_to.through
+
+        # NEW: Support select_all mode for bulk operations
+        if data.get("select_all"):
+            query_params = data.get("query", {})
+            excluded_hashes = data.get("excluded_hashes", [])
+
+            photos_qs = build_photo_queryset(request.user, query_params)
+            if excluded_hashes:
+                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+
+            image_hashes = list(photos_qs.values_list("image_hash", flat=True))
+        else:
+            image_hashes = data["image_hashes"]
+
         """
         From https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
         # Access the through model directly
@@ -455,8 +556,6 @@ class SetPhotosShared(APIView):
             ThroughModel(users_id=users[1].pk, sample_id=sample_object.pk)
         ])
         """
-
-        through_model = Photo.shared_to.through
 
         if shared:
             already_existing = through_model.objects.filter(
@@ -489,8 +588,34 @@ class SetPhotosShared(APIView):
 
 class SetPhotosPublic(APIView):
     def post(self, request, format=None):
+        from api.views.photo_filters import build_photo_queryset
+
         data = dict(request.data)
         val_public = data["val_public"]
+
+        # NEW: Support select_all mode for bulk operations
+        if data.get("select_all"):
+            query_params = data.get("query", {})
+            excluded_hashes = data.get("excluded_hashes", [])
+
+            photos_qs = build_photo_queryset(request.user, query_params)
+            if excluded_hashes:
+                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+
+            count = photos_qs.update(public=val_public)
+
+            if val_public:
+                logger.info(
+                    f"{count} photos were set public via select_all for user {request.user.id}."
+                )
+            else:
+                logger.info(
+                    f"{count} photos were set private via select_all for user {request.user.id}."
+                )
+
+            return Response({"status": True, "count": count})
+
+        # Existing logic for individual hashes
         image_hashes = data["image_hashes"]
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
@@ -601,7 +726,37 @@ class SavePhotoCaption(APIView):
 
 class DeletePhotos(APIView):
     def delete(self, request):
+        from api.views.photo_filters import build_photo_queryset
+
         data = dict(request.data)
+
+        # NEW: Support select_all mode for bulk operations
+        if data.get("select_all"):
+            query_params = data.get("query", {})
+            excluded_hashes = data.get("excluded_hashes", [])
+
+            # For delete, we need to ensure photos are in trashcan
+            # Override query to filter for trashcan photos only
+            query_params["in_trashcan"] = True
+
+            photos_qs = build_photo_queryset(request.user, query_params)
+            if excluded_hashes:
+                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+
+            # Need to call manual_delete on each photo for proper cleanup
+            deleted_count = 0
+            for photo in photos_qs:
+                if photo.owner == request.user:
+                    photo.manual_delete()
+                    deleted_count += 1
+
+            logger.info(
+                f"{deleted_count} photos were permanently deleted via select_all for user {request.user.id}."
+            )
+
+            return Response({"status": True, "count": deleted_count})
+
+        # Existing logic for individual hashes
         photos = Photo.objects.in_bulk(data["image_hashes"])
 
         deleted = []
