@@ -1,11 +1,6 @@
 import { MantineColor } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
-import {
-  IconAlbum as Album,
-  IconPhoto as Photo,
-  IconTrash as Trash,
-  IconUsers as Users,
-} from "@tabler/icons-react";
+import { IconAlbum as Album, IconPhoto as Photo, IconTrash as Trash, IconUsers as Users } from "@tabler/icons-react";
 import { TFunction } from "i18next";
 
 type SubmenuItem = {
@@ -27,11 +22,7 @@ type MenuItem = {
   submenu?: Array<Partial<SubmenuItem>>;
 };
 
-export function getNavigationItems(
-  t: TFunction<"translation", undefined>,
-  isAuthenticated: boolean,
-  canAccess: boolean
-): Array<MenuItem> {
+export function getNavigationItems(t: TFunction<"translation", undefined>, isAuthenticated: boolean): Array<MenuItem> {
   return [
     { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
     { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },

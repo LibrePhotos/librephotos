@@ -15,9 +15,9 @@ import {
   Loader,
   Menu,
   Modal,
-  Switch,
   Space,
   Stack,
+  Switch,
   Text,
   TextInput,
   Title,
@@ -39,22 +39,26 @@ import {
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-
-import { useGenerateAutoAlbumsMutation } from "../../api_client/jobs/hooks";
-import { useTrainFacesMutation } from "../../api_client/faces";
+import { fetchClient } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { useTrainFacesMutation } from "../../api_client/faces";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
-import { useDeleteMissingPhotosMutation  } from "../../api_client/photos/hooks";
-import { useUpdateUserMutation } from "../../api_client/user/hooks";
+import {
+  useGenerateAutoAlbumsMutation,
+  useRescanPhotosMutation,
+  useScanNextcloudPhotosMutation,
+  useScanPhotosMutation,
+  useWorkerQuery,
+} from "../../api_client/jobs/hooks";
+import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
-import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
-import { CountStats } from "../CountStats";
-import { notification } from "../../service/notifications";
-import { User } from "../../api_client/user/types";
+import { useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { fetchClient } from "../../api_client/api";
-import { useRescanPhotosMutation, useScanNextcloudPhotosMutation, useScanPhotosMutation, useWorkerQuery } from "../../api_client/jobs/hooks";
+import { User } from "../../api_client/user/types";
+import { notification } from "../../service/notifications";
+import { CountStats } from "../CountStats";
+import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
 
 function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
@@ -81,7 +85,11 @@ export function Library() {
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
   const { t } = useTranslation();
-  const { isFetching: isNextcloudFetching, isSuccess: isNextcloudSuccess, isError: isNextcloudError } = useFetchNextcloudDirsQuery();
+  const {
+    isFetching: isNextcloudFetching,
+    isSuccess: isNextcloudSuccess,
+    isError: isNextcloudError,
+  } = useFetchNextcloudDirsQuery();
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
@@ -94,7 +102,7 @@ export function Library() {
   const deleteMissingPhotos = useDeleteMissingPhotosMutation();
   const trainFaces = useTrainFacesMutation();
 
-  const onGenerateEventAlbumsButtonClick = () => {  
+  const onGenerateEventAlbumsButtonClick = () => {
     generateAutoAlbums();
   };
 
@@ -235,13 +243,12 @@ export function Library() {
                 <Switch
                   checked={!!editedUser?.skip_raw_files}
                   onChange={() =>
-                    editedUser &&
-                    setEditedUser({ ...editedUser, skip_raw_files: !Boolean(editedUser.skip_raw_files) })
+                    editedUser && setEditedUser({ ...editedUser, skip_raw_files: !editedUser.skip_raw_files })
                   }
                 />
               </Grid.Col>
             </Grid>
-            
+
             <Grid>
               <Grid.Col span={{ base: 12, sm: 10 }}>
                 <Stack gap={0}>
@@ -266,7 +273,7 @@ export function Library() {
                     style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
                     fullWidth
                   >
-                    {(t("settings.statusscanphotosfalse"))}
+                    {t("settings.statusscanphotosfalse")}
                   </Button>
                   <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
                     <Menu.Target>
@@ -286,8 +293,8 @@ export function Library() {
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item 
-                        leftSection={<Refresh size="1rem" />} 
+                      <Menu.Item
+                        leftSection={<Refresh size="1rem" />}
                         onClick={() => rescanPhotos.mutate()}
                         disabled={!workerAvailability}
                       >
@@ -602,29 +609,16 @@ export function Library() {
           />
         </Card>
 
-        <Dialog
-          opened={isOpenUpdateDialog}
-          withCloseButton
-          onClose={handleCancel}
-          size="lg"
-          radius="md"
-        >
+        <Dialog opened={isOpenUpdateDialog} withCloseButton onClose={handleCancel} size="lg" radius="md">
           <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
             Save Changes?
           </Text>
 
           <Group justify="flex-end">
-            <Button
-              size="sm"
-              color="green"
-              onClick={handleSubmit}
-            >
+            <Button size="sm" color="green" onClick={handleSubmit}>
               <Trans i18nKey="settings.favoriteupdate">Update profile settings</Trans>
             </Button>
-            <Button
-              onClick={handleCancel}
-              size="sm"
-            >
+            <Button onClick={handleCancel} size="sm">
               <Trans i18nKey="settings.nextcloudcancel">Cancel</Trans>
             </Button>
           </Group>

@@ -1,10 +1,9 @@
-import { IconCloud } from "@tabler/icons-react";
 import { Loader, Title } from "@mantine/core";
+import { IconCloud } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React, { useMemo, useState } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
-
 import { useFetchWordCloudQuery } from "../../api_client/stats/hooks";
 import { EmptyState } from "../common/EmptyState";
 
@@ -60,11 +59,7 @@ function rectanglesOverlap(
   );
 }
 
-function layoutWords(
-  words: WordItem[],
-  containerWidth: number,
-  containerHeight: number
-): PositionedWord[] {
+function layoutWords(words: WordItem[], containerWidth: number, containerHeight: number): PositionedWord[] {
   if (!words.length || containerWidth <= 0 || containerHeight <= 0) {
     return [];
   }
@@ -73,7 +68,7 @@ function layoutWords(
   const sortedWords = [...words].sort((a, b) => b.y - a.y);
 
   // Calculate min/max for normalization
-  const values = sortedWords.map((w) => w.y);
+  const values = sortedWords.map(w => w.y);
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
   const valueRange = maxValue - minValue || 1;
@@ -90,12 +85,10 @@ function layoutWords(
 
   const positionedWords: PositionedWord[] = [];
 
-  for (let i = 0; i < sortedWords.length; i++) {
-    const word = sortedWords[i];
-
+  sortedWords.forEach((word, i) => {
     // Normalize font size with logarithmic scaling for better distribution
     const normalizedValue = (word.y - minValue) / valueRange;
-    const logScaled = Math.pow(normalizedValue, 0.6); // Compress the range a bit
+    const logScaled = normalizedValue ** 0.6; // Compress the range a bit
     const fontSize = minFontSize + logScaled * (maxFontSize - minFontSize);
     const width = estimateTextWidth(word.label, fontSize);
     const height = fontSize * 1.2;
@@ -106,7 +99,10 @@ function layoutWords(
     const spiralStep = 0.15; // Angle increment per step
     const radiusGrowth = 4; // How fast the spiral expands
 
-    for (let attempt = 0; attempt < maxAttempts && !placed; attempt++) {
+    let attempt = 0;
+    while (attempt < maxAttempts && !placed) {
+      attempt += 1;
+
       // Archimedean spiral: r = a + b*θ
       const angle = attempt * spiralStep;
       const radius = (radiusGrowth * angle) / (2 * Math.PI);
@@ -117,22 +113,16 @@ function layoutWords(
       // Adjust for rectangular containers - stretch spiral elliptically
       const aspectRatio = containerWidth / containerHeight;
       const x = centerX + radius * Math.cos(angle) * Math.sqrt(aspectRatio) - width / 2;
-      const y = centerY + radius * Math.sin(angle) / Math.sqrt(aspectRatio) - height / 2;
+      const y = centerY + (radius * Math.sin(angle)) / Math.sqrt(aspectRatio) - height / 2;
 
       const candidate = { x, y, width, height };
 
       // Check bounds - keep words fully inside the container
-      const inBounds =
-        x >= 0 &&
-        x + width <= containerWidth &&
-        y >= 0 &&
-        y + height <= containerHeight;
+      const inBounds = x >= 0 && x + width <= containerWidth && y >= 0 && y + height <= containerHeight;
 
       if (inBounds) {
         // Check collision with already placed words
-        const hasCollision = positionedWords.some((placedWord) =>
-          rectanglesOverlap(candidate, placedWord)
-        );
+        const hasCollision = positionedWords.some(placedWord => rectanglesOverlap(candidate, placedWord));
 
         if (!hasCollision) {
           positionedWords.push({
@@ -148,7 +138,7 @@ function layoutWords(
         }
       }
     }
-  }
+  });
 
   return positionedWords;
 }
@@ -197,7 +187,7 @@ export function WordCloud(props: Props) {
       return wordCloud.locations;
     }
     return [];
-  }, [wordCloud, props.type]);
+  }, [wordCloud, type]);
 
   const positionedWords = useMemo(() => {
     const chartHeight = height - 70;
@@ -236,10 +226,11 @@ export function WordCloud(props: Props) {
         aria-label={`Word cloud for ${title()}`}
       >
         {positionedWords.map((word, idx) => {
-          const isHovered = hoveredWord === `${word.label}-${idx}`;
+          const key = `${word.label}-${idx}`;
+          const isHovered = hoveredWord === key;
           return (
             <text
-              key={`${word.label}-${idx}`}
+              key={key}
               x={word.x + word.width / 2}
               y={word.y + word.height / 2}
               fontSize={word.fontSize}

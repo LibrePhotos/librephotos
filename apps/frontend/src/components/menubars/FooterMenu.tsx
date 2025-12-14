@@ -9,10 +9,9 @@ import {
   IconUser as User,
 } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Link, useNavigate } from "@tanstack/react-router";
-
 import { serverAddress } from "../../api_client/apiClient";
 import { useLogoutMutation } from "../../api_client/auth";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
@@ -20,7 +19,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { getNavigationItems } from "./navigation";
 
 export function FooterMenu(): JSX.Element {
-  const { isAuthenticated, userId } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
@@ -28,7 +27,7 @@ export function FooterMenu(): JSX.Element {
   const { mutate: logout } = useLogoutMutation();
   const queryClient = useQueryClient();
 
-  const navigationItems = getNavigationItems(t, isAuthenticated, !!userId);
+  const navigationItems = getNavigationItems(t, isAuthenticated);
 
   const links = navigationItems.map(item => {
     const key = item.label;
@@ -97,10 +96,7 @@ export function FooterMenu(): JSX.Element {
             <Trans i18nKey="topmenu.loggedin">Logged in as</Trans> {user ? user.username : ""}
           </Menu.Label>
 
-          <Menu.Item
-            leftSection={colorScheme === "dark" ? <Moon /> : <Sun />}
-            onClick={() => toggleColorScheme()}
-          >
+          <Menu.Item leftSection={colorScheme === "dark" ? <Moon /> : <Sun />} onClick={() => toggleColorScheme()}>
             {colorScheme === "dark" ? t("settings.colorscheme.dark") : t("settings.colorscheme.light")}
           </Menu.Item>
 

@@ -1,17 +1,17 @@
 import { ActionIcon, Loader, Text, Tooltip } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
-import { 
-  IconArrowsHorizontal, 
-  IconArrowsVertical, 
-  IconFocus, 
-  IconLine, 
-  IconMinus, 
-  IconPlus, 
+import { useHotkeys, useViewportSize } from "@mantine/hooks";
+import {
+  IconArrowsHorizontal,
+  IconArrowsVertical,
+  IconFocus,
+  IconLine,
+  IconMinus,
+  IconPlus,
   IconRouteAltLeft,
   IconStairs,
   IconTopologyRing,
   IconTree,
-  IconVectorTriangle 
+  IconVectorTriangle,
 } from "@tabler/icons-react";
 import { LinearGradient } from "@visx/gradient";
 import { Group as VisxGroup } from "@visx/group";
@@ -32,10 +32,8 @@ import {
 } from "@visx/shape";
 import { hierarchy } from "d3-hierarchy";
 import { pointRadial } from "d3-shape";
-import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { useViewportSize } from "@mantine/hooks";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useFetchLocationTreeQuery } from "../../api_client/stats/hooks";
 import { EmptyState } from "../common/EmptyState";
 import styles from "./LocationLink.module.css";
@@ -77,20 +75,17 @@ const SVG_PADDING = 120;
 
 // Beautiful gradient colors for nodes
 const NODE_COLORS = {
-  root: { from: "#6366f1", to: "#8b5cf6" },      // Indigo to violet
-  branch: { from: "#0ea5e9", to: "#06b6d4" },   // Sky to cyan  
-  leaf: { from: "#10b981", to: "#34d399" },     // Emerald shades
+  root: { from: "#6366f1", to: "#8b5cf6" }, // Indigo to violet
+  branch: { from: "#0ea5e9", to: "#06b6d4" }, // Sky to cyan
+  leaf: { from: "#10b981", to: "#34d399" }, // Emerald shades
 };
 
 const LINK_COLORS = {
-  dark: "rgba(148, 163, 184, 0.4)",  // Slate with transparency
+  dark: "rgba(148, 163, 184, 0.4)", // Slate with transparency
   light: "rgba(100, 116, 139, 0.35)",
 };
 
-export function LocationLink({
-  margin = { top: 0, left: 0, right: 0, bottom: 0 },
-  height: propHeight,
-}: Props) {
+export function LocationLink({ margin = { top: 0, left: 0, right: 0, bottom: 0 }, height: propHeight }: Props) {
   const { height: viewportHeight } = useViewportSize();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 750, height: 750 });
@@ -151,28 +146,31 @@ export function LocationLink({
     };
   }, [layout, orientation, innerWidth, innerHeight]);
 
-  const handleNodeClick = useCallback((node: { data: NodeData }) => {
-    hideHint();
-    const nodePath = node.data.name;
-    setExpandedNodes((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(nodePath)) {
-        newSet.delete(nodePath);
-      } else {
-        newSet.add(nodePath);
-      }
-      return newSet;
-    });
-  }, [hideHint]);
+  const handleNodeClick = useCallback(
+    (node: { data: NodeData }) => {
+      hideHint();
+      const nodePath = node.data.name;
+      setExpandedNodes(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(nodePath)) {
+          newSet.delete(nodePath);
+        } else {
+          newSet.add(nodePath);
+        }
+        return newSet;
+      });
+    },
+    [hideHint]
+  );
 
   const handleZoomIn = useCallback(() => {
     hideHint();
-    setZoom((prev) => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+    setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
   }, [hideHint]);
 
   const handleZoomOut = useCallback(() => {
     hideHint();
-    setZoom((prev) => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+    setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
   }, [hideHint]);
 
   const handleReset = useCallback(() => {
@@ -184,7 +182,7 @@ export function LocationLink({
     (e: React.MouseEvent) => {
       if (e.buttons === 1) {
         hideHint();
-        setTranslate((prev) => ({
+        setTranslate(prev => ({
           x: prev.x + e.movementX,
           y: prev.y + e.movementY,
         }));
@@ -198,7 +196,7 @@ export function LocationLink({
       e.preventDefault();
       hideHint();
       const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-      setZoom((prev) => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
+      setZoom(prev => Math.min(Math.max(prev + delta, MIN_ZOOM), MAX_ZOOM));
     },
     [hideHint]
   );
@@ -211,19 +209,16 @@ export function LocationLink({
     ["0", handleReset],
   ]);
 
-  const handleNodeMouseEnter = useCallback(
-    (e: React.MouseEvent, nodeData: NodeData) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      setTooltip({
-        x: rect.right + 8,
-        y: rect.top + rect.height / 2,
-        name: nodeData.name,
-        value: nodeData.value,
-        hasChildren: !!nodeData.children?.length,
-      });
-    },
-    []
-  );
+  const handleNodeMouseEnter = useCallback((e: React.MouseEvent, nodeData: NodeData) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltip({
+      x: rect.right + 8,
+      y: rect.top + rect.height / 2,
+      name: nodeData.name,
+      value: nodeData.value,
+      hasChildren: !!nodeData.children?.length,
+    });
+  }, []);
 
   const handleNodeMouseLeave = useCallback(() => {
     setTooltip(null);
@@ -234,7 +229,7 @@ export function LocationLink({
       const processed = { ...data };
       if (processed.children) {
         processed.isExpanded = expandedNodes.has(processed.name);
-        processed.children = processed.children.map((child) => processData(child));
+        processed.children = processed.children.map(child => processData(child));
       }
       return processed;
     },
@@ -250,7 +245,11 @@ export function LocationLink({
 
   if (isLoading) {
     return (
-      <div ref={containerRef} className={styles.container} style={{ height: propHeight ?? viewportHeight - HEADER_HEIGHT }}>
+      <div
+        ref={containerRef}
+        className={styles.container}
+        style={{ height: propHeight ?? viewportHeight - HEADER_HEIGHT }}
+      >
         <div className={styles.loadingOverlay}>
           <Loader size="lg" color="blue" />
           <Text c="dimmed" size="sm">
@@ -263,12 +262,19 @@ export function LocationLink({
 
   if (!locationSunburst || !locationSunburst.children?.length) {
     return (
-      <div ref={containerRef} className={styles.container} style={{ height: propHeight ?? viewportHeight - HEADER_HEIGHT }}>
+      <div
+        ref={containerRef}
+        className={styles.container}
+        style={{ height: propHeight ?? viewportHeight - HEADER_HEIGHT }}
+      >
         <div className={styles.emptyContainer}>
           <EmptyState
             icon={<IconVectorTriangle size={40} />}
             title={t("emptystate.placetree.title", "No location data yet")}
-            description={t("emptystate.placetree.description", "Upload photos with location information to see your places visualized as a tree.")}
+            description={t(
+              "emptystate.placetree.description",
+              "Upload photos with location information to see your places visualized as a tree."
+            )}
             actionLabel={t("emptystate.goToLibrary")}
             actionLink="/library"
           />
@@ -280,11 +286,7 @@ export function LocationLink({
   const processedData = processData(locationSunburst);
 
   return (
-    <div
-      ref={containerRef}
-      className={styles.container}
-      style={{ height }}
-    >
+    <div ref={containerRef} className={styles.container} style={{ height }}>
       {/* Control Toolbar */}
       <div className={styles.controlsToolbar}>
         {/* Layout Section */}
@@ -344,7 +346,7 @@ export function LocationLink({
         )}
 
         <div className={styles.toolbarDivider} />
-        
+
         {/* Link Style Section */}
         <div className={styles.toolbarGroup}>
           <Tooltip label={t("placetree.curve", "Curved Lines")} position="bottom" withArrow>
@@ -406,9 +408,7 @@ export function LocationLink({
 
       {/* Hint */}
       {showHint && (
-        <div className={styles.hint}>
-          {t("placetree.hint", "Click nodes to expand • Drag to pan • Scroll to zoom")}
-        </div>
+        <div className={styles.hint}>{t("placetree.hint", "Click nodes to expand • Drag to pan • Scroll to zoom")}</div>
       )}
 
       {/* SVG Canvas */}
@@ -423,9 +423,24 @@ export function LocationLink({
         aria-label={t("placetree.ariaLabel", "Interactive place tree visualization")}
       >
         <defs>
-          <LinearGradient id="node-gradient-root" from={NODE_COLORS.root.from} to={NODE_COLORS.root.to} vertical={false} />
-          <LinearGradient id="node-gradient-branch" from={NODE_COLORS.branch.from} to={NODE_COLORS.branch.to} vertical={false} />
-          <LinearGradient id="node-gradient-leaf" from={NODE_COLORS.leaf.from} to={NODE_COLORS.leaf.to} vertical={false} />
+          <LinearGradient
+            id="node-gradient-root"
+            from={NODE_COLORS.root.from}
+            to={NODE_COLORS.root.to}
+            vertical={false}
+          />
+          <LinearGradient
+            id="node-gradient-branch"
+            from={NODE_COLORS.branch.from}
+            to={NODE_COLORS.branch.to}
+            vertical={false}
+          />
+          <LinearGradient
+            id="node-gradient-leaf"
+            from={NODE_COLORS.leaf.from}
+            to={NODE_COLORS.leaf.to}
+            vertical={false}
+          />
           <filter id="node-shadow" x="-20%" y="-20%" width="140%" height="140%">
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.25" />
           </filter>
@@ -435,14 +450,15 @@ export function LocationLink({
           <Tree
             top={margin.top + SVG_PADDING}
             left={margin.left + SVG_PADDING}
-            root={hierarchy(processedData, (d) => (d.isExpanded ? d.children : null))}
+            root={hierarchy(processedData, d => (d.isExpanded ? d.children : null))}
             size={[sizeWidth, sizeHeight]}
             separation={(a, b) => (a.parent === b.parent ? 1 : 0.5) / a.depth}
           >
-            {(tree) => (
+            {tree => (
               <VisxGroup top={origin.y} left={origin.x}>
                 {/* Links */}
                 {tree.links().map((link, i) => {
+                  const key = `link-${layout}-${linkType}-${i}`;
                   let LinkComponent;
 
                   if (layout === "polar") {
@@ -467,7 +483,7 @@ export function LocationLink({
 
                   return (
                     <LinkComponent
-                      key={`link-${layout}-${linkType}-${i}`}
+                      key={key}
                       data={link}
                       percent={STEP_PERCENT}
                       stroke={LINK_COLORS.dark}
@@ -481,6 +497,7 @@ export function LocationLink({
 
                 {/* Nodes */}
                 {tree.descendants().map((node, idx) => {
+                  const key = `node-${node.x}-${node.y}-${idx}`;
                   let top: number;
                   let left: number;
 
@@ -502,18 +519,16 @@ export function LocationLink({
                   const isExpanded = expandedNodes.has(nodeData.name);
 
                   // Truncate long names
-                  const displayName = nodeData.name.length > 16 
-                    ? `${nodeData.name.substring(0, 14)}…` 
-                    : nodeData.name;
+                  const displayName = nodeData.name.length > 16 ? `${nodeData.name.substring(0, 14)}…` : nodeData.name;
 
                   return (
                     <VisxGroup
-                      key={`node-${node.x}-${node.y}-${idx}`}
+                      key={key}
                       top={top}
                       left={left}
                       className={styles.nodeGroup}
                       onClick={() => handleNodeClick(node)}
-                      onMouseEnter={(e) => handleNodeMouseEnter(e, nodeData)}
+                      onMouseEnter={e => handleNodeMouseEnter(e, nodeData)}
                       onMouseLeave={handleNodeMouseLeave}
                     >
                       <defs>
@@ -597,9 +612,7 @@ export function LocationLink({
             </div>
           )}
           {tooltip.hasChildren && (
-            <div className={styles.tooltipHint}>
-              {t("placetree.clickToExpand", "Click to expand/collapse")}
-            </div>
+            <div className={styles.tooltipHint}>{t("placetree.clickToExpand", "Click to expand/collapse")}</div>
           )}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Group, Modal, Stack, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconAlbum as Album } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
