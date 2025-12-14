@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { Photo } from "../types";
+import { BulkPhotoQuery, Photo } from "../types";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
@@ -9,39 +9,56 @@ import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery'
 import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery';
 import { RecentlyAddedPhotosQueryKeys } from './useFetchRecentlyAddedPhotosQuery';
 
-const FavoritePhotosRequest = z.object({
-  image_hashes: z.string().array(),
-  favorite: z.boolean(),
-});
-type FavoritePhotosRequest = z.infer<typeof FavoritePhotosRequest>;
-
 const UpdatedPhotosResponse = z.object({
   status: z.boolean(),
-  results: Photo.array(),
-  updated: Photo.array(),
-  not_updated: Photo.array(),
+  results: Photo.array().optional(),
+  updated: Photo.array().optional(),
+  not_updated: Photo.array().optional(),
+  count: z.number().optional(),
 });
 type UpdatedPhotosResponse = z.infer<typeof UpdatedPhotosResponse>;
 
+// Request type for individual photo hashes
+type IndividualRequest = {
+  select_all?: false;
+  image_hashes: string[];
+  favorite: boolean;
+};
+
+// Request type for select_all mode
+type SelectAllRequest = {
+  select_all: true;
+  query: BulkPhotoQuery;
+  excluded_hashes?: string[];
+  favorite: boolean;
+};
+
+type FavoritePhotosRequest = IndividualRequest | SelectAllRequest;
+
 // Set favorite photos
 export const useSetFavoritePhotosMutation = () => useMutation({
-  mutationFn: async ({ image_hashes, favorite }: FavoritePhotosRequest) => {
-    const response = await fetchClient.post('/photosedit/favorite/', {
-      image_hashes,
-      favorite,
-    });
+  mutationFn: async (request: FavoritePhotosRequest) => {
+    const response = await fetchClient.post('/photosedit/favorite/', request);
     const data = UpdatedPhotosResponse.parse(response);
-    notification.togglePhotosFavorite(image_hashes.length, favorite);
+    
+    // Show notification based on mode
+    if (request.select_all) {
+      notification.togglePhotosFavorite(data.count ?? 0, request.favorite);
+    } else {
+      notification.togglePhotosFavorite(request.image_hashes.length, request.favorite);
+    }
+    
     return data;
   },
-  onSuccess: (data, { image_hashes }) => {
+  onSuccess: (data, request) => {
     // Invalidate relevant queries
     queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
-    // If we have a single photo, invalidate its details
-    if (image_hashes.length === 1) {
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, image_hashes[0]] });
+    
+    // If we have a single photo in individual mode, invalidate its details
+    if (!request.select_all && request.image_hashes.length === 1) {
+      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
     }
   },
-}); 
+});

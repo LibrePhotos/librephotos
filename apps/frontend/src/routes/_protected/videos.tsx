@@ -58,6 +58,7 @@ export function OnlyVideos() {
       idx2hash={photosFlat}
       selectable
       emptyStateConfig={emptyStateConfig}
+      photosetQuery={{ video: true }}
     />
   );
 }

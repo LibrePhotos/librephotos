@@ -79,6 +79,7 @@ export function TimestampPhotos() {
       updateGroups={getAlbums}
       selectable
       emptyStateConfig={emptyStateConfig}
+      photosetQuery={{}}
     />
   );
 }

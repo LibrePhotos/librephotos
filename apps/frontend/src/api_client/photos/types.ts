@@ -123,3 +123,28 @@ export const IncompleteDatePhotosGroup = DatePhotosGroup.extend({
   numberOfItems: z.number(),
 });
 export type IncompleteDatePhotosGroup = z.infer<typeof IncompleteDatePhotosGroup>;
+
+// Bulk selection types for server-side "Select All" operations
+export const BulkPhotoQuery = z.object({
+  favorite: z.boolean().optional(),
+  public: z.boolean().optional(),
+  hidden: z.boolean().optional(),
+  in_trashcan: z.boolean().optional(),
+  video: z.boolean().optional(),
+  photo: z.boolean().optional(),
+  person: z.number().optional(),
+  folder: z.string().optional(),
+  username: z.string().optional(),
+});
+export type BulkPhotoQuery = z.infer<typeof BulkPhotoQuery>;
+
+// Selection state for photolist components
+export type SelectionState = {
+  selectedItems: PigPhoto[];
+  selectMode: boolean;
+  // Server-side select all support
+  selectAllMode: boolean;
+  selectAllQuery?: BulkPhotoQuery;
+  // Total count of photos for display in select all mode
+  totalCount?: number;
+};

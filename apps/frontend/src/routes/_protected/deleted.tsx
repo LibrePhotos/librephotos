@@ -56,6 +56,7 @@ export function DeletedPhotos() {
       idx2hash={photosFlat}
       selectable
       emptyStateConfig={emptyStateConfig}
+      photosetQuery={{ in_trashcan: true }}
     />
   );
 }

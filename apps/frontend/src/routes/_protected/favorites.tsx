@@ -56,6 +56,7 @@ export function FavoritePhotos() {
       idx2hash={photosFlat}
       selectable
       emptyStateConfig={emptyStateConfig}
+      photosetQuery={{ favorite: true }}
     />
   );
 }

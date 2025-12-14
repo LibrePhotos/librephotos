@@ -58,6 +58,7 @@ export function OnlyPhotos() {
       idx2hash={photosFlat}
       selectable
       emptyStateConfig={emptyStateConfig}
+      photosetQuery={{ photo: true }}
     />
   );
 }

@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { Photo } from "../types";
+import { BulkPhotoQuery, Photo } from "../types";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
 import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
@@ -14,26 +14,45 @@ import { PhotoMonthCountQueryKeys } from '../../stats/hooks/useFetchPhotoMonthCo
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
-  results: Photo.array(),
-  updated: Photo.array(),
-  not_updated: Photo.array(),
+  results: Photo.array().optional(),
+  updated: Photo.array().optional(),
+  not_updated: Photo.array().optional(),
+  count: z.number().optional(),
 });
 
-const SetPhotosHiddenRequest = z.object({
-  image_hashes: z.array(z.string()),
-  hidden: z.boolean(),
-});
-type SetPhotosHiddenRequest = z.infer<typeof SetPhotosHiddenRequest>;
+// Request type for individual photo hashes
+type IndividualRequest = {
+  select_all?: false;
+  image_hashes: string[];
+  hidden: boolean;
+};
+
+// Request type for select_all mode
+type SelectAllRequest = {
+  select_all: true;
+  query: BulkPhotoQuery;
+  excluded_hashes?: string[];
+  hidden: boolean;
+};
+
+type SetPhotosHiddenRequest = IndividualRequest | SelectAllRequest;
 
 // Set photos hidden
 export const useSetPhotosHiddenMutation = () => useMutation({
-  mutationFn: async ({ image_hashes, hidden }: SetPhotosHiddenRequest) => {
-    const response = await fetchClient.post('/photosedit/hide/', { image_hashes, hidden });
+  mutationFn: async (request: SetPhotosHiddenRequest) => {
+    const response = await fetchClient.post('/photosedit/hide/', request);
     const data = UpdatePhotosResponse.parse(response);
-    notification.togglePhotosHidden(image_hashes.length, false);
+    
+    // Show notification based on mode
+    if (request.select_all) {
+      notification.togglePhotosHidden(data.count ?? 0, request.hidden);
+    } else {
+      notification.togglePhotosHidden(request.image_hashes.length, request.hidden);
+    }
+    
     return data;
   },
-  onSuccess: (data, { image_hashes }) => {
+  onSuccess: (data, request) => {
     // Invalidate relevant queries to ensure consistent state
     queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
@@ -42,9 +61,9 @@ export const useSetPhotosHiddenMutation = () => useMutation({
     queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
     
-    // If we have a single photo, invalidate its details
-    if (image_hashes.length === 1) {
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, image_hashes[0]] });
+    // If we have a single photo in individual mode, invalidate its details
+    if (!request.select_all && request.image_hashes.length === 1) {
+      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
     }
   },
-}); 
+});

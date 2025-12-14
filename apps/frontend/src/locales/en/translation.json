@@ -363,7 +363,9 @@
     "selected": "selected",
     "toggle": "Toggle select mode",
     "deselect": "Deselect all",
-    "select": "Select all"
+    "select": "Select all",
+    "all": "All",
+    "excluded": "excluded"
   },
   "defaultheader": {
     "welcome": "Welcome to LibrePhotos",

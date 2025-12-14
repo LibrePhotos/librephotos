@@ -56,6 +56,7 @@ export function HiddenPhotos() {
       idx2hash={photosFlat}
       selectable
       emptyStateConfig={emptyStateConfig}
+      photosetQuery={{ hidden: true }}
     />
   );
 }

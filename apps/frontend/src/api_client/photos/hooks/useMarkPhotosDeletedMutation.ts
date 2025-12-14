@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
-import { Photo } from "../types";
+import { BulkPhotoQuery, Photo } from "../types";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
 import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
@@ -10,25 +10,44 @@ import { RecentlyAddedPhotosQueryKeys } from './useFetchRecentlyAddedPhotosQuery
 import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
 import { PhotoMonthCountQueryKeys } from '../../stats/hooks/useFetchPhotoMonthCountQuery';
 
-const DeletePhotosRequest = z.object({
-  image_hashes: z.array(z.string()),
-  deleted: z.boolean(),
-});
-type DeletePhotosRequest = z.infer<typeof DeletePhotosRequest>;
-
 const DeletePhotosResponse = z.object({
   status: z.boolean(),
-  results: Photo.array(),
-  updated: Photo.array(),
-  not_updated: Photo.array(),
+  results: Photo.array().optional(),
+  updated: Photo.array().optional(),
+  not_updated: Photo.array().optional(),
+  count: z.number().optional(),
 });
 type DeletePhotosResponse = z.infer<typeof DeletePhotosResponse>;
 
+// Request type for individual photo hashes
+type IndividualRequest = {
+  select_all?: false;
+  image_hashes: string[];
+  deleted: boolean;
+};
+
+// Request type for select_all mode
+type SelectAllRequest = {
+  select_all: true;
+  query: BulkPhotoQuery;
+  excluded_hashes?: string[];
+  deleted: boolean;
+};
+
+type DeletePhotosRequest = IndividualRequest | SelectAllRequest;
+
 export const useMarkPhotosDeletedMutation = () => useMutation({
-  mutationFn: async ({ image_hashes, deleted }: DeletePhotosRequest) => {
-    const response = await fetchClient.post('/photosedit/setdeleted/', { image_hashes, deleted });
+  mutationFn: async (request: DeletePhotosRequest) => {
+    const response = await fetchClient.post('/photosedit/setdeleted/', request);
     const data = DeletePhotosResponse.parse(response);
-    notification.togglePhotoDelete(deleted, data.updated.length);
+    
+    // Show notification based on mode
+    if (request.select_all) {
+      notification.togglePhotoDelete(request.deleted, data.count ?? 0);
+    } else {
+      notification.togglePhotoDelete(request.deleted, data.updated?.length ?? request.image_hashes.length);
+    }
+    
     return data;
   },
   onSuccess: () => {
@@ -38,4 +57,4 @@ export const useMarkPhotosDeletedMutation = () => useMutation({
     queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
   },
-}); 
+});

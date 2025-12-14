@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth/hooks";
-import { DatePhotosGroup, PigPhoto } from "../../api_client/photos/types";
+import { BulkPhotoQuery, DatePhotosGroup, PigPhoto, Photoset, SelectionState } from "../../api_client/photos/types";
 import {
   useCurrentUserSelfDetailsQuery,
   UserSelfDetailsQueryKeys,
@@ -89,12 +89,11 @@ type Props = Readonly<{
   albumID?: string;
   ownerUsername?: string;
   emptyStateConfig?: EmptyStateConfig;
+  // Query params for server-side select all
+  photosetQuery?: BulkPhotoQuery;
 }>;
 
-type SelectionState = {
-  selectedItems: any[];
-  selectMode: boolean;
-};
+// SelectionState is now imported from api_client/photos/types
 
 function PhotoListViewComponent({
   title = "",
@@ -114,6 +113,7 @@ function PhotoListViewComponent({
   albumID,
   ownerUsername,
   emptyStateConfig,
+  photosetQuery,
 }: Props) {
   const { t } = useTranslation();
   const { height } = useViewportSize();
@@ -123,7 +123,13 @@ function PhotoListViewComponent({
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
   const [modalCoverPickerOpen, setModalCoverPickerOpen] = useState(false);
   const [coverPickerAlbumType, setCoverPickerAlbumType] = useState<"person" | "useralbum" | null>(null);
-  const [selectionState, setSelectionState] = useState<SelectionState>({ selectedItems: [], selectMode: false });
+  const [selectionState, setSelectionState] = useState<SelectionState>({
+    selectedItems: [],
+    selectMode: false,
+    selectAllMode: false,
+    selectAllQuery: undefined,
+    totalCount: undefined,
+  });
   const selectionStateRef = useRef(selectionState);
   const [dataForScrollIndicator, setDataForScrollIndicator] = useState<ScrollerData[]>([]);
   const gridHeight = useRef(200);
@@ -299,14 +305,34 @@ function PhotoListViewComponent({
     return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
   }, []);
 
-  const updateSelectionState = (newState: { selectedItems: any[]; selectMode: boolean }) => {
+  const updateSelectionState = (newState: Partial<SelectionState>) => {
     const updatedState = { ...selectionState, ...newState };
     selectionStateRef.current = updatedState;
     setSelectionState(updatedState);
   };
 
   const handleSelection = (item: any) => {
-    let newSelectedItems = selectionStateRef.current.selectedItems;
+    const currentState = selectionStateRef.current;
+
+    // In selectAllMode, selectedItems tracks EXCLUDED items
+    if (currentState.selectAllMode) {
+      const isExcluded = currentState.selectedItems.find(i => i.id === item.id);
+      if (isExcluded) {
+        // Re-include by removing from exclusions
+        updateSelectionState({
+          selectedItems: currentState.selectedItems.filter(i => i.id !== item.id),
+        });
+      } else {
+        // Exclude by adding to list
+        updateSelectionState({
+          selectedItems: [...currentState.selectedItems, item],
+        });
+      }
+      return;
+    }
+
+    // Normal selection mode
+    let newSelectedItems = currentState.selectedItems;
 
     if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
       newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
@@ -554,14 +580,19 @@ function PhotoListViewComponent({
             >
               <SelectionBar
                 selectMode={selectionState.selectMode}
+                selectAllMode={selectionState.selectAllMode}
                 selectedItems={selectionState.selectedItems}
                 idx2hash={idx2hash}
                 updateSelectionState={updateSelectionState}
+                photosetQuery={photosetQuery}
+                totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
               />
               <Group justify="flex-end">
                 {!location.pathname.startsWith("/deleted") && (
                   <SelectionActions
                     selectedItems={selectionState.selectedItems}
+                    selectAllMode={selectionState.selectAllMode}
+                    selectAllQuery={selectionState.selectAllQuery}
                     // @ts-ignore
                     albumID={params ? params.albumID : undefined}
                     ownerUsername={ownerUsername}
@@ -633,7 +664,16 @@ function PhotoListViewComponent({
               className="scrollscrubbertarget"
               imageData={photos}
               selectable={selectable === undefined || selectable}
-              selectedItems={selectionStateRef.current.selectedItems}
+              selectedItems={
+                selectionState.selectAllMode
+                  ? // In selectAllMode, all real (non-temp) items are selected except exclusions
+                    idx2hash.filter(
+                      item =>
+                        !item.isTemp &&
+                        !selectionState.selectedItems.find(excluded => excluded.id === item.id)
+                    )
+                  : selectionState.selectedItems
+              }
               handleSelection={handleSelection}
               handleClick={handleClick}
               scaleOfImages={localImageScale}
@@ -701,6 +741,8 @@ function PhotoListViewComponent({
             setModalSharePhotosOpen(false);
           }}
           selectedImageHashes={selectionState.selectedItems.map(i => i.id)}
+          selectAllMode={selectionState.selectAllMode}
+          selectAllQuery={selectionState.selectAllQuery}
         />
       )}
       {!isPublic && isUserAlbum && (

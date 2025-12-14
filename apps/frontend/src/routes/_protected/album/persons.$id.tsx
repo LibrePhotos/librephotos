@@ -65,6 +65,7 @@ export function AlbumPersonGallery(): JSX.Element {
       idx2hash={photosFlat}
       updateGroups={getAlbums}
       selectable
+      photosetQuery={{ person: id ? +id : undefined }}
     />
   );
 }
