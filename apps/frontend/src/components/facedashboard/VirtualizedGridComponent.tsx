@@ -26,7 +26,7 @@ interface VirtualizedGridComponentProps {
     rowOverscanStopIndex: number;
     columnOverscanStopIndex: number;
   }) => void;
-  scrollPosition: number;
+  scrollPosition: number | undefined;
   onScroll: (params: { scrollTop: number }) => void;
   handleCellClick: (e: React.MouseEvent, cell: FaceCell) => void;
   handleShowClick: (e: React.KeyboardEvent, item: any) => void;
@@ -128,7 +128,7 @@ export function VirtualizedGridComponent({
               height={height}
               width={gridWidth}
               rowCount={getCellContentsForTab(activeTab).length}
-              scrollTop={scrollPosition}
+              scrollTop={scrollPosition} // Only defined for programmatic scrolls
               onScroll={onScroll}
             />
           </ScrollScrubber>

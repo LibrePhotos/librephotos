@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/ScrollScrubberTypes.zod";
@@ -37,7 +37,7 @@ export function useVirtualizedGrid(
       method: FaceAnalysisMethod;
     }>
   ) => void,
-  scrollPosition: number,
+  scrollPosition: number | undefined, // Only defined for programmatic scrolls (tab changes)
   onScroll: (params: { scrollTop: number }) => void,
   selectMode: boolean,
   selectedFaces: FaceSelection[],
@@ -72,14 +72,14 @@ export function useVirtualizedGrid(
     [onScroll]
   );
 
-  // Calculate cell contents for each tab
-  const cellContents = {
+  // Calculate cell contents for each tab - MEMOIZED to prevent recalculation on every render
+  const cellContents = useMemo(() => ({
     [FacesTab.enum.labeled]: calculateFaceGridCells(lists.labeled, numEntrySquaresPerRow).cellContents,
     [FacesTab.enum.inferred]: calculateFaceGridCells(lists.inferred, numEntrySquaresPerRow).cellContents,
     [FacesTab.enum.unknown]: calculateFaceGridCells(lists.unknown, numEntrySquaresPerRow).cellContents,
-  };
+  }), [lists.labeled, lists.inferred, lists.unknown, numEntrySquaresPerRow]);
 
-  // Get cell contents for the active tab
+  // Get cell contents for the active tab - stable reference due to memoized cellContents
   const getCellContentsForTab = useCallback((tab: FacesTab) => cellContents[tab] || [], [cellContents]);
 
   // Get endpoint cell for section rendering

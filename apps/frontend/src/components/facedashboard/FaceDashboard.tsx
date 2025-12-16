@@ -2,7 +2,8 @@ import { IconFaceId } from "@tabler/icons-react";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { getRouteApi } from "@tanstack/react-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import _ from "lodash";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FaceAnalysisMethod, FacesTab, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
@@ -78,16 +79,28 @@ export function FaceDashboard() {
     [idx2hash, showLightbox]
   );
 
+  // Debounced localStorage save - doesn't trigger re-renders, just persists position
+  const debouncedSavePosition = useRef(
+    _.debounce((tab: FacesTab, pos: number) => {
+      updatePosition(tab, pos);
+    }, 300)
+  ).current;
+
+  // Track scroll position in ref (no re-renders) for persistence only
+  const currentScrollTop = useRef(0);
+
   const handleGridScroll = useCallback(
     ({ scrollTop }: { scrollTop: number }) => {
+      currentScrollTop.current = scrollTop;
+      
+      // Clear scrollTo once we've reached the target (for programmatic scrolls)
       if (scrollTo !== null && scrollTop === scrollTo) {
         setScrollTo(null);
       }
-      if (tabPositions[activeTab] !== scrollTop) {
-        updatePosition(activeTab, scrollTop);
-      }
+      // Debounced save to localStorage - no state update, no re-render
+      debouncedSavePosition(activeTab, scrollTop);
     },
-    [scrollTo, tabPositions, activeTab, updatePosition]
+    [scrollTo, activeTab, debouncedSavePosition]
   );
 
   // Create grid utilities object that we'll use for selection logic
@@ -112,13 +125,15 @@ export function FaceDashboard() {
   );
 
   // Initialize the virtualized grid
+  // Only pass scrollTo for programmatic scrolling (tab switches), not tabPositions
+  // The Grid manages its own scroll position during user scrolling
   const virtualGrid = useVirtualizedGrid(
     activeTab,
     lists,
     handleCellClick,
     handleShowClick,
     setGroups,
-    tabPositions[activeTab], // Use local storage position
+    scrollTo ?? undefined, // Only pass when we want to programmatically scroll
     handleGridScroll,
     selectedFaces.length > 0, // selectMode
     selectedFaces,
@@ -158,8 +173,15 @@ export function FaceDashboard() {
     }
   }, [selectedFaces, setFacesPersonLabelMutate, clearSelection]);
 
-  // Track scroll position based on tab
-  useEffect(() => setScrollTo(tabPositions[activeTab]), [activeTab, tabPositions]);
+  // Restore scroll position only on tab change (not when tabPositions updates)
+  const prevTabRef = useRef(activeTab);
+  useEffect(() => {
+    if (prevTabRef.current !== activeTab) {
+      // Tab changed - restore the saved scroll position for the new tab
+      setScrollTo(tabPositions[activeTab]);
+      prevTabRef.current = activeTab;
+    }
+  }, [activeTab, tabPositions]);
 
   const handleLightboxImageChange = useCallback((imageId: string) => {
     setLightboxImageId(imageId);
