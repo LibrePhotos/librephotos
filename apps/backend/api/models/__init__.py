@@ -4,6 +4,7 @@ from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.cluster import Cluster
+from api.models.duplicate_group import DuplicateGroup
 from api.models.face import Face
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
@@ -21,6 +22,7 @@ __all__ = [
     "AlbumThing",
     "AlbumUser",
     "Cluster",
+    "DuplicateGroup",
     "Face",
     "LongRunningJob",
     "Person",

@@ -22,6 +22,8 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
             "started_by",
             "progress_current",
             "progress_target",
+            "progress_step",
+            "result",
             "id",
         )
 

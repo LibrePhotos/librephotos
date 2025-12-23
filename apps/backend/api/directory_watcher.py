@@ -16,6 +16,7 @@ from django_q.tasks import AsyncTask, Chain
 from api import util
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
+from api.perceptual_hash import calculate_hash_from_thumbnail
 
 from api.feature.embedded_media import extract_embedded_media, has_embedded_media
 from api.models import Face, File, LongRunningJob, Photo, Thumbnail
@@ -169,6 +170,16 @@ def handle_new_image(user, path, job_id, photo=None):
             util.logger.info(
                 f"job {job_id}: calculate aspect ratio: {path}, elapsed: {elapsed}"
             )
+            # Calculate perceptual hash for duplicate detection
+            if thumbnail.thumbnail_big and os.path.exists(thumbnail.thumbnail_big.path):
+                phash = calculate_hash_from_thumbnail(thumbnail.thumbnail_big.path)
+                if phash:
+                    photo.perceptual_hash = phash
+                    photo.save(update_fields=["perceptual_hash"])
+                    elapsed = (datetime.datetime.now() - start).total_seconds()
+                    util.logger.info(
+                        f"job {job_id}: calculate perceptual hash: {path}, elapsed: {elapsed}"
+                    )
             photo._extract_exif_data(True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(

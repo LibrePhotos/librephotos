@@ -89,6 +89,18 @@ class Photo(models.Model):
     clip_embeddings_magnitude = models.FloatField(blank=True, null=True)
     last_modified = models.DateTimeField(auto_now=True)
 
+    # Perceptual hash for duplicate detection (pHash algorithm)
+    perceptual_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+
+    # Reference to duplicate group if this photo is part of a duplicate set
+    duplicate_group = models.ForeignKey(
+        "DuplicateGroup",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="photos",
+    )
+
     objects = models.Manager()
     visible = VisiblePhotoManager()
 
@@ -514,6 +526,9 @@ class Photo(models.Model):
         self.save()
 
     def manual_delete(self):
+        # Store duplicate_group reference before cleanup
+        dup_group = self.duplicate_group
+        
         for file in self.files.all():
             if os.path.isfile(file.path):
                 logger.info(f"Removing photo {file.path}")
@@ -522,8 +537,29 @@ class Photo(models.Model):
             self.files.set([])
             self.main_file = None
         self.removed = True
+        
+        # Clear duplicate_group reference from this photo
+        self.duplicate_group = None
+        result = self.save()
+        
+        # Clean up duplicate group if it's now empty or has only one photo left
+        if dup_group:
+            remaining_photos = dup_group.photos.filter(removed=False).count()
+            if remaining_photos <= 1:
+                # If 0 or 1 photos left, delete the group (no longer a duplicate set)
+                logger.info(f"Deleting duplicate group {dup_group.id} - only {remaining_photos} photos remaining")
+                # Unlink remaining photo from group first
+                dup_group.photos.update(duplicate_group=None)
+                dup_group.delete()
+            elif dup_group.status == "reviewed":
+                # If reviewed group loses a photo, reset to pending for re-review
+                logger.info(f"Resetting duplicate group {dup_group.id} to pending - photo was permanently deleted")
+                dup_group.status = "pending"
+                dup_group.preferred_photo = None
+                dup_group.save()
+        
         # To-Do: Handle wrong file permissions
-        return self.save()
+        return result
 
     def delete_duplicate(self, duplicate_path):
         # To-Do: Handle wrong file permissions

@@ -20,6 +20,7 @@ class LongRunningJob(models.Model):
     JOB_GENERATE_TAGS = 12
     JOB_GENERATE_FACE_EMBEDDINGS = 13
     JOB_SCAN_MISSING_PHOTOS = 14
+    JOB_DETECT_DUPLICATES = 15
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -36,6 +37,7 @@ class LongRunningJob(models.Model):
         (JOB_GENERATE_TAGS, "Generate Tags"),
         (JOB_GENERATE_FACE_EMBEDDINGS, "Generate Face Embeddings"),
         (JOB_SCAN_MISSING_PHOTOS, "Scan Missing Photos"),
+        (JOB_DETECT_DUPLICATES, "Detect Duplicate Photos"),
     )
 
     job_type = models.PositiveIntegerField(
@@ -53,3 +55,6 @@ class LongRunningJob(models.Model):
     )
     progress_current = models.PositiveIntegerField(default=0)
     progress_target = models.PositiveIntegerField(default=0)
+    # New fields for detailed progress reporting
+    progress_step = models.CharField(max_length=100, null=True, blank=True)  # Current step description
+    result = models.JSONField(null=True, blank=True)  # Detailed result/progress data

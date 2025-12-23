@@ -160,6 +160,14 @@ class SetPhotosDeleted(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
+            # If restoring from trash, reset duplicate groups to pending
+            if not val_deleted:
+                from api.models.duplicate_group import DuplicateGroup
+                group_ids = set(photos_qs.filter(duplicate_group__isnull=False).values_list('duplicate_group_id', flat=True))
+                if group_ids:
+                    DuplicateGroup.objects.filter(id__in=group_ids, status=DuplicateGroup.Status.REVIEWED).update(status=DuplicateGroup.Status.PENDING)
+                    logger.info(f"Reset {len(group_ids)} duplicate groups to pending after restore")
+
             count = photos_qs.update(in_trashcan=val_deleted)
 
             if val_deleted:
@@ -206,6 +214,22 @@ class SetPhotosDeleted(APIView):
             Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
             ).update(in_trashcan=val_deleted)
+            
+            # If restoring from trash, reset duplicate groups to pending
+            if not val_deleted:
+                from api.models.duplicate_group import DuplicateGroup
+                group_ids = set(
+                    Photo.objects.filter(
+                        image_hash__in=photos_to_update, 
+                        duplicate_group__isnull=False
+                    ).values_list('duplicate_group_id', flat=True)
+                )
+                if group_ids:
+                    DuplicateGroup.objects.filter(
+                        id__in=group_ids, 
+                        status=DuplicateGroup.Status.REVIEWED
+                    ).update(status=DuplicateGroup.Status.PENDING)
+                    logger.info(f"Reset {len(group_ids)} duplicate groups to pending after restore")
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}

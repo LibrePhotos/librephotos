@@ -38,6 +38,7 @@ from api.views import (
     album_folder,
     albums,
     dataviz,
+    duplicates,
     faces,
     geocode,
     jobs,
@@ -239,6 +240,29 @@ urlpatterns = [
     re_path(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
     re_path(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
+    re_path(r"^api/duplicates/detect", duplicates.DetectDuplicatesView.as_view()),
+    re_path(r"^api/duplicates/stats", duplicates.DuplicateStatsView.as_view()),
+    re_path(
+        r"^api/duplicates/(?P<group_id>\d+)/resolve",
+        duplicates.ResolveDuplicateGroupView.as_view(),
+    ),
+    re_path(
+        r"^api/duplicates/(?P<group_id>\d+)/dismiss",
+        duplicates.DismissDuplicateGroupView.as_view(),
+    ),
+    re_path(
+        r"^api/duplicates/(?P<group_id>\d+)/revert",
+        duplicates.RevertDuplicateGroupView.as_view(),
+    ),
+    re_path(
+        r"^api/duplicates/(?P<group_id>\d+)/delete",
+        duplicates.DeleteDuplicateGroupView.as_view(),
+    ),
+    re_path(
+        r"^api/duplicates/(?P<group_id>\d+)",
+        duplicates.DuplicateGroupDetailView.as_view(),
+    ),
+    re_path(r"^api/duplicates", duplicates.DuplicateGroupListView.as_view()),
     re_path(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
     re_path(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
     re_path(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
