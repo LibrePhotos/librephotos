@@ -246,7 +246,8 @@
         "youshared": "Partilhadas por si",
         "sharedwithyou": "Partilhadas consigo",
         "videos": "Vídeos",
-        "statistics": "Estatísticas"
+        "statistics": "Estatísticas",
+        "duplicates": "Duplicadas"
     },
     "modalnextcloud": {
         "cancel": "Cancelar",
@@ -1020,5 +1021,27 @@
     "library": {
         "exploredata": "Explorar dados",
         "exploredatadescription": "Visualize e explore a sua biblioteca de fotos"
+    },
+    "duplicates": {
+        "title": "Fotos duplicadas",
+        "detect": "Detetar duplicados",
+        "pending": "Verificação pendente",
+        "reviewed": "Verificados",
+        "all": "Todos",
+        "photos": "fotos",
+        "totalgroups": "Total de grupos",
+        "photosingroups": "Fotos em grupos",
+        "scanned": "Fotos analisadas",
+        "noduplicates": "Não foram encontrados grupos duplicados",
+        "nopending": "Todos os grupos duplicados foram verificados. Clique \"Detetar duplicados\" para procurar mais.",
+        "empty": "Clique \"Detetar duplicados\" para procurar fotos duplicadas na sua biblioteca.",
+        "reviewgroup": "Verificar grupo duplicado",
+        "loading": "A carregar duplicados...",
+        "selectbest": "Selecione a foto que pretende manter. Todas as outras serão movidas para o lixo.",
+        "selected": "Manter isto",
+        "select": "Selecionar",
+        "notduplicates": "Não duplicadas",
+        "keepandtrash": "Manter selecionadas e mover restantes para o lixo",
+        "error": "Falha a carregar grupo duplicado"
     }
 }
