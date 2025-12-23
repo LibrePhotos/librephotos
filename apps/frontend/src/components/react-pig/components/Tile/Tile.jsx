@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState } from "react";
 import { animated, useSpring } from "react-spring";
 
 import getImageHeight from "../../utils/getImageHeight";
@@ -82,39 +82,10 @@ const Tile = React.memo(
       config: { mass: 1.5, tension: 400, friction: 40 },
     });
 
-    // Use refs to track pending scroll and animation frame
-    const pendingScrollRef = useRef(0);
-    const rafIdRef = useRef(null);
-
-    // Handle wheel events to allow scrolling when hovering over images
-    // Uses requestAnimationFrame to batch scroll updates for smooth performance
-    const handleWheel = useCallback((event) => {
-      // Accumulate scroll delta
-      pendingScrollRef.current += event.deltaY;
-
-      // Cancel any pending animation frame
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-
-      // Schedule scroll update for next animation frame
-      rafIdRef.current = requestAnimationFrame(() => {
-        if (pendingScrollRef.current !== 0) {
-          window.scrollBy({
-            top: pendingScrollRef.current,
-            behavior: 'auto',
-          });
-          pendingScrollRef.current = 0;
-        }
-        rafIdRef.current = null;
-      });
-    }, []);
-
     return (
       <animated.button
         className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
         onClick={event => handleClick(event, item)}
-        onWheel={handleWheel}
         style={{
           outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : null,
           backgroundColor: item.dominantColor,
