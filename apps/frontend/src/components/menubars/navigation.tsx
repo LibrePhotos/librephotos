@@ -1,6 +1,12 @@
 import { MantineColor } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
-import { IconAlbum as Album, IconPhoto as Photo, IconTrash as Trash, IconUsers as Users } from "@tabler/icons-react";
+import {
+  IconAlbum as Album,
+  IconCopy as Duplicates,
+  IconPhoto as Photo,
+  IconTrash as Trash,
+  IconUsers as Users,
+} from "@tabler/icons-react";
 import { TFunction } from "i18next";
 
 type SubmenuItem = {
@@ -32,6 +38,13 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
       display: isAuthenticated,
       icon: Users,
       color: "red",
+    },
+    {
+      label: t("sidemenu.duplicates", "Duplicates"),
+      link: "/duplicates",
+      display: isAuthenticated,
+      icon: Duplicates,
+      color: "yellow",
     },
     { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "gray" },
   ];

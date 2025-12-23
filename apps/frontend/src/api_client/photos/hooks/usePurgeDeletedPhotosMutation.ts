@@ -11,6 +11,7 @@ import { RecentlyAddedPhotosQueryKeys } from './useFetchRecentlyAddedPhotosQuery
 import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
 import { PhotoMonthCountQueryKeys } from '../../stats/hooks/useFetchPhotoMonthCountQuery';
 import { StorageStatsQueryKeys } from '../../server/hooks/useFetchStorageStatsQuery';
+import { DuplicatesQueryKeys } from '../../duplicates/hooks';
 
 // Request type for individual photo hashes
 type IndividualRequest = {
@@ -57,5 +58,6 @@ export const usePurgeDeletedPhotosMutation = () => useMutation({
     queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
     queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
+    queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
   },
 }); 

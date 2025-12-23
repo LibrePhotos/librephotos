@@ -25,6 +25,7 @@ import { Route as ProtectedLibraryRouteImport } from './routes/_protected/librar
 import { Route as ProtectedHiddenRouteImport } from './routes/_protected/hidden'
 import { Route as ProtectedFavoritesRouteImport } from './routes/_protected/favorites'
 import { Route as ProtectedFacesRouteImport } from './routes/_protected/faces'
+import { Route as ProtectedDuplicatesRouteImport } from './routes/_protected/duplicates'
 import { Route as ProtectedDeletedRouteImport } from './routes/_protected/deleted'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedStatisticsIndexRouteImport } from './routes/_protected/statistics/index'
@@ -132,6 +133,11 @@ const ProtectedFavoritesRoute = ProtectedFavoritesRouteImport.update({
 const ProtectedFacesRoute = ProtectedFacesRouteImport.update({
   id: '/faces',
   path: '/faces',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedDuplicatesRoute = ProtectedDuplicatesRouteImport.update({
+  id: '/duplicates',
+  path: '/duplicates',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedDeletedRoute = ProtectedDeletedRouteImport.update({
@@ -298,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof ProtectedAdminRoute
   '/deleted': typeof ProtectedDeletedRoute
+  '/duplicates': typeof ProtectedDuplicatesRoute
   '/faces': typeof ProtectedFacesRoute
   '/favorites': typeof ProtectedFavoritesRoute
   '/hidden': typeof ProtectedHiddenRoute
@@ -344,6 +351,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/admin': typeof ProtectedAdminRoute
   '/deleted': typeof ProtectedDeletedRoute
+  '/duplicates': typeof ProtectedDuplicatesRoute
   '/faces': typeof ProtectedFacesRoute
   '/favorites': typeof ProtectedFavoritesRoute
   '/hidden': typeof ProtectedHiddenRoute
@@ -392,6 +400,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_protected/admin': typeof ProtectedAdminRoute
   '/_protected/deleted': typeof ProtectedDeletedRoute
+  '/_protected/duplicates': typeof ProtectedDuplicatesRoute
   '/_protected/faces': typeof ProtectedFacesRoute
   '/_protected/favorites': typeof ProtectedFavoritesRoute
   '/_protected/hidden': typeof ProtectedHiddenRoute
@@ -440,6 +449,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/deleted'
+    | '/duplicates'
     | '/faces'
     | '/favorites'
     | '/hidden'
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/deleted'
+    | '/duplicates'
     | '/faces'
     | '/favorites'
     | '/hidden'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_protected/admin'
     | '/_protected/deleted'
+    | '/_protected/duplicates'
     | '/_protected/faces'
     | '/_protected/favorites'
     | '/_protected/hidden'
@@ -693,6 +705,13 @@ declare module '@tanstack/react-router' {
       path: '/faces'
       fullPath: '/faces'
       preLoaderRoute: typeof ProtectedFacesRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/duplicates': {
+      id: '/_protected/duplicates'
+      path: '/duplicates'
+      fullPath: '/duplicates'
+      preLoaderRoute: typeof ProtectedDuplicatesRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/deleted': {
@@ -904,6 +923,7 @@ declare module '@tanstack/react-router' {
 interface ProtectedRouteRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRoute
   ProtectedDeletedRoute: typeof ProtectedDeletedRoute
+  ProtectedDuplicatesRoute: typeof ProtectedDuplicatesRoute
   ProtectedFacesRoute: typeof ProtectedFacesRoute
   ProtectedFavoritesRoute: typeof ProtectedFavoritesRoute
   ProtectedHiddenRoute: typeof ProtectedHiddenRoute
@@ -946,6 +966,7 @@ interface ProtectedRouteRouteChildren {
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRoute,
   ProtectedDeletedRoute: ProtectedDeletedRoute,
+  ProtectedDuplicatesRoute: ProtectedDuplicatesRoute,
   ProtectedFacesRoute: ProtectedFacesRoute,
   ProtectedFavoritesRoute: ProtectedFavoritesRoute,
   ProtectedHiddenRoute: ProtectedHiddenRoute,

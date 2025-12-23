@@ -296,6 +296,7 @@
     "library": "Library",
     "dashboards": "Dashboards",
     "sharing": "Sharing",
+    "duplicates": "Duplicates",
     "publicphotos": "Public photos",
     "youshared": "You shared",
     "sharedwithyou": "Shared with you"
@@ -455,6 +456,28 @@
     "showless": "Show Less",
     "deleteduplicatetitle": "Delete Duplicate",
     "deleteduplicate": "Delete this duplicate?"
+  },
+  "duplicates": {
+    "title": "Duplicate Photos",
+    "detect": "Detect Duplicates",
+    "pending": "Pending Review",
+    "reviewed": "Reviewed",
+    "all": "All",
+    "photos": "photos",
+    "totalgroups": "Total Groups",
+    "photosingroups": "Photos in Groups",
+    "scanned": "Scanned Photos",
+    "noduplicates": "No duplicate groups found",
+    "nopending": "All duplicate groups have been reviewed. Click 'Detect Duplicates' to scan for more.",
+    "empty": "Click 'Detect Duplicates' to scan your library for duplicate photos.",
+    "reviewgroup": "Review Duplicate Group",
+    "loading": "Loading duplicates...",
+    "selectbest": "Select the photo you want to keep. Others will be moved to trash.",
+    "selected": "Keep This",
+    "select": "Select",
+    "notduplicates": "Not Duplicates",
+    "keepandtrash": "Keep Selected & Trash Others",
+    "error": "Failed to load duplicate group"
   },
   "photos": {
     "recentlyadded": "Recently Added",
