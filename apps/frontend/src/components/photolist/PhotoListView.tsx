@@ -646,6 +646,7 @@ function PhotoListViewComponent({
                   selectedItems={selectionState.selectedItems}
                   selectAllMode={selectionState.selectAllMode}
                   selectAllQuery={selectionState.selectAllQuery}
+                  totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
                   updateSelectionState={updateSelectionState}
                 />
               </Group>

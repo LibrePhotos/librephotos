@@ -11,12 +11,13 @@ type Props = {
   selectedItems: any[];
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
+  totalCount?: number;
   updateSelectionState: (input: any) => void;
 };
 
 export function TrashcanActions(props: Readonly<Props>) {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const { selectedItems, selectAllMode = false, selectAllQuery, updateSelectionState } = props;
+  const { selectedItems, selectAllMode = false, selectAllQuery, totalCount, updateSelectionState } = props;
   const { t } = useTranslation();
   const location = useLocation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
@@ -31,28 +32,56 @@ export function TrashcanActions(props: Readonly<Props>) {
     return selectedItems.map(i => i.id);
   };
 
+  // Calculate the actual selected count
+  const getSelectedCount = () => {
+    if (selectAllMode) {
+      const excludedCount = selectedItems.length;
+      return (totalCount ?? 0) - excludedCount;
+    }
+    return selectedItems.length;
+  };
+
   const handlePermanentDelete = () => {
     if (selectAllMode) {
-      purgeDeletedPhotos.mutate({
-        select_all: true,
-        query: selectAllQuery ?? {},
-        excluded_hashes: getExcludedHashes(),
-      });
+      purgeDeletedPhotos.mutate(
+        {
+          select_all: true,
+          query: selectAllQuery ?? {},
+          excluded_hashes: getExcludedHashes(),
+        },
+        {
+          onSuccess: () => {
+            updateSelectionState({
+              selectMode: false,
+              selectAllMode: false,
+              selectedItems: [],
+              selectAllQuery: undefined,
+            });
+            closeDialog();
+          },
+        }
+      );
     } else {
-      purgeDeletedPhotos.mutate({ image_hashes: selectedItems.map(i => i.id) });
+      purgeDeletedPhotos.mutate(
+        { image_hashes: selectedItems.map(i => i.id) },
+        {
+          onSuccess: () => {
+            updateSelectionState({
+              selectMode: false,
+              selectAllMode: false,
+              selectedItems: [],
+              selectAllQuery: undefined,
+            });
+            closeDialog();
+          },
+        }
+      );
     }
-    updateSelectionState({
-      selectMode: false,
-      selectAllMode: false,
-      selectedItems: [],
-      selectAllQuery: undefined,
-    });
-    closeDialog();
   };
 
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
-  const selectedCount = selectedItems.length;
+  const selectedCount = getSelectedCount();
 
   return (
     <Group>
@@ -70,24 +99,42 @@ export function TrashcanActions(props: Readonly<Props>) {
               size="lg"
               onClick={() => {
                 if (selectAllMode) {
-                  markPhotosDeleted.mutate({
-                    select_all: true,
-                    query: selectAllQuery ?? {},
-                    excluded_hashes: getExcludedHashes(),
-                    deleted: false,
-                  });
+                  markPhotosDeleted.mutate(
+                    {
+                      select_all: true,
+                      query: selectAllQuery ?? {},
+                      excluded_hashes: getExcludedHashes(),
+                      deleted: false,
+                    },
+                    {
+                      onSuccess: () => {
+                        updateSelectionState({
+                          selectMode: false,
+                          selectAllMode: false,
+                          selectedItems: [],
+                          selectAllQuery: undefined,
+                        });
+                      },
+                    }
+                  );
                 } else {
-                  markPhotosDeleted.mutate({
-                    image_hashes: selectedItems.map(i => i.id),
-                    deleted: false,
-                  });
+                  markPhotosDeleted.mutate(
+                    {
+                      image_hashes: selectedItems.map(i => i.id),
+                      deleted: false,
+                    },
+                    {
+                      onSuccess: () => {
+                        updateSelectionState({
+                          selectMode: false,
+                          selectAllMode: false,
+                          selectedItems: [],
+                          selectAllQuery: undefined,
+                        });
+                      },
+                    }
+                  );
                 }
-                updateSelectionState({
-                  selectMode: false,
-                  selectAllMode: false,
-                  selectedItems: [],
-                  selectAllQuery: undefined,
-                });
               }}
             >
               <ArrowBackUp />
