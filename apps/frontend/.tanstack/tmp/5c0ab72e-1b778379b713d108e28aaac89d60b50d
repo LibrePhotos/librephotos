@@ -1,9 +1,0 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/_protected/dataviz/facescatter')({
-  component: RouteComponent,
-})
-
-function RouteComponent() {
-  return <div>Hello "/_protected/dataviz/facescatter"!</div>
-}

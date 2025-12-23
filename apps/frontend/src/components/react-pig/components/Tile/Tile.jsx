@@ -82,10 +82,21 @@ const Tile = React.memo(
       config: { mass: 1.5, tension: 400, friction: 40 },
     });
 
+    // Handle wheel events to allow scrolling when hovering over images
+    const handleWheel = (event) => {
+      // Allow the scroll event to propagate to the window
+      // This enables scrolling when hovering over image buttons
+      window.scrollBy({
+        top: event.deltaY,
+        behavior: 'auto',
+      });
+    };
+
     return (
       <animated.button
         className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
         onClick={event => handleClick(event, item)}
+        onWheel={handleWheel}
         style={{
           outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : null,
           backgroundColor: item.dominantColor,

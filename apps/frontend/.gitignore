@@ -2,7 +2,7 @@
 
 
 # tanstack cache
-.tanstack/
+/.tanstack
 
 # dependencies
 /node_modules

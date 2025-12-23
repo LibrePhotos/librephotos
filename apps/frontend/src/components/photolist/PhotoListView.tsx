@@ -644,6 +644,8 @@ function PhotoListViewComponent({
                 )}
                 <TrashcanActions
                   selectedItems={selectionState.selectedItems}
+                  selectAllMode={selectionState.selectAllMode}
+                  selectAllQuery={selectionState.selectAllQuery}
                   updateSelectionState={updateSelectionState}
                 />
               </Group>

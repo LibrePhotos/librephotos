@@ -4,16 +4,19 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useLocation } from "@tanstack/react-router";
+import { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
 
 type Props = {
   selectedItems: any[];
+  selectAllMode?: boolean;
+  selectAllQuery?: BulkPhotoQuery;
   updateSelectionState: (input: any) => void;
 };
 
 export function TrashcanActions(props: Readonly<Props>) {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const { selectedItems, updateSelectionState } = props;
+  const { selectedItems, selectAllMode = false, selectAllQuery, updateSelectionState } = props;
   const { t } = useTranslation();
   const location = useLocation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
@@ -23,15 +26,32 @@ export function TrashcanActions(props: Readonly<Props>) {
     setOpenDeleteDialog(false);
   };
 
+  // Helper to get excluded hashes for selectAll mode
+  const getExcludedHashes = () => {
+    return selectedItems.map(i => i.id);
+  };
+
   const handlePermanentDelete = () => {
-    purgeDeletedPhotos.mutate({ image_hashes: selectedItems.map(i => i.id) });
+    if (selectAllMode) {
+      purgeDeletedPhotos.mutate({
+        select_all: true,
+        query: selectAllQuery ?? {},
+        excluded_hashes: getExcludedHashes(),
+      });
+    } else {
+      purgeDeletedPhotos.mutate({ image_hashes: selectedItems.map(i => i.id) });
+    }
     updateSelectionState({
       selectMode: false,
+      selectAllMode: false,
       selectedItems: [],
+      selectAllQuery: undefined,
     });
     closeDialog();
   };
 
+  // Check if any action is possible
+  const hasSelection = selectAllMode || selectedItems.length > 0;
   const selectedCount = selectedItems.length;
 
   return (
@@ -44,18 +64,29 @@ export function TrashcanActions(props: Readonly<Props>) {
             withArrow
           >
             <ActionIcon
-              disabled={selectedCount === 0}
+              disabled={!hasSelection}
               variant="light"
               color="blue"
               size="lg"
               onClick={() => {
-                markPhotosDeleted.mutate({
-                  image_hashes: selectedItems.map(i => i.id),
-                  deleted: false,
-                });
+                if (selectAllMode) {
+                  markPhotosDeleted.mutate({
+                    select_all: true,
+                    query: selectAllQuery ?? {},
+                    excluded_hashes: getExcludedHashes(),
+                    deleted: false,
+                  });
+                } else {
+                  markPhotosDeleted.mutate({
+                    image_hashes: selectedItems.map(i => i.id),
+                    deleted: false,
+                  });
+                }
                 updateSelectionState({
                   selectMode: false,
+                  selectAllMode: false,
                   selectedItems: [],
+                  selectAllQuery: undefined,
                 });
               }}
             >
@@ -69,7 +100,7 @@ export function TrashcanActions(props: Readonly<Props>) {
             withArrow
           >
             <ActionIcon
-              disabled={selectedCount === 0}
+              disabled={!hasSelection}
               variant="light"
               color="red"
               size="lg"

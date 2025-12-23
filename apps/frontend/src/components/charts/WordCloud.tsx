@@ -151,14 +151,13 @@ export function WordCloud(props: Props) {
     useBorderBoxSize: true,
     polyfill: ResizeObserver,
   });
-  const { height } = props;
+  const { height, type } = props;
   const { data: wordCloud, isLoading } = useFetchWordCloudQuery();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [hoveredWord, setHoveredWord] = useState<string | null>(null);
 
   const title = () => {
-    const { type } = props;
     let result = t("people");
     if (type === "captions") {
       result = t("things");
@@ -174,7 +173,6 @@ export function WordCloud(props: Props) {
   };
 
   const words = useMemo(() => {
-    const { type } = props;
     if (!wordCloud) return [];
 
     if (type === "people") {

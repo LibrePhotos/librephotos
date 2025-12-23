@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { z } from "zod";
 
+import { BulkPhotoQuery } from "../types";
 import { notification } from "../../../service/notifications";
 import { fetchClient, queryClient } from "../../api";
 
@@ -11,24 +12,42 @@ import { CountStatsQueryKeys } from '../../stats/hooks/useFetchCountStatsQuery';
 import { PhotoMonthCountQueryKeys } from '../../stats/hooks/useFetchPhotoMonthCountQuery';
 import { StorageStatsQueryKeys } from '../../server/hooks/useFetchStorageStatsQuery';
 
-const PurgePhotosRequest = z.object({
-  image_hashes: z.array(z.string()),
-});
-type PurgePhotosRequest = z.infer<typeof PurgePhotosRequest>;
+// Request type for individual photo hashes
+type IndividualRequest = {
+  select_all?: false;
+  image_hashes: string[];
+};
+
+// Request type for select_all mode
+type SelectAllRequest = {
+  select_all: true;
+  query: BulkPhotoQuery;
+  excluded_hashes?: string[];
+};
+
+type PurgePhotosRequest = IndividualRequest | SelectAllRequest;
 
 const PurgePhotosResponse = z.object({
   status: z.boolean(),
-  results: z.string().array(),
-  deleted: z.string().array(),
-  not_deleted: z.string().array(),
+  results: z.string().array().optional(),
+  deleted: z.string().array().optional(),
+  not_deleted: z.string().array().optional(),
+  count: z.number().optional(),
 });
 type PurgePhotosResponse = z.infer<typeof PurgePhotosResponse>;
 
 export const usePurgeDeletedPhotosMutation = () => useMutation({
-  mutationFn: async ({ image_hashes }: PurgePhotosRequest) => {
-    const response = await fetchClient.delete('/photosedit/delete/', { image_hashes });
+  mutationFn: async (request: PurgePhotosRequest) => {
+    const response = await fetchClient.delete('/photosedit/delete/', request);
     const data = PurgePhotosResponse.parse(response);
-    notification.removePhotos(data.deleted.length);
+    
+    // Show notification based on mode
+    if (request.select_all) {
+      notification.removePhotos(data.count ?? 0);
+    } else {
+      notification.removePhotos(data.deleted?.length ?? request.image_hashes.length);
+    }
+    
     return data;
   },
   onSuccess: () => {
