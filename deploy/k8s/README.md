@@ -10,16 +10,21 @@
 1. Install these manifests to your cluster with `kubectl apply -k .`.
 1. Create a secret for PostgreSQL authentication.
     ```
-    kubectl create secret generic database -n librephotos DB_PASS=$(openssl rand -hex 16) DB_USER=librephotos
+    kubectl create secret generic database -n librephotos --from-literal=DB_PASS=$(openssl rand -hex 16) --from-literal=DB_USER=librephotos
     ```
 1. Create a secret for the backend's key, admin password, and optional MapBox API key.
     ```
-    kubectl create secret generic backend -n librephotos SECRET_KEY=$key ADMIN_PASSWORD=$password MAPBOX_API_KEY=$apikey
+    kubectl create secret generic backend -n librephotos --from-literal=SECRET_KEY=$key --from-literal=ADMIN_PASSWORD=$password --from-literal=MAPBOX_API_KEY=$apikey
     ```
     Substitute values for `$key`, `$password`, and `$apikey`. Make sure you remember the `$password` so you can log in.
 
-If you want, you can watch the Pods get ready with `kubectl get pod -n librephotos -w`. Once they're all running,
-point your browser at the hostname from `ingress.yaml`, and log in as `admin`.
+If you want, you can watch the Pods get ready with `kubectl get pod -n librephotos -w`. 
+Once they're all running, you can test the installation by port-forwarding the proxy service
+```
+kubectl -nlibrephotos port-forward svc/proxy 55555:80
+
+```
+Then open `http://localhost:55555` in your browser and log in as `admin`.
 
 # Upgrading
 
