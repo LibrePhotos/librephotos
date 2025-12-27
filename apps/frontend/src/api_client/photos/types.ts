@@ -14,8 +14,23 @@ export enum Media {
   MOTION_PHOTO = "motion_photo",
 }
 
+// Stack types
+// NOTE: visual_duplicate and exact_copy are now handled by the Duplicate model, not PhotoStack
+export const StackTypeEnum = z.enum(["raw_jpeg", "burst", "bracket", "live_photo", "manual"]);
+export type StackTypeEnum = z.infer<typeof StackTypeEnum>;
+
+// Stack summary for timeline/album views
+export const PhotoStackSummary = z.object({
+  id: z.string().uuid(),
+  type: StackTypeEnum,
+  photo_count: z.number(),
+  is_primary: z.boolean(),
+});
+export type PhotoStackSummary = z.infer<typeof PhotoStackSummary>;
+
 export const PigPhoto = z.object({
-  id: z.string(),
+  id: z.string().uuid(),
+  image_hash: z.string(),
   dominantColor: z.string().optional(),
   url: z.string().optional(),
   location: z.string().optional(),
@@ -28,6 +43,12 @@ export const PigPhoto = z.object({
   owner: SimpleUser.optional(),
   shared_to: SimpleUser.array().default([]),
   isTemp: z.boolean().default(false),
+  exif_gps_lat: z.number().nullable().optional(),
+  exif_gps_lon: z.number().nullable().optional(),
+  removed: z.boolean().optional(),
+  in_trashcan: z.boolean().optional(),
+  // Stack info (if photo is part of any stacks - can be multiple)
+  stacks: PhotoStackSummary.array().nullable().optional(),
 });
 export type PigPhoto = z.infer<typeof PigPhoto>;
 
@@ -69,7 +90,64 @@ export const People = z.object({
   face_id: z.number(),
 });
 
+// Detailed stack photo info for detail view
+export const StackPhotoDetail = z.object({
+  id: z.string().uuid(),
+  image_hash: z.string(),
+  is_primary: z.boolean(),
+  thumbnail_url: z.string().nullable(),
+  size: z.number().nullable(),
+  width: z.number().nullable(),
+  height: z.number().nullable(),
+});
+export type StackPhotoDetail = z.infer<typeof StackPhotoDetail>;
+
+// Detailed stack info for photo detail view
+// Stacks are for organizational purposes (RAW+JPEG pairs, bursts, brackets, live photos, manual)
+// NOTE: Duplicates (exact copies, visual duplicates) are handled separately via the Duplicate model
+export const PhotoStackDetail = z.object({
+  id: z.string().uuid(),
+  type: StackTypeEnum,
+  type_display: z.string(),
+  photo_count: z.number(),
+  is_primary: z.boolean(),
+  photos: StackPhotoDetail.array(),
+});
+export type PhotoStackDetail = z.infer<typeof PhotoStackDetail>;
+
+// Photo Metadata types - structured EXIF/XMP data with edit history support
+
+export const MetadataSourceEnum = z.enum(["embedded", "xmp_sidecar", "user_edit"]);
+export type MetadataSourceEnum = z.infer<typeof MetadataSourceEnum>;
+
+// Summary metadata included in Photo response
+export const PhotoMetadataSummary = z.object({
+  // Camera info
+  camera_display: z.string().nullable(),
+  lens_display: z.string().nullable(),
+  // Capture settings
+  aperture: z.number().nullable(),
+  shutter_speed: z.string().nullable(),
+  iso: z.number().nullable(),
+  focal_length: z.number().nullable(),
+  focal_length_35mm: z.number().nullable(),
+  // Image info
+  resolution: z.string().nullable(),
+  megapixels: z.number().nullable(),
+  // Date/location
+  date_taken: z.string().nullable(),
+  has_location: z.boolean(),
+  // Content
+  rating: z.number().nullable(),
+  // Edit tracking
+  source: MetadataSourceEnum,
+  version: z.number(),
+  has_edits: z.boolean(),
+});
+export type PhotoMetadataSummary = z.infer<typeof PhotoMetadataSummary>;
+
 export const Photo = z.object({
+  id: z.string().uuid(),
   camera: z.string().nullable(),
   exif_gps_lat: z.number().nullable(),
   exif_gps_lon: z.number().nullable(),
@@ -105,8 +183,102 @@ export const Photo = z.object({
   digitalZoomRatio: z.number().nullable(),
   lens: z.string().nullable(),
   embedded_media: z.object({ id: z.string(), type: z.nativeEnum(Media) }).array(),
+  // Stack info (RAW+JPEG pairs, bursts, brackets, live photos, manual) - can belong to multiple stacks
+  // NOTE: Duplicates are handled separately via the Duplicate model
+  stacks: PhotoStackDetail.array().nullable().optional(),
+  // Structured metadata with edit history support
+  metadata: z
+    .lazy(() => PhotoMetadataSummary)
+    .nullable()
+    .optional(),
 });
 export type Photo = z.infer<typeof Photo>;
+
+// Metadata edit history entry
+export const MetadataEdit = z.object({
+  id: z.number(),
+  field_name: z.string(),
+  old_value: z.any(),
+  new_value: z.any(),
+  created_at: z.string(),
+  user_name: z.string(),
+});
+export type MetadataEdit = z.infer<typeof MetadataEdit>;
+
+// XMP sidecar file info
+export const MetadataFile = z.object({
+  id: z.number(),
+  file_path: z.string(),
+  file_type: z.string(),
+  last_modified: z.string(),
+  last_synced: z.string().nullable(),
+});
+export type MetadataFile = z.infer<typeof MetadataFile>;
+
+// Full metadata response from /api/photos/{id}/metadata/
+export const PhotoMetadata = z.object({
+  id: z.number(),
+  photo_id: z.string().uuid(),
+  // Camera info
+  camera_make: z.string().nullable(),
+  camera_model: z.string().nullable(),
+  camera_display: z.string().nullable(),
+  lens_make: z.string().nullable(),
+  lens_model: z.string().nullable(),
+  lens_display: z.string().nullable(),
+  // Capture settings
+  aperture: z.number().nullable(),
+  shutter_speed: z.string().nullable(),
+  iso: z.number().nullable(),
+  focal_length: z.number().nullable(),
+  focal_length_35mm: z.number().nullable(),
+  exposure_compensation: z.number().nullable(),
+  metering_mode: z.string().nullable(),
+  flash: z.string().nullable(),
+  white_balance: z.string().nullable(),
+  // Image properties
+  width: z.number().nullable(),
+  height: z.number().nullable(),
+  resolution: z.string().nullable(),
+  megapixels: z.number().nullable(),
+  orientation: z.number().nullable(),
+  color_space: z.string().nullable(),
+  // Date/time
+  date_taken: z.string().nullable(),
+  date_digitized: z.string().nullable(),
+  timezone: z.string().nullable(),
+  // GPS
+  gps_latitude: z.number().nullable(),
+  gps_longitude: z.number().nullable(),
+  gps_altitude: z.number().nullable(),
+  has_location: z.boolean(),
+  // Content
+  title: z.string().nullable(),
+  caption: z.string().nullable(),
+  keywords: z.string().array(),
+  rating: z.number().nullable(),
+  // Copyright
+  copyright: z.string().nullable(),
+  creator: z.string().nullable(),
+  // Tracking
+  source: MetadataSourceEnum,
+  version: z.number(),
+  has_edits: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  // Related
+  sidecar_files: MetadataFile.array(),
+});
+export type PhotoMetadata = z.infer<typeof PhotoMetadata>;
+
+// History response
+export const MetadataHistoryResponse = z.object({
+  results: MetadataEdit.array(),
+  count: z.number(),
+  page: z.number(),
+  page_size: z.number(),
+});
+export type MetadataHistoryResponse = z.infer<typeof MetadataHistoryResponse>;
 
 export const DatePhotosGroup = z.object({
   date: z.string().nullable(),

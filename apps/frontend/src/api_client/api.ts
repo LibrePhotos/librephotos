@@ -7,9 +7,6 @@ const API_BASE_URL = "/api";
 
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
-  private static lastAuthErrorNotificationTime = 0;
-  private static readonly AUTH_ERROR_DEBOUNCE_MS = 5000; // 5 seconds
-
   private static isTokenExpired(exp: number): boolean {
     return 1000 * exp - new Date().getTime() < 5000;
   }
@@ -95,24 +92,15 @@ class FetchClient {
       }
 
       const data = await response.json();
-      const isLoginAttempt = endpoint.includes("/auth/token/obtain/");
-      const isOnLoginPage = window.location.pathname.includes("/login");
-      const now = Date.now();
-      const shouldShowNotification =
-        isLoginAttempt || // Always show notifications for actual login attempts
-        (!isOnLoginPage && now - FetchClient.lastAuthErrorNotificationTime > FetchClient.AUTH_ERROR_DEBOUNCE_MS); // Suppress on login page and debounce
-
-      if (shouldShowNotification) {
-        if (data.errors) {
-          data.errors.forEach((error: { field: string; message: string }) => {
-            if (error.field === "detail") {
-              notification.authError(isLoginAttempt, error.field, error.message);
-            }
-          });
-        } else {
-          notification.invalidToken();
-        }
-        FetchClient.lastAuthErrorNotificationTime = now;
+      if (data.errors) {
+        data.errors.forEach((error: { field: string; message: string }) => {
+          if (error.field === "detail") {
+            const isLogin = endpoint.includes("/auth/token/obtain/");
+            notification.authError(isLogin, error.field, error.message);
+          }
+        });
+      } else {
+        notification.invalidToken();
       }
       throw new Error("Authentication failed");
     }

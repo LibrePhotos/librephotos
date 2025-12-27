@@ -34,6 +34,7 @@ export const User = z.object({
   image_scale: z.number(),
   save_metadata_to_disk: z.string(),
   datetime_rules: z.string(),
+  burst_detection_rules: z.any().optional(), // JSON array of burst detection rules
   default_timezone: z.string(),
   // Skip RAW files during scans (backend field present in User model)
   skip_raw_files: z.boolean().optional().default(false),
@@ -46,10 +47,13 @@ export const User = z.object({
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
   llm_settings: z.any().nullable(),
-  text_alignment: z.enum(['left', 'right']).default('right'),
-  header_size: z.enum(['large', 'normal', 'small']).default('large'),
+  text_alignment: z.enum(["left", "right"]).default("right"),
+  header_size: z.enum(["large", "normal", "small"]).default("large"),
   slideshow_interval: z.number().default(5),
-}); 
+  // Duplicate detection settings
+  duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
+  duplicate_clear_existing: z.boolean().default(false),
+});
 
 export const ManageUser = z.object({
   confidence: z.number(),
@@ -80,7 +84,6 @@ export const SimpleUser = z.object({
 
 export type User = z.infer<typeof User>;
 export type ManageUser = z.infer<typeof ManageUser>;
-
 
 export const UserList = User.array();
 export type UserList = z.infer<typeof UserList>;
