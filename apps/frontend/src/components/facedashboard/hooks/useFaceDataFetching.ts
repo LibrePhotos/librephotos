@@ -45,18 +45,21 @@ export function useFaceDataFetching(
     useFetchIncompleteFacesQuery(params.inferred);
 
   // Filter data by category - MEMOIZED to prevent recalculation on every render
-  const lists = useMemo(() => ({
-    unknown: inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other"),
-    inferred: inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
-    labeled: labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
-  }), [inferredFacesListUnfiltered, labeledFacesListUnfiltered]);
+  const lists = useMemo(
+    () => ({
+      unknown: inferredFacesListUnfiltered.filter(person => person.name === "Unknown - Other"),
+      inferred: inferredFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
+      labeled: labeledFacesListUnfiltered.filter(person => person.name !== "Unknown - Other"),
+    }),
+    [inferredFacesListUnfiltered, labeledFacesListUnfiltered]
+  );
 
   // Create hash mapping based on active tab - MEMOIZED
   const idx2hash = useMemo(() => {
-    const tabName = activeTab === FacesTab.enum.labeled ? "labeled" 
-                  : activeTab === FacesTab.enum.inferred ? "inferred" 
-                  : "unknown";
-    return lists[tabName].flatMap(person => person.faces).map(face => ({ id: face.photo }));
+    const tabName =
+      activeTab === FacesTab.enum.labeled ? "labeled" : activeTab === FacesTab.enum.inferred ? "inferred" : "unknown";
+    // face.photo is the image_hash, use it for both id and image_hash since we're working with legacy hash-based data
+    return lists[tabName].flatMap(person => person.faces).map(face => ({ id: face.photo, image_hash: face.photo }));
   }, [lists, activeTab]);
 
   // Fetch detailed face data when groups change

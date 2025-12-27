@@ -16,6 +16,7 @@ import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
 import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
 import { Route as PublicUsersRouteImport } from './routes/public/$users'
 import { Route as ProtectedVideosRouteImport } from './routes/_protected/videos'
+import { Route as ProtectedStacksRouteImport } from './routes/_protected/stacks'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedRecentRouteImport } from './routes/_protected/recent'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
@@ -25,7 +26,6 @@ import { Route as ProtectedLibraryRouteImport } from './routes/_protected/librar
 import { Route as ProtectedHiddenRouteImport } from './routes/_protected/hidden'
 import { Route as ProtectedFavoritesRouteImport } from './routes/_protected/favorites'
 import { Route as ProtectedFacesRouteImport } from './routes/_protected/faces'
-import { Route as ProtectedDuplicatesRouteImport } from './routes/_protected/duplicates'
 import { Route as ProtectedDeletedRouteImport } from './routes/_protected/deleted'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedStatisticsIndexRouteImport } from './routes/_protected/statistics/index'
@@ -41,6 +41,7 @@ import { Route as ProtectedSharingPublicRouteImport } from './routes/_protected/
 import { Route as ProtectedSharingLinksRouteImport } from './routes/_protected/sharing/links'
 import { Route as ProtectedSearchQueryRouteImport } from './routes/_protected/search.$query'
 import { Route as ProtectedPhotoIdRouteImport } from './routes/_protected/photo.$id'
+import { Route as ProtectedOrganizingTabRouteImport } from './routes/_protected/organizing.$tab'
 import { Route as ProtectedAlbumUserIndexRouteImport } from './routes/_protected/album/user.index'
 import { Route as ProtectedAlbumThingsIndexRouteImport } from './routes/_protected/album/things.index'
 import { Route as ProtectedAlbumPlacesIndexRouteImport } from './routes/_protected/album/places.index'
@@ -90,6 +91,11 @@ const ProtectedVideosRoute = ProtectedVideosRouteImport.update({
   path: '/videos',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedStacksRoute = ProtectedStacksRouteImport.update({
+  id: '/stacks',
+  path: '/stacks',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -133,11 +139,6 @@ const ProtectedFavoritesRoute = ProtectedFavoritesRouteImport.update({
 const ProtectedFacesRoute = ProtectedFacesRouteImport.update({
   id: '/faces',
   path: '/faces',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedDuplicatesRoute = ProtectedDuplicatesRouteImport.update({
-  id: '/duplicates',
-  path: '/duplicates',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedDeletedRoute = ProtectedDeletedRouteImport.update({
@@ -219,6 +220,11 @@ const ProtectedSearchQueryRoute = ProtectedSearchQueryRouteImport.update({
 const ProtectedPhotoIdRoute = ProtectedPhotoIdRouteImport.update({
   id: '/photo/$id',
   path: '/photo/$id',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedOrganizingTabRoute = ProtectedOrganizingTabRouteImport.update({
+  id: '/organizing/$tab',
+  path: '/organizing/$tab',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedAlbumUserIndexRoute = ProtectedAlbumUserIndexRouteImport.update({
@@ -304,7 +310,6 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof ProtectedAdminRoute
   '/deleted': typeof ProtectedDeletedRoute
-  '/duplicates': typeof ProtectedDuplicatesRoute
   '/faces': typeof ProtectedFacesRoute
   '/favorites': typeof ProtectedFavoritesRoute
   '/hidden': typeof ProtectedHiddenRoute
@@ -314,9 +319,11 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProtectedProfileRoute
   '/recent': typeof ProtectedRecentRoute
   '/settings': typeof ProtectedSettingsRoute
+  '/stacks': typeof ProtectedStacksRoute
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
+  '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
   '/sharing/links': typeof ProtectedSharingLinksRoute
@@ -351,7 +358,6 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/admin': typeof ProtectedAdminRoute
   '/deleted': typeof ProtectedDeletedRoute
-  '/duplicates': typeof ProtectedDuplicatesRoute
   '/faces': typeof ProtectedFacesRoute
   '/favorites': typeof ProtectedFavoritesRoute
   '/hidden': typeof ProtectedHiddenRoute
@@ -361,9 +367,11 @@ export interface FileRoutesByTo {
   '/profile': typeof ProtectedProfileRoute
   '/recent': typeof ProtectedRecentRoute
   '/settings': typeof ProtectedSettingsRoute
+  '/stacks': typeof ProtectedStacksRoute
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
+  '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
   '/sharing/links': typeof ProtectedSharingLinksRoute
@@ -400,7 +408,6 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_protected/admin': typeof ProtectedAdminRoute
   '/_protected/deleted': typeof ProtectedDeletedRoute
-  '/_protected/duplicates': typeof ProtectedDuplicatesRoute
   '/_protected/faces': typeof ProtectedFacesRoute
   '/_protected/favorites': typeof ProtectedFavoritesRoute
   '/_protected/hidden': typeof ProtectedHiddenRoute
@@ -410,9 +417,11 @@ export interface FileRoutesById {
   '/_protected/profile': typeof ProtectedProfileRoute
   '/_protected/recent': typeof ProtectedRecentRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
+  '/_protected/stacks': typeof ProtectedStacksRoute
   '/_protected/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/_protected/': typeof ProtectedIndexRoute
+  '/_protected/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
   '/_protected/sharing/links': typeof ProtectedSharingLinksRoute
@@ -449,7 +458,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/deleted'
-    | '/duplicates'
     | '/faces'
     | '/favorites'
     | '/hidden'
@@ -459,9 +467,11 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recent'
     | '/settings'
+    | '/stacks'
     | '/videos'
     | '/public/$users'
     | '/'
+    | '/organizing/$tab'
     | '/photo/$id'
     | '/search/$query'
     | '/sharing/links'
@@ -496,7 +506,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/deleted'
-    | '/duplicates'
     | '/faces'
     | '/favorites'
     | '/hidden'
@@ -506,9 +515,11 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recent'
     | '/settings'
+    | '/stacks'
     | '/videos'
     | '/public/$users'
     | '/'
+    | '/organizing/$tab'
     | '/photo/$id'
     | '/search/$query'
     | '/sharing/links'
@@ -544,7 +555,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_protected/admin'
     | '/_protected/deleted'
-    | '/_protected/duplicates'
     | '/_protected/faces'
     | '/_protected/favorites'
     | '/_protected/hidden'
@@ -554,9 +564,11 @@ export interface FileRouteTypes {
     | '/_protected/profile'
     | '/_protected/recent'
     | '/_protected/settings'
+    | '/_protected/stacks'
     | '/_protected/videos'
     | '/public/$users'
     | '/_protected/'
+    | '/_protected/organizing/$tab'
     | '/_protected/photo/$id'
     | '/_protected/search/$query'
     | '/_protected/sharing/links'
@@ -644,6 +656,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedVideosRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/stacks': {
+      id: '/_protected/stacks'
+      path: '/stacks'
+      fullPath: '/stacks'
+      preLoaderRoute: typeof ProtectedStacksRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/settings': {
       id: '/_protected/settings'
       path: '/settings'
@@ -705,13 +724,6 @@ declare module '@tanstack/react-router' {
       path: '/faces'
       fullPath: '/faces'
       preLoaderRoute: typeof ProtectedFacesRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/duplicates': {
-      id: '/_protected/duplicates'
-      path: '/duplicates'
-      fullPath: '/duplicates'
-      preLoaderRoute: typeof ProtectedDuplicatesRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/deleted': {
@@ -819,6 +831,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPhotoIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/organizing/$tab': {
+      id: '/_protected/organizing/$tab'
+      path: '/organizing/$tab'
+      fullPath: '/organizing/$tab'
+      preLoaderRoute: typeof ProtectedOrganizingTabRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/album/user/': {
       id: '/_protected/album/user/'
       path: '/album/user'
@@ -923,7 +942,6 @@ declare module '@tanstack/react-router' {
 interface ProtectedRouteRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRoute
   ProtectedDeletedRoute: typeof ProtectedDeletedRoute
-  ProtectedDuplicatesRoute: typeof ProtectedDuplicatesRoute
   ProtectedFacesRoute: typeof ProtectedFacesRoute
   ProtectedFavoritesRoute: typeof ProtectedFavoritesRoute
   ProtectedHiddenRoute: typeof ProtectedHiddenRoute
@@ -933,8 +951,10 @@ interface ProtectedRouteRouteChildren {
   ProtectedProfileRoute: typeof ProtectedProfileRoute
   ProtectedRecentRoute: typeof ProtectedRecentRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRoute
+  ProtectedStacksRoute: typeof ProtectedStacksRoute
   ProtectedVideosRoute: typeof ProtectedVideosRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
+  ProtectedOrganizingTabRoute: typeof ProtectedOrganizingTabRoute
   ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute
   ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute
   ProtectedSharingLinksRoute: typeof ProtectedSharingLinksRoute
@@ -966,7 +986,6 @@ interface ProtectedRouteRouteChildren {
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRoute,
   ProtectedDeletedRoute: ProtectedDeletedRoute,
-  ProtectedDuplicatesRoute: ProtectedDuplicatesRoute,
   ProtectedFacesRoute: ProtectedFacesRoute,
   ProtectedFavoritesRoute: ProtectedFavoritesRoute,
   ProtectedHiddenRoute: ProtectedHiddenRoute,
@@ -976,8 +995,10 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedProfileRoute: ProtectedProfileRoute,
   ProtectedRecentRoute: ProtectedRecentRoute,
   ProtectedSettingsRoute: ProtectedSettingsRoute,
+  ProtectedStacksRoute: ProtectedStacksRoute,
   ProtectedVideosRoute: ProtectedVideosRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
+  ProtectedOrganizingTabRoute: ProtectedOrganizingTabRoute,
   ProtectedPhotoIdRoute: ProtectedPhotoIdRoute,
   ProtectedSearchQueryRoute: ProtectedSearchQueryRoute,
   ProtectedSharingLinksRoute: ProtectedSharingLinksRoute,

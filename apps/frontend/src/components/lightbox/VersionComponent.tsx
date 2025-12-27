@@ -1,9 +1,8 @@
-import { Anchor, Button, Collapse, Divider, Group, Modal, Stack, Text } from "@mantine/core";
+import { Anchor, Button, Collapse, Divider, Group, Stack, Text } from "@mantine/core";
 import { IconCamera as Camera, IconPhoto as Photo } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
-import { useDeleteDuplicatePhotoMutation } from "../../api_client/photos/hooks";
 import { Photo as PhotoType } from "../../api_client/photos/types";
 import { BreadcrumbPath } from "../common/BreadcrumbPath";
 import { FileInfoComponent } from "./FileInfoComponent";
@@ -97,24 +96,21 @@ function AdditionalInfoSection({
 }
 
 /**
- * Displays and manages duplicate photos
+ * Displays duplicate files (multiple files attached to same photo)
+ * Note: Duplicate management is now handled through the Duplicates page
  */
-function DuplicatesSection({
-  photoDetail,
-  duplicates,
-  t,
-  openDeleteDialog,
-}: {
-  photoDetail: PhotoType;
-  duplicates: string[];
-  t: (key: string) => string;
-  openDeleteDialog: (hash: string, filePath: string) => void;
-}) {
+function DuplicatesSection({ duplicates, t }: { duplicates: string[]; t: (key: string) => string }) {
   if (duplicates.length === 0) return null;
 
   return (
     <>
       <Text fw={800}>{t("exif.duplicates")}</Text>
+      <Text size="sm" c="dimmed" mb="xs">
+        {t(
+          "exif.duplicates.managed_via_duplicates_page",
+          "This photo has multiple file copies. Manage duplicates via the Duplicates page."
+        )}
+      </Text>
       {duplicates.map(element => (
         <Stack key={element}>
           <Group>
@@ -123,40 +119,10 @@ function DuplicatesSection({
             </Text>
             <BreadcrumbPath fullPath={element.replace(/\\/g, "/").split("/").slice(0, -1).join("/")} />
           </Group>
-          <Button color="red" onClick={() => openDeleteDialog(photoDetail.image_hash, element)}>
-            {t("delete")}
-          </Button>
           <Divider my="sm" />
         </Stack>
       ))}
     </>
-  );
-}
-
-/**
- * Modal for confirming duplicate photo deletion
- */
-function DeleteConfirmationModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  t,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  t: (key: string) => string;
-}) {
-  return (
-    <Modal opened={isOpen} title={t("exif.deleteduplicatetitle")} onClose={onClose} zIndex={1000}>
-      <Text size="sm">{t("exif.deleteduplicate")}</Text>
-      <Group>
-        <Button onClick={onClose}>{t("cancel")}</Button>
-        <Button color="red" onClick={onConfirm}>
-          {t("delete")}
-        </Button>
-      </Group>
-    </Modal>
   );
 }
 
@@ -165,22 +131,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
 
   const [showMore, setShowMore] = useState(false);
   const [otherVersions] = useState<PhotoType[]>([]);
-  const [openDeleteDialogState, setOpenDeleteDialogState] = useState(false);
-  const [imageHash, setImageHash] = useState("");
-  const [path, setPath] = useState("");
   const { t } = useTranslation();
-  const deleteDuplicatePhoto = useDeleteDuplicatePhotoMutation();
-
-  const openDeleteDialog = (hash: string, filePath: string) => {
-    setOpenDeleteDialogState(true);
-    setImageHash(hash);
-    setPath(filePath);
-  };
-
-  const handleDeleteConfirm = () => {
-    deleteDuplicatePhoto.mutate({ image_hash: imageHash, path });
-    setOpenDeleteDialogState(false);
-  };
 
   const duplicates = photoDetail.image_path ? photoDetail.image_path.slice(1) : [];
 
@@ -203,12 +154,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
             {otherVersions.length > 0 && <Text fw={800}>{t("exif.otherversions")}</Text>}
 
             {/* Duplicates section */}
-            <DuplicatesSection
-              photoDetail={photoDetail}
-              duplicates={duplicates}
-              t={t}
-              openDeleteDialog={openDeleteDialog}
-            />
+            <DuplicatesSection duplicates={duplicates} t={t} />
           </Stack>
         </Collapse>
 
@@ -217,14 +163,6 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
           {showMore ? t("exif.showless") : t("exif.showmore")}
         </Button>
       </Stack>
-
-      {/* Delete confirmation modal */}
-      <DeleteConfirmationModal
-        isOpen={openDeleteDialogState}
-        onClose={() => setOpenDeleteDialogState(false)}
-        onConfirm={handleDeleteConfirm}
-        t={t}
-      />
     </div>
   );
 }

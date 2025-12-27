@@ -179,6 +179,19 @@
     },
     "public_sharing": "Public sharing",
     "add_rule": "Add Rule",
+    "delete_rule": "Delete rule",
+    "reset_to_defaults": "Reset to Defaults",
+    "burst": {
+      "title": "Burst Detection Rules",
+      "description": "Configure how burst sequences are detected. Hard criteria use EXIF data and filename patterns (reliable), while soft criteria use timestamp proximity and visual similarity (estimation).",
+      "hard_criterion": "Hard",
+      "soft_criterion": "Soft",
+      "enabled": "Enabled",
+      "rule": "Rule",
+      "add_rule_title": "Add Burst Detection Rule",
+      "add_rule_description": "Choose a rule to detect burst sequences. Hard criteria are more reliable but may miss some bursts. Soft criteria can catch more bursts but may group unrelated photos.",
+      "search_placeholder": "Search rules by name or type..."
+    },
     "face_options": "Face Options",
     "face_recognition_model": "Face Recognition Model",
     "face_recognition_model_help": "Changes the model used for face recognition. The CNN model is more accurate but slower than the HOG model.",
@@ -397,7 +410,13 @@
     "albumsharingdescription": "Open sharing panel for the current album",
     "removephotos": "Remove Photos",
     "removephotosdescription": "Remove the selected photos from the current album",
-    "album": "Album"
+    "album": "Album",
+    "stackactions": "Stack Actions",
+    "createstack": "Create Stack",
+    "mergestacks": "Merge Stacks",
+    "breakapartstacks": "Break Apart Stacks",
+    "nostackstomerge": "No stacks to merge",
+    "stacksmerged": "Stacks merged successfully"
   },
   "lightbox": {
     "sidebar": {
@@ -421,7 +440,14 @@
       "removetimestamp": "Remove timestamp",
       "undotimestampmodification": "Undo timestamp modification",
       "places": "Places",
-      "suggestedcaption": "Suggested caption"
+      "suggestedcaption": "Suggested caption",
+      "stack": "Stack",
+      "stacks": "Stacks",
+      "stackPhotos": "{{count}} photos",
+      "similarity": "Similarity",
+      "potentialSavings": "Potential savings",
+      "primary": "Primary",
+      "multipleStacksInfo": "This photo belongs to multiple groupings"
     },
     "controls": {
       "fullscreen": "Fullscreen (G)",
@@ -478,6 +504,71 @@
     "notduplicates": "Not Duplicates",
     "keepandtrash": "Keep Selected & Trash Others",
     "error": "Failed to load duplicate group"
+  },
+  "stacks": {
+    "title": "Photo Stacks",
+    "detect": "Detect Photo Stacks",
+    "detecting": "Detecting...",
+    "pending": "Pending Review",
+    "reviewed": "Reviewed",
+    "all": "All",
+    "photos": "photos",
+    "totalstacks": "Total Stacks",
+    "photosingroups": "Photos in Stacks",
+    "potentialsavings": "Potential Savings",
+    "nostacks": "No photo stacks found",
+    "nopending": "All stacks have been reviewed. Click 'Detect Photo Stacks' to scan for more.",
+    "empty": "Click 'Detect Photo Stacks' to find related photos in your library.",
+    "reviewstack": "Review Photo Stack",
+    "loading": "Loading stacks...",
+    "selectbest": "Select the photo you want to keep as the primary. Others can be trashed or kept hidden.",
+    "selected": "Primary",
+    "select": "Set Primary",
+    "notrelated": "Not Related",
+    "keepandtrash": "Keep Selected & Trash Others",
+    "setprimary": "Set as Primary",
+    "error": "Failed to load photo stack",
+    "types": {
+      "raw_jpeg": "RAW + JPEG Pairs",
+      "burst": "Burst Sequences",
+      "bracket": "Exposure Brackets",
+      "live_photo": "Live Photos",
+      "manual": "Manual Stacks",
+      "all": "All Types"
+    },
+    "typedescriptions": {
+      "raw_jpeg": "RAW files paired with their processed JPEG versions",
+      "burst": "Photos taken in rapid succession (continuous shooting)",
+      "bracket": "Exposure-bracketed shots for HDR",
+      "live_photo": "Photos with embedded video motion (iOS Live Photos, Google Motion Photos)",
+      "manual": "Photos you've manually grouped together"
+    },
+    "actions": {
+      "consolidate": "Consolidate Storage",
+      "keepbest": "Keep Best Quality",
+      "pickfavorite": "Pick Favorite",
+      "setpreferred": "Set Preferred Format",
+      "stack": "Stack Photos",
+      "unstack": "Unstack"
+    },
+    "details": {
+      "similarity": "Similarity",
+      "sequencespan": "Sequence Duration",
+      "filecount": "File Locations",
+      "savings": "Potential Savings"
+    },
+    "optionslabel": "Options",
+    "burstRulesHint": "Configure detection rules in Settings",
+    "options": {
+      "detectexact": "Detect exact file copies",
+      "detectvisual": "Detect visual duplicates",
+      "detectrawjpeg": "Detect RAW+JPEG pairs",
+      "detectbursts": "Detect burst sequences",
+      "detectlivephotos": "Detect live photos",
+      "visualsensitivity": "Visual similarity threshold",
+      "burstinterval": "Burst interval (ms)",
+      "clearpending": "Clear existing pending stacks"
+    }
   },
   "photos": {
     "recentlyadded": "Recently Added",

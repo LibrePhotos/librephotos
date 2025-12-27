@@ -50,7 +50,9 @@
 .pigThumbnail {
   -webkit-filter: blur(8px);
   filter: blur(8px);
-  transition: filter 150ms linear, -webkit-filter 150ms linear;
+  transition:
+    filter 150ms linear,
+    -webkit-filter 150ms linear;
 }
 
 .pigThumbnailLoaded {
@@ -117,4 +119,10 @@
   position: absolute;
   bottom: 0px;
   left: 0px;
+}
+
+.overlaysBottomRight {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
 }

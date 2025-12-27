@@ -2,7 +2,6 @@ import { Anchor, SimpleGrid, Text } from "@mantine/core";
 import { IconLink } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import { UserAlbumInfo } from "../../api_client/albums/types";
 import { Tile } from "../Tile";
 
@@ -15,7 +14,7 @@ export function PublicAlbumsGrid({ albums }: PublicAlbumsGridProps) {
 
   return (
     <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing="md" mt="md">
-      {albums.map((album) => (
+      {albums.map(album => (
         <Anchor key={album.id} href={`/album/user/${album.id}`} underline="never">
           <div style={{ position: "relative" }}>
             {album.cover_photo ? (
@@ -65,8 +64,3 @@ export function PublicAlbumsGrid({ albums }: PublicAlbumsGridProps) {
     </SimpleGrid>
   );
 }
-
-
-
-
-

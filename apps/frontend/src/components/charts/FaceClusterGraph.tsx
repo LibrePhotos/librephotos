@@ -367,10 +367,12 @@ export function FaceClusterGraph({ height }: Props) {
 
   // Create idx2hash for lightbox navigation (unique photos only)
   const idx2hash = useMemo(() => {
-    const uniquePhotos = new Map<string, { id: string }>();
+    const uniquePhotos = new Map<string, { id: string; image_hash: string }>();
     points.forEach(point => {
       if (point.photo && !uniquePhotos.has(point.photo)) {
-        uniquePhotos.set(point.photo, { id: point.photo });
+        // point.photo is the image_hash extracted from face_url
+        // Use it for both id and image_hash since we're working with legacy hash-based data
+        uniquePhotos.set(point.photo, { id: point.photo, image_hash: point.photo });
       }
     });
     return Array.from(uniquePhotos.values());

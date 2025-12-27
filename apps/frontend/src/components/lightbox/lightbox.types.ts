@@ -9,8 +9,11 @@ export type FaceLocationType = {
 
 export type ContentViewerProps = {
   mainSrc: string;
+  mainSrcHash: string;
   nextSrc: string | null;
+  nextSrcHash: string | null;
   prevSrc: string | null;
+  prevSrcHash: string | null;
   type: string;
   onCloseRequest: () => void;
   onMovePrevRequest: () => void;
@@ -21,7 +24,7 @@ export type ContentViewerProps = {
 };
 
 export type LightBoxProps = {
-  idx2hash: Array<{ id: string }>;
+  idx2hash: Array<{ id: string; image_hash: string }>;
   isPublic: boolean;
   onCloseRequest: () => void;
   onChangedIndex: (currentIndex?: number) => void;
@@ -35,6 +38,7 @@ export type ImageDimensions = {
 
 export type MediaDisplayProps = {
   id: string | undefined;
+  image_hash: string | undefined;
   isMainContent?: boolean;
   type: string;
   bind?: any;
@@ -74,8 +78,11 @@ export type LightboxControlsProps = {
 
 export type ThumbnailNavigationProps = {
   prevSrc: string | null;
+  prevSrcHash: string | null;
   mainSrc: string;
+  mainSrcHash: string;
   nextSrc: string | null;
+  nextSrcHash: string | null;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
   containerWidth?: string;

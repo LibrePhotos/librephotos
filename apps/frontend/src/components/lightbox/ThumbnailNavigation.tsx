@@ -5,22 +5,27 @@ import { Tile } from "../Tile";
 
 export type ThumbnailNavigationProps = {
   prevSrc: string | null;
-  mainSrc: string;
+  prevSrcHash: string | null;
+  mainSrcHash: string;
   nextSrc: string | null;
+  nextSrcHash: string | null;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
 };
 
 export function ThumbnailNavigation({
   prevSrc,
-  mainSrc,
+  prevSrcHash,
+  mainSrcHash,
   nextSrc,
+  nextSrcHash,
   onMovePrevRequest,
   onMoveNextRequest,
 }: ThumbnailNavigationProps) {
-  const { data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading } = useFetchPhotoDetailsQuery(prevSrc ?? "");
-  const { data: mainPhotoDetail, isLoading: isMainPhotoDetailLoading } = useFetchPhotoDetailsQuery(mainSrc);
-  const { data: nextPhotoDetail, isLoading: isNextPhotoDetailLoading } = useFetchPhotoDetailsQuery(nextSrc ?? "");
+  // Use image_hash for API calls since backend still uses image_hash for lookup
+  const { data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading } = useFetchPhotoDetailsQuery(prevSrcHash ?? "");
+  const { data: mainPhotoDetail, isLoading: isMainPhotoDetailLoading } = useFetchPhotoDetailsQuery(mainSrcHash);
+  const { data: nextPhotoDetail, isLoading: isNextPhotoDetailLoading } = useFetchPhotoDetailsQuery(nextSrcHash ?? "");
 
   return (
     <div
@@ -77,7 +82,7 @@ export function ThumbnailNavigation({
               <Skeleton height={64} width={64} />
             ) : (
               <Tile
-                image_hash={prevSrc}
+                image_hash={prevSrcHash || ""}
                 width={64}
                 height={64}
                 video={prevPhotoDetail?.video}
@@ -109,7 +114,7 @@ export function ThumbnailNavigation({
             <Skeleton height={72} width={72} />
           ) : (
             <Tile
-              image_hash={mainSrc}
+              image_hash={mainSrcHash}
               width={72}
               height={72}
               video={mainPhotoDetail?.video}
@@ -151,7 +156,7 @@ export function ThumbnailNavigation({
               <Skeleton height={64} width={64} />
             ) : (
               <Tile
-                image_hash={nextSrc}
+                image_hash={nextSrcHash || ""}
                 width={64}
                 height={64}
                 video={nextPhotoDetail?.video}

@@ -16,8 +16,11 @@ import { ThumbnailNavigation } from "./ThumbnailNavigation";
 
 export function ContentViewer({
   mainSrc,
+  mainSrcHash,
   nextSrc = null,
+  nextSrcHash = null,
   prevSrc = null,
+  prevSrcHash = null,
   type,
   onCloseRequest,
   onMovePrevRequest,
@@ -47,7 +50,8 @@ export function ContentViewer({
   const defaultSlideshowInterval = userSelfDetails?.slideshow_interval ?? 5;
   const slideshowInterval = localSlideshowInterval ?? defaultSlideshowInterval;
 
-  const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrc);
+  // Use image_hash for API calls since backend still uses image_hash for lookup
+  const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash);
 
   // Reset playing state when slide changes
   useEffect(() => {
@@ -246,7 +250,7 @@ export function ContentViewer({
             }}
           >
             {/* Preload images */}
-            <ImagePreloader prevSrc={prevSrc} mainSrc={mainSrc} nextSrc={nextSrc} />
+            <ImagePreloader prevSrc={prevSrcHash} mainSrc={mainSrcHash} nextSrc={nextSrcHash} />
 
             {/* Top toolbar */}
             <LightboxControls
@@ -296,6 +300,7 @@ export function ContentViewer({
                 <Carousel.Slide>
                   <MediaDisplay
                     id={prevSrc ?? undefined}
+                    image_hash={prevSrcHash ?? undefined}
                     type={type}
                     bind={bind}
                     faceLocation={faceLocation}
@@ -326,6 +331,7 @@ export function ContentViewer({
                     >
                       <MediaDisplay
                         id={mainSrc}
+                        image_hash={mainSrcHash}
                         isMainContent
                         type={type}
                         bind={bind}
@@ -346,6 +352,7 @@ export function ContentViewer({
                 <Carousel.Slide>
                   <MediaDisplay
                     id={nextSrc ?? undefined}
+                    image_hash={nextSrcHash ?? undefined}
                     type={type}
                     bind={bind}
                     faceLocation={faceLocation}
@@ -362,8 +369,11 @@ export function ContentViewer({
             {/* Bottom preview thumbnails */}
             <ThumbnailNavigation
               prevSrc={prevSrc}
+              prevSrcHash={prevSrcHash}
               mainSrc={mainSrc}
+              mainSrcHash={mainSrcHash}
               nextSrc={nextSrc}
+              nextSrcHash={nextSrcHash}
               onMovePrevRequest={onMovePrevRequest}
               onMoveNextRequest={onMoveNextRequest}
             />
@@ -371,7 +381,7 @@ export function ContentViewer({
 
           {lightboxSidebarShow && (
             <Sidebar
-              id={mainSrc}
+              id={mainSrcHash}
               closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
               isPublic={isPublic}
               setFaceLocation={setFaceLocation}

@@ -1,13 +1,13 @@
+import { Alert, Text } from "@mantine/core";
 import React, { useRef, useState } from "react";
 import ReactPlayer from "react-player";
-import { Alert, Text } from "@mantine/core";
-
 import { serverAddress } from "../../api_client/apiClient";
 import { FaceOverlay } from "./FaceOverlay";
 import type { FaceLocationType } from "./lightbox.types";
 
 export type MediaDisplayProps = {
   id: string | undefined;
+  image_hash?: string | undefined;
   isMainContent?: boolean;
   type: string;
   bind?: any;
@@ -22,9 +22,9 @@ export type MediaDisplayProps = {
   onEnded?: () => void;
 };
 
-
 export function MediaDisplay({
   id,
+  image_hash,
   isMainContent = false,
   type,
   bind,
@@ -44,9 +44,12 @@ export function MediaDisplay({
 
   if (!id) return null;
 
-  const imageDimensions = { 
+  // Use image_hash for media URLs (files are stored by hash), fallback to id
+  const mediaHash = image_hash || id;
+
+  const imageDimensions = {
     width: imgRef.current?.naturalWidth ?? 1080,
-    height: imgRef.current?.naturalHeight ?? 810
+    height: imgRef.current?.naturalHeight ?? 810,
   };
 
   // Helper function to check if the photo is a GIF
@@ -54,9 +57,7 @@ export function MediaDisplay({
     if (!photoDetails?.image_path || !Array.isArray(photoDetails.image_path)) {
       return false;
     }
-    return photoDetails.image_path.some((path: string) => 
-      path.toLowerCase().endsWith('.gif')
-    );
+    return photoDetails.image_path.some((path: string) => path.toLowerCase().endsWith(".gif"));
   };
 
   // Determine the media type for the current slide
@@ -72,7 +73,7 @@ export function MediaDisplay({
     }
     return (
       <ReactPlayer
-        url={`${serverAddress}/media/video/${id}`}
+        url={`${serverAddress}/media/video/${mediaHash}`}
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
@@ -92,7 +93,7 @@ export function MediaDisplay({
   if (currentType === "embedded") {
     return (
       <ReactPlayer
-        url={`${serverAddress}/media/embedded_media/${id}`}
+        url={`${serverAddress}/media/embedded_media/${mediaHash}`}
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
@@ -110,23 +111,27 @@ export function MediaDisplay({
 
   // For GIFs, use the original photo endpoint to get the animated file
   // For regular photos, use the big thumbnail
-  const imageUrl = isGif() && isMainContent 
-    ? `${serverAddress}/media/photos/${id}` 
-    : `${serverAddress}/media/thumbnails_big/${id}`;
+  const imageUrl =
+    isGif() && isMainContent
+      ? `${serverAddress}/media/photos/${mediaHash}`
+      : `${serverAddress}/media/thumbnails_big/${mediaHash}`;
 
   return (
-    <div   {...(isMainContent && bind ? bind() : {})} style={{ 
-      position: "relative",  
-      overflow: "hidden",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      height: fullHeight ? "100%" : "82vh",
-      borderRadius: "8px",
-    }}>
+    <div
+      {...(isMainContent && bind ? bind() : {})}
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: fullHeight ? "100%" : "82vh",
+        borderRadius: "8px",
+      }}
+    >
       <div style={{ position: "relative" }}>
         <img
-          ref={imgRef} 
+          ref={imgRef}
           src={imageUrl}
           alt={isMainContent ? "Main Content" : "Preview"}
           loading="eager"
@@ -144,10 +149,8 @@ export function MediaDisplay({
             boxShadow: isMainContent ? "0 4px 16px rgba(0,0,0,0.1)" : "none",
           }}
         />
-      {isMainContent && faceLocation && (
-        <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />
-      )}
+        {isMainContent && faceLocation && <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />}
       </div>
-      </div>
+    </div>
   );
 }

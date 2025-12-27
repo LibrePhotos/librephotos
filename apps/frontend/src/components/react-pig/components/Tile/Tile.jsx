@@ -1,7 +1,6 @@
 import PropTypes from "prop-types";
 import React, { useState } from "react";
 import { animated, useSpring } from "react-spring";
-
 import getImageHeight from "../../utils/getImageHeight";
 import getTileMeasurements from "../../utils/getTileMeasurements";
 import styles from "./styles.module.css";
@@ -23,6 +22,7 @@ const Tile = React.memo(
     settings,
     toprightoverlay = null,
     bottomleftoverlay = null,
+    bottomrightoverlay = null,
   }) => {
     const isTemp = !!item.isTemp;
     const isSelectable = selectable;
@@ -36,6 +36,7 @@ const Tile = React.memo(
     const [isFullSizeLoaded, setFullSizeLoaded] = useState(!!isVideo);
     const TopRightOverlay = toprightoverlay;
     const BottomLeftOverlay = bottomleftoverlay;
+    const BottomRightOverlay = bottomrightoverlay;
 
     const { calcWidth, calcHeight, offsetX, offsetY } = getTileMeasurements({
       item,
@@ -187,6 +188,7 @@ const Tile = React.memo(
           </div>
           <div className={styles.overlaysTopRight}>{TopRightOverlay && <TopRightOverlay item={item} />}</div>
           <div className={styles.overlaysBottomLeft}>{BottomLeftOverlay && <BottomLeftOverlay item={item} />}</div>
+          <div className={styles.overlaysBottomRight}>{BottomRightOverlay && <BottomRightOverlay item={item} />}</div>
         </div>
       </animated.button>
     );

@@ -2,9 +2,8 @@ import { Indicator, Popover, Progress, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
+import { JobDetail } from "../../api_client/jobs/types";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
-import { JobDetail } from "../../api_client/worker.zod";
 
 type IWorkerIndicator = Readonly<{
   workerRunningJob: JobDetail;

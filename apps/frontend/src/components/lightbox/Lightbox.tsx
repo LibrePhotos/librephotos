@@ -23,10 +23,30 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   const previousIdx2hash = usePrevious(idx2hash);
 
   // Stable navigation snapshot - only used when current image is deleted
-  const stableNavigationSnapshot = useRef<Array<{ id: string }>>([]);
+  const stableNavigationSnapshot = useRef<Array<{ id: string; image_hash: string }>>([]);
   const usingStableNavigation = useRef<boolean>(false);
 
-  const { data: photoDetails } = useFetchPhotoDetailsQuery(lightboxImageId);
+  // Get the effective navigation list
+  const getEffectiveNavigation = useCallback(() => {
+    // Use stable navigation if current image was deleted, otherwise use live list
+    const effectiveIdx2hash = usingStableNavigation.current ? stableNavigationSnapshot.current : idx2hash;
+    return { idx2hash: effectiveIdx2hash };
+  }, [idx2hash]);
+
+  // Get image_hash for an ID (for media URLs)
+  const getImageHashForId = useCallback(
+    (id: string | null): string | null => {
+      if (!id) return null;
+      const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
+      const foundItem = effectiveIdx2hash.find(photo => photo.id === id);
+      return foundItem?.image_hash || id;
+    },
+    [getEffectiveNavigation]
+  );
+
+  // Fetch photo details using image_hash (backend still uses image_hash for lookup)
+  const currentImageHash = getImageHashForId(lightboxImageId) || lightboxImageId;
+  const { data: photoDetails } = useFetchPhotoDetailsQuery(currentImageHash);
 
   // Initialize and handle navigation context
   useEffect(() => {
@@ -67,14 +87,6 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     }
     // If image doesn't exist in current idx2hash, don't update the index
   }, [lightboxImageId, idx2hash, onChangedIndex]);
-
-  // Get the effective navigation list
-  const getEffectiveNavigation = useCallback(() => {
-    // Use stable navigation if current image was deleted, otherwise use live list
-    const effectiveIdx2hash = usingStableNavigation.current ? stableNavigationSnapshot.current : idx2hash;
-
-    return { idx2hash: effectiveIdx2hash };
-  }, [idx2hash]);
 
   const onMovePrevRequest = useCallback(() => {
     const { idx2hash: effectiveIdx2hash } = getEffectiveNavigation();
@@ -154,8 +166,11 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     <div>
       <ContentViewer
         mainSrc={lightboxImageId}
+        mainSrcHash={currentImageHash}
         nextSrc={getNextId()}
+        nextSrcHash={getImageHashForId(getNextId())}
         prevSrc={getPreviousId()}
+        prevSrcHash={getImageHashForId(getPreviousId())}
         isPublic={isPublic}
         type={getMediaType()}
         enableZoom={getMediaType() === "photo"}

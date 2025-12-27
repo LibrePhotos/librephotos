@@ -25,6 +25,7 @@ import {
   UserSelfDetailsQueryKeys,
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
+import { ConfigBurstDetection } from "./ConfigBurstDetection";
 import { ConfigDateTime } from "./ConfigDateTime";
 
 export function Settings() {
@@ -269,6 +270,14 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
+          <ConfigBurstDetection
+            value={editedUserDetails.burst_detection_rules}
+            onChange={value => {
+              setEditedUserDetails({ ...editedUserDetails, burst_detection_rules: value });
+            }}
+          />
+        </Card>
+        <Card shadow="md">
           <Title order={4} mb={16}>
             <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
           </Title>
@@ -353,6 +362,38 @@ export function Settings() {
                 { value: "15", label: "15 seconds" },
                 { value: "30", label: "30 seconds" },
               ]}
+            />
+          </Flex>
+        </Card>
+        <Card shadow="md">
+          <Title order={4} mb={16}>
+            <Trans i18nKey="settings.duplicatedetection">Duplicate Detection</Trans>
+          </Title>
+          <Flex align="flex-start" direction="column" gap="md">
+            <Radio.Group
+              label={t("settings.duplicatesensitivity")}
+              description={t("settings.duplicatesensitivityhelp")}
+              value={editedUserDetails.duplicate_sensitivity || "normal"}
+              onChange={value => {
+                setEditedUserDetails({ ...editedUserDetails, duplicate_sensitivity: value || "normal" });
+              }}
+            >
+              <Group mt="xs">
+                <Radio value="strict" label={t("settings.sensitivity.strict")} />
+                <Radio value="normal" label={t("settings.sensitivity.normal")} />
+                <Radio value="loose" label={t("settings.sensitivity.loose")} />
+              </Group>
+            </Radio.Group>
+            <Switch
+              label={t("settings.duplicateclearexisting")}
+              description={t("settings.duplicateclearexistinghelp")}
+              checked={editedUserDetails.duplicate_clear_existing || false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  duplicate_clear_existing: event.currentTarget.checked,
+                });
+              }}
             />
           </Flex>
         </Card>

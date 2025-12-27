@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth/hooks";
-import { BulkPhotoQuery, DatePhotosGroup, PigPhoto, Photoset, SelectionState } from "../../api_client/photos/types";
+import { BulkPhotoQuery, DatePhotosGroup, PigPhoto, SelectionState } from "../../api_client/photos/types";
 import {
   useCurrentUserSelfDetailsQuery,
   UserSelfDetailsQueryKeys,
@@ -32,7 +32,9 @@ import {
 import type { User } from "../../api_client/user/types";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
+import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox/Lightbox";
+import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import Pig from "../react-pig";
 import type { PigHandle } from "../react-pig";
@@ -41,12 +43,11 @@ import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
-import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
-import { EmptyState } from "../common/EmptyState";
 import { DefaultHeader } from "./DefaultHeader";
 import { FavoritedOverlay } from "./FavoritedOverlay";
 import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
+import { StackOverlay } from "./StackOverlay";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
 
@@ -147,11 +148,7 @@ function PhotoListViewComponent({
   // Check if we're in first-time setup mode (DefaultHeader shows setup dialog)
   // Don't show EmptyState in this case to avoid duplicate messages
   const isFirstTimeSetup =
-    !isLoading &&
-    auth?.access &&
-    location.pathname === "/" &&
-    auth.access.is_admin &&
-    !userSelfDetails?.scan_directory;
+    !isLoading && auth?.access && location.pathname === "/" && auth.access.is_admin && !userSelfDetails?.scan_directory;
 
   const imageScale = userSelfDetails?.image_scale ?? 1;
   const textAlignment = (userSelfDetails?.text_alignment as "left" | "right") ?? "right";
@@ -195,19 +192,20 @@ function PhotoListViewComponent({
             // Get all image buttons
             const buttons = document.querySelectorAll(".pig-btn");
             const currentImage = idx2hash[currentImageIndexRef.current];
-            const currentImageId = currentImage.id;
+            // Use image_hash instead of UUID since image URLs use image_hash
+            const currentImageHash = currentImage.image_hash || currentImage.url?.split(";")[0];
 
-            // Try to find by checking img contents
+            // Try to find by checking img contents using image_hash
             let targetButton: Element | null =
               Array.from(buttons).find(btn => {
                 const imgs = btn.querySelectorAll("img");
-                return Array.from(imgs).some(img => img.src.includes(currentImageId));
+                return Array.from(imgs).some(img => currentImageHash && img.src.includes(currentImageHash));
               }) || null;
 
             // If no button found, try another approach - get index position
             if (!targetButton && buttons.length > 0) {
-              // If there are the same number of buttons as images, use index directly
-              if (buttons.length >= currentImageIndexRef.current) {
+              // Use index directly if it's within bounds
+              if (currentImageIndexRef.current >= 0 && currentImageIndexRef.current < buttons.length) {
                 targetButton = buttons[currentImageIndexRef.current];
               }
             }
@@ -256,20 +254,17 @@ function PhotoListViewComponent({
     setLocalHeaderSize(headerSize);
   }, [imageScale, textAlignment, headerSize]);
 
-  const debouncedSavePreferences = useDebouncedCallback(
-    (partial: Partial<User>) => {
-      if (userSelfDetails?.id) {
-        const newUserDetails = { ...userSelfDetails, ...partial };
-        updateUser.mutate(newUserDetails, {
-          context: { silent: true },
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-          },
-        });
-      }
-    },
-    500
-  );
+  const debouncedSavePreferences = useDebouncedCallback((partial: Partial<User>) => {
+    if (userSelfDetails?.id) {
+      const newUserDetails = { ...userSelfDetails, ...partial };
+      updateUser.mutate(newUserDetails, {
+        context: { silent: true },
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+        },
+      });
+    }
+  }, 500);
 
   const handleThumbnailSizeChange = (value: number) => {
     setLocalImageScale(value);
@@ -671,9 +666,7 @@ function PhotoListViewComponent({
                 selectionState.selectAllMode
                   ? // In selectAllMode, all real (non-temp) items are selected except exclusions
                     idx2hash.filter(
-                      item =>
-                        !item.isTemp &&
-                        !selectionState.selectedItems.find(excluded => excluded.id === item.id)
+                      item => !item.isTemp && !selectionState.selectedItems.find(excluded => excluded.id === item.id)
                     )
                   : selectionState.selectedItems
               }
@@ -684,6 +677,7 @@ function PhotoListViewComponent({
               getUrl={getUrl}
               toprightoverlay={FavoritedOverlay}
               bottomleftoverlay={VideoOverlay}
+              bottomrightoverlay={StackOverlay}
               numberOfItems={numberOfItems ?? idx2hashRef.current.length}
               updateItems={updateItems ? throttledUpdateItems : () => {}}
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
@@ -719,7 +713,7 @@ function PhotoListViewComponent({
       {lightboxOpen && (
         <Lightbox
           isPublic={isPublic}
-          idx2hash={idx2hash.map(item => ({ id: item.id }))}
+          idx2hash={idx2hash.map(item => ({ id: item.id, image_hash: item.image_hash }))}
           selectedImage={lightboxImageId}
           onChangedIndex={handleLightboxIndexChange}
           onCloseRequest={closeLightbox}

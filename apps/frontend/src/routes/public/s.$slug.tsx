@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
+import { parseWithNotification } from "../../util/zodUtils";
 
 export const Route = createFileRoute("/public/s/$slug")();
 
@@ -26,7 +27,7 @@ function PublicAlbumBySlug() {
       if (resp.status === 404) return null;
       if (!resp.ok) throw new Error("Failed to load public album");
       const json = await resp.json();
-      return UserAlbum.parse(json.results);
+      return parseWithNotification(UserAlbum, json.results, "Failed to parse public album");
     },
   });
 

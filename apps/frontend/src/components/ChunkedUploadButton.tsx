@@ -9,6 +9,7 @@ import { fetchClient } from "../api_client/api";
 import { useGetSettingsQuery } from "../api_client/settings";
 import { UploadExistResponse, useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
 import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { parseWithNotification } from "../util/zodUtils";
 
 export function ChunkedUploadButton() {
   const { t } = useTranslation();
@@ -62,7 +63,7 @@ export function ChunkedUploadButton() {
   const checkIfAlreadyUploaded = async (hash: string) => {
     if (!userSelfDetails) return false;
     const response = await fetchClient.get<string>(`/exists/${hash + userSelfDetails.id}`);
-    return UploadExistResponse.parse(response).exists;
+    return parseWithNotification(UploadExistResponse, response, "Failed to parse upload exists response").exists;
   };
 
   const uploadFinished = async (file: File, uploadId: string) => {

@@ -11,6 +11,7 @@ import { Description } from "./Description";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
+import { StackSection } from "./StackSection";
 import { TimestampItem } from "./TimestampItem";
 import { VersionComponent } from "./VersionComponent";
 
@@ -103,6 +104,7 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
         <SidebarHeader closeSidepanel={closeSidepanel} />
         <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
         <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
+        <StackSection photoDetail={photoDetail} />
         <LocationSection photoDetail={photoDetail} mapHeight={200} />
         <PeopleSection
           photoDetail={photoDetail}
