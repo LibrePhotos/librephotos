@@ -2,7 +2,6 @@ import datetime
 import uuid
 
 import numpy as np
-import pytz
 import seaborn as sns
 from bulk_update.helper import bulk_update
 from django.core.paginator import Paginator
@@ -88,19 +87,12 @@ def cluster_all_faces(user, job_id) -> bool:
     :param user: the current user running the training
     :param job_id: the background job ID
     """
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES,
-        )
-    lrj.progress_target = 1
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES,
+        job_id=job_id,
+    )
+    lrj.update_progress(current=0, target=1)
 
     try:
         delete_clustered_people(user)
@@ -108,12 +100,8 @@ def cluster_all_faces(user, job_id) -> bool:
         delete_persons_without_faces()
         target_count: int = create_all_clusters(user, lrj)
 
-        lrj.finished = True
-        lrj.failed = False
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.progress_current = target_count
-        lrj.progress_target = target_count
-        lrj.save()
+        lrj.update_progress(current=target_count, target=target_count)
+        lrj.complete()
 
         train_job_id = uuid.uuid4()
         AsyncTask(train_faces, user, train_job_id).run()
@@ -122,10 +110,7 @@ def cluster_all_faces(user, job_id) -> bool:
     except BaseException as err:
         logger.exception("An error occurred")
         print(f"[ERR] {err}")
-        lrj.failed = True
-        lrj.finished = True
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.fail(error=err)
         return False
 
 
@@ -280,20 +265,12 @@ def train_faces(user: User, job_id) -> bool:
     :param user: the current user running the training
     :param job_id: the background job ID
     """
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_TRAIN_FACES,
-        )
-    lrj.progress_current = 1
-    lrj.progress_target = 2
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_TRAIN_FACES,
+        job_id=job_id,
+    )
+    lrj.update_progress(current=1, target=2)
     try:
         # Use two array, so that the first one gets thrown out, if it is no longer used.
         data_known = {"encoding": [], "id": []}
@@ -346,12 +323,8 @@ def train_faces(user: User, job_id) -> bool:
         target_count = len(data_unknown["id"])
         if target_count == 0:
             logger.info("No clusters found")
-            lrj.finished = True
-            lrj.failed = False
-            lrj.progress_current = 2
-            lrj.progress_target = 2
-            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            lrj.save()
+            lrj.update_progress(current=2, target=2)
+            lrj.complete()
             return True
         logger.info(f"Number of Cluster: {target_count}")
 
@@ -433,9 +406,7 @@ def train_faces(user: User, job_id) -> bool:
 
                 face_stack.append(face)
                 if commit_time < datetime.datetime.now():
-                    lrj.progress_current = idx + 1
-                    lrj.progress_target = target_count
-                    lrj.save()
+                    lrj.update_progress(current=idx + 1, target=target_count)
                     commit_time = datetime.datetime.now() + datetime.timedelta(
                         seconds=5
                     )
@@ -445,19 +416,12 @@ def train_faces(user: User, job_id) -> bool:
 
             bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
 
-        lrj.finished = True
-        lrj.failed = False
-        lrj.progress_current = target_count
-        lrj.progress_target = target_count
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.update_progress(current=target_count, target=target_count)
+        lrj.complete()
         return True
 
     except BaseException as err:
         logger.exception("An error occurred")
         print(f"[ERR] {err}")
-        lrj.failed = True
-        lrj.finished = True
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.fail(error=err)
         return False

@@ -1,8 +1,5 @@
 import os
-import uuid
-from datetime import datetime
 
-import pytz
 from django.db.models import Q
 
 from api import util
@@ -15,20 +12,17 @@ from api.semantic_search import create_clip_embeddings
 def batch_calculate_clip_embedding(user):
     import torch
 
-    job_id = uuid.uuid4()
-    lrj = LongRunningJob.objects.create(
-        started_by=user,
-        job_id=job_id,
-        queued_at=datetime.now().replace(tzinfo=pytz.utc),
+    lrj = LongRunningJob.create_job(
+        user=user,
         job_type=LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
+        start_now=True,
     )
-    lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
 
     count = Photo.objects.filter(
         Q(owner=user) & Q(clip_embeddings__isnull=True)
     ).count()
-    lrj.progress_target = count
-    lrj.save()
+    lrj.update_progress(current=0, target=count)
+    
     if not torch.cuda.is_available():
         num_threads = 1
         torch.set_num_threads(num_threads)
@@ -71,11 +65,7 @@ def batch_calculate_clip_embedding(user):
         except Exception as e:
             util.logger.error(f"Error calculating clip embeddings: {e}")
 
-        lrj.progress_current = done_count
-        lrj.progress_target = count
-        lrj.save()
+        lrj.update_progress(current=done_count, target=count)
 
     build_image_similarity_index(user)
-    lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-    lrj.finished = True
-    lrj.save()
+    lrj.complete()
