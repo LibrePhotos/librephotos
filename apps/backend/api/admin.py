@@ -81,8 +81,7 @@ class PhotoAdmin(admin.ModelAdmin):
         "main_file",
         "last_modified",
         "added_on",
-        "width",
-        "height",
+        "size",
     ]
     list_filter = ["owner"]
 

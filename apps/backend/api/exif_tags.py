@@ -23,3 +23,16 @@ class Tags:
     REGION_INFO = "XMP:RegionInfo"
     ROTATION = "QuickTime:Rotation"
     ORIENTATION = "EXIF:Orientation"
+
+    # Burst/sequence detection tags
+    SUBSEC_TIME_ORIGINAL = "EXIF:SubSecTimeOriginal"
+    SUBSEC_TIME = "EXIF:SubSecTime"
+    IMAGE_NUMBER = "EXIF:ImageNumber"
+    IMAGE_UNIQUE_ID = "EXIF:ImageUniqueID"
+    BURST_MODE = "MakerNotes:BurstMode"
+    CONTINUOUS_DRIVE = "MakerNotes:ContinuousDrive"
+    SEQUENCE_NUMBER = "MakerNotes:SequenceNumber"
+    # Camera serial number (useful for grouping shots from same camera)
+    SERIAL_NUMBER = "EXIF:SerialNumber"
+    CAMERA_SERIAL = "MakerNotes:SerialNumber"
+

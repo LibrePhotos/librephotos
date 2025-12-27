@@ -1,21 +1,23 @@
 """
-Duplicate detection module for finding and grouping visually similar photos.
+Duplicate detection module for finding duplicate photos.
 
-Uses perceptual hashing (pHash) to identify duplicate images across different
-qualities, formats, and minor crops.
+Handles two types of duplicates:
+- EXACT_COPY: Files with identical MD5 hash (byte-for-byte copies)
+- VISUAL_DUPLICATE: Photos with similar perceptual hash
 
-Optimized with BK-Tree for O(n log n) comparison instead of O(n²).
+This is separate from stack detection (RAW+JPEG pairs, bursts, etc.)
+because duplicates are about storage cleanup, not photo organization.
+
+Optimized with BK-Tree for efficient visual duplicate detection.
 """
 
-import uuid
 from collections import defaultdict
-from datetime import datetime
 
-import pytz
 from django.db.models import Q
 
 from api.models import Photo
-from api.models.duplicate_group import DuplicateGroup
+from api.models.duplicate import Duplicate
+from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.perceptual_hash import DEFAULT_HAMMING_THRESHOLD, hamming_distance
 from api.util import logger
@@ -25,13 +27,7 @@ class BKTree:
     """
     Burkhard-Keller Tree for efficient Hamming distance queries.
     
-    This data structure is specifically optimized for finding all items
-    within a given edit/Hamming distance threshold. Instead of O(n) per query,
-    it achieves O(log n) average case by pruning branches that can't contain matches.
-    
-    For duplicate detection with n photos:
-    - Naive O(n²): 8849 photos = ~39 million comparisons
-    - BK-Tree O(n log n): 8849 photos = ~115,000 comparisons (estimated)
+    Achieves O(log n) average case by pruning branches using triangle inequality.
     """
     
     def __init__(self, distance_func):
@@ -56,12 +52,7 @@ class BKTree:
                 break
     
     def search(self, query_hash, threshold):
-        """
-        Find all items within threshold Hamming distance of query.
-        
-        Uses the triangle inequality to prune branches:
-        If |d(query, node) - d(node, child)| > threshold, skip that child.
-        """
+        """Find all items within threshold Hamming distance of query."""
         if self.root is None:
             return []
         
@@ -75,10 +66,6 @@ class BKTree:
             if dist <= threshold:
                 results.append((node["id"], dist))
             
-            # Only explore children within the possible range
-            # Triangle inequality: if d(q,n) = dist, then for any child c with d(n,c) = d,
-            # we have: dist - d <= d(q,c) <= dist + d
-            # So we only need children where: d >= dist - threshold AND d <= dist + threshold
             min_dist = max(0, dist - threshold)
             max_dist = dist + threshold
             
@@ -89,383 +76,289 @@ class BKTree:
         return results
 
 
-def find_duplicate_groups(
-    user,
-    threshold: int = DEFAULT_HAMMING_THRESHOLD,
-    include_existing_groups: bool = False,
-    progress_callback=None,
-) -> list[list[str]]:
+class UnionFind:
+    """Union-Find with path compression and union by rank."""
+    
+    def __init__(self):
+        self.parent = {}
+        self.rank = {}
+    
+    def find(self, x):
+        if x not in self.parent:
+            self.parent[x] = x
+            self.rank[x] = 0
+            return x
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+    
+    def union(self, x, y):
+        px, py = self.find(x), self.find(y)
+        if px == py:
+            return
+        if self.rank[px] < self.rank[py]:
+            px, py = py, px
+        self.parent[py] = px
+        if self.rank[px] == self.rank[py]:
+            self.rank[px] += 1
+    
+    def get_groups(self):
+        groups = defaultdict(list)
+        for item in self.parent:
+            groups[self.find(item)].append(item)
+        return [group for group in groups.values() if len(group) > 1]
+
+
+def detect_exact_copies(user, progress_callback=None):
     """
-    Find groups of duplicate photos for a user based on perceptual hash similarity.
-
-    Uses BK-Tree for O(n log n) comparison and Union-Find for clustering.
-
+    Detect exact file copies for a user.
+    
+    Groups photos that have the same content hash. Uses two methods:
+    1. Direct grouping by Photo.image_hash (most reliable)
+    2. Grouping by File.hash MD5 part (fallback for edge cases)
+    
+    Since duplicate files now create separate Photo objects, we group
+    photos by their hash to identify exact copies.
+    
     Args:
         user: The user whose photos to analyze
-        threshold: Maximum Hamming distance to consider as duplicates
-        include_existing_groups: If True, include photos already in duplicate groups
-        progress_callback: Optional callback(current, total, duplicates_found) for progress updates
-
-    Returns:
-        List of lists, where each inner list contains image_hashes of duplicate photos
-    """
-    # Get all photos with perceptual hashes
-    photos_query = Photo.objects.filter(
-        Q(owner=user) & Q(perceptual_hash__isnull=False) & Q(hidden=False) & Q(in_trashcan=False)
-    )
-
-    if not include_existing_groups:
-        photos_query = photos_query.filter(duplicate_group__isnull=True)
-
-    photos = list(
-        photos_query.values_list("image_hash", "perceptual_hash").order_by("image_hash")
-    )
-
-    n = len(photos)
-    if n < 2:
-        return []
-
-    # Union-Find data structure for clustering
-    parent = {photo[0]: photo[0] for photo in photos}
-    duplicates_found = 0
-
-    def find(x):
-        if parent[x] != x:
-            parent[x] = find(parent[x])  # Path compression
-        return parent[x]
-
-    def union(x, y):
-        nonlocal duplicates_found
-        px, py = find(x), find(y)
-        if px != py:
-            parent[px] = py
-            duplicates_found += 1
-            return True
-        return False
-
-    # Build BK-Tree for efficient similarity search - O(n log n) instead of O(n²)
-    logger.info(f"Building BK-Tree for {n} photos...")
-    tree = BKTree(hamming_distance)
-    
-    last_progress_update = 0
-    
-    for i, (image_hash, phash) in enumerate(photos):
-        # Search for similar photos already in the tree
-        matches = tree.search(phash, threshold)
+        progress_callback: Optional callback(current, total, found) for progress
         
-        # Union this photo with all its matches
-        for match_hash, _ in matches:
-            union(image_hash, match_hash)
-        
-        # Add this photo to the tree for future comparisons
-        tree.add(image_hash, phash)
-        
-        # Report progress
-        if progress_callback and (i - last_progress_update >= max(1, n // 100) or i == n - 1):
-            progress_callback(i + 1, n, duplicates_found)
-            last_progress_update = i
-
-    logger.info(f"BK-Tree search complete. Found {duplicates_found} duplicate pairs.")
-
-    # Group photos by their root parent
-    groups = defaultdict(list)
-    for image_hash, _ in photos:
-        root = find(image_hash)
-        groups[root].append(image_hash)
-
-    # Return only groups with more than one photo (actual duplicates)
-    return [group for group in groups.values() if len(group) > 1]
-
-
-def create_duplicate_groups_for_user(user, threshold: int = DEFAULT_HAMMING_THRESHOLD, progress_callback=None):
-    """
-    Detect duplicates and create DuplicateGroup instances for a user.
-
-    Args:
-        user: The user whose photos to analyze
-        threshold: Maximum Hamming distance for duplicates
-        progress_callback: Optional callback for progress updates
-
     Returns:
         Number of duplicate groups created
     """
-    duplicate_sets = find_duplicate_groups(user, threshold, progress_callback=progress_callback)
-
-    groups_created = 0
-    for image_hashes in duplicate_sets:
-        # Create a new duplicate group
-        group = DuplicateGroup.objects.create(owner=user)
-
-        # Add photos to the group
-        Photo.objects.filter(image_hash__in=image_hashes).update(duplicate_group=group)
-
-        # Auto-select the highest quality photo as preferred
-        group.auto_select_preferred()
-
-        groups_created += 1
-        logger.info(
-            f"Created duplicate group {group.id} with {len(image_hashes)} photos for user {user.username}"
+    from collections import defaultdict
+    
+    # Get all photos with their files, excluding metadata files
+    photos = Photo.objects.filter(
+        Q(owner=user) & Q(hidden=False) & Q(in_trashcan=False)
+    ).prefetch_related('files').select_related('main_file')
+    
+    # Method 1: Group photos directly by Photo.image_hash (simplest and most reliable)
+    # Photo.image_hash format is md5 (32 chars) + user_id
+    image_hash_to_photos = defaultdict(list)
+    
+    for photo in photos:
+        if photo.image_hash:
+            image_hash_to_photos[photo.image_hash].append(photo)
+    
+    # Method 2: Group photos by File content hash (MD5 only, excluding user_id suffix)
+    # File.hash format is md5 (32 chars) + user_id, so extract just the MD5 part
+    # This serves as a fallback for edge cases
+    file_hash_to_photos = defaultdict(list)
+    
+    for photo in photos:
+        # Get actual files (exclude metadata)
+        actual_files = photo.files.exclude(type=File.METADATA_FILE)
+        if not actual_files.exists():
+            continue
+            
+        # Extract MD5 from File.hash (first 32 characters)
+        # This groups photos with the same content regardless of user_id suffix
+        file_hash_full = actual_files.first().hash
+        if len(file_hash_full) >= 32:
+            content_hash = file_hash_full[:32]  # MD5 is 32 hex characters
+            file_hash_to_photos[content_hash].append(photo)
+    
+    # Filter to only groups with 2+ photos (actual duplicates)
+    image_hash_groups = {h: photos for h, photos in image_hash_to_photos.items() if len(photos) > 1}
+    file_hash_groups = {h: photos for h, photos in file_hash_to_photos.items() if len(photos) > 1}
+    
+    # Use Union-Find to merge overlapping groups
+    # Photos that appear in both image_hash and file_hash groupings should be in the same duplicate group
+    uf = UnionFind()
+    
+    # Add all photos from image_hash groups to Union-Find
+    for image_hash, group_photos in image_hash_groups.items():
+        photo_ids = [p.id for p in group_photos]
+        for i in range(len(photo_ids)):
+            for j in range(i + 1, len(photo_ids)):
+                uf.union(photo_ids[i], photo_ids[j])
+    
+    # Add all photos from file_hash groups to Union-Find
+    for file_hash, group_photos in file_hash_groups.items():
+        photo_ids = [p.id for p in group_photos]
+        for i in range(len(photo_ids)):
+            for j in range(i + 1, len(photo_ids)):
+                uf.union(photo_ids[i], photo_ids[j])
+    
+    # Get merged groups from Union-Find
+    merged_groups = uf.get_groups()
+    
+    duplicates_created = 0
+    total = len(merged_groups)
+    
+    for i, photo_id_group in enumerate(merged_groups):
+        if len(photo_id_group) < 2:
+            continue
+        
+        # Get Photo objects for this group
+        group_photos = Photo.objects.filter(id__in=photo_id_group)
+        
+        # Create or merge duplicate group using the helper method
+        duplicate = Duplicate.create_or_merge(
+            owner=user,
+            duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
+            photos=group_photos,
         )
+        
+        if duplicate:
+            duplicates_created += 1
+        
+        if progress_callback and i % 100 == 0:
+            progress_callback(i, total, duplicates_created)
+    
+    logger.info(f"Exact copy detection for {user.username}: found {duplicates_created} duplicate groups")
+    return duplicates_created
 
-    return groups_created
 
-
-def batch_detect_duplicates(user, threshold: int = DEFAULT_HAMMING_THRESHOLD, clear_existing: bool = False):
+def detect_visual_duplicates(user, threshold=DEFAULT_HAMMING_THRESHOLD, progress_callback=None):
     """
-    Background job to detect duplicates for a user.
-    Creates a LongRunningJob to track progress.
+    Detect visually similar photos using perceptual hash.
+    
+    Uses BK-Tree for O(log n) lookups and Union-Find for grouping.
     
     Args:
         user: The user whose photos to analyze
-        threshold: Maximum Hamming distance for duplicates (1-20, default 10)
-        clear_existing: If True, clear existing pending duplicate groups before detection
-    """
-    import os
-    from api.perceptual_hash import calculate_hash_from_thumbnail
-    
-    job_id = uuid.uuid4()
-    lrj = LongRunningJob.objects.create(
-        started_by=user,
-        job_id=job_id,
-        queued_at=datetime.now().replace(tzinfo=pytz.utc),
-        job_type=LongRunningJob.JOB_DETECT_DUPLICATES,
-    )
-    lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
-    lrj.progress_step = "Initializing..."
-    lrj.result = {
-        "threshold": threshold,
-        "clear_existing": clear_existing,
-        "photos_analyzed": 0,
-        "hashes_calculated": 0,
-        "groups_found": 0,
-        "cleared_groups": 0,
-    }
-    lrj.save()
-
-    try:
-        # Step 1: Clear existing pending groups if requested
-        if clear_existing:
-            lrj.progress_step = "Clearing existing pending groups..."
-            lrj.save()
-            
-            pending_groups = DuplicateGroup.objects.filter(
-                owner=user, status=DuplicateGroup.Status.PENDING
-            )
-            deleted_count = pending_groups.count()
-            Photo.objects.filter(duplicate_group__in=pending_groups).update(duplicate_group=None)
-            pending_groups.delete()
-            
-            lrj.result["cleared_groups"] = deleted_count
-            lrj.save()
-            logger.info(f"Cleared {deleted_count} pending duplicate groups for {user.username}")
-
-        # Step 2: Count photos that need hash calculation
-        photos_without_hash = Photo.objects.filter(
-            Q(owner=user) & Q(perceptual_hash__isnull=True) & Q(hidden=False)
-        ).select_related("thumbnail")
-        
-        photos_to_hash_count = photos_without_hash.count()
-        
-        # Count total photos for analysis
-        total_photos = Photo.objects.filter(
-            Q(owner=user) & Q(hidden=False) & Q(in_trashcan=False)
-        ).count()
-        
-        lrj.result["total_photos"] = total_photos
-        lrj.result["photos_needing_hash"] = photos_to_hash_count
-        
-        if photos_to_hash_count > 0:
-            lrj.progress_step = f"Calculating hashes for {photos_to_hash_count} photos..."
-            lrj.progress_target = photos_to_hash_count
-            lrj.progress_current = 0
-            lrj.save()
-
-            hashes_calculated = 0
-            for i, photo in enumerate(photos_without_hash):
-                try:
-                    if (
-                        hasattr(photo, "thumbnail")
-                        and photo.thumbnail.thumbnail_big
-                        and os.path.exists(photo.thumbnail.thumbnail_big.path)
-                    ):
-                        phash = calculate_hash_from_thumbnail(photo.thumbnail.thumbnail_big.path)
-                        if phash:
-                            photo.perceptual_hash = phash
-                            photo.save(update_fields=["perceptual_hash"])
-                            hashes_calculated += 1
-                except Exception as e:
-                    logger.error(f"Error calculating hash for {photo.image_hash}: {e}")
-
-                lrj.progress_current = i + 1
-                lrj.result["hashes_calculated"] = hashes_calculated
-                # Update every 10 photos to reduce DB writes
-                if (i + 1) % 10 == 0 or i + 1 == photos_to_hash_count:
-                    lrj.save()
-
-        # Step 3: Count photos with hashes for comparison
-        photos_with_hash = Photo.objects.filter(
-            Q(owner=user) & Q(perceptual_hash__isnull=False) & Q(hidden=False) & Q(in_trashcan=False)
-        )
-        
-        if not clear_existing:
-            photos_with_hash = photos_with_hash.filter(duplicate_group__isnull=True)
-        
-        photos_to_analyze = photos_with_hash.count()
-        lrj.result["photos_to_compare"] = photos_to_analyze
-        
-        if photos_to_analyze < 2:
-            lrj.progress_step = "Not enough photos to compare"
-            lrj.finished = True
-            lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-            lrj.save()
-            return 0
-        
-        # Step 4: Find duplicates with progress callback (using optimized BK-Tree)
-        lrj.progress_step = f"Building BK-Tree for {photos_to_analyze} photos..."
-        lrj.progress_current = 0
-        lrj.progress_target = photos_to_analyze
-        lrj.result["algorithm"] = "BK-Tree (O(n log n))"
-        lrj.save()
-
-        def progress_callback(current, total, duplicates_found):
-            """Update LRJ progress during comparison phase."""
-            lrj.progress_current = current
-            lrj.progress_target = total
-            lrj.result["comparison_progress"] = current
-            lrj.result["duplicates_found_so_far"] = duplicates_found
-            percent = int(current / total * 100) if total > 0 else 0
-            lrj.progress_step = f"Comparing photos... {percent}% ({current}/{total})"
-            lrj.save()
-
-        # Now find and create duplicate groups with the specified threshold
-        groups_created = create_duplicate_groups_for_user(user, threshold=threshold, progress_callback=progress_callback)
-        
-        lrj.result["groups_found"] = groups_created
-        lrj.result["photos_analyzed"] = photos_to_analyze
-
-        # Step 5: Complete
-        lrj.progress_step = f"Complete! Found {groups_created} duplicate groups"
-        lrj.progress_current = photos_to_analyze
-        lrj.finished = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
-
-        logger.info(
-            f"Duplicate detection completed for {user.username}: {groups_created} groups created (threshold={threshold})"
-        )
-        return groups_created
-
-    except Exception as e:
-        logger.exception(f"Error during duplicate detection for {user.username}: {e}")
-        lrj.progress_step = f"Error: {str(e)[:80]}"
-        lrj.finished = True
-        lrj.failed = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
-        raise
-
-
-def resolve_duplicate_group(group: DuplicateGroup, keep_photo_hash: str, trash_others: bool = True):
-    """
-    Resolve a duplicate group by keeping one photo and optionally trashing others.
-
-    Args:
-        group: The DuplicateGroup to resolve
-        keep_photo_hash: The image_hash of the photo to keep
-        trash_others: If True, move other photos to trash
-
-    Returns:
-        Number of photos moved to trash
-    """
-    # Set the preferred photo
-    preferred = Photo.objects.filter(image_hash=keep_photo_hash).first()
-    if not preferred:
-        raise ValueError(f"Photo {keep_photo_hash} not found")
-
-    group.preferred_photo = preferred
-    group.status = DuplicateGroup.Status.REVIEWED
-    group.save()
-
-    trashed_count = 0
-    if trash_others:
-        # Move all other photos in the group to trash
-        other_photos = group.photos.exclude(image_hash=keep_photo_hash)
-        for photo in other_photos:
-            photo.in_trashcan = True
-            photo.save(update_fields=["in_trashcan"])
-            trashed_count += 1
-
-    logger.info(
-        f"Resolved duplicate group {group.id}: kept {keep_photo_hash}, trashed {trashed_count} photos"
-    )
-    return trashed_count
-
-
-def dismiss_duplicate_group(group: DuplicateGroup):
-    """
-    Dismiss a duplicate group, marking it as 'not duplicates'.
-    Photos remain but are no longer grouped.
-
-    Args:
-        group: The DuplicateGroup to dismiss
-    """
-    group.status = DuplicateGroup.Status.DISMISSED
-    group.save()
-
-    # Remove photos from the group
-    group.photos.update(duplicate_group=None)
-
-    logger.info(f"Dismissed duplicate group {group.id}")
-
-
-def calculate_missing_hashes(user, progress_callback=None):
-    """
-    Calculate perceptual hashes for all photos that don't have one yet.
-    
-    This is useful for existing photos that were scanned before pHash was added.
-    
-    Args:
-        user: The user whose photos to process
-        progress_callback: Optional callback(current, total) for progress updates
+        threshold: Hamming distance threshold (default: 10)
+        progress_callback: Optional callback(current, total, found) for progress
         
     Returns:
-        Number of photos processed
+        Number of duplicate groups created
     """
-    import os
-    from api.perceptual_hash import calculate_hash_from_thumbnail
-    
+    # Get photos with perceptual hash that aren't already in visual duplicate groups
     photos = Photo.objects.filter(
-        owner=user,
-        perceptual_hash__isnull=True,
-        hidden=False,
-        in_trashcan=False,
-    ).select_related("thumbnail")
-    
-    # Also include photos with empty string hashes
-    photos = photos | Photo.objects.filter(
-        owner=user,
-        perceptual_hash="",
-        hidden=False,
-        in_trashcan=False,
-    ).select_related("thumbnail")
+        Q(owner=user) & 
+        Q(hidden=False) & 
+        Q(in_trashcan=False) &
+        Q(perceptual_hash__isnull=False)
+    ).exclude(
+        duplicates__duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE
+    ).values('id', 'perceptual_hash')
     
     total = photos.count()
-    processed = 0
+    if total < 2:
+        return 0
     
-    for photo in photos.iterator():
-        try:
-            thumbnail = getattr(photo, "thumbnail", None)
-            if thumbnail and thumbnail.thumbnail_big and os.path.exists(thumbnail.thumbnail_big.path):
-                phash = calculate_hash_from_thumbnail(thumbnail.thumbnail_big.path)
-                if phash:
-                    photo.perceptual_hash = phash
-                    photo.save(update_fields=["perceptual_hash"])
-                    processed += 1
-        except Exception as e:
-            logger.warning(f"Could not calculate pHash for {photo.image_hash}: {e}")
+    logger.info(f"Building BK-Tree for {total} photos (user: {user.username})")
+    
+    # Build BK-Tree
+    bk_tree = BKTree(hamming_distance)
+    photo_hashes = {}
+    
+    for i, photo in enumerate(photos):
+        photo_id = photo['id']
+        phash = photo['perceptual_hash']
+        
+        if phash:
+            bk_tree.add(photo_id, phash)
+            photo_hashes[photo_id] = phash
+        
+        if progress_callback and i % 1000 == 0:
+            progress_callback(i, total * 2, 0)  # First half: building tree
+    
+    logger.info(f"BK-Tree built with {bk_tree.size} photos")
+    
+    # Find similar pairs using Union-Find
+    uf = UnionFind()
+    pairs_found = 0
+    
+    for i, (photo_id, phash) in enumerate(photo_hashes.items()):
+        similar = bk_tree.search(phash, threshold)
+        
+        for similar_id, distance in similar:
+            if similar_id != photo_id:
+                uf.union(photo_id, similar_id)
+                pairs_found += 1
+        
+        if progress_callback and i % 1000 == 0:
+            progress_callback(total + i, total * 2, pairs_found)  # Second half: searching
+    
+    # Create duplicate groups from Union-Find groups
+    groups = uf.get_groups()
+    duplicates_created = 0
+    
+    for group in groups:
+        if len(group) < 2:
+            continue
             
-        if progress_callback:
-            progress_callback(processed, total)
+        # Get Photo objects for this group
+        group_photos = Photo.objects.filter(id__in=group)
+        
+        # Create or merge duplicate group
+        duplicate = Duplicate.create_or_merge(
+            owner=user,
+            duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
+            photos=group_photos,
+        )
+        
+        if duplicate:
+            duplicates_created += 1
     
-    logger.info(f"Calculated perceptual hashes for {processed}/{total} photos for user {user.username}")
-    return processed
+    logger.info(f"Visual duplicate detection for {user.username}: found {duplicates_created} groups from {pairs_found} pairs")
+    return duplicates_created
+
+
+def batch_detect_duplicates(user, options=None):
+    """
+    Run batch duplicate detection for a user.
+    
+    Args:
+        user: The user whose photos to analyze
+        options: Dict with detection options:
+            - detect_exact_copies: bool (default: True)
+            - detect_visual_duplicates: bool (default: True)
+            - visual_threshold: int (default: 10)
+            - clear_pending: bool (default: False)
+    """
+    if options is None:
+        options = {}
+    
+    detect_exact = options.get('detect_exact_copies', True)
+    detect_visual = options.get('detect_visual_duplicates', True)
+    visual_threshold = options.get('visual_threshold', DEFAULT_HAMMING_THRESHOLD)
+    clear_pending = options.get('clear_pending', False)
+    
+    # Create long-running job for progress tracking
+    job = LongRunningJob.create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_DETECT_DUPLICATES,
+        start_now=True,
+    )
+    
+    try:
+        
+        # Clear pending duplicates if requested
+        if clear_pending:
+            cleared = Duplicate.objects.filter(
+                owner=user,
+                review_status=Duplicate.ReviewStatus.PENDING
+            ).delete()[0]
+            logger.info(f"Cleared {cleared} pending duplicates for {user.username}")
+        
+        total_found = 0
+        
+        # Detect exact copies
+        if detect_exact:
+            def progress_exact(current, total, found):
+                job.set_result({"stage": "exact_copies", "current": current, "total": total, "found": found})
+            
+            exact_count = detect_exact_copies(user, progress_exact)
+            total_found += exact_count
+        
+        # Detect visual duplicates
+        if detect_visual:
+            def progress_visual(current, total, found):
+                job.set_result({"stage": "visual_duplicates", "current": current, "total": total, "found": found})
+            
+            visual_count = detect_visual_duplicates(user, visual_threshold, progress_visual)
+            total_found += visual_count
+        
+        job.complete(result={"status": "completed", "duplicates_found": total_found})
+        
+        logger.info(f"Duplicate detection completed for {user.username}: {total_found} groups found")
+        
+    except Exception as e:
+        logger.error(f"Duplicate detection failed for {user.username}: {e}")
+        job.fail(error=e)
+        raise

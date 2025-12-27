@@ -9,7 +9,7 @@ from constance import config as site_config
 from django import db
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Q
 from django.utils import timezone
 from django_q.tasks import AsyncTask, Chain
 
@@ -18,7 +18,8 @@ from api.batch_jobs import batch_calculate_clip_embedding
 from api.face_classify import cluster_all_faces
 from api.perceptual_hash import calculate_hash_from_thumbnail
 
-from api.feature.embedded_media import extract_embedded_media, has_embedded_media
+# Live Photo detection moved to stacks module
+from api.stacks.live_photo import has_embedded_motion_video, extract_embedded_motion_video
 from api.models import Face, File, LongRunningJob, Photo, Thumbnail
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
@@ -105,36 +106,25 @@ def create_new_image(user, path) -> Photo | None:
             util.logger.warning(f"no photo to metadata file found {path}")
         return
 
-    photos: QuerySet[Photo] = Photo.objects.filter(Q(image_hash=hash))
-    if not photos.exists():
-        photo: Photo = Photo()
-        photo.image_hash = hash
-        photo.owner = user
-        photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        photo.geolocation_json = {}
-        photo.video = is_video(path)
-        photo.save()
-        file = File.create(path, user)
-        if has_embedded_media(file.path) and settings.FEATURE_PROCESS_EMBEDDED_MEDIA:
-            em_path = extract_embedded_media(file.path, file.hash)
-            if em_path:
-                em_file = File.create(em_path, user)
-                file.embedded_media.add(em_file)
-        photo.files.add(file)
-        photo.main_file = file
-        photo.save()
-        return photo
-    else:
-        file = File.create(path, user)
-        photo = photos.first()
-        photo.files.add(file)
-        if photo.removed:
-            photo.removed = False
-            photo.in_trashcan = False
-        photo.save()
-        photo._check_files()
-        util.logger.warning(f"photo {path} exists already")
-        return photo
+    photo: Photo = Photo()
+    photo.image_hash = hash
+    photo.owner = user
+    photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
+    photo.geolocation_json = {}
+    photo.video = is_video(path)
+    photo.save()
+    file = File.create(path, user)
+    # Live Photo detection - extracts embedded motion video if present
+    if has_embedded_motion_video(file.path) and settings.FEATURE_PROCESS_EMBEDDED_MEDIA:
+        em_path = extract_embedded_motion_video(file.path, file.hash)
+        if em_path:
+            em_file = File.create(em_path, user)
+            file.embedded_media.add(em_file)
+    photo.files.add(file)
+    photo.main_file = file
+    photo.save()
+    return photo
+
 
 
 def handle_new_image(user, path, job_id, photo=None):
@@ -180,7 +170,8 @@ def handle_new_image(user, path, job_id, photo=None):
                     util.logger.info(
                         f"job {job_id}: calculate perceptual hash: {path}, elapsed: {elapsed}"
                     )
-            photo._extract_exif_data(True)
+            from api.models.photo_metadata import PhotoMetadata
+            PhotoMetadata.extract_exif_data(photo, commit=True)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
                 f"job {job_id}: extract exif data: {path}, elapsed: {elapsed}"
@@ -379,18 +370,11 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     ]
     for directory in thumbnail_dirs:
         os.makedirs(directory, exist_ok=True)
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-        )
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+        job_id=job_id,
+    )
     photo_count_before = Photo.objects.count()
 
     try:
@@ -419,9 +403,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             else:
                 images_and_videos.append((user, last_scan, full_scan, path, job_id))
 
-        lrj.progress_current = 0
-        lrj.progress_target = files_found
-        lrj.save()
+        lrj.update_progress(current=0, target=files_found)
         db.connections.close_all()
 
     # Phase 1: Decide which images/videos to process; group them so we can wait before metadata
@@ -525,33 +507,25 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         chain.append(scan_faces, user, uuid.uuid4(), full_scan)
         chain.run()
 
-    except Exception:
+    except Exception as e:
         util.logger.exception("An error occurred: ")
-        lrj.failed = True
+        lrj.fail(error=e)
 
     added_photo_count = Photo.objects.count() - photo_count_before
     util.logger.info(f"Added {added_photo_count} photos")
 
 
 def scan_missing_photos(user, job_id: UUID):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_SCAN_MISSING_PHOTOS,
-        )
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_SCAN_MISSING_PHOTOS,
+        job_id=job_id,
+    )
     try:
         exisisting_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
 
         paginator = Paginator(exisisting_photos, 5000)
-        lrj.progress_target = paginator.num_pages
-        lrj.save()
+        lrj.update_progress(current=0, target=paginator.num_pages)
         for page in range(1, paginator.num_pages + 1):
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_files()
@@ -559,31 +533,23 @@ def scan_missing_photos(user, job_id: UUID):
             update_scan_counter(job_id)
 
         util.logger.info("Finished checking paths for missing photos")
-    except Exception:
+    except Exception as e:
         util.logger.exception("An error occurred: ")
-        lrj.failed = True
+        lrj.fail(error=e)
 
 
 def generate_face_embeddings(user, job_id: UUID):
     if Face.objects.filter(encoding="").count() == 0:
         return
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS,
-        )
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS,
+        job_id=job_id,
+    )
 
     try:
         faces = Face.objects.filter(encoding="")
-        lrj.progress_target = faces.count()
-        lrj.save()
+        lrj.update_progress(current=0, target=faces.count())
         db.connections.close_all()
 
         for face in faces:
@@ -596,27 +562,20 @@ def generate_face_embeddings(user, job_id: UUID):
                 failed = True
             update_scan_counter(job_id, failed)
 
-        lrj.finished = True
+        lrj.complete()
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print(f"[ERR]: {err}")
-        lrj.failed = True
+        lrj.fail(error=err)
 
 
 def generate_tags(user, job_id: UUID, full_scan=False):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_GENERATE_TAGS,
-        )
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_GENERATE_TAGS,
+        job_id=job_id,
+    )
 
     try:
         last_scan = (
@@ -638,14 +597,10 @@ def generate_tags(user, job_id: UUID, full_scan=False):
             existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
 
         if existing_photos.count() == 0:
-            lrj.progress_target = 0
-            lrj.progress_current = 0
-            lrj.finished = True
-            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            lrj.save()
+            lrj.update_progress(current=0, target=0)
+            lrj.complete()
             return
-        lrj.progress_target = existing_photos.count()
-        lrj.save()
+        lrj.update_progress(current=0, target=existing_photos.count())
         db.connections.close_all()
 
         for photo in existing_photos:
@@ -654,7 +609,7 @@ def generate_tags(user, job_id: UUID, full_scan=False):
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print(f"[ERR]: {err}")
-        lrj.failed = True
+        lrj.fail(error=err)
 
 
 def generate_tag_job(photo: Photo, job_id: str):
@@ -672,18 +627,11 @@ def generate_tag_job(photo: Photo, job_id: str):
 
 
 def add_geolocation(user, job_id: UUID, full_scan=False):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_ADD_GEOLOCATION,
-        )
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_ADD_GEOLOCATION,
+        job_id=job_id,
+    )
 
     try:
         last_scan = (
@@ -697,14 +645,10 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
         if not full_scan and last_scan:
             existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
         if existing_photos.count() == 0:
-            lrj.progress_target = 0
-            lrj.finished = True
-            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            lrj.progress_current = 0
-            lrj.save()
+            lrj.update_progress(current=0, target=0)
+            lrj.complete()
             return
-        lrj.progress_target = existing_photos.count()
-        lrj.save()
+        lrj.update_progress(current=0, target=existing_photos.count())
         db.connections.close_all()
 
         for photo in existing_photos:
@@ -713,7 +657,7 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print(f"[ERR]: {err}")
-        lrj.failed = True
+        lrj.fail(error=err)
 
 
 def geolocation_job(photo: Photo, job_id: UUID):
@@ -729,18 +673,11 @@ def geolocation_job(photo: Photo, job_id: UUID):
 
 
 def scan_faces(user, job_id: UUID, full_scan=False):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_SCAN_FACES,
-        )
-    lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_SCAN_FACES,
+        job_id=job_id,
+    )
 
     try:
         last_scan = (
@@ -757,15 +694,11 @@ def scan_faces(user, job_id: UUID, full_scan=False):
             existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
 
         if existing_photos.count() == 0:
-            lrj.progress_current = 0
-            lrj.progress_target = 0
-            lrj.finished = True
-            lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-            lrj.save()
+            lrj.update_progress(current=0, target=0)
+            lrj.complete()
             return
 
-        lrj.progress_target = existing_photos.count()
-        lrj.save()
+        lrj.update_progress(current=0, target=existing_photos.count())
         db.connections.close_all()
 
         for photo in existing_photos:
@@ -780,7 +713,7 @@ def scan_faces(user, job_id: UUID, full_scan=False):
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print(f"[ERR]: {err}")
-        lrj.failed = True
+        lrj.fail(error=err)
 
     generate_face_embeddings(user, uuid.uuid4())
     cluster_all_faces(user, uuid.uuid4())
