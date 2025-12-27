@@ -40,6 +40,8 @@ class UserSerializer(serializers.ModelSerializer):
             "header_size": {"required": False},
             "skip_raw_files": {"required": False},
             "slideshow_interval": {"required": False},
+            "duplicate_sensitivity": {"required": False},
+            "duplicate_clear_existing": {"required": False},
         }
         fields = (
             "id",
@@ -70,6 +72,7 @@ class UserSerializer(serializers.ModelSerializer):
             "header_size",
             "save_metadata_to_disk",
             "datetime_rules",
+            "burst_detection_rules",
             "llm_settings",
             "default_timezone",
             "public_sharing",
@@ -80,6 +83,8 @@ class UserSerializer(serializers.ModelSerializer):
             "cluster_selection_epsilon",
             "skip_raw_files",
             "slideshow_interval",
+            "duplicate_sensitivity",
+            "duplicate_clear_existing",
         )
 
     def validate_nextcloud_app_password(self, value):
@@ -247,6 +252,14 @@ class UserSerializer(serializers.ModelSerializer):
             instance.slideshow_interval = validated_data.pop("slideshow_interval")
             instance.save()
             logger.info(f"Updated slideshow_interval to {instance.slideshow_interval} for user {instance.username}")
+        if "duplicate_sensitivity" in validated_data:
+            instance.duplicate_sensitivity = validated_data.pop("duplicate_sensitivity")
+            instance.save()
+            logger.info(f"Updated duplicate_sensitivity to {instance.duplicate_sensitivity} for user {instance.username}")
+        if "duplicate_clear_existing" in validated_data:
+            instance.duplicate_clear_existing = validated_data.pop("duplicate_clear_existing")
+            instance.save()
+            logger.info(f"Updated duplicate_clear_existing to {instance.duplicate_clear_existing} for user {instance.username}")
 
         return instance
 

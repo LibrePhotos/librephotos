@@ -160,13 +160,19 @@ class SetPhotosDeleted(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            # If restoring from trash, reset duplicate groups to pending
+            # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
-                from api.models.duplicate_group import DuplicateGroup
-                group_ids = set(photos_qs.filter(duplicate_group__isnull=False).values_list('duplicate_group_id', flat=True))
-                if group_ids:
-                    DuplicateGroup.objects.filter(id__in=group_ids, status=DuplicateGroup.Status.REVIEWED).update(status=DuplicateGroup.Status.PENDING)
-                    logger.info(f"Reset {len(group_ids)} duplicate groups to pending after restore")
+                from api.models.stack_review import StackReview
+                from api.models.photo_stack import PhotoStack
+                # Get stack IDs from photos that have stacks (ManyToMany)
+                stack_ids = set(
+                    PhotoStack.objects.filter(
+                        photos__in=photos_qs
+                    ).values_list('id', flat=True)
+                )
+                if stack_ids:
+                    StackReview.objects.filter(stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED).update(decision=StackReview.Decision.PENDING)
+                    logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
 
             count = photos_qs.update(in_trashcan=val_deleted)
 
@@ -215,21 +221,22 @@ class SetPhotosDeleted(APIView):
                 image_hash__in=photos_to_update, owner=request.user
             ).update(in_trashcan=val_deleted)
             
-            # If restoring from trash, reset duplicate groups to pending
+            # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
-                from api.models.duplicate_group import DuplicateGroup
-                group_ids = set(
-                    Photo.objects.filter(
-                        image_hash__in=photos_to_update, 
-                        duplicate_group__isnull=False
-                    ).values_list('duplicate_group_id', flat=True)
+                from api.models.stack_review import StackReview
+                from api.models.photo_stack import PhotoStack
+                # Get stack IDs from photos that have stacks (ManyToMany)
+                stack_ids = set(
+                    PhotoStack.objects.filter(
+                        photos__image_hash__in=photos_to_update
+                    ).values_list('id', flat=True)
                 )
-                if group_ids:
-                    DuplicateGroup.objects.filter(
-                        id__in=group_ids, 
-                        status=DuplicateGroup.Status.REVIEWED
-                    ).update(status=DuplicateGroup.Status.PENDING)
-                    logger.info(f"Reset {len(group_ids)} duplicate groups to pending after restore")
+                if stack_ids:
+                    StackReview.objects.filter(
+                        stack_id__in=stack_ids, 
+                        decision=StackReview.Decision.RESOLVED
+                    ).update(decision=StackReview.Decision.PENDING)
+                    logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}
@@ -462,6 +469,36 @@ class PhotoViewSet(viewsets.ModelViewSet):
         "main_file__path",
     ]
 
+    def get_object(self):
+        """
+        Override get_object to support lookup by both UUID (pk) and image_hash.
+        This provides backward compatibility with existing URLs using image_hash.
+        """
+        queryset = self.get_queryset()
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+
+        if lookup_value:
+            # Try to look up by UUID first (the new pk)
+            try:
+                import uuid
+                uuid.UUID(lookup_value)
+                filter_kwargs = {"pk": lookup_value}
+            except (ValueError, AttributeError):
+                # If not a valid UUID, look up by image_hash (backward compatibility)
+                filter_kwargs = {"image_hash": lookup_value}
+
+            obj = queryset.filter(**filter_kwargs).first()
+            if obj is None:
+                from rest_framework.exceptions import NotFound
+                raise NotFound()
+            
+            # May raise a permission denied
+            self.check_object_permissions(self.request, obj)
+            return obj
+
+        return super().get_object()
+
     @action(
         detail=True,
         methods=["get"],
@@ -469,7 +506,14 @@ class PhotoViewSet(viewsets.ModelViewSet):
         serializer_class=PhotoDetailsSummarySerializer,
     )
     def summary(self, request, pk):
-        queryset = self.get_queryset().filter(image_hash=pk)
+        # Support both UUID and image_hash lookups
+        try:
+            import uuid
+            uuid.UUID(pk)
+            queryset = self.get_queryset().filter(pk=pk)
+        except (ValueError, AttributeError):
+            queryset = self.get_queryset().filter(image_hash=pk)
+        
         if not queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = PhotoDetailsSummarySerializer(queryset, many=False)
@@ -483,7 +527,14 @@ class PhotoViewSet(viewsets.ModelViewSet):
     )
     def albums(self, request, pk):
         """Return user albums that contain this photo."""
-        photo = Photo.objects.filter(image_hash=pk).first()
+        # Support both UUID and image_hash lookups
+        try:
+            import uuid
+            uuid.UUID(pk)
+            photo = Photo.objects.filter(pk=pk).first()
+        except (ValueError, AttributeError):
+            photo = Photo.objects.filter(image_hash=pk).first()
+            
         if not photo:
             return Response(status=status.HTTP_404_NOT_FOUND)
         albums = AlbumUser.objects.filter(
@@ -504,7 +555,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user.is_anonymous:
-            return Photo.visible.filter(Q(public=True)).order_by("-exif_timestamp")
+            return Photo.visible.filter(Q(public=True)).prefetch_related("stacks").order_by("-exif_timestamp")
         else:
             # Include photos that are:
             # 1. Owned by the user
@@ -515,7 +566,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
                 Q(owner=self.request.user)
                 | Q(shared_to=self.request.user)
                 | Q(public=True)
-            ).order_by("-exif_timestamp")
+            ).prefetch_related("stacks").order_by("-exif_timestamp")
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
@@ -802,25 +853,3 @@ class DeletePhotos(APIView):
         )
 
 
-class DeleteDuplicatePhotos(APIView):
-    @extend_schema(
-        parameters=[
-            OpenApiParameter("image_hash", OpenApiTypes.STR),
-            OpenApiParameter("path", OpenApiTypes.STR),
-        ],
-    )
-    def delete(self, request):
-        data = dict(request.data)
-        logger.info(data)
-        photo = Photo.objects.filter(image_hash=data["image_hash"]).first()
-        duplicate_path = data["path"]
-
-        if not photo:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        result = photo.delete_duplicate(duplicate_path)
-        # To-Do: Give a better response, when it's a bad request
-        if result:
-            return Response(status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)

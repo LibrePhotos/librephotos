@@ -370,6 +370,18 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         else:
             photo_filter.append(Q(in_trashcan=False))
 
+        # Stack filtering: Show photos that are either:
+        # 1. Not in any stack, OR
+        # 2. The primary photo of their stack
+        # Stacks are for organizational purposes (RAW+JPEG pairs, bursts, brackets, live photos, manual)
+        # Non-primary photos are hidden in the timeline but accessible via stack expansion
+        # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
+        if not self.request.query_params.get("show_all_stack_photos"):
+            photo_filter.append(
+                Q(stacks__isnull=True) |
+                Q(primary_in_stack__isnull=False)
+            )
+
         if self.request.query_params.get("person"):
             photo_filter.append(
                 Q(faces__person__id=self.request.query_params.get("person"))
@@ -398,6 +410,8 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                 ),
             )
             .select_related("thumbnail", "search_instance", "main_file")
+            .prefetch_related("stacks")
+            .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
             .order_by("-exif_timestamp")
             .only(
                 "image_hash",
@@ -488,6 +502,18 @@ class AlbumDateListViewSet(ListViewSet):
             filter.append(Q(photos__in_trashcan=True) & Q(photos__removed=False))
         else:
             filter.append(Q(photos__in_trashcan=False))
+
+        # Stack filtering: Only count photos that are either:
+        # 1. Not in any stack, OR
+        # 2. The primary photo of their stack
+        # Stacks are for organizational purposes (RAW+JPEG pairs, bursts, brackets, live photos, manual)
+        # Non-primary photos are hidden in the timeline but accessible via stack expansion
+        # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
+        if not self.request.query_params.get("show_all_stack_photos"):
+            filter.append(
+                Q(photos__stacks__isnull=True) |
+                Q(photos__primary_in_stack__isnull=False)
+            )
 
         # Filter by folder path if provided
         if self.request.query_params.get("folder"):
