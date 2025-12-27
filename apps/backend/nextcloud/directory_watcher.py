@@ -1,9 +1,7 @@
-import datetime
 import os
 import pathlib
 
 import owncloud as nextcloud
-import pytz
 from django.conf import settings
 
 from api import util
@@ -38,19 +36,11 @@ def collect_photos(nc, path, photos):
 
 
 def scan_photos(user, job_id):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
-        )
-        lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+        job_id=job_id,
+    )
 
     nc = nextcloud.Client(user.nextcloud_server_address)
     nc.login(user.nextcloud_username, user.nextcloud_app_password)
@@ -88,21 +78,13 @@ def scan_photos(user, job_id):
         for idx, image_path in enumerate(paths):
             util.logger.info("begin handling of photo %d/%d" % (idx + 1, to_add_count))
             handle_new_image(user, image_path, job_id)
-            lrj.result = {"progress": {"current": idx + 1, "target": to_add_count}}
-            lrj.save()
+            lrj.update_progress(current=idx + 1, target=to_add_count)
 
         util.logger.info(f"Added {len(paths)} photos")
         build_image_similarity_index(user)
 
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.finished = True
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.complete()
     except Exception as e:
         util.logger.exception(str(e))
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.finished = True
-        lrj.failed = True
-        lrj.finished_at = datetime.datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.fail(error=e)
     return {"new_photo_count": added_photo_count, "status": True}
