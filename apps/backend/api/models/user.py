@@ -5,10 +5,15 @@ from django.db import models
 from django_cryptography.fields import encrypt
 
 from api.date_time_extractor import DEFAULT_RULES_JSON
+from api.burst_detection_rules import get_default_burst_detection_rules
 
 
 def get_default_config_datetime_rules():  # This is a callable
     return DEFAULT_RULES_JSON
+
+
+def get_default_config_burst_detection_rules():  # This is a callable
+    return get_default_burst_detection_rules()
 
 
 def get_default_llm_settings():
@@ -59,6 +64,7 @@ class User(AbstractUser):
     )
     llm_settings = models.JSONField(default=get_default_llm_settings)
     datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
+    burst_detection_rules = models.JSONField(default=get_default_config_burst_detection_rules)
     default_timezone = models.TextField(
         choices=[(x, x) for x in pytz.all_timezones],
         default="UTC",

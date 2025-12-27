@@ -4,14 +4,17 @@ from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.cluster import Cluster
-from api.models.duplicate_group import DuplicateGroup
+from api.models.duplicate import Duplicate
 from api.models.face import Face
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
 from api.models.photo_search import PhotoSearch
+from api.models.photo_stack import PhotoStack
+from api.models.stack_review import StackReview
 from api.models.thumbnail import Thumbnail
 from api.models.user import User
 
@@ -22,13 +25,18 @@ __all__ = [
     "AlbumThing",
     "AlbumUser",
     "Cluster",
-    "DuplicateGroup",
+    "Duplicate",
     "Face",
     "LongRunningJob",
+    "MetadataEdit",
+    "MetadataFile",
     "Person",
     "Photo",
     "PhotoCaption",
+    "PhotoMetadata",
     "PhotoSearch",
+    "PhotoStack",
+    "StackReview",
     "Thumbnail",
     "User",
     "File",

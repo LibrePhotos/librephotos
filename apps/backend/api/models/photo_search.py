@@ -65,12 +65,16 @@ class PhotoSearch(models.Model):
         if self.photo.video:
             search_captions += "type: video "
 
-        # Add camera and lens info
-        if self.photo.camera:
-            search_captions += self.photo.camera + " "
-
-        if self.photo.lens:
-            search_captions += self.photo.lens + " "
+        # Add camera and lens info from PhotoMetadata
+        try:
+            metadata = self.photo.metadata
+            if metadata.camera_display:
+                search_captions += metadata.camera_display + " "
+            if metadata.lens_display:
+                search_captions += metadata.lens_display + " "
+        except Exception:
+            # PhotoMetadata may not exist yet
+            pass
 
         self.search_captions = search_captions.strip()
 
