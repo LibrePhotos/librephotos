@@ -1,6 +1,7 @@
 from django.test import TestCase
 
 from api.models import PhotoSearch, PhotoCaption
+from api.models.photo_metadata import PhotoMetadata
 from api.tests.utils import (
     create_test_user,
     create_test_photo,
@@ -188,10 +189,12 @@ class PhotoSearchModelTest(TestCase):
         person = create_test_person(name="Jane Smith", cluster_owner=self.user)
         create_test_face(photo=self.photo, person=person)
 
-        # Update photo with camera info
-        self.photo.camera = "Nikon D850"
-        self.photo.lens = "Nikon 50mm"
-        self.photo.save()
+        # Create PhotoMetadata with camera info
+        PhotoMetadata.objects.create(
+            photo=self.photo,
+            camera_model="Nikon D850",
+            lens_model="Nikon 50mm",
+        )
 
         search = PhotoSearch.objects.create(photo=self.photo)
         search.recreate_search_captions()
