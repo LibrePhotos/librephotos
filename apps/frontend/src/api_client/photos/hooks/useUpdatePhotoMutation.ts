@@ -1,10 +1,10 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-
-import type { Photo } from "../types";
 import { notification } from "../../../service/notifications";
+import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+import type { Photo } from "../types";
+import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 
 const PhotoUpdateResponse = z.object({
   image_hash: z.string(),
@@ -18,14 +18,15 @@ const PhotoUpdateResponse = z.object({
 });
 type PhotoUpdateResponse = z.infer<typeof PhotoUpdateResponse>;
 
-export const useUpdatePhotoMutation = () => useMutation({
-  mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
-    const response = await fetchClient.patch(`/photos/edit/${id}/`, data);
-    const result = PhotoUpdateResponse.parse(response);
-    notification.updatePhoto();
-    return result;
-  },
-  onSuccess: (data) => {
-    queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, data.image_hash] });
-  },
-}); 
+export const useUpdatePhotoMutation = () =>
+  useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Photo> }) => {
+      const response = await fetchClient.patch(`/photos/edit/${id}/`, data);
+      const result = parseWithNotification(PhotoUpdateResponse, response, "Failed to parse photo update response");
+      notification.updatePhoto();
+      return result;
+    },
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, data.image_hash] });
+    },
+  });
