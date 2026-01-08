@@ -2,6 +2,7 @@ import { z } from "zod";
 import { SimpleUser } from "../user/types";
 
 export const JobDetail = z.object({
+  id: z.number(),
   job_id: z.string(),
   queued_at: z.string(),
   finished: z.boolean(),

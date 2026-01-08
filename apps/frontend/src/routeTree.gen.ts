@@ -31,6 +31,7 @@ import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedStatisticsIndexRouteImport } from './routes/_protected/statistics/index'
 import { Route as ProtectedSharingIndexRouteImport } from './routes/_protected/sharing/index'
 import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
+import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
 import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
 import { Route as ProtectedStatisticsWordcloudsRouteImport } from './routes/_protected/statistics/wordclouds'
 import { Route as ProtectedStatisticsTimelineRouteImport } from './routes/_protected/statistics/timeline'
@@ -56,6 +57,7 @@ import { Route as ProtectedAlbumPlacesIdRouteImport } from './routes/_protected/
 import { Route as ProtectedAlbumPersonsIdRouteImport } from './routes/_protected/album/persons.$id'
 import { Route as ProtectedAlbumFolderIdRouteImport } from './routes/_protected/album/folder.$id'
 import { Route as ProtectedAlbumEventsIdRouteImport } from './routes/_protected/album/events.$id'
+import { Route as ProtectedAdminJobIdRouteImport } from './routes/_protected/admin/job.$id'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -166,6 +168,11 @@ const ProtectedAlbumIndexRoute = ProtectedAlbumIndexRouteImport.update({
   id: '/album/',
   path: '/album/',
   getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProtectedAdminRoute,
 } as any)
 const PublicSSlugRoute = PublicSSlugRouteImport.update({
   id: '/s/$slug',
@@ -303,12 +310,17 @@ const ProtectedAlbumEventsIdRoute = ProtectedAlbumEventsIdRouteImport.update({
   path: '/album/events/$id',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedAdminJobIdRoute = ProtectedAdminJobIdRouteImport.update({
+  id: '/job/$id',
+  path: '/job/$id',
+  getParentRoute: () => ProtectedAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/public': typeof PublicRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/admin': typeof ProtectedAdminRoute
+  '/admin': typeof ProtectedAdminRouteWithChildren
   '/deleted': typeof ProtectedDeletedRoute
   '/faces': typeof ProtectedFacesRoute
   '/favorites': typeof ProtectedFavoritesRoute
@@ -334,9 +346,11 @@ export interface FileRoutesByFullPath {
   '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
   '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
+  '/admin/': typeof ProtectedAdminIndexRoute
   '/album': typeof ProtectedAlbumIndexRoute
   '/sharing': typeof ProtectedSharingIndexRoute
   '/statistics': typeof ProtectedStatisticsIndexRoute
+  '/admin/job/$id': typeof ProtectedAdminJobIdRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -356,7 +370,6 @@ export interface FileRoutesByTo {
   '/public': typeof PublicRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/admin': typeof ProtectedAdminRoute
   '/deleted': typeof ProtectedDeletedRoute
   '/faces': typeof ProtectedFacesRoute
   '/favorites': typeof ProtectedFavoritesRoute
@@ -382,9 +395,11 @@ export interface FileRoutesByTo {
   '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
   '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
+  '/admin': typeof ProtectedAdminIndexRoute
   '/album': typeof ProtectedAlbumIndexRoute
   '/sharing': typeof ProtectedSharingIndexRoute
   '/statistics': typeof ProtectedStatisticsIndexRoute
+  '/admin/job/$id': typeof ProtectedAdminJobIdRoute
   '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -406,7 +421,7 @@ export interface FileRoutesById {
   '/public': typeof PublicRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/_protected/admin': typeof ProtectedAdminRoute
+  '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/deleted': typeof ProtectedDeletedRoute
   '/_protected/faces': typeof ProtectedFacesRoute
   '/_protected/favorites': typeof ProtectedFavoritesRoute
@@ -432,9 +447,11 @@ export interface FileRoutesById {
   '/_protected/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
   '/_protected/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
   '/public/s/$slug': typeof PublicSSlugRoute
+  '/_protected/admin/': typeof ProtectedAdminIndexRoute
   '/_protected/album/': typeof ProtectedAlbumIndexRoute
   '/_protected/sharing/': typeof ProtectedSharingIndexRoute
   '/_protected/statistics/': typeof ProtectedStatisticsIndexRoute
+  '/_protected/admin/job/$id': typeof ProtectedAdminJobIdRoute
   '/_protected/album/events/$id': typeof ProtectedAlbumEventsIdRoute
   '/_protected/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
   '/_protected/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
@@ -482,9 +499,11 @@ export interface FileRouteTypes {
     | '/statistics/timeline'
     | '/statistics/wordclouds'
     | '/public/s/$slug'
+    | '/admin/'
     | '/album'
     | '/sharing'
     | '/statistics'
+    | '/admin/job/$id'
     | '/album/events/$id'
     | '/album/folder/$id'
     | '/album/persons/$id'
@@ -504,7 +523,6 @@ export interface FileRouteTypes {
     | '/public'
     | '/login'
     | '/signup'
-    | '/admin'
     | '/deleted'
     | '/faces'
     | '/favorites'
@@ -530,9 +548,11 @@ export interface FileRouteTypes {
     | '/statistics/timeline'
     | '/statistics/wordclouds'
     | '/public/s/$slug'
+    | '/admin'
     | '/album'
     | '/sharing'
     | '/statistics'
+    | '/admin/job/$id'
     | '/album/events/$id'
     | '/album/folder/$id'
     | '/album/persons/$id'
@@ -579,9 +599,11 @@ export interface FileRouteTypes {
     | '/_protected/statistics/timeline'
     | '/_protected/statistics/wordclouds'
     | '/public/s/$slug'
+    | '/_protected/admin/'
     | '/_protected/album/'
     | '/_protected/sharing/'
     | '/_protected/statistics/'
+    | '/_protected/admin/job/$id'
     | '/_protected/album/events/$id'
     | '/_protected/album/folder/$id'
     | '/_protected/album/persons/$id'
@@ -761,6 +783,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAlbumIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/admin/': {
+      id: '/_protected/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof ProtectedAdminIndexRouteImport
+      parentRoute: typeof ProtectedAdminRoute
+    }
     '/public/s/$slug': {
       id: '/public/s/$slug'
       path: '/s/$slug'
@@ -936,11 +965,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAlbumEventsIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/admin/job/$id': {
+      id: '/_protected/admin/job/$id'
+      path: '/job/$id'
+      fullPath: '/admin/job/$id'
+      preLoaderRoute: typeof ProtectedAdminJobIdRouteImport
+      parentRoute: typeof ProtectedAdminRoute
+    }
   }
 }
 
+interface ProtectedAdminRouteChildren {
+  ProtectedAdminIndexRoute: typeof ProtectedAdminIndexRoute
+  ProtectedAdminJobIdRoute: typeof ProtectedAdminJobIdRoute
+}
+
+const ProtectedAdminRouteChildren: ProtectedAdminRouteChildren = {
+  ProtectedAdminIndexRoute: ProtectedAdminIndexRoute,
+  ProtectedAdminJobIdRoute: ProtectedAdminJobIdRoute,
+}
+
+const ProtectedAdminRouteWithChildren = ProtectedAdminRoute._addFileChildren(
+  ProtectedAdminRouteChildren,
+)
+
 interface ProtectedRouteRouteChildren {
-  ProtectedAdminRoute: typeof ProtectedAdminRoute
+  ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren
   ProtectedDeletedRoute: typeof ProtectedDeletedRoute
   ProtectedFacesRoute: typeof ProtectedFacesRoute
   ProtectedFavoritesRoute: typeof ProtectedFavoritesRoute
@@ -984,7 +1034,7 @@ interface ProtectedRouteRouteChildren {
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
-  ProtectedAdminRoute: ProtectedAdminRoute,
+  ProtectedAdminRoute: ProtectedAdminRouteWithChildren,
   ProtectedDeletedRoute: ProtectedDeletedRoute,
   ProtectedFacesRoute: ProtectedFacesRoute,
   ProtectedFavoritesRoute: ProtectedFavoritesRoute,

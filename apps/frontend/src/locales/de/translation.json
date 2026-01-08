@@ -399,7 +399,8 @@
         "running": "läuft",
         "removeexplanation": "Stoppt nicht den eigentlichen Job, sondern entfernt nur den Datenbank-Eintrag. Nur verwenden, wenn der betroffene Job unerwartet beendet wurde, bspw. durch Inspizieren der Logs.",
         "itemsadded": "Asset(s) hinzugefügt",
-        "waiting": "wartet"
+        "waiting": "wartet",
+        "failed": "Fehlgeschlagen"
     },
     "modalscandirectoryedit": {
         "header": "Lege Scan-Ordner für Nutzer fest",

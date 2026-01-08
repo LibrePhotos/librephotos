@@ -64,3 +64,4 @@ export function PublicAlbumsGrid({ albums }: PublicAlbumsGridProps) {
     </SimpleGrid>
   );
 }
+

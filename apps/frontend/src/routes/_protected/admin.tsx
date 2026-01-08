@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AdminPage } from "../../components/settings/AdminPage";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_protected/admin")();
 
-function RouteComponent() {
-  return <AdminPage />;
+function AdminLayout() {
+  return <Outlet />;
 }
 
-Route.update({ component: RouteComponent });
+Route.update({ component: AdminLayout });

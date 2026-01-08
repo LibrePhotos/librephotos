@@ -1,6 +1,7 @@
 import { Alert, Card, Flex, Loader, Pagination, Table, Title } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconAlertCircle as AlertCircle } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +14,7 @@ import { JobProgress } from "./JobProgress";
 
 export function JobList() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const matches = useMediaQuery("(min-width: 700px)");
   const [jobCount, setJobCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
@@ -54,7 +56,18 @@ export function JobList() {
         </Table.Thead>
         <Table.Tbody>
           {jobs?.results.map(job => (
-            <Table.Tr key={job.job_id}>
+            <Table.Tr
+              key={job.job_id}
+              style={{ cursor: "pointer" }}
+              onClick={e => {
+                // Don't navigate if clicking on the delete button or its container
+                const target = e.target as HTMLElement;
+                if (target.closest("button") || target.closest('[role="button"]')) {
+                  return;
+                }
+                navigate({ to: `/admin/job/${job.id}` });
+              }}
+            >
               <Table.Td>
                 <JobIndicator job={Object.create(job)} />
               </Table.Td>
@@ -63,6 +76,7 @@ export function JobList() {
                 <JobProgress
                   target={job.progress_target}
                   current={job.progress_current}
+                  failed={job.failed}
                   error={job.error}
                   finished={job.finished}
                   result={job.result}
@@ -87,7 +101,7 @@ export function JobList() {
                 startedAt={job.started_at}
               />
               {matches && <Table.Td>{job.started_by.username}</Table.Td>}
-              <Table.Td>
+              <Table.Td onClick={e => e.stopPropagation()}>
                 <DeleteJobButton job={job} />
               </Table.Td>
             </Table.Tr>

@@ -50,6 +50,8 @@ import {
 } from "../../api_client/stacks";
 import type { StackType } from "../../api_client/stacks/types";
 import { stackTypeLabels } from "../../api_client/stacks/types";
+import { useAccessToken } from "../../api_client/auth";
+import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { StackModal } from "../stacks/StackModal";
 
 function getStackTypeIcon(type: StackType) {
@@ -179,6 +181,9 @@ export function StacksPageContent() {
   const urlParams = new URLSearchParams(window.location.search);
   const typeParam = urlParams.get("type");
 
+  const { data: auth } = useAccessToken();
+  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id.toString() ?? "");
+
   const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
   const validStackTypes: StackType[] = ["raw_jpeg", "burst", "bracket", "live_photo", "manual"];
   const [typeFilter, setTypeFilter] = useState<StackType | undefined>(
@@ -187,9 +192,9 @@ export function StacksPageContent() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  // Detection options
+  // Detection options - initialized from user settings
   const [detectOptions, setDetectOptions] = useState({
-    detect_raw_jpeg: true,
+    detect_raw_jpeg: userSelfDetails?.stack_raw_jpeg !== false, // Default to true if not set
     detect_bursts: true,
     detect_live_photos: true,
   });
@@ -202,6 +207,16 @@ export function StacksPageContent() {
       setTypeFilter(typeFromUrl as StackType);
     }
   }, []);
+
+  // Update detection options when user settings load
+  useEffect(() => {
+    if (userSelfDetails) {
+      setDetectOptions(prev => ({
+        ...prev,
+        detect_raw_jpeg: userSelfDetails.stack_raw_jpeg !== false,
+      }));
+    }
+  }, [userSelfDetails]);
 
   const { data: stats } = useStackStatsQuery();
   const { data: stacksResponse, isLoading: stacksLoading } = useStacksQuery({

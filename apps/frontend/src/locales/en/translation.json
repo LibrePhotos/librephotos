@@ -124,6 +124,7 @@
     "rescanfacesdescription": "Look for faces on the library",
     "rescanfaces": "Rescan",
     "skip_raw_files_note": "When enabled, new RAW files are ignored during scans. Existing RAW files remain in your library. To remove them, enable this option, run a full rescan, then use 'Remove missing photos'.",
+    "stack_raw_jpeg_note": "When enabled, RAW files are automatically grouped with their JPEG counterparts during scans. Both files remain in your library.",
     "scanoptions": "Scanning Options",
     "sceneconfidence": "Scene confidence",
     "confidencelevel": "Confidence level",
@@ -718,6 +719,7 @@
     "itemsadded": "Asset(s) added",
     "running": "running",
     "waiting": "waiting",
+    "failed": "Failed",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
   },
   "modaluseredit": {
@@ -744,6 +746,7 @@
     "noallow": "Do not allow",
     "headerupload": "Allow uploads",
     "skip_raw_files": "Skip RAW files",
+    "stack_raw_jpeg": "Stack RAW+JPEG pairs",
     "headerskippatterns": "Skip patterns",
     "skippatterns": " Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for Synology devices)",
     "map_api_provider_header": "Map Provider",
