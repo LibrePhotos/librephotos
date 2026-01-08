@@ -44,7 +44,9 @@ class ScanPhotosDirectoryCreationTest(TestCase):
                     "api.directory_watcher.walk_files"
                 ), patch("api.directory_watcher.photo_scanner"), patch(
                     "api.directory_watcher.AsyncTask", DummyAsyncTask
-                ), patch("api.directory_watcher.Chain", DummyChain):
+                ), patch("api.directory_watcher.Chain", DummyChain), patch(
+                    "api.directory_watcher.db.connections.close_all"
+                ):
                     scan_photos(user, full_scan=False, job_id=str(uuid.uuid4()))
 
             expected_directories = [

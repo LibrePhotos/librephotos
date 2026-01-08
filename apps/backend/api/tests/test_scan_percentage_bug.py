@@ -1,10 +1,11 @@
 import os
+import tempfile
 import uuid
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase  # type: ignore
 
-from api.directory_watcher import handle_new_image
+from api.directory_watcher import handle_new_image, scan_photos
 from api.models import LongRunningJob, User
 
 
@@ -116,9 +117,6 @@ class ScanPercentageProgressTestCase(TestCase):
             f"Scan job progress: {lrj.progress_current}/{lrj.progress_target} "
             f"({percentage:.1f}%) finished={lrj.finished}"
         )
-        print(pre_fix_summary)
-        print(breakdown_summary)
-        print(progress_summary)
 
         self.assertLess(
             pre_fix_processed,
@@ -134,4 +132,69 @@ class ScanPercentageProgressTestCase(TestCase):
         self.assertTrue(
             lrj.finished,
             f"{breakdown_summary}\n{progress_summary} -> Scan job must finish when current equals target.",
+        )
+
+
+class EmptyDirectoryScanTestCase(TestCase):
+    """Test that scanning an empty directory completes correctly."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="empty_scan_testuser",
+            password="testpass",
+        )
+        # Create a temporary empty directory for testing
+        self.temp_dir = tempfile.mkdtemp()
+        self.user.scan_directory = self.temp_dir
+        self.user.save()
+        self.job_id = uuid.uuid4()
+
+    def tearDown(self):
+        # Clean up temp directory
+        import shutil
+
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_empty_directory_scan_completes_successfully(self):
+        """Ensure scanning an empty directory finishes with 0/0 progress."""
+        # Verify directory is empty
+        self.assertEqual(
+            len(os.listdir(self.temp_dir)),
+            0,
+            "Test directory should be empty",
+        )
+
+        # Mock db.connections.close_all() to prevent closing test DB connection
+        # Mock AsyncTask to prevent background task issues in tests
+        with patch("api.directory_watcher.db.connections.close_all"), \
+             patch("api.directory_watcher.AsyncTask"), \
+             patch("api.directory_watcher.Chain"):
+            # Run the scan
+            scan_photos(
+                self.user,
+                full_scan=True,
+                job_id=self.job_id,
+                scan_directory=self.temp_dir,
+            )
+
+        # Check job status
+        job = LongRunningJob.objects.get(job_id=self.job_id)
+
+        self.assertEqual(
+            job.progress_target,
+            0,
+            "Empty directory should have progress_target=0",
+        )
+        self.assertEqual(
+            job.progress_current,
+            0,
+            "Empty directory should have progress_current=0",
+        )
+        self.assertTrue(
+            job.finished,
+            "Empty directory scan should be marked as finished",
+        )
+        self.assertFalse(
+            job.failed,
+            "Empty directory scan should not be marked as failed",
         )
