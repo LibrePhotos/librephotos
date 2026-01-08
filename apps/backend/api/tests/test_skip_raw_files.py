@@ -1,23 +1,20 @@
 """
-Test per verificare il comportamento della feature skip_raw_files durante le scansioni
+Test to verify the behavior of the stack_raw_jpeg feature during scans.
+Note: skip_raw_files is deprecated - RAW files are always imported, but can be stacked or not.
 """
-import datetime
-import os
-import tempfile
-from unittest import TestCase
 from unittest.mock import patch
 
-import pytz
+from django.test import TestCase
 
-from api.models import File, Photo, User
+from api.models import Photo, User
 from api.models.file import is_valid_media
 
 
-class SkipRawFilesTestCase(TestCase):
-    """Test per verificare che i file RAW vengano ignorati con skip_raw_files=True"""
+class StackRawJpegTestCase(TestCase):
+    """Test to verify that RAW files are always imported and can be stacked"""
 
     def setUp(self):
-        """Setup del test environment"""
+        """Set up the test environment"""
         self.user = User.objects.create_user(
             username="testuser",
             email="test@example.com",
@@ -27,74 +24,31 @@ class SkipRawFilesTestCase(TestCase):
         self.user.save()
 
     def tearDown(self):
-        """Cleanup dopo i test"""
+        """Clean up after tests"""
         Photo.objects.filter(owner=self.user).delete()
         self.user.delete()
 
-    def test_new_raw_files_not_imported_during_normal_scan(self):
+    def test_raw_files_always_valid(self):
         """
-        Test: Nuovi file RAW NON vengono importati durante una scansione normale
-        quando skip_raw_files è attivo
+        Test: RAW files are always considered valid (no longer skipped)
         """
-        self.user.skip_raw_files = True
-        self.user.save()
-
-        # Verifica che is_valid_media ritorni False per file RAW
+        # Verify that is_valid_media returns True for RAW files regardless of stack_raw_jpeg
         with patch("api.models.file.is_raw") as mock_is_raw:
             mock_is_raw.return_value = True
-            result = is_valid_media("/new/raw/file.NEF", self.user)
-            self.assertFalse(
-                result,
-                "I file RAW non dovrebbero essere considerati validi con skip_raw_files=True",
-            )
-
-    def test_new_raw_files_not_imported_during_full_scan(self):
-        """
-        Test: Nuovi file RAW NON vengono importati durante un full scan
-        quando skip_raw_files è attivo
-        """
-        # Crea un file temporaneo RAW
-        with tempfile.NamedTemporaryFile(
-            suffix=".CR2", delete=False
-        ) as temp_raw_file:
-            raw_path = temp_raw_file.name
-            temp_raw_file.write(b"fake raw content for full scan")
-
-        try:
-            self.user.skip_raw_files = True
+            # With stack_raw_jpeg=True
+            self.user.stack_raw_jpeg = True
             self.user.save()
-
-            initial_photo_count = Photo.objects.filter(owner=self.user).count()
-
-            # Simula full scan chiamando create_new_image
-            from api.directory_watcher import create_new_image
-
-            result = create_new_image(self.user, raw_path)
-
-            # create_new_image dovrebbe restituire None perché is_valid_media ritorna False
-            self.assertIsNone(
+            result = is_valid_media("/new/raw/file.NEF", self.user)
+            self.assertTrue(
                 result,
-                "create_new_image dovrebbe restituire None per file RAW durante full scan",
+                "RAW files should always be considered valid",
             )
 
-            # Verifica che non sia stata creata nessuna foto
-            final_photo_count = Photo.objects.filter(owner=self.user).count()
-            self.assertEqual(
-                initial_photo_count,
-                final_photo_count,
-                "Non dovrebbe essere creata nessuna foto durante full scan con skip_raw_files=True",
+            # With stack_raw_jpeg=False
+            self.user.stack_raw_jpeg = False
+            self.user.save()
+            result = is_valid_media("/new/raw/file.NEF", self.user)
+            self.assertTrue(
+                result,
+                "RAW files should always be considered valid even with stack_raw_jpeg=False",
             )
-
-        finally:
-            # Cleanup
-            if os.path.exists(raw_path):
-                os.unlink(raw_path)
-
-
-if __name__ == "__main__":
-    import django
-
-    django.setup()
-    import unittest
-
-    unittest.main()

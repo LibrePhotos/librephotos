@@ -1,7 +1,7 @@
-from unittest import TestCase
 from unittest.mock import patch
 
 from constance.test import override_config
+from django.test import TestCase
 
 from api.geocode.geocode import reverse_geocode
 from api.geocode.parsers.mapbox import parse as parse_mapbox
@@ -113,5 +113,4 @@ class TestGeocoder(TestCase):
     @override_config(MAP_API_KEY="")
     def test_reverse_geocode_no_api_key(self):
         result = reverse_geocode(0, 0)
-        print(result)
         self.assertEqual(result, {})

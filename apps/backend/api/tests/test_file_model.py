@@ -131,25 +131,35 @@ def _ensure_stub_modules():
 
 def _load_file_module():
     _ensure_stub_modules()
+    # Use a unique module name to avoid conflicting with Django's registry
+    module_name = "api.models.file._test_stub"
+    if module_name in sys.modules:
+        return sys.modules[module_name]
     spec = importlib.util.spec_from_file_location(
-        "api.models.file", "api/models/file.py"
+        module_name, "api/models/file.py"
     )
     module = importlib.util.module_from_spec(spec)
-    sys.modules["api.models.file"] = module
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
 
-_file_module = _load_file_module()
-
-
 class TestIsVideo(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Only load the module when this specific test class runs
+        # Skip if Django models are already loaded to avoid double registration
+        if "api.models.file" in sys.modules:
+            cls._file_module = sys.modules["api.models.file"]
+        else:
+            cls._file_module = _load_file_module()
+
     def test_is_video_returns_false_when_magic_raises(self):
         class FailingMagic:
             def from_file(self, path):
                 raise RuntimeError("magic failure")
 
         with patch.object(
-            _file_module.magic, "Magic", return_value=FailingMagic()
+            self._file_module.magic, "Magic", return_value=FailingMagic()
         ):
-            self.assertFalse(_file_module.is_video("/tmp/test.mp4"))
+            self.assertFalse(self._file_module.is_video("/tmp/test.mp4"))
