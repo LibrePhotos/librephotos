@@ -20,6 +20,7 @@ class SharePhotosTest(TestCase):
     def test_share_photos(self):
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
         image_hashes = [p.image_hash for p in photos]
+        photo_ids = [p.id for p in photos]
 
         payload = {
             "image_hashes": image_hashes,
@@ -34,9 +35,10 @@ class SharePhotosTest(TestCase):
 
         self.assertTrue(data["status"])
         self.assertEqual(3, data["count"])
+        # Query by photo UUID (pk), not image_hash
         shared_photos = list(
             Photo.shared_to.through.objects.filter(
-                user_id=self.user2.id, photo_id__in=image_hashes
+                user_id=self.user2.id, photo_id__in=photo_ids
             )
         )
         self.assertEqual(3, len(shared_photos))
@@ -44,6 +46,7 @@ class SharePhotosTest(TestCase):
     def test_unshare_photos(self):
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
         image_hashes = [p.image_hash for p in photos]
+        photo_ids = [p.id for p in photos]
         share_test_photos(image_hashes, self.user2)
 
         payload = {
@@ -59,9 +62,10 @@ class SharePhotosTest(TestCase):
 
         self.assertTrue(data["status"])
         self.assertEqual(3, data["count"])
+        # Query by photo UUID (pk), not image_hash
         shared_photos = list(
             Photo.shared_to.through.objects.filter(
-                user_id=self.user2.id, photo_id__in=image_hashes
+                user_id=self.user2.id, photo_id__in=photo_ids
             )
         )
         self.assertEqual(0, len(shared_photos))
