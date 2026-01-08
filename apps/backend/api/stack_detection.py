@@ -123,14 +123,18 @@ def detect_raw_jpeg_pairs(user, progress_callback=None):
         raw_basename = os.path.splitext(os.path.basename(raw_path))[0]
         
         # Look for matching JPEG in same directory
+        # Try both lowercase and uppercase extensions to handle case variations
         for jpeg_ext in JPEG_EXTENSIONS:
-            jpeg_path = os.path.join(raw_dir, raw_basename + jpeg_ext)
+            # Try lowercase extension first
+            jpeg_path_lower = os.path.join(raw_dir, raw_basename + jpeg_ext)
+            # Try uppercase extension
+            jpeg_path_upper = os.path.join(raw_dir, raw_basename + jpeg_ext.upper())
             
-            # Find photo with this path
+            # Find photo with either path (case-insensitive matching)
             # Note: We cleared stacks above, so no need to exclude them here
             jpeg_photo = Photo.objects.filter(
                 Q(owner=user)
-                & Q(main_file__path=jpeg_path)
+                & (Q(main_file__path=jpeg_path_lower) | Q(main_file__path=jpeg_path_upper))
                 & Q(hidden=False)
                 & Q(in_trashcan=False)
             ).first()
@@ -230,7 +234,7 @@ def _detect_bursts_hard_criteria(user, hard_rules, progress_callback=None):
     These are deterministic rules that identify burst photos based on
     camera metadata or filename conventions.
     """
-    from api.image_captioning import get_metadata
+    from api.util import get_metadata
     
     # Get all photos that could be in bursts
     photos = Photo.objects.filter(
@@ -423,14 +427,18 @@ def detect_live_photos(user, progress_callback=None):
         photo_basename = os.path.splitext(os.path.basename(photo_path))[0]
         
         # Look for matching video file
+        # Try both lowercase and uppercase extensions to handle case variations
         for video_ext in VIDEO_EXTENSIONS:
-            video_path = os.path.join(photo_dir, photo_basename + video_ext)
+            # Try lowercase extension first
+            video_path_lower = os.path.join(photo_dir, photo_basename + video_ext)
+            # Try uppercase extension
+            video_path_upper = os.path.join(photo_dir, photo_basename + video_ext.upper())
             
-            # Find video photo with this path
+            # Find video photo with either path (case-insensitive matching)
             # Note: We cleared stacks above, so no need to exclude them here
             video_photo = Photo.objects.filter(
                 Q(owner=user)
-                & Q(main_file__path=video_path)
+                & (Q(main_file__path=video_path_lower) | Q(main_file__path=video_path_upper))
                 & Q(hidden=False)
                 & Q(in_trashcan=False)
             ).first()

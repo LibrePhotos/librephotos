@@ -328,20 +328,65 @@ def wait_for_group_and_process_metadata(
             )
 
 
-def update_scan_counter(job_id, failed=False):
-    # Increment the current progress
+def update_scan_counter(job_id, failed=False, error=None):
+    # Increment the current progress and get the updated job
     LongRunningJob.objects.filter(job_id=job_id).update(
         progress_current=F("progress_current") + 1
     )
+    
+    # Refetch the job to get the updated progress_current value
+    job = LongRunningJob.objects.filter(job_id=job_id).first()
+    if not job:
+        return
 
     # Mark the job as finished if the current progress equals the target
-    LongRunningJob.objects.filter(
-        job_id=job_id, progress_current=F("progress_target")
-    ).update(finished=True, finished_at=timezone.now())
-
-    # Mark the job as failed if the failed flag is set
-    if failed:
-        LongRunningJob.objects.filter(job_id=job_id).update(failed=True)
+    if job.progress_current >= job.progress_target:
+        # Job is finishing, update result with errors if any
+        result = job.result or {}
+        if failed or error:
+            result["status"] = "failed"
+            if "errors" not in result:
+                result["errors"] = []
+            if error:
+                error_str = str(error)
+                # Avoid duplicate errors
+                if error_str not in result["errors"]:
+                    result["errors"].append(error_str)
+            # Set main error field for backward compatibility
+            if "error" not in result and error:
+                result["error"] = str(error)
+            elif "error" not in result and result.get("errors"):
+                result["error"] = result["errors"][0]  # Use first error as main error
+        job.finished = True
+        job.finished_at = timezone.now()
+        if failed:
+            job.failed = True
+        job.result = result
+        job.save(update_fields=["finished", "finished_at", "failed", "result"])
+    else:
+        # Job is still running, accumulate errors in result
+        if failed or error:
+            job = LongRunningJob.objects.filter(job_id=job_id).first()
+            if job:
+                result = job.result or {}
+                result["status"] = "partial_failure" if not job.finished else "failed"
+                if "errors" not in result:
+                    result["errors"] = []
+                if error:
+                    error_str = str(error)
+                    # Avoid duplicate errors (limit to last 100 to prevent unbounded growth)
+                    if error_str not in result["errors"]:
+                        result["errors"].append(error_str)
+                        if len(result["errors"]) > 100:
+                            result["errors"] = result["errors"][-100:]  # Keep last 100 errors
+                # Set main error field for backward compatibility
+                if "error" not in result and error:
+                    result["error"] = str(error)
+                elif "error" not in result and result.get("errors"):
+                    result["error"] = result["errors"][0]  # Use first error as main error
+                job.result = result
+                job.failed = failed or job.failed
+                job.save(update_fields=["failed", "result"])
 
 
 def photo_scanner(user, last_scan, full_scan, path, job_id):
@@ -504,6 +549,10 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         # The scan faces job will have issues if the embeddings haven't been generated before it runs
         chain = Chain()
         chain.append(batch_calculate_clip_embedding, user)
+        # Stack RAW+JPEG pairs if enabled
+        if user.stack_raw_jpeg:
+            from api.stack_detection import detect_raw_jpeg_pairs
+            chain.append(detect_raw_jpeg_pairs, user)
         chain.append(scan_faces, user, uuid.uuid4(), full_scan)
         chain.run()
 
@@ -554,13 +603,18 @@ def generate_face_embeddings(user, job_id: UUID):
 
         for face in faces:
             failed = False
+            error = None
             try:
                 face.generate_encoding()
             except Exception as err:
                 util.logger.exception("An error occurred: ")
                 print(f"[ERR]: {err}")
                 failed = True
-            update_scan_counter(job_id, failed)
+                # Format error with traceback for better debugging
+                import traceback
+                error_msg = f"Face {face.id}: {str(err)}\n{traceback.format_exc()}"
+                error = error_msg
+            update_scan_counter(job_id, failed, error)
 
         lrj.complete()
 
@@ -614,16 +668,20 @@ def generate_tags(user, job_id: UUID, full_scan=False):
 
 def generate_tag_job(photo: Photo, job_id: str):
     failed = False
+    error = None
     try:
         photo.refresh_from_db()
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.generate_places365_captions(commit=True)
     except Exception as err:
         util.logger.exception("An error occurred: %s", photo.image_hash)
-
         print(f"[ERR]: {err}")
         failed = True
-    update_scan_counter(job_id, failed)
+        # Format error with traceback for better debugging
+        import traceback
+        error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+        error = error_msg
+    update_scan_counter(job_id, failed, error)
 
 
 def add_geolocation(user, job_id: UUID, full_scan=False):
@@ -662,14 +720,19 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
 
 def geolocation_job(photo: Photo, job_id: UUID):
     failed = False
+    error = None
     try:
         photo.refresh_from_db()
         photo._geolocate()
         photo._add_location_to_album_dates()
-    except Exception:
+    except Exception as err:
         util.logger.exception("An error occurred: ")
         failed = True
-    update_scan_counter(job_id, failed)
+        # Format error with traceback for better debugging
+        import traceback
+        error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+        error = error_msg
+    update_scan_counter(job_id, failed, error)
 
 
 def scan_faces(user, job_id: UUID, full_scan=False):
@@ -703,13 +766,18 @@ def scan_faces(user, job_id: UUID, full_scan=False):
 
         for photo in existing_photos:
             failed = False
+            error = None
             try:
                 photo._extract_faces()
             except Exception as err:
                 util.logger.exception("An error occurred: ")
                 print(f"[ERR]: {err}")
                 failed = True
-            update_scan_counter(job_id, failed)
+                # Format error with traceback for better debugging
+                import traceback
+                error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+                error = error_msg
+            update_scan_counter(job_id, failed, error)
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print(f"[ERR]: {err}")
