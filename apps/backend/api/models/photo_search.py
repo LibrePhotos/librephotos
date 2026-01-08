@@ -58,6 +58,8 @@ class PhotoSearch(models.Model):
                 search_captions += face.person.name + " "
 
         # Add file paths
+        if self.photo.main_file:
+            search_captions += self.photo.main_file.path + " "
         for file in self.photo.files.all():
             search_captions += file.path + " "
 

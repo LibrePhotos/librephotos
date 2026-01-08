@@ -35,7 +35,7 @@ class File(models.Model):
         choices=FILE_TYPES,
     )
     missing = models.BooleanField(default=False)
-    embedded_media = models.ManyToManyField("File")
+    embedded_media = models.ManyToManyField("self", symmetrical=False)
 
     def __str__(self):
         return self.path + " " + self._find_out_type()
@@ -126,8 +126,6 @@ def is_valid_media(path, user) -> bool:
     if is_video(path=path) or is_metadata(path=path):
         return True
     if is_raw(path=path):
-        if user.skip_raw_files:
-            return False
         return True
     try:
         pyvips.Image.thumbnail(path, 10000, height=200, size=pyvips.enums.Size.DOWN)

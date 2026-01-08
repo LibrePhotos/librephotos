@@ -53,6 +53,11 @@ def custom_exception_handler(exc, context):
             for key, value in response.data.items():
                 error = {"field": key, "message": "".join(str(value))}
                 customized_response["errors"].append(error)
+        elif isinstance(response.data, list):
+            # Handle ValidationError raised with a string (creates a list)
+            for item in response.data:
+                error = {"field": "non_field_errors", "message": str(item)}
+                customized_response["errors"].append(error)
 
         # Add actionable guidance for unauthenticated/forbidden responses
         if getattr(response, "status_code", None) in (401, 403) and settings.DEBUG:
@@ -465,6 +470,18 @@ class MediaAccessView(APIView):
             photo = Photo.objects.get(image_hash=image_hash)
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
+        except Photo.MultipleObjectsReturned:
+            # Multiple photos with same hash - find one that matches permissions
+            photos = Photo.objects.filter(image_hash=image_hash)
+            photo = None
+            # First try to find one that's public or in a public album
+            for p in photos:
+                if p.public or p.albumuser_set.filter(public=True).exists():
+                    photo = p
+                    break
+            # If none found, we'll check user permissions below
+            if photo is None:
+                photo = photos.first()
 
         # grant access if the requested photo is public or part of any public user album
         if photo.public or photo.albumuser_set.filter(public=True).exists():
@@ -805,6 +822,18 @@ class UnifiedMediaAccessView(APIView):
                 photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
+            except Photo.MultipleObjectsReturned:
+                # Multiple photos with same hash - find one that matches permissions
+                photos = Photo.objects.filter(image_hash=image_hash)
+                photo = None
+                # First try to find one in a public album
+                for p in photos:
+                    if p.albumuser_set.filter(self._public_album_active_q()).exists():
+                        photo = p
+                        break
+                # If none found, we'll check user permissions below
+                if photo is None:
+                    photo = photos.first()
 
             if photo.albumuser_set.filter(self._public_album_active_q()).exists():
                 if use_proxy:
@@ -850,6 +879,18 @@ class UnifiedMediaAccessView(APIView):
             photo = Photo.objects.get(image_hash=image_hash)
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
+        except Photo.MultipleObjectsReturned:
+            # Multiple photos with same hash - find one that matches permissions
+            photos = Photo.objects.filter(image_hash=image_hash)
+            photo = None
+            # First try to find one in a public album
+            for p in photos:
+                if p.albumuser_set.filter(self._public_album_active_q()).exists():
+                    photo = p
+                    break
+            # If none found, we'll check user permissions below
+            if photo is None:
+                photo = photos.first()
 
         if photo.albumuser_set.filter(self._public_album_active_q()).exists():
             if use_proxy:
