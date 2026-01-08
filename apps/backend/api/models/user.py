@@ -97,7 +97,8 @@ class User(AbstractUser):
         SMALL = "small"
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
-    skip_raw_files = models.BooleanField(default=False)
+    skip_raw_files = models.BooleanField(default=False)  # Deprecated: kept for migration compatibility
+    stack_raw_jpeg = models.BooleanField(default=True)
     slideshow_interval = models.IntegerField(default=5)
 
     # Duplicate detection settings
