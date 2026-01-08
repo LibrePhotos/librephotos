@@ -34,7 +34,8 @@ class RetrievePhotoTest(TestCase):
             headers=headers,
         )
 
-        self.assertEqual(403, response.status_code)
+        # Returns 404 instead of 403 to avoid leaking existence of other users' photos
+        self.assertEqual(404, response.status_code)
 
     def test_anonymous_user_should_retrieve_public_photo(self):
         self.client.force_authenticate(None)
