@@ -1,4 +1,5 @@
 import secrets
+import uuid
 from typing import Any
 
 import numpy as np
@@ -112,15 +113,19 @@ def create_test_photo(**kwargs):
     from api.models.thumbnail import Thumbnail
     from api.models.photo_caption import PhotoCaption
     from api.models.photo_search import PhotoSearch
+    from api.models.photo_metadata import PhotoMetadata
 
-    pk = fake.md5()
+    # Use proper UUID for primary key (Photo model now uses UUIDField)
+    pk = uuid.uuid4()
+    # Use MD5 for image_hash (content hash for deduplication)
+    image_hash = fake.md5()
 
     # Extract fields that are no longer part of Photo model
     aspect_ratio = kwargs.pop("aspect_ratio", 1)
-    thumbnail_big = kwargs.pop("thumbnail_big", f"/tmp/{pk}_big.jpg")
-    square_thumbnail = kwargs.pop("square_thumbnail", f"/tmp/{pk}_square.jpg")
+    thumbnail_big = kwargs.pop("thumbnail_big", f"/tmp/{image_hash}_big.jpg")
+    square_thumbnail = kwargs.pop("square_thumbnail", f"/tmp/{image_hash}_square.jpg")
     square_thumbnail_small = kwargs.pop(
-        "square_thumbnail_small", f"/tmp/{pk}_square_small.jpg"
+        "square_thumbnail_small", f"/tmp/{image_hash}_square_small.jpg"
     )
     dominant_color = kwargs.pop("dominant_color", None)
 
@@ -129,9 +134,44 @@ def create_test_photo(**kwargs):
     search_captions = kwargs.pop("search_captions", None)
     search_location = kwargs.pop("search_location", None)
 
+    # Extract metadata fields that are now in PhotoMetadata model
+    # Map old field names to new PhotoMetadata field names
+    metadata_field_mapping = {
+        "camera": "camera_model",  # Old 'camera' -> new 'camera_model'
+        "lens": "lens_model",      # Old 'lens' -> new 'lens_model'
+        "iso": "iso",
+        "fstop": "aperture",       # Old 'fstop' -> new 'aperture'
+        "focal_length": "focal_length",
+        "shutter_speed": "shutter_speed",
+        "focalLength35Equivalent": "focal_length_35mm",
+        "digitalZoomRatio": None,  # Not in new model, discard
+        "subjectDistance": None,   # Not in new model, discard
+        "width": "width",
+        "height": "height",
+        "orientation": "orientation",
+        "gps_lat": "gps_latitude",
+        "gps_lon": "gps_longitude",
+        "gps_altitude": "gps_altitude",
+        # Also support new field names directly
+        "camera_make": "camera_make",
+        "camera_model": "camera_model",
+        "lens_make": "lens_make",
+        "lens_model": "lens_model",
+        "aperture": "aperture",
+        "focal_length_35mm": "focal_length_35mm",
+        "gps_latitude": "gps_latitude",
+        "gps_longitude": "gps_longitude",
+    }
+    metadata_fields = {}
+    for old_name, new_name in metadata_field_mapping.items():
+        if old_name in kwargs:
+            value = kwargs.pop(old_name)
+            if new_name is not None:  # Skip fields that don't exist in new model
+                metadata_fields[new_name] = value
+
     # Create the photo with remaining kwargs
-    photo = Photo(pk=pk, image_hash=pk, **kwargs)
-    file = create_test_file(f"/tmp/{pk}.png", photo.owner, ONE_PIXEL_PNG)
+    photo = Photo(pk=pk, image_hash=image_hash, **kwargs)
+    file = create_test_file(f"/tmp/{image_hash}.png", photo.owner, ONE_PIXEL_PNG)
     photo.main_file = file
     if "added_on" not in kwargs.keys():
         photo.added_on = timezone.now()
@@ -159,6 +199,10 @@ def create_test_photo(**kwargs):
             search_location=search_location,
         )
 
+    # Create PhotoMetadata if metadata fields are provided
+    if metadata_fields:
+        PhotoMetadata.objects.create(photo=photo, **metadata_fields)
+
     return photo
 
 
@@ -179,9 +223,34 @@ def create_test_file(path: str, user: User, content: bytes):
 
 
 def share_test_photos(photo_ids, user):
+    """Share photos with a user.
+    
+    Args:
+        photo_ids: Can be either photo UUIDs (pk) or image_hashes (for backward compatibility)
+        user: The user to share photos with
+    """
+    # Handle both UUID (pk) and image_hash inputs for backward compatibility
+    resolved_ids = []
+    for photo_id in photo_ids:
+        if isinstance(photo_id, uuid.UUID):
+            resolved_ids.append(photo_id)
+        elif isinstance(photo_id, str):
+            # Try to find photo by image_hash
+            try:
+                photo = Photo.objects.get(image_hash=photo_id)
+                resolved_ids.append(photo.pk)
+            except Photo.DoesNotExist:
+                # Maybe it's a UUID string
+                try:
+                    resolved_ids.append(uuid.UUID(photo_id))
+                except ValueError:
+                    raise ValueError(f"Could not resolve photo_id: {photo_id}")
+        else:
+            resolved_ids.append(photo_id)
+    
     Photo.shared_to.through.objects.bulk_create(
         [
             Photo.shared_to.through(user_id=user.id, photo_id=photo_id)
-            for photo_id in photo_ids
+            for photo_id in resolved_ids
         ]
     )
