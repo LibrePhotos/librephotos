@@ -412,7 +412,7 @@ def detect_live_photos(user, progress_callback=None):
         Q(owner=user)
         & Q(hidden=False)
         & Q(in_trashcan=False)
-        & Q(main_file__type__in=[File.IMAGE_FILE, File.HEIC_FILE])
+        & Q(main_file__type=File.IMAGE)
     ).select_related('main_file')
     
     stacks_created = 0
