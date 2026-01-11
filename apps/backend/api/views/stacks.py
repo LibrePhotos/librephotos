@@ -49,8 +49,8 @@ class PhotoStackListView(APIView):
     )
     def get(self, request):
         stack_type_filter = request.query_params.get("stack_type", None)
-        page = int(request.query_params.get("page", 1))
-        page_size = min(int(request.query_params.get("page_size", 20)), 100)
+        page = max(1, int(request.query_params.get("page", 1)))
+        page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
 
         # Valid organizational stack types (exclude old duplicate types: visual_duplicate, exact_copy)
         valid_stack_types = [

@@ -56,8 +56,8 @@ class DuplicateListView(APIView):
     def get(self, request):
         duplicate_type_filter = request.query_params.get("duplicate_type", None)
         status_filter = request.query_params.get("status", None)
-        page = int(request.query_params.get("page", 1))
-        page_size = min(int(request.query_params.get("page_size", 20)), 100)
+        page = max(1, int(request.query_params.get("page", 1)))
+        page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
 
         duplicates = Duplicate.objects.filter(owner=request.user).prefetch_related(
             "photos__thumbnail", "kept_photo__thumbnail"
