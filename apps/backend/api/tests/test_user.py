@@ -65,6 +65,7 @@ class UserTest(TestCase):
         "stack_raw_jpeg",
         "slideshow_interval",
         "duplicate_sensitivity",
+        "duplicate_clear_existing",
         "cluster_selection_epsilon",
         "llm_settings",
         "text_alignment",
