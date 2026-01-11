@@ -156,7 +156,9 @@ class PhotoStack(models.Model):
             return
 
         # Move all photos from other stack to this one (ManyToMany)
-        for photo in other_stack.photos.all():
+        # Convert to list first to avoid modifying queryset while iterating
+        photos_to_move = list(other_stack.photos.all())
+        for photo in photos_to_move:
             photo.stacks.add(self)
             photo.stacks.remove(other_stack)
 

@@ -72,7 +72,8 @@ class PhotoStackListView(APIView):
 
         if stack_type_filter:
             # Validate that the filter is a valid organizational stack type
-            if stack_type_filter in [st[0] for st in valid_stack_types]:
+            # valid_stack_types contains TextChoices values which are strings
+            if stack_type_filter in [str(st) for st in valid_stack_types]:
                 stacks = stacks.filter(stack_type=stack_type_filter)
 
         # Only return stacks with at least 2 photos
@@ -526,21 +527,23 @@ class MergeStacksView(APIView):
             )
 
         # Find all manual stacks that contain any of the selected photos
-        manual_stacks = PhotoStack.objects.filter(
+        # Convert to list immediately to avoid multiple query evaluations with
+        # potentially inconsistent ordering
+        manual_stacks = list(PhotoStack.objects.filter(
             owner=request.user,
             stack_type=PhotoStack.StackType.MANUAL,
             photos__in=photos
-        ).distinct()
+        ).distinct())
 
-        if not manual_stacks.exists():
+        if not manual_stacks:
             return Response(
                 {"error": "No manual stacks found containing selected photos"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if manual_stacks.count() == 1:
+        if len(manual_stacks) == 1:
             # Only one stack found, nothing to merge
-            stack = manual_stacks.first()
+            stack = manual_stacks[0]
             return Response({
                 "status": "no_merge_needed",
                 "stack_id": str(stack.id),
@@ -549,8 +552,8 @@ class MergeStacksView(APIView):
             })
 
         # Merge all stacks into the first one
-        target_stack = manual_stacks.first()
-        stacks_to_merge = list(manual_stacks[1:])
+        target_stack = manual_stacks[0]
+        stacks_to_merge = manual_stacks[1:]
         
         for stack in stacks_to_merge:
             target_stack.merge_with(stack)
