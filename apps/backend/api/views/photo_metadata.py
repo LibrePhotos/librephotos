@@ -40,12 +40,14 @@ class PhotoMetadataViewSet(ViewSet):
 
     def _get_photo(self, request, photo_id: str) -> Photo:
         """Get photo by ID or image_hash, checking permissions."""
-        # Try UUID first, then image_hash for backwards compatibility
-        try:
-            import uuid
-            uuid.UUID(photo_id)
+        # UUID format is 36 chars with 4 hyphens (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+        # MD5 hashes are 32 hex chars without hyphens
+        # Python's uuid.UUID() accepts both, so we need to check format explicitly
+        is_uuid_format = len(photo_id) == 36 and photo_id.count("-") == 4
+        
+        if is_uuid_format:
             photo = get_object_or_404(Photo, pk=photo_id)
-        except (ValueError, AttributeError):
+        else:
             photo = get_object_or_404(Photo, image_hash=photo_id)
         
         # Check ownership
