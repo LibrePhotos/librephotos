@@ -133,6 +133,11 @@ class PhotoStack(models.Model):
             ordered = photos.order_by("exif_timestamp")
             count = ordered.count()
             best = ordered[count // 2] if count > 0 else None
+        elif self.stack_type == self.StackType.LIVE_PHOTO:
+            # For Live Photos, prefer the still image over the video
+            # File.VIDEO = 2 in the File model
+            still_photos = photos.exclude(main_file__type=2)
+            best = still_photos.first() if still_photos.exists() else photos.first()
         else:
             # Default: highest resolution
             # Use metadata__width and metadata__height since these fields moved to PhotoMetadata
