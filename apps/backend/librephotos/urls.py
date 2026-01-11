@@ -299,7 +299,7 @@ urlpatterns = [
         photo_metadata.PhotoMetadataViewSet.as_view({"post": "revert_all"}),
     ),
     re_path(
-        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/revert/(?P<edit_id>[0-9]+)",
+        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/revert/(?P<edit_id>[0-9a-f-]+)",
         photo_metadata.PhotoMetadataViewSet.as_view({"post": "revert"}),
     ),
     re_path(
