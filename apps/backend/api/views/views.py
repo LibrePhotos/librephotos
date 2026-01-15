@@ -752,7 +752,12 @@ class UnifiedMediaAccessView(APIView):
                 except TokenError:
                     pass
             try:
-                photo = Photo.objects.filter(query, image_hash=fname).first()
+                # Check if fname is UUID format (36 chars with 4 hyphens) or image_hash
+                is_uuid_format = len(fname) == 36 and fname.count("-") == 4
+                if is_uuid_format:
+                    photo = Photo.objects.filter(query, pk=fname).first()
+                else:
+                    photo = Photo.objects.filter(query, image_hash=fname).first()
                 if not photo or photo.main_file.embedded_media.count() < 1:
                     raise Photo.DoesNotExist()
             except Photo.DoesNotExist:

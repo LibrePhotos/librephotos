@@ -231,10 +231,17 @@ class BulkMetadataView(APIView):
         uuid_ids = []
         hash_ids = []
         for pid in photo_ids:
-            try:
-                uuid.UUID(pid)
-                uuid_ids.append(pid)
-            except (ValueError, AttributeError):
+            # UUID format: 36 chars with 4 hyphens (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+            # MD5 hashes are 32 hex chars without hyphens
+            # Note: uuid.UUID() accepts both formats, so we must check explicitly
+            is_uuid_format = len(pid) == 36 and pid.count("-") == 4
+            if is_uuid_format:
+                try:
+                    uuid.UUID(pid)
+                    uuid_ids.append(pid)
+                except (ValueError, AttributeError):
+                    hash_ids.append(pid)
+            else:
                 hash_ids.append(pid)
         
         photos = Photo.objects.filter(
@@ -298,10 +305,16 @@ class BulkMetadataView(APIView):
         uuid_ids = []
         hash_ids = []
         for pid in photo_ids:
-            try:
-                uuid.UUID(str(pid))
-                uuid_ids.append(pid)
-            except (ValueError, AttributeError):
+            pid_str = str(pid)
+            # UUID format: 36 chars with 4 hyphens
+            is_uuid_format = len(pid_str) == 36 and pid_str.count("-") == 4
+            if is_uuid_format:
+                try:
+                    uuid.UUID(pid_str)
+                    uuid_ids.append(pid)
+                except (ValueError, AttributeError):
+                    hash_ids.append(pid)
+            else:
                 hash_ids.append(pid)
         
         photos = Photo.objects.filter(

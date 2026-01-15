@@ -261,7 +261,7 @@ urlpatterns = [
         stacks.PhotoStackSetPrimaryView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)",
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)$",
         stacks.PhotoStackDetailView.as_view(),
     ),
     re_path(r"^api/stacks", stacks.PhotoStackListView.as_view()),

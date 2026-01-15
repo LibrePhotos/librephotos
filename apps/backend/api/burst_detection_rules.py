@@ -275,6 +275,48 @@ class BurstDetectionRule:
         return False, None
 
 
+def check_filename_pattern(photo, pattern_type="any"):
+    """
+    Check if a photo's filename matches a burst pattern.
+    
+    Standalone function for testing and external use.
+    
+    Args:
+        photo: Photo model instance with main_file
+        pattern_type: "any" to check all patterns, or specific pattern name
+                     (e.g., "burst_suffix", "sequence_suffix", "bracketed_sequence",
+                      "samsung_burst", "iphone_burst")
+    
+    Returns:
+        Tuple of (matches: bool, group_key: str or None)
+        group_key can be used to group photos into the same burst
+    """
+    if not photo.main_file:
+        return False, None
+    
+    filename = os.path.basename(photo.main_file.path)
+    basename = os.path.splitext(filename)[0]
+    directory = os.path.dirname(photo.main_file.path)
+    
+    if pattern_type == "any" or pattern_type == "all":
+        # Check all predefined patterns
+        for pattern_name, (pattern, _) in BURST_FILENAME_PATTERNS.items():
+            if re.search(pattern, basename, re.IGNORECASE):
+                base = re.sub(r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$", "", basename, flags=re.IGNORECASE)
+                group_key = f"filename_{directory}_{base}"
+                return True, group_key
+    else:
+        # Check specific pattern
+        if pattern_type in BURST_FILENAME_PATTERNS:
+            pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
+            if re.search(pattern, basename, re.IGNORECASE):
+                base = re.sub(r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$", "", basename, flags=re.IGNORECASE)
+                group_key = f"filename_{directory}_{base}"
+                return True, group_key
+    
+    return False, None
+
+
 def group_photos_by_timestamp(photos, interval_ms=2000, require_same_camera=True):
     """
     Group photos by timestamp proximity (soft criterion).

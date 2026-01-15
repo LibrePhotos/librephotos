@@ -49,8 +49,17 @@ class PhotoStackListView(APIView):
     )
     def get(self, request):
         stack_type_filter = request.query_params.get("stack_type", None)
-        page = max(1, int(request.query_params.get("page", 1)))
-        page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
+        
+        # Safely parse pagination parameters with defaults for invalid input
+        try:
+            page = max(1, int(request.query_params.get("page", 1)))
+        except (ValueError, TypeError):
+            page = 1
+        
+        try:
+            page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
+        except (ValueError, TypeError):
+            page_size = 20
 
         # Valid organizational stack types (exclude old duplicate types: visual_duplicate, exact_copy)
         valid_stack_types = [
@@ -356,19 +365,22 @@ class CreateManualStackView(APIView):
     def post(self, request):
         photo_hashes = request.data.get("photo_hashes", [])
         
-        if len(photo_hashes) < 2:
+        # De-duplicate the input to handle repeated hashes
+        unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
+        
+        if len(unique_hashes) < 2:
             return Response(
-                {"error": "At least 2 photos required to create a stack"},
+                {"error": "At least 2 unique photos required to create a stack"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Verify all photos exist and belong to user
         photos = Photo.objects.filter(
             owner=request.user,
-            image_hash__in=photo_hashes
+            image_hash__in=unique_hashes
         )
         
-        if photos.count() != len(photo_hashes):
+        if photos.count() != len(unique_hashes):
             return Response(
                 {"error": "Some photos not found"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -514,13 +526,16 @@ class MergeStacksView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # De-duplicate the input to handle repeated hashes
+        unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
+
         # Verify all photos exist and belong to user
         photos = Photo.objects.filter(
             owner=request.user,
-            image_hash__in=photo_hashes
+            image_hash__in=unique_hashes
         )
         
-        if photos.count() != len(photo_hashes):
+        if photos.count() != len(unique_hashes):
             return Response(
                 {"error": "Some photos not found"},
                 status=status.HTTP_400_BAD_REQUEST

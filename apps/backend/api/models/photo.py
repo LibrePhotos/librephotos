@@ -473,6 +473,9 @@ class Photo(models.Model):
         # Store stack references before cleanup (ManyToMany)
         photo_stacks = list(self.stacks.all())
         
+        # Store duplicate group references before cleanup (ManyToMany)
+        photo_duplicates = list(self.duplicates.all())
+        
         for file in self.files.all():
             if os.path.isfile(file.path):
                 logger.info(f"Removing photo {file.path}")
@@ -484,6 +487,10 @@ class Photo(models.Model):
         
         # Clear all stack references from this photo (ManyToMany)
         self.stacks.clear()
+        
+        # Clear all duplicate group references from this photo (ManyToMany)
+        self.duplicates.clear()
+        
         result = self.save()
         
         # Clean up stacks if they're now empty or have only one photo left
@@ -496,6 +503,17 @@ class Photo(models.Model):
                 for remaining_photo in photo_stack.photos.all():
                     remaining_photo.stacks.remove(photo_stack)
                 photo_stack.delete()
+        
+        # Clean up duplicate groups if they're now empty or have only one photo left
+        for duplicate in photo_duplicates:
+            remaining_photos = duplicate.photos.filter(removed=False).count()
+            if remaining_photos <= 1:
+                # If 0 or 1 photos left, delete the duplicate group (no longer valid)
+                logger.info(f"Deleting duplicate group {duplicate.id} - only {remaining_photos} photos remaining")
+                # Unlink remaining photos from duplicate first
+                for remaining_photo in duplicate.photos.all():
+                    remaining_photo.duplicates.remove(duplicate)
+                duplicate.delete()
         
         # To-Do: Handle wrong file permissions
         return result
