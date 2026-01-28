@@ -2,8 +2,9 @@ import { z } from "zod";
 
 // Types for organizational PhotoStack system
 // For duplicates (exact copies, visual duplicates), see api_client/duplicates
+// NOTE: RAW+JPEG pairs and Live Photos now use file_variants instead of stacks
 
-export const StackType = z.enum(["raw_jpeg", "burst", "bracket", "live_photo", "manual"]);
+export const StackType = z.enum(["burst", "bracket", "manual"]);
 export type StackType = z.infer<typeof StackType>;
 
 // File variant within a stack photo
@@ -185,18 +186,14 @@ export type DetectStacksResponse = z.infer<typeof DetectStacksResponse>;
 
 // Display labels
 export const stackTypeLabels: Record<StackType, string> = {
-  raw_jpeg: "RAW + JPEG",
   burst: "Burst Sequence",
   bracket: "Exposure Bracket",
-  live_photo: "Live Photo",
   manual: "Manual Stack",
 };
 
 export const stackTypeIcons: Record<StackType, string> = {
-  raw_jpeg: "camera",
   burst: "bolt",
   bracket: "sun",
-  live_photo: "video",
   manual: "stack",
 };
 

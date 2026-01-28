@@ -14,10 +14,10 @@ export enum Media {
   MOTION_PHOTO = "motion_photo",
 }
 
-// Stack types
-// NOTE: raw_jpeg and live_photo are DEPRECATED - use file_variants instead
-// NOTE: visual_duplicate and exact_copy are now handled by the Duplicate model, not PhotoStack
-export const StackTypeEnum = z.enum(["raw_jpeg", "burst", "bracket", "live_photo", "manual"]);
+// Stack types for organizational grouping
+// NOTE: visual_duplicate and exact_copy are handled by the Duplicate model, not PhotoStack
+// NOTE: RAW+JPEG pairs and Live Photos now use file_variants instead of stacks
+export const StackTypeEnum = z.enum(["burst", "bracket", "manual"]);
 export type StackTypeEnum = z.infer<typeof StackTypeEnum>;
 
 // File variant types (PhotoPrism-like model)
