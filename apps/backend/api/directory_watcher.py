@@ -26,9 +26,84 @@ from api.models.photo_search import PhotoSearch
 from api.models.file import (
     calculate_hash,
     is_metadata,
+    is_raw,
     is_valid_media,
     is_video,
 )
+
+
+# JPEG/image extensions that RAW files can be paired with
+JPEG_EXTENSIONS = {'.jpg', '.jpeg', '.heic', '.heif', '.png', '.tiff', '.tif'}
+
+
+def find_matching_jpeg_photo(raw_path: str, user) -> "Photo | None":
+    """
+    Find an existing Photo with a matching JPEG/image file for a RAW file.
+    
+    Matches based on same base filename (without extension) in the same directory.
+    This implements the PhotoPrism-like file variant model where RAW+JPEG are
+    one Photo with multiple file variants, not separate Photos.
+    
+    Args:
+        raw_path: Path to the RAW file
+        user: Owner of the photos
+        
+    Returns:
+        Matching Photo if found, None otherwise
+    """
+    raw_dir = os.path.dirname(raw_path)
+    raw_basename = os.path.splitext(os.path.basename(raw_path))[0]
+    
+    # Look for matching JPEG/image file in same directory
+    for jpeg_ext in JPEG_EXTENSIONS:
+        # Try both lowercase and uppercase extensions
+        for ext in [jpeg_ext, jpeg_ext.upper()]:
+            jpeg_path = os.path.join(raw_dir, raw_basename + ext)
+            photo = Photo.objects.filter(
+                owner=user,
+                main_file__path=jpeg_path
+            ).first()
+            if photo:
+                return photo
+    
+    return None
+
+
+def find_matching_image_for_video(video_path: str, user) -> "Photo | None":
+    """
+    Find an existing Photo with a matching image file for a Live Photo video.
+    
+    Apple Live Photos store the video as a separate .mov file with the same
+    base name as the image. This allows attaching the video as a file variant.
+    
+    Args:
+        video_path: Path to the video file
+        user: Owner of the photos
+        
+    Returns:
+        Matching Photo if found, None otherwise
+    """
+    video_dir = os.path.dirname(video_path)
+    video_basename = os.path.splitext(os.path.basename(video_path))[0]
+    video_ext_lower = os.path.splitext(video_path)[1].lower()
+    
+    # Only match .mov files (Apple Live Photos) with same base name
+    if video_ext_lower not in ['.mov']:
+        return None
+    
+    # Look for matching image file with same base name
+    image_extensions = list(JPEG_EXTENSIONS) + ['.heic', '.HEIC']
+    for img_ext in image_extensions:
+        for ext in [img_ext, img_ext.upper()]:
+            image_path = os.path.join(video_dir, video_basename + ext)
+            photo = Photo.objects.filter(
+                owner=user,
+                main_file__path=image_path
+            ).first()
+            if photo:
+                return photo
+    
+    return None
 
 
 def should_skip(path):
@@ -72,8 +147,12 @@ def create_new_image(user, path) -> Photo | None:
         Optional[Photo]: The created Photo object if successful, otherwise returns None.
 
     Note:
-        This function checks for embedded content, associates metadata files with existing Photos,
-        creates new Photos based on hash, and handles existing Photos by adding new Files.
+        This function implements file variant grouping (PhotoPrism-like):
+        - RAW files are attached to existing JPEG Photos as file variants
+        - Live Photo videos (.mov) are attached to existing image Photos as file variants
+        - Other files create new Photo entities
+        
+        This replaces the old stacking approach for RAW+JPEG and Live Photos.
 
     Raises:
         No explicit exceptions are raised by this function.
@@ -89,6 +168,7 @@ def create_new_image(user, path) -> Photo | None:
         util.logger.warning(f"embedded content file found {path}")
         return
 
+    # Handle metadata files (XMP sidecars)
     if is_metadata(path):
         photo_name = os.path.splitext(os.path.basename(path))[0]
         photo_dir = os.path.dirname(path)
@@ -106,6 +186,34 @@ def create_new_image(user, path) -> Photo | None:
             util.logger.warning(f"no photo to metadata file found {path}")
         return
 
+    # === File Variant Handling (PhotoPrism-like model) ===
+    
+    # Handle RAW files: attach to existing JPEG Photo if found
+    if is_raw(path):
+        existing_photo = find_matching_jpeg_photo(path, user)
+        if existing_photo:
+            # Check if this RAW file is already attached
+            if not existing_photo.files.filter(path=path).exists():
+                raw_file = File.create(path, user)
+                existing_photo.files.add(raw_file)
+                existing_photo.save()
+                util.logger.info(f"Attached RAW file {path} to existing Photo {existing_photo.image_hash}")
+            return existing_photo
+    
+    # Handle Live Photo videos (.mov): attach to existing image Photo if found
+    if is_video(path):
+        existing_photo = find_matching_image_for_video(path, user)
+        if existing_photo:
+            # Check if this video is already attached
+            if not existing_photo.files.filter(path=path).exists():
+                video_file = File.create(path, user)
+                existing_photo.files.add(video_file)
+                existing_photo.video = False  # Keep photo as image (video is just a variant)
+                existing_photo.save()
+                util.logger.info(f"Attached Live Photo video {path} to existing Photo {existing_photo.image_hash}")
+            return existing_photo
+
+    # === Standard Photo Creation ===
     photo: Photo = Photo()
     photo.image_hash = hash
     photo.owner = user
@@ -114,12 +222,16 @@ def create_new_image(user, path) -> Photo | None:
     photo.video = is_video(path)
     photo.save()
     file = File.create(path, user)
-    # Live Photo detection - extracts embedded motion video if present
+    
+    # Live Photo detection - extracts embedded motion video if present (Google/Samsung)
     if has_embedded_motion_video(file.path) and settings.FEATURE_PROCESS_EMBEDDED_MEDIA:
         em_path = extract_embedded_motion_video(file.path, file.hash)
         if em_path:
             em_file = File.create(em_path, user)
             file.embedded_media.add(em_file)
+            # Also add embedded video to Photo.files as a variant
+            photo.files.add(em_file)
+    
     photo.files.add(file)
     photo.main_file = file
     photo.save()
@@ -549,10 +661,8 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         # The scan faces job will have issues if the embeddings haven't been generated before it runs
         chain = Chain()
         chain.append(batch_calculate_clip_embedding, user)
-        # Stack RAW+JPEG pairs if enabled
-        if user.stack_raw_jpeg:
-            from api.stack_detection import detect_raw_jpeg_pairs
-            chain.append(detect_raw_jpeg_pairs, user)
+        # Note: RAW+JPEG pairing is now handled during scan (file variants model)
+        # No need for detect_raw_jpeg_pairs - RAW files are attached to JPEG Photos automatically
         chain.append(scan_faces, user, uuid.uuid4(), full_scan)
         chain.run()
 
