@@ -239,32 +239,33 @@ urlpatterns = [
     re_path(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
     re_path(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
-    # Photo Stacks - Organizational grouping (RAW+JPEG pairs, bursts, live photos)
-    re_path(r"^api/stacks/detect", stacks.DetectStacksView.as_view()),
-    re_path(r"^api/stacks/stats", stacks.PhotoStackStatsView.as_view()),
-    re_path(r"^api/stacks/manual", stacks.CreateManualStackView.as_view()),
-    re_path(r"^api/stacks/merge", stacks.MergeStacksView.as_view()),
+    # Photo Stacks - Organizational grouping (bursts, brackets, manual)
+    # NOTE: RAW+JPEG pairs and Live Photos now use Photo.files (file variants model)
+    re_path(r"^api/stacks/detect/?$", stacks.DetectStacksView.as_view()),
+    re_path(r"^api/stacks/stats/?$", stacks.PhotoStackStatsView.as_view()),
+    re_path(r"^api/stacks/manual/?$", stacks.CreateManualStackView.as_view()),
+    re_path(r"^api/stacks/merge/?$", stacks.MergeStacksView.as_view()),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/add",
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/add/?$",
         stacks.AddToStackView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/remove",
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/remove/?$",
         stacks.RemoveFromStackView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/delete",
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/delete/?$",
         stacks.PhotoStackDeleteView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/primary",
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/primary/?$",
         stacks.PhotoStackSetPrimaryView.as_view(),
     ),
     re_path(
-        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)$",
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/?$",
         stacks.PhotoStackDetailView.as_view(),
     ),
-    re_path(r"^api/stacks", stacks.PhotoStackListView.as_view()),
+    re_path(r"^api/stacks/?$", stacks.PhotoStackListView.as_view()),
     # Duplicates - Storage cleanup (exact copies, visual duplicates)
     re_path(r"^api/duplicates/detect", duplicates.DetectDuplicatesView.as_view()),
     re_path(r"^api/duplicates/stats", duplicates.DuplicateStatsView.as_view()),
@@ -307,6 +308,18 @@ urlpatterns = [
         photo_metadata.PhotoMetadataViewSet.as_view({"get": "retrieve", "patch": "partial_update"}),
     ),
     re_path(r"^api/photos/metadata/bulk", photo_metadata.BulkMetadataView.as_view()),
+    # File Variants - Download specific file variants (RAW, JPEG, video, etc.)
+    re_path(
+        r"^api/photos/(?P<image_hash>[a-f0-9]+)/file/(?P<file_hash>[a-f0-9]+)$",
+        photos.FileVariantDownloadView.as_view(),
+        name="file_variant_download",
+    ),
+    # Set main file for a photo (switch between variants)
+    re_path(
+        r"^api/photos/(?P<image_hash>[a-f0-9]+)/main-file$",
+        photos.SetMainFileView.as_view(),
+        name="set_main_file",
+    ),
     re_path(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
     re_path(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
     re_path(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),

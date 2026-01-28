@@ -1,10 +1,13 @@
 """
 API views for PhotoStack management - organizational photo grouping.
 
-Handles organizational stack types: RAW+JPEG pairs, burst sequences,
-exposure brackets, live photos, and manual stacks.
+Handles organizational stack types: burst sequences, exposure brackets,
+and manual stacks.
 
-NOTE: Duplicates (exact copies and visual duplicates) are now handled 
+NOTE: RAW+JPEG pairs and Live Photos are NO LONGER stacks. They use
+the Photo.files field for file variants (PhotoPrism-like model).
+
+NOTE: Duplicates (exact copies and visual duplicates) are handled 
 separately by the duplicates API in api/views/duplicates.py.
 Stacks are for organization, duplicates are for storage cleanup.
 """
@@ -61,14 +64,8 @@ class PhotoStackListView(APIView):
         except (ValueError, TypeError):
             page_size = 20
 
-        # Valid organizational stack types (exclude old duplicate types: visual_duplicate, exact_copy)
-        valid_stack_types = [
-            PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.BURST_SEQUENCE,
-            PhotoStack.StackType.EXPOSURE_BRACKET,
-            PhotoStack.StackType.LIVE_PHOTO,
-            PhotoStack.StackType.MANUAL,
-        ]
+        # Use model-defined valid stack types (excludes deprecated RAW_JPEG_PAIR, LIVE_PHOTO)
+        valid_stack_types = PhotoStack.VALID_STACK_TYPES
 
         stacks = PhotoStack.objects.filter(
             owner=request.user,
@@ -134,26 +131,24 @@ class PhotoStackDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, stack_id):
-        # Valid organizational stack types (exclude old duplicate types: visual_duplicate, exact_copy)
-        valid_stack_types = [
+        # Use model-defined valid stack types (excludes deprecated RAW_JPEG_PAIR, LIVE_PHOTO)
+        # Also include deprecated types for viewing existing stacks during migration
+        all_stack_types = PhotoStack.VALID_STACK_TYPES + [
             PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.BURST_SEQUENCE,
-            PhotoStack.StackType.EXPOSURE_BRACKET,
             PhotoStack.StackType.LIVE_PHOTO,
-            PhotoStack.StackType.MANUAL,
         ]
         
         try:
             stack = PhotoStack.objects.annotate(
                 photos_count=Count("photos")
-            ).get(id=stack_id, owner=request.user, stack_type__in=valid_stack_types)
+            ).get(id=stack_id, owner=request.user, stack_type__in=all_stack_types)
         except PhotoStack.DoesNotExist:
             return Response(
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photos = stack.photos.select_related('thumbnail', 'main_file', 'metadata').all()
-        
+        photos = stack.photos.select_related('thumbnail', 'main_file', 'metadata').prefetch_related('files').all()
+
         photo_data = []
         for p in photos:
             # Width, height, and camera are on the metadata model
@@ -164,7 +159,18 @@ class PhotoStackDetailView(APIView):
                 width = p.metadata.width
                 height = p.metadata.height
                 camera = p.metadata.camera_model
-            
+
+            # Get all file variants for this photo
+            file_variants = []
+            for f in p.files.all():
+                file_variants.append({
+                    "hash": f.hash,
+                    "path": f.path,
+                    "type": f.get_type_display().lower(),
+                    "is_main": p.main_file and f.hash == p.main_file.hash,
+                    "filename": f.path.split("/")[-1] if f.path else None,
+                })
+
             data = {
                 "id": str(p.id),
                 "image_hash": p.image_hash,
@@ -175,7 +181,8 @@ class PhotoStackDetailView(APIView):
                 "exif_timestamp": p.exif_timestamp,
                 "is_primary": stack.primary_photo and p.image_hash == stack.primary_photo.image_hash,
                 "file_path": p.main_file.path if p.main_file else None,
-                "file_type": p.main_file.get_type_display() if p.main_file else None,
+                "file_type": p.main_file.get_type_display().lower() if p.main_file else None,
+                "file_variants": file_variants if file_variants else None,
                 "thumbnail_url": f"/media/square_thumbnails_small/{p.image_hash}" if hasattr(p, 'thumbnail') and p.thumbnail.square_thumbnail_small else None,
                 "thumbnail_big_url": f"/media/thumbnails_big/{p.image_hash}" if hasattr(p, 'thumbnail') and p.thumbnail.thumbnail_big else None,
             }
@@ -192,6 +199,30 @@ class PhotoStackDetailView(APIView):
             "updated_at": stack.updated_at,
             "primary_photo_hash": stack.primary_photo.image_hash if stack.primary_photo else None,
             "photos": photo_data,
+        })
+
+    def delete(self, request, stack_id):
+        """Delete a stack (unlinks photos but doesn't delete them)."""
+        try:
+            stack = PhotoStack.objects.get(id=stack_id, owner=request.user)
+        except PhotoStack.DoesNotExist:
+            return Response(
+                {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Unlink photos from this stack (ManyToMany)
+        photo_count = stack.photos.count()
+        for photo in stack.photos.all():
+            photo.stacks.remove(stack)
+
+        # Delete stack
+        stack_id_str = str(stack.id)
+        stack.delete()
+
+        logger.info(f"Deleted stack {stack_id_str}: unlinked {photo_count} photos")
+        return Response({
+            "status": "deleted",
+            "unlinked_count": photo_count
         })
 
 
@@ -263,7 +294,10 @@ class PhotoStackSetPrimaryView(APIView):
 
 
 class DetectStacksView(APIView):
-    """Trigger stack detection for the current user (RAW+JPEG pairs, bursts, etc.).
+    """Trigger stack detection for the current user (bursts, brackets).
+    
+    NOTE: RAW+JPEG pairs and Live Photos are now handled as file variants
+    during scan (PhotoPrism-like model), not as stacks.
     
     Burst detection uses the user's configured burst_detection_rules from their profile.
     """
@@ -273,31 +307,19 @@ class DetectStacksView(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "detect_raw_jpeg",
-                bool,
-                description="Detect RAW+JPEG pairs (default: true)",
-            ),
-            OpenApiParameter(
                 "detect_bursts",
                 bool,
                 description="Detect burst sequences using user's configured rules (default: true)",
-            ),
-            OpenApiParameter(
-                "detect_live_photos",
-                bool,
-                description="Detect live photos with embedded video (default: true)",
             ),
         ],
     )
     def post(self, request):
         from api.stack_detection import batch_detect_stacks
         
-        # Burst detection now uses user's configured burst_detection_rules
-        # burst_interval_ms and burst_use_visual_similarity are no longer passed here
+        # RAW+JPEG and Live Photos are now file variants, not stacks
+        # Only burst/bracket detection is done here
         options = {
-            'detect_raw_jpeg': request.data.get('detect_raw_jpeg', True),
             'detect_bursts': request.data.get('detect_bursts', True),
-            'detect_live_photos': request.data.get('detect_live_photos', True),
         }
 
         # Queue background job
@@ -320,29 +342,26 @@ class PhotoStackStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Valid organizational stack types (exclude old duplicate types: visual_duplicate, exact_copy)
-        valid_stack_types = [
+        # Include all stack types for stats (shows deprecated types for migration visibility)
+        all_stack_types = PhotoStack.VALID_STACK_TYPES + [
             PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.BURST_SEQUENCE,
-            PhotoStack.StackType.EXPOSURE_BRACKET,
             PhotoStack.StackType.LIVE_PHOTO,
-            PhotoStack.StackType.MANUAL,
         ]
         
         stacks = PhotoStack.objects.filter(
             owner=request.user,
-            stack_type__in=valid_stack_types
+            stack_type__in=all_stack_types
         )
         
-        # Count by type (only valid organizational types)
+        # Count by type (includes deprecated types so users can see migration progress)
         by_type = {}
-        for stack_type in valid_stack_types:
+        for stack_type in all_stack_types:
             by_type[stack_type] = stacks.filter(stack_type=stack_type).count()
         
         # Count photos in stacks (ManyToMany - photos with at least one valid organizational stack)
         photos_in_stacks = Photo.objects.filter(
             owner=request.user,
-            stacks__stack_type__in=valid_stack_types
+            stacks__stack_type__in=all_stack_types
         ).distinct().count()
         
         total_photos = Photo.objects.filter(

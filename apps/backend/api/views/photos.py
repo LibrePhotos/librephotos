@@ -917,3 +917,147 @@ class DeletePhotos(APIView):
         )
 
 
+class FileVariantDownloadView(APIView):
+    """
+    Download a specific file variant for a photo.
+    
+    Supports downloading RAW, JPEG, video (Live Photo), or other variants
+    associated with a Photo entity (PhotoPrism-like file variant model).
+    """
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "file_hash",
+                OpenApiTypes.STR,
+                description="Hash of the specific file variant to download",
+            ),
+        ],
+    )
+    def get(self, request, image_hash, file_hash):
+        """Download a specific file variant by hash."""
+        import magic
+        import os
+        from django.http import FileResponse, HttpResponse
+        
+        # Find the photo
+        try:
+            photo = Photo.objects.get(
+                image_hash=image_hash,
+                owner=request.user,
+            )
+        except Photo.DoesNotExist:
+            return Response(
+                {"error": "Photo not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Photo.MultipleObjectsReturned:
+            # Multiple photos with same hash - get the one owned by user
+            photo = Photo.objects.filter(
+                image_hash=image_hash,
+                owner=request.user,
+            ).first()
+            if not photo:
+                return Response(
+                    {"error": "Photo not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Find the requested file variant
+        file_variant = photo.files.filter(hash=file_hash).first()
+        if not file_variant:
+            return Response(
+                {"error": "File variant not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check file exists
+        if not os.path.exists(file_variant.path):
+            return Response(
+                {"error": "File not found on disk"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Serve the file
+        try:
+            response = FileResponse(
+                open(file_variant.path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_variant.path),
+            )
+            
+            # Set content type
+            try:
+                mime = magic.Magic(mime=True)
+                response["Content-Type"] = mime.from_file(file_variant.path)
+            except Exception:
+                response["Content-Type"] = "application/octet-stream"
+            
+            return response
+            
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error(f"Error serving file {file_variant.path}: {e}")
+            return Response(
+                {"error": "Could not read file"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class SetMainFileView(APIView):
+    """
+    Set the main (primary) file for a photo.
+    
+    Changes which file variant is used as the main display file for the photo.
+    Useful when a photo has multiple variants (RAW, JPEG, etc.).
+    """
+
+    def post(self, request, image_hash):
+        """Set the main file for a photo."""
+        file_hash = request.data.get("file_hash")
+        
+        if not file_hash:
+            return Response(
+                {"error": "file_hash is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find the photo
+        try:
+            photo = Photo.objects.get(
+                image_hash=image_hash,
+                owner=request.user,
+            )
+        except Photo.DoesNotExist:
+            return Response(
+                {"error": "Photo not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Photo.MultipleObjectsReturned:
+            photo = Photo.objects.filter(
+                image_hash=image_hash,
+                owner=request.user,
+            ).first()
+            if not photo:
+                return Response(
+                    {"error": "Photo not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Find the requested file variant
+        file_variant = photo.files.filter(hash=file_hash).first()
+        if not file_variant:
+            return Response(
+                {"error": "File variant not found in this photo"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Update main file
+        photo.main_file = file_variant
+        photo.save(update_fields=["main_file", "last_modified"])
+        
+        logger.info(f"Set main file for photo {image_hash} to {file_hash}")
+        
+        return Response({
+            "status": "updated",
+            "main_file_hash": file_hash,
+        })

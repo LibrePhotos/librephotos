@@ -29,6 +29,8 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     owner = SimpleUserSerializer()
     # Stack information (can be multiple stacks)
     stacks = serializers.SerializerMethodField()
+    # Flag indicating if this photo has a RAW file variant (PhotoPrism-like model)
+    has_raw_variant = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
@@ -50,6 +52,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "removed",
             "in_trashcan",
             "stacks",
+            "has_raw_variant",
         )
 
     # TODO: Rename this field to aspect_ratio
@@ -106,13 +109,10 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     def get_stacks(self, obj) -> list | None:
         """Return stack info if photo is part of any stacks."""
         from api.models.photo_stack import PhotoStack
-        # Filter out old duplicate types (visual_duplicate, exact_copy) - only return organizational stack types
-        valid_stack_types = [
+        # Use model-defined valid stack types, plus deprecated types for backwards compatibility
+        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
             PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.BURST_SEQUENCE,
-            PhotoStack.StackType.EXPOSURE_BRACKET,
             PhotoStack.StackType.LIVE_PHOTO,
-            PhotoStack.StackType.MANUAL,
         ]
         stacks = obj.stacks.filter(stack_type__in=valid_stack_types)
         if not stacks.exists():
@@ -131,6 +131,15 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             })
         
         return result
+
+    def get_has_raw_variant(self, obj) -> bool:
+        """Check if this photo has a RAW file variant.
+        
+        This implements the PhotoPrism-like file variant model.
+        Returns True if any of the photo's files is a RAW file type.
+        """
+        # Check files for RAW type (File.RAW_FILE = 4)
+        return obj.files.filter(type=4).exists()
 
 
 class GroupedPhotosSerializer(serializers.ModelSerializer):
@@ -289,7 +298,10 @@ class PhotoSerializer(serializers.ModelSerializer):
     image_path = serializers.SerializerMethodField()
     owner = SimpleUserSerializer(many=False, read_only=True)
     embedded_media = serializers.SerializerMethodField()
-    # Stack information (duplicates, RAW+JPEG pairs, bursts, etc.) - can be multiple
+    # File variants (RAW, JPEG, video for Live Photos, etc.)
+    # PhotoPrism-like model where one Photo can have multiple file variants
+    file_variants = serializers.SerializerMethodField()
+    # Stack information (bursts, brackets, manual stacks) - can be multiple
     stacks = serializers.SerializerMethodField()
     # Structured metadata with edit history support
     metadata = serializers.SerializerMethodField()
@@ -347,6 +359,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "digitalZoomRatio",
             "subjectDistance",
             "embedded_media",
+            "file_variants",
             "stacks",
             "metadata",
         )
@@ -561,16 +574,52 @@ class PhotoSerializer(serializers.ModelSerializer):
         except PhotoMetadata.DoesNotExist:
             return None
 
+    def get_file_variants(self, obj: Photo) -> list | None:
+        """Return file variants for this photo (RAW, JPEG, video for Live Photos, etc.).
+        
+        This implements the PhotoPrism-like model where one Photo can have multiple
+        file variants representing the same capture moment.
+        """
+        from api.models.file import File
+        
+        files = obj.files.all()
+        if files.count() <= 1:
+            # Only main file, no additional variants
+            return None
+        
+        variants = []
+        for f in files:
+            # Determine file type label
+            file_type_map = {
+                File.IMAGE: "image",
+                File.VIDEO: "video",
+                File.RAW_FILE: "raw",
+                File.METADATA_FILE: "metadata",
+                File.UNKNOWN: "unknown",
+            }
+            file_type = file_type_map.get(f.type, "unknown")
+            
+            # Check if this is the main file
+            is_main = obj.main_file_id == f.hash if obj.main_file_id else False
+            
+            variants.append({
+                "hash": f.hash,
+                "path": f.path,
+                "type": file_type,
+                "type_id": f.type,
+                "is_main": is_main,
+                "filename": f.path.split("/")[-1] if f.path else None,
+            })
+        
+        return variants
+
     def get_stacks(self, obj: Photo) -> list | None:
         """Return detailed stack info for photo detail view (supports multiple stacks)."""
         from api.models.photo_stack import PhotoStack
-        # Filter out old duplicate types (visual_duplicate, exact_copy) - only return organizational stack types
-        valid_stack_types = [
+        # Use model-defined valid stack types, plus deprecated types for backwards compatibility
+        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
             PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.BURST_SEQUENCE,
-            PhotoStack.StackType.EXPOSURE_BRACKET,
             PhotoStack.StackType.LIVE_PHOTO,
-            PhotoStack.StackType.MANUAL,
         ]
         stacks = obj.stacks.filter(stack_type__in=valid_stack_types)
         if not stacks.exists():
