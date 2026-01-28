@@ -823,8 +823,14 @@ class UnifiedMediaAccessView(APIView):
 
         # Non-photos (thumbnails, faces, etc.)
         if path.lower() != "photos":
+            # Try UUID lookup first (for new-style requests after migration 0099),
+            # then fall back to image_hash lookup (for legacy/backward compatibility)
+            is_uuid_format = len(image_hash) == 36 and image_hash.count("-") == 4
             try:
-                photo = Photo.objects.get(image_hash=image_hash)
+                if is_uuid_format:
+                    photo = Photo.objects.get(pk=image_hash)
+                else:
+                    photo = Photo.objects.get(image_hash=image_hash)
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
             except Photo.MultipleObjectsReturned:

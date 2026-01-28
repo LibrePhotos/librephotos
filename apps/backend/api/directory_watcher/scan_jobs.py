@@ -351,8 +351,6 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         # The scan faces job will have issues if the embeddings haven't been generated before it runs
         chain = Chain()
         chain.append(batch_calculate_clip_embedding, user)
-        # Note: RAW+JPEG pairing is now handled during scan (file variants model)
-        # No need for detect_raw_jpeg_pairs - RAW files are attached to JPEG Photos automatically
         chain.append(scan_faces, user, uuid.uuid4(), full_scan)
         chain.run()
 
