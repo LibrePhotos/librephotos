@@ -34,7 +34,16 @@ import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useSetCoverPhotoMutation, useStackQuery } from "../../api_client/stacks";
 import type { StackType } from "../../api_client/stacks/types";
-import { Lightbox } from "../lightbox";
+import { StackLightbox } from "./StackLightbox";
+
+// File variant type
+type FileVariant = {
+  hash: string;
+  path: string;
+  type: string;
+  is_main: boolean;
+  filename: string | null;
+};
 
 // Photo type for stack photos
 type StackPhoto = {
@@ -50,6 +59,7 @@ type StackPhoto = {
   file_path: string | null;
   camera: string | null;
   exif_timestamp: string | null;
+  file_variants?: FileVariant[] | null;
 };
 
 function formatFileSize(bytes: number): string {
@@ -63,6 +73,52 @@ function formatFileSize(bytes: number): string {
 function formatResolution(width: number | null, height: number | null): string {
   if (!width || !height) return "Unknown";
   return `${width} × ${height}`;
+}
+
+// Get file extension from path
+function getFileExtension(filePath: string | null): string | null {
+  if (!filePath) return null;
+  const parts = filePath.split(".");
+  if (parts.length > 1) {
+    return parts[parts.length - 1].toUpperCase();
+  }
+  return null;
+}
+
+// Map file_type to user-friendly labels
+const fileTypeLabels: Record<string, string> = {
+  image: "JPEG",
+  video: "Video",
+  raw: "RAW",
+  metadata: "Metadata",
+  unknown: "File",
+};
+
+// Get display label for file type
+function getFileTypeDisplay(fileType: string | null, filePath: string | null): string {
+  // First try to get actual extension from file path
+  const extension = getFileExtension(filePath);
+  if (extension) {
+    return extension;
+  }
+  // Fall back to mapped label
+  if (fileType && fileTypeLabels[fileType]) {
+    return fileTypeLabels[fileType];
+  }
+  // Use file_type directly if no mapping
+  return fileType || "File";
+}
+
+// Get badge color based on file type
+function getFileTypeColor(fileType: string | null, filePath: string | null): string {
+  const extension = getFileExtension(filePath)?.toLowerCase();
+  // RAW formats
+  if (extension && ["cr2", "cr3", "nef", "arw", "orf", "rw2", "dng", "raf", "raw"].includes(extension)) {
+    return "orange";
+  }
+  if (fileType === "raw") return "orange";
+  if (fileType === "video") return "green";
+  return "gray";
 }
 
 function getStackTypeIcon(type: StackType) {
@@ -179,19 +235,42 @@ function StackPhotoCard({
           </Text>
         )}
 
-        {photo.file_path && (
+        {/* File variants or single file display */}
+        {photo.file_variants && photo.file_variants.length > 0 ? (
+          <Stack gap={4}>
+            {photo.file_variants.map(variant => (
+              <Tooltip key={variant.hash} label={variant.path} multiline w={300}>
+                <Group gap="xs" wrap="nowrap">
+                  <Badge
+                    size="xs"
+                    variant={variant.is_main ? "filled" : "outline"}
+                    color={getFileTypeColor(variant.type, variant.path)}
+                  >
+                    {getFileTypeDisplay(variant.type, variant.path)}
+                  </Badge>
+                  <Text size="xs" c="dimmed" truncate style={{ flex: 1 }}>
+                    {variant.filename || variant.path.split("/").pop()}
+                  </Text>
+                </Group>
+              </Tooltip>
+            ))}
+          </Stack>
+        ) : photo.file_path ? (
           <Tooltip label={photo.file_path} multiline w={300}>
-            <Text size="xs" c="dimmed" lineClamp={1}>
-              📁 {photo.file_path.split("/").pop()}
-            </Text>
+            <Group gap="xs" wrap="nowrap">
+              <Badge
+                size="xs"
+                variant="outline"
+                color={getFileTypeColor(photo.file_type, photo.file_path)}
+              >
+                {getFileTypeDisplay(photo.file_type, photo.file_path)}
+              </Badge>
+              <Text size="xs" c="dimmed" truncate style={{ flex: 1 }}>
+                {photo.file_path.split("/").pop()}
+              </Text>
+            </Group>
           </Tooltip>
-        )}
-
-        {photo.file_type && (
-          <Badge size="xs" variant="outline" color="gray">
-            {photo.file_type}
-          </Badge>
-        )}
+        ) : null}
 
         {!isCover && (
           <Button
@@ -225,12 +304,6 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
   const { data: stack, isLoading } = useStackQuery(stackId);
   const { mutate: setCoverPhoto } = useSetCoverPhotoMutation();
 
-  // Create idx2hash array for the Lightbox component
-  const idx2hash = React.useMemo(() => {
-    if (!stack?.photos || stack.photos.length === 0) return [];
-    return stack.photos.map((p: StackPhoto) => ({ id: p.id, image_hash: p.image_hash }));
-  }, [stack?.photos]);
-
   const handleViewFull = (photo: StackPhoto) => {
     setLightboxImageHash(photo.image_hash);
     openLightbox();
@@ -260,13 +333,12 @@ export function StackModal({ stackId, opened, onClose }: StackModalProps) {
 
   return (
     <>
-      {lightboxOpened && lightboxImageHash && (
-        <Lightbox
+      {lightboxOpened && lightboxImageHash && stack?.photos && (
+        <StackLightbox
+          photos={stack.photos}
+          initialPhotoHash={lightboxImageHash}
+          onClose={closeLightbox}
           isPublic={false}
-          idx2hash={idx2hash}
-          selectedImage={lightboxImageHash}
-          onCloseRequest={closeLightbox}
-          onChangedIndex={() => {}}
         />
       )}
       <Modal
