@@ -162,6 +162,15 @@ export function Lightbox(props: ExtendedLightBoxProps) {
     onCloseRequest();
   }, [onCloseRequest]);
 
+  // Handle photo selection from stack thumbnails in the sidebar
+  const handlePhotoSelect = useCallback(
+    (photoId: string) => {
+      setLightboxImageId(photoId);
+      onImageChange?.(photoId);
+    },
+    [onImageChange]
+  );
+
   return (
     <div>
       <ContentViewer
@@ -178,6 +187,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
         onMovePrevRequest={onMovePrevRequest}
         onMoveNextRequest={onMoveNextRequest}
         onImageLoad={() => {}}
+        onPhotoSelect={handlePhotoSelect}
       />
     </div>
   );

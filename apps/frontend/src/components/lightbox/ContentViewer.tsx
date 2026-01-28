@@ -27,6 +27,7 @@ export function ContentViewer({
   onMoveNextRequest,
   enableZoom = true,
   isPublic,
+  onPhotoSelect,
 }: ContentViewerProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
@@ -385,6 +386,7 @@ export function ContentViewer({
               closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
               isPublic={isPublic}
               setFaceLocation={setFaceLocation}
+              onPhotoSelect={onPhotoSelect}
             />
           )}
         </Modal.Body>

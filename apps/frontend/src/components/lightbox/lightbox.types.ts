@@ -21,6 +21,7 @@ export type ContentViewerProps = {
   onImageLoad: () => void;
   enableZoom: boolean;
   isPublic: boolean;
+  onPhotoSelect?: (photoId: string) => void;
 };
 
 export type LightBoxProps = {
@@ -93,6 +94,7 @@ export type SidebarProps = {
   closeSidepanel: () => void;
   isPublic: boolean;
   setFaceLocation: (location: FaceLocationType) => void;
+  onPhotoSelect?: (photoId: string) => void;
 };
 
 export type FaceOverlayProps = {

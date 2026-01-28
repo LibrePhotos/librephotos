@@ -8,6 +8,7 @@ import { notification } from "../../service/notifications";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";
 import { Description } from "./Description";
+import { FileVariantsSection } from "./FileVariantsSection";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
@@ -20,6 +21,7 @@ interface SidebarProps {
   id: string;
   closeSidepanel: () => void;
   setFaceLocation: (face: { face_id: number; face_url: string }) => void;
+  onPhotoSelect?: (photoId: string) => void;
 }
 
 interface SelectedFace {
@@ -52,7 +54,7 @@ function SidebarHeader({ closeSidepanel }: SidebarHeaderProps) {
   );
 }
 
-export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: SidebarProps) {
+export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id, onPhotoSelect }: SidebarProps) {
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
 
@@ -104,7 +106,8 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id }: Sideb
         <SidebarHeader closeSidepanel={closeSidepanel} />
         <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
         <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
-        <StackSection photoDetail={photoDetail} />
+        <FileVariantsSection photoDetail={photoDetail} />
+        <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
         <LocationSection photoDetail={photoDetail} mapHeight={200} />
         <PeopleSection
           photoDetail={photoDetail}
