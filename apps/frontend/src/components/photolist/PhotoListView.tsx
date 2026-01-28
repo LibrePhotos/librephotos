@@ -44,7 +44,7 @@ import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { DefaultHeader } from "./DefaultHeader";
-import { FavoritedOverlay } from "./FavoritedOverlay";
+import { TopRightOverlay } from "./TopRightOverlay";
 import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { StackOverlay } from "./StackOverlay";
@@ -675,7 +675,7 @@ function PhotoListViewComponent({
               scaleOfImages={localImageScale}
               groupByDate={isDateView}
               getUrl={getUrl}
-              toprightoverlay={FavoritedOverlay}
+              toprightoverlay={TopRightOverlay}
               bottomleftoverlay={VideoOverlay}
               bottomrightoverlay={StackOverlay}
               numberOfItems={numberOfItems ?? idx2hashRef.current.length}
