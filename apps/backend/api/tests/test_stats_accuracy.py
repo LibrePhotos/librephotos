@@ -10,13 +10,11 @@ Ensures that:
 """
 
 from django.test import TestCase
-from django.db.models import Sum
 from rest_framework.test import APIClient, APITestCase
 
-from api.models import Photo, User
+from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
-from api.models.photo_metadata import PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
 from api.stats import get_count_stats, calc_megabytes, median_value
 
@@ -330,7 +328,6 @@ class UtilityFunctionsTestCase(TestCase):
 
     def test_median_value_empty_queryset(self):
         """Test median with empty queryset."""
-        from api.models import Photo
         qs = Photo.objects.none()
         result = median_value(qs, "size")
         self.assertIsNone(result)
@@ -367,7 +364,7 @@ class CountStatsTestCase(TestCase):
         hidden.hidden = True
         hidden.save()
         
-        stats = get_count_stats(self.user)
+        _stats = get_count_stats(self.user)
         # Depending on implementation, hidden may or may not be counted
         # The important thing is no crash
 
@@ -398,7 +395,7 @@ class StatsEdgeCasesTestCase(APITestCase):
     def test_duplicate_with_zero_photos(self):
         """Test stats with duplicate group that has no photos."""
         # Create empty duplicate group
-        dup = Duplicate.objects.create(
+        _dup = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )

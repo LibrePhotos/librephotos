@@ -54,7 +54,7 @@ class ScanPercentageProgressTestCase(TestCase):
         files = self._scan_file_list()
         pre_fix_processed = self._simulate_pre_fix_progress(files)
         pre_fix_percentage = (pre_fix_processed / len(files)) * 100
-        pre_fix_summary = (
+        _pre_fix_summary = (
             f"Pre-fix simulated progress: {pre_fix_processed}/{len(files)} "
             f"({pre_fix_percentage:.1f}%) -> stuck"
         )

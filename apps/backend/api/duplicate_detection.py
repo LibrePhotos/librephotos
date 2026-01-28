@@ -170,18 +170,22 @@ def detect_exact_copies(user, progress_callback=None):
     uf = UnionFind()
     
     # Add all photos from image_hash groups to Union-Find
+    # Optimized: Union-Find is transitive, so we only need to union each element
+    # with the first element in the group. This is O(n) instead of O(n²).
     for image_hash, group_photos in image_hash_groups.items():
         photo_ids = [p.id for p in group_photos]
-        for i in range(len(photo_ids)):
-            for j in range(i + 1, len(photo_ids)):
-                uf.union(photo_ids[i], photo_ids[j])
-    
+        if len(photo_ids) >= 2:
+            first = photo_ids[0]
+            for pid in photo_ids[1:]:
+                uf.union(first, pid)
+
     # Add all photos from file_hash groups to Union-Find
     for file_hash, group_photos in file_hash_groups.items():
         photo_ids = [p.id for p in group_photos]
-        for i in range(len(photo_ids)):
-            for j in range(i + 1, len(photo_ids)):
-                uf.union(photo_ids[i], photo_ids[j])
+        if len(photo_ids) >= 2:
+            first = photo_ids[0]
+            for pid in photo_ids[1:]:
+                uf.union(first, pid)
     
     # Get merged groups from Union-Find
     merged_groups = uf.get_groups()

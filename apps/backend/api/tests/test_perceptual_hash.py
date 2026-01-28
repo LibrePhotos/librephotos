@@ -11,8 +11,7 @@ Tests the perceptual hashing algorithm used for visual duplicate detection:
 
 import os
 import tempfile
-from io import BytesIO
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.test import TestCase
 from PIL import Image
@@ -341,7 +340,7 @@ class CalculatePerceptualHashTestCase(TestCase):
     def test_empty_file_returns_none(self):
         """Should return None for empty file."""
         path = os.path.join(self.temp_dir, "empty.jpg")
-        with open(path, "w") as f:
+        with open(path, "w") as _f:
             pass  # Create empty file
         result = calculate_perceptual_hash(path)
         self.assertIsNone(result)
@@ -419,7 +418,7 @@ class CalculatePerceptualHashTestCase(TestCase):
     def test_very_small_image(self):
         """Should handle very small images (1x1 pixel)."""
         path = self._create_test_image("tiny.jpg", size=(1, 1))
-        result = calculate_perceptual_hash(path)
+        _result = calculate_perceptual_hash(path)
         # Should not crash - may return hash or None depending on implementation
         # The key is it doesn't raise an exception
 

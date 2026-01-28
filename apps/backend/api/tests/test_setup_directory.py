@@ -32,7 +32,7 @@ class SetupDirectoryTestCase(TestCase):
         # Check for the error message in the new format
         data = response.json()
         self.assertIn("errors", data)
-        self.assertTrue(len(data["errors"]) > 0)
+        self.assertGreater(len(data["errors"]), 0)
         self.assertEqual(
             data["errors"][0]["message"], "Scan directory must be inside the data root."
         )

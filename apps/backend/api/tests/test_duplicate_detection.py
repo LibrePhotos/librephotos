@@ -8,13 +8,11 @@ Tests cover:
 - BK-Tree algorithm for visual duplicate search
 """
 import uuid
-from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.tests.utils import create_test_photos, create_test_user
 
@@ -507,12 +505,12 @@ class DuplicateEdgeCasesTest(TestCase):
 
     def test_photo_in_multiple_duplicate_groups(self):
         """Test a photo can be in multiple duplicate groups of different types."""
-        dup_exact = Duplicate.create_or_merge(
+        _dup_exact = Duplicate.create_or_merge(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             photos=self.photos[:2],
         )
-        dup_visual = Duplicate.create_or_merge(
+        _dup_visual = Duplicate.create_or_merge(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
             photos=[self.photos[0], self.photos[2]],

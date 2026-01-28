@@ -362,7 +362,7 @@ class BulkSharePhotosTest(TestCase):
 
     def test_select_all_share_photos(self):
         """Test sharing all photos via select_all."""
-        photos = create_test_photos(number_of_photos=5, owner=self.user1)
+        _photos = create_test_photos(number_of_photos=5, owner=self.user1)
 
         payload = {
             "select_all": True,

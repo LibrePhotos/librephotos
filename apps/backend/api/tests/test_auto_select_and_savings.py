@@ -12,8 +12,6 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 
-from api.models import Photo
-from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata

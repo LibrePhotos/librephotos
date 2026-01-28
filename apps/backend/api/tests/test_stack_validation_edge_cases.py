@@ -7,11 +7,9 @@ Tests cover:
 - Error message accuracy
 """
 
-import uuid
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.models import Photo
 from api.models.photo_stack import PhotoStack
 from api.tests.utils import create_test_photo, create_test_user
 

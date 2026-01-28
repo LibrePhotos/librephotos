@@ -11,7 +11,6 @@ Tests designed to break the API with:
 - Boundary conditions
 """
 
-import json
 import uuid
 
 from django.test import TestCase

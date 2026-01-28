@@ -1,7 +1,6 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.tests.fixtures.api_util.expectation import wordcloud_expectation
 from api.tests.fixtures.api_util.photos import photos
 from api.tests.fixtures.api_util.sunburst_expectation import (
     expectation as sunburst_expectation,

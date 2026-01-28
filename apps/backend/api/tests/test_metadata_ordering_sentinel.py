@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 
-from api.directory_watcher import scan_photos
 from api.models import Photo
 from api.tests.utils import create_test_user
 

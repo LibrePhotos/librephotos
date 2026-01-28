@@ -11,12 +11,10 @@ Tests cover:
 """
 
 import uuid
-from collections import defaultdict
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob

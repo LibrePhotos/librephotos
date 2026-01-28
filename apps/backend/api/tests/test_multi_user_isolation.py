@@ -8,14 +8,11 @@ Ensures that:
 - Cross-user operations are blocked
 """
 
-import uuid
 from django.test import TestCase
 from rest_framework.test import APIClient, APITestCase
 
-from api.models import Photo, User
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
-from api.models.file import File
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -353,7 +350,7 @@ class CrossUserOperationTestCase(APITestCase):
         
         self.client.force_authenticate(user=self.user1)
         
-        response = self.client.post(
+        _response = self.client.post(
             f"/api/stacks/{stack.id}/add",
             {"photo_ids": [str(other_photo.pk)]},
             format="json"
@@ -399,7 +396,7 @@ class CrossUserOperationTestCase(APITestCase):
         
         self.client.force_authenticate(user=self.user1)
         
-        response = self.client.post(
+        _response = self.client.post(
             f"/api/stacks/{stack.id}/primary",
             {"photo_id": str(other_photo.pk)},
             format="json"

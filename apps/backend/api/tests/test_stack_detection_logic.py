@@ -13,14 +13,12 @@ Tests cover:
 """
 
 import json
-import os
 import uuid
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.models import Photo
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.models.long_running_job import LongRunningJob
@@ -29,8 +27,6 @@ from api.stack_detection import (
     detect_burst_sequences,
     batch_detect_stacks,
     _create_burst_stack,
-    _detect_bursts_hard_criteria,
-    _detect_bursts_soft_criteria,
 )
 from api.directory_watcher import JPEG_EXTENSIONS
 from api.tests.utils import create_test_photo, create_test_user
@@ -172,8 +168,8 @@ class BurstDetectionTestCase(TestCase):
         self.user.burst_detection_rules = json.dumps([])
         self.user.save()
         
-        photo1 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 0))
-        photo2 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 1))
+        _photo1 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 0))
+        _photo2 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 1))
         
         count = detect_burst_sequences(self.user)
         
@@ -193,8 +189,8 @@ class BurstDetectionTestCase(TestCase):
         ])
         self.user.save()
         
-        photo1 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 0))
-        photo2 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 1))
+        _photo1 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 0))
+        _photo2 = self._create_photo_with_timestamp(datetime(2024, 1, 1, 12, 0, 1))
         
         count = detect_burst_sequences(self.user)
         
@@ -218,8 +214,8 @@ class BurstDetectionTestCase(TestCase):
     def test_skip_hidden_photos(self):
         """Test hidden photos are excluded from burst detection."""
         base_time = datetime(2024, 1, 1, 12, 0, 0)
-        photo1 = self._create_photo_with_timestamp(base_time, hidden=True)
-        photo2 = self._create_photo_with_timestamp(base_time + timedelta(seconds=1))
+        _photo1 = self._create_photo_with_timestamp(base_time, hidden=True)
+        _photo2 = self._create_photo_with_timestamp(base_time + timedelta(seconds=1))
         
         count = detect_burst_sequences(self.user)
         
@@ -228,8 +224,8 @@ class BurstDetectionTestCase(TestCase):
     def test_skip_trashed_photos(self):
         """Test trashed photos are excluded from burst detection."""
         base_time = datetime(2024, 1, 1, 12, 0, 0)
-        photo1 = self._create_photo_with_timestamp(base_time, in_trashcan=True)
-        photo2 = self._create_photo_with_timestamp(base_time + timedelta(seconds=1))
+        _photo1 = self._create_photo_with_timestamp(base_time, in_trashcan=True)
+        _photo2 = self._create_photo_with_timestamp(base_time + timedelta(seconds=1))
         
         count = detect_burst_sequences(self.user)
         

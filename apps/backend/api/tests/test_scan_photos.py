@@ -40,7 +40,7 @@ class ScanPhotosTestCase(TestCase):
             # make sure photos are imported
             get_photos_res = self.client_admin.get("/api/photos/")
             self.assertEqual(get_photos_res.status_code, 200)
-            self.assertTrue(len(get_photos_res.json()["results"]) > 0)
+            self.assertGreater(len(get_photos_res.json()["results"]), 0)
 
             # try scanning again and make sure there are no duplicate imports
             num_photos = len(get_photos_res.json()["results"])
@@ -72,7 +72,7 @@ class ScanPhotosTestCase(TestCase):
                 "/api/albums/auto/%d/" % album["id"]
             )
             self.assertEqual(auto_album_retrieve_res.status_code, 200)
-            self.assertTrue(len(auto_album_retrieve_res.json()["photos"]) > 0)
+            self.assertGreater(len(auto_album_retrieve_res.json()["photos"]), 0)
 
         # try making auto albums again and make sure there are no duplicates
         num_auto_albums = len(auto_album_list_res.json()["results"])

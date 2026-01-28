@@ -11,9 +11,7 @@ Tests cover:
 
 from django.test import TestCase
 from rest_framework.test import APIClient
-from unittest.mock import patch
 
-from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -179,7 +177,7 @@ class PhotosWithoutPerceptualHashTestCase(TestCase):
         """Test that detection handles photos with null perceptual hash."""
         # Create photos, some without perceptual hash
         photo1 = create_test_photo(owner=self.user)
-        photo2 = create_test_photo(owner=self.user)
+        _photo2 = create_test_photo(owner=self.user)
         
         # Set null perceptual hash
         photo1.image_phash = None

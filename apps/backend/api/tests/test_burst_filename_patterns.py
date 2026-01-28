@@ -10,7 +10,6 @@ Tests:
 
 import os
 import re
-from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -20,7 +19,7 @@ from api.burst_detection_rules import (
     check_filename_pattern,
     group_photos_by_timestamp,
 )
-from api.models import Photo, User
+from api.models import Photo
 from api.models.photo_stack import PhotoStack
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -306,7 +305,7 @@ class BurstDetectionIntegrationTestCase(TestCase):
         detect_burst_sequences(self.user)
         
         # Check for burst stacks
-        burst_stacks = PhotoStack.objects.filter(
+        _burst_stacks = PhotoStack.objects.filter(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE
         )

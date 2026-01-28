@@ -3,19 +3,42 @@
 #
 # PostgreSQL requires dropping all FK constraints before changing the PK,
 # so we use raw SQL to handle this complex migration.
+#
+# ============================================================================
+# CRITICAL WARNING: THIS MIGRATION IS NOT REVERSIBLE
+# ============================================================================
+# This migration fundamentally changes the Photo primary key from image_hash
+# (a content-based hash) to UUID (a random identifier). Reversing this would
+# require regenerating the original image_hash values from file content, which
+# is not possible without access to the original photo files and significant
+# processing time.
+#
+# BEFORE RUNNING THIS MIGRATION:
+# 1. Create a FULL DATABASE BACKUP: pg_dump -U your_user your_db > backup.sql
+# 2. Test the migration on a copy of your production database first
+# 3. Plan for downtime - this migration may take significant time on large DBs
+# 4. Ensure you have enough disk space for the migration operations
+#
+# TO ROLLBACK (if needed):
+# 1. Stop the application
+# 2. Restore from your pre-migration database backup
+# 3. Fake-migrate back: python manage.py migrate api 0098 --fake
+# ============================================================================
 
 import uuid
 from django.db import migrations, models
-import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
     """
     Migration to change Photo primary key from image_hash (CharField) to id (UUIDField).
-    
+
+    WARNING: This migration is NOT reversible through Django's migration system.
+    You MUST have a database backup before running this migration.
+
     This is a complex migration that uses raw SQL because PostgreSQL requires
     dropping all foreign key constraints before changing a primary key.
-    
+
     Steps:
     1. Add UUID column to api_photo
     2. Generate UUIDs for existing photos
@@ -279,10 +302,27 @@ class Migration(migrations.Migration):
             DROP TABLE photo_id_mapping;
             """,
             reverse_sql="""
-            -- This migration is not easily reversible due to the complexity of changing PKs
-            -- A full reverse would require regenerating image_hash PKs and updating all FKs
-            -- For now, we don't support reverse migration
-            SELECT 1;
+            -- ============================================================================
+            -- THIS MIGRATION CANNOT BE REVERSED AUTOMATICALLY
+            -- ============================================================================
+            -- Reversing this migration would require:
+            -- 1. Regenerating image_hash values from file content (requires file access)
+            -- 2. Recreating all FK relationships with the old hash-based PK
+            -- 3. Significant processing time proportional to photo count
+            --
+            -- TO ROLLBACK:
+            -- 1. Restore your database from the backup you made before this migration
+            -- 2. Run: python manage.py migrate api 0098 --fake
+            --
+            -- If you don't have a backup, you will need to manually recreate image_hash
+            -- values by rehashing all photo files.
+            -- ============================================================================
+            DO $$
+            BEGIN
+                RAISE EXCEPTION 'Migration 0099_photo_uuid_primary_key cannot be reversed automatically. '
+                    'Please restore from your pre-migration database backup and run: '
+                    'python manage.py migrate api 0098 --fake';
+            END $$;
             """,
             # State operations tell Django what the model looks like after the raw SQL
             state_operations=[

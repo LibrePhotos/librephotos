@@ -10,9 +10,7 @@ Tests cover:
 - Edge cases and error handling
 """
 
-import os
 import re
-import uuid
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 

@@ -15,14 +15,10 @@ These tests specifically target:
 import json
 import uuid
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch, PropertyMock
-from concurrent.futures import ThreadPoolExecutor
-import threading
+from unittest.mock import patch
 
-from django.test import TestCase, TransactionTestCase
-from django.db import connection
+from django.test import TestCase
 
-from api.models import Photo
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.models.duplicate import Duplicate
@@ -32,8 +28,6 @@ from api.stack_detection import (
     detect_burst_sequences,
     batch_detect_stacks,
     _create_burst_stack,
-    _detect_bursts_hard_criteria,
-    _detect_bursts_soft_criteria,
 )
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -125,7 +119,7 @@ class CreateOrMergeQuerysetOrderingTestCase(TestCase):
         stack3.photos.add(photos[4], photos[5])
         
         # Create stack with one photo from each existing stack
-        result_stack = PhotoStack.create_or_merge(
+        _result_stack = PhotoStack.create_or_merge(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             photos=[photos[0], photos[2], photos[4]],
@@ -167,7 +161,7 @@ class DuplicateCreateOrMergeOrderingTestCase(TestCase):
         dup2.photos.add(photos[2], photos[3])
         
         # Merge by adding photos from both groups
-        result = Duplicate.create_or_merge(
+        _result = Duplicate.create_or_merge(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             photos=[photos[0], photos[2]],
@@ -233,8 +227,8 @@ class HardCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
     @patch('api.util.get_metadata')
     def test_get_metadata_raises_exception_for_all(self, mock_get_metadata):
         """Test when get_metadata raises exceptions for every photo."""
-        photo1 = self._create_photo_with_file("/photos/IMG_001.jpg")
-        photo2 = self._create_photo_with_file("/photos/IMG_002.jpg")
+        _photo1 = self._create_photo_with_file("/photos/IMG_001.jpg")
+        _photo2 = self._create_photo_with_file("/photos/IMG_002.jpg")
         
         mock_get_metadata.side_effect = Exception("EXIF read failed")
         
@@ -245,8 +239,8 @@ class HardCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
     @patch('api.util.get_metadata')
     def test_get_metadata_returns_empty_for_some(self, mock_get_metadata):
         """Test when get_metadata returns empty for some photos."""
-        photo1 = self._create_photo_with_file("/photos/IMG_001.jpg")
-        photo2 = self._create_photo_with_file("/photos/IMG_002.jpg")
+        _photo1 = self._create_photo_with_file("/photos/IMG_001.jpg")
+        _photo2 = self._create_photo_with_file("/photos/IMG_002.jpg")
         
         # Return empty values
         mock_get_metadata.return_value = [None, None]
@@ -297,8 +291,8 @@ class SoftCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
         
         base_time = datetime(2024, 1, 1, 12, 0, 0)
         # Create photos with no perceptual hash
-        photo1 = self._create_photo_with_timestamp(base_time, perceptual_hash=None)
-        photo2 = self._create_photo_with_timestamp(base_time + timedelta(seconds=1), perceptual_hash=None)
+        _photo1 = self._create_photo_with_timestamp(base_time, perceptual_hash=None)
+        _photo2 = self._create_photo_with_timestamp(base_time + timedelta(seconds=1), perceptual_hash=None)
         
         # Should handle gracefully
         count = detect_burst_sequences(self.user)
@@ -353,16 +347,16 @@ class SoftCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
         
         base_time = datetime(2024, 1, 1, 12, 0, 0)
         # Photo 2 is exactly 2000ms after photo 1
-        photo1 = self._create_photo_with_timestamp(base_time)
-        photo2 = self._create_photo_with_timestamp(base_time + timedelta(milliseconds=2000))
+        _photo1 = self._create_photo_with_timestamp(base_time)
+        _photo2 = self._create_photo_with_timestamp(base_time + timedelta(milliseconds=2000))
         # Photo 3 is 2001ms after photo 1 (just outside boundary)
-        photo3 = self._create_photo_with_timestamp(base_time + timedelta(milliseconds=2001))
+        _photo3 = self._create_photo_with_timestamp(base_time + timedelta(milliseconds=2001))
         
         count = detect_burst_sequences(self.user)
         
         # Depending on implementation, photo1+photo2 might be grouped, photo3 separate
         # This tests the boundary condition behavior
-        stacks = PhotoStack.objects.filter(
+        _stacks = PhotoStack.objects.filter(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
@@ -551,7 +545,7 @@ class MalformedRulesEdgeCasesTestCase(TestCase):
             count = detect_burst_sequences(self.user)
             # If it doesn't crash, it should return 0 (no valid rules)
             self.assertEqual(count, 0)
-        except (TypeError, AttributeError) as e:
+        except (TypeError, AttributeError):
             # This is expected if the code doesn't handle dict input
             pass
 
@@ -805,8 +799,8 @@ class FilenamePatternEdgeCasesTestCase(TestCase):
         self.user.save()
 
         # Create two photos with different paths that both match the bracket pattern
-        photo1 = self._create_photo_with_file("/photos/IMG_[001].jpg")
-        photo2 = self._create_photo_with_file("/photos/IMG_[002].jpg")  # Different path, same pattern
+        _photo1 = self._create_photo_with_file("/photos/IMG_[001].jpg")
+        _photo2 = self._create_photo_with_file("/photos/IMG_[002].jpg")  # Different path, same pattern
 
         # Should not crash on regex special characters
         count = detect_burst_sequences(self.user)

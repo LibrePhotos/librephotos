@@ -15,9 +15,7 @@ import json
 import unittest
 from datetime import datetime, timedelta
 from django.test import TestCase
-from unittest.mock import patch, MagicMock
 
-from api.models import Photo
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.burst_detection_rules import (
@@ -25,8 +23,6 @@ from api.burst_detection_rules import (
     BurstRuleTypes,
     BurstRuleCategory,
     BURST_FILENAME_PATTERNS,
-    DEFAULT_HARD_RULES,
-    DEFAULT_SOFT_RULES,
     get_default_burst_detection_rules,
     as_rules,
 )
@@ -332,12 +328,12 @@ class BurstDetectionEdgeCasesTestCase(TestCase):
         from api.stack_detection import detect_burst_sequences
         
         # Create photos, some in trash
-        photo1 = create_test_photo(owner=self.user)
+        _photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
         photo2.in_trashcan = True
         photo2.save()
         
-        stacks_created = detect_burst_sequences(self.user)
+        _stacks_created = detect_burst_sequences(self.user)
         
         # Trashed photos should not be in any stack
         stacks = PhotoStack.objects.filter(

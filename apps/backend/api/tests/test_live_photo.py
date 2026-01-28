@@ -11,12 +11,9 @@ Tests the Live Photo detection and stacking logic:
 
 import os
 import tempfile
-import uuid
-from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
-from django.conf import settings
 from django.test import TestCase, override_settings
 
 from api.models.file import File

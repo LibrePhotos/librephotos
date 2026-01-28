@@ -10,9 +10,7 @@ Tests cover:
 """
 
 from django.test import TestCase
-from unittest.mock import patch, MagicMock
 
-from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.duplicate_detection import (
@@ -178,8 +176,8 @@ class ExactCopyDetectionTestCase(TestCase):
     def test_no_duplicates(self):
         """Test detection with no duplicate hashes."""
         # Create photos with unique hashes (create_test_photo already generates unique hashes)
-        photo1 = create_test_photo(owner=self.user)
-        photo2 = create_test_photo(owner=self.user)
+        _photo1 = create_test_photo(owner=self.user)
+        _photo2 = create_test_photo(owner=self.user)
 
         count = detect_exact_copies(self.user)
 
@@ -463,7 +461,7 @@ class MultiUserDuplicateIsolationTestCase(TestCase):
         detect_exact_copies(self.user1)
 
         # User1 should have duplicates
-        u1_dups = Duplicate.objects.filter(owner=self.user1)
+        _u1_dups = Duplicate.objects.filter(owner=self.user1)
 
         # User2 should have no duplicates
         u2_dups = Duplicate.objects.filter(owner=self.user2)

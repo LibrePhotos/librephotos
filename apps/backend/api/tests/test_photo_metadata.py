@@ -11,14 +11,12 @@ Tests cover:
 """
 
 import uuid
-from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
 

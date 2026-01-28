@@ -15,16 +15,13 @@ This module tests idempotency for:
 """
 
 import uuid
-from unittest.mock import patch, MagicMock
 
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
-from api.models import Photo, User
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
-from api.models.photo_metadata import PhotoMetadata
 from api.models.file import File
 from api.tests.utils import create_test_photo, create_test_user
 from api.duplicate_detection import detect_exact_copies, detect_visual_duplicates
@@ -145,7 +142,7 @@ class DuplicateRedetectionTestCase(TestCase):
         detect_exact_copies(self.user)
         
         # Should not create a new pending group for resolved duplicates
-        pending_groups = Duplicate.objects.filter(
+        _pending_groups = Duplicate.objects.filter(
             owner=self.user,
             review_status=Duplicate.ReviewStatus.PENDING
         ).count()
@@ -213,7 +210,7 @@ class BurstRedetectionTestCase(TestCase):
         
         # First detection
         detect_burst_sequences(self.user)
-        initial_stacks = list(PhotoStack.objects.filter(
+        _initial_stacks = list(PhotoStack.objects.filter(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE
         ))
@@ -227,7 +224,7 @@ class BurstRedetectionTestCase(TestCase):
         
         # Second detection should add to existing stack
         detect_burst_sequences(self.user)
-        final_stacks = list(PhotoStack.objects.filter(
+        _final_stacks = list(PhotoStack.objects.filter(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE
         ))
@@ -513,7 +510,6 @@ class FileVariantsIdempotencyTestCase(TestCase):
 
     def test_photo_with_multiple_file_variants(self):
         """Test that a photo can have multiple file variants."""
-        import uuid
 
         # Create a photo (create_test_photo adds its own file)
         photo = create_test_photo(owner=self.user)

@@ -9,9 +9,6 @@ Tests edge cases where photos belong to both stacks and duplicate groups:
 - Multi-user isolation
 """
 
-import uuid
-from datetime import timedelta
-from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -698,7 +695,7 @@ class EdgeCasesTestCase(TestCase):
         photo2.duplicates.add(duplicate)
 
         # Delete the stack
-        stack_id = stack.id
+        _stack_id = stack.id
         stack.delete()
 
         # Duplicate should be unaffected

@@ -8,10 +8,8 @@ Tests verify proper cleanup of:
 - Restoration behavior
 """
 
-import uuid
 from django.test import TestCase
 
-from api.models import Photo
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.models.duplicate import Duplicate

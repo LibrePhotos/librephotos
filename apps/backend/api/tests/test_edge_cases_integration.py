@@ -8,19 +8,13 @@ Tests:
 - Empty/invalid data handling
 """
 
-import threading
-import uuid
-from unittest.mock import patch, MagicMock
 
 from django.test import TestCase, TransactionTestCase
-from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
-from api.models import Photo, User
 from api.models.duplicate import Duplicate
 from api.models.photo_stack import PhotoStack
 from api.models.photo_metadata import PhotoMetadata
-from api.models.file import File
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -76,7 +70,7 @@ class PhotoNoExifDataTestCase(TestCase):
         stack.photos.add(*photos)
         
         # auto_select_primary should still work
-        result = stack.auto_select_primary()
+        _result = stack.auto_select_primary()
         # May or may not select one depending on implementation
         # The important thing is it doesn't crash
 
@@ -96,7 +90,7 @@ class PhotoNoExifDataTestCase(TestCase):
         dup.photos.add(*photos)
         
         # auto_select_best_photo should handle gracefully
-        result = dup.auto_select_best_photo()
+        _result = dup.auto_select_best_photo()
         # Should return something (or None) without crashing
 
     def test_burst_detection_no_timestamps(self):
@@ -349,7 +343,7 @@ class SinglePhotoGroupTestCase(TestCase):
         )
         stack.photos.add(photo)
         
-        result = stack.auto_select_primary()
+        _result = stack.auto_select_primary()
         stack.refresh_from_db()
         
         # Should select the only photo

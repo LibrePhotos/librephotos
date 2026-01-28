@@ -15,7 +15,6 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
-from api.models import Photo, User
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -235,14 +234,14 @@ class PhotoMetadataHistoryTestCase(APITestCase):
         metadata, _ = PhotoMetadata.objects.get_or_create(photo=self.photo)
         
         # Create edits with different times
-        edit1 = MetadataEdit.objects.create(
+        _edit1 = MetadataEdit.objects.create(
             photo=self.photo,
             user=self.user,
             field_name="title",
             old_value=None,
             new_value="First"
         )
-        edit2 = MetadataEdit.objects.create(
+        _edit2 = MetadataEdit.objects.create(
             photo=self.photo,
             user=self.user,
             field_name="title",
@@ -351,7 +350,7 @@ class PhotoMetadataRevertAllTestCase(APITestCase):
         
         initial_count = MetadataEdit.objects.filter(photo=self.photo).count()
         
-        response = self.client.post(f"/api/photos/{self.photo.pk}/metadata/revert-all/")
+        _response = self.client.post(f"/api/photos/{self.photo.pk}/metadata/revert-all/")
         # May return 200 or 500 depending on whether EXIF extraction works
         # Just check the edit record is created
         

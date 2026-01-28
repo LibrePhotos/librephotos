@@ -30,7 +30,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
         path = "/photos/test_image.jpg"
         
         # Create first file
-        file1 = File.objects.create(
+        _file1 = File.objects.create(
             hash="hash1" + "a" * 28,
             path=path,
             type=File.IMAGE,
@@ -64,7 +64,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
     def test_empty_paths_are_unique(self):
         """Test that empty paths are subject to unique constraint."""
         # First empty path file
-        file1 = File.objects.create(
+        _file1 = File.objects.create(
             hash="hash1" + "a" * 28,
             path="",
             type=File.IMAGE,
@@ -203,7 +203,7 @@ class MigrationDeduplicationTestCase(TestCase):
 
     def test_deduplication_keeps_file_with_more_photos(self):
         """Test that deduplication prefers files linked to more photos."""
-        path = "/photos/popular.jpg"
+        _path = "/photos/popular.jpg"
         
         # Create two files
         file_popular = File.objects.create(
@@ -327,7 +327,7 @@ class FilePathLookupTestCase(TestCase):
             path="/photos/image.jpg",
             type=File.IMAGE,
         )
-        file2 = File.objects.create(
+        _file2 = File.objects.create(
             hash="hash2" + "b" * 28,
             path="/photos/image2.jpg",
             type=File.IMAGE,

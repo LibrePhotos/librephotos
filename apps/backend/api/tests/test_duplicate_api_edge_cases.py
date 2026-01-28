@@ -13,7 +13,6 @@ import uuid
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.models import Photo
 from api.models.duplicate import Duplicate
 from api.models.photo_metadata import PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
@@ -523,7 +522,7 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
         duplicate.photos.add(photo1, photo2)
         
         # Should handle gracefully (might return None or first photo)
-        result = duplicate.auto_select_best_photo()
+        _result = duplicate.auto_select_best_photo()
         # Just verify it doesn't crash
 
     def test_auto_select_visual_duplicate_no_metadata(self):
@@ -541,7 +540,7 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
         duplicate.photos.add(photo1, photo2)
         
         # Should handle gracefully
-        result = duplicate.auto_select_best_photo()
+        _result = duplicate.auto_select_best_photo()
         # Just verify it doesn't crash
 
 
