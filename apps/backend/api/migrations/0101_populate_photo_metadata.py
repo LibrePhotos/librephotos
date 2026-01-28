@@ -1,6 +1,10 @@
 # Generated migration to populate PhotoMetadata from existing Photo data
 
-from django.db import migrations
+from django.db import migrations, transaction
+from django.db.models import Exists, OuterRef, Subquery
+
+
+BATCH_SIZE = 1000
 
 
 def populate_photo_metadata(apps, schema_editor):
@@ -13,24 +17,46 @@ def populate_photo_metadata(apps, schema_editor):
     - Edit history tracking
     - XMP sidecar support
     - Better organization of camera/lens/settings
+    
+    Optimized for large datasets:
+    - Uses Subquery instead of loading all captions into memory
+    - Uses Exists() for efficient filtering instead of exclude(id__in=large_list)
+    - Processes in batches with progress logging
     """
     Photo = apps.get_model("api", "Photo")
     PhotoMetadata = apps.get_model("api", "PhotoMetadata")
     PhotoCaption = apps.get_model("api", "PhotoCaption")
     
-    # Build a lookup dict for captions (captions_json was moved to PhotoCaption in migration 0080)
-    caption_lookup = {}
-    for caption in PhotoCaption.objects.all().iterator(chunk_size=1000):
-        caption_lookup[caption.photo_id] = caption.captions_json
+    # Subquery to get caption data - avoids loading all captions into memory
+    caption_subquery = PhotoCaption.objects.filter(
+        photo_id=OuterRef('image_hash')
+    ).values('captions_json')[:1]
     
-    # Get photos that don't have metadata yet
-    existing_metadata_photo_ids = PhotoMetadata.objects.values_list("photo_id", flat=True)
-    photos = Photo.objects.exclude(id__in=existing_metadata_photo_ids).iterator(chunk_size=1000)
+    # Exists subquery for efficient filtering - better than exclude(id__in=large_list)
+    existing_metadata = PhotoMetadata.objects.filter(photo_id=OuterRef('pk'))
+    
+    # Count total for progress logging
+    total_count = Photo.objects.filter(~Exists(existing_metadata)).count()
+    if total_count == 0:
+        print("No photos need metadata population.")
+        return
+    
+    print(f"Populating metadata for {total_count} photos...")
+    
+    # Annotate photos with caption data and filter efficiently
+    photos = (
+        Photo.objects
+        .filter(~Exists(existing_metadata))
+        .annotate(captions_data=Subquery(caption_subquery))
+        .iterator(chunk_size=BATCH_SIZE)
+    )
     
     batch = []
+    processed = 0
+    
     for photo in photos:
-        # Get caption data from PhotoCaption model
-        captions_json = caption_lookup.get(photo.image_hash)
+        # Caption data is already loaded via annotation
+        captions_json = photo.captions_data
         
         metadata = PhotoMetadata(
             photo=photo,
@@ -64,13 +90,20 @@ def populate_photo_metadata(apps, schema_editor):
         )
         batch.append(metadata)
         
-        if len(batch) >= 1000:
-            PhotoMetadata.objects.bulk_create(batch, ignore_conflicts=True)
+        if len(batch) >= BATCH_SIZE:
+            with transaction.atomic():
+                PhotoMetadata.objects.bulk_create(batch, ignore_conflicts=True)
+            processed += len(batch)
+            print(f"  Processed {processed}/{total_count} photos ({100*processed//total_count}%)")
             batch = []
     
     # Create remaining
     if batch:
-        PhotoMetadata.objects.bulk_create(batch, ignore_conflicts=True)
+        with transaction.atomic():
+            PhotoMetadata.objects.bulk_create(batch, ignore_conflicts=True)
+        processed += len(batch)
+    
+    print(f"Completed populating metadata for {processed} photos.")
 
 
 def reverse_populate(apps, schema_editor):
