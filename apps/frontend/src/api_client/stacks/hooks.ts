@@ -7,6 +7,7 @@ import {
   DetectStacksResponseSchema,
   MergeStacksResponseSchema,
   RemoveFromStackResponseSchema,
+  SetPrimaryResponse as SetPrimaryResponseSchema,
   StackDetailResponseSchema,
   StackListResponseSchema,
   StackStatsResponseSchema,
@@ -20,6 +21,7 @@ import {
   type MergeStacksResponse,
   type RemoveFromStackRequest,
   type RemoveFromStackResponse,
+  type SetPrimaryResponse,
   type StackDetailResponse,
   type StackListResponse,
   type StackStatsResponse,
@@ -101,11 +103,11 @@ async function detectStacks(options?: DetectStacksRequest): Promise<DetectStacks
   return parseWithNotification(DetectStacksResponseSchema, response, "Failed to parse detect stacks response");
 }
 
-async function setCoverPhoto(stackId: string, photoHash: string): Promise<StackDetailResponse> {
-  const response = await fetchClient.post<StackDetailResponse>(`/stacks/${stackId}/primary/`, {
+async function setCoverPhoto(stackId: string, photoHash: string): Promise<SetPrimaryResponse> {
+  const response = await fetchClient.post<SetPrimaryResponse>(`/stacks/${stackId}/primary/`, {
     photo_hash: photoHash,
   });
-  return parseWithNotification(StackDetailResponseSchema, response, "Failed to parse set cover photo response");
+  return parseWithNotification(SetPrimaryResponseSchema, response, "Failed to set cover photo");
 }
 
 // Query hooks
@@ -216,7 +218,7 @@ export function useSetCoverPhotoMutation() {
 
   return useMutation({
     mutationFn: ({ stackId, photoHash }: { stackId: string; photoHash: string }) => setCoverPhoto(stackId, photoHash),
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: stackKeys.detail(variables.stackId) });
       queryClient.invalidateQueries({ queryKey: stackKeys.lists() });
     },

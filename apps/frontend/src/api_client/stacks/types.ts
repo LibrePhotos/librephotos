@@ -6,6 +6,16 @@ import { z } from "zod";
 export const StackType = z.enum(["raw_jpeg", "burst", "bracket", "live_photo", "manual"]);
 export type StackType = z.infer<typeof StackType>;
 
+// File variant within a stack photo
+export const StackFileVariant = z.object({
+  hash: z.string(),
+  path: z.string(),
+  type: z.string(),
+  is_main: z.boolean(),
+  filename: z.string().nullable(),
+});
+export type StackFileVariant = z.infer<typeof StackFileVariant>;
+
 // Photo within a stack
 export const StackPhoto = z.object({
   id: z.string(),
@@ -20,6 +30,8 @@ export const StackPhoto = z.object({
   file_path: z.string().nullable(),
   file_type: z.string().nullable(),
   is_primary: z.boolean(),
+  // File variants (RAW, JPEG, etc.) for this photo
+  file_variants: StackFileVariant.array().nullable().optional(),
 });
 export type StackPhoto = z.infer<typeof StackPhoto>;
 

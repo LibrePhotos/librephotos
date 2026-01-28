@@ -77,18 +77,16 @@ export const useResolveDuplicateMutation = () => {
       keep_photo_hash,
       trash_others,
     }: {
-      id: number;
+      id: string;
       keep_photo_hash: string;
       trash_others: boolean;
     }) => {
-      const duplicateId = String(id);
       const data: ResolveDuplicateRequest = { keep_photo_hash, trash_others };
-      return fetchClient.post<ResolveDuplicateResponse>(`/duplicates/${duplicateId}/resolve`, data);
+      return fetchClient.post<ResolveDuplicateResponse>(`/duplicates/${id}/resolve`, data);
     },
     onSuccess: (_, { id }) => {
-      const duplicateId = String(id);
       // Invalidate the specific duplicate and the list
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(duplicateId) });
+      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
     },
@@ -147,7 +145,7 @@ export const useDeleteDuplicateMutation = () => {
 };
 
 // Alias exports for compatibility with component usage
-export const useDuplicateQuery = (duplicateId: number) => useFetchDuplicateQuery(String(duplicateId));
+export const useDuplicateQuery = (duplicateId: string) => useFetchDuplicateQuery(duplicateId);
 
 export const useDuplicatesQuery = (params: {
   duplicate_type?: DuplicateType;

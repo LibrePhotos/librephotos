@@ -15,9 +15,25 @@ export enum Media {
 }
 
 // Stack types
+// NOTE: raw_jpeg and live_photo are DEPRECATED - use file_variants instead
 // NOTE: visual_duplicate and exact_copy are now handled by the Duplicate model, not PhotoStack
 export const StackTypeEnum = z.enum(["raw_jpeg", "burst", "bracket", "live_photo", "manual"]);
 export type StackTypeEnum = z.infer<typeof StackTypeEnum>;
+
+// File variant types (PhotoPrism-like model)
+// Same capture moment stored as different file formats
+export const FileVariantTypeEnum = z.enum(["image", "video", "raw", "metadata", "unknown"]);
+export type FileVariantTypeEnum = z.infer<typeof FileVariantTypeEnum>;
+
+export const FileVariant = z.object({
+  hash: z.string(),
+  path: z.string(),
+  type: FileVariantTypeEnum,
+  type_id: z.number(),
+  is_main: z.boolean(),
+  filename: z.string().nullable(),
+});
+export type FileVariant = z.infer<typeof FileVariant>;
 
 // Stack summary for timeline/album views
 export const PhotoStackSummary = z.object({
@@ -49,6 +65,8 @@ export const PigPhoto = z.object({
   in_trashcan: z.boolean().optional(),
   // Stack info (if photo is part of any stacks - can be multiple)
   stacks: PhotoStackSummary.array().nullable().optional(),
+  // Flag indicating if this photo has a RAW file variant (PhotoPrism-like model)
+  has_raw_variant: z.boolean().optional().default(false),
 });
 export type PigPhoto = z.infer<typeof PigPhoto>;
 
@@ -183,7 +201,11 @@ export const Photo = z.object({
   digitalZoomRatio: z.number().nullable(),
   lens: z.string().nullable(),
   embedded_media: z.object({ id: z.string(), type: z.nativeEnum(Media) }).array(),
-  // Stack info (RAW+JPEG pairs, bursts, brackets, live photos, manual) - can belong to multiple stacks
+  // File variants (RAW, JPEG, video for Live Photos, etc.) - PhotoPrism-like model
+  // Same capture moment stored as different file formats
+  file_variants: FileVariant.array().nullable().optional(),
+  // Stack info (bursts, brackets, manual) - can belong to multiple stacks
+  // NOTE: RAW+JPEG and Live Photos now use file_variants, not stacks
   // NOTE: Duplicates are handled separately via the Duplicate model
   stacks: PhotoStackDetail.array().nullable().optional(),
   // Structured metadata with edit history support
