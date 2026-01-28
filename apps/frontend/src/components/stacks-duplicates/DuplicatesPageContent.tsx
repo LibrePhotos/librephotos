@@ -240,9 +240,7 @@ function DuplicateModal({
   const [lightboxImageHash, setLightboxImageHash] = useState<string | null>(null);
   const [lightboxOpened, { open: openLightbox, close: closeLightbox }] = useDisclosure(false);
 
-  // Convert string ID to number for the query hook
-  const duplicateIdNum = parseInt(duplicateId, 10);
-  const { data: duplicate, isLoading } = useDuplicateQuery(duplicateIdNum);
+  const { data: duplicate, isLoading } = useDuplicateQuery(duplicateId);
   const { mutate: resolveDuplicate, isPending: isResolving } = useResolveDuplicateMutation();
   const { mutate: dismissDuplicate, isPending: isDismissing } = useDismissDuplicateMutation();
   const { mutate: revertDuplicate, isPending: isReverting } = useRevertDuplicateMutation();
@@ -264,10 +262,8 @@ function DuplicateModal({
 
   const handleResolve = () => {
     if (selectedPhoto) {
-      // Convert string ID to number for the mutation (it accepts both but expects number in signature)
-      const idNum = parseInt(duplicateId, 10);
       resolveDuplicate(
-        { id: idNum, keep_photo_hash: selectedPhoto, trash_others: true },
+        { id: duplicateId, keep_photo_hash: selectedPhoto, trash_others: true },
         {
           onSuccess: () => {
             onClose();
