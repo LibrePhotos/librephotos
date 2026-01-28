@@ -31,6 +31,7 @@ class VisiblePhotoManager(models.Manager):
                 Q(hidden=False)
                 & Q(thumbnail__aspect_ratio__isnull=False)
                 & Q(in_trashcan=False)
+                & Q(removed=False)
             )
         )
 
@@ -476,13 +477,27 @@ class Photo(models.Model):
         # Store duplicate group references before cleanup (ManyToMany)
         photo_duplicates = list(self.duplicates.all())
         
+        # Handle file cleanup - only delete files not shared with other Photos
         for file in self.files.all():
-            if os.path.isfile(file.path):
-                logger.info(f"Removing photo {file.path}")
-                os.remove(file.path)
+            # Check if this file is used by other Photos (via files M2M or as main_file)
+            other_photos_using_file = (
+                file.photo_set.exclude(pk=self.pk).exists() or
+                file.main_photo.exclude(pk=self.pk).exists()
+            )
+            
+            if other_photos_using_file:
+                # File is shared - just unlink from this photo, don't delete
+                logger.info(f"File {file.path} is shared with other photos, unlinking only")
+                self.files.remove(file)
+            else:
+                # File is only used by this photo - safe to delete
+                if os.path.isfile(file.path):
+                    logger.info(f"Removing photo {file.path}")
+                    os.remove(file.path)
                 file.delete()
-            self.files.set([])
-            self.main_file = None
+        
+        self.files.set([])
+        self.main_file = None
         self.removed = True
         
         # Clear all stack references from this photo (ManyToMany)

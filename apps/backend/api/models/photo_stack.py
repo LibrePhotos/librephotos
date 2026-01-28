@@ -2,17 +2,21 @@
 PhotoStack model for organizational photo grouping.
 
 Stacks represent related photos that should be kept together for organization:
-- RAW+JPEG pairs (same shot in different formats)
 - Burst sequences (rapid succession shots)
 - Exposure brackets (HDR sequences)
-- Live photos (photo + embedded motion video)
 - Manual user groupings
 
-NOTE: Duplicates (exact copies and visual duplicates) are now handled separately
-by the Duplicate model in api/models/duplicate.py. Duplicates focus on storage
-cleanup, while Stacks focus on photo organization.
+NOTE: RAW+JPEG pairs and Live Photos are NO LONGER handled as stacks.
+Instead, they use the Photo.files ManyToMany field to store multiple file
+variants of the same capture (PhotoPrism-like model). This allows:
+- A single Photo entity for RAW+JPEG (same capture, different formats)
+- A single Photo entity for Live Photos (image + video variant)
+- Photo stacks for DIFFERENT captures that are logically related
 
-Inspired by Immich's stacking system with focus on photo relationships.
+Legacy RAW_JPEG_PAIR and LIVE_PHOTO stack types are kept for migration
+compatibility but are deprecated and will be converted to file variants.
+
+Inspired by PhotoPrism's file variant model and Immich's stacking system.
 """
 
 import uuid
@@ -24,30 +28,43 @@ from api.models.user import User, get_deleted_user
 
 class PhotoStack(models.Model):
     """
-    Represents a group of related photos that should be treated as variations
-    of the same moment/subject. Only the primary photo is shown in the timeline,
-    with others accessible via expansion.
+    Represents a group of related but DISTINCT photos that should be kept together.
+    Only the primary photo is shown in the timeline, with others accessible via expansion.
+    
+    NOTE: This is for grouping DIFFERENT captures (bursts, brackets, manual).
+    For same-capture file variants (RAW+JPEG, Live Photos), use Photo.files instead.
     
     Stacks are informational groupings - they help organize related photos
     but don't imply that any should be deleted (unlike Duplicates).
     """
 
     class StackType(models.TextChoices):
-        # RAW file paired with its JPEG/HEIC counterpart
-        # Both formats serve different purposes (editing vs viewing)
-        RAW_JPEG_PAIR = "raw_jpeg", "RAW + JPEG Pair"
+        # === ACTIVE STACK TYPES (for different captures) ===
+        
         # Photos taken in rapid succession (burst/continuous mode)
         # User may want to browse all or pick the best
         BURST_SEQUENCE = "burst", "Burst Sequence"
         # Exposure bracketed shots (for HDR)
         # HDR processing may need all exposures
         EXPOSURE_BRACKET = "bracket", "Exposure Bracket"
-        # Live photos (photo + embedded video motion)
-        # Photo and video are intrinsically linked
-        LIVE_PHOTO = "live_photo", "Live Photo"
         # User manually grouped photos
         # User explicitly created the grouping
         MANUAL = "manual", "Manual Stack"
+        
+        # === DEPRECATED STACK TYPES (migrated to Photo.files) ===
+        # Kept for backwards compatibility during migration
+        
+        # DEPRECATED: Use Photo.files for RAW+JPEG variants
+        RAW_JPEG_PAIR = "raw_jpeg", "RAW + JPEG Pair (Deprecated)"
+        # DEPRECATED: Use Photo.files for Live Photo variants
+        LIVE_PHOTO = "live_photo", "Live Photo (Deprecated)"
+
+    # Valid stack types for new stacks (excludes deprecated types)
+    VALID_STACK_TYPES = [
+        StackType.BURST_SEQUENCE,
+        StackType.EXPOSURE_BRACKET,
+        StackType.MANUAL,
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
@@ -60,7 +77,7 @@ class PhotoStack(models.Model):
     stack_type = models.CharField(
         max_length=20,
         choices=StackType.choices,
-        default=StackType.RAW_JPEG_PAIR,
+        default=StackType.MANUAL,
         db_index=True,
     )
 
@@ -108,22 +125,20 @@ class PhotoStack(models.Model):
         """
         Automatically selects the best photo as primary based on stack type.
 
-        For RAW_JPEG_PAIR: Depends on user preference (default: JPEG for viewing)
-        For BURST_SEQUENCE: Sharpest/best focused (fall back to middle of sequence)
+        For BURST_SEQUENCE: Middle of sequence by timestamp
         For EXPOSURE_BRACKET: Middle exposure
-        For LIVE_PHOTO: The still image (not the video)
         For MANUAL: Highest resolution
+        
+        For deprecated types (RAW_JPEG_PAIR, LIVE_PHOTO):
+        These should be migrated to Photo.files, but for compatibility:
+        - RAW_JPEG_PAIR: Prefer JPEG (non-RAW)
+        - LIVE_PHOTO: Prefer still image (non-video)
         """
         photos = self.photos.all()
         if not photos.exists():
             return None
 
-        if self.stack_type == self.StackType.RAW_JPEG_PAIR:
-            # Prefer JPEG for display by default (faster to render)
-            # RAW files have type=4 in File model
-            jpeg_photos = photos.exclude(main_file__type=4)
-            best = jpeg_photos.first() if jpeg_photos.exists() else photos.first()
-        elif self.stack_type == self.StackType.BURST_SEQUENCE:
+        if self.stack_type == self.StackType.BURST_SEQUENCE:
             # Pick middle of sequence by timestamp
             ordered = photos.order_by("exif_timestamp")
             count = ordered.count()
@@ -133,13 +148,16 @@ class PhotoStack(models.Model):
             ordered = photos.order_by("exif_timestamp")
             count = ordered.count()
             best = ordered[count // 2] if count > 0 else None
+        elif self.stack_type == self.StackType.RAW_JPEG_PAIR:
+            # DEPRECATED: Prefer JPEG for display (RAW files have type=4)
+            jpeg_photos = photos.exclude(main_file__type=4)
+            best = jpeg_photos.first() if jpeg_photos.exists() else photos.first()
         elif self.stack_type == self.StackType.LIVE_PHOTO:
-            # For Live Photos, prefer the still image over the video
-            # File.VIDEO = 2 in the File model
+            # DEPRECATED: Prefer still image over video (VIDEO = 2)
             still_photos = photos.exclude(main_file__type=2)
             best = still_photos.first() if still_photos.exists() else photos.first()
         else:
-            # Default: highest resolution
+            # MANUAL and default: highest resolution
             # Use metadata__width and metadata__height since these fields moved to PhotoMetadata
             best = photos.order_by(
                 models.F("metadata__width") * models.F("metadata__height")

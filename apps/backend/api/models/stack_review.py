@@ -96,19 +96,21 @@ class StackReview(models.Model):
         return f"Review for {self.stack.id} - {self.decision}"
 
     @classmethod
-    def get_reviewable_stack_types(cls):
-        """
-        Returns stack types that require user review.
-        
-        Note: exact_copy and visual_duplicate were moved to the Duplicate model.
-        PhotoStack instances are informational groupings and are not reviewable.
-        """
-        return []
-
-    @classmethod
     def is_reviewable_type(cls, stack_type: str) -> bool:
-        """Check if a stack type requires review."""
-        return stack_type in cls.get_reviewable_stack_types()
+        """
+        Check if a stack type requires user review.
+        
+        Currently no stack types are reviewable because:
+        - exact_copy and visual_duplicate are now handled by Duplicate model
+        - BURST_SEQUENCE, EXPOSURE_BRACKET, MANUAL are informational
+        - RAW_JPEG_PAIR and LIVE_PHOTO are deprecated (use Photo.files)
+        
+        Returns:
+            False for all current stack types
+        """
+        # No current stack types require review
+        # Duplicates are handled by the separate Duplicate model
+        return False
 
     @classmethod
     def create_for_stack(cls, stack: PhotoStack) -> "StackReview | None":
