@@ -130,8 +130,9 @@ def detect_exact_copies(user, progress_callback=None):
     from collections import defaultdict
     
     # Get all photos with their files, excluding metadata files
+    # Exclude removed photos to avoid including merged/deleted duplicates
     photos = Photo.objects.filter(
-        Q(owner=user) & Q(hidden=False) & Q(in_trashcan=False)
+        Q(owner=user) & Q(hidden=False) & Q(in_trashcan=False) & Q(removed=False)
     ).prefetch_related('files').select_related('main_file')
     
     # Method 1: Group photos directly by Photo.image_hash (simplest and most reliable)
@@ -227,10 +228,12 @@ def detect_visual_duplicates(user, threshold=DEFAULT_HAMMING_THRESHOLD, progress
         Number of duplicate groups created
     """
     # Get photos with perceptual hash that aren't already in visual duplicate groups
+    # Exclude removed photos to avoid including merged/deleted duplicates
     photos = Photo.objects.filter(
         Q(owner=user) & 
         Q(hidden=False) & 
         Q(in_trashcan=False) &
+        Q(removed=False) &
         Q(perceptual_hash__isnull=False)
     ).exclude(
         duplicates__duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE
