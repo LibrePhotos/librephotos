@@ -8,7 +8,6 @@ import { notification } from "../../service/notifications";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";
 import { Description } from "./Description";
-import { FileVariantsSection } from "./FileVariantsSection";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
@@ -106,7 +105,6 @@ export function Sidebar({ isPublic, closeSidepanel, setFaceLocation, id, onPhoto
         <SidebarHeader closeSidepanel={closeSidepanel} />
         <TimestampItem photoDetail={photoDetail} isPublic={isPublic} />
         <VersionComponent photoDetail={photoDetail} isPublic={isPublic} />
-        <FileVariantsSection photoDetail={photoDetail} />
         <StackSection photoDetail={photoDetail} onPhotoSelect={onPhotoSelect} />
         <LocationSection photoDetail={photoDetail} mapHeight={200} />
         <PeopleSection

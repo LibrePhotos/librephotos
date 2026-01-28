@@ -58,8 +58,11 @@ export function useFaceDataFetching(
   const idx2hash = useMemo(() => {
     const tabName =
       activeTab === FacesTab.enum.labeled ? "labeled" : activeTab === FacesTab.enum.inferred ? "inferred" : "unknown";
-    // face.photo is the image_hash, use it for both id and image_hash since we're working with legacy hash-based data
-    return lists[tabName].flatMap(person => person.faces).map(face => ({ id: face.photo, image_hash: face.photo }));
+    // face.photo is the UUID (Photo's primary key after migration 0099)
+    // face.photo_image_hash is the actual image hash needed for media URLs
+    return lists[tabName]
+      .flatMap(person => person.faces)
+      .map(face => ({ id: face.photo, image_hash: face.photo_image_hash || face.photo }));
   }, [lists, activeTab]);
 
   // Fetch detailed face data when groups change
