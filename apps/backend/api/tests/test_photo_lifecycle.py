@@ -461,3 +461,173 @@ class EdgeCasesTestCase(TestCase):
         # Duplicate group should be deleted (only 1 photo remaining)
         self.assertFalse(Duplicate.objects.filter(id=duplicate_id).exists(),
             "Duplicate group with 1 photo should be deleted after kept_photo deletion")
+
+
+class SharedFileTestCase(TestCase):
+    """Tests for photos sharing the same File."""
+
+    def setUp(self):
+        self.user = create_test_user()
+
+    def test_delete_photo_preserves_shared_file(self):
+        """Test that deleting a photo does not delete a file shared with another photo."""
+        # Create a shared file
+        shared_file = File.objects.create(
+            hash="shared_file_hash" + "a" * 17,
+            path="/photos/shared_image.jpg",
+            type=File.IMAGE,
+        )
+        
+        # Create two photos that share the same file
+        photo1 = create_test_photo(owner=self.user)
+        photo2 = create_test_photo(owner=self.user)
+        
+        photo1.files.add(shared_file)
+        photo1.main_file = shared_file
+        photo1.save()
+        
+        photo2.files.add(shared_file)
+        photo2.main_file = shared_file
+        photo2.save()
+        
+        # Verify both photos reference the same file
+        self.assertEqual(photo1.main_file.hash, photo2.main_file.hash)
+        self.assertEqual(shared_file.photo_set.count(), 2)
+        
+        # Delete photo1
+        photo1.in_trashcan = True
+        photo1.save()
+        photo1.manual_delete()
+        
+        # File should still exist (used by photo2)
+        self.assertTrue(File.objects.filter(hash=shared_file.hash).exists(),
+            "File should not be deleted when another photo still uses it")
+        
+        # photo2 should still have its main_file
+        photo2.refresh_from_db()
+        self.assertIsNotNone(photo2.main_file)
+        self.assertEqual(photo2.main_file.hash, shared_file.hash)
+        
+        # photo2's files should still include the shared file
+        self.assertTrue(photo2.files.filter(hash=shared_file.hash).exists())
+
+    def test_delete_photo_removes_unshared_file(self):
+        """Test that deleting a photo removes a file only used by that photo."""
+        import tempfile
+        import os
+        
+        # Create a temp file to simulate a real file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+            tmp.write(b'test image data')
+            temp_path = tmp.name
+        
+        try:
+            # Create a file that's only used by one photo
+            unique_file = File.objects.create(
+                hash="unique_file_hash" + "a" * 18,
+                path=temp_path,
+                type=File.IMAGE,
+            )
+            
+            photo = create_test_photo(owner=self.user)
+            photo.files.add(unique_file)
+            photo.main_file = unique_file
+            photo.save()
+            
+            # Verify only one photo uses this file
+            self.assertEqual(unique_file.photo_set.count(), 1)
+            
+            # Delete the photo
+            photo.in_trashcan = True
+            photo.save()
+            photo.manual_delete()
+            
+            # File should be deleted from database
+            self.assertFalse(File.objects.filter(hash=unique_file.hash).exists(),
+                "File should be deleted when no other photos use it")
+            
+            # Physical file should be deleted
+            self.assertFalse(os.path.exists(temp_path),
+                "Physical file should be removed from disk")
+        finally:
+            # Cleanup in case test fails
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_delete_photo_with_shared_main_file_different_from_files(self):
+        """Test deleting when main_file is shared but files M2M has unique files."""
+        # Shared main_file
+        shared_main = File.objects.create(
+            hash="shared_main_hash" + "a" * 18,
+            path="/photos/main.jpg",
+            type=File.IMAGE,
+        )
+        
+        # Unique sidecar file for photo1 only
+        unique_sidecar = File.objects.create(
+            hash="unique_sidecar_hash" + "a" * 15,
+            path="/photos/sidecar.xmp",
+            type=File.METADATA_FILE,
+        )
+        
+        photo1 = create_test_photo(owner=self.user)
+        photo2 = create_test_photo(owner=self.user)
+        
+        # Both photos share main_file
+        photo1.main_file = shared_main
+        photo1.files.add(shared_main, unique_sidecar)
+        photo1.save()
+        
+        photo2.main_file = shared_main
+        photo2.files.add(shared_main)
+        photo2.save()
+        
+        # Delete photo1
+        photo1.in_trashcan = True
+        photo1.save()
+        photo1.manual_delete()
+        
+        # shared_main should still exist (used by photo2)
+        self.assertTrue(File.objects.filter(hash=shared_main.hash).exists())
+        
+        # unique_sidecar should be deleted (only used by photo1)
+        self.assertFalse(File.objects.filter(hash=unique_sidecar.hash).exists())
+        
+        # photo2 should still reference shared_main
+        photo2.refresh_from_db()
+        self.assertEqual(photo2.main_file.hash, shared_main.hash)
+
+    def test_delete_last_photo_using_shared_file(self):
+        """Test that file is deleted when the last photo using it is deleted."""
+        shared_file = File.objects.create(
+            hash="eventually_orphan" + "a" * 17,
+            path="/photos/shared.jpg",
+            type=File.IMAGE,
+        )
+        
+        photo1 = create_test_photo(owner=self.user)
+        photo2 = create_test_photo(owner=self.user)
+        
+        photo1.files.add(shared_file)
+        photo1.main_file = shared_file
+        photo1.save()
+        
+        photo2.files.add(shared_file)
+        photo2.main_file = shared_file
+        photo2.save()
+        
+        # Delete photo1 - file should remain
+        photo1.in_trashcan = True
+        photo1.save()
+        photo1.manual_delete()
+        
+        self.assertTrue(File.objects.filter(hash=shared_file.hash).exists())
+        
+        # Delete photo2 - file should now be deleted (no photos using it)
+        photo2.in_trashcan = True
+        photo2.save()
+        photo2.manual_delete()
+        
+        # File should be deleted from database (no physical file to check)
+        self.assertFalse(File.objects.filter(hash=shared_file.hash).exists(),
+            "File should be deleted when the last photo using it is deleted")

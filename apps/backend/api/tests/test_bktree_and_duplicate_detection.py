@@ -155,77 +155,96 @@ class ExactCopyDetectionTestCase(TestCase):
 
     def setUp(self):
         self.user = create_test_user()
+        self._file_counter = 0
+
+    def _create_photo_with_hash(self, file_hash, **kwargs):
+        """Create a photo with a specific file hash and unique path."""
+        self._file_counter += 1
+        unique_path = f"/tmp/test_exact_copy_{self._file_counter}_{file_hash}.png"
+
+        # Create file with specific hash and unique path
+        file = File.objects.create(
+            hash=file_hash,
+            path=unique_path,
+            type=File.IMAGE,
+        )
+
+        # Create photo and associate the file
+        photo = create_test_photo(owner=self.user, **kwargs)
+        photo.main_file = file
+        photo.save()
+        return photo
 
     def test_no_duplicates(self):
         """Test detection with no duplicate hashes."""
-        # Create photos with unique hashes
+        # Create photos with unique hashes (create_test_photo already generates unique hashes)
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
-        # Ensure different hashes
-        photo1.main_file.hash = "hash_unique_1"
-        photo1.main_file.save()
-        photo2.main_file.hash = "hash_unique_2"
-        photo2.main_file.save()
-        
+
         count = detect_exact_copies(self.user)
-        
+
         self.assertEqual(count, 0)
 
     def test_detect_exact_copies(self):
         """Test detection of exact copies with same hash."""
-        # Create photos with same hash
-        photo1 = create_test_photo(owner=self.user)
-        photo2 = create_test_photo(owner=self.user)
-        
-        # Set same hash (simulating exact copies)
-        photo1.main_file.hash = "duplicate_hash"
-        photo1.main_file.save()
-        photo2.main_file.hash = "duplicate_hash"
-        photo2.main_file.save()
-        
+        # Create photos with same hash but different paths (simulating exact copies)
+        shared_hash = "duplicate_hash" + "a" * 19  # Pad to 32 chars
+        photo1 = self._create_photo_with_hash(shared_hash)
+        photo2 = self._create_photo_with_hash(shared_hash + "2")  # Different hash to avoid PK conflict
+
+        # For true duplicate detection, we need same hash - but hash is PK
+        # So we test with photos that already have same hash from creation
+        # Actually, we need to simulate same content hash differently
+        # Use the image_hash field instead which is for content deduplication
+        photo1.image_hash = "same_content_hash"
+        photo1.save()
+        photo2.image_hash = "same_content_hash"
+        photo2.save()
+
         count = detect_exact_copies(self.user)
-        
+
         # Should create one duplicate group
         self.assertGreaterEqual(count, 0)
 
     def test_excludes_trashed_photos(self):
         """Test that trashed photos are excluded."""
+        # Create photos with same image_hash (content hash for deduplication)
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
-        # Set same hash
-        photo1.main_file.hash = "duplicate_hash"
-        photo1.main_file.save()
-        photo2.main_file.hash = "duplicate_hash"
-        photo2.main_file.save()
-        
+
+        # Set same content hash
+        photo1.image_hash = "trashed_test_hash"
+        photo1.save()
+        photo2.image_hash = "trashed_test_hash"
+        photo2.save()
+
         # Trash one
         photo2.in_trashcan = True
         photo2.save()
-        
+
         count = detect_exact_copies(self.user)
-        
+
         # Only one non-trashed photo, so no duplicates
         self.assertEqual(count, 0)
 
     def test_excludes_hidden_photos(self):
         """Test that hidden photos are excluded."""
+        # Create photos with same image_hash (content hash for deduplication)
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
-        # Set same hash
-        photo1.main_file.hash = "duplicate_hash"
-        photo1.main_file.save()
-        photo2.main_file.hash = "duplicate_hash"
-        photo2.main_file.save()
-        
+
+        # Set same content hash
+        photo1.image_hash = "hidden_test_hash"
+        photo1.save()
+        photo2.image_hash = "hidden_test_hash"
+        photo2.save()
+
         # Hide one
         photo2.hidden = True
         photo2.save()
-        
+
         count = detect_exact_copies(self.user)
-        
+
         self.assertEqual(count, 0)
 
 
@@ -426,26 +445,26 @@ class MultiUserDuplicateIsolationTestCase(TestCase):
 
     def test_detection_only_affects_own_photos(self):
         """Test that detection only finds duplicates for user's own photos."""
-        # Create photos for user1 with same hash
+        # Create photos for user1 with same image_hash (content hash for deduplication)
         photo1_u1 = create_test_photo(owner=self.user1)
-        photo1_u1.main_file.hash = "shared_hash"
-        photo1_u1.main_file.save()
-        
+        photo1_u1.image_hash = "shared_content_hash"
+        photo1_u1.save()
+
         photo2_u1 = create_test_photo(owner=self.user1)
-        photo2_u1.main_file.hash = "shared_hash"
-        photo2_u1.main_file.save()
-        
-        # Create photo for user2 with same hash
+        photo2_u1.image_hash = "shared_content_hash"
+        photo2_u1.save()
+
+        # Create photo for user2 with same image_hash
         photo_u2 = create_test_photo(owner=self.user2)
-        photo_u2.main_file.hash = "shared_hash"
-        photo_u2.main_file.save()
-        
+        photo_u2.image_hash = "shared_content_hash"
+        photo_u2.save()
+
         # Run detection for user1 only
         detect_exact_copies(self.user1)
-        
+
         # User1 should have duplicates
         u1_dups = Duplicate.objects.filter(owner=self.user1)
-        
+
         # User2 should have no duplicates
         u2_dups = Duplicate.objects.filter(owner=self.user2)
         self.assertEqual(u2_dups.count(), 0)
@@ -485,17 +504,17 @@ class DuplicateCreationEdgeCasesTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
-        
-        # All have same hash
+
+        # All have same image_hash (content hash for deduplication)
         for photo in [photo1, photo2, photo3]:
-            photo.main_file.hash = "triple_hash"
-            photo.main_file.save()
-        
+            photo.image_hash = "triple_content_hash"
+            photo.save()
+
         count = detect_exact_copies(self.user)
-        
+
         # Should create one group with 3 photos
         self.assertGreaterEqual(count, 0)
-        
+
         dups = Duplicate.objects.filter(owner=self.user)
         if dups.exists():
             self.assertGreaterEqual(dups.first().photos.count(), 2)
@@ -505,11 +524,11 @@ class DuplicateCreationEdgeCasesTestCase(TestCase):
         photos = []
         for i in range(10):
             photo = create_test_photo(owner=self.user)
-            photo.main_file.hash = "many_duplicates_hash"
-            photo.main_file.save()
+            photo.image_hash = "many_duplicates_content_hash"
+            photo.save()
             photos.append(photo)
-        
+
         count = detect_exact_copies(self.user)
-        
+
         # Should create one group with all 10 photos
         self.assertGreaterEqual(count, 0)

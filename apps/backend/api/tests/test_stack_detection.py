@@ -667,22 +667,23 @@ class StackDetectionTestCase(TestCase):
 
     @patch("api.views.stacks.async_task")
     def test_detect_stacks_with_options(self, mock_async_task):
-        """Test detect stacks with custom options."""
+        """Test detect stacks with custom options.
+        
+        NOTE: detect_raw_jpeg and detect_live_photos options were removed.
+        RAW+JPEG and Live Photos are now handled via file variants during scan.
+        Only detect_bursts is available.
+        """
         response = self.client.post(
             "/api/stacks/detect",
             {
-                "detect_raw_jpeg": True,
                 "detect_bursts": False,
-                "detect_live_photos": True,
             },
             format="json",
         )
         
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         data = response.json()
-        self.assertEqual(data["options"]["detect_raw_jpeg"], True)
         self.assertEqual(data["options"]["detect_bursts"], False)
-        self.assertEqual(data["options"]["detect_live_photos"], True)
 
 
 class StackStatsTestCase(TestCase):

@@ -1,11 +1,14 @@
 """
 Edge case tests for Stack Detection to find bugs.
 
+NOTE: RAW+JPEG pairs and Live Photos are now handled as file variants
+during scan (Photo.files ManyToMany field), not as stacks.
+
 These tests specifically target:
 1. create_or_merge queryset ordering issues (potential Bug #11)
 2. Edge cases in hard criteria burst detection
 3. Edge cases in soft criteria burst detection
-4. Concurrent detection issues
+4. File variant handling edge cases
 5. Memory/performance edge cases
 """
 
@@ -26,9 +29,7 @@ from api.models.duplicate import Duplicate
 from api.models.long_running_job import LongRunningJob
 from api.stack_detection import (
     clear_stacks_of_type,
-    detect_raw_jpeg_pairs,
     detect_burst_sequences,
-    detect_live_photos,
     batch_detect_stacks,
     _create_burst_stack,
     _detect_bursts_hard_criteria,
@@ -393,17 +394,20 @@ class SoftCriteriaBurstDetectionEdgeCasesTestCase(TestCase):
         )
         existing_stack.photos.add(photo1, photo2)
         
-        # Run detection - should NOT clear existing stacks (that's done at start)
-        # But since we cleared at the start in detect_burst_sequences, 
-        # the existing stack will be deleted first, then re-detected
+        # Run detection - burst stacks are cleared at start, so this will re-detect
         count = detect_burst_sequences(self.user)
         
         # Should re-detect the burst
         self.assertEqual(count, 1)
 
 
-class LivePhotoDetectionEdgeCasesTestCase(TestCase):
-    """Edge cases for live photo detection."""
+class FileVariantEdgeCasesTestCase(TestCase):
+    """
+    Edge cases for file variant handling.
+    
+    File variants (RAW+JPEG, Live Photos) are now stored via Photo.files
+    ManyToMany field, not as stacks.
+    """
 
     def setUp(self):
         self.user = create_test_user()
@@ -416,183 +420,107 @@ class LivePhotoDetectionEdgeCasesTestCase(TestCase):
             type=file_type,
         )
 
-    def _create_photo_with_file(self, path, file_type=File.IMAGE, **kwargs):
-        """Helper to create Photo with associated File."""
-        file = self._create_file(path, file_type)
-        photo = create_test_photo(owner=self.user, **kwargs)
-        photo.main_file = file
+    def test_multiple_raw_files_same_photo(self):
+        """Test when multiple RAW files are attached to same photo."""
+        photo = create_test_photo(owner=self.user)
+        
+        # Add JPEG as main file
+        jpeg_file = self._create_file("/photos/IMG_001.jpg", File.IMAGE)
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
+        
+        # Add multiple RAW files (e.g., camera shot both CR2 and NEF)
+        raw_cr2 = self._create_file("/photos/IMG_001.CR2", File.RAW_FILE)
+        raw_nef = self._create_file("/photos/IMG_001.NEF", File.RAW_FILE)
+        photo.files.add(raw_cr2, raw_nef)
         photo.save()
-        return photo
+        
+        # Photo should have 3 file variants
+        self.assertEqual(photo.files.count(), 3)
+        self.assertEqual(photo.files.filter(type=File.RAW_FILE).count(), 2)
 
-    def test_multiple_video_extensions_same_photo(self):
-        """Test when both .mov and .mp4 exist for the same photo."""
-        photo = self._create_photo_with_file(
-            "/photos/IMG_001.jpg", File.IMAGE
-        )
-        video_mov = self._create_photo_with_file(
-            "/photos/IMG_001.mov", File.VIDEO
-        )
-        video_mp4 = self._create_photo_with_file(
-            "/photos/IMG_001.mp4", File.VIDEO
-        )
+    def test_video_and_raw_same_photo(self):
+        """Test Live Photo with RAW (image + video + RAW)."""
+        photo = create_test_photo(owner=self.user)
         
-        count = detect_live_photos(self.user)
+        # Add HEIC as main file
+        heic_file = self._create_file("/photos/IMG_001.heic", File.IMAGE)
+        photo.main_file = heic_file
+        photo.files.add(heic_file)
         
-        # Should only create one stack (first video extension match wins)
-        self.assertEqual(count, 1)
+        # Add RAW
+        raw_file = self._create_file("/photos/IMG_001.DNG", File.RAW_FILE)
+        photo.files.add(raw_file)
         
-        photo.refresh_from_db()
-        stack = photo.stacks.first()
-        # Stack should have exactly 2 photos (photo + first matching video)
-        self.assertEqual(stack.photos.count(), 2)
-
-    def test_video_exists_but_different_basename(self):
-        """Test no match when video has different basename."""
-        photo = self._create_photo_with_file(
-            "/photos/IMG_001.jpg", File.IMAGE
-        )
-        video = self._create_photo_with_file(
-            "/photos/IMG_001_video.mov", File.VIDEO
-        )
+        # Add video for Live Photo
+        video_file = self._create_file("/photos/IMG_001.mov", File.VIDEO)
+        photo.files.add(video_file)
+        photo.save()
         
-        count = detect_live_photos(self.user)
-        self.assertEqual(count, 0)
-
-    def test_m4v_extension(self):
-        """Test detection with .m4v video extension."""
-        photo = self._create_photo_with_file(
-            "/photos/IMG_001.jpg", File.IMAGE
-        )
-        video = self._create_photo_with_file(
-            "/photos/IMG_001.m4v", File.VIDEO
-        )
-        
-        count = detect_live_photos(self.user)
-        self.assertEqual(count, 1)
-
-    def test_very_long_filename(self):
-        """Test detection with very long filename."""
-        long_name = "IMG_" + "a" * 200
-        photo = self._create_photo_with_file(
-            f"/photos/{long_name}.jpg", File.IMAGE
-        )
-        video = self._create_photo_with_file(
-            f"/photos/{long_name}.mov", File.VIDEO
-        )
-        
-        count = detect_live_photos(self.user)
-        self.assertEqual(count, 1)
+        # Photo should have all three
+        self.assertEqual(photo.files.count(), 3)
+        self.assertTrue(photo.files.filter(type=File.IMAGE).exists())
+        self.assertTrue(photo.files.filter(type=File.RAW_FILE).exists())
+        self.assertTrue(photo.files.filter(type=File.VIDEO).exists())
 
     def test_dot_in_basename(self):
-        """Test detection when basename contains dots."""
-        photo = self._create_photo_with_file(
-            "/photos/IMG.2024.01.01.001.jpg", File.IMAGE
-        )
-        video = self._create_photo_with_file(
-            "/photos/IMG.2024.01.01.001.mov", File.VIDEO
-        )
+        """Test files with dots in basename."""
+        photo = create_test_photo(owner=self.user)
         
-        count = detect_live_photos(self.user)
-        self.assertEqual(count, 1)
-
-
-class RawJpegDetectionEdgeCasesTestCase(TestCase):
-    """Additional edge cases for RAW+JPEG detection."""
-
-    def setUp(self):
-        self.user = create_test_user()
-
-    def _create_file(self, path, file_type=File.IMAGE):
-        """Helper to create a File object."""
-        return File.objects.create(
-            hash=str(uuid.uuid4())[:32],
-            path=path,
-            type=file_type,
-        )
-
-    def _create_photo_with_file(self, path, file_type=File.IMAGE, **kwargs):
-        """Helper to create Photo with associated File."""
-        file = self._create_file(path, file_type)
-        photo = create_test_photo(owner=self.user, **kwargs)
-        photo.main_file = file
+        # File with dots in name
+        jpeg_file = self._create_file("/photos/IMG.2024.01.01.001.jpg", File.IMAGE)
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
+        
+        raw_file = self._create_file("/photos/IMG.2024.01.01.001.CR2", File.RAW_FILE)
+        photo.files.add(raw_file)
         photo.save()
-        return photo
+        
+        self.assertEqual(photo.files.count(), 2)
 
-    def test_raw_without_extension(self):
-        """Test RAW file detection when extension is unusual."""
-        # This shouldn't be detected as RAW since extension isn't in RAW_EXTENSIONS
-        photo = self._create_photo_with_file(
-            "/photos/IMG_001.raw_backup", File.RAW_FILE
-        )
-        jpeg = self._create_photo_with_file(
-            "/photos/IMG_001.raw_backup.jpg", File.IMAGE
-        )
+    def test_very_long_filename(self):
+        """Test files with very long filenames."""
+        photo = create_test_photo(owner=self.user)
         
-        count = detect_raw_jpeg_pairs(self.user)
-        # Should not match because base name differs
-        self.assertEqual(count, 0)
-
-    def test_multiple_raw_files_same_jpeg(self):
-        """Test when multiple RAW files could match same JPEG."""
-        raw_cr2 = self._create_photo_with_file(
-            "/photos/IMG_001.CR2", File.RAW_FILE
-        )
-        raw_nef = self._create_photo_with_file(
-            "/photos/IMG_001.NEF", File.RAW_FILE
-        )
-        jpeg = self._create_photo_with_file(
-            "/photos/IMG_001.jpg", File.IMAGE
-        )
+        long_name = "IMG_" + "a" * 200
+        jpeg_file = self._create_file(f"/photos/{long_name}.jpg", File.IMAGE)
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
         
-        count = detect_raw_jpeg_pairs(self.user)
+        raw_file = self._create_file(f"/photos/{long_name}.CR2", File.RAW_FILE)
+        photo.files.add(raw_file)
+        photo.save()
         
-        # Each RAW should try to pair with JPEG
-        # But second RAW might find JPEG already stacked
-        stacks = PhotoStack.objects.filter(
-            owner=self.user,
-            stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
-        )
-        # Implementation should handle this - potentially 2 separate stacks
-        # or merge into 1 if create_or_merge handles it
-        self.assertGreaterEqual(count, 1)
-
-    def test_deeply_nested_path(self):
-        """Test detection with deeply nested directory path."""
-        deep_path = "/photos" + "/subdir" * 50
-        raw = self._create_photo_with_file(
-            f"{deep_path}/IMG_001.CR2", File.RAW_FILE
-        )
-        jpeg = self._create_photo_with_file(
-            f"{deep_path}/IMG_001.jpg", File.IMAGE
-        )
-        
-        count = detect_raw_jpeg_pairs(self.user)
-        self.assertEqual(count, 1)
+        self.assertEqual(photo.files.count(), 2)
 
     def test_whitespace_in_path(self):
-        """Test detection with whitespace in directory and filename."""
-        raw = self._create_photo_with_file(
-            "/photos/My Photos/IMG 001.CR2", File.RAW_FILE
-        )
-        jpeg = self._create_photo_with_file(
-            "/photos/My Photos/IMG 001.jpg", File.IMAGE
-        )
+        """Test files with whitespace in path."""
+        photo = create_test_photo(owner=self.user)
         
-        count = detect_raw_jpeg_pairs(self.user)
-        self.assertEqual(count, 1)
+        jpeg_file = self._create_file("/photos/My Photos/IMG 001.jpg", File.IMAGE)
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
+        
+        raw_file = self._create_file("/photos/My Photos/IMG 001.CR2", File.RAW_FILE)
+        photo.files.add(raw_file)
+        photo.save()
+        
+        self.assertEqual(photo.files.count(), 2)
 
-    def test_jpeg_is_hidden_raw_is_not(self):
-        """Test when JPEG is hidden but RAW is visible."""
-        raw = self._create_photo_with_file(
-            "/photos/IMG_001.CR2", File.RAW_FILE
-        )
-        jpeg = self._create_photo_with_file(
-            "/photos/IMG_001.jpg", File.IMAGE, hidden=True
-        )
+    def test_deeply_nested_path(self):
+        """Test files in deeply nested directories."""
+        photo = create_test_photo(owner=self.user)
         
-        count = detect_raw_jpeg_pairs(self.user)
-        # JPEG is hidden, so no pair should be created
-        self.assertEqual(count, 0)
+        deep_path = "/photos" + "/subdir" * 50
+        jpeg_file = self._create_file(f"{deep_path}/IMG_001.jpg", File.IMAGE)
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
+        
+        raw_file = self._create_file(f"{deep_path}/IMG_001.CR2", File.RAW_FILE)
+        photo.files.add(raw_file)
+        photo.save()
+        
+        self.assertEqual(photo.files.count(), 2)
 
 
 class MalformedRulesEdgeCasesTestCase(TestCase):
@@ -674,46 +602,29 @@ class BatchDetectionEdgeCasesTestCase(TestCase):
     def test_partial_options(self):
         """Test batch detection with partial options dict."""
         # Only specify some options
-        options = {'detect_raw_jpeg': False}
+        options = {'detect_bursts': False}
         
-        with patch('api.stack_detection.detect_raw_jpeg_pairs') as mock_raw, \
-             patch('api.stack_detection.detect_burst_sequences') as mock_burst, \
-             patch('api.stack_detection.detect_live_photos') as mock_live:
-            
-            mock_raw.return_value = 0
+        with patch('api.stack_detection.detect_burst_sequences') as mock_burst:
             mock_burst.return_value = 0
-            mock_live.return_value = 0
             
             batch_detect_stacks(self.user, options=options)
             
-            # RAW should not be called (explicitly disabled)
-            mock_raw.assert_not_called()
-            # Burst and live should be called (defaults to True)
-            mock_burst.assert_called_once()
-            mock_live.assert_called_once()
+            # Burst should not be called (explicitly disabled)
+            mock_burst.assert_not_called()
 
     def test_empty_options_dict(self):
         """Test batch detection with empty options dict."""
-        with patch('api.stack_detection.detect_raw_jpeg_pairs') as mock_raw, \
-             patch('api.stack_detection.detect_burst_sequences') as mock_burst, \
-             patch('api.stack_detection.detect_live_photos') as mock_live:
-            
-            mock_raw.return_value = 0
+        with patch('api.stack_detection.detect_burst_sequences') as mock_burst:
             mock_burst.return_value = 0
-            mock_live.return_value = 0
             
             batch_detect_stacks(self.user, options={})
             
-            # All should be called with defaults (True)
-            mock_raw.assert_called_once()
+            # Burst should be called with defaults (True)
             mock_burst.assert_called_once()
-            mock_live.assert_called_once()
 
     @patch('api.stack_detection.detect_burst_sequences')
-    @patch('api.stack_detection.detect_raw_jpeg_pairs')
-    def test_exception_in_second_detector(self, mock_raw, mock_burst):
-        """Test that exception in one detector still fails job properly."""
-        mock_raw.return_value = 5
+    def test_exception_in_detector(self, mock_burst):
+        """Test that exception in detector fails job properly."""
         mock_burst.side_effect = Exception("Burst detection crashed")
         
         with self.assertRaises(Exception):
@@ -741,20 +652,20 @@ class ClearStacksEdgeCasesTestCase(TestCase):
         )
         burst_stack.photos.add(photo)
         
-        # Add same photo to RAW+JPEG stack
-        raw_stack = PhotoStack.objects.create(
+        # Add same photo to manual stack
+        manual_stack = PhotoStack.objects.create(
             owner=self.user,
-            stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
+            stack_type=PhotoStack.StackType.MANUAL,
         )
-        raw_stack.photos.add(photo)
+        manual_stack.photos.add(photo)
         
         # Clear only burst stacks
         clear_stacks_of_type(self.user, PhotoStack.StackType.BURST_SEQUENCE)
         
-        # Photo should still be in RAW stack
+        # Photo should still be in manual stack
         photo.refresh_from_db()
         self.assertEqual(photo.stacks.count(), 1)
-        self.assertEqual(photo.stacks.first().stack_type, PhotoStack.StackType.RAW_JPEG_PAIR)
+        self.assertEqual(photo.stacks.first().stack_type, PhotoStack.StackType.MANUAL)
 
     def test_clear_with_many_stacks(self):
         """Test clearing a large number of stacks."""
@@ -892,10 +803,11 @@ class FilenamePatternEdgeCasesTestCase(TestCase):
             }
         ])
         self.user.save()
-        
+
+        # Create two photos with different paths that both match the bracket pattern
         photo1 = self._create_photo_with_file("/photos/IMG_[001].jpg")
-        photo2 = self._create_photo_with_file("/photos/IMG_[001].jpg")  # Same pattern
-        
+        photo2 = self._create_photo_with_file("/photos/IMG_[002].jpg")  # Different path, same pattern
+
         # Should not crash on regex special characters
         count = detect_burst_sequences(self.user)
         self.assertGreaterEqual(count, 0)

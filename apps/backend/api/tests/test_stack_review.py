@@ -8,6 +8,12 @@ Tests the StackReview model for tracking user review decisions on stacks:
 - Dismiss workflow (unlink photos)
 - Revert workflow (restore trashed photos)
 - Reviewable stack types logic
+
+NOTE: With the new file variants architecture, no stack types are
+reviewable because:
+- exact_copy and visual_duplicate are handled by Duplicate model
+- BURST_SEQUENCE, EXPOSURE_BRACKET, MANUAL are informational
+- RAW_JPEG_PAIR and LIVE_PHOTO are deprecated (use Photo.files)
 """
 
 import uuid
@@ -145,41 +151,30 @@ class DecisionChoicesTestCase(TestCase):
         self.assertEqual(labels["dismissed"], "Dismissed")
 
 
-class ReviewableStackTypesTestCase(TestCase):
-    """Tests for reviewable stack types logic."""
+class IsReviewableTypeTestCase(TestCase):
+    """Tests for the is_reviewable_type classmethod."""
 
-    def test_get_reviewable_stack_types_returns_empty(self):
-        """
-        Should return empty list since reviewable types moved to Duplicate model.
+    def test_no_stack_types_are_reviewable(self):
+        """No current stack types should be reviewable.
         
-        Note: This is intentional design - PhotoStack is now for informational
-        groupings only, while Duplicate handles the review workflow.
+        This is because:
+        - Duplicates are now handled by the separate Duplicate model
+        - Other stack types are informational only
+        - RAW_JPEG_PAIR and LIVE_PHOTO are deprecated (use Photo.files)
         """
-        types = StackReview.get_reviewable_stack_types()
-        self.assertEqual(types, [])
-
-    def test_is_reviewable_type_returns_false_for_all_stack_types(self):
-        """No stack types should be reviewable since they moved to Duplicate."""
         for stack_type in PhotoStack.StackType.values:
-            self.assertFalse(StackReview.is_reviewable_type(stack_type))
+            self.assertFalse(
+                StackReview.is_reviewable_type(stack_type),
+                f"{stack_type} should not be reviewable"
+            )
 
-    def test_is_reviewable_type_returns_false_for_raw_jpeg(self):
-        """RAW_JPEG_PAIR is informational, not reviewable."""
-        self.assertFalse(
-            StackReview.is_reviewable_type(PhotoStack.StackType.RAW_JPEG_PAIR)
-        )
+    def test_manual_not_reviewable(self):
+        """MANUAL stacks should not be reviewable."""
+        self.assertFalse(StackReview.is_reviewable_type(PhotoStack.StackType.MANUAL))
 
-    def test_is_reviewable_type_returns_false_for_burst(self):
-        """BURST_SEQUENCE is informational, not reviewable."""
-        self.assertFalse(
-            StackReview.is_reviewable_type(PhotoStack.StackType.BURST_SEQUENCE)
-        )
-
-    def test_is_reviewable_type_returns_false_for_manual(self):
-        """MANUAL stacks are user-created, not reviewable."""
-        self.assertFalse(
-            StackReview.is_reviewable_type(PhotoStack.StackType.MANUAL)
-        )
+    def test_burst_not_reviewable(self):
+        """BURST_SEQUENCE stacks should not be reviewable."""
+        self.assertFalse(StackReview.is_reviewable_type(PhotoStack.StackType.BURST_SEQUENCE))
 
 
 class CreateForStackTestCase(TestCase):
@@ -189,15 +184,18 @@ class CreateForStackTestCase(TestCase):
         """Create test user."""
         self.user = User.objects.create(username="createtest")
 
-    def test_returns_none_for_non_reviewable_stack_types(self):
-        """Should return None for all current stack types (none are reviewable)."""
+    def test_returns_none_for_all_stack_types(self):
+        """Should return None for all stack types (none are reviewable)."""
         for stack_type in PhotoStack.StackType.values:
             stack = PhotoStack.objects.create(
                 owner=self.user,
                 stack_type=stack_type,
             )
             review = StackReview.create_for_stack(stack)
-            self.assertIsNone(review)
+            self.assertIsNone(
+                review,
+                f"create_for_stack should return None for {stack_type}"
+            )
 
     def test_returns_none_for_manual_stack(self):
         """Should return None for manual stacks."""
@@ -208,39 +206,14 @@ class CreateForStackTestCase(TestCase):
         review = StackReview.create_for_stack(stack)
         self.assertIsNone(review)
 
-    @patch.object(StackReview, 'get_reviewable_stack_types')
-    def test_creates_review_for_reviewable_type(self, mock_get_types):
-        """Should create review if stack type is in reviewable list."""
-        # Simulate having a reviewable type
-        mock_get_types.return_value = [PhotoStack.StackType.MANUAL]
-        
+    def test_returns_none_for_burst_stack(self):
+        """Should return None for burst stacks."""
         stack = PhotoStack.objects.create(
             owner=self.user,
-            stack_type=PhotoStack.StackType.MANUAL,
+            stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         review = StackReview.create_for_stack(stack)
-        
-        self.assertIsNotNone(review)
-        self.assertEqual(review.stack, stack)
-        self.assertEqual(review.reviewer, self.user)
-        self.assertEqual(review.decision, StackReview.Decision.PENDING)
-
-    @patch.object(StackReview, 'get_reviewable_stack_types')
-    def test_returns_existing_review_if_present(self, mock_get_types):
-        """Should return existing review instead of creating duplicate."""
-        mock_get_types.return_value = [PhotoStack.StackType.MANUAL]
-        
-        stack = PhotoStack.objects.create(
-            owner=self.user,
-            stack_type=PhotoStack.StackType.MANUAL,
-        )
-        
-        # Create first review
-        review1 = StackReview.create_for_stack(stack)
-        # Try to create again
-        review2 = StackReview.create_for_stack(stack)
-        
-        self.assertEqual(review1.id, review2.id)
+        self.assertIsNone(review)
 
 
 class ResolveTestCase(TestCase):
@@ -275,7 +248,7 @@ class ResolveTestCase(TestCase):
         for photo in self.photos:
             photo.stacks.add(self.stack)
         
-        # Create review
+        # Create review directly (since create_for_stack returns None)
         self.review = StackReview.objects.create(
             stack=self.stack,
             reviewer=self.user,
@@ -377,7 +350,7 @@ class DismissTestCase(TestCase):
         for photo in self.photos:
             photo.stacks.add(self.stack)
         
-        # Create review
+        # Create review directly
         self.review = StackReview.objects.create(
             stack=self.stack,
             reviewer=self.user,

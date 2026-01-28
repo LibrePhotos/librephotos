@@ -3,12 +3,16 @@ Edge case tests for detection logic.
 
 Tests cover:
 - Burst detection rule parsing and validation
-- RAW+JPEG detection edge cases
 - File path and naming edge cases
 - Detection with missing/corrupt data
+
+NOTE: RAW+JPEG and Live Photo detection tests are skipped because these
+functions were removed. RAW+JPEG and Live Photos now use the file variants
+model (Photo.files) instead of stacks, handled during scan time.
 """
 
 import json
+import unittest
 from datetime import datetime, timedelta
 from django.test import TestCase
 from unittest.mock import patch, MagicMock
@@ -178,8 +182,13 @@ class UserBurstRulesTestCase(TestCase):
         self.assertEqual(len(rules), 1)
 
 
+@unittest.skip("RAW+JPEG detection removed - now handled via file variants during scan")
 class RawJpegDetectionEdgeCasesTestCase(TestCase):
-    """Tests for RAW+JPEG detection edge cases."""
+    """Tests for RAW+JPEG detection edge cases.
+    
+    DEPRECATED: RAW+JPEG pairs are now handled as file variants (Photo.files)
+    during scan time, not via stack detection. These tests are skipped.
+    """
 
     def setUp(self):
         self.user = create_test_user()
@@ -441,8 +450,13 @@ class TimestampProximityRuleTestCase(TestCase):
         self.assertEqual(stacks_created, 0)
 
 
+@unittest.skip("Live Photo detection removed - now handled via file variants during scan")
 class LivePhotoDetectionEdgeCasesTestCase(TestCase):
-    """Tests for live photo detection edge cases."""
+    """Tests for live photo detection edge cases.
+    
+    DEPRECATED: Live Photos are now handled as file variants (Photo.files)
+    during scan time, not via stack detection. These tests are skipped.
+    """
 
     def setUp(self):
         self.user = create_test_user()
@@ -466,8 +480,13 @@ class DetectionProgressCallbackTestCase(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
+    @unittest.skip("RAW+JPEG detection removed - now handled via file variants during scan")
     def test_raw_jpeg_detection_calls_progress(self):
-        """Test that RAW+JPEG detection calls progress callback."""
+        """Test that RAW+JPEG detection calls progress callback.
+        
+        DEPRECATED: RAW+JPEG pairs are now handled as file variants (Photo.files)
+        during scan time, not via stack detection.
+        """
         from api.stack_detection import detect_raw_jpeg_pairs
         
         # Create some RAW photos

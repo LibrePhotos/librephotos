@@ -6,6 +6,12 @@ Ensures that running detection multiple times:
 - Does not create duplicate duplicate-groups
 - Handles already-processed photos correctly
 - Merges with existing groups properly
+
+NOTE: RAW+JPEG pairs and Live Photos are now handled as file variants
+during the initial scan (Photo.files ManyToMany field), not as stacks.
+This module tests idempotency for:
+- Duplicate detection (exact copies, visual duplicates)
+- Burst sequence detection
 """
 
 import uuid
@@ -22,7 +28,7 @@ from api.models.photo_metadata import PhotoMetadata
 from api.models.file import File
 from api.tests.utils import create_test_photo, create_test_user
 from api.duplicate_detection import detect_exact_copies, detect_visual_duplicates
-from api.stack_detection import detect_raw_jpeg_pairs, detect_burst_sequences
+from api.stack_detection import detect_burst_sequences
 
 
 class DuplicateRedetectionTestCase(TestCase):
@@ -152,43 +158,11 @@ class DuplicateRedetectionTestCase(TestCase):
         self.assertGreaterEqual(resolved_groups, 1)
 
 
-class StackRedetectionTestCase(TestCase):
-    """Test that stack detection is idempotent."""
+class BurstRedetectionTestCase(TestCase):
+    """Test that burst stack detection is idempotent."""
 
     def setUp(self):
         self.user = create_test_user()
-
-    def test_raw_jpeg_redetection_no_duplicate_stacks(self):
-        """Test that running RAW+JPEG detection twice doesn't create duplicate stacks."""
-        # Create a RAW+JPEG pair
-        raw_photo = create_test_photo(owner=self.user)
-        jpeg_photo = create_test_photo(owner=self.user)
-        
-        # Set up paths to look like RAW+JPEG pair
-        raw_photo.main_file.path = "/photos/IMG_001.CR2"
-        raw_photo.main_file.save()
-        File.objects.filter(pk=raw_photo.main_file.pk).update(type=File.RAW_FILE)
-        
-        jpeg_photo.main_file.path = "/photos/IMG_001.JPG"
-        jpeg_photo.main_file.save()
-        File.objects.filter(pk=jpeg_photo.main_file.pk).update(type=File.IMAGE)
-        
-        # First detection
-        detect_raw_jpeg_pairs(self.user)
-        initial_stacks = PhotoStack.objects.filter(
-            owner=self.user,
-            stack_type=PhotoStack.StackType.RAW_JPEG_PAIR
-        ).count()
-        
-        # Second detection
-        detect_raw_jpeg_pairs(self.user)
-        final_stacks = PhotoStack.objects.filter(
-            owner=self.user,
-            stack_type=PhotoStack.StackType.RAW_JPEG_PAIR
-        ).count()
-        
-        # Should have same number of stacks
-        self.assertEqual(initial_stacks, final_stacks)
 
     def test_burst_redetection_no_duplicate_stacks(self):
         """Test that running burst detection twice doesn't create duplicate stacks."""
@@ -524,3 +498,157 @@ class MergeOnRedetectionTestCase(TestCase):
         
         # Should have merged
         self.assertIsNotNone(merged)
+
+
+class FileVariantsIdempotencyTestCase(TestCase):
+    """
+    Test that file variants (RAW+JPEG, Live Photos) are handled idempotently.
+    
+    File variants are now stored via Photo.files ManyToMany field, not as stacks.
+    This is handled during the scan process in directory_watcher.py.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+
+    def test_photo_with_multiple_file_variants(self):
+        """Test that a photo can have multiple file variants."""
+        import uuid
+
+        # Create a photo (create_test_photo adds its own file)
+        photo = create_test_photo(owner=self.user)
+
+        # Clear any existing files and set up fresh
+        photo.files.clear()
+
+        # Use unique hashes to avoid any collision with other tests
+        unique_suffix = str(uuid.uuid4())[:8]
+
+        # Create a JPEG file
+        jpeg_file = File.objects.create(
+            hash=f"jpeg_{unique_suffix}" + "a" * 20,
+            path=f"/photos/IMG_001_{unique_suffix}.jpg",
+            type=File.IMAGE,
+        )
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
+        photo.save()
+
+        # Add a RAW file variant
+        raw_file = File.objects.create(
+            hash=f"raw_{unique_suffix}" + "b" * 21,
+            path=f"/photos/IMG_001_{unique_suffix}.CR2",
+            type=File.RAW_FILE,
+        )
+        photo.files.add(raw_file)
+
+        # Photo should have 2 file variants
+        self.assertEqual(photo.files.count(), 2)
+
+        # Verify both files are present
+        file_paths = set(photo.files.values_list('path', flat=True))
+        self.assertIn(f"/photos/IMG_001_{unique_suffix}.jpg", file_paths)
+        self.assertIn(f"/photos/IMG_001_{unique_suffix}.CR2", file_paths)
+
+    def test_file_variant_types(self):
+        """Test that we can identify file variant types."""
+        photo = create_test_photo(owner=self.user)
+        
+        # Clear existing files
+        photo.files.clear()
+        
+        # Add JPEG
+        jpeg_file = File.objects.create(
+            hash="jpeg" + "a" * 28,
+            path="/photos/IMG_001.jpg",
+            type=File.IMAGE,
+        )
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
+        
+        # Add RAW
+        raw_file = File.objects.create(
+            hash="raw" + "b" * 29,
+            path="/photos/IMG_001.CR2",
+            type=File.RAW_FILE,
+        )
+        photo.files.add(raw_file)
+        
+        # Add video for Live Photo
+        video_file = File.objects.create(
+            hash="video" + "c" * 27,
+            path="/photos/IMG_001.mov",
+            type=File.VIDEO,
+        )
+        photo.files.add(video_file)
+        photo.save()
+        
+        # Check file types
+        file_types = set(photo.files.values_list('type', flat=True))
+        self.assertIn(File.IMAGE, file_types)
+        self.assertIn(File.RAW_FILE, file_types)
+        self.assertIn(File.VIDEO, file_types)
+
+    def test_has_raw_variant(self):
+        """Test detecting if a photo has a RAW file variant."""
+        photo = create_test_photo(owner=self.user)
+        
+        # Clear existing files
+        photo.files.clear()
+        
+        # Add JPEG
+        jpeg_file = File.objects.create(
+            hash="jpeg" + "a" * 28,
+            path="/photos/IMG_001.jpg",
+            type=File.IMAGE,
+        )
+        photo.main_file = jpeg_file
+        photo.files.add(jpeg_file)
+        
+        # Initially no RAW
+        has_raw = photo.files.filter(type=File.RAW_FILE).exists()
+        self.assertFalse(has_raw)
+        
+        # Add RAW
+        raw_file = File.objects.create(
+            hash="raw" + "b" * 29,
+            path="/photos/IMG_001.CR2",
+            type=File.RAW_FILE,
+        )
+        photo.files.add(raw_file)
+        
+        # Now has RAW
+        has_raw = photo.files.filter(type=File.RAW_FILE).exists()
+        self.assertTrue(has_raw)
+
+    def test_has_video_variant_live_photo(self):
+        """Test detecting if a photo has a video variant (Live Photo)."""
+        photo = create_test_photo(owner=self.user)
+        
+        # Clear existing files
+        photo.files.clear()
+        
+        # Add image
+        image_file = File.objects.create(
+            hash="image" + "a" * 27,
+            path="/photos/IMG_001.heic",
+            type=File.IMAGE,
+        )
+        photo.main_file = image_file
+        photo.files.add(image_file)
+        
+        # Initially no video
+        has_video = photo.files.filter(type=File.VIDEO).exists()
+        self.assertFalse(has_video)
+        
+        # Add video for Live Photo
+        video_file = File.objects.create(
+            hash="video" + "b" * 27,
+            path="/photos/IMG_001.mov",
+            type=File.VIDEO,
+        )
+        photo.files.add(video_file)
+        
+        # Now has video
+        has_video = photo.files.filter(type=File.VIDEO).exists()
+        self.assertTrue(has_video)
