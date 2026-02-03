@@ -1,5 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
-
+import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient } from "../../api";
 
@@ -11,12 +10,12 @@ type DownloadResponse = {
 };
 
 async function startDownloadProcess(image_hashes: string[]) {
-  const response = await fetchClient.post('/photos/download', { image_hashes });
+  const response = await fetchClient.post("/photos/download", { image_hashes });
   return response as DownloadResponse;
 }
 
 async function checkDownloadStatus(job_id: string) {
-  const response = await fetchClient.get(`photos/download?job_id=${job_id}`);
+  const response = await fetchClient.get(`/photos/download?job_id=${job_id}`);
   return response as StatusResponse;
 }
 
@@ -33,34 +32,35 @@ async function downloadFile(filename: string) {
 }
 
 // Download photos
-export const useDownloadPhotosMutation = () => useMutation({
-  mutationFn: async ({ image_hashes }: { image_hashes: string[] }) => {
-    notification.downloadStarting();
-    
-    const userId = (window as any).user?.userSelfDetails?.id || '';
-    const { job_id: jobId, url: filename } = await startDownloadProcess(image_hashes);
+export const useDownloadPhotosMutation = () =>
+  useMutation({
+    mutationFn: async ({ image_hashes }: { image_hashes: string[] }) => {
+      notification.downloadStarting();
 
-    const statusInterval = setInterval(async () => {
-      const { status } = await checkDownloadStatus(jobId);
-      switch (status) {
-        case "SUCCESS":
-          clearInterval(statusInterval);
-          await downloadFile(filename + userId);
-          await fetchClient.delete(`/delete/zip/${filename}`);
-          notification.downloadCompleted();
-          break;
+      const userId = (window as any).user?.userSelfDetails?.id || "";
+      const { job_id: jobId, url: filename } = await startDownloadProcess(image_hashes);
 
-        case "FAILURE":
-          clearInterval(statusInterval);
-          notification.downloadFailed();
-          break;
+      const statusInterval = setInterval(async () => {
+        const { status } = await checkDownloadStatus(jobId);
+        switch (status) {
+          case "SUCCESS":
+            clearInterval(statusInterval);
+            await downloadFile(filename + userId);
+            await fetchClient.delete(`/delete/zip/${filename}`);
+            notification.downloadCompleted();
+            break;
 
-        default:
-          // noop on PROGRESS
-          break;
-      }
-    }, 3000);
+          case "FAILURE":
+            clearInterval(statusInterval);
+            notification.downloadFailed();
+            break;
 
-    return { success: true };
-  },
-}); 
+          default:
+            // noop on PROGRESS
+            break;
+        }
+      }, 3000);
+
+      return { success: true };
+    },
+  });
