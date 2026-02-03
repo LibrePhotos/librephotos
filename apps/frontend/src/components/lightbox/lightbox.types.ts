@@ -21,12 +21,14 @@ export type ContentViewerProps = {
   onImageLoad: () => void;
   enableZoom: boolean;
   isPublic: boolean;
+  publicAlbumSlug?: string;
   onPhotoSelect?: (photoId: string) => void;
 };
 
 export type LightBoxProps = {
   idx2hash: Array<{ id: string; image_hash: string }>;
   isPublic: boolean;
+  publicAlbumSlug?: string;
   onCloseRequest: () => void;
   onChangedIndex: (currentIndex?: number) => void;
   selectedImage: string;

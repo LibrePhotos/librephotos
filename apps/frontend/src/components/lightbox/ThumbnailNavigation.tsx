@@ -11,6 +11,7 @@ export type ThumbnailNavigationProps = {
   nextSrcHash: string | null;
   onMovePrevRequest: () => void;
   onMoveNextRequest: () => void;
+  isPublic?: boolean;
 };
 
 export function ThumbnailNavigation({
@@ -21,11 +22,22 @@ export function ThumbnailNavigation({
   nextSrcHash,
   onMovePrevRequest,
   onMoveNextRequest,
+  isPublic = false,
 }: ThumbnailNavigationProps) {
   // Use image_hash for API calls since backend still uses image_hash for lookup
-  const { data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading } = useFetchPhotoDetailsQuery(prevSrcHash ?? "");
-  const { data: mainPhotoDetail, isLoading: isMainPhotoDetailLoading } = useFetchPhotoDetailsQuery(mainSrcHash);
-  const { data: nextPhotoDetail, isLoading: isNextPhotoDetailLoading } = useFetchPhotoDetailsQuery(nextSrcHash ?? "");
+  // Skip these queries on public pages
+  const { data: prevPhotoDetail, isLoading: isPrevPhotoDetailLoading } = useFetchPhotoDetailsQuery(
+    prevSrcHash ?? "",
+    isPublic
+  );
+  const { data: mainPhotoDetail, isLoading: isMainPhotoDetailLoading } = useFetchPhotoDetailsQuery(
+    mainSrcHash,
+    isPublic
+  );
+  const { data: nextPhotoDetail, isLoading: isNextPhotoDetailLoading } = useFetchPhotoDetailsQuery(
+    nextSrcHash ?? "",
+    isPublic
+  );
 
   return (
     <div

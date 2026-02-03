@@ -8,11 +8,12 @@ import { LocationMap } from "../LocationMap";
 import { LocationPickerModal } from "../map/LocationPickerModal";
 
 interface LocationSectionProps {
-  photoDetail: PhotoType;
+  photoDetail: Partial<PhotoType>;
   mapHeight?: number;
+  isPublic?: boolean;
 }
 
-export function LocationSection({ photoDetail, mapHeight = 250 }: LocationSectionProps) {
+export function LocationSection({ photoDetail, mapHeight = 250, isPublic = false }: LocationSectionProps) {
   const { t } = useTranslation();
   const [opened, { open, close }] = useDisclosure(false);
   return (
@@ -23,11 +24,13 @@ export function LocationSection({ photoDetail, mapHeight = 250 }: LocationSectio
           <Text style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {photoDetail.search_location || t("lightbox.sidebar.no_location", "No location yet")}
           </Text>
-          <Tooltip label={t("lightbox.sidebar.update_location", "Update location")}>
-            <ActionIcon variant="subtle" color="dark" onClick={open}>
-              <Edit size={17} />
-            </ActionIcon>
-          </Tooltip>
+          {!isPublic && (
+            <Tooltip label={t("lightbox.sidebar.update_location", "Update location")}>
+              <ActionIcon variant="subtle" color="dark" onClick={open}>
+                <Edit size={17} />
+              </ActionIcon>
+            </Tooltip>
+          )}
         </Group>
         {photoDetail.exif_gps_lat && photoDetail.exif_gps_lon && (
           <Box h={mapHeight}>
@@ -35,14 +38,16 @@ export function LocationSection({ photoDetail, mapHeight = 250 }: LocationSectio
           </Box>
         )}
       </Stack>
-      <Modal opened={opened} onClose={close} title={t("lightbox.sidebar.pick_location", "Pick location")} centered>
-        <LocationPickerModal
-          imageHash={photoDetail.image_hash}
-          onClose={close}
-          initialLat={photoDetail.exif_gps_lat ?? undefined}
-          initialLon={photoDetail.exif_gps_lon ?? undefined}
-        />
-      </Modal>
+      {!isPublic && (
+        <Modal opened={opened} onClose={close} title={t("lightbox.sidebar.pick_location", "Pick location")} centered>
+          <LocationPickerModal
+            imageHash={photoDetail.image_hash}
+            onClose={close}
+            initialLat={photoDetail.exif_gps_lat ?? undefined}
+            initialLon={photoDetail.exif_gps_lon ?? undefined}
+          />
+        </Modal>
+      )}
     </Group>
   );
 }

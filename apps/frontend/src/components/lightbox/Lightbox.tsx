@@ -17,7 +17,7 @@ function usePrevious<T>(value: T): T | undefined {
 }
 
 export function Lightbox(props: ExtendedLightBoxProps) {
-  const { idx2hash, isPublic, onCloseRequest, selectedImage, onChangedIndex, onImageChange } = props;
+  const { idx2hash, isPublic, publicAlbumSlug, onCloseRequest, selectedImage, onChangedIndex, onImageChange } = props;
   const [lightboxImageId, setLightboxImageId] = useState(selectedImage);
   // Track previous idx2hash to detect when current image is deleted
   const previousIdx2hash = usePrevious(idx2hash);
@@ -45,8 +45,9 @@ export function Lightbox(props: ExtendedLightBoxProps) {
   );
 
   // Fetch photo details using image_hash (backend still uses image_hash for lookup)
+  // Skip this query on public pages since we don't have authenticated access to photo details
   const currentImageHash = getImageHashForId(lightboxImageId) || lightboxImageId;
-  const { data: photoDetails } = useFetchPhotoDetailsQuery(currentImageHash);
+  const { data: photoDetails } = useFetchPhotoDetailsQuery(currentImageHash, isPublic);
 
   // Initialize and handle navigation context
   useEffect(() => {
@@ -181,6 +182,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
         prevSrc={getPreviousId()}
         prevSrcHash={getImageHashForId(getPreviousId())}
         isPublic={isPublic}
+        publicAlbumSlug={publicAlbumSlug}
         type={getMediaType()}
         enableZoom={getMediaType() === "photo"}
         onCloseRequest={handleCloseRequest}

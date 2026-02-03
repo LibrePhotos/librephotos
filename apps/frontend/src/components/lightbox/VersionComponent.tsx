@@ -106,8 +106,9 @@ function PhotoInfoSection({
 
 /**
  * Camera equipment and settings information
+ * Exported for use in public album views
  */
-function CameraInfoSection({ photoDetail }: { photoDetail: PhotoType }) {
+export function CameraInfoSection({ photoDetail }: { photoDetail: Partial<PhotoType> }) {
   if (!photoDetail.camera) return null;
 
   return (
@@ -117,12 +118,12 @@ function CameraInfoSection({ photoDetail }: { photoDetail: PhotoType }) {
         <div>
           <Text fw={800}>{photoDetail.camera?.toString()}</Text>
           <Group gap="xs">
-            <FileInfoComponent info={photoDetail.lens?.toString()} />
-            <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />
-            <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />
-            <FileInfoComponent info={`${photoDetail.shutter_speed}`} />
-            <FileInfoComponent info={`${Math.round(photoDetail.focal_length!)} mm`} />
-            <FileInfoComponent info={`ISO${photoDetail.iso?.toString()}`} />
+            {photoDetail.lens && <FileInfoComponent info={photoDetail.lens.toString()} />}
+            {photoDetail.subjectDistance && <FileInfoComponent info={`${photoDetail.subjectDistance} m`} />}
+            {photoDetail.fstop && <FileInfoComponent info={`ƒ / ${photoDetail.fstop}`} />}
+            {photoDetail.shutter_speed && <FileInfoComponent info={`${photoDetail.shutter_speed}`} />}
+            {photoDetail.focal_length && <FileInfoComponent info={`${Math.round(photoDetail.focal_length)} mm`} />}
+            {photoDetail.iso && <FileInfoComponent info={`ISO${photoDetail.iso.toString()}`} />}
           </Group>
         </div>
       </Group>

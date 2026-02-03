@@ -27,6 +27,7 @@ export function ContentViewer({
   onMoveNextRequest,
   enableZoom = true,
   isPublic,
+  publicAlbumSlug,
   onPhotoSelect,
 }: ContentViewerProps) {
   const [isZoomed, setIsZoomed] = useState(false);
@@ -46,13 +47,14 @@ export function ContentViewer({
   const contentRef = useRef<HTMLDivElement>(null);
   const { toggle: toggleFullscreen, fullscreen: isFullscreen } = useFullscreen(contentRef);
 
-  // Fetch user settings for default slideshow interval
-  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
+  // Fetch user settings for default slideshow interval (skip on public pages)
+  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery(isPublic);
   const defaultSlideshowInterval = userSelfDetails?.slideshow_interval ?? 5;
   const slideshowInterval = localSlideshowInterval ?? defaultSlideshowInterval;
 
   // Use image_hash for API calls since backend still uses image_hash for lookup
-  const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash);
+  // Skip this query on public pages since we don't have authenticated access to photo details
+  const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash, isPublic);
 
   // Reset playing state when slide changes
   useEffect(() => {
@@ -377,6 +379,7 @@ export function ContentViewer({
               nextSrcHash={nextSrcHash}
               onMovePrevRequest={onMovePrevRequest}
               onMoveNextRequest={onMoveNextRequest}
+              isPublic={isPublic}
             />
           </Stack>
 
@@ -385,6 +388,7 @@ export function ContentViewer({
               id={mainSrcHash}
               closeSidepanel={() => setLightBoxSidebarShow(!lightboxSidebarShow)}
               isPublic={isPublic}
+              publicAlbumSlug={publicAlbumSlug}
               setFaceLocation={setFaceLocation}
               onPhotoSelect={onPhotoSelect}
             />
