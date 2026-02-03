@@ -28,8 +28,9 @@ def populate_photo_metadata(apps, schema_editor):
     PhotoCaption = apps.get_model("api", "PhotoCaption")
     
     # Subquery to get caption data - avoids loading all captions into memory
+    # Note: PhotoCaption.photo is a OneToOneField to Photo using UUID primary key
     caption_subquery = PhotoCaption.objects.filter(
-        photo_id=OuterRef('image_hash')
+        photo_id=OuterRef('pk')
     ).values('captions_json')[:1]
     
     # Exists subquery for efficient filtering - better than exclude(id__in=large_list)
