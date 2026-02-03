@@ -677,3 +677,214 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
 
     def get_photo(self, obj) -> PhotoSummarySerializer:
         return PhotoSummarySerializer(obj.photo).data
+
+
+class PublicPhotoDetailSerializer(serializers.ModelSerializer):
+    """Serializer for photo details in public albums.
+    
+    Conditionally includes metadata based on sharing settings passed in context.
+    Context must include 'sharing_settings' dict with keys:
+    - share_location: bool
+    - share_camera_info: bool
+    - share_timestamps: bool
+    - share_captions: bool
+    - share_faces: bool
+    """
+    
+    # Always included
+    square_thumbnail_url = serializers.SerializerMethodField()
+    big_thumbnail_url = serializers.SerializerMethodField()
+    small_square_thumbnail_url = serializers.SerializerMethodField()
+    video = serializers.BooleanField(read_only=True)
+    image_hash = serializers.CharField(read_only=True)
+    
+    # Conditionally included based on sharing settings
+    exif_timestamp = serializers.SerializerMethodField()
+    exif_gps_lat = serializers.SerializerMethodField()
+    exif_gps_lon = serializers.SerializerMethodField()
+    geolocation_json = serializers.SerializerMethodField()
+    search_location = serializers.SerializerMethodField()
+    
+    # Camera info
+    camera = serializers.SerializerMethodField()
+    lens = serializers.SerializerMethodField()
+    focal_length = serializers.SerializerMethodField()
+    fstop = serializers.SerializerMethodField()
+    iso = serializers.SerializerMethodField()
+    shutter_speed = serializers.SerializerMethodField()
+    width = serializers.SerializerMethodField()
+    height = serializers.SerializerMethodField()
+    
+    # Captions
+    search_captions = serializers.SerializerMethodField()
+    captions_json = serializers.SerializerMethodField()
+    
+    # People/faces
+    people = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Photo
+        fields = (
+            "image_hash",
+            "video",
+            "square_thumbnail_url",
+            "big_thumbnail_url",
+            "small_square_thumbnail_url",
+            "exif_timestamp",
+            "exif_gps_lat",
+            "exif_gps_lon",
+            "geolocation_json",
+            "search_location",
+            "camera",
+            "lens",
+            "focal_length",
+            "fstop",
+            "iso",
+            "shutter_speed",
+            "width",
+            "height",
+            "search_captions",
+            "captions_json",
+            "people",
+        )
+
+    def _get_sharing_settings(self) -> dict:
+        """Get sharing settings from context."""
+        return self.context.get('sharing_settings', {})
+    
+    def _get_metadata(self, obj) -> PhotoMetadata | None:
+        """Helper to get PhotoMetadata."""
+        if not hasattr(obj, '_cached_metadata'):
+            try:
+                obj._cached_metadata = obj.metadata
+            except PhotoMetadata.DoesNotExist:
+                obj._cached_metadata = None
+        return obj._cached_metadata
+
+    # Always available
+    def get_square_thumbnail_url(self, obj) -> str:
+        return obj.thumbnail.square_thumbnail.url if obj.thumbnail and obj.thumbnail.square_thumbnail else ""
+
+    def get_small_square_thumbnail_url(self, obj) -> str:
+        return obj.thumbnail.square_thumbnail_small.url if obj.thumbnail and obj.thumbnail.square_thumbnail_small else ""
+
+    def get_big_thumbnail_url(self, obj) -> str:
+        return obj.thumbnail.thumbnail_big.url if obj.thumbnail and obj.thumbnail.thumbnail_big else ""
+
+    # Timestamp - conditional
+    def get_exif_timestamp(self, obj):
+        if self._get_sharing_settings().get('share_timestamps', False):
+            return obj.exif_timestamp
+        return None
+
+    # Location - conditional
+    def get_exif_gps_lat(self, obj):
+        if self._get_sharing_settings().get('share_location', False):
+            return obj.exif_gps_lat
+        return None
+
+    def get_exif_gps_lon(self, obj):
+        if self._get_sharing_settings().get('share_location', False):
+            return obj.exif_gps_lon
+        return None
+
+    def get_geolocation_json(self, obj):
+        if self._get_sharing_settings().get('share_location', False):
+            return obj.geolocation_json
+        return None
+
+    def get_search_location(self, obj) -> str:
+        if self._get_sharing_settings().get('share_location', False):
+            if hasattr(obj, "search_instance") and obj.search_instance:
+                return obj.search_instance.search_location or ""
+        return ""
+
+    # Camera info - conditional
+    def get_camera(self, obj) -> str | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.camera_display if metadata else None
+        return None
+
+    def get_lens(self, obj) -> str | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.lens_display if metadata else None
+        return None
+
+    def get_focal_length(self, obj) -> float | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.focal_length if metadata else None
+        return None
+
+    def get_fstop(self, obj) -> float | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.aperture if metadata else None
+        return None
+
+    def get_iso(self, obj) -> int | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.iso if metadata else None
+        return None
+
+    def get_shutter_speed(self, obj) -> str | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.shutter_speed if metadata else None
+        return None
+
+    def get_width(self, obj) -> int:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.width if metadata else 0
+        return 0
+
+    def get_height(self, obj) -> int:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.height if metadata else 0
+        return 0
+
+    # Captions - conditional
+    def get_search_captions(self, obj) -> str:
+        if self._get_sharing_settings().get('share_captions', False):
+            if hasattr(obj, "search_instance") and obj.search_instance:
+                return obj.search_instance.search_captions or ""
+        return ""
+
+    def get_captions_json(self, obj) -> dict:
+        if self._get_sharing_settings().get('share_captions', False):
+            if (
+                hasattr(obj, "caption_instance")
+                and obj.caption_instance
+                and obj.caption_instance.captions_json
+                and len(obj.caption_instance.captions_json) > 0
+            ):
+                return obj.caption_instance.captions_json
+        return {"im2txt": "", "places365": {"attributes": [], "categories": [], "environment": []}}
+
+    # People/faces - conditional
+    def get_people(self, obj) -> list:
+        if not self._get_sharing_settings().get('share_faces', False):
+            return []
+        
+        return [
+            {
+                "name": (
+                    f.person.name
+                    if f.person
+                    else (
+                        f.cluster_person.name
+                        if f.cluster_person
+                        else "Unknown"
+                    )
+                ),
+                "face_url": f.image.url if f.image else None,
+                "face_id": f.id,
+            }
+            for f in obj.faces.all()
+            if f.person or f.cluster_person
+        ]

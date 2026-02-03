@@ -77,6 +77,7 @@ class UserSerializer(serializers.ModelSerializer):
             "llm_settings",
             "default_timezone",
             "public_sharing",
+            "public_sharing_defaults",
             "face_recognition_model",
             "min_cluster_size",
             "confidence_unknown_face",
