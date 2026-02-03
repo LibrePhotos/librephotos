@@ -31,6 +31,21 @@ def get_default_llm_settings():
     }
 
 
+def get_default_public_sharing_settings():
+    """Default settings for what metadata to share in public albums.
+    
+    All options default to False (opt-in) for privacy-first approach.
+    Users can change their defaults, and per-album overrides take precedence.
+    """
+    return {
+        "share_location": False,      # GPS coordinates and location names
+        "share_camera_info": False,   # Camera make/model, lens, settings
+        "share_timestamps": False,    # Date/time when photo was taken
+        "share_captions": False,      # AI-generated or user captions
+        "share_faces": False,         # Detected faces (always recommend False)
+    }
+
+
 class User(AbstractUser):
     scan_directory = models.CharField(
         max_length=512, db_index=True, blank=True, default=""
@@ -70,6 +85,7 @@ class User(AbstractUser):
         default="UTC",
     )
     public_sharing = models.BooleanField(default=False)
+    public_sharing_defaults = models.JSONField(default=get_default_public_sharing_settings)
 
     class FaceRecogniton(models.TextChoices):
         HOG = "HOG"
