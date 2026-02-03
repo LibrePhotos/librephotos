@@ -341,6 +341,81 @@ export function Settings() {
           </Stack>
         </Card>
         <Card shadow="md">
+          <Stack>
+            <Title order={4} mb={16}>
+              <Trans i18nKey="settings.publicsharingdefaults">Public Sharing Defaults</Trans>
+            </Title>
+            <Text size="sm" c="dimmed">
+              {t("settings.publicsharingdefaultsdesc")}
+            </Text>
+            <Switch
+              label={t("sharing.shareTimestamps")}
+              checked={editedUserDetails.public_sharing_defaults?.share_timestamps ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_timestamps: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareLocation")}
+              checked={editedUserDetails.public_sharing_defaults?.share_location ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_location: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareCameraInfo")}
+              checked={editedUserDetails.public_sharing_defaults?.share_camera_info ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_camera_info: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareCaptions")}
+              checked={editedUserDetails.public_sharing_defaults?.share_captions ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_captions: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareFaces")}
+              checked={editedUserDetails.public_sharing_defaults?.share_faces ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_faces: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+          </Stack>
+        </Card>
+        <Card shadow="md">
           <Title order={4} mb={16}>
             <Trans i18nKey="settings.interface">Interface</Trans>
           </Title>
