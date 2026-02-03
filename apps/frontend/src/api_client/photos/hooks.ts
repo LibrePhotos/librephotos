@@ -2,7 +2,7 @@ export * from "./hooks/useFetchPhotoAlbumsQuery";
 export * from "./hooks/useFetchPhotoDetailsQuery";
 export * from "./hooks/useFetchPhotosWithoutTimestampQuery";
 export * from "./hooks/useFetchRecentlyAddedPhotosQuery";
-export * from "./hooks/useFetchSharedPhotosByMeQuery"
+export * from "./hooks/useFetchSharedPhotosByMeQuery";
 export * from "./hooks/useFetchSharedPhotosWithMeQuery";
 export * from "./hooks/useGenerateImageToTextCaptionMutation";
 export * from "./hooks/useMarkPhotosDeletedMutation";
@@ -15,3 +15,9 @@ export * from "./hooks/useUpdatePhotoSharingMutation";
 export * from "./hooks/useSavePhotoCaptionMutation";
 export * from "./hooks/useDeleteDuplicatePhotoMutation";
 export * from "./hooks/useDeleteMissingPhotosMutation";
+// Photo Metadata hooks
+export * from "./hooks/useFetchPhotoMetadataQuery";
+export * from "./hooks/useFetchMetadataHistoryQuery";
+export * from "./hooks/usePhotoMetadataMutations";
+// Public photo hooks
+export * from "./hooks/useFetchPublicPhotoDetailQuery";

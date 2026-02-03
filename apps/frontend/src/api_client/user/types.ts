@@ -10,6 +10,15 @@ export const PublicPhotoSample = z.object({
 });
 export type PublicPhotoSample = z.infer<typeof PublicPhotoSample>;
 
+export const PublicSharingDefaults = z.object({
+  share_location: z.boolean().default(false),
+  share_camera_info: z.boolean().default(false),
+  share_timestamps: z.boolean().default(false),
+  share_captions: z.boolean().default(false),
+  share_faces: z.boolean().default(false),
+});
+export type PublicSharingDefaults = z.infer<typeof PublicSharingDefaults>;
+
 export const User = z.object({
   id: z.number(),
   username: z.string(),
@@ -34,9 +43,12 @@ export const User = z.object({
   image_scale: z.number(),
   save_metadata_to_disk: z.string(),
   datetime_rules: z.string(),
+  burst_detection_rules: z.any().optional(), // JSON array of burst detection rules
   default_timezone: z.string(),
-  // Skip RAW files during scans (backend field present in User model)
+  // Skip RAW files during scans (deprecated, kept for backward compatibility)
   skip_raw_files: z.boolean().optional().default(false),
+  // Stack RAW+JPEG pairs automatically during scans and as default for manual detection
+  stack_raw_jpeg: z.boolean().optional().default(true),
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
   public_sharing: z.boolean(),
@@ -46,10 +58,14 @@ export const User = z.object({
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
   llm_settings: z.any().nullable(),
-  text_alignment: z.enum(['left', 'right']).default('right'),
-  header_size: z.enum(['large', 'normal', 'small']).default('large'),
+  public_sharing_defaults: PublicSharingDefaults.optional(),
+  text_alignment: z.enum(["left", "right"]).default("right"),
+  header_size: z.enum(["large", "normal", "small"]).default("large"),
   slideshow_interval: z.number().default(5),
-}); 
+  // Duplicate detection settings
+  duplicate_sensitivity: z.enum(["strict", "normal", "loose"]).default("normal"),
+  duplicate_clear_existing: z.boolean().default(false),
+});
 
 export const ManageUser = z.object({
   confidence: z.number(),
@@ -62,8 +78,10 @@ export const ManageUser = z.object({
   save_metadata_to_disk: z.string(),
   scan_directory: z.string().nullish(),
   semantic_search_topk: z.number(),
-  // Allow admin to toggle per-user RAW skipping
+  // Deprecated: kept for backward compatibility
   skip_raw_files: z.boolean().optional(),
+  // Stack RAW+JPEG pairs automatically during scans
+  stack_raw_jpeg: z.boolean().optional(),
   username: z.string().optional(),
   email: z.string().nullable(),
   first_name: z.string().nullable(),
@@ -80,7 +98,6 @@ export const SimpleUser = z.object({
 
 export type User = z.infer<typeof User>;
 export type ManageUser = z.infer<typeof ManageUser>;
-
 
 export const UserList = User.array();
 export type UserList = z.infer<typeof UserList>;

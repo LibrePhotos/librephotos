@@ -2,8 +2,8 @@ import { MantineColor } from "@mantine/core";
 import type { Icon } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
-  IconCopy as Duplicates,
   IconPhoto as Photo,
+  IconLayersSubtract as Stacks,
   IconTrash as Trash,
   IconUsers as Users,
 } from "@tabler/icons-react";
@@ -40,10 +40,10 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
       color: "red",
     },
     {
-      label: t("sidemenu.duplicates", "Duplicates"),
-      link: "/duplicates",
+      label: t("sidemenu.organizing", "Organizing"),
+      link: "/organizing/duplicates",
       display: isAuthenticated,
-      icon: Duplicates,
+      icon: Stacks,
       color: "yellow",
     },
     { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "gray" },

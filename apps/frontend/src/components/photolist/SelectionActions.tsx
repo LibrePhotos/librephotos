@@ -7,6 +7,9 @@ import {
   IconEyeOff as EyeOff,
   IconFileMinus as FileMinus,
   IconGlobe as Globe,
+  IconLayersLinked,
+  IconLayersSubtract,
+  IconStack2,
   IconKey as Key,
   IconPhoto as Photo,
   IconPlus as Plus,
@@ -29,6 +32,11 @@ import {
   useSetPhotosPublicMutation,
 } from "../../api_client/photos/hooks";
 import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
+import {
+  useCreateManualStackMutation,
+  useMergeStacksMutation,
+  useRemoveFromStackMutation,
+} from "../../api_client/stacks";
 import { copyToClipboard } from "../../util/util";
 
 type Props = {
@@ -54,6 +62,9 @@ export function SelectionActions(props: Readonly<Props>) {
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const setPhotosDeleted = useMarkPhotosDeletedMutation();
   const downloadPhotoArchive = useDownloadPhotosMutation();
+  const createManualStack = useCreateManualStackMutation();
+  const mergeStacks = useMergeStacksMutation();
+  const removeFromStack = useRemoveFromStackMutation();
 
   const {
     selectedItems,
@@ -79,14 +90,42 @@ export function SelectionActions(props: Readonly<Props>) {
   };
 
   // Helper to get valid image hashes (filter out temp items for non-selectAll mode)
-  const getImageHashes = () => {
-    return selectedItems.filter(i => !i.isTemp).map(i => i.id);
-  };
+  const getImageHashes = () =>
+    selectedItems
+      .filter(i => !i.isTemp)
+      .map(i => {
+        // Use image_hash if available (PigPhoto type), otherwise fall back to id
+        const photo = i as unknown as { image_hash?: string };
+        return photo.image_hash || i.id;
+      });
 
   // Helper to get excluded hashes for selectAll mode
-  const getExcludedHashes = () => {
-    return selectedItems.map(i => i.id);
+  const getExcludedHashes = () => selectedItems.map(i => i.id);
+
+  // Helper to get manual stacks from selected photos
+  const getManualStacksFromSelection = (): Array<{ stackId: string; photoHash: string }> => {
+    const result: Array<{ stackId: string; photoHash: string }> = [];
+    selectedItems.forEach(item => {
+      // Check if item has stacks property (from PigPhoto type)
+      const photo = item as unknown as {
+        stacks?: Array<{ id: string; type: string }>;
+        image_hash?: string;
+      };
+      // Use image_hash if available, otherwise fall back to id
+      const photoHash = photo.image_hash || item.id;
+      if (photo.stacks && Array.isArray(photo.stacks)) {
+        photo.stacks.forEach(stack => {
+          if (stack.type === "manual") {
+            result.push({ stackId: stack.id, photoHash });
+          }
+        });
+      }
+    });
+    return result;
   };
+
+  // Helper to check if any selected photos are in manual stacks
+  const hasPhotosInManualStacks = (): boolean => getManualStacksFromSelection().length > 0;
 
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
@@ -102,7 +141,8 @@ export function SelectionActions(props: Readonly<Props>) {
 
         <Menu.Dropdown>
           <Menu.Label>
-            {t("selectionactions.album")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length} {t("selectionactions.selected")} )
+            {t("selectionactions.album")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length}{" "}
+            {t("selectionactions.selected")} )
           </Menu.Label>
 
           <Menu.Divider />
@@ -122,7 +162,8 @@ export function SelectionActions(props: Readonly<Props>) {
 
         <Menu.Dropdown>
           <Menu.Label>
-            {t("selectionactions.photoactions")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length} {t("selectionactions.selected")} )
+            {t("selectionactions.photoactions")} ({selectAllMode ? t("selectionbar.all") : selectedItems.length}{" "}
+            {t("selectionactions.selected")} )
           </Menu.Label>
 
           <Menu.Divider />
@@ -329,6 +370,81 @@ export function SelectionActions(props: Readonly<Props>) {
             {`${t("selectionactions.sharing")}`}
           </Menu.Item>
 
+          {/* Stack Actions */}
+          <Menu.Divider />
+
+          <Menu.Label>{t("selectionactions.stackactions", "Stack Actions")}</Menu.Label>
+
+          <Menu.Item
+            leftSection={<IconStack2 size={16} />}
+            disabled={!hasSelection || selectAllMode || selectedItems.length < 2}
+            onClick={() => {
+              if (!selectAllMode && selectedItems.length >= 2) {
+                createManualStack.mutate(
+                  { photo_hashes: getImageHashes() },
+                  {
+                    onSuccess: () => {
+                      resetSelection();
+                    },
+                  }
+                );
+              }
+            }}
+          >
+            {t("selectionactions.createstack", "Create Stack")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<IconLayersLinked size={16} />}
+            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
+            onClick={() => {
+              if (!selectAllMode && hasPhotosInManualStacks()) {
+                mergeStacks.mutate(
+                  { photo_hashes: getImageHashes() },
+                  {
+                    onSuccess: () => {
+                      resetSelection();
+                    },
+                  }
+                );
+              }
+            }}
+          >
+            {t("selectionactions.mergestacks", "Merge Stacks")}
+          </Menu.Item>
+
+          <Menu.Item
+            leftSection={<IconLayersSubtract size={16} />}
+            disabled={!hasSelection || selectAllMode || !hasPhotosInManualStacks()}
+            onClick={() => {
+              if (!selectAllMode && hasPhotosInManualStacks()) {
+                const stackPhotos = getManualStacksFromSelection();
+                // Group by stack ID to remove photos from each stack
+                const stacksByStackId = new Map<string, string[]>();
+                stackPhotos.forEach(({ stackId, photoHash }) => {
+                  if (!stacksByStackId.has(stackId)) {
+                    stacksByStackId.set(stackId, []);
+                  }
+                  stacksByStackId.get(stackId)!.push(photoHash);
+                });
+
+                // Remove photos from each stack
+                const promises = Array.from(stacksByStackId.entries()).map(([stackId, photoHashes]) =>
+                  removeFromStack.mutateAsync({
+                    stackId,
+                    data: { photo_hashes: photoHashes },
+                  })
+                );
+
+                Promise.all(promises).then(() => {
+                  resetSelection();
+                });
+              }
+            }}
+          >
+            {t("selectionactions.breakapartstacks", "Break Apart Stacks")}
+          </Menu.Item>
+
           {/* Album Actions - only show on album pages */}
           {(location.pathname.startsWith("/album/persons/") || location.pathname.startsWith("/album/user/")) && (
             <>
@@ -363,10 +479,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
               {location.pathname.startsWith("/album/user/") && (
                 <>
-                  <Menu.Item
-                    leftSection={<Share />}
-                    onClick={onShareAlbum}
-                  >
+                  <Menu.Item leftSection={<Share />} onClick={onShareAlbum}>
                     {`  ${t("selectionactions.sharing")}`}
                   </Menu.Item>
 

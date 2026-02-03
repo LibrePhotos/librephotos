@@ -1,13 +1,13 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-
-import { BulkPhotoQuery, Photo } from "../types";
 import { notification } from "../../../service/notifications";
+import { parseWithNotification } from "../../../util/zodUtils";
+import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
+import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { DateAlbumsQueryKeys } from '../../albums/hooks/useFetchDateAlbumsQuery';
-import { DateAlbumQueryKeys } from '../../albums/hooks/useFetchDateAlbumQuery'; 
-import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
-import { RecentlyAddedPhotosQueryKeys } from './useFetchRecentlyAddedPhotosQuery';
+import { BulkPhotoQuery, Photo } from "../types";
+import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
+import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
@@ -36,29 +36,30 @@ type SelectAllRequest = {
 type SetPhotosPublicRequest = IndividualRequest | SelectAllRequest;
 
 // Set photos public
-export const useSetPhotosPublicMutation = () => useMutation({
-  mutationFn: async (request: SetPhotosPublicRequest) => {
-    const response = await fetchClient.post('/photosedit/makepublic/', request);
-    const data = UpdatePhotosResponse.parse(response);
-    
-    // Show notification based on mode
-    if (request.select_all) {
-      notification.togglePhotosPublic(data.count ?? 0, request.val_public);
-    } else {
-      notification.togglePhotosPublic(request.image_hashes.length, request.val_public);
-    }
-    
-    return data;
-  },
-  onSuccess: (data, request) => {
-    // Invalidate relevant queries
-    queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-    queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
-    queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
-    
-    // If we have a single photo in individual mode, invalidate its details
-    if (!request.select_all && request.image_hashes.length === 1) {
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
-    }
-  },
-});
+export const useSetPhotosPublicMutation = () =>
+  useMutation({
+    mutationFn: async (request: SetPhotosPublicRequest) => {
+      const response = await fetchClient.post("/photosedit/makepublic/", request);
+      const data = parseWithNotification(UpdatePhotosResponse, response, "Failed to parse set photos public response");
+
+      // Show notification based on mode
+      if (request.select_all) {
+        notification.togglePhotosPublic(data.count ?? 0, request.val_public);
+      } else {
+        notification.togglePhotosPublic(request.image_hashes.length, request.val_public);
+      }
+
+      return data;
+    },
+    onSuccess: (data, request) => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+
+      // If we have a single photo in individual mode, invalidate its details
+      if (!request.select_all && request.image_hashes.length === 1) {
+        queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
+      }
+    },
+  });

@@ -1,7 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
-import { z } from 'zod';    
-import { fetchClient } from '../../api';
-import { CompletePersonFaceList, CompletePersonFace, FaceAnalysisMethod, FacesOrderOption, IncompletePersonFace} from '../types';
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+import { parseWithNotification } from "../../../util/zodUtils";
+import { fetchClient } from "../../api";
+import {
+  CompletePersonFace,
+  CompletePersonFaceList,
+  FaceAnalysisMethod,
+  FacesOrderOption,
+  IncompletePersonFace,
+} from "../types";
 
 export const IncompletePersonFaceList = z.array(IncompletePersonFace);
 export const IncompletePersonFaceListResponse = IncompletePersonFaceList;
@@ -14,40 +21,41 @@ export const IncompletePersonFaceListRequest = z.object({
 });
 export type IncompletePersonFaceListRequest = z.infer<typeof IncompletePersonFaceListRequest>;
 
-
-export const IncompleteFacesQueryKeys = ['incompleteFaces'] as const;
+export const IncompleteFacesQueryKeys = ["incompleteFaces"] as const;
 
 const fetchIncompleteFaces = (params: IncompletePersonFaceListRequest) => {
-  const { inferred = false, method = 'clustering', orderBy = 'confidence', minConfidence } = params;
-  const url = `/faces/incomplete/?inferred=${inferred}${
-    `&order_by=${orderBy}`
-  }${inferred ? `&analysis_method=${method}` : ''}${
-    minConfidence ? `&min_confidence=${minConfidence}` : ''
+  const { inferred = false, method = "clustering", orderBy = "confidence", minConfidence } = params;
+  const url = `/faces/incomplete/?inferred=${inferred}${`&order_by=${orderBy}`}${inferred ? `&analysis_method=${method}` : ""}${
+    minConfidence ? `&min_confidence=${minConfidence}` : ""
   }`;
-  
-  return fetchClient.get<IncompletePersonFaceListResponse>(url)
-    .then(response => {
-      const payload = IncompletePersonFaceListResponse.parse(response);
-      const newFacesList: CompletePersonFaceList = payload.map(person => {
-        const completePersonFace: CompletePersonFace = { ...person, faces: [] };
-        for (let i = 0; i < person.face_count; i += 1) {
-          completePersonFace.faces.push({
-            id: i,
-            image: null,
-            face_url: null,
-            photo: '',
-            person_label_probability: 1,
-            person: person.id,
-            isTemp: true,
-          });
-        }
-        return completePersonFace;
-      });
-      return newFacesList;
+
+  return fetchClient.get<IncompletePersonFaceListResponse>(url).then(response => {
+    const payload = parseWithNotification(
+      IncompletePersonFaceListResponse,
+      response,
+      "Failed to parse incomplete faces response"
+    );
+    const newFacesList: CompletePersonFaceList = payload.map(person => {
+      const completePersonFace: CompletePersonFace = { ...person, faces: [] };
+      for (let i = 0; i < person.face_count; i += 1) {
+        completePersonFace.faces.push({
+          id: i,
+          image: null,
+          face_url: null,
+          photo: "",
+          person_label_probability: 1,
+          person: person.id,
+          isTemp: true,
+        });
+      }
+      return completePersonFace;
     });
+    return newFacesList;
+  });
 };
 
-export const useFetchIncompleteFacesQuery = (request: IncompletePersonFaceListRequest) => useQuery({
+export const useFetchIncompleteFacesQuery = (request: IncompletePersonFaceListRequest) =>
+  useQuery({
     queryKey: [...IncompleteFacesQueryKeys, request],
     queryFn: () => fetchIncompleteFaces(request),
-});
+  });

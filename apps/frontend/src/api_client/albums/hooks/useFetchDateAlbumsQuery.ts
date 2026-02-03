@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
-import { Photoset } from "../../photos/types";
+import { useQuery } from "@tanstack/react-query";
 import { addTempElementsToGroups } from "../../../util/util";
+import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { Photoset } from "../../photos/types";
 import { FetchDateAlbumsListResponse } from "../types";
 
-export const DateAlbumsQueryKeys = ['dateAlbums'] as const;
+export const DateAlbumsQueryKeys = ["dateAlbums"] as const;
 
 // Define the parameter types for the queries
 type AlbumDateListOptions = {
@@ -15,7 +16,8 @@ type AlbumDateListOptions = {
 };
 
 // Fetch date albums
-export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => useQuery({
+export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) =>
+  useQuery({
     queryKey: [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username, options.folder],
     queryFn: async () => {
       const params = {
@@ -30,11 +32,15 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) => useQue
         folder: options.folder,
       };
 
-      const response = await fetchClient.get(`/albums/date/list/?${new URLSearchParams(
-        Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
-      ).toString()}`);
-      
-      const { results } = FetchDateAlbumsListResponse.parse(response);
+      const response = await fetchClient.get(
+        `/albums/date/list/?${new URLSearchParams(
+          Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
+        ).toString()}`
+      );
+
+      const parsed = parseWithNotification(FetchDateAlbumsListResponse, response, "Failed to load photo groups");
+      const { results } = parsed;
+
       addTempElementsToGroups(results);
       return results;
     },

@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Cookies } from 'react-cookie';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Cookies } from "react-cookie";
 import { z } from "zod";
-import { useNavigate } from '@tanstack/react-router';
-import { fetchClient } from '../../api';
+import { parseWithNotification } from "../../../util/zodUtils";
+import { fetchClient } from "../../api";
 
 export const LoginPost = z.object({
   username: z.string(),
@@ -18,15 +19,14 @@ export const LoginResponse = z.object({
 
 export type LoginResponse = z.infer<typeof LoginResponse>;
 
-const login =  (credentials: LoginPost) => 
-  fetchClient.post<LoginResponse>('/auth/token/obtain/', credentials)
-    .then(response => {
-      const data = LoginResponse.parse(response);
-      const cookies = new Cookies();
-      cookies.set('access', data.access);
-      cookies.set('refresh', data.refresh);
-      return data;
-    })
+const login = (credentials: LoginPost) =>
+  fetchClient.post<LoginResponse>("/auth/token/obtain/", credentials).then(response => {
+    const data = parseWithNotification(LoginResponse, response, "Failed to parse login response");
+    const cookies = new Cookies();
+    cookies.set("access", data.access);
+    cookies.set("refresh", data.refresh);
+    return data;
+  });
 
 type UseLoginOptions = {
   navigateOnSuccess?: boolean;
@@ -46,4 +46,4 @@ export const useLoginMutation = (options?: UseLoginOptions) => {
       }
     },
   });
-}; 
+};

@@ -177,7 +177,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
   const [activeStep, setActiveStep] = useState(0);
   const [scanDirectory, setScanDirectory] = useState("");
   const [isPathValid, setIsPathValid] = useState(true);
-  const [skipRawFiles, setSkipRawFiles] = useState(false);
+  const [stackRawJpeg, setStackRawJpeg] = useState(true);
   const [allowUpload, setAllowUpload] = useState<boolean | null>(null);
   const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null);
   const isSavingDirectory = isUpdatePending || scanPhotos.isPending;
@@ -203,8 +203,8 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
   const dark = colorScheme === "dark";
 
   useEffect(() => {
-    if (currentUser?.skip_raw_files !== undefined) {
-      setSkipRawFiles(currentUser.skip_raw_files);
+    if (currentUser?.stack_raw_jpeg !== undefined) {
+      setStackRawJpeg(currentUser.stack_raw_jpeg);
     }
   }, [currentUser]);
 
@@ -274,7 +274,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
     }
     if (currentUser) {
       updateScanDirectory(
-        { id: currentUser.id, scan_directory: scanDirectory || null, skip_raw_files: skipRawFiles },
+        { id: currentUser.id, scan_directory: scanDirectory || null, stack_raw_jpeg: stackRawJpeg },
         {
           onSuccess: () => {
             if (scanDirectory) {
@@ -410,16 +410,16 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                   <Grid>
                     <Grid.Col span={{ base: 12, sm: 10 }}>
                       <Stack gap={0}>
-                        <Text>{t("sitesettings.skip_raw_files")}</Text>
+                        <Text>{t("sitesettings.stack_raw_jpeg")}</Text>
                         <Text fz="sm" c="dimmed">
-                          {t("settings.skip_raw_files_note")}
+                          {t("settings.stack_raw_jpeg_note")}
                         </Text>
                       </Stack>
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, sm: 2 }}>
                       <Switch
-                        checked={skipRawFiles}
-                        onChange={event => setSkipRawFiles(event.currentTarget.checked)}
+                        checked={stackRawJpeg}
+                        onChange={event => setStackRawJpeg(event.currentTarget.checked)}
                       />
                     </Grid.Col>
                   </Grid>

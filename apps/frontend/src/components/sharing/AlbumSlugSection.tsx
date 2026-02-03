@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Checkbox, Group, Paper, Stack, Text, TextInput, Title, Tooltip } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { IconCopy as CopyIcon, IconLink as LinkIcon } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
@@ -6,8 +6,10 @@ import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useToggleUserAlbumPublicMutation } from "../../api_client/albums/hooks";
+import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { type PublicSharingDefaults, type User } from "../../api_client/user/types";
 import { copyToClipboard } from "../../util/util";
 
 dayjs.extend(customParseFormat);
@@ -105,6 +107,70 @@ function ExpiresSetting({ value, onChange }: ExpiresProps) {
   );
 }
 
+// Sharing options component for controlling what metadata is shown in public albums
+type SharingOptionsProps = Readonly<{
+  value: PublicSharingOptions;
+  onChange: (v: PublicSharingOptions) => void;
+  userDefaults?: PublicSharingDefaults;
+}>;
+
+function SharingOptionsSettings({ value, onChange, userDefaults }: SharingOptionsProps) {
+  const { t } = useTranslation();
+
+  // Get effective value (album override or user default) - always returns boolean
+  const getEffectiveValue = (key: keyof PublicSharingOptions): boolean => {
+    const albumValue = value[key];
+    if (typeof albumValue === "boolean") {
+      return albumValue;
+    }
+    // Fall back to user defaults, then to false
+    return userDefaults?.[key] ?? false;
+  };
+
+  // Simple two-state toggle: just flip the boolean value
+  // If currently using default (null), set to opposite of effective value
+  const handleChange = (key: keyof PublicSharingOptions) => {
+    const effectiveValue = getEffectiveValue(key);
+    onChange({ ...value, [key]: !effectiveValue });
+  };
+
+  type OptionConfig = {
+    key: keyof PublicSharingOptions;
+    label: string;
+    description: string;
+  };
+
+  const options: OptionConfig[] = [
+    { key: "share_timestamps", label: t("sharing.shareTimestamps"), description: t("sharing.shareTimestampsDesc") },
+    { key: "share_location", label: t("sharing.shareLocation"), description: t("sharing.shareLocationDesc") },
+    { key: "share_camera_info", label: t("sharing.shareCameraInfo"), description: t("sharing.shareCameraInfoDesc") },
+    { key: "share_captions", label: t("sharing.shareCaptions"), description: t("sharing.shareCaptionsDesc") },
+    { key: "share_faces", label: t("sharing.shareFaces"), description: t("sharing.shareFacesDesc") },
+  ];
+
+  return (
+    <Paper withBorder p="sm" radius="md">
+      <Title order={5} mb="xs">
+        {t("sharing.photoDetailsTitle")}
+      </Title>
+      <Text size="xs" c="dimmed" mb="sm">
+        {t("sharing.photoDetailsDesc")}
+      </Text>
+      <Stack gap="xs">
+        {options.map(opt => (
+          <Checkbox
+            key={opt.key}
+            label={opt.label}
+            description={opt.description}
+            checked={getEffectiveValue(opt.key)}
+            onChange={() => handleChange(opt.key)}
+          />
+        ))}
+      </Stack>
+    </Paper>
+  );
+}
+
 type Props = Readonly<{
   albumID: string;
   album?: UserAlbum;
@@ -120,12 +186,15 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
   const [expiresAt, setExpiresAt] = useState<string>("");
   const [slugDirty, setSlugDirty] = useState(false);
   const [expiresDirty, setExpiresDirty] = useState(false);
+  const [sharingOptionsDirty, setSharingOptionsDirty] = useState(false);
+  const [sharingOptions, setSharingOptions] = useState<PublicSharingOptions>({});
   const [slugValid, setSlugValid] = useState(true);
   const [slugAvailable, setSlugAvailable] = useState(true);
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const toggleAlbumPublic = useToggleUserAlbumPublicMutation();
+  const { data: currentUser } = useCurrentUserSelfDetailsQuery() as { data: User | undefined };
 
   // derived values
   const slugLink = album?.public_slug ? `${window.location.origin}/public/s/${album.public_slug}` : "";
@@ -137,7 +206,10 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
     if (!album) return;
     if (!slugDirty) setCustomSlug(album.public_slug || "");
     if (!expiresDirty) setExpiresAt((album.public_expires_at as unknown as string) || "");
-  }, [album?.public_slug, album?.public_expires_at]);
+    if (!sharingOptionsDirty && album.public_sharing_options) {
+      setSharingOptions(album.public_sharing_options);
+    }
+  }, [album?.public_slug, album?.public_expires_at, album?.public_sharing_options]);
 
   // validation handled in SlugSetting; availability via query in that component updates parent through setters
 
@@ -145,8 +217,16 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
     const slugChanged = slugDirty && effectiveSlug.trim() !== (album?.public_slug || "");
     const expChanged =
       expiresDirty && (effectiveExpires || "") !== ((album?.public_expires_at as unknown as string) || "");
-    return slugChanged || expChanged;
-  }, [slugDirty, effectiveSlug, expiresDirty, effectiveExpires, album?.public_slug, album?.public_expires_at]);
+    return slugChanged || expChanged || sharingOptionsDirty;
+  }, [
+    slugDirty,
+    effectiveSlug,
+    expiresDirty,
+    effectiveExpires,
+    sharingOptionsDirty,
+    album?.public_slug,
+    album?.public_expires_at,
+  ]);
 
   const canSave = useMemo(
     () => isPublic && hasChanges && slugValid && slugAvailable && !isCheckingSlug,
@@ -161,17 +241,29 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
         public: true,
         slug: slugDirty ? effectiveSlug.trim() : undefined,
         expires_at: expiresDirty ? effectiveExpires || null : undefined,
+        sharing_options: sharingOptionsDirty ? sharingOptions : undefined,
       },
       {
         onSuccess: () => {
           refetch();
           setSlugDirty(false);
           setExpiresDirty(false);
+          setSharingOptionsDirty(false);
         },
         onError: () => setErrorMsg(t("sharing.saveLinkError")),
       }
     );
-  }, [albumID, effectiveSlug, effectiveExpires, slugDirty, expiresDirty, toggleAlbumPublic, refetch]);
+  }, [
+    albumID,
+    effectiveSlug,
+    effectiveExpires,
+    slugDirty,
+    expiresDirty,
+    sharingOptionsDirty,
+    sharingOptions,
+    toggleAlbumPublic,
+    refetch,
+  ]);
 
   const openLink = useCallback(() => {
     if (slugLink) window.open(slugLink, "_blank", "noopener,noreferrer");
@@ -203,7 +295,13 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
           </ActionIcon>
         </Tooltip>
         <Tooltip label={t("sharing.openPublicLink")}>
-          <ActionIcon variant="light" size="lg" aria-label={t("sharing.openPublicLink")} disabled={!slugLink} onClick={openLink}>
+          <ActionIcon
+            variant="light"
+            size="lg"
+            aria-label={t("sharing.openPublicLink")}
+            disabled={!slugLink}
+            onClick={openLink}
+          >
             <LinkIcon size={18} />
           </ActionIcon>
         </Tooltip>
@@ -231,6 +329,14 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
               setExpiresAt(v);
               setExpiresDirty(true);
             }}
+          />
+          <SharingOptionsSettings
+            value={sharingOptions}
+            onChange={v => {
+              setSharingOptions(v);
+              setSharingOptionsDirty(true);
+            }}
+            userDefaults={currentUser?.public_sharing_defaults}
           />
           <Group>
             <Button variant="default" disabled={!canSave} onClick={onSave}>

@@ -40,12 +40,12 @@ export const IncompletePersonFace = z.object({
   face_count: z.number(),
 });
 
-
 export const PersonFace = z.object({
   id: z.number(),
   image: z.string().nullable(),
   face_url: z.string().nullable(),
   photo: z.string(),
+  photo_image_hash: z.string().nullable().optional(),
   person_label_probability: z.number(),
   isTemp: z.boolean().optional(),
   person: z.number().optional(),

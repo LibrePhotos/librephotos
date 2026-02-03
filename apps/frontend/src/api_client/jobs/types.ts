@@ -2,11 +2,12 @@ import { z } from "zod";
 import { SimpleUser } from "../user/types";
 
 export const JobDetail = z.object({
+  id: z.number(),
   job_id: z.string(),
   queued_at: z.string(),
   finished: z.boolean(),
   finished_at: z.string().nullable(),
-  started_at: z.string(),
+  started_at: z.string().nullable(),
   failed: z.boolean(),
   job_type_str: z.string(),
   job_type: z.number(),
@@ -18,6 +19,8 @@ export const JobDetail = z.object({
   }),
   progress_target: z.number(),
   progress_current: z.number(),
+  progress_step: z.string().nullable().optional(),
+  result: z.record(z.any()).nullable().optional(),
 });
 
 export type JobDetail = z.infer<typeof JobDetail>;
@@ -44,6 +47,8 @@ export const Job = z.object({
   error: z.any().optional(),
   progress_current: z.number().optional(),
   progress_target: z.number().optional(),
+  progress_step: z.string().nullable().optional(),
+  result: z.record(z.any()).nullable().optional(),
   id: z.number(),
 });
 
@@ -63,4 +68,4 @@ export const JobsResponse = z.object({
   results: z.array(Job),
 });
 
-export type JobsResponse = z.infer<typeof JobsResponse>; 
+export type JobsResponse = z.infer<typeof JobsResponse>;

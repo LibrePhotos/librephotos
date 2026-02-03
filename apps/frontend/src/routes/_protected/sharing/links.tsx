@@ -1,4 +1,5 @@
 import { Group, Loader, Stack, Tabs, Text, Title } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconLink } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -6,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchDateAlbumsQuery, useFetchUserAlbumsQuery } from "../../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { PublicAlbumsGrid } from "../../../components/sharing/PublicAlbumsGrid";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
@@ -14,10 +16,19 @@ export const Route = createFileRoute("/_protected/sharing/links")();
 export function PublicLinksPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("albums");
+  const [albumID, setAlbumID] = useState("");
+  const [albumOwner, setAlbumOwner] = useState("");
+  const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
 
   // Fetch public albums (albums with public=true)
   const { data: userAlbums = [], isLoading: isLoadingAlbums } = useFetchUserAlbumsQuery();
   const publicAlbums = useMemo(() => userAlbums.filter(album => album.public), [userAlbums]);
+
+  const openShareDialog = (id: string, _title: string, ownerUsername: string) => {
+    setAlbumID(id);
+    setAlbumOwner(ownerUsername);
+    showShareDialog();
+  };
 
   // Fetch public photos
   const { data: publicPhotosGrouped, isLoading: isLoadingPhotos } = useFetchDateAlbumsQuery({
@@ -66,7 +77,7 @@ export function PublicLinksPage() {
               <Text c="dimmed">{t("sharing.noPublicAlbums", "No albums have been made public via link")}</Text>
             </Stack>
           ) : (
-            <PublicAlbumsGrid albums={publicAlbums} />
+            <PublicAlbumsGrid albums={publicAlbums} onShare={openShareDialog} />
           )}
         </Tabs.Panel>
 
@@ -92,6 +103,13 @@ export function PublicLinksPage() {
           )}
         </Tabs.Panel>
       </Tabs>
+
+      <ModalAlbumShare
+        isOpen={isShareDialogOpen}
+        onRequestClose={hideShareDialog}
+        albumID={albumID}
+        ownerUsername={albumOwner}
+      />
     </Stack>
   );
 }

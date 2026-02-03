@@ -1,46 +1,51 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { fetchClient } from "../api";
 import type {
-  DuplicateGroup,
-  DuplicateGroupListResponse,
-  DuplicateSensitivity,
+  DetectDuplicatesRequest,
+  DetectDuplicatesResponse,
+  DuplicateDetail,
+  DuplicateListResponse,
   DuplicateStats,
+  DuplicateType,
   ResolveDuplicateRequest,
+  ResolveDuplicateResponse,
+  ReviewStatus,
 } from "./types";
 
 // Query keys
 export const DuplicatesQueryKeys = {
   all: ["duplicates"] as const,
-  list: (status?: string, page?: number, pageSize?: number) =>
-    [...DuplicatesQueryKeys.all, "list", status, page, pageSize] as const,
-  detail: (id: number) => [...DuplicatesQueryKeys.all, "detail", id] as const,
+  list: (duplicateType?: DuplicateType, status?: ReviewStatus, page?: number, pageSize?: number) =>
+    [...DuplicatesQueryKeys.all, "list", duplicateType, status, page, pageSize] as const,
+  detail: (id: string) => [...DuplicatesQueryKeys.all, "detail", id] as const,
   stats: () => [...DuplicatesQueryKeys.all, "stats"] as const,
 };
 
 // Fetch duplicate groups list with pagination
-export const useFetchDuplicateGroupsQuery = (
-  status?: string,
+export const useFetchDuplicatesQuery = (
+  duplicateType?: DuplicateType,
+  status?: ReviewStatus,
   page: number = 1,
   pageSize: number = 20
 ) => {
   const params = new URLSearchParams();
+  if (duplicateType) params.append("duplicate_type", duplicateType);
   if (status) params.append("status", status);
   params.append("page", String(page));
   params.append("page_size", String(pageSize));
 
   return useQuery({
-    queryKey: DuplicatesQueryKeys.list(status, page, pageSize),
-    queryFn: () => fetchClient.get<DuplicateGroupListResponse>(`/duplicates?${params.toString()}`),
+    queryKey: DuplicatesQueryKeys.list(duplicateType, status, page, pageSize),
+    queryFn: () => fetchClient.get<DuplicateListResponse>(`/duplicates?${params.toString()}`),
   });
 };
 
 // Fetch single duplicate group details
-export const useFetchDuplicateGroupQuery = (groupId: number) =>
+export const useFetchDuplicateQuery = (duplicateId: string) =>
   useQuery({
-    queryKey: DuplicatesQueryKeys.detail(groupId),
-    queryFn: () => fetchClient.get<DuplicateGroup>(`/duplicates/${groupId}`),
-    enabled: groupId > 0,
+    queryKey: DuplicatesQueryKeys.detail(duplicateId),
+    queryFn: () => fetchClient.get<DuplicateDetail>(`/duplicates/${duplicateId}`),
+    enabled: !!duplicateId,
   });
 
 // Fetch duplicate stats
@@ -50,15 +55,12 @@ export const useFetchDuplicateStatsQuery = () =>
     queryFn: () => fetchClient.get<DuplicateStats>("/duplicates/stats"),
   });
 
-// Detect duplicates mutation with sensitivity and clearExisting options
+// Detect duplicates mutation
 export const useDetectDuplicatesMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ sensitivity = "normal", clearExisting = false }: { sensitivity?: DuplicateSensitivity; clearExisting?: boolean } = {}) =>
-      fetchClient.post<{ status: string; message: string; threshold: number; sensitivity: string }>(
-        "/duplicates/detect",
-        { sensitivity, clear_existing: clearExisting }
-      ),
+    mutationFn: (options: DetectDuplicatesRequest = {}) =>
+      fetchClient.post<DetectDuplicatesResponse>("/duplicates/detect", options),
     onSuccess: () => {
       // Invalidate stats to show updated detection status
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
@@ -67,17 +69,24 @@ export const useDetectDuplicatesMutation = () => {
 };
 
 // Resolve duplicate group mutation
-export const useResolveDuplicateGroupMutation = () => {
+export const useResolveDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ groupId, data }: { groupId: number; data: ResolveDuplicateRequest }) =>
-      fetchClient.post<{ status: string; kept_photo: string; trashed_count: number }>(
-        `/duplicates/${groupId}/resolve`,
-        data
-      ),
-    onSuccess: (_, { groupId }) => {
-      // Invalidate the specific group and the list
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(groupId) });
+    mutationFn: ({
+      id,
+      keep_photo_hash,
+      trash_others,
+    }: {
+      id: string;
+      keep_photo_hash: string;
+      trash_others: boolean;
+    }) => {
+      const data: ResolveDuplicateRequest = { keep_photo_hash, trash_others };
+      return fetchClient.post<ResolveDuplicateResponse>(`/duplicates/${id}/resolve`, data);
+    },
+    onSuccess: (_, { id }) => {
+      // Invalidate the specific duplicate and the list
+      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
     },
@@ -85,46 +94,64 @@ export const useResolveDuplicateGroupMutation = () => {
 };
 
 // Dismiss duplicate group mutation
-export const useDismissDuplicateGroupMutation = () => {
+export const useDismissDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (groupId: number) =>
-      fetchClient.post<{ status: string }>(`/duplicates/${groupId}/dismiss`, {}),
-    onSuccess: (_, groupId) => {
-      // Invalidate the specific group and the list
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(groupId) });
+    mutationFn: (duplicateId: number | string) => {
+      const id = String(duplicateId);
+      return fetchClient.post<{ status: string }>(`/duplicates/${id}/dismiss`, {});
+    },
+    onSuccess: (_, duplicateId) => {
+      const id = String(duplicateId);
+      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
     },
   });
 };
 
-// Revert duplicate group mutation (restore trashed photos, reset to pending)
-export const useRevertDuplicateGroupMutation = () => {
+// Revert duplicate resolution mutation
+export const useRevertDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (groupId: number) =>
-      fetchClient.post<{ status: string; restored_count: number }>(`/duplicates/${groupId}/revert`, {}),
-    onSuccess: (_, groupId) => {
-      // Invalidate the specific group and the list
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(groupId) });
+    mutationFn: (duplicateId: number | string) => {
+      const id = String(duplicateId);
+      return fetchClient.post<{ status: string; restored_count: number }>(`/duplicates/${id}/revert`, {});
+    },
+    onSuccess: (_, duplicateId) => {
+      const id = String(duplicateId);
+      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
     },
   });
 };
 
-// Delete duplicate group mutation (unlinks photos, removes group)
-export const useDeleteDuplicateGroupMutation = () => {
+// Delete duplicate group mutation
+export const useDeleteDuplicateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (groupId: number) =>
-      fetchClient.delete<{ status: string; unlinked_count: number }>(`/duplicates/${groupId}/delete`),
-    onSuccess: (_, groupId) => {
-      // Invalidate the specific group and the list
-      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(groupId) });
+    mutationFn: (duplicateId: number | string) => {
+      const id = String(duplicateId);
+      return fetchClient.delete<{ status: string; unlinked_count: number }>(`/duplicates/${id}/delete`);
+    },
+    onSuccess: (_, duplicateId) => {
+      const id = String(duplicateId);
+      queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: DuplicatesQueryKeys.stats() });
     },
   });
 };
+
+// Alias exports for compatibility with component usage
+export const useDuplicateQuery = (duplicateId: string) => useFetchDuplicateQuery(duplicateId);
+
+export const useDuplicatesQuery = (params: {
+  duplicate_type?: DuplicateType;
+  review_status?: ReviewStatus;
+  page?: number;
+  page_size?: number;
+}) => useFetchDuplicatesQuery(params.duplicate_type, params.review_status, params.page, params.page_size);
+
+export const useDuplicateStatsQuery = useFetchDuplicateStatsQuery;

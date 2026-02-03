@@ -1,12 +1,5 @@
 import { z } from "zod";
-
-import {
-  DatePhotosGroup,
-  IncompleteDatePhotosGroup,
-  PhotoHash,
-  SimpleUser,
-} from "../photos/types";
-
+import { DatePhotosGroup, IncompleteDatePhotosGroup, PhotoHash, SimpleUser } from "../photos/types";
 
 const UserAlbumResponse = z.object({
   id: z.number(),
@@ -149,6 +142,16 @@ export const UserAlbum = UserAlbumDetails.extend({
   public: z.boolean().optional(),
   public_slug: z.string().optional(),
   public_expires_at: z.string().nullable().optional(),
+  public_sharing_options: z
+    .object({
+      share_location: z.boolean().nullable().optional(),
+      share_camera_info: z.boolean().nullable().optional(),
+      share_timestamps: z.boolean().nullable().optional(),
+      share_captions: z.boolean().nullable().optional(),
+      share_faces: z.boolean().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export type UserAlbum = z.infer<typeof UserAlbum>;
@@ -239,6 +242,3 @@ export const FetchDateAlbumResponse = z.object({
 export const FetchUserAlbumsSharedResponse = z.object({
   results: UserAlbumInfo.array(),
 });
-
-
-

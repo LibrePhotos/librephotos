@@ -1,11 +1,11 @@
 import { ActionIcon, Divider, Group, Loader, RingProgress, Select, Tooltip } from "@mantine/core";
 import {
-  IconArrowsMaximize as Maximize,
-  IconArrowsMinimize as Minimize,
   IconEye as Eye,
   IconEyeOff as EyeOff,
   IconGlobe as Globe,
   IconInfoCircle as InfoCircle,
+  IconArrowsMaximize as Maximize,
+  IconArrowsMinimize as Minimize,
   IconPlayerPause as Pause,
   IconPlayerPlay as Play,
   IconStar as Star,
@@ -16,7 +16,6 @@ import {
 } from "@tabler/icons-react";
 import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-
 import { shareAddress } from "../../api_client/apiClient";
 import {
   useMarkPhotosDeletedMutation,
@@ -224,86 +223,88 @@ export function LightboxControls({
         </Tooltip>
       </Group>
 
-      <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
-
-      {/* Group 3: Metadata controls - Hide, Favorite, Public, Delete */}
-      <Group gap={4} align="center">
-        {isPhotoDetailsLoading && (
-          <ActionIcon loading variant="transparent" size={28}>
-            <Loader size={16} color="grey" />
-          </ActionIcon>
-        )}
-        {!isPhotoDetailsLoading && photoDetail && !isPublic && (
-          <Tooltip label={photoDetail.hidden ? "Show photo (H)" : "Hide photo (H)"} position="bottom" withArrow>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size={28}
-              onClick={() => {
-                const { image_hash: imageHash } = photoDetail;
-                const val = !photoDetail.hidden;
-                setPhotosHidden.mutate({ image_hashes: [imageHash], hidden: val });
-              }}
-            >
-              {photoDetail.hidden ? <EyeOff size={18} color="red" /> : <Eye size={18} />}
-            </ActionIcon>
-          </Tooltip>
-        )}
-        {photoDetail && !isPublic && (
-          <Tooltip
-            label={photoDetail.rating >= favoriteMinRating ? "Remove from favorites (F)" : "Add to favorites (F)"}
-            position="bottom"
-            withArrow
-          >
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size={28}
-              onClick={() => {
-                const { image_hash: imageHash } = photoDetail;
-                const val = !(photoDetail.rating >= favoriteMinRating);
-                setFavoritePhotos.mutate({ image_hashes: [imageHash], favorite: val });
-              }}
-            >
-              <Star size={18} color={photoDetail.rating >= favoriteMinRating ? "yellow" : "grey"} />
-            </ActionIcon>
-          </Tooltip>
-        )}
-        {photoDetail && !isPublic && (
-          <Tooltip label={photoDetail.public ? "Make private (P)" : "Make public (P)"} position="bottom" withArrow>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size={28}
-              onClick={() => {
-                const { image_hash: imageHash } = photoDetail;
-                const val = !photoDetail.public;
-                setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
-                copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
-              }}
-            >
-              <Globe size={18} color={photoDetail.public ? "green" : "grey"} />
-            </ActionIcon>
-          </Tooltip>
-        )}
-        {photoDetail && !isPublic && (
-          <Tooltip label="Delete photo (D)" position="bottom" withArrow>
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              size={28}
-              onClick={() => {
-                const { image_hash: imageHash } = photoDetail;
-                markPhotosDeleted.mutate({ image_hashes: [imageHash], deleted: true });
-              }}
-            >
-              <Trash size={18} />
-            </ActionIcon>
-          </Tooltip>
-        )}
-      </Group>
-
-      <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
+      {/* Group 3: Metadata controls - Hide, Favorite, Public, Delete (only for authenticated users) */}
+      {!isPublic && (
+        <>
+          <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
+          <Group gap={4} align="center">
+            {isPhotoDetailsLoading && (
+              <ActionIcon loading variant="transparent" size={28}>
+                <Loader size={16} color="grey" />
+              </ActionIcon>
+            )}
+            {!isPhotoDetailsLoading && photoDetail && (
+              <Tooltip label={photoDetail.hidden ? "Show photo (H)" : "Hide photo (H)"} position="bottom" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size={28}
+                  onClick={() => {
+                    const { image_hash: imageHash } = photoDetail;
+                    const val = !photoDetail.hidden;
+                    setPhotosHidden.mutate({ image_hashes: [imageHash], hidden: val });
+                  }}
+                >
+                  {photoDetail.hidden ? <EyeOff size={18} color="red" /> : <Eye size={18} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {photoDetail && (
+              <Tooltip
+                label={photoDetail.rating >= favoriteMinRating ? "Remove from favorites (F)" : "Add to favorites (F)"}
+                position="bottom"
+                withArrow
+              >
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size={28}
+                  onClick={() => {
+                    const { image_hash: imageHash } = photoDetail;
+                    const val = !(photoDetail.rating >= favoriteMinRating);
+                    setFavoritePhotos.mutate({ image_hashes: [imageHash], favorite: val });
+                  }}
+                >
+                  <Star size={18} color={photoDetail.rating >= favoriteMinRating ? "yellow" : "grey"} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {photoDetail && (
+              <Tooltip label={photoDetail.public ? "Make private (P)" : "Make public (P)"} position="bottom" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size={28}
+                  onClick={() => {
+                    const { image_hash: imageHash } = photoDetail;
+                    const val = !photoDetail.public;
+                    setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
+                    copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
+                  }}
+                >
+                  <Globe size={18} color={photoDetail.public ? "green" : "grey"} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {photoDetail && (
+              <Tooltip label="Delete photo (D)" position="bottom" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size={28}
+                  onClick={() => {
+                    const { image_hash: imageHash } = photoDetail;
+                    markPhotosDeleted.mutate({ image_hashes: [imageHash], deleted: true });
+                  }}
+                >
+                  <Trash size={18} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
+          <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
+        </>
+      )}
 
       {/* Group 4: Panel controls - Info toggle & Close (sidebar toggle right next to X) */}
       <Group gap={4} align="center">

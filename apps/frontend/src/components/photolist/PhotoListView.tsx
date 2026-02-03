@@ -14,7 +14,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { useDebouncedCallback, useViewportSize } from "@mantine/hooks";
-import { IconSettings } from "@tabler/icons-react";
+import { IconLink, IconSettings } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { throttle } from "lodash";
@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useAccessToken } from "../../api_client/auth/hooks";
-import { BulkPhotoQuery, DatePhotosGroup, PigPhoto, Photoset, SelectionState } from "../../api_client/photos/types";
+import { BulkPhotoQuery, DatePhotosGroup, PigPhoto, SelectionState } from "../../api_client/photos/types";
 import {
   useCurrentUserSelfDetailsQuery,
   UserSelfDetailsQueryKeys,
@@ -32,7 +32,9 @@ import {
 import type { User } from "../../api_client/user/types";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { formatDateForPhotoGroups } from "../../util/util";
+import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox/Lightbox";
+import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
 import Pig from "../react-pig";
 import type { PigHandle } from "../react-pig";
@@ -41,12 +43,11 @@ import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
-import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
-import { EmptyState } from "../common/EmptyState";
 import { DefaultHeader } from "./DefaultHeader";
-import { FavoritedOverlay } from "./FavoritedOverlay";
 import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
+import { StackOverlay } from "./StackOverlay";
+import { TopRightOverlay } from "./TopRightOverlay";
 import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
 
@@ -79,6 +80,8 @@ type Props = Readonly<{
   idx2hash: any[];
   selectable: boolean;
   isPublic?: boolean;
+  isAlbumPubliclyShared?: boolean;
+  publicAlbumSlug?: string;
   numberOfItems?: number;
   updateGroups?: any;
   updateItems?: any;
@@ -103,6 +106,8 @@ function PhotoListViewComponent({
   idx2hash = [],
   selectable = false,
   isPublic = false,
+  isAlbumPubliclyShared = false,
+  publicAlbumSlug,
   numberOfItems = 0,
   updateGroups = null,
   updateItems = null,
@@ -138,20 +143,17 @@ function PhotoListViewComponent({
   const updateUser = useUpdateUserMutation();
   const queryClient = useQueryClient();
   const location = useLocation();
-  const { data: userSelfDetails, isLoading: userDetailsLoading } = useCurrentUserSelfDetailsQuery();
+  // Skip user details query on public pages
+  const { data: userSelfDetails, isLoading: userDetailsLoading } = useCurrentUserSelfDetailsQuery(isPublic);
   const { data: auth } = useAccessToken();
 
-  // Combined loading state - wait for both parent loading and user details
-  const isLoading = loading || userDetailsLoading;
+  // Combined loading state - wait for both parent loading and user details (skip on public pages)
+  const isLoading = loading || (!isPublic && userDetailsLoading);
 
   // Check if we're in first-time setup mode (DefaultHeader shows setup dialog)
   // Don't show EmptyState in this case to avoid duplicate messages
   const isFirstTimeSetup =
-    !isLoading &&
-    auth?.access &&
-    location.pathname === "/" &&
-    auth.access.is_admin &&
-    !userSelfDetails?.scan_directory;
+    !isLoading && auth?.access && location.pathname === "/" && auth.access.is_admin && !userSelfDetails?.scan_directory;
 
   const imageScale = userSelfDetails?.image_scale ?? 1;
   const textAlignment = (userSelfDetails?.text_alignment as "left" | "right") ?? "right";
@@ -195,19 +197,20 @@ function PhotoListViewComponent({
             // Get all image buttons
             const buttons = document.querySelectorAll(".pig-btn");
             const currentImage = idx2hash[currentImageIndexRef.current];
-            const currentImageId = currentImage.id;
+            // Use image_hash instead of UUID since image URLs use image_hash
+            const currentImageHash = currentImage.image_hash || currentImage.url?.split(";")[0];
 
-            // Try to find by checking img contents
+            // Try to find by checking img contents using image_hash
             let targetButton: Element | null =
               Array.from(buttons).find(btn => {
                 const imgs = btn.querySelectorAll("img");
-                return Array.from(imgs).some(img => img.src.includes(currentImageId));
+                return Array.from(imgs).some(img => currentImageHash && img.src.includes(currentImageHash));
               }) || null;
 
             // If no button found, try another approach - get index position
             if (!targetButton && buttons.length > 0) {
-              // If there are the same number of buttons as images, use index directly
-              if (buttons.length >= currentImageIndexRef.current) {
+              // Use index directly if it's within bounds
+              if (currentImageIndexRef.current >= 0 && currentImageIndexRef.current < buttons.length) {
                 targetButton = buttons[currentImageIndexRef.current];
               }
             }
@@ -256,20 +259,17 @@ function PhotoListViewComponent({
     setLocalHeaderSize(headerSize);
   }, [imageScale, textAlignment, headerSize]);
 
-  const debouncedSavePreferences = useDebouncedCallback(
-    (partial: Partial<User>) => {
-      if (userSelfDetails?.id) {
-        const newUserDetails = { ...userSelfDetails, ...partial };
-        updateUser.mutate(newUserDetails, {
-          context: { silent: true },
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
-          },
-        });
-      }
-    },
-    500
-  );
+  const debouncedSavePreferences = useDebouncedCallback((partial: Partial<User>) => {
+    if (userSelfDetails?.id) {
+      const newUserDetails = { ...userSelfDetails, ...partial };
+      updateUser.mutate(newUserDetails, {
+        context: { silent: true },
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: UserSelfDetailsQueryKeys });
+        },
+      });
+    }
+  }, 500);
 
   const handleThumbnailSizeChange = (value: number) => {
     setLocalImageScale(value);
@@ -463,6 +463,7 @@ function PhotoListViewComponent({
               date={date}
               additionalSubHeader={additionalSubHeader}
               hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
+              isPublic={isPublic}
             />
             {!isLoading && !isPublic && getNumPhotos() > 0 && (
               <Box
@@ -473,91 +474,110 @@ function PhotoListViewComponent({
                   zIndex: 10,
                 }}
               >
-                <Menu shadow="md" width={200} position="bottom-end">
-                  <Menu.Target>
-                    <Tooltip label={t("photodisplay.settings")} position="bottom">
+                <Group gap="xs">
+                  {isAlbumPubliclyShared && isUserAlbum && (
+                    <Tooltip label={t("sidemenu.sharing")} position="bottom">
                       <ActionIcon
                         variant="subtle"
                         color="gray"
                         size="lg"
-                        aria-label={t("photodisplay.settings")}
+                        aria-label={t("sidemenu.sharing")}
+                        onClick={() => setModalAlbumShareOpen(true)}
                         style={{
-                          backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                          backgroundColor: "rgba(128, 128, 128, 0.3)",
                           borderRadius: theme.radius.sm,
                         }}
                       >
-                        <IconSettings size={20} />
+                        <IconLink size={20} />
                       </ActionIcon>
                     </Tooltip>
-                  </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
-                    <Box p="xs">
-                      <Stack gap={6}>
-                        <Slider
-                          mb={20}
-                          value={localImageScale}
-                          onChange={handleThumbnailSizeChange}
-                          min={0.25}
-                          max={3}
-                          step={0.05}
-                          marks={[
-                            { value: 0.5, label: "0.5" },
-                            { value: 1, label: "1" },
-                            { value: 2, label: "2" },
-                          ]}
+                  )}
+                  <Menu shadow="md" width={200} position="bottom-end">
+                    <Menu.Target>
+                      <Tooltip label={t("photodisplay.settings")} position="bottom">
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          size="lg"
+                          aria-label={t("photodisplay.settings")}
+                          style={{
+                            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                            borderRadius: theme.radius.sm,
+                          }}
+                        >
+                          <IconSettings size={20} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
+                      <Box p="xs">
+                        <Stack gap={6}>
+                          <Slider
+                            mb={20}
+                            value={localImageScale}
+                            onChange={handleThumbnailSizeChange}
+                            min={0.25}
+                            max={3}
+                            step={0.05}
+                            marks={[
+                              { value: 0.5, label: "0.5" },
+                              { value: 1, label: "1" },
+                              { value: 2, label: "2" },
+                            ]}
+                          />
+                          <Text size="xs" c="dimmed">
+                            {t("photodisplay.lowerBigger")}
+                          </Text>
+                          <Text size="xs" fw={500}>
+                            {t("photodisplay.current", { value: localImageScale.toFixed(2) })}
+                          </Text>
+                        </Stack>
+                      </Box>
+
+                      <Menu.Divider />
+
+                      <Menu.Label>{t("photodisplay.textAlignment")}</Menu.Label>
+                      <Box p="xs">
+                        <Switch
+                          label={t("photodisplay.leftAlign")}
+                          checked={localTextAlignment === "left"}
+                          onChange={event => handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")}
+                          size="sm"
                         />
-                        <Text size="xs" c="dimmed">
-                          {t("photodisplay.lowerBigger")}
-                        </Text>
-                        <Text size="xs" fw={500}>
-                          {t("photodisplay.current", { value: localImageScale.toFixed(2) })}
-                        </Text>
-                      </Stack>
-                    </Box>
+                      </Box>
 
-                    <Menu.Divider />
+                      <Menu.Divider />
 
-                    <Menu.Label>{t("photodisplay.textAlignment")}</Menu.Label>
-                    <Box p="xs">
-                      <Switch
-                        label={t("photodisplay.leftAlign")}
-                        checked={localTextAlignment === "left"}
-                        onChange={event => handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")}
-                        size="sm"
-                      />
-                    </Box>
-
-                    <Menu.Divider />
-
-                    <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
-                    <Box p="xs">
-                      <Group>
-                        <Button
-                          size="xs"
-                          variant={localHeaderSize === "large" ? "filled" : "outline"}
-                          onClick={() => handleHeaderSizeChange("large")}
-                        >
-                          {t("photodisplay.large")}
-                        </Button>
-                        <Button
-                          size="xs"
-                          variant={localHeaderSize === "normal" ? "filled" : "outline"}
-                          onClick={() => handleHeaderSizeChange("normal")}
-                        >
-                          {t("photodisplay.normal")}
-                        </Button>
-                        <Button
-                          size="xs"
-                          variant={localHeaderSize === "small" ? "filled" : "outline"}
-                          onClick={() => handleHeaderSizeChange("small")}
-                        >
-                          {t("photodisplay.small")}
-                        </Button>
-                      </Group>
-                    </Box>
-                  </Menu.Dropdown>
-                </Menu>
+                      <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
+                      <Box p="xs">
+                        <Group>
+                          <Button
+                            size="xs"
+                            variant={localHeaderSize === "large" ? "filled" : "outline"}
+                            onClick={() => handleHeaderSizeChange("large")}
+                          >
+                            {t("photodisplay.large")}
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant={localHeaderSize === "normal" ? "filled" : "outline"}
+                            onClick={() => handleHeaderSizeChange("normal")}
+                          >
+                            {t("photodisplay.normal")}
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant={localHeaderSize === "small" ? "filled" : "outline"}
+                            onClick={() => handleHeaderSizeChange("small")}
+                          >
+                            {t("photodisplay.small")}
+                          </Button>
+                        </Group>
+                      </Box>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Group>
               </Box>
             )}
           </Box>
@@ -671,9 +691,7 @@ function PhotoListViewComponent({
                 selectionState.selectAllMode
                   ? // In selectAllMode, all real (non-temp) items are selected except exclusions
                     idx2hash.filter(
-                      item =>
-                        !item.isTemp &&
-                        !selectionState.selectedItems.find(excluded => excluded.id === item.id)
+                      item => !item.isTemp && !selectionState.selectedItems.find(excluded => excluded.id === item.id)
                     )
                   : selectionState.selectedItems
               }
@@ -682,8 +700,9 @@ function PhotoListViewComponent({
               scaleOfImages={localImageScale}
               groupByDate={isDateView}
               getUrl={getUrl}
-              toprightoverlay={FavoritedOverlay}
+              toprightoverlay={TopRightOverlay}
               bottomleftoverlay={VideoOverlay}
+              bottomrightoverlay={StackOverlay}
               numberOfItems={numberOfItems ?? idx2hashRef.current.length}
               updateItems={updateItems ? throttledUpdateItems : () => {}}
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
@@ -719,7 +738,8 @@ function PhotoListViewComponent({
       {lightboxOpen && (
         <Lightbox
           isPublic={isPublic}
-          idx2hash={idx2hash.map(item => ({ id: item.id }))}
+          publicAlbumSlug={publicAlbumSlug}
+          idx2hash={idx2hash.map(item => ({ id: item.id, image_hash: item.image_hash }))}
           selectedImage={lightboxImageId}
           onChangedIndex={handleLightboxIndexChange}
           onCloseRequest={closeLightbox}

@@ -79,6 +79,7 @@ type PigProps = {
   selectedItems?: ImageItem[] | null;
   toprightoverlay?: React.FC<any> | null;
   bottomleftoverlay?: React.FC<any> | null;
+  bottomrightoverlay?: React.FC<any> | null;
   className?: string;
   textAlignment?: "left" | "right";
   headerSize?: "large" | "normal" | "small";
@@ -153,6 +154,7 @@ function Pig(
     selectedItems: propSelectedItems = null,
     toprightoverlay = null,
     bottomleftoverlay = null,
+    bottomrightoverlay = null,
     className = "",
     textAlignment = "right",
     headerSize = "large",
@@ -416,7 +418,7 @@ function Pig(
 
       return (
         <TileComponent
-          key={`tile-${item.id || item.url || Math.random().toString(36)}`}
+          key={`tile-${item.id?.toString() || item.url || Math.random().toString(36)}`}
           useLqip={useLqip}
           windowHeight={windowHeightRef.current}
           containerWidth={containerWidthRef.current}
@@ -438,6 +440,7 @@ function Pig(
           scrollSpeed={scrollSpeed}
           toprightoverlay={toprightoverlay}
           bottomleftoverlay={bottomleftoverlay}
+          bottomrightoverlay={bottomrightoverlay}
         />
       );
     },
@@ -446,6 +449,7 @@ function Pig(
       thumbnailSize,
       toprightoverlay,
       bottomleftoverlay,
+      bottomrightoverlay,
       settings,
       selectedItems,
       activeTileUrl,
@@ -470,7 +474,7 @@ function Pig(
             headerSize={headerSize}
           />
           {group.items.map((item: ImageItem, index: number) => (
-            <React.Fragment key={item.url || item.id?.toString() || `group-item-${index}`}>
+            <React.Fragment key={item.id?.toString() || item.url || `group-item-${index}`}>
               {renderTile(item)}
             </React.Fragment>
           ))}
@@ -486,7 +490,7 @@ function Pig(
   return (
     <div className={`${styles.output} ${className}`} ref={containerRef}>
       {renderedItems.map((item, index) => {
-        const key = "date" in item && item.date ? item.date : item.url || item.id?.toString() || `item-${index}`;
+        const key = "date" in item && item.date ? item.date : item.id?.toString() || item.url || `item-${index}`;
         return (
           <React.Fragment key={key}>
             {settings.groupByDate ? renderGroup(item as GroupedImageItem) : renderFlat(item as ImageItem)}

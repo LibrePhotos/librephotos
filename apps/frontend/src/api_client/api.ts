@@ -7,9 +7,6 @@ const API_BASE_URL = "/api";
 
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
-  private static lastAuthErrorNotificationTime = 0;
-  private static readonly AUTH_ERROR_DEBOUNCE_MS = 5000; // 5 seconds
-
   private static isTokenExpired(exp: number): boolean {
     return 1000 * exp - new Date().getTime() < 5000;
   }
@@ -70,51 +67,56 @@ class FetchClient {
     }
 
     if (response.status === 401) {
-      // Logout the user by blacklisting the refresh token
-      const cookies = new Cookies();
-      const refreshToken = cookies.get("refresh");
-      if (refreshToken) {
-        try {
-          await fetch(`${API_BASE_URL}/auth/token/blacklist/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refresh: refreshToken }),
-            credentials: "include",
-          });
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error("Logout failed:", error);
-        }
-      }
-      // Clear auth cookies and redirect to login if we are not already on the login page
-      if (!window.location.pathname.includes("/login")) {
-        cookies.remove("access");
-        cookies.remove("refresh");
-        cookies.remove("jwt");
-        window.location.href = "/login";
-      }
+      // Check if we're on a public page or auth pages - don't handle 401 as an error there
+      const isPublicPage = window.location.pathname.startsWith("/public");
+      const isLoginPage = window.location.pathname.includes("/login");
+      const isSignupPage = window.location.pathname.includes("/signup");
+      const suppressAuthNotifications = isPublicPage || isLoginPage || isSignupPage;
 
-      const data = await response.json();
-      const isLoginAttempt = endpoint.includes("/auth/token/obtain/");
-      const isOnLoginPage = window.location.pathname.includes("/login");
-      const now = Date.now();
-      const shouldShowNotification =
-        isLoginAttempt || // Always show notifications for actual login attempts
-        (!isOnLoginPage && now - FetchClient.lastAuthErrorNotificationTime > FetchClient.AUTH_ERROR_DEBOUNCE_MS); // Suppress on login page and debounce
-
-      if (shouldShowNotification) {
-        if (data.errors) {
-          data.errors.forEach((error: { field: string; message: string }) => {
-            if (error.field === "detail") {
-              notification.authError(isLoginAttempt, error.field, error.message);
-            }
-          });
-        } else {
-          notification.invalidToken();
+      if (!isPublicPage) {
+        // Logout the user by blacklisting the refresh token
+        const cookies = new Cookies();
+        const refreshToken = cookies.get("refresh");
+        if (refreshToken) {
+          try {
+            await fetch(`${API_BASE_URL}/auth/token/blacklist/`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refresh: refreshToken }),
+              credentials: "include",
+            });
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error("Logout failed:", error);
+          }
         }
-        FetchClient.lastAuthErrorNotificationTime = now;
+        // Clear auth cookies and redirect to login if we are not already on the login page
+        if (!isLoginPage) {
+          cookies.remove("access");
+          cookies.remove("refresh");
+          cookies.remove("jwt");
+          window.location.href = "/login";
+        }
+
+        // Only show notifications when NOT on a public/login/signup page
+        if (!suppressAuthNotifications) {
+          const data = await response.json();
+          if (data.errors) {
+            data.errors.forEach((error: { field: string; message: string }) => {
+              if (error.field === "detail") {
+                const isLogin = endpoint.includes("/auth/token/obtain/");
+                notification.authError(isLogin, error.field, error.message);
+              }
+            });
+          } else {
+            notification.invalidToken();
+          }
+        }
+        throw new Error("Authentication failed");
       }
-      throw new Error("Authentication failed");
+      // On public pages, silently ignore 401 errors for authenticated-only endpoints
+      // Return a response that will result in undefined/null data
+      throw new Error("Not authenticated (public page)");
     }
   }
 

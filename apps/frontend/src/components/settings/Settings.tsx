@@ -25,6 +25,7 @@ import {
   UserSelfDetailsQueryKeys,
   useUpdateUserMutation,
 } from "../../api_client/user/hooks";
+import { ConfigBurstDetection } from "./ConfigBurstDetection";
 import { ConfigDateTime } from "./ConfigDateTime";
 
 export function Settings() {
@@ -269,6 +270,14 @@ export function Settings() {
           />
         </Card>
         <Card shadow="md">
+          <ConfigBurstDetection
+            value={editedUserDetails.burst_detection_rules}
+            onChange={value => {
+              setEditedUserDetails({ ...editedUserDetails, burst_detection_rules: value });
+            }}
+          />
+        </Card>
+        <Card shadow="md">
           <Title order={4} mb={16}>
             <Trans i18nKey="settings.experimentaloptions">Experimental options</Trans>
           </Title>
@@ -332,6 +341,81 @@ export function Settings() {
           </Stack>
         </Card>
         <Card shadow="md">
+          <Stack>
+            <Title order={4} mb={16}>
+              <Trans i18nKey="settings.publicsharingdefaults">Public Sharing Defaults</Trans>
+            </Title>
+            <Text size="sm" c="dimmed">
+              {t("settings.publicsharingdefaultsdesc")}
+            </Text>
+            <Switch
+              label={t("sharing.shareTimestamps")}
+              checked={editedUserDetails.public_sharing_defaults?.share_timestamps ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_timestamps: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareLocation")}
+              checked={editedUserDetails.public_sharing_defaults?.share_location ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_location: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareCameraInfo")}
+              checked={editedUserDetails.public_sharing_defaults?.share_camera_info ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_camera_info: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareCaptions")}
+              checked={editedUserDetails.public_sharing_defaults?.share_captions ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_captions: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+            <Switch
+              label={t("sharing.shareFaces")}
+              checked={editedUserDetails.public_sharing_defaults?.share_faces ?? false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  public_sharing_defaults: {
+                    ...editedUserDetails.public_sharing_defaults,
+                    share_faces: event.currentTarget.checked,
+                  },
+                });
+              }}
+            />
+          </Stack>
+        </Card>
+        <Card shadow="md">
           <Title order={4} mb={16}>
             <Trans i18nKey="settings.interface">Interface</Trans>
           </Title>
@@ -353,6 +437,38 @@ export function Settings() {
                 { value: "15", label: "15 seconds" },
                 { value: "30", label: "30 seconds" },
               ]}
+            />
+          </Flex>
+        </Card>
+        <Card shadow="md">
+          <Title order={4} mb={16}>
+            <Trans i18nKey="settings.duplicatedetection">Duplicate Detection</Trans>
+          </Title>
+          <Flex align="flex-start" direction="column" gap="md">
+            <Radio.Group
+              label={t("settings.duplicatesensitivity")}
+              description={t("settings.duplicatesensitivityhelp")}
+              value={editedUserDetails.duplicate_sensitivity || "normal"}
+              onChange={value => {
+                setEditedUserDetails({ ...editedUserDetails, duplicate_sensitivity: value || "normal" });
+              }}
+            >
+              <Group mt="xs">
+                <Radio value="strict" label={t("settings.sensitivity.strict")} />
+                <Radio value="normal" label={t("settings.sensitivity.normal")} />
+                <Radio value="loose" label={t("settings.sensitivity.loose")} />
+              </Group>
+            </Radio.Group>
+            <Switch
+              label={t("settings.duplicateclearexisting")}
+              description={t("settings.duplicateclearexistinghelp")}
+              checked={editedUserDetails.duplicate_clear_existing || false}
+              onChange={event => {
+                setEditedUserDetails({
+                  ...editedUserDetails,
+                  duplicate_clear_existing: event.currentTarget.checked,
+                });
+              }}
             />
           </Flex>
         </Card>

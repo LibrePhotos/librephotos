@@ -49,6 +49,7 @@ export function AlbumUserGallery() {
       photoset={groupedPhotos}
       idx2hash={flatPhotos}
       isPublic={isPublic}
+      isAlbumPubliclyShared={album?.public ?? false}
       albumID={albumID}
       ownerUsername={album?.owner.username}
       selectable

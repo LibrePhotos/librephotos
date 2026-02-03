@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-
-import { PhotoHash } from "../../photos/types";
+import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { PhotoHash } from "../../photos/types";
 
-export const PlacesAlbumsQueryKeys = ['placesAlbums'] as const;
+export const PlacesAlbumsQueryKeys = ["placesAlbums"] as const;
 
 export const AlbumInfo = z.object({
   id: z.number(),
@@ -25,10 +25,12 @@ export const PlacesAlbumsResponse = z.object({
   results: PlacesAlbumList,
 });
 
-export const useFetchPlacesAlbumsQuery = () => useQuery({
-  queryKey: [...PlacesAlbumsQueryKeys],
-  queryFn: async () => {
-    const response = await fetchClient.get('/albums/place/list/');
-    return PlacesAlbumsResponse.parse(response).results;
-  },
-}); 
+export const useFetchPlacesAlbumsQuery = (skip: boolean = false) =>
+  useQuery({
+    queryKey: [...PlacesAlbumsQueryKeys],
+    queryFn: async () => {
+      const response = await fetchClient.get("/albums/place/list/");
+      return parseWithNotification(PlacesAlbumsResponse, response, "Failed to parse places albums").results;
+    },
+    enabled: !skip,
+  });

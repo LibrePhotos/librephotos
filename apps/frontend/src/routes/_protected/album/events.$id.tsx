@@ -126,7 +126,7 @@ export function AlbumAutoGalleryView() {
         loading={isFetching}
         icon={<SettingsAutomation size={50} />}
         photoset={groupedPhotos}
-        idx2hash={photos.map(photo => ({ id: photo.image_hash }))}
+        idx2hash={photos.map(photo => ({ id: photo.id, image_hash: photo.image_hash }))}
         selectable
       />
     </div>

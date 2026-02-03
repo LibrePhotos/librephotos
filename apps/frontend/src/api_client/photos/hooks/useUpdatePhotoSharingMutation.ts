@@ -1,12 +1,12 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-
-import { BulkPhotoQuery, SimpleUser } from "../types";
 import { notification } from "../../../service/notifications";
+import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
-import { SharedPhotosByMeQueryKeys } from './useFetchSharedPhotosByMeQuery';
-import { SharedPhotosWithMeQueryKeys } from './useFetchSharedPhotosWithMeQuery';
-import { PhotoDetailsQueryKeys } from './useFetchPhotoDetailsQuery';
+import { BulkPhotoQuery, SimpleUser } from "../types";
+import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
+import { SharedPhotosByMeQueryKeys } from "./useFetchSharedPhotosByMeQuery";
+import { SharedPhotosWithMeQueryKeys } from "./useFetchSharedPhotosWithMeQuery";
 
 const SharePhotosResponse = z.object({
   status: z.boolean(),
@@ -32,41 +32,42 @@ type SelectAllRequest = {
 
 type SharePhotosRequest = IndividualRequest | SelectAllRequest;
 
-export const useUpdatePhotoSharingMutation = () => useMutation({
-  mutationFn: async (request: SharePhotosRequest) => {
-    const payload = request.select_all
-      ? {
-          select_all: true,
-          query: request.query,
-          excluded_hashes: request.excluded_hashes,
-          val_shared: request.val_shared,
-          target_user_id: request.target_user.id,
-        }
-      : {
-          image_hashes: request.image_hashes,
-          val_shared: request.val_shared,
-          target_user_id: request.target_user.id,
-        };
+export const useUpdatePhotoSharingMutation = () =>
+  useMutation({
+    mutationFn: async (request: SharePhotosRequest) => {
+      const payload = request.select_all
+        ? {
+            select_all: true,
+            query: request.query,
+            excluded_hashes: request.excluded_hashes,
+            val_shared: request.val_shared,
+            target_user_id: request.target_user.id,
+          }
+        : {
+            image_hashes: request.image_hashes,
+            val_shared: request.val_shared,
+            target_user_id: request.target_user.id,
+          };
 
-    const response = await fetchClient.post('/photosedit/share/', payload);
-    const data = SharePhotosResponse.parse(response);
-    
-    // Show notification based on mode
-    if (request.select_all) {
-      notification.togglePhotoSharing(request.target_user.username, data.count, request.val_shared);
-    } else {
-      notification.togglePhotoSharing(request.target_user.username, request.image_hashes.length, request.val_shared);
-    }
-    
-    return data;
-  },
-  onSuccess: (_, request) => {
-    queryClient.invalidateQueries({ queryKey: [...SharedPhotosByMeQueryKeys] });
-    queryClient.invalidateQueries({ queryKey: [...SharedPhotosWithMeQueryKeys] });
-    
-    // If we have a single photo in individual mode, invalidate its details
-    if (!request.select_all && request.image_hashes.length === 1) {
-      queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
-    }
-  },
-});
+      const response = await fetchClient.post("/photosedit/share/", payload);
+      const data = parseWithNotification(SharePhotosResponse, response, "Failed to parse photo sharing response");
+
+      // Show notification based on mode
+      if (request.select_all) {
+        notification.togglePhotoSharing(request.target_user.username, data.count, request.val_shared);
+      } else {
+        notification.togglePhotoSharing(request.target_user.username, request.image_hashes.length, request.val_shared);
+      }
+
+      return data;
+    },
+    onSuccess: (_, request) => {
+      queryClient.invalidateQueries({ queryKey: [...SharedPhotosByMeQueryKeys] });
+      queryClient.invalidateQueries({ queryKey: [...SharedPhotosWithMeQueryKeys] });
+
+      // If we have a single photo in individual mode, invalidate its details
+      if (!request.select_all && request.image_hashes.length === 1) {
+        queryClient.invalidateQueries({ queryKey: [...PhotoDetailsQueryKeys, request.image_hashes[0]] });
+      }
+    },
+  });

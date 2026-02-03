@@ -1,10 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import _ from "lodash";
-import { useQuery } from '@tanstack/react-query';
 import { z } from "zod";
-
+import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 
-export const PeopleAlbumsQueryKeys = ['peopleAlbums'] as const;
+export const PeopleAlbumsQueryKeys = ["peopleAlbums"] as const;
 
 export const PersonResponse = z.object({
   name: z.string(),
@@ -38,20 +38,24 @@ export const PeopleResponse = z.object({
   results: PersonResponse.array(),
 });
 
-export const useFetchPeopleAlbumsQuery = () => useQuery({
-  queryKey: [...PeopleAlbumsQueryKeys],
-  queryFn: async () => {
-    const response = await fetchClient.get('/persons/?page_size=1000');
-    
-    const people = PeopleResponse.parse(response).results.map(item => ({
-      id: item.id.toString(),
-      name: item.name ?? "",
-      video: !!item.video,
-      face_count: item.face_count,
-      face_photo_url: item.face_photo_url ?? "",
-      face_url: item.face_url ?? "",
-    }));
-    
-    return _.orderBy(people, ["name", "face_count"], ["asc", "desc"]);
-  },
-}); 
+export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
+  useQuery({
+    queryKey: [...PeopleAlbumsQueryKeys],
+    queryFn: async () => {
+      const response = await fetchClient.get("/persons/?page_size=1000");
+
+      const people = parseWithNotification(PeopleResponse, response, "Failed to parse people albums").results.map(
+        item => ({
+          id: item.id.toString(),
+          name: item.name ?? "",
+          video: !!item.video,
+          face_count: item.face_count,
+          face_photo_url: item.face_photo_url ?? "",
+          face_url: item.face_url ?? "",
+        })
+      );
+
+      return _.orderBy(people, ["name", "face_count"], ["asc", "desc"]);
+    },
+    enabled: !skip,
+  });

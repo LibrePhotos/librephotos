@@ -229,21 +229,21 @@ export function Library() {
               </Modal>
             </Title>
 
-            {/* Skip RAW files toggle (per-user) */}
+            {/* Stack RAW+JPEG pairs toggle (per-user) */}
             <Grid>
               <Grid.Col span={{ base: 12, sm: 10 }}>
                 <Stack gap={0}>
-                  <Text>{t("sitesettings.skip_raw_files")}</Text>
+                  <Text>{t("sitesettings.stack_raw_jpeg")}</Text>
                   <Text fz="sm" c="dimmed">
-                    {t("settings.skip_raw_files_note")}
+                    {t("settings.stack_raw_jpeg_note")}
                   </Text>
                 </Stack>
               </Grid.Col>
               <Grid.Col span={{ base: 12, sm: 2 }}>
                 <Switch
-                  checked={!!editedUser?.skip_raw_files}
+                  checked={editedUser?.stack_raw_jpeg !== false}
                   onChange={() =>
-                    editedUser && setEditedUser({ ...editedUser, skip_raw_files: !editedUser.skip_raw_files })
+                    editedUser && setEditedUser({ ...editedUser, stack_raw_jpeg: !editedUser.stack_raw_jpeg })
                   }
                 />
               </Grid.Col>

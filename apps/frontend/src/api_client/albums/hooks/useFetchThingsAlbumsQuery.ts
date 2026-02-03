@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-
-import { PhotoHash } from "../../photos/types";
+import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
+import { PhotoHash } from "../../photos/types";
 
 const ThingsAlbumList = z
   .object({
@@ -18,14 +18,16 @@ const ThingsAlbumListResponse = z.object({
   results: ThingsAlbumList,
 });
 
-export const ThingsAlbumsQueryKeys = ['thingsAlbums'] as const;
+export const ThingsAlbumsQueryKeys = ["thingsAlbums"] as const;
 
 export type ThingsAlbumList = z.infer<typeof ThingsAlbumList>;
 
-export const useFetchThingsAlbumsQuery = () => useQuery({
-  queryKey: [...ThingsAlbumsQueryKeys],
-  queryFn: async () => {
-    const response = await fetchClient.get('/albums/thing/list/');
-    return ThingsAlbumListResponse.parse(response).results;
-  },
-}); 
+export const useFetchThingsAlbumsQuery = (skip: boolean = false) =>
+  useQuery({
+    queryKey: [...ThingsAlbumsQueryKeys],
+    queryFn: async () => {
+      const response = await fetchClient.get("/albums/thing/list/");
+      return parseWithNotification(ThingsAlbumListResponse, response, "Failed to parse things albums").results;
+    },
+    enabled: !skip,
+  });

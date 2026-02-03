@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
+import { parseWithNotification } from "../../../util/zodUtils";
 import { UserAlbumInfo } from "../../albums/types";
 import { fetchClient } from "../../api";
 
@@ -17,7 +18,7 @@ export const useFetchPhotoAlbumsQuery = (hash: string) =>
         return [];
       }
       const response = await fetchClient.get(`/photos/${hash}/albums/`);
-      return PhotoAlbumsResponse.parse(response).results;
+      return parseWithNotification(PhotoAlbumsResponse, response, "Failed to parse photo albums").results;
     },
     enabled: Boolean(hash),
   });
