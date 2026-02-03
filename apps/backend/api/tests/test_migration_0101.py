@@ -4,8 +4,9 @@ Test for migration 0101_populate_photo_metadata to ensure it works correctly.
 This test verifies the fix for the PostgreSQL error:
 "operator does not exist: uuid = character varying"
 """
-from django.test import TestCase
+from django.db import models
 from django.db.models import OuterRef, Subquery
+from django.test import TestCase
 
 from api.models import Photo
 from api.models.photo_caption import PhotoCaption
@@ -111,7 +112,3 @@ class Migration0101TestCase(TestCase):
         metadata2 = PhotoMetadata.objects.get(photo=photo2)
         self.assertEqual(metadata2.caption, "Second photo")
         self.assertEqual(metadata2.keywords, ["tag1", "tag2"])
-
-
-# Import needed for the test
-from django.db import models
