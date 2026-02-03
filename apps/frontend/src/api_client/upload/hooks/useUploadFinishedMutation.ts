@@ -6,8 +6,14 @@ import { StorageStatsQueryKeys } from "../../server/hooks/useFetchStorageStatsQu
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
 
-const uploadFinished = (options: { formData: FormData; shouldInvalidate: boolean }) =>
-  fetchClient.post("/upload/complete/", options.formData);
+type UploadFinishedOptions = {
+  formData: FormData;
+  // shouldInvalidate is used by the onSuccess callback to determine
+  // whether to invalidate queries after upload completion
+  shouldInvalidate: boolean;
+};
+
+const uploadFinished = (options: UploadFinishedOptions) => fetchClient.post("/upload/complete/", options.formData);
 
 export const useUploadFinishedMutation = () =>
   useMutation({
