@@ -46,8 +46,10 @@ class ThumbnailMigrationTest(TestCase):
     @patch('django.conf.settings.MEDIA_ROOT')
     def test_file_renaming_with_mocked_filesystem(self, mock_media_root):
         """Test that the migration logic handles file renaming correctly"""
-        mock_media_root.__str__ = lambda self: self.test_media_root
-        mock_media_root.return_value = self.test_media_root
+        # Set the mock to return our test directory
+        test_dir = self.test_media_root
+        mock_media_root.return_value = test_dir
+        mock_media_root.__str__ = lambda _: test_dir
         
         # Create test photo
         photo = create_test_photo(owner=self.user)

@@ -69,9 +69,9 @@ def rename_thumbnails_uuid_to_hash(apps, schema_editor):
         # Queue for batch update if any files were renamed
         if needs_update:
             filetype = '.mp4' if photo.video else '.webp'
-            thumbnail.thumbnail_big = os.path.join('thumbnails_big', f"{photo_hash}.webp").strip()
-            thumbnail.square_thumbnail = os.path.join('square_thumbnails', f"{photo_hash}{filetype}").strip()
-            thumbnail.square_thumbnail_small = os.path.join('square_thumbnails_small', f"{photo_hash}{filetype}").strip()
+            thumbnail.thumbnail_big = os.path.join('thumbnails_big', f"{photo_hash}.webp")
+            thumbnail.square_thumbnail = os.path.join('square_thumbnails', f"{photo_hash}{filetype}")
+            thumbnail.square_thumbnail_small = os.path.join('square_thumbnails_small', f"{photo_hash}{filetype}")
             thumbnails_to_update.append(thumbnail)
             renamed_count += 1
         else:

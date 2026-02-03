@@ -92,13 +92,13 @@ class Thumbnail(models.Model):
                 filetype = ".mp4"
             self.thumbnail_big.name = os.path.join(
                 "thumbnails_big", photo_hash + ".webp"
-            ).strip()
+            )
             self.square_thumbnail.name = os.path.join(
                 "square_thumbnails", photo_hash + filetype
-            ).strip()
+            )
             self.square_thumbnail_small.name = os.path.join(
                 "square_thumbnails_small", photo_hash + filetype
-            ).strip()
+            )
             self.save()
         except Exception as e:
             logger.exception(
