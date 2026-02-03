@@ -38,7 +38,7 @@ export const PeopleResponse = z.object({
   results: PersonResponse.array(),
 });
 
-export const useFetchPeopleAlbumsQuery = () =>
+export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: [...PeopleAlbumsQueryKeys],
     queryFn: async () => {
@@ -57,4 +57,5 @@ export const useFetchPeopleAlbumsQuery = () =>
 
       return _.orderBy(people, ["name", "face_count"], ["asc", "desc"]);
     },
+    enabled: !skip,
   });

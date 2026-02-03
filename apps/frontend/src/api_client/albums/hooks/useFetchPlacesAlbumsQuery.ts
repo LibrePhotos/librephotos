@@ -25,11 +25,12 @@ export const PlacesAlbumsResponse = z.object({
   results: PlacesAlbumList,
 });
 
-export const useFetchPlacesAlbumsQuery = () =>
+export const useFetchPlacesAlbumsQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: [...PlacesAlbumsQueryKeys],
     queryFn: async () => {
       const response = await fetchClient.get("/albums/place/list/");
       return parseWithNotification(PlacesAlbumsResponse, response, "Failed to parse places albums").results;
     },
+    enabled: !skip,
   });

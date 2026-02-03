@@ -5,11 +5,12 @@ import { UserAlbumListResponse } from "../types";
 
 export const UserAlbumsQueryKeys = ["userAlbums"] as const;
 
-export const useFetchUserAlbumsQuery = () =>
+export const useFetchUserAlbumsQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: [...UserAlbumsQueryKeys],
     queryFn: async () => {
       const response = await fetchClient.get("/albums/user/list/");
       return parseWithNotification(UserAlbumListResponse, response, "Failed to parse user albums").results;
     },
+    enabled: !skip,
   });

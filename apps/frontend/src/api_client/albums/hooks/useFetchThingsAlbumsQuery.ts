@@ -22,11 +22,12 @@ export const ThingsAlbumsQueryKeys = ["thingsAlbums"] as const;
 
 export type ThingsAlbumList = z.infer<typeof ThingsAlbumList>;
 
-export const useFetchThingsAlbumsQuery = () =>
+export const useFetchThingsAlbumsQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: [...ThingsAlbumsQueryKeys],
     queryFn: async () => {
       const response = await fetchClient.get("/albums/thing/list/");
       return parseWithNotification(ThingsAlbumListResponse, response, "Failed to parse things albums").results;
     },
+    enabled: !skip,
   });
