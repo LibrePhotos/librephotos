@@ -1,13 +1,10 @@
-import { useIsAuthenticatedQuery } from '../api_client/auth';
+import { useAccessToken } from "../api_client/auth/hooks";
 
 export function useAuth() {
-  const { data: isAuthenticated } = useIsAuthenticatedQuery();
-  const userId = localStorage.getItem('user_id');
-  const accessToken = localStorage.getItem('access_token');
+  const { data: auth } = useAccessToken();
 
   return {
-    isAuthenticated: !!isAuthenticated,
-    userId: userId ? parseInt(userId, 10) : null,
-    accessToken,
+    isAuthenticated: !!auth?.access,
+    userId: auth?.access?.user_id ? parseInt(auth.access.user_id, 10) : null,
   };
-} 
+}

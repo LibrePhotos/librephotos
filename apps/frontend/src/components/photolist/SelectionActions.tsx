@@ -19,7 +19,7 @@ import {
   IconTrash as Trash,
 } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRemovePhotoFromUserAlbumMutation } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
@@ -39,6 +39,7 @@ import {
 } from "../../api_client/stacks";
 import { useAuth } from "../../hooks/useAuth";
 import { copyToClipboard } from "../../util/util";
+import { ModalDownloadOptions } from "../modals/ModalDownloadOptions";
 
 type Props = {
   selectedItems: UserAlbum[];
@@ -132,8 +133,26 @@ export function SelectionActions(props: Readonly<Props>) {
   // Check if any action is possible
   const hasSelection = selectAllMode || selectedItems.length > 0;
 
+  // Download modal state
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+
+  const handleDownloadConfirm = (options: { includeStackedPhotos: boolean }) => {
+    downloadPhotoArchive.mutate({
+      image_hashes: getImageHashes(),
+      userId,
+      includeStackedPhotos: options.includeStackedPhotos,
+    });
+    resetSelection();
+  };
+
   return (
     <Group>
+      <ModalDownloadOptions
+        isOpen={isDownloadModalOpen}
+        photoCount={getImageHashes().length}
+        onRequestClose={() => setIsDownloadModalOpen(false)}
+        onConfirm={handleDownloadConfirm}
+      />
       <Menu width={200}>
         <Menu.Target>
           <ActionIcon variant="subtle" color="gray" disabled={!hasSelection}>
@@ -325,9 +344,8 @@ export function SelectionActions(props: Readonly<Props>) {
             onClick={() => {
               // Download doesn't support selectAll mode yet
               if (!selectAllMode) {
-                downloadPhotoArchive.mutate({ image_hashes: getImageHashes(), userId });
+                setIsDownloadModalOpen(true);
               }
-              resetSelection();
             }}
           >
             {`  ${t("selectionactions.download")}`}
@@ -508,6 +526,13 @@ export function SelectionActions(props: Readonly<Props>) {
           )}
         </Menu.Dropdown>
       </Menu>
+
+      <ModalDownloadOptions
+        isOpen={isDownloadModalOpen}
+        photoCount={getImageHashes().length}
+        onRequestClose={() => setIsDownloadModalOpen(false)}
+        onConfirm={handleDownloadConfirm}
+      />
     </Group>
   );
 }

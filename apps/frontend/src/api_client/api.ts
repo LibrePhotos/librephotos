@@ -176,7 +176,12 @@ class FetchClient {
       if (contentType && contentType.includes("application/json")) {
         return (await response.json()) as T;
       }
-      if (contentType && contentType.includes("application/octet-stream")) {
+      if (
+        contentType &&
+        (contentType.includes("application/octet-stream") ||
+          contentType.includes("application/x-zip-compressed") ||
+          contentType.includes("application/zip"))
+      ) {
         return (await response.blob()) as unknown as T;
       }
       return (await response.text()) as unknown as T;
