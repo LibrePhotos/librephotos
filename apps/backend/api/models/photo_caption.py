@@ -246,7 +246,7 @@ class PhotoCaption(models.Model):
                     album_thing.save()
 
             for album_thing in api.models.album_thing.AlbumThing.objects.filter(
-                Q(photos__in=[self.photo.image_hash])
+                Q(photos__in=[self.photo])
                 & Q(thing_type="hashtag_attribute")
                 & Q(owner=self.photo.owner)
             ).all():
@@ -299,7 +299,7 @@ class PhotoCaption(models.Model):
 
             # Remove old album associations
             for album_thing in api.models.album_thing.AlbumThing.objects.filter(
-                Q(photos__in=[self.photo.image_hash])
+                Q(photos__in=[self.photo])
                 & (
                     Q(thing_type="places365_attribute")
                     or Q(thing_type="places365_category")

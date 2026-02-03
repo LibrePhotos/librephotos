@@ -29,6 +29,10 @@ class SetupDirectoryTestCase(TestCase):
             {"scan_directory": "/non-existent-directory"},
         )
         self.assertEqual(response.status_code, 400)
+        # Check for the error message in the new format
+        data = response.json()
+        self.assertIn("errors", data)
+        self.assertGreater(len(data["errors"]), 0)
         self.assertEqual(
-            response.json(), ["Scan directory must be inside the data root."]
+            data["errors"][0]["message"], "Scan directory must be inside the data root."
         )

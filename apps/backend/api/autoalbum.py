@@ -19,19 +19,11 @@ from api.util import logger
 
 
 def regenerate_event_titles(user, job_id):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES,
-        )
-        lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUM_TITLES,
+        job_id=job_id,
+    )
     try:
         aus = AlbumAuto.objects.filter(owner=user).prefetch_related("photos")
         target_count = len(aus)
@@ -39,40 +31,24 @@ def regenerate_event_titles(user, job_id):
             logger.info(f"job {job_id}: {idx}")
             au._generate_title()
             au.save()
+            lrj.update_progress(current=idx + 1, target=target_count)
 
-            lrj.progress_current = idx + 1
-            lrj.progress_target = target_count
-            lrj.save()
-
-        lrj.finished = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.complete()
         logger.info(f"job {job_id}: updated lrj entry to db")
 
-    except Exception:
+    except Exception as e:
         logger.exception("An error occurred")
-        lrj.failed = True
-        lrj.finished = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.fail(error=e)
 
     return 1
 
 
 def generate_event_albums(user, job_id):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS,
-        )
-        lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_GENERATE_AUTO_ALBUMS,
+        job_id=job_id,
+    )
 
     try:
         photos = (
@@ -166,39 +142,24 @@ def generate_event_albums(user, job_id):
                     )
                     continue
 
-            lrj.progress_current = idx + 1
-            lrj.progress_target = target_count
-            lrj.save()
+            lrj.update_progress(current=idx + 1, target=target_count)
 
-        lrj.finished = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.complete()
 
-    except Exception:
+    except Exception as e:
         logger.exception("An error occurred")
-        lrj.failed = True
-        lrj.finished = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.fail(error=e)
 
     return 1
 
 
 # To-Do: This does not belong here
 def delete_missing_photos(user, job_id):
-    if LongRunningJob.objects.filter(job_id=job_id).exists():
-        lrj = LongRunningJob.objects.get(job_id=job_id)
-        lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
-    else:
-        lrj = LongRunningJob.objects.create(
-            started_by=user,
-            job_id=job_id,
-            queued_at=datetime.now().replace(tzinfo=pytz.utc),
-            started_at=datetime.now().replace(tzinfo=pytz.utc),
-            job_type=LongRunningJob.JOB_DELETE_MISSING_PHOTOS,
-        )
-        lrj.save()
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_DELETE_MISSING_PHOTOS,
+        job_id=job_id,
+    )
     try:
         missing_photos = Photo.objects.filter(
             Q(owner=user) & Q(files=None) | Q(main_file=None)
@@ -225,13 +186,8 @@ def delete_missing_photos(user, job_id):
         missing_files = File.objects.filter(Q(hash__endswith=user) & Q(missing=True))
         missing_files.delete()
 
-        lrj.finished = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
-    except Exception:
+        lrj.complete()
+    except Exception as e:
         logger.exception("An error occurred")
-        lrj.failed = True
-        lrj.finished = True
-        lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-        lrj.save()
+        lrj.fail(error=e)
     return 1

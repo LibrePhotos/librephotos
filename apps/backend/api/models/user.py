@@ -5,10 +5,15 @@ from django.db import models
 from django_cryptography.fields import encrypt
 
 from api.date_time_extractor import DEFAULT_RULES_JSON
+from api.burst_detection_rules import get_default_burst_detection_rules
 
 
 def get_default_config_datetime_rules():  # This is a callable
     return DEFAULT_RULES_JSON
+
+
+def get_default_config_burst_detection_rules():  # This is a callable
+    return get_default_burst_detection_rules()
 
 
 def get_default_llm_settings():
@@ -23,6 +28,21 @@ def get_default_llm_settings():
         "sentiment": 0,
         "custom_prompt": "",
         "custom_prompt_enabled": False,
+    }
+
+
+def get_default_public_sharing_settings():
+    """Default settings for what metadata to share in public albums.
+    
+    All options default to False (opt-in) for privacy-first approach.
+    Users can change their defaults, and per-album overrides take precedence.
+    """
+    return {
+        "share_location": False,      # GPS coordinates and location names
+        "share_camera_info": False,   # Camera make/model, lens, settings
+        "share_timestamps": False,    # Date/time when photo was taken
+        "share_captions": False,      # AI-generated or user captions
+        "share_faces": False,         # Detected faces (always recommend False)
     }
 
 
@@ -59,11 +79,13 @@ class User(AbstractUser):
     )
     llm_settings = models.JSONField(default=get_default_llm_settings)
     datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
+    burst_detection_rules = models.JSONField(default=get_default_config_burst_detection_rules)
     default_timezone = models.TextField(
         choices=[(x, x) for x in pytz.all_timezones],
         default="UTC",
     )
     public_sharing = models.BooleanField(default=False)
+    public_sharing_defaults = models.JSONField(default=get_default_public_sharing_settings)
 
     class FaceRecogniton(models.TextChoices):
         HOG = "HOG"
@@ -91,7 +113,8 @@ class User(AbstractUser):
         SMALL = "small"
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
-    skip_raw_files = models.BooleanField(default=False)
+    skip_raw_files = models.BooleanField(default=False)  # Deprecated: kept for migration compatibility
+    stack_raw_jpeg = models.BooleanField(default=True)
     slideshow_interval = models.IntegerField(default=5)
 
     # Duplicate detection settings

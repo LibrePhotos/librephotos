@@ -6,6 +6,7 @@ from api.models import Face, Person
 class PersonFaceListSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
     person_label_probability = serializers.SerializerMethodField()
+    photo_image_hash = serializers.SerializerMethodField()
 
     class Meta:
         model = Face
@@ -14,6 +15,7 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
             "image",
             "face_url",
             "photo",
+            "photo_image_hash",
             "timestamp",
             "person_label_probability",
         ]
@@ -26,6 +28,9 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
 
     def get_face_url(self, obj):
         return obj.image.url
+
+    def get_photo_image_hash(self, obj):
+        return obj.photo.image_hash if obj.photo else None
 
 
 class IncompletePersonFaceListSerializer(serializers.ModelSerializer):

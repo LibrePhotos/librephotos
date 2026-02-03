@@ -1,7 +1,7 @@
 import csv
 import os
-from unittest import TestCase
 
+from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.stats import get_location_timeline, get_photo_month_counts

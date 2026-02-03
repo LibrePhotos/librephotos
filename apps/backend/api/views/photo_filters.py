@@ -28,6 +28,7 @@ def build_photo_queryset(user, params: dict):
             - person: int - Filter by person ID (faces)
             - folder: str - Filter by folder path prefix
             - username: str - Filter by owner username (for public photos)
+            - show_all_stack_photos: bool - If True, show all photos in stacks (default: False)
 
     Returns:
         QuerySet[Photo]: Filtered photo queryset
@@ -74,6 +75,17 @@ def build_photo_queryset(user, params: dict):
     # Folder path filter
     if params.get("folder"):
         filters.append(Q(files__path__startswith=params["folder"]))
+
+    # Stack filtering: Show photos that are either:
+    # 1. Not in any stack, OR
+    # 2. The primary photo of their stack
+    # This applies stacking behavior for ALL stack types (manual, burst, etc.)
+    # Non-primary photos are hidden in the timeline but accessible via stack expansion
+    if not params.get("show_all_stack_photos"):
+        filters.append(
+            Q(stacks__isnull=True) |
+            Q(primary_in_stack__isnull=False)
+        )
 
     return Photo.objects.filter(*filters).distinct()
 

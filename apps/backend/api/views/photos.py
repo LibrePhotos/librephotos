@@ -160,13 +160,19 @@ class SetPhotosDeleted(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            # If restoring from trash, reset duplicate groups to pending
+            # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
-                from api.models.duplicate_group import DuplicateGroup
-                group_ids = set(photos_qs.filter(duplicate_group__isnull=False).values_list('duplicate_group_id', flat=True))
-                if group_ids:
-                    DuplicateGroup.objects.filter(id__in=group_ids, status=DuplicateGroup.Status.REVIEWED).update(status=DuplicateGroup.Status.PENDING)
-                    logger.info(f"Reset {len(group_ids)} duplicate groups to pending after restore")
+                from api.models.stack_review import StackReview
+                from api.models.photo_stack import PhotoStack
+                # Get stack IDs from photos that have stacks (ManyToMany)
+                stack_ids = set(
+                    PhotoStack.objects.filter(
+                        photos__in=photos_qs
+                    ).values_list('id', flat=True)
+                )
+                if stack_ids:
+                    StackReview.objects.filter(stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED).update(decision=StackReview.Decision.PENDING)
+                    logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
 
             count = photos_qs.update(in_trashcan=val_deleted)
 
@@ -215,21 +221,22 @@ class SetPhotosDeleted(APIView):
                 image_hash__in=photos_to_update, owner=request.user
             ).update(in_trashcan=val_deleted)
             
-            # If restoring from trash, reset duplicate groups to pending
+            # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
-                from api.models.duplicate_group import DuplicateGroup
-                group_ids = set(
-                    Photo.objects.filter(
-                        image_hash__in=photos_to_update, 
-                        duplicate_group__isnull=False
-                    ).values_list('duplicate_group_id', flat=True)
+                from api.models.stack_review import StackReview
+                from api.models.photo_stack import PhotoStack
+                # Get stack IDs from photos that have stacks (ManyToMany)
+                stack_ids = set(
+                    PhotoStack.objects.filter(
+                        photos__image_hash__in=photos_to_update
+                    ).values_list('id', flat=True)
                 )
-                if group_ids:
-                    DuplicateGroup.objects.filter(
-                        id__in=group_ids, 
-                        status=DuplicateGroup.Status.REVIEWED
-                    ).update(status=DuplicateGroup.Status.PENDING)
-                    logger.info(f"Reset {len(group_ids)} duplicate groups to pending after restore")
+                if stack_ids:
+                    StackReview.objects.filter(
+                        stack_id__in=stack_ids, 
+                        decision=StackReview.Decision.RESOLVED
+                    ).update(decision=StackReview.Decision.PENDING)
+                    logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}
@@ -462,6 +469,43 @@ class PhotoViewSet(viewsets.ModelViewSet):
         "main_file__path",
     ]
 
+    def get_object(self):
+        """
+        Override get_object to support lookup by both UUID (pk) and image_hash.
+        This provides backward compatibility with existing URLs using image_hash.
+        """
+        queryset = self.get_queryset()
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+
+        if lookup_value:
+            # Determine if this is a UUID (36 chars with hyphens) or image_hash (32 hex chars)
+            # Note: Python's uuid.UUID() accepts 32 hex chars without hyphens, but those
+            # are MD5 hashes used for backward compatibility, not actual UUIDs
+            is_uuid_format = len(lookup_value) == 36 and lookup_value.count('-') == 4
+            
+            if is_uuid_format:
+                try:
+                    import uuid
+                    uuid.UUID(lookup_value)
+                    filter_kwargs = {"pk": lookup_value}
+                except (ValueError, AttributeError):
+                    filter_kwargs = {"image_hash": lookup_value}
+            else:
+                # 32 hex chars = MD5 image_hash (backward compatibility)
+                filter_kwargs = {"image_hash": lookup_value}
+
+            obj = queryset.filter(**filter_kwargs).first()
+            if obj is None:
+                from rest_framework.exceptions import NotFound
+                raise NotFound()
+            
+            # May raise a permission denied
+            self.check_object_permissions(self.request, obj)
+            return obj
+
+        return super().get_object()
+
     @action(
         detail=True,
         methods=["get"],
@@ -469,9 +513,32 @@ class PhotoViewSet(viewsets.ModelViewSet):
         serializer_class=PhotoDetailsSummarySerializer,
     )
     def summary(self, request, pk):
-        queryset = self.get_queryset().filter(image_hash=pk)
+        # Support both UUID and image_hash lookups
+        # Note: 32 hex chars could parse as UUID but are actually MD5 hashes
+        # Use Photo.objects instead of get_queryset() to include processing photos
+        is_uuid_format = len(pk) == 36 and pk.count('-') == 4
+        
+        if is_uuid_format:
+            try:
+                import uuid
+                uuid.UUID(pk)
+                queryset = Photo.objects.filter(pk=pk)
+            except (ValueError, AttributeError):
+                queryset = Photo.objects.filter(image_hash=pk)
+        else:
+            queryset = Photo.objects.filter(image_hash=pk)
+        
         if not queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        photo = queryset.first()
+        # Check permissions - owner, shared, or public
+        if not (photo.owner == request.user or 
+                photo.shared_to.filter(id=request.user.id).exists() or 
+                photo.public):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        # Serializer expects a queryset (calls .get() internally)
         serializer = PhotoDetailsSummarySerializer(queryset, many=False)
         return Response(serializer.data)
 
@@ -483,7 +550,14 @@ class PhotoViewSet(viewsets.ModelViewSet):
     )
     def albums(self, request, pk):
         """Return user albums that contain this photo."""
-        photo = Photo.objects.filter(image_hash=pk).first()
+        # Support both UUID and image_hash lookups
+        try:
+            import uuid
+            uuid.UUID(pk)
+            photo = Photo.objects.filter(pk=pk).first()
+        except (ValueError, AttributeError):
+            photo = Photo.objects.filter(image_hash=pk).first()
+            
         if not photo:
             return Response(status=status.HTTP_404_NOT_FOUND)
         albums = AlbumUser.objects.filter(
@@ -504,7 +578,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user.is_anonymous:
-            return Photo.visible.filter(Q(public=True)).order_by("-exif_timestamp")
+            return Photo.visible.filter(Q(public=True)).prefetch_related("stacks").order_by("-exif_timestamp")
         else:
             # Include photos that are:
             # 1. Owned by the user
@@ -515,7 +589,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
                 Q(owner=self.request.user)
                 | Q(shared_to=self.request.user)
                 | Q(public=True)
-            ).order_by("-exif_timestamp")
+            ).prefetch_related("stacks").order_by("-exif_timestamp")
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
@@ -530,6 +604,38 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Photo.visible.filter(Q(owner=self.request.user))
+
+    def get_object(self):
+        """
+        Override get_object to support lookup by both UUID (pk) and image_hash.
+        """
+        queryset = self.get_queryset()
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+
+        if lookup_value:
+            # Check if proper UUID format (36 chars with hyphens) vs MD5 hash (32 hex chars)
+            is_uuid_format = len(lookup_value) == 36 and lookup_value.count('-') == 4
+            
+            if is_uuid_format:
+                try:
+                    import uuid
+                    uuid.UUID(lookup_value)
+                    filter_kwargs = {"pk": lookup_value}
+                except (ValueError, AttributeError):
+                    filter_kwargs = {"image_hash": lookup_value}
+            else:
+                filter_kwargs = {"image_hash": lookup_value}
+
+            obj = queryset.filter(**filter_kwargs).first()
+            if obj is None:
+                from rest_framework.exceptions import NotFound
+                raise NotFound()
+            
+            self.check_object_permissions(self.request, obj)
+            return obj
+
+        return super().get_object()
 
     def retrieve(
         self, *args, **kwargs
@@ -581,17 +687,20 @@ class SetPhotosShared(APIView):
         ])
         """
 
+        # Look up photo UUIDs from image_hashes (image_hash is no longer the primary key)
+        photos = Photo.objects.filter(image_hash__in=image_hashes).only("id", "image_hash")
+        photo_ids = [photo.id for photo in photos]
+
         if shared:
             already_existing = through_model.objects.filter(
-                user_id=target_user_id, photo_id__in=image_hashes
+                user_id=target_user_id, photo_id__in=photo_ids
             ).only("photo_id")
-            already_existing_image_hashes = [e.photo_id for e in already_existing]
-            # print(already_existing)
+            already_existing_photo_ids = set(e.photo_id for e in already_existing)
             res = through_model.objects.bulk_create(
                 [
-                    through_model(user_id=target_user_id, photo_id=image_hash)
-                    for image_hash in image_hashes
-                    if image_hash not in already_existing_image_hashes
+                    through_model(user_id=target_user_id, photo_id=photo_id)
+                    for photo_id in photo_ids
+                    if photo_id not in already_existing_photo_ids
                 ]
             )
             logger.info(
@@ -600,7 +709,7 @@ class SetPhotosShared(APIView):
             res_count = len(res)
         else:
             res = through_model.objects.filter(
-                user_id=target_user_id, photo_id__in=image_hashes
+                user_id=target_user_id, photo_id__in=photo_ids
             ).delete()
             logger.info(
                 f"Unshared {request.user.id}'s {len(res)} images to user {target_user_id}"
@@ -706,11 +815,11 @@ class GeneratePhotoCaption(APIView):
         data = dict(request.data)
         image_hash = data["image_hash"]
 
-        photo = Photo.objects.get(image_hash=image_hash)
-        if photo.owner != request.user:
+        photo = Photo.objects.filter(image_hash=image_hash, owner=request.user).first()
+        if photo is None:
             return Response(
-                {"status": False, "message": "you are not the owner of this photo"},
-                status=400,
+                {"status": False, "message": "photo not found"},
+                status=404,
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
@@ -736,11 +845,11 @@ class SavePhotoCaption(APIView):
         image_hash = data["image_hash"]
         caption = data["caption"]
 
-        photo = Photo.objects.get(image_hash=image_hash)
-        if photo.owner != request.user:
+        photo = Photo.objects.filter(image_hash=image_hash, owner=request.user).first()
+        if photo is None:
             return Response(
-                {"status": False, "message": "you are not the owner of this photo"},
-                status=400,
+                {"status": False, "message": "photo not found"},
+                status=404,
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
@@ -781,11 +890,17 @@ class DeletePhotos(APIView):
             return Response({"status": True, "count": deleted_count})
 
         # Existing logic for individual hashes
-        photos = Photo.objects.in_bulk(data["image_hashes"])
+        # Use filter since image_hash may not be unique after UUID migration
+        image_hashes = data["image_hashes"]
+        photos = Photo.objects.filter(image_hash__in=image_hashes)
+        photos_by_hash = {photo.image_hash: photo for photo in photos}
 
         deleted = []
         not_deleted = []
-        for photo in photos.values():
+        for image_hash in image_hashes:
+            photo = photos_by_hash.get(image_hash)
+            if photo is None:
+                continue  # Photo not found
             if photo.owner == request.user and photo.in_trashcan:
                 deleted.append(photo.image_hash)
                 photo.manual_delete()
@@ -802,25 +917,147 @@ class DeletePhotos(APIView):
         )
 
 
-class DeleteDuplicatePhotos(APIView):
+class FileVariantDownloadView(APIView):
+    """
+    Download a specific file variant for a photo.
+    
+    Supports downloading RAW, JPEG, video (Live Photo), or other variants
+    associated with a Photo entity (PhotoPrism-like file variant model).
+    """
+
     @extend_schema(
         parameters=[
-            OpenApiParameter("image_hash", OpenApiTypes.STR),
-            OpenApiParameter("path", OpenApiTypes.STR),
+            OpenApiParameter(
+                "file_hash",
+                OpenApiTypes.STR,
+                description="Hash of the specific file variant to download",
+            ),
         ],
     )
-    def delete(self, request):
-        data = dict(request.data)
-        logger.info(data)
-        photo = Photo.objects.filter(image_hash=data["image_hash"]).first()
-        duplicate_path = data["path"]
+    def get(self, request, image_hash, file_hash):
+        """Download a specific file variant by hash."""
+        import magic
+        import os
+        from django.http import FileResponse, HttpResponse
+        
+        # Find the photo
+        try:
+            photo = Photo.objects.get(
+                image_hash=image_hash,
+                owner=request.user,
+            )
+        except Photo.DoesNotExist:
+            return Response(
+                {"error": "Photo not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Photo.MultipleObjectsReturned:
+            # Multiple photos with same hash - get the one owned by user
+            photo = Photo.objects.filter(
+                image_hash=image_hash,
+                owner=request.user,
+            ).first()
+            if not photo:
+                return Response(
+                    {"error": "Photo not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Find the requested file variant
+        file_variant = photo.files.filter(hash=file_hash).first()
+        if not file_variant:
+            return Response(
+                {"error": "File variant not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check file exists
+        if not os.path.exists(file_variant.path):
+            return Response(
+                {"error": "File not found on disk"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Serve the file
+        try:
+            response = FileResponse(
+                open(file_variant.path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_variant.path),
+            )
+            
+            # Set content type
+            try:
+                mime = magic.Magic(mime=True)
+                response["Content-Type"] = mime.from_file(file_variant.path)
+            except Exception:
+                response["Content-Type"] = "application/octet-stream"
+            
+            return response
+            
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error(f"Error serving file {file_variant.path}: {e}")
+            return Response(
+                {"error": "Could not read file"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        if not photo:
-            return Response(status=status.HTTP_404_NOT_FOUND)
 
-        result = photo.delete_duplicate(duplicate_path)
-        # To-Do: Give a better response, when it's a bad request
-        if result:
-            return Response(status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+class SetMainFileView(APIView):
+    """
+    Set the main (primary) file for a photo.
+    
+    Changes which file variant is used as the main display file for the photo.
+    Useful when a photo has multiple variants (RAW, JPEG, etc.).
+    """
+
+    def post(self, request, image_hash):
+        """Set the main file for a photo."""
+        file_hash = request.data.get("file_hash")
+        
+        if not file_hash:
+            return Response(
+                {"error": "file_hash is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find the photo
+        try:
+            photo = Photo.objects.get(
+                image_hash=image_hash,
+                owner=request.user,
+            )
+        except Photo.DoesNotExist:
+            return Response(
+                {"error": "Photo not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Photo.MultipleObjectsReturned:
+            photo = Photo.objects.filter(
+                image_hash=image_hash,
+                owner=request.user,
+            ).first()
+            if not photo:
+                return Response(
+                    {"error": "Photo not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Find the requested file variant
+        file_variant = photo.files.filter(hash=file_hash).first()
+        if not file_variant:
+            return Response(
+                {"error": "File variant not found in this photo"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Update main file
+        photo.main_file = file_variant
+        photo.save(update_fields=["main_file", "last_modified"])
+        
+        logger.info(f"Set main file for photo {image_hash} to {file_hash}")
+        
+        return Response({
+            "status": "updated",
+            "main_file_hash": file_hash,
+        })

@@ -37,6 +37,9 @@ class UploadPhotoExists(viewsets.ViewSet):
             return Response({"exists": True})
         except Photo.DoesNotExist:
             return Response({"exists": False})
+        except Photo.MultipleObjectsReturned:
+            # Multiple photos with same hash - photo exists
+            return Response({"exists": True})
 
 
 @method_decorator(csrf_exempt, name="dispatch")

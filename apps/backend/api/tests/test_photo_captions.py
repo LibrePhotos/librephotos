@@ -64,6 +64,7 @@ class PhotoCaptionsTest(TestCase):
         )
         data = response.json()
 
-        self.assertEqual(400, response.status_code)
+        # Returns 404 to avoid leaking existence of other users' photos
+        self.assertEqual(404, response.status_code)
         self.assertFalse(data["status"])
-        self.assertEqual("you are not the owner of this photo", data["message"])
+        self.assertEqual("photo not found", data["message"])

@@ -8,11 +8,16 @@ from api import util
 
 from api.image_similarity import search_similar_image
 from api.models import AlbumDate, File, Photo
+from api.models.photo_metadata import PhotoMetadata
+from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.simple import SimpleUserSerializer
 
 
 class PhotoSummarySerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
+    # UUID primary key
+    id = serializers.UUIDField(read_only=True)
+    # Content hash for deduplication/caching (legacy 'id' field for backwards compatibility)
+    image_hash = serializers.CharField(read_only=True)
     dominantColor = serializers.SerializerMethodField()
     aspectRatio = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
@@ -22,11 +27,16 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     video_length = serializers.SerializerMethodField()
     type = serializers.SerializerMethodField()
     owner = SimpleUserSerializer()
+    # Stack information (can be multiple stacks)
+    stacks = serializers.SerializerMethodField()
+    # Flag indicating if this photo has a RAW file variant (PhotoPrism-like model)
+    has_raw_variant = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
         fields = (
             "id",
+            "image_hash",
             "dominantColor",
             "url",
             "location",
@@ -41,17 +51,15 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "exif_gps_lon",
             "removed",
             "in_trashcan",
+            "stacks",
+            "has_raw_variant",
         )
-
-    # TODO: Rename this field to image_hash
-    def get_id(self, obj) -> str:
-        return obj.image_hash
 
     # TODO: Rename this field to aspect_ratio
     def get_aspectRatio(self, obj) -> float:
         return obj.thumbnail.aspect_ratio
 
-    # TODO: Remove this field in the future
+    # TODO: Remove this field in the future (kept for backwards compatibility)
     def get_url(self, obj) -> str:
         return obj.image_hash
 
@@ -97,6 +105,41 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
         if obj.main_file and obj.main_file.embedded_media.count() > 0:
             return "motion_photo"
         return "image"
+
+    def get_stacks(self, obj) -> list | None:
+        """Return stack info if photo is part of any stacks."""
+        from api.models.photo_stack import PhotoStack
+        # Use model-defined valid stack types, plus deprecated types for backwards compatibility
+        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
+            PhotoStack.StackType.RAW_JPEG_PAIR,
+            PhotoStack.StackType.LIVE_PHOTO,
+        ]
+        stacks = obj.stacks.filter(stack_type__in=valid_stack_types)
+        if not stacks.exists():
+            return None
+        
+        result = []
+        for stack in stacks:
+            # Check if this photo is the primary
+            is_primary = stack.primary_photo_id == obj.pk if stack.primary_photo_id else False
+            
+            result.append({
+                "id": str(stack.id),
+                "type": stack.stack_type,
+                "photo_count": stack.photos.count(),
+                "is_primary": is_primary,
+            })
+        
+        return result
+
+    def get_has_raw_variant(self, obj) -> bool:
+        """Check if this photo has a RAW file variant.
+        
+        This implements the PhotoPrism-like file variant model.
+        Returns True if any of the photo's files is a RAW file type.
+        """
+        # Check files for RAW type (File.RAW_FILE = 4)
+        return obj.files.filter(type=4).exists()
 
 
 class GroupedPhotosSerializer(serializers.ModelSerializer):
@@ -255,10 +298,31 @@ class PhotoSerializer(serializers.ModelSerializer):
     image_path = serializers.SerializerMethodField()
     owner = SimpleUserSerializer(many=False, read_only=True)
     embedded_media = serializers.SerializerMethodField()
+    # File variants (RAW, JPEG, video for Live Photos, etc.)
+    # PhotoPrism-like model where one Photo can have multiple file variants
+    file_variants = serializers.SerializerMethodField()
+    # Stack information (bursts, brackets, manual stacks) - can be multiple
+    stacks = serializers.SerializerMethodField()
+    # Structured metadata with edit history support
+    metadata = serializers.SerializerMethodField()
+    
+    # Backwards-compatible fields from PhotoMetadata (for API compatibility)
+    height = serializers.SerializerMethodField()
+    width = serializers.SerializerMethodField()
+    focal_length = serializers.SerializerMethodField()
+    fstop = serializers.SerializerMethodField()
+    iso = serializers.SerializerMethodField()
+    shutter_speed = serializers.SerializerMethodField()
+    lens = serializers.SerializerMethodField()
+    camera = serializers.SerializerMethodField()
+    focalLength35Equivalent = serializers.SerializerMethodField()
+    digitalZoomRatio = serializers.SerializerMethodField()
+    subjectDistance = serializers.SerializerMethodField()
 
     class Meta:
         model = Photo
         fields = (
+            "id",
             "exif_gps_lat",
             "exif_gps_lon",
             "exif_timestamp",
@@ -295,7 +359,63 @@ class PhotoSerializer(serializers.ModelSerializer):
             "digitalZoomRatio",
             "subjectDistance",
             "embedded_media",
+            "file_variants",
+            "stacks",
+            "metadata",
         )
+    
+    def _get_metadata(self, obj) -> PhotoMetadata | None:
+        """Helper to get PhotoMetadata, with caching."""
+        if not hasattr(obj, '_cached_metadata'):
+            try:
+                obj._cached_metadata = obj.metadata
+            except PhotoMetadata.DoesNotExist:
+                obj._cached_metadata = None
+        return obj._cached_metadata
+    
+    def get_height(self, obj) -> int:
+        metadata = self._get_metadata(obj)
+        return metadata.height if metadata else 0
+    
+    def get_width(self, obj) -> int:
+        metadata = self._get_metadata(obj)
+        return metadata.width if metadata else 0
+    
+    def get_focal_length(self, obj) -> float | None:
+        metadata = self._get_metadata(obj)
+        return metadata.focal_length if metadata else None
+    
+    def get_fstop(self, obj) -> float | None:
+        metadata = self._get_metadata(obj)
+        return metadata.aperture if metadata else None
+    
+    def get_iso(self, obj) -> int | None:
+        metadata = self._get_metadata(obj)
+        return metadata.iso if metadata else None
+    
+    def get_shutter_speed(self, obj) -> str | None:
+        metadata = self._get_metadata(obj)
+        return metadata.shutter_speed if metadata else None
+    
+    def get_lens(self, obj) -> str | None:
+        metadata = self._get_metadata(obj)
+        return metadata.lens_display if metadata else None
+    
+    def get_camera(self, obj) -> str | None:
+        metadata = self._get_metadata(obj)
+        return metadata.camera_display if metadata else None
+    
+    def get_focalLength35Equivalent(self, obj) -> int | None:
+        metadata = self._get_metadata(obj)
+        return metadata.focal_length_35mm if metadata else None
+    
+    def get_digitalZoomRatio(self, obj) -> float | None:
+        # Not stored in PhotoMetadata (rarely used field)
+        return None
+    
+    def get_subjectDistance(self, obj) -> float | None:
+        # Not stored in PhotoMetadata (rarely used field)
+        return None
 
     def get_similar_photos(self, obj) -> list:
         res = search_similar_image(obj.owner, obj, threshold=90)
@@ -436,6 +556,116 @@ class PhotoSerializer(serializers.ModelSerializer):
             )
         )
 
+    def get_metadata(self, obj: Photo) -> dict | None:
+        """
+        Return structured metadata from PhotoMetadata if available.
+        
+        This provides:
+        - Normalized field names (aperture, iso, shutter_speed, etc.)
+        - Computed display strings (camera_display, lens_display)
+        - Resolution and megapixel info
+        - Edit tracking (version, source, has_edits)
+        
+        Falls back to None if PhotoMetadata doesn't exist (backwards compatible).
+        """
+        try:
+            metadata = obj.metadata
+            return PhotoMetadataSummarySerializer(metadata).data
+        except PhotoMetadata.DoesNotExist:
+            return None
+
+    def get_file_variants(self, obj: Photo) -> list | None:
+        """Return file variants for this photo (RAW, JPEG, video for Live Photos, etc.).
+        
+        This implements the PhotoPrism-like model where one Photo can have multiple
+        file variants representing the same capture moment.
+        """
+        from api.models.file import File
+        
+        files = obj.files.all()
+        if files.count() <= 1:
+            # Only main file, no additional variants
+            return None
+        
+        variants = []
+        for f in files:
+            # Determine file type label
+            file_type_map = {
+                File.IMAGE: "image",
+                File.VIDEO: "video",
+                File.RAW_FILE: "raw",
+                File.METADATA_FILE: "metadata",
+                File.UNKNOWN: "unknown",
+            }
+            file_type = file_type_map.get(f.type, "unknown")
+            
+            # Check if this is the main file
+            is_main = obj.main_file_id == f.hash if obj.main_file_id else False
+            
+            variants.append({
+                "hash": f.hash,
+                "path": f.path,
+                "type": file_type,
+                "type_id": f.type,
+                "is_main": is_main,
+                "filename": f.path.split("/")[-1] if f.path else None,
+            })
+        
+        return variants
+
+    def get_stacks(self, obj: Photo) -> list | None:
+        """Return detailed stack info for photo detail view (supports multiple stacks)."""
+        from api.models.photo_stack import PhotoStack
+        # Use model-defined valid stack types, plus deprecated types for backwards compatibility
+        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
+            PhotoStack.StackType.RAW_JPEG_PAIR,
+            PhotoStack.StackType.LIVE_PHOTO,
+        ]
+        stacks = obj.stacks.filter(stack_type__in=valid_stack_types)
+        if not stacks.exists():
+            return None
+        
+        result = []
+        for stack in stacks:
+            is_primary = stack.primary_photo_id == obj.pk if stack.primary_photo_id else False
+            
+            # Get all photos in the stack for the detail view
+            stack_photos = []
+            for photo in stack.photos.select_related("thumbnail").all():
+                # Get width/height from PhotoMetadata
+                try:
+                    photo_metadata = photo.metadata
+                    photo_width = photo_metadata.width or 0
+                    photo_height = photo_metadata.height or 0
+                except PhotoMetadata.DoesNotExist:
+                    photo_width = 0
+                    photo_height = 0
+                
+                stack_photos.append({
+                    "id": str(photo.id),
+                    "image_hash": photo.image_hash,
+                    "is_primary": photo.pk == stack.primary_photo_id,
+                    "thumbnail_url": (
+                        f"/media/square_thumbnails_small/{photo.image_hash}"
+                        if hasattr(photo, "thumbnail") and photo.thumbnail and photo.thumbnail.square_thumbnail_small 
+                        else None
+                    ),
+                    "size": photo.size,
+                    "width": photo_width,
+                    "height": photo_height,
+                })
+            
+            result.append({
+                "id": str(stack.id),
+                "type": stack.stack_type,
+                "type_display": stack.get_stack_type_display(),
+                "photo_count": len(stack_photos),
+                "is_primary": is_primary,
+                "photos": stack_photos,
+            })
+        
+        return result
+
 
 class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField()
@@ -447,3 +677,214 @@ class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
 
     def get_photo(self, obj) -> PhotoSummarySerializer:
         return PhotoSummarySerializer(obj.photo).data
+
+
+class PublicPhotoDetailSerializer(serializers.ModelSerializer):
+    """Serializer for photo details in public albums.
+    
+    Conditionally includes metadata based on sharing settings passed in context.
+    Context must include 'sharing_settings' dict with keys:
+    - share_location: bool
+    - share_camera_info: bool
+    - share_timestamps: bool
+    - share_captions: bool
+    - share_faces: bool
+    """
+    
+    # Always included
+    square_thumbnail_url = serializers.SerializerMethodField()
+    big_thumbnail_url = serializers.SerializerMethodField()
+    small_square_thumbnail_url = serializers.SerializerMethodField()
+    video = serializers.BooleanField(read_only=True)
+    image_hash = serializers.CharField(read_only=True)
+    
+    # Conditionally included based on sharing settings
+    exif_timestamp = serializers.SerializerMethodField()
+    exif_gps_lat = serializers.SerializerMethodField()
+    exif_gps_lon = serializers.SerializerMethodField()
+    geolocation_json = serializers.SerializerMethodField()
+    search_location = serializers.SerializerMethodField()
+    
+    # Camera info
+    camera = serializers.SerializerMethodField()
+    lens = serializers.SerializerMethodField()
+    focal_length = serializers.SerializerMethodField()
+    fstop = serializers.SerializerMethodField()
+    iso = serializers.SerializerMethodField()
+    shutter_speed = serializers.SerializerMethodField()
+    width = serializers.SerializerMethodField()
+    height = serializers.SerializerMethodField()
+    
+    # Captions
+    search_captions = serializers.SerializerMethodField()
+    captions_json = serializers.SerializerMethodField()
+    
+    # People/faces
+    people = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Photo
+        fields = (
+            "image_hash",
+            "video",
+            "square_thumbnail_url",
+            "big_thumbnail_url",
+            "small_square_thumbnail_url",
+            "exif_timestamp",
+            "exif_gps_lat",
+            "exif_gps_lon",
+            "geolocation_json",
+            "search_location",
+            "camera",
+            "lens",
+            "focal_length",
+            "fstop",
+            "iso",
+            "shutter_speed",
+            "width",
+            "height",
+            "search_captions",
+            "captions_json",
+            "people",
+        )
+
+    def _get_sharing_settings(self) -> dict:
+        """Get sharing settings from context."""
+        return self.context.get('sharing_settings', {})
+    
+    def _get_metadata(self, obj) -> PhotoMetadata | None:
+        """Helper to get PhotoMetadata."""
+        if not hasattr(obj, '_cached_metadata'):
+            try:
+                obj._cached_metadata = obj.metadata
+            except PhotoMetadata.DoesNotExist:
+                obj._cached_metadata = None
+        return obj._cached_metadata
+
+    # Always available
+    def get_square_thumbnail_url(self, obj) -> str:
+        return obj.thumbnail.square_thumbnail.url if obj.thumbnail and obj.thumbnail.square_thumbnail else ""
+
+    def get_small_square_thumbnail_url(self, obj) -> str:
+        return obj.thumbnail.square_thumbnail_small.url if obj.thumbnail and obj.thumbnail.square_thumbnail_small else ""
+
+    def get_big_thumbnail_url(self, obj) -> str:
+        return obj.thumbnail.thumbnail_big.url if obj.thumbnail and obj.thumbnail.thumbnail_big else ""
+
+    # Timestamp - conditional
+    def get_exif_timestamp(self, obj):
+        if self._get_sharing_settings().get('share_timestamps', False):
+            return obj.exif_timestamp
+        return None
+
+    # Location - conditional
+    def get_exif_gps_lat(self, obj):
+        if self._get_sharing_settings().get('share_location', False):
+            return obj.exif_gps_lat
+        return None
+
+    def get_exif_gps_lon(self, obj):
+        if self._get_sharing_settings().get('share_location', False):
+            return obj.exif_gps_lon
+        return None
+
+    def get_geolocation_json(self, obj):
+        if self._get_sharing_settings().get('share_location', False):
+            return obj.geolocation_json
+        return None
+
+    def get_search_location(self, obj) -> str:
+        if self._get_sharing_settings().get('share_location', False):
+            if hasattr(obj, "search_instance") and obj.search_instance:
+                return obj.search_instance.search_location or ""
+        return ""
+
+    # Camera info - conditional
+    def get_camera(self, obj) -> str | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.camera_display if metadata else None
+        return None
+
+    def get_lens(self, obj) -> str | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.lens_display if metadata else None
+        return None
+
+    def get_focal_length(self, obj) -> float | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.focal_length if metadata else None
+        return None
+
+    def get_fstop(self, obj) -> float | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.aperture if metadata else None
+        return None
+
+    def get_iso(self, obj) -> int | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.iso if metadata else None
+        return None
+
+    def get_shutter_speed(self, obj) -> str | None:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.shutter_speed if metadata else None
+        return None
+
+    def get_width(self, obj) -> int:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.width if metadata else 0
+        return 0
+
+    def get_height(self, obj) -> int:
+        if self._get_sharing_settings().get('share_camera_info', False):
+            metadata = self._get_metadata(obj)
+            return metadata.height if metadata else 0
+        return 0
+
+    # Captions - conditional
+    def get_search_captions(self, obj) -> str:
+        if self._get_sharing_settings().get('share_captions', False):
+            if hasattr(obj, "search_instance") and obj.search_instance:
+                return obj.search_instance.search_captions or ""
+        return ""
+
+    def get_captions_json(self, obj) -> dict:
+        if self._get_sharing_settings().get('share_captions', False):
+            if (
+                hasattr(obj, "caption_instance")
+                and obj.caption_instance
+                and obj.caption_instance.captions_json
+                and len(obj.caption_instance.captions_json) > 0
+            ):
+                return obj.caption_instance.captions_json
+        return {"im2txt": "", "places365": {"attributes": [], "categories": [], "environment": []}}
+
+    # People/faces - conditional
+    def get_people(self, obj) -> list:
+        if not self._get_sharing_settings().get('share_faces', False):
+            return []
+        
+        return [
+            {
+                "name": (
+                    f.person.name
+                    if f.person
+                    else (
+                        f.cluster_person.name
+                        if f.cluster_person
+                        else "Unknown"
+                    )
+                ),
+                "face_url": f.image.url if f.image else None,
+                "face_id": f.id,
+            }
+            for f in obj.faces.all()
+            if f.person or f.cluster_person
+        ]

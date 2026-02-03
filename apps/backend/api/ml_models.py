@@ -1,11 +1,8 @@
 import math
 import os
 import tarfile
-import uuid
-from datetime import datetime
 from pathlib import Path
 
-import pytz
 import requests
 from constance import config as site_config
 from django.conf import settings
@@ -199,28 +196,21 @@ def _download_file(url, target_path, model_name):
 
 
 def download_models(user):
-    job_id = uuid.uuid4()
-    lrj = LongRunningJob.objects.create(
-        started_by=user,
-        job_id=job_id,
-        queued_at=datetime.now().replace(tzinfo=pytz.utc),
+    lrj = LongRunningJob.create_job(
+        user=user,
         job_type=LongRunningJob.JOB_DOWNLOAD_MODELS,
+        start_now=True,
     )
-    lrj.started_at = datetime.now().replace(tzinfo=pytz.utc)
-    lrj.progress_target = len(ML_MODELS)
-    lrj.save()
+    lrj.update_progress(current=0, target=len(ML_MODELS))
 
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     model_folder.mkdir(parents=True, exist_ok=True)
 
-    for model in ML_MODELS:
+    for idx, model in enumerate(ML_MODELS):
         download_model(model)
-        lrj.progress_current += 1
-        lrj.save()
+        lrj.update_progress(current=idx + 1)
 
-    lrj.finished_at = datetime.now().replace(tzinfo=pytz.utc)
-    lrj.finished = True
-    lrj.save()
+    lrj.complete()
 
 
 def do_all_models_exist():

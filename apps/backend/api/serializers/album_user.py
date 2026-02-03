@@ -17,6 +17,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
     public = serializers.SerializerMethodField()
     public_slug = serializers.SerializerMethodField()
     public_expires_at = serializers.SerializerMethodField()
+    public_sharing_options = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumUser
@@ -31,6 +32,7 @@ class AlbumUserSerializer(serializers.ModelSerializer):
             "public",
             "public_slug",
             "public_expires_at",
+            "public_sharing_options",
         )
 
     # To-Do: Legacy definition, should be a number instead
@@ -70,6 +72,19 @@ class AlbumUserSerializer(serializers.ModelSerializer):
     def get_public_expires_at(self, obj):
         return getattr(getattr(obj, "share", None), "expires_at", None)
 
+    def get_public_sharing_options(self, obj) -> dict | None:
+        """Return the per-album sharing option overrides (None values = use default)."""
+        share = getattr(obj, "share", None)
+        if not share:
+            return None
+        return {
+            "share_location": share.share_location,
+            "share_camera_info": share.share_camera_info,
+            "share_timestamps": share.share_timestamps,
+            "share_captions": share.share_captions,
+            "share_faces": share.share_faces,
+        }
+
 
 class AlbumUserEditSerializer(serializers.ModelSerializer):
     photos = serializers.PrimaryKeyRelatedField(
@@ -93,12 +108,9 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             "cover_photo",
         )
 
-    def validate_photos(self, value):
-        return [v.image_hash for v in value]
-
     def create(self, validated_data):
         title = validated_data["title"]
-        image_hashes = validated_data["photos"]
+        photos = validated_data["photos"]
 
         user = None
         request = self.context.get("request")
@@ -110,9 +122,8 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         if not created:
             return self.update(instance, validated_data)
 
-        photos = Photo.objects.in_bulk(image_hashes)
-        for pk, obj in photos.items():
-            instance.photos.add(obj)
+        for photo in photos:
+            instance.photos.add(photo)
         instance.save()
         logger.info(f"Created user album {instance.id} with {len(photos)} photos")
         return instance
@@ -140,14 +151,13 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             logger.info(f"Changed cover photo to {cover_photo}")
 
         if "photos" in validated_data.keys():
-            image_hashes = validated_data["photos"]
-            photos = Photo.objects.in_bulk(image_hashes)
+            photos = validated_data["photos"]
             photos_already_in_album = instance.photos.all()
             cnt = 0
-            for pk, obj in photos.items():
-                if obj not in photos_already_in_album:
+            for photo in photos:
+                if photo not in photos_already_in_album:
                     cnt += 1
-                    instance.photos.add(obj)
+                    instance.photos.add(photo)
 
             logger.info(f"Added {cnt} photos to user album {instance.id}")
 
@@ -163,6 +173,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
     public = serializers.SerializerMethodField()
     public_slug = serializers.SerializerMethodField()
     public_expires_at = serializers.SerializerMethodField()
+    public_sharing_options = serializers.SerializerMethodField()
 
     class Meta:
         model = AlbumUser
@@ -178,6 +189,7 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
             "public",
             "public_slug",
             "public_expires_at",
+            "public_sharing_options",
         )
 
     def get_cover_photo(self, obj) -> PhotoSuperSimpleSerializer:
@@ -199,6 +211,19 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
 
     def get_public_expires_at(self, obj):
         return getattr(getattr(obj, "share", None), "expires_at", None)
+
+    def get_public_sharing_options(self, obj) -> dict | None:
+        """Return the per-album sharing option overrides (None values = use default)."""
+        share = getattr(obj, "share", None)
+        if not share:
+            return None
+        return {
+            "share_location": share.share_location,
+            "share_camera_info": share.share_camera_info,
+            "share_timestamps": share.share_timestamps,
+            "share_captions": share.share_captions,
+            "share_faces": share.share_faces,
+        }
 
 
 class AlbumUserPublicSerializer(serializers.ModelSerializer):

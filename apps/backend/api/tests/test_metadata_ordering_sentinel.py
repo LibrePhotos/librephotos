@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 
-from api.directory_watcher import scan_photos
 from api.models import Photo
 from api.tests.utils import create_test_user
 
@@ -146,7 +145,7 @@ class MetadataOrderingSentinelTest(TestCase):
                     patch(
                         "api.models.thumbnail.Thumbnail._get_dominant_color"
                     ) as _dom_color, \
-                    patch("api.models.photo.Photo._extract_exif_data") as _exif, \
+                    patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data") as _exif, \
                     patch(
                         "api.models.photo.Photo._extract_date_time_from_exif"
                     ) as _exif_dt:

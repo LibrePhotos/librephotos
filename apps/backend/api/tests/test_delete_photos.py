@@ -48,7 +48,7 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(1, len(data["updated"]))
         self.assertEqual(2, len(data["not_updated"]))
 
-    def test_tag_photos_of_other_user_for_removal(self, logger):
+    def test_tag_photos_of_other_user_for_removal(self):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
         image_hashes = [p.image_hash for p in photos]
 
@@ -62,10 +62,8 @@ class DeletePhotosTest(TestCase):
         self.assertTrue(data["status"])
         self.assertEqual(0, len(data["results"]))
         self.assertEqual(0, len(data["updated"]))
+        # Photos not owned by user are treated as "missing" for security (no info leak)
         self.assertEqual(0, len(data["not_updated"]))
-        logger.assert_called_with(
-            "Could not set photo nonexistent_photo to hidden. It does not exist or is not owned by user."
-        )
 
     @patch("api.views.photos.logger.warning", autospec=True)
     def test_tag_for_removal_nonexistent_photo(self, logger):
@@ -81,7 +79,7 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(0, len(data["updated"]))
         self.assertEqual(0, len(data["not_updated"]))
         logger.assert_called_with(
-            "Could not set photo nonexistent_photo to hidden. It does not exist or is not owned by user."
+            "Could not set photo nonexistent_photo to deleted. It does not exist or is not owned by user."
         )
 
     def test_delete_tagged_photos_for_removal(self):

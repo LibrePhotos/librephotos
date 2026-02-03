@@ -42,11 +42,13 @@ from api.views import (
     faces,
     geocode,
     jobs,
+    photo_metadata,
     photos,
     public_albums,
     search,
     services,
     sharing,
+    stacks,
     timezone,
     upload,
     user,
@@ -219,9 +221,6 @@ urlpatterns = [
     re_path(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
     re_path(r"^api/deletefaces", faces.DeleteFaces.as_view()),
     re_path(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
-    re_path(
-        r"^api/photosedit/duplicate/delete", photos.DeleteDuplicatePhotos.as_view()
-    ),
     re_path(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
     re_path(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),
     re_path(r"^api/photosedit/hide", photos.SetPhotosHidden.as_view()),
@@ -240,34 +239,94 @@ urlpatterns = [
     re_path(r"^api/deletemissingphotos", views.DeleteMissingPhotosView.as_view()),
     re_path(r"^api/autoalbumgen", album_auto.AutoAlbumGenerateView.as_view()),
     re_path(r"^api/autoalbumtitlegen", album_auto.RegenerateAutoAlbumTitles.as_view()),
+    # Photo Stacks - Organizational grouping (bursts, brackets, manual)
+    # NOTE: RAW+JPEG pairs and Live Photos now use Photo.files (file variants model)
+    re_path(r"^api/stacks/detect/?$", stacks.DetectStacksView.as_view()),
+    re_path(r"^api/stacks/stats/?$", stacks.PhotoStackStatsView.as_view()),
+    re_path(r"^api/stacks/manual/?$", stacks.CreateManualStackView.as_view()),
+    re_path(r"^api/stacks/merge/?$", stacks.MergeStacksView.as_view()),
+    re_path(
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/add/?$",
+        stacks.AddToStackView.as_view(),
+    ),
+    re_path(
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/remove/?$",
+        stacks.RemoveFromStackView.as_view(),
+    ),
+    re_path(
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/delete/?$",
+        stacks.PhotoStackDeleteView.as_view(),
+    ),
+    re_path(
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/primary/?$",
+        stacks.PhotoStackSetPrimaryView.as_view(),
+    ),
+    re_path(
+        r"^api/stacks/(?P<stack_id>[0-9a-f-]+)/?$",
+        stacks.PhotoStackDetailView.as_view(),
+    ),
+    re_path(r"^api/stacks/?$", stacks.PhotoStackListView.as_view()),
+    # Duplicates - Storage cleanup (exact copies, visual duplicates)
     re_path(r"^api/duplicates/detect", duplicates.DetectDuplicatesView.as_view()),
     re_path(r"^api/duplicates/stats", duplicates.DuplicateStatsView.as_view()),
     re_path(
-        r"^api/duplicates/(?P<group_id>\d+)/resolve",
-        duplicates.ResolveDuplicateGroupView.as_view(),
+        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/resolve",
+        duplicates.DuplicateResolveView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<group_id>\d+)/dismiss",
-        duplicates.DismissDuplicateGroupView.as_view(),
+        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/dismiss",
+        duplicates.DuplicateDismissView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<group_id>\d+)/revert",
-        duplicates.RevertDuplicateGroupView.as_view(),
+        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/revert",
+        duplicates.DuplicateRevertView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<group_id>\d+)/delete",
-        duplicates.DeleteDuplicateGroupView.as_view(),
+        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)/delete",
+        duplicates.DuplicateDeleteView.as_view(),
     ),
     re_path(
-        r"^api/duplicates/(?P<group_id>\d+)",
-        duplicates.DuplicateGroupDetailView.as_view(),
+        r"^api/duplicates/(?P<duplicate_id>[0-9a-f-]+)",
+        duplicates.DuplicateDetailView.as_view(),
     ),
-    re_path(r"^api/duplicates", duplicates.DuplicateGroupListView.as_view()),
+    re_path(r"^api/duplicates", duplicates.DuplicateListView.as_view()),
+    # Photo Metadata - Structured metadata with edit history
+    re_path(
+        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/history",
+        photo_metadata.PhotoMetadataViewSet.as_view({"get": "history"}),
+    ),
+    re_path(
+        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/revert-all",
+        photo_metadata.PhotoMetadataViewSet.as_view({"post": "revert_all"}),
+    ),
+    re_path(
+        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata/revert/(?P<edit_id>[0-9a-f-]+)",
+        photo_metadata.PhotoMetadataViewSet.as_view({"post": "revert"}),
+    ),
+    re_path(
+        r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata",
+        photo_metadata.PhotoMetadataViewSet.as_view({"get": "retrieve", "patch": "partial_update"}),
+    ),
+    re_path(r"^api/photos/metadata/bulk", photo_metadata.BulkMetadataView.as_view()),
+    # File Variants - Download specific file variants (RAW, JPEG, video, etc.)
+    re_path(
+        r"^api/photos/(?P<image_hash>[a-f0-9]+)/file/(?P<file_hash>[a-f0-9]+)$",
+        photos.FileVariantDownloadView.as_view(),
+        name="file_variant_download",
+    ),
+    # Set main file for a photo (switch between variants)
+    re_path(
+        r"^api/photos/(?P<image_hash>[a-f0-9]+)/main-file$",
+        photos.SetMainFileView.as_view(),
+        name="set_main_file",
+    ),
     re_path(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
     re_path(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
     re_path(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
     re_path(r"^api/defaultrules", user.DefaultRulesView.as_view()),
     re_path(r"^api/predefinedrules", user.PredefinedRulesView.as_view()),
+    re_path(r"^api/defaultburstrules", user.DefaultBurstRulesView.as_view()),
+    re_path(r"^api/predefinedburstrules", user.PredefinedBurstRulesView.as_view()),
     re_path(r"^api/stats", dataviz.StatsView.as_view()),
     re_path(r"^api/storagestats", views.StorageStatsView.as_view()),
     re_path(r"^api/imagetag", views.ImageTagView.as_view()),
@@ -297,6 +356,11 @@ urlpatterns = [
     re_path(
         r"^api/public/albums/s/(?P<slug>[^/]+)/$",
         public_albums.PublicAlbumBySlug.as_view(),
+    ),
+    # Public photo detail in album
+    re_path(
+        r"^api/public/albums/s/(?P<slug>[^/]+)/photos/(?P<photo_id>[^/]+)/$",
+        public_albums.PublicPhotoDetailBySlug.as_view(),
     ),
     # Toggle album public flag
     re_path(r"^api/useralbum/makepublic", public_albums.SetUserAlbumPublic.as_view()),

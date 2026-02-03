@@ -362,7 +362,7 @@ class BulkSharePhotosTest(TestCase):
 
     def test_select_all_share_photos(self):
         """Test sharing all photos via select_all."""
-        photos = create_test_photos(number_of_photos=5, owner=self.user1)
+        _photos = create_test_photos(number_of_photos=5, owner=self.user1)
 
         payload = {
             "select_all": True,
@@ -387,11 +387,11 @@ class BulkSharePhotosTest(TestCase):
         """Test unsharing all photos via select_all."""
         photos = create_test_photos(number_of_photos=3, owner=self.user1)
 
-        # First share the photos
+        # First share the photos (use photo.id, not image_hash, since pk is now UUID)
         through_model = Photo.shared_to.through
         through_model.objects.bulk_create(
             [
-                through_model(user_id=self.user2.id, photo_id=p.image_hash)
+                through_model(user_id=self.user2.id, photo_id=p.id)
                 for p in photos
             ]
         )
@@ -434,10 +434,10 @@ class BulkSharePhotosTest(TestCase):
         self.assertTrue(data["status"])
         self.assertEqual(data["count"], 4)  # 5 - 1 excluded
 
-        # Verify excluded photo is not shared
+        # Verify excluded photo is not shared (use photo.id, not image_hash)
         through_model = Photo.shared_to.through
         excluded_shared = through_model.objects.filter(
-            user_id=self.user2.id, photo_id=photos[0].image_hash
+            user_id=self.user2.id, photo_id=photos[0].id
         ).exists()
         self.assertFalse(excluded_shared)
 
