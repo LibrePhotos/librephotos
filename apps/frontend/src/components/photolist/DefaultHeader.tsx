@@ -4,17 +4,17 @@ import {
   IconChevronDown as ChevronDown,
   IconClock as Clock,
   IconEyeOff as EyeOff,
-  IconFolderSearch,
   IconGlobe as Globe,
+  IconFolderSearch,
   IconPhoto as Photo,
   IconStar as Star,
   IconVideo as Video,
 } from "@tabler/icons-react";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import type { ReactElement } from "react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useRouter } from '@tanstack/react-router';
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useFetchUserListQuery, useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
@@ -30,6 +30,7 @@ type Props = Readonly<{
   dayHeaderPrefix: string;
   date: string;
   hasEmptyState?: boolean;
+  isPublic?: boolean;
 }>;
 
 export function DefaultHeader(props: Props) {
@@ -37,10 +38,25 @@ export function DefaultHeader(props: Props) {
   const [userToEdit, setUserToEdit] = useState({});
   const navigate = useNavigate();
   const router = useRouter();
-  const {data: auth} = useAccessToken();
-  const {data: userSelfDetails} = useFetchUserSelfDetailsQuery(auth?.access?.user_id ?? '');
-  const {data: userList} = useFetchUserListQuery();   
-  const {location} = router.state;
+  const { data: auth } = useAccessToken();
+
+  const {
+    loading,
+    numPhotosetItems,
+    icon,
+    numPhotos,
+    title,
+    additionalSubHeader,
+    date,
+    dayHeaderPrefix,
+    hasEmptyState,
+    isPublic,
+  } = props;
+
+  // Don't fetch user data on public pages
+  const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(isPublic ? "" : (auth?.access?.user_id ?? ""));
+  const { data: userList } = useFetchUserListQuery(isPublic);
+  const { location } = router.state;
 
   const { t } = useTranslation();
 
@@ -61,8 +77,6 @@ export function DefaultHeader(props: Props) {
   };
 
   const isScanView = () => location.pathname === "/";
-
-  const { loading, numPhotosetItems, icon, numPhotos, title, additionalSubHeader, date, dayHeaderPrefix, hasEmptyState } = props;
 
   function getPhotoCounter() {
     if (loading) {
@@ -97,7 +111,14 @@ export function DefaultHeader(props: Props) {
     );
   }
 
-  if (!loading && auth?.access && isScanView() && auth.access.is_admin && !userSelfDetails?.scan_directory && numPhotosetItems < 1) {
+  if (
+    !loading &&
+    auth?.access &&
+    isScanView() &&
+    auth.access.is_admin &&
+    !userSelfDetails?.scan_directory &&
+    numPhotosetItems < 1
+  ) {
     return (
       <Center style={{ height: "calc(100vh - 120px)" }}>
         <Stack align="center" gap="lg">
@@ -105,7 +126,9 @@ export function DefaultHeader(props: Props) {
             <IconFolderSearch size={45} />
           </ThemeIcon>
           <Box ta="center">
-            <Title order={2} mb="xs">{t("defaultheader.welcome")}</Title>
+            <Title order={2} mb="xs">
+              {t("defaultheader.welcome")}
+            </Title>
             <Text c="dimmed" size="lg" maw={400}>
               {t("defaultheader.setup")}
             </Text>
