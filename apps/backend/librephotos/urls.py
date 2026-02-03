@@ -357,6 +357,11 @@ urlpatterns = [
         r"^api/public/albums/s/(?P<slug>[^/]+)/$",
         public_albums.PublicAlbumBySlug.as_view(),
     ),
+    # Public photo detail in album
+    re_path(
+        r"^api/public/albums/s/(?P<slug>[^/]+)/photos/(?P<photo_id>[^/]+)/$",
+        public_albums.PublicPhotoDetailBySlug.as_view(),
+    ),
     # Toggle album public flag
     re_path(r"^api/useralbum/makepublic", public_albums.SetUserAlbumPublic.as_view()),
     re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
