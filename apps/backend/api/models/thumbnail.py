@@ -27,77 +27,77 @@ class Thumbnail(models.Model):
 
     def _generate_thumbnail(self):
         try:
-            # Use photo.id (UUID) for thumbnail paths for consistency
-            photo_id = str(self.photo.id)
-            if not does_static_thumbnail_exist("thumbnails_big", photo_id):
+            # Use photo.image_hash for thumbnail paths for frontend compatibility
+            photo_hash = self.photo.image_hash
+            if not does_static_thumbnail_exist("thumbnails_big", photo_hash):
                 if not self.photo.video:
                     create_thumbnail(
                         input_path=self.photo.main_file.path,
                         output_height=1080,
                         output_path="thumbnails_big",
-                        hash=photo_id,
+                        hash=photo_hash,
                         file_type=".webp",
                     )
                 else:
                     create_thumbnail_for_video(
                         input_path=self.photo.main_file.path,
                         output_path="thumbnails_big",
-                        hash=photo_id,
+                        hash=photo_hash,
                         file_type=".webp",
                     )
 
             if not self.photo.video and not does_static_thumbnail_exist(
-                "square_thumbnails", photo_id
+                "square_thumbnails", photo_hash
             ):
                 create_thumbnail(
                     input_path=self.photo.main_file.path,
                     output_height=500,
                     output_path="square_thumbnails",
-                    hash=photo_id,
+                    hash=photo_hash,
                     file_type=".webp",
                 )
             if self.photo.video and not does_video_thumbnail_exist(
-                "square_thumbnails", photo_id
+                "square_thumbnails", photo_hash
             ):
                 create_animated_thumbnail(
                     input_path=self.photo.main_file.path,
                     output_height=500,
                     output_path="square_thumbnails",
-                    hash=photo_id,
+                    hash=photo_hash,
                     file_type=".mp4",
                 )
 
             if not self.photo.video and not does_static_thumbnail_exist(
-                "square_thumbnails_small", photo_id
+                "square_thumbnails_small", photo_hash
             ):
                 create_thumbnail(
                     input_path=self.photo.main_file.path,
                     output_height=250,
                     output_path="square_thumbnails_small",
-                    hash=photo_id,
+                    hash=photo_hash,
                     file_type=".webp",
                 )
             if self.photo.video and not does_video_thumbnail_exist(
-                "square_thumbnails_small", photo_id
+                "square_thumbnails_small", photo_hash
             ):
                 create_animated_thumbnail(
                     input_path=self.photo.main_file.path,
                     output_height=250,
                     output_path="square_thumbnails_small",
-                    hash=photo_id,
+                    hash=photo_hash,
                     file_type=".mp4",
                 )
             filetype = ".webp"
             if self.photo.video:
                 filetype = ".mp4"
             self.thumbnail_big.name = os.path.join(
-                "thumbnails_big", photo_id + ".webp"
+                "thumbnails_big", photo_hash + ".webp"
             ).strip()
             self.square_thumbnail.name = os.path.join(
-                "square_thumbnails", photo_id + filetype
+                "square_thumbnails", photo_hash + filetype
             ).strip()
             self.square_thumbnail_small.name = os.path.join(
-                "square_thumbnails_small", photo_id + filetype
+                "square_thumbnails_small", photo_hash + filetype
             ).strip()
             self.save()
         except Exception as e:
