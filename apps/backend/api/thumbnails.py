@@ -15,7 +15,7 @@ def create_thumbnail(input_path, output_height, output_path, hash, file_type):
             if "thumbnails_big" in output_path:
                 complete_path = os.path.join(
                     settings.MEDIA_ROOT, output_path, hash + file_type
-                ).strip()
+                )
                 json = {
                     "source": input_path,
                     "destination": complete_path,
@@ -36,7 +36,7 @@ def create_thumbnail(input_path, output_height, output_path, hash, file_type):
                 )
                 complete_path = os.path.join(
                     settings.MEDIA_ROOT, output_path, hash + file_type
-                ).strip()
+                )
                 x.write_to_file(complete_path, Q=95)
             return complete_path
         else:
@@ -45,7 +45,7 @@ def create_thumbnail(input_path, output_height, output_path, hash, file_type):
             )
             complete_path = os.path.join(
                 settings.MEDIA_ROOT, output_path, hash + file_type
-            ).strip()
+            )
             x.write_to_file(complete_path, Q=95)
             return complete_path
     except Exception as e:
@@ -57,7 +57,7 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
     try:
         output = os.path.join(
             settings.MEDIA_ROOT, output_path, hash + file_type
-        ).strip()
+        )
         command = [
             "ffmpeg",
             "-i",
@@ -85,7 +85,7 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
     try:
         output = os.path.join(
             settings.MEDIA_ROOT, output_path, hash + file_type
-        ).strip()
+        )
         command = [
             "ffmpeg",
             "-i",
@@ -106,11 +106,11 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
 
 def does_static_thumbnail_exist(output_path, hash):
     return os.path.exists(
-        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".webp").strip()
+        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".webp")
     )
 
 
 def does_video_thumbnail_exist(output_path, hash):
     return os.path.exists(
-        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4").strip()
+        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4")
     )
