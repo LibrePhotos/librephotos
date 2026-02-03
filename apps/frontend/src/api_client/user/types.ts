@@ -10,6 +10,15 @@ export const PublicPhotoSample = z.object({
 });
 export type PublicPhotoSample = z.infer<typeof PublicPhotoSample>;
 
+export const PublicSharingDefaults = z.object({
+  share_location: z.boolean().default(false),
+  share_camera_info: z.boolean().default(false),
+  share_timestamps: z.boolean().default(false),
+  share_captions: z.boolean().default(false),
+  share_faces: z.boolean().default(false),
+});
+export type PublicSharingDefaults = z.infer<typeof PublicSharingDefaults>;
+
 export const User = z.object({
   id: z.number(),
   username: z.string(),
@@ -49,6 +58,7 @@ export const User = z.object({
   min_samples: z.number(),
   cluster_selection_epsilon: z.number(),
   llm_settings: z.any().nullable(),
+  public_sharing_defaults: PublicSharingDefaults.optional(),
   text_alignment: z.enum(["left", "right"]).default("right"),
   header_size: z.enum(["large", "normal", "small"]).default("large"),
   slideshow_interval: z.number().default(5),
