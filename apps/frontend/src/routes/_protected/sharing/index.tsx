@@ -1,36 +1,22 @@
-import {
-  Avatar,
-  Box,
-  Group,
-  Skeleton,
-  Stack,
-  Text,
-  Title,
-} from "@mantine/core";
-import {
-  IconChevronRight,
-  IconDownload,
-  IconLink,
-  IconUpload,
-  IconUsers,
-  IconWorld,
-} from "@tabler/icons-react";
+import { Avatar, Box, Group, Skeleton, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { IconChevronRight, IconDownload, IconLink, IconUpload, IconUsers, IconWorld } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import {
   useFetchDateAlbumsQuery,
   useFetchSharedAlbumsByMeQuery,
   useFetchSharedAlbumsWithMeQuery,
   useFetchUserAlbumsQuery,
 } from "../../../api_client/albums/hooks";
-import { Photoset } from "../../../api_client/photos/types";
 import { useFetchSharedPhotosByMeQuery, useFetchSharedPhotosWithMeQuery } from "../../../api_client/photos/hooks";
+import { Photoset } from "../../../api_client/photos/types";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
+import classes from "../../../components/album/AlbumSection.module.css";
+import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { Tile } from "../../../components/Tile";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
-import classes from "../../../components/album/AlbumSection.module.css";
 
 export const Route = createFileRoute("/_protected/sharing/")();
 
@@ -40,6 +26,15 @@ function publicUsers(items: any[] = []) {
 
 export function SharingExplore() {
   const { t } = useTranslation();
+  const [albumID, setAlbumID] = useState("");
+  const [albumOwner, setAlbumOwner] = useState("");
+  const [isShareDialogOpen, { open: showShareDialog, close: hideShareDialog }] = useDisclosure(false);
+
+  const openShareDialog = (id: string, ownerUsername: string) => {
+    setAlbumID(id);
+    setAlbumOwner(ownerUsername);
+    showShareDialog();
+  };
 
   // Fetch all sharing data
   const { data: users, isLoading: isLoadingUsers } = useFetchUserListQuery();
@@ -50,16 +45,18 @@ export function SharingExplore() {
 
   // Fetch public links data (albums with public=true and public photos)
   const { data: userAlbums = [], isLoading: isLoadingUserAlbums } = useFetchUserAlbumsQuery();
-  const { data: publicPhotosGrouped, isLoading: isLoadingPublicPhotos } = useFetchDateAlbumsQuery({ photosetType: Photoset.PUBLIC });
+  const { data: publicPhotosGrouped, isLoading: isLoadingPublicPhotos } = useFetchDateAlbumsQuery({
+    photosetType: Photoset.PUBLIC,
+  });
 
   const publicUsersList = publicUsers(users);
 
   // Filter albums that are public (shared via link)
   const publicLinkAlbums = useMemo(() => userAlbums.filter(album => album.public), [userAlbums]);
-  
+
   // Flatten public photos from grouped data
-  const publicPhotos = useMemo(() => 
-    publicPhotosGrouped ? getPhotosFlatFromGroupedByDate(publicPhotosGrouped) : [],
+  const publicPhotos = useMemo(
+    () => (publicPhotosGrouped ? getPhotosFlatFromGroupedByDate(publicPhotosGrouped) : []),
     [publicPhotosGrouped]
   );
 
@@ -72,11 +69,11 @@ export function SharingExplore() {
   // Get preview photos for shared with me
   const previewPhotosWithMe = photosWithMe.flatMap(group => group.photos).slice(0, 6);
   const previewAlbumsWithMe = albumsWithMe.flatMap(group => group.albums).slice(0, 6);
-  
+
   // Get preview photos for shared by me
   const previewPhotosByMe = photosByMe.flatMap(group => group.photos).slice(0, 6);
   const previewAlbumsByMe = albumsByMe.flatMap(group => group.albums).slice(0, 6);
-  
+
   // Get preview for public links
   const previewPublicPhotos = publicPhotos.filter(p => !p.isTemp).slice(0, 6);
   const previewPublicAlbums = publicLinkAlbums.slice(0, 6);
@@ -95,7 +92,11 @@ export function SharingExplore() {
         {/* Public Users Section */}
         <div className={classes.section}>
           <div className={classes.header}>
-            <Link to="/sharing/public" className={classes.headerLeft} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link
+              to="/sharing/public"
+              className={classes.headerLeft}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <IconWorld size={24} stroke={1.5} />
               <div>
                 <Title order={4}>{t("sidemenu.publicphotos")}</Title>
@@ -103,7 +104,9 @@ export function SharingExplore() {
                   <Text size="sm" c="dimmed">
                     {t("sharing.userCount", { count: publicUsersList.length })}
                   </Text>
-                  <Text size="sm" c="dimmed">·</Text>
+                  <Text size="sm" c="dimmed">
+                    ·
+                  </Text>
                   <Text size="sm" c="blue">
                     {t("explore.viewAll")}
                   </Text>
@@ -115,7 +118,7 @@ export function SharingExplore() {
 
           {isLoadingUsers ? (
             <div className={classes.avatarGridLoading}>
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+              {[1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 70 }}>
                   <Skeleton height={56} width={56} circle />
                   <Skeleton height={10} width={50} mt={4} />
@@ -128,10 +131,9 @@ export function SharingExplore() {
             </div>
           ) : (
             <div className={classes.avatarGrid}>
-              {publicUsersList.slice(0, 14).map((user) => {
-                const displayName = user.first_name && user.last_name 
-                  ? `${user.first_name} ${user.last_name}` 
-                  : user.username;
+              {publicUsersList.slice(0, 14).map(user => {
+                const displayName =
+                  user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username;
                 return (
                   <Link key={user.id} to={`/user/${user.username}/`} className={classes.avatarItem}>
                     <div className={classes.avatar}>
@@ -152,18 +154,24 @@ export function SharingExplore() {
         {/* Shared With You Section */}
         <div className={classes.section}>
           <div className={classes.header}>
-            <Link to="/sharing/withme/photos" className={classes.headerLeft} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link
+              to="/sharing/withme/photos"
+              className={classes.headerLeft}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <IconDownload size={24} stroke={1.5} color="var(--mantine-color-green-6)" />
               <div>
                 <Title order={4}>{t("sidemenu.sharedwithyou")}</Title>
                 <Group gap={6}>
                   <Text size="sm" c="dimmed">
-                    {t("sharing.itemCount", { 
-                      photos: totalPhotosWithMe, 
-                      albums: totalAlbumsWithMe 
+                    {t("sharing.itemCount", {
+                      photos: totalPhotosWithMe,
+                      albums: totalAlbumsWithMe,
                     })}
                   </Text>
-                  <Text size="sm" c="dimmed">·</Text>
+                  <Text size="sm" c="dimmed">
+                    ·
+                  </Text>
                   <Text size="sm" c="blue">
                     {t("explore.viewAll")}
                   </Text>
@@ -175,7 +183,7 @@ export function SharingExplore() {
 
           {isLoadingPhotosWithMe && isLoadingAlbumsWithMe ? (
             <div className={classes.loadingContainer}>
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className={classes.skeleton}>
                   <Skeleton height={140} radius="md" />
                   <Skeleton height={16} mt={8} width="80%" />
@@ -190,12 +198,8 @@ export function SharingExplore() {
           ) : (
             <div className={classes.scrollContainer}>
               {/* Show preview photos */}
-              {previewPhotosWithMe.map((photo) => (
-                <Link
-                  key={photo.id}
-                  to="/sharing/withme/photos"
-                  className={classes.albumCard}
-                >
+              {previewPhotosWithMe.map(photo => (
+                <Link key={photo.id} to="/sharing/withme/photos" className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     <Tile
                       video={photo.type === "video"}
@@ -208,12 +212,8 @@ export function SharingExplore() {
                 </Link>
               ))}
               {/* Show preview albums */}
-              {previewAlbumsWithMe.map((album) => (
-                <Link
-                  key={album.id}
-                  to={`/album/user/${album.id}`}
-                  className={classes.albumCard}
-                >
+              {previewAlbumsWithMe.map(album => (
+                <Link key={album.id} to={`/album/user/${album.id}`} className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     {album.cover_photo ? (
                       <Tile
@@ -246,18 +246,24 @@ export function SharingExplore() {
         {/* You Shared Section */}
         <div className={classes.section}>
           <div className={classes.header}>
-            <Link to="/sharing/byme/photos" className={classes.headerLeft} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link
+              to="/sharing/byme/photos"
+              className={classes.headerLeft}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <IconUpload size={24} stroke={1.5} color="var(--mantine-color-red-6)" />
               <div>
                 <Title order={4}>{t("sidemenu.youshared")}</Title>
                 <Group gap={6}>
                   <Text size="sm" c="dimmed">
-                    {t("sharing.itemCount", { 
-                      photos: totalPhotosByMe, 
-                      albums: totalAlbumsByMe 
+                    {t("sharing.itemCount", {
+                      photos: totalPhotosByMe,
+                      albums: totalAlbumsByMe,
                     })}
                   </Text>
-                  <Text size="sm" c="dimmed">·</Text>
+                  <Text size="sm" c="dimmed">
+                    ·
+                  </Text>
                   <Text size="sm" c="blue">
                     {t("explore.viewAll")}
                   </Text>
@@ -269,7 +275,7 @@ export function SharingExplore() {
 
           {isLoadingPhotosByMe && isLoadingAlbumsByMe ? (
             <div className={classes.loadingContainer}>
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className={classes.skeleton}>
                   <Skeleton height={140} radius="md" />
                   <Skeleton height={16} mt={8} width="80%" />
@@ -284,12 +290,8 @@ export function SharingExplore() {
           ) : (
             <div className={classes.scrollContainer}>
               {/* Show preview photos */}
-              {previewPhotosByMe.map((photo) => (
-                <Link
-                  key={photo.id}
-                  to="/sharing/byme/photos"
-                  className={classes.albumCard}
-                >
+              {previewPhotosByMe.map(photo => (
+                <Link key={photo.id} to="/sharing/byme/photos" className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     <Tile
                       video={photo.type === "video"}
@@ -302,12 +304,8 @@ export function SharingExplore() {
                 </Link>
               ))}
               {/* Show preview albums */}
-              {previewAlbumsByMe.map((album) => (
-                <Link
-                  key={album.id}
-                  to={`/album/user/${album.id}`}
-                  className={classes.albumCard}
-                >
+              {previewAlbumsByMe.map(album => (
+                <Link key={album.id} to={`/album/user/${album.id}`} className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     {album.cover_photo ? (
                       <Tile
@@ -340,18 +338,24 @@ export function SharingExplore() {
         {/* Public Links Section */}
         <div className={classes.section}>
           <div className={classes.header}>
-            <Link to="/sharing/links" className={classes.headerLeft} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link
+              to="/sharing/links"
+              className={classes.headerLeft}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <IconLink size={24} stroke={1.5} color="var(--mantine-color-violet-6)" />
               <div>
                 <Title order={4}>{t("sharing.publicLinks", "Public Links")}</Title>
                 <Group gap={6}>
                   <Text size="sm" c="dimmed">
-                    {t("sharing.itemCount", { 
-                      photos: publicPhotos.filter(p => !p.isTemp).length, 
-                      albums: publicLinkAlbums.length 
+                    {t("sharing.itemCount", {
+                      photos: publicPhotos.filter(p => !p.isTemp).length,
+                      albums: publicLinkAlbums.length,
                     })}
                   </Text>
-                  <Text size="sm" c="dimmed">·</Text>
+                  <Text size="sm" c="dimmed">
+                    ·
+                  </Text>
                   <Text size="sm" c="blue">
                     {t("explore.viewAll")}
                   </Text>
@@ -363,7 +367,7 @@ export function SharingExplore() {
 
           {isLoadingUserAlbums && isLoadingPublicPhotos ? (
             <div className={classes.loadingContainer}>
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className={classes.skeleton}>
                   <Skeleton height={140} radius="md" />
                   <Skeleton height={16} mt={8} width="80%" />
@@ -378,44 +382,70 @@ export function SharingExplore() {
           ) : (
             <div className={classes.scrollContainer}>
               {/* Show preview public albums */}
-              {previewPublicAlbums.map((album) => (
-                <Link
-                  key={album.id}
-                  to={`/album/user/${album.id}`}
-                  className={classes.albumCard}
-                >
-                  <div className={classes.albumCover}>
-                    {album.cover_photo ? (
-                      <Tile
-                        video={album.cover_photo.video ?? false}
-                        width={140}
-                        height={140}
-                        image_hash={album.cover_photo.image_hash}
-                        className={classes.albumCoverImage}
-                      />
-                    ) : (
-                      <Text c="dimmed" size="xs">
-                        {t("explore.noCover")}
+              {previewPublicAlbums.map(album => (
+                <div key={album.id} style={{ position: "relative" }}>
+                  <Link to={`/album/user/${album.id}`} className={classes.albumCard}>
+                    <div className={classes.albumCover}>
+                      {album.cover_photo ? (
+                        <Tile
+                          video={album.cover_photo.video ?? false}
+                          width={140}
+                          height={140}
+                          image_hash={album.cover_photo.image_hash}
+                          className={classes.albumCoverImage}
+                        />
+                      ) : (
+                        <Text c="dimmed" size="xs">
+                          {t("explore.noCover")}
+                        </Text>
+                      )}
+                    </div>
+                    <div className={classes.albumInfo}>
+                      <Text size="sm" fw={500} lineClamp={1} title={album.title}>
+                        {album.title}
                       </Text>
-                    )}
-                  </div>
-                  <div className={classes.albumInfo}>
-                    <Text size="sm" fw={500} lineClamp={1} title={album.title}>
-                      {album.title}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      {t("numberofphotos", { number: album.photo_count })}
-                    </Text>
-                  </div>
-                </Link>
+                      <Text size="xs" c="dimmed">
+                        {t("numberofphotos", { number: album.photo_count })}
+                      </Text>
+                    </div>
+                  </Link>
+                  <Tooltip label={t("sidemenu.sharing")}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        zIndex: 1,
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        borderRadius: 4,
+                        padding: "4px 6px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      onClick={e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openShareDialog(`${album.id}`, album.owner.username);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openShareDialog(`${album.id}`, album.owner.username);
+                        }
+                      }}
+                    >
+                      <IconLink size={16} color="white" />
+                    </div>
+                  </Tooltip>
+                </div>
               ))}
               {/* Show preview public photos */}
-              {previewPublicPhotos.map((photo) => (
-                <Link
-                  key={photo.id}
-                  to="/sharing/links"
-                  className={classes.albumCard}
-                >
+              {previewPublicPhotos.map(photo => (
+                <Link key={photo.id} to="/sharing/links" className={classes.albumCard}>
                   <div className={classes.albumCover}>
                     <Tile
                       video={photo.type === "video"}
@@ -431,6 +461,13 @@ export function SharingExplore() {
           )}
         </div>
       </Stack>
+
+      <ModalAlbumShare
+        isOpen={isShareDialogOpen}
+        onRequestClose={hideShareDialog}
+        albumID={albumID}
+        ownerUsername={albumOwner}
+      />
     </Box>
   );
 }
