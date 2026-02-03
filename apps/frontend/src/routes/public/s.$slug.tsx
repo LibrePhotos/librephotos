@@ -60,6 +60,7 @@ function PublicAlbumBySlug() {
       photoset={album ? album.grouped_photos : []}
       idx2hash={flat}
       isPublic
+      publicAlbumSlug={slug}
       selectable
     />
   );
