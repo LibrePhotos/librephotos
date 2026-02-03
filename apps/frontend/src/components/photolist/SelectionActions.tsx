@@ -37,6 +37,7 @@ import {
   useMergeStacksMutation,
   useRemoveFromStackMutation,
 } from "../../api_client/stacks";
+import { useAuth } from "../../hooks/useAuth";
 import { copyToClipboard } from "../../util/util";
 
 type Props = {
@@ -56,6 +57,7 @@ type Props = {
 export function SelectionActions(props: Readonly<Props>) {
   const { t } = useTranslation();
   const location = useLocation();
+  const { userId } = useAuth();
   const removePhotosFromAlbum = useRemovePhotoFromUserAlbumMutation();
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
@@ -323,7 +325,7 @@ export function SelectionActions(props: Readonly<Props>) {
             onClick={() => {
               // Download doesn't support selectAll mode yet
               if (!selectAllMode) {
-                downloadPhotoArchive.mutate({ image_hashes: getImageHashes() });
+                downloadPhotoArchive.mutate({ image_hashes: getImageHashes(), userId });
               }
               resetSelection();
             }}

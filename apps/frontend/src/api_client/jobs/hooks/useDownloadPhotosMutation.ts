@@ -34,10 +34,14 @@ async function downloadFile(filename: string) {
 // Download photos
 export const useDownloadPhotosMutation = () =>
   useMutation({
-    mutationFn: async ({ image_hashes }: { image_hashes: string[] }) => {
+    mutationFn: async ({ image_hashes, userId }: { image_hashes: string[]; userId: number | null }) => {
       notification.downloadStarting();
 
-      const userId = (window as any).user?.userSelfDetails?.id || "";
+      if (!userId) {
+        notification.downloadFailed();
+        throw new Error("User ID is required for download");
+      }
+
       const { job_id: jobId, url: filename } = await startDownloadProcess(image_hashes);
 
       const statusInterval = setInterval(async () => {
