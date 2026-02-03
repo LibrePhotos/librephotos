@@ -11,23 +11,38 @@ def rename_thumbnails_uuid_to_hash(apps, schema_editor):
     """
     Rename existing thumbnail files from UUID-based names to image_hash-based names.
     This only renames files that exist and updates the database records.
+    Uses batch processing for improved performance with large photo collections.
     """
     Photo = apps.get_model('api', 'Photo')
     Thumbnail = apps.get_model('api', 'Thumbnail')
     
-    # Get all photos with thumbnails
-    thumbnails = Thumbnail.objects.select_related('photo').all()
+    BATCH_SIZE = 1000  # Process thumbnails in batches of 1000
+    
+    # Get total count for progress reporting
+    total_count = Thumbnail.objects.count()
+    print(f"Starting thumbnail migration for {total_count} photos...")
     
     renamed_count = 0
     skipped_count = 0
+    processed_count = 0
     
-    for thumbnail in thumbnails:
+    # Process thumbnails in batches to avoid loading all into memory at once
+    thumbnails_to_update = []
+    
+    # Use iterator() to avoid loading all objects into memory
+    # Process in batches using only() to load only required fields
+    for thumbnail in Thumbnail.objects.select_related('photo').only(
+        'photo_id', 'photo__id', 'photo__image_hash', 'photo__video',
+        'thumbnail_big', 'square_thumbnail', 'square_thumbnail_small'
+    ).iterator(chunk_size=BATCH_SIZE):
         photo = thumbnail.photo
         photo_uuid = str(photo.id)
         photo_hash = photo.image_hash
         
         # Skip if UUID and hash are the same (shouldn't happen, but be safe)
         if photo_uuid == photo_hash:
+            skipped_count += 1
+            processed_count += 1
             continue
         
         # Process each thumbnail type
@@ -51,18 +66,38 @@ def rename_thumbnails_uuid_to_hash(apps, schema_editor):
                 except Exception as e:
                     print(f"Warning: Could not rename {old_path} to {new_path}: {e}")
         
-        # Update database record if any files were renamed
+        # Queue for batch update if any files were renamed
         if needs_update:
             filetype = '.mp4' if photo.video else '.webp'
             thumbnail.thumbnail_big = os.path.join('thumbnails_big', f"{photo_hash}.webp").strip()
             thumbnail.square_thumbnail = os.path.join('square_thumbnails', f"{photo_hash}{filetype}").strip()
             thumbnail.square_thumbnail_small = os.path.join('square_thumbnails_small', f"{photo_hash}{filetype}").strip()
-            thumbnail.save(update_fields=['thumbnail_big', 'square_thumbnail', 'square_thumbnail_small'])
+            thumbnails_to_update.append(thumbnail)
             renamed_count += 1
         else:
             skipped_count += 1
+        
+        processed_count += 1
+        
+        # Batch update every BATCH_SIZE records
+        if len(thumbnails_to_update) >= BATCH_SIZE:
+            Thumbnail.objects.bulk_update(
+                thumbnails_to_update,
+                ['thumbnail_big', 'square_thumbnail', 'square_thumbnail_small'],
+                batch_size=BATCH_SIZE
+            )
+            print(f"Progress: {processed_count}/{total_count} processed, {renamed_count} renamed, {skipped_count} skipped")
+            thumbnails_to_update = []
     
-    print(f"Renamed thumbnails for {renamed_count} photos, skipped {skipped_count} photos")
+    # Update any remaining thumbnails in the final batch
+    if thumbnails_to_update:
+        Thumbnail.objects.bulk_update(
+            thumbnails_to_update,
+            ['thumbnail_big', 'square_thumbnail', 'square_thumbnail_small'],
+            batch_size=BATCH_SIZE
+        )
+    
+    print(f"Migration complete: {renamed_count} photos renamed, {skipped_count} photos skipped")
 
 
 def reverse_rename_thumbnails(apps, schema_editor):
