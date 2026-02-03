@@ -19,3 +19,5 @@ export * from "./hooks/useDeleteMissingPhotosMutation";
 export * from "./hooks/useFetchPhotoMetadataQuery";
 export * from "./hooks/useFetchMetadataHistoryQuery";
 export * from "./hooks/usePhotoMetadataMutations";
+// Public photo hooks
+export * from "./hooks/useFetchPublicPhotoDetailQuery";
