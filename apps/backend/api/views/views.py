@@ -997,14 +997,43 @@ class ZipListPhotosView_V2(APIView):
         import shutil
 
         free_storage = shutil.disk_usage("/").free
-        data = dict(request.data)
-        if "image_hashes" not in data:
-            return
+        data = request.data
+        image_hashes = data.get("image_hashes")
+        if not image_hashes:
+            return Response(data={"error": "image_hashes required"}, status=400)
+
+        # DRF may provide list values (QueryDict) or a single string
+        if isinstance(image_hashes, str):
+            image_hashes = [image_hashes]
+        elif isinstance(image_hashes, (list, tuple)):
+            # QueryDict -> dict() would produce list values, request.data keeps list too
+            pass
+        else:
+            image_hashes = list(image_hashes)
+
+        include_stacked = data.get("include_stacked_photos", False)
+        if isinstance(include_stacked, (list, tuple)):
+            include_stacked = include_stacked[0] if include_stacked else False
+        if isinstance(include_stacked, str):
+            include_stacked = include_stacked.strip().lower() in ("1", "true", "yes", "on")
+        include_stacked = bool(include_stacked)
+
         photo_query = Photo.objects.filter(owner=self.request.user)
         # Filter photos based on image hashes
-        photos = photo_query.filter(image_hash__in=data["image_hashes"])
+        photos = photo_query.filter(image_hash__in=image_hashes)
         if not photos.exists():
-            return
+            return Response(data={"error": "No photos found"}, status=404)
+
+        # Optionally expand to include all photos from the same stacks
+        if include_stacked:
+            stack_ids = (
+                photos.exclude(stacks__isnull=True)
+                .values_list("stacks__id", flat=True)
+                .distinct()
+            )
+            if stack_ids:
+                stacked_photos = photo_query.filter(stacks__id__in=stack_ids)
+                photos = (photos | stacked_photos).distinct()
 
         # Calculate the total file size using aggregate
         total_file_size = photos.aggregate(Sum("size"))["size__sum"] or 0
