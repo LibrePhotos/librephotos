@@ -1,7 +1,7 @@
-import { useAccessToken } from '../../auth/hooks';
-import { useFetchUserSelfDetailsQuery } from './useFetchUserSelfDetailsQuery';
+import { useAccessToken } from "../../auth/hooks";
+import { useFetchUserSelfDetailsQuery } from "./useFetchUserSelfDetailsQuery";
 
-export const useCurrentUserSelfDetailsQuery = () => {
+export const useCurrentUserSelfDetailsQuery = (skip: boolean = false) => {
   const { data: auth } = useAccessToken();
-  return useFetchUserSelfDetailsQuery(auth?.access?.user_id?.toString() ?? '');;
+  return useFetchUserSelfDetailsQuery(skip ? "" : (auth?.access?.user_id?.toString() ?? ""));
 };

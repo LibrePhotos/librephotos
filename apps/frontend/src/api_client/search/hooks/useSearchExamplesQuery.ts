@@ -5,11 +5,12 @@ import { SearchExamplesResponse } from "../types";
 
 export const SearchExamplesQueryKeys = ["searchExamples"] as const;
 
-export const useSearchExamplesQuery = () =>
+export const useSearchExamplesQuery = (skip: boolean = false) =>
   useQuery({
     queryKey: [...SearchExamplesQueryKeys],
     queryFn: async () => {
       const response = await fetchClient.get<{ results: string[] }>("/searchtermexamples/");
       return parseWithNotification(SearchExamplesResponse, response, "Failed to parse search examples").results;
     },
+    enabled: !skip,
   });

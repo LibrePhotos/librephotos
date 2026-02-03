@@ -2,11 +2,12 @@ import { useInterval } from "@mantine/hooks";
 import { random } from "lodash";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useFetchPeopleAlbumsQuery } from "../api_client/albums/hooks";
-import { useFetchPlacesAlbumsQuery } from "../api_client/albums/hooks";
-import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
-import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
+import {
+  useFetchPeopleAlbumsQuery,
+  useFetchPlacesAlbumsQuery,
+  useFetchThingsAlbumsQuery,
+  useFetchUserAlbumsQuery,
+} from "../api_client/albums/hooks";
 import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
 
@@ -64,11 +65,13 @@ function toPersonOption(item: any): SearchOption {
 
 export function useSearch() {
   const { t } = useTranslation();
-  const { data: searchExamples, isLoading: isExamplesLoading } = useSearchExamplesQuery();
-  const { data: placeAlbums, isLoading: isPlacesLoading } = useFetchPlacesAlbumsQuery();
-  const { data: thingAlbums, isLoading: isThingsLoading } = useFetchThingsAlbumsQuery();
-  const { data: userAlbums, isLoading: isAlbumsLoading } = useFetchUserAlbumsQuery();
-  const { data: people, isLoading: isPeopleLoading } = useFetchPeopleAlbumsQuery();
+  // Skip queries on public pages to avoid 401 errors
+  const isPublicPage = typeof window !== "undefined" && window.location.pathname.startsWith("/public");
+  const { data: searchExamples, isLoading: isExamplesLoading } = useSearchExamplesQuery(isPublicPage);
+  const { data: placeAlbums, isLoading: isPlacesLoading } = useFetchPlacesAlbumsQuery(isPublicPage);
+  const { data: thingAlbums, isLoading: isThingsLoading } = useFetchThingsAlbumsQuery(isPublicPage);
+  const { data: userAlbums, isLoading: isAlbumsLoading } = useFetchUserAlbumsQuery(isPublicPage);
+  const { data: people, isLoading: isPeopleLoading } = useFetchPeopleAlbumsQuery(isPublicPage);
   const [options, setOptions] = useState<SearchOption[]>([]);
   const [placeholder, setPlaceholder] = useState(t("search.search"));
   const isLoading = isExamplesLoading || isPlacesLoading || isThingsLoading || isAlbumsLoading || isPeopleLoading;

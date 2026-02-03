@@ -14,11 +14,12 @@ export const UserListResponse = z.object({
   results: z.array(User),
 });
 // User List Query
-export const useFetchUserListQuery = () =>
+export const useFetchUserListQuery = (skip: boolean = false) =>
   useQuery<UserList>({
     queryKey: UserListQueryKeys,
     queryFn: async () => {
       const response = await fetchClient.get<UserList>("/user/");
       return parseWithNotification(UserListResponse, response, "Failed to parse user list").results;
     },
+    enabled: !skip,
   });
