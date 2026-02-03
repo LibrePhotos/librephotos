@@ -9,7 +9,7 @@ export function TopMenuPublic() {
   const { t } = useTranslation();
 
   return (
-    <Flex justify="space-between" m="xs">
+    <Flex justify="space-between" align="center" m="xs">
       <TopMenuLogo />
       <Button size="xs" variant="subtle" color="green" onClick={() => navigate({ to: "/login" })}>
         {t("login.login")}
