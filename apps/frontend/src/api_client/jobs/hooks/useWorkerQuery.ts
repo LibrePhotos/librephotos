@@ -5,7 +5,11 @@ import { WorkerAvailabilityResponse } from "../types";
 
 export const WorkerQueryKeys = ["worker"] as const;
 
-export const useWorkerQuery = () =>
+type UseWorkerQueryOptions = {
+  enabled?: boolean;
+};
+
+export const useWorkerQuery = (options: UseWorkerQueryOptions = {}) =>
   useQuery({
     queryKey: [...WorkerQueryKeys],
     queryFn: async () => {
@@ -13,4 +17,5 @@ export const useWorkerQuery = () =>
       return parseWithNotification(WorkerAvailabilityResponse, response, "Failed to parse worker availability");
     },
     refetchInterval: 2000, // Poll every 2 seconds
+    enabled: options.enabled ?? true,
   });

@@ -143,8 +143,8 @@ export function useSpotlightActions(query: string = "") {
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const { options: searchOptions, filterOptions, isLoading: isSearchLoading } = useSearch();
 
-  // Worker and mutation hooks
-  const { data: worker } = useWorkerQuery();
+  // Worker and mutation hooks - only query when authenticated
+  const { data: worker } = useWorkerQuery({ enabled: isAuthenticated });
   const workerAvailable = worker?.queue_can_accept_job ?? false;
 
   const scanPhotos = useScanPhotosMutation();
