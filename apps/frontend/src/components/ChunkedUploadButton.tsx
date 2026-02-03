@@ -66,14 +66,15 @@ export function ChunkedUploadButton() {
     return parseWithNotification(UploadExistResponse, response, "Failed to parse upload exists response").exists;
   };
 
-  const uploadFinished = async (file: File, uploadId: string) => {
+  const uploadFinished = async (file: File, uploadId: string, shouldInvalidate: boolean = true) => {
     if (!userSelfDetails) return;
     const formData = new FormData();
     formData.append("upload_id", uploadId);
     formData.append("md5", await calculateMD5(file));
     formData.append("user", userSelfDetails.id.toString());
     formData.append("filename", file.name);
-    await uploadFinishedMutation.mutateAsync(formData);
+    // Pass shouldInvalidate to control query invalidation
+    await uploadFinishedMutation.mutateAsync({ formData, shouldInvalidate });
   };
 
   const calculateMD5Blob = async (blob: Blob) => {
@@ -116,7 +117,7 @@ export function ChunkedUploadButton() {
     return chunk;
   };
 
-  async function uploadFile(file: File) {
+  async function uploadFile(file: File, shouldInvalidate: boolean = true) {
     const currentUploadedFileSizeStartValue = currentUploadedFileSize;
     let offset = 0;
     let uploadId = "";
@@ -138,22 +139,29 @@ export function ChunkedUploadButton() {
       }
       setCurrentSize(currentUploadedFileSize);
     }
-    await uploadFinished(file, uploadId);
+    await uploadFinished(file, uploadId, shouldInvalidate);
   }
 
-  function onDrop(acceptedFiles: File[]) {
+  async function onDrop(acceptedFiles: File[]) {
     setTotalSize(acceptedFiles.reduce((acc, file) => acc + file.size, 0));
-    acceptedFiles.forEach(file => {
-      calculateMD5(file)
-        .then(checkIfAlreadyUploaded)
-        .then(async foundOnServer => {
-          if (!foundOnServer) {
-            await uploadFile(file);
-          } else {
-            setCurrentSize(currentUploadedFileSize + file.size);
-          }
-        });
-    });
+    // Upload files sequentially to avoid overwhelming the server
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < acceptedFiles.length; i++) {
+      const file = acceptedFiles[i];
+      const isLastFile = i === acceptedFiles.length - 1;
+      // eslint-disable-next-line no-await-in-loop
+      const hash = await calculateMD5(file);
+      // eslint-disable-next-line no-await-in-loop
+      const foundOnServer = await checkIfAlreadyUploaded(hash);
+      if (!foundOnServer) {
+        // Only invalidate queries after the last file is uploaded
+        // eslint-disable-next-line no-await-in-loop
+        await uploadFile(file, isLastFile);
+      } else {
+        currentUploadedFileSize += file.size;
+        setCurrentSize(currentUploadedFileSize);
+      }
+    }
   }
   // Check if user has scan directory configured
   const hasScanDirectory = userSelfDetails?.scan_directory && userSelfDetails.scan_directory.trim() !== "";
