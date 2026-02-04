@@ -102,6 +102,7 @@ def extract_from_dlib(image_path, big_thumbnail_path, owner):
     except Exception as e:
         logger.info(f"Can't extract face information on photo: {image_path}")
         logger.info(e)
+        face_locations = []
 
     for i, face_location in enumerate(face_locations):
         face_locations[i] = (*face_location, None)
