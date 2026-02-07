@@ -72,6 +72,7 @@ const Tile = React.memo(
       <motion.button
         className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
         onClick={event => handleClick(event, item)}
+        initial={false}
         animate={{
           width: getWidth(isExpanded, isSelected),
           height: getHeight(isExpanded, isSelected),
