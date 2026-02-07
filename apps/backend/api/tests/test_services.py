@@ -8,42 +8,41 @@ from api.services import check_cpu_features, has_required_cpu_features, _is_arm_
 class TestServiceCPUCompatibility(unittest.TestCase):
     """Test CPU feature detection and compatibility checks"""
 
+    # Constants for testing
+    ARM_ARCHITECTURES = ['aarch64', 'arm64', 'armv7l', 'armv8']
+    X86_ARCHITECTURES = ['x86_64', 'i686', 'i386', 'AMD64']
+
     @patch('api.services.platform.machine')
     def test_is_arm_architecture_detection(self, mock_machine):
-        """Test that _is_arm_architecture helper correctly identifies ARM"""
-        arm_architectures = ['aarch64', 'arm64', 'armv7l', 'armv8']
-        
-        for arch in arm_architectures:
+        """Test that _is_arm_architecture helper correctly identifies ARM architectures"""
+        # Test lowercase ARM architectures
+        for arch in self.ARM_ARCHITECTURES:
             mock_machine.return_value = arch
             self.assertTrue(_is_arm_architecture(), f"Should detect {arch} as ARM")
         
         # Test case-insensitive detection
-        mock_machine.return_value = 'AARCH64'
-        self.assertTrue(_is_arm_architecture(), "Should detect uppercase ARM")
+        for arch in ['AARCH64', 'ARM64', 'AArch64']:
+            mock_machine.return_value = arch
+            self.assertTrue(_is_arm_architecture(), f"Should detect {arch} as ARM (case-insensitive)")
         
-        # Test x86 architectures
-        x86_architectures = ['x86_64', 'i686', 'i386', 'AMD64']
-        for arch in x86_architectures:
+        # Test x86 architectures are not detected as ARM
+        for arch in self.X86_ARCHITECTURES:
             mock_machine.return_value = arch
             self.assertFalse(_is_arm_architecture(), f"Should not detect {arch} as ARM")
 
     @patch('api.services.platform.machine')
-    def test_arm_architecture_detection(self, mock_machine):
-        """Test that ARM architectures are detected correctly"""
-        arm_architectures = ['aarch64', 'arm64', 'armv7l', 'armv8']
-        
-        for arch in arm_architectures:
+    def test_check_cpu_features_on_arm(self, mock_machine):
+        """Test that ARM architectures skip x86 CPU feature checks"""
+        for arch in self.ARM_ARCHITECTURES:
             mock_machine.return_value = arch
             features = check_cpu_features()
             # On ARM, should return empty list as x86 features don't apply
             self.assertEqual(features, [], f"Expected empty list for {arch}")
 
     @patch('api.services.platform.machine')
-    def test_x86_architecture_detection(self, mock_machine):
+    def test_check_cpu_features_on_x86(self, mock_machine):
         """Test that x86 architectures attempt to check CPU features"""
-        x86_architectures = ['x86_64', 'i686', 'i386', 'AMD64']
-        
-        for arch in x86_architectures:
+        for arch in self.X86_ARCHITECTURES:
             mock_machine.return_value = arch
             # Should not return early, will try to import cpuinfo
             # We can't easily test the cpuinfo part without mocking more
@@ -100,16 +99,4 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         result = has_required_cpu_features('llm')
         self.assertTrue(result, "Should be compatible with required features even if missing recommended")
 
-    @patch('api.services.platform.machine')
-    def test_case_insensitive_architecture_detection(self, mock_machine):
-        """Test that architecture detection is case-insensitive"""
-        # Test uppercase ARM
-        mock_machine.return_value = 'AARCH64'
-        features = check_cpu_features()
-        self.assertEqual(features, [], "Should detect uppercase ARM architecture")
-        
-        # Test mixed case
-        mock_machine.return_value = 'AArch64'
-        features = check_cpu_features()
-        self.assertEqual(features, [], "Should detect mixed case ARM architecture")
 
