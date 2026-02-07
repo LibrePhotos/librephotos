@@ -15,8 +15,14 @@ import { useDebouncedValue } from "@mantine/hooks";
 import { IconCurrentLocation, IconSearch } from "@tabler/icons-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import MapGL, { AttributionControl, Marker, MapRef, MarkerDragEvent, MapLayerMouseEvent, NavigationControl } from "react-map-gl/maplibre";
-
+import MapGL, {
+  AttributionControl,
+  MapLayerMouseEvent,
+  MapRef,
+  Marker,
+  MarkerDragEvent,
+  NavigationControl,
+} from "react-map-gl/maplibre";
 import { useGeocodeSearchQuery } from "../../api_client/geocode";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
 
@@ -82,7 +88,9 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
   const handleUseMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setGeolocationError(t("locationpicker.geolocation_not_supported", "Geolocation is not supported by your browser"));
+      setGeolocationError(
+        t("locationpicker.geolocation_not_supported", "Geolocation is not supported by your browser")
+      );
       return;
     }
 
@@ -90,14 +98,14 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
     setGeolocationError(null);
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      pos => {
         const { latitude, longitude } = pos.coords;
         setPosition([latitude, longitude]);
         setIsGeolocating(false);
         // Pan map to the user's location
         mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 13 });
       },
-      (error) => {
+      error => {
         setIsGeolocating(false);
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -121,7 +129,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
   useEffect(() => {
     if (!position && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        pos => {
           const { latitude, longitude } = pos.coords;
           mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 5 });
         },
@@ -133,7 +141,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
     }
   }, []);
 
-  const searchOptions = searchResults?.map((result) => (
+  const searchOptions = searchResults?.map(result => (
     <Combobox.Option value={`${result.lat},${result.lon}`} key={`${result.lat}-${result.lon}`}>
       <Text size="sm" lineClamp={2}>
         {result.display_name}
@@ -146,7 +154,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       <Group gap="xs" align="flex-start">
         <Combobox
           store={combobox}
-          onOptionSubmit={(val) => {
+          onOptionSubmit={val => {
             const [lat, lon] = val.split(",").map(Number);
             handleSelectLocation(lat, lon);
           }}
@@ -155,7 +163,7 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
             <TextInput
               placeholder={t("locationpicker.search_placeholder", "Search for a location...")}
               value={searchValue}
-              onChange={(e) => {
+              onChange={e => {
                 setSearchValue(e.currentTarget.value);
                 combobox.openDropdown();
               }}

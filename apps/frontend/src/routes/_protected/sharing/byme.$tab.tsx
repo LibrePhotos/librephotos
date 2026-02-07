@@ -20,9 +20,9 @@ export function SharedByMe() {
     if (item === "photos") {
       return (
         <Text>
-          {t("sharing.photoSharesWithUsers", { 
-            photoCount: photos.length, 
-            userCount: photos.flatMap(g => g.userId).length 
+          {t("sharing.photoSharesWithUsers", {
+            photoCount: photos.length,
+            userCount: photos.flatMap(g => g.userId).length,
           })}
         </Text>
       );
@@ -36,9 +36,7 @@ export function SharedByMe() {
     <Stack p="md">
       <Group>
         <div>
-          <Title order={2}>
-            {tab === "photos" ? t("sharing.photosYouShared") : t("sharing.albumsYouShared")}
-          </Title>
+          <Title order={2}>{tab === "photos" ? t("sharing.photosYouShared") : t("sharing.albumsYouShared")}</Title>
           <Text c="dimmed" size="sm">
             {getSubHeader(tab)}
           </Text>

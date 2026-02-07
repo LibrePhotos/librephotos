@@ -2,7 +2,6 @@ import { Group, Title } from "@mantine/core";
 import { IconUsers } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { PersonDetail } from "./PersonDetailComponent";
 
@@ -15,16 +14,16 @@ interface PeopleSectionProps {
   notThisPerson: (faceId: number) => void;
 }
 
-export function PeopleSection({ 
-  photoDetail, 
+export function PeopleSection({
+  photoDetail,
   isPublic,
   showTitle = true,
   setFaceLocation,
   onPersonEdit,
-  notThisPerson
+  notThisPerson,
 }: PeopleSectionProps) {
   const { t } = useTranslation();
-  
+
   if (!photoDetail.people || photoDetail.people.length === 0) return null;
 
   return (
@@ -49,4 +48,4 @@ export function PeopleSection({
       </Group>
     </div>
   );
-} 
+}

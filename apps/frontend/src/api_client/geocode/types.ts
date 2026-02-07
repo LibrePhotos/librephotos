@@ -11,4 +11,3 @@ export type GeocodeResult = z.infer<typeof GeocodeResultSchema>;
 export const GeocodeSearchResponseSchema = z.array(GeocodeResultSchema);
 
 export type GeocodeSearchResponse = z.infer<typeof GeocodeSearchResponseSchema>;
-

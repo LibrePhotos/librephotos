@@ -2,7 +2,6 @@ import { Group, Text } from "@mantine/core";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import type { UserAlbumInfo } from "../../api_client/albums/types";
 import { i18nResolvedLanguage } from "../../i18n";
 import { Tile } from "../Tile";
@@ -46,5 +45,3 @@ export function AlbumListItem({ album, showUpdatedTime = false }: AlbumListItemP
     </Group>
   );
 }
-
-

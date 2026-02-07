@@ -2,7 +2,6 @@ import { Table } from "@mantine/core";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
 import { i18nResolvedLanguage } from "../../i18n";
 
 type IJobDuration = Readonly<{

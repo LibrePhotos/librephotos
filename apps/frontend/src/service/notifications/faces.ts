@@ -1,5 +1,4 @@
 import { showNotification } from "@mantine/notifications";
-
 import i18n from "../../i18n";
 
 function trainFaces() {

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import { useWorkerQuery } from "../api_client/jobs/hooks";
 import { JobDetail } from "../api_client/jobs/types";
 
@@ -25,6 +24,6 @@ export function useWorkerStatus() {
     workerRunningJob,
     workerAvailable,
     isLoading,
-    currentData: worker
+    currentData: worker,
   };
 }

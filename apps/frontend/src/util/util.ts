@@ -1,9 +1,8 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 import _ from "lodash";
 import { DateTime } from "luxon";
-
+import type { DirTree } from "../api_client/dir-tree";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../api_client/photos/types";
-import type { DirTree } from "../api_client/dir-tree";  
 import i18n, { i18nResolvedLanguage } from "../i18n";
 
 export const EMAIL_REGEX = /^\w+([-.]?\w+){0,2}(\+?\w+([-.]?\w+){0,2})?@(\w+-?\w+\.){1,9}[a-z]{2,}$/;

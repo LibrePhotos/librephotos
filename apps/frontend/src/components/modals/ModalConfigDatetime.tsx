@@ -12,7 +12,6 @@ import {
 import { IconCirclePlus as CirclePlus, IconSearch as Search } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { fuzzyMatch } from "../../util/util";
 import { getRuleExtraInfo } from "../settings/date-time-settings";
 import type { DateTimeRule } from "../settings/date-time.zod";

@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { z } from 'zod';
-import { Cookies } from 'react-cookie';
-import jwtDecode from 'jwt-decode';
-import { Token } from '..';
+import { useQuery } from "@tanstack/react-query";
+import { jwtDecode } from "jwt-decode";
+import { Cookies } from "react-cookie";
+import { z } from "zod";
+import { Token } from "..";
 
 export const AuthResponse = z.object({
   access: z.object({
@@ -12,18 +12,19 @@ export const AuthResponse = z.object({
   }),
 });
 
-export const AuthQueryKeys = ['auth'] as const;
+export const AuthQueryKeys = ["auth"] as const;
 
-export const useAccessToken = () => useQuery({
+export const useAccessToken = () =>
+  useQuery({
     queryKey: AuthQueryKeys,
     queryFn: async () => {
       const cookies = new Cookies();
-      const accessToken = cookies.get('access');
-      
+      const accessToken = cookies.get("access");
+
       if (!accessToken) {
         return { access: null };
       }
       const decodedToken = jwtDecode<Token>(accessToken);
       return { access: decodedToken };
     },
-  }); 
+  });

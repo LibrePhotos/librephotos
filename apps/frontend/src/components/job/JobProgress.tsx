@@ -12,7 +12,15 @@ type IJobProgress = Readonly<{
   progressStep?: string | null;
 }>;
 
-export function JobProgress({ target = 0, current = 0, finished, failed = false, error, result, progressStep }: IJobProgress) {
+export function JobProgress({
+  target = 0,
+  current = 0,
+  finished,
+  failed = false,
+  error,
+  result,
+  progressStep,
+}: IJobProgress) {
   const { t } = useTranslation();
 
   // Extract error message from result if available
@@ -24,8 +32,8 @@ export function JobProgress({ target = 0, current = 0, finished, failed = false,
   const resultStage = result?.stage ? String(result.stage) : null;
 
   // Use result values as fallback if direct props are not available or are 0
-  const effectiveCurrent = (target && current && target !== 0) ? current : (resultCurrent ?? current);
-  const effectiveTarget = (target && current && target !== 0) ? target : (resultTotal ?? target);
+  const effectiveCurrent = target && current && target !== 0 ? current : (resultCurrent ?? current);
+  const effectiveTarget = target && current && target !== 0 ? target : (resultTotal ?? target);
   const effectiveProgressStep = progressStep || resultStage;
 
   if (effectiveTarget && effectiveCurrent != null && effectiveTarget !== 0 && !finished) {

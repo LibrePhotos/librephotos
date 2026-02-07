@@ -4,11 +4,10 @@ import _ from "lodash";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
-
 import { i18nResolvedLanguage } from "../../i18n";
 import "./ScrollScrubber.css";
-import { ScrollerType, ScrollerData, ScrollerPosition } from "./ScrollScrubberTypes.zod";
-  
+import { ScrollerData, ScrollerPosition, ScrollerType } from "./ScrollScrubberTypes.zod";
+
 type Props = Readonly<{
   type: ScrollerType; // Type of scroller marks to display
   scrollPositions: ScrollerData[]; // Array of positions to show on the scroller (label and Y position on target scrollable area)

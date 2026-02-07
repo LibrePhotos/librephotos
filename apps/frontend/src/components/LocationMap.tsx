@@ -1,7 +1,6 @@
 import { Box, Image, Loader } from "@mantine/core";
 import React, { useMemo, useState } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
-
 import { getAveragedCoordinates } from "../util/util";
 
 const MAP_STYLE = "https://cdn.photoprism.app/maps/default.json";

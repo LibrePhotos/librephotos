@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-
-import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 import { SocialGraph } from "../../../components/charts/SocialGraph";
+import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 
 export const Route = createFileRoute("/_protected/statistics/socialgraph")();
 

@@ -12,7 +12,14 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { IconExternalLink, IconFile, IconLayersLinked, IconPhoto, IconPlayerPlay, IconStack2 } from "@tabler/icons-react";
+import {
+  IconExternalLink,
+  IconFile,
+  IconLayersLinked,
+  IconPhoto,
+  IconPlayerPlay,
+  IconStack2,
+} from "@tabler/icons-react";
 import type { TFunction } from "i18next";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -153,12 +160,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
           <Group gap="xs" justify="space-between">
             <Title order={5}>{t("lightbox.sidebar.stack", "Stack")}</Title>
             <Tooltip label={t("lightbox.sidebar.openStack", "View full stack")}>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="sm"
-                onClick={() => setSelectedStackId(stacks[0].id)}
-              >
+              <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => setSelectedStackId(stacks[0].id)}>
                 <IconExternalLink size={16} />
               </ActionIcon>
             </Tooltip>
@@ -167,11 +169,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
         </Stack>
 
         {selectedStackId && (
-          <StackModal
-            stackId={selectedStackId}
-            opened={!!selectedStackId}
-            onClose={() => setSelectedStackId(null)}
-          />
+          <StackModal stackId={selectedStackId} opened={!!selectedStackId} onClose={() => setSelectedStackId(null)} />
         )}
       </>
     );
@@ -214,7 +212,7 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                         variant="subtle"
                         color="gray"
                         size="xs"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           setSelectedStackId(stack.id);
                         }}
@@ -267,7 +265,9 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
                               }}
                             >
                               <Image
-                                src={stackPhoto.thumbnail_url ? `${serverAddress}${stackPhoto.thumbnail_url}` : undefined}
+                                src={
+                                  stackPhoto.thumbnail_url ? `${serverAddress}${stackPhoto.thumbnail_url}` : undefined
+                                }
                                 alt=""
                                 h={60}
                                 fit="cover"
@@ -285,13 +285,9 @@ export function StackSection({ photoDetail, onPhotoSelect }: StackSectionProps) 
           })}
         </Accordion>
       </Stack>
-      
+
       {selectedStackId && (
-        <StackModal
-          stackId={selectedStackId}
-          opened={!!selectedStackId}
-          onClose={() => setSelectedStackId(null)}
-        />
+        <StackModal stackId={selectedStackId} opened={!!selectedStackId} onClose={() => setSelectedStackId(null)} />
       )}
     </>
   );

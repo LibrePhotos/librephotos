@@ -5,14 +5,13 @@ import debounce from "lodash/debounce";
 import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
-
 import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
 import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util/gridUtils";
 import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
 import { Tile } from "../Tile";
- 
+
 const DAY_HEADER_HEIGHT = 70;
 const SPEED_THRESHOLD = 300;
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;

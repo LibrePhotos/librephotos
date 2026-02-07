@@ -2,30 +2,26 @@ import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import "@mantine/notifications/styles.css";
 import "@mantine/spotlight/styles.css";
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import React from "react";
-import { createRouter, RouterProvider } from '@tanstack/react-router';
-
 import "./App.css";
-
-import { routeTree } from './routeTree.gen'
+import { routeTree } from "./routeTree.gen";
 import "./i18n";
 
 // Set up a Router instance
 const router = createRouter({
   routeTree,
-  defaultPreload: 'intent',
+  defaultPreload: "intent",
   defaultStaleTime: 5000,
   scrollRestoration: true,
-})
+});
 
 // Register things for typesafety
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router
+    router: typeof router;
   }
 }
-
-
 
 export function App() {
   return (

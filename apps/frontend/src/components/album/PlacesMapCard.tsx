@@ -1,11 +1,10 @@
 import { Skeleton, Text } from "@mantine/core";
 import { IconMap } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import type { CircleLayer } from "maplibre-gl";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import MapGL, { Source, Layer } from "react-map-gl/maplibre";
-import type { CircleLayer } from "maplibre-gl";
-
+import MapGL, { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
 import classes from "./PlacesMapCard.module.css";
 
@@ -38,7 +37,7 @@ export function PlacesMapCard() {
       return { type: "FeatureCollection" as const, features: [] };
     }
     const features = locationClusters
-      .filter((loc) => loc[0] !== 0)
+      .filter(loc => loc[0] !== 0)
       .map((loc, idx) => ({
         type: "Feature" as const,
         properties: { name: loc[2], id: idx },
@@ -84,7 +83,9 @@ export function PlacesMapCard() {
       <div className={classes.body}>
         <div className={classes.title}>
           <IconMap size={20} stroke={1.5} />
-          <Text fw={600} size="sm">{t("sidemenu.places")}</Text>
+          <Text fw={600} size="sm">
+            {t("sidemenu.places")}
+          </Text>
         </div>
         <Text size="xs" c="dimmed" mt={4}>
           {t("explore.albumCount", { count })}
@@ -93,9 +94,3 @@ export function PlacesMapCard() {
     </Link>
   );
 }
-
-
-
-
-
-

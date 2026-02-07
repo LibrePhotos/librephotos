@@ -1,6 +1,5 @@
 import type { TFunction } from "i18next";
 import React from "react";
-
 import type { DateTimeRule } from "./date-time.zod";
 
 export function getRuleExtraInfo(rule: DateTimeRule, t: TFunction<"translation", undefined>) {

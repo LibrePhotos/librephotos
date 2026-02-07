@@ -1,15 +1,8 @@
-import {
-  ActionIcon,
-  Badge,
-  Group,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from "@mantine/core";
+import { ActionIcon, Badge, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import "@mantine/tiptap/styles.css";
 import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import Document from "@tiptap/extension-document";
 import Mention from "@tiptap/extension-mention";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -17,16 +10,11 @@ import { Text as TipTapText } from "@tiptap/extension-text";
 import { useEditor } from "@tiptap/react";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
-
-import type { Photo as PhotoType } from "../../api_client/photos/types";
-import { AISuggestionButton } from "./AISuggestionButton";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
-import {
-  useGenerateImageToTextCaptionMutation,
-  useSavePhotoCaptionMutation,
-} from "../../api_client/photos/hooks";
+import { useGenerateImageToTextCaptionMutation, useSavePhotoCaptionMutation } from "../../api_client/photos/hooks";
+import type { Photo as PhotoType } from "../../api_client/photos/types";
 import { fuzzyMatch } from "../../util/util";
+import { AISuggestionButton } from "./AISuggestionButton";
 import "./Hashtag.css";
 import suggestion from "./Suggestion";
 
@@ -45,7 +33,8 @@ export function Description(props: Props) {
   const [editMode, setEditMode] = useState(false);
   const [imageCaption, setImageCaption] = useState<string | null>(null);
   const { mutate: updateCaption } = useSavePhotoCaptionMutation();
-  const { mutate: generateImageToTextCaptions, isPending: generatingCaptionIm2txt } = useGenerateImageToTextCaptionMutation();
+  const { mutate: generateImageToTextCaptions, isPending: generatingCaptionIm2txt } =
+    useGenerateImageToTextCaptionMutation();
 
   const editor = useEditor({
     editable: editMode,
@@ -101,7 +90,8 @@ export function Description(props: Props) {
             <Note />
             <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
           </Group>
-          {photoDetail.captions_json && photoDetail.captions_json.im2txt &&
+          {photoDetail.captions_json &&
+            photoDetail.captions_json.im2txt &&
             editMode &&
             !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
               <div>
@@ -174,7 +164,7 @@ export function Description(props: Props) {
                 variant="light"
                 color="green"
                 onClick={() => {
-                  updateCaption({ id: photoDetail.image_hash, caption: imageCaption || ""   });
+                  updateCaption({ id: photoDetail.image_hash, caption: imageCaption || "" });
                   setEditMode(false);
                 }}
               >
@@ -183,7 +173,7 @@ export function Description(props: Props) {
             </Tooltip>
           </Group>
         )}
-{photoDetail.captions_json.places365 && (
+        {photoDetail.captions_json.places365 && (
           <Stack>
             <Group>
               <Tags />

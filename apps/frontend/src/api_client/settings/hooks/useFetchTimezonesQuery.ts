@@ -13,7 +13,7 @@ export const useFetchTimezonesQuery = () =>
       try {
         const timezones = JSON.parse(response);
         return parseWithNotification(Timezones, timezones, "Failed to parse timezones");
-      } catch (e) {
+      } catch (_e) {
         return [];
       }
     },

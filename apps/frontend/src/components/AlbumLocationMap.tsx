@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl } from "react-map-gl/maplibre";
-
-import { PartialPhotoWithLocation, getAveragedCoordinates } from "../util/util";
+import { getAveragedCoordinates, PartialPhotoWithLocation } from "../util/util";
 
 const MAP_STYLE = "https://cdn.photoprism.app/maps/default.json";
 

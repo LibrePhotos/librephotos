@@ -42,22 +42,14 @@ export function StatisticsNav({ children }: StatisticsNavProps) {
         </div>
       </Group>
 
-      <Tabs
-        value={currentPath}
-        onChange={value => value && navigate({ to: value })}
-        color="yellow"
-        variant="default"
-      >
+      <Tabs value={currentPath} onChange={value => value && navigate({ to: value })} color="yellow" variant="default">
         <Tabs.List mb="md">
           {views.map(view => (
             <Tabs.Tab
               key={view.path}
               value={view.path}
               leftSection={
-                <view.icon
-                  size={18}
-                  color={currentPath === view.path ? "var(--mantine-color-yellow-6)" : undefined}
-                />
+                <view.icon size={18} color={currentPath === view.path ? "var(--mantine-color-yellow-6)" : undefined} />
               }
             >
               {t(view.labelKey)}
@@ -70,4 +62,3 @@ export function StatisticsNav({ children }: StatisticsNavProps) {
     </div>
   );
 }
-

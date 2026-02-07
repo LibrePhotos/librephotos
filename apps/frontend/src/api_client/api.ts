@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { Cookies } from "react-cookie";
 import { notification } from "../service/notifications";
 

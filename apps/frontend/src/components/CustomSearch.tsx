@@ -7,20 +7,22 @@ import {
   IconTag as Tag,
   IconX as X,
 } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import { random } from "lodash";
 import React, { cloneElement, forwardRef, useCallback, useEffect, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useNavigate } from "@tanstack/react-router";
-import { Person, useFetchPeopleAlbumsQuery } from "../api_client/albums/hooks";
-import { useFetchPlacesAlbumsQuery } from "../api_client/albums/hooks";
-import { useFetchThingsAlbumsQuery } from "../api_client/albums/hooks";
-import { useFetchUserAlbumsQuery } from "../api_client/albums/hooks";
+import {
+  Person,
+  useFetchPeopleAlbumsQuery,
+  useFetchPlacesAlbumsQuery,
+  useFetchThingsAlbumsQuery,
+  useFetchUserAlbumsQuery,
+} from "../api_client/albums/hooks";
 import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
 import { fuzzyMatch } from "../util/util";
 
-enum Suggestion { 
+enum Suggestion {
   EXAMPLE,
   PLACE_ALBUM,
   THING_ALBUM,

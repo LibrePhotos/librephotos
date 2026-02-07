@@ -1,7 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { z } from 'zod';
-import { fetchClient } from '../../api';
-
+import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
+import { fetchClient } from "../../api";
 
 export type ScanFacesResponse = z.infer<typeof ScanFacesResponse>;
 export const ScanFacesResponse = z.object({
@@ -12,9 +11,10 @@ export const ScanFacesResponse = z.object({
 
 export const RescanFacesQueryKeys = ["rescanFaces"];
 
-const rescanFaces = () => fetchClient.get<ScanFacesResponse>('/scanfaces')
+const rescanFaces = () => fetchClient.get<ScanFacesResponse>("/scanfaces");
 
-export const useRescanFacesQuery = () => useQuery({
+export const useRescanFacesQuery = () =>
+  useQuery({
     queryKey: [...RescanFacesQueryKeys],
     queryFn: () => rescanFaces(),
-  }); 
+  });

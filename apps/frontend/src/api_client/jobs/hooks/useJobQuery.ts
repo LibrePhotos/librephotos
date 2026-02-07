@@ -12,4 +12,3 @@ export const useJobQuery = (id: number) =>
       return parseWithNotification(JobDetail, response, "Failed to parse job response");
     },
   });
-

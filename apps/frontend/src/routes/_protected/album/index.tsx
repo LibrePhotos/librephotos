@@ -13,7 +13,6 @@ import {
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import {
   useDeleteUserAlbumMutation,
   useFetchAutoAlbumsQuery,
@@ -24,10 +23,10 @@ import {
 } from "../../../api_client/albums/hooks";
 import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks/useFetchFolderAlbumsQuery";
 import { AlbumSection } from "../../../components/album/AlbumSection";
+import classes from "../../../components/album/AlbumSection.module.css";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
-import classes from "../../../components/album/AlbumSection.module.css";
 
 export const Route = createFileRoute("/_protected/album/")();
 
@@ -79,7 +78,7 @@ export function AlbumExplore() {
   };
 
   // Transform albums to AlbumPreview format
-  const peoplePreview = (peopleAlbums ?? []).map((album) => ({
+  const peoplePreview = (peopleAlbums ?? []).map(album => ({
     id: album.id,
     title: album.name,
     photoCount: album.face_count,
@@ -89,7 +88,7 @@ export function AlbumExplore() {
     linkTo: `/album/persons/${album.id}`,
   }));
 
-  const thingsPreview = (thingsAlbums ?? []).map((album) => ({
+  const thingsPreview = (thingsAlbums ?? []).map(album => ({
     id: album.id,
     title: album.title,
     photoCount: album.photo_count,
@@ -98,7 +97,7 @@ export function AlbumExplore() {
     linkTo: `/album/things/${album.id}`,
   }));
 
-  const foldersPreview = folders.map((folder) => ({
+  const foldersPreview = folders.map(folder => ({
     id: folder.path,
     title: folder.name,
     photoCount: folder.photo_count,
@@ -107,7 +106,7 @@ export function AlbumExplore() {
     icon: <IconFolder size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />,
   }));
 
-  const autoAlbumsPreview = (autoAlbums ?? []).map((album) => ({
+  const autoAlbumsPreview = (autoAlbums ?? []).map(album => ({
     id: album.id,
     title: album.title,
     photoCount: album.photo_count,
@@ -130,7 +129,7 @@ export function AlbumExplore() {
         {/* My Albums - using UserAlbumCard component */}
         <div className={classes.section}>
           <div className={classes.header}>
-            <Link to="/album/user" className={classes.headerLeft} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link to="/album/user" className={classes.headerLeft} style={{ textDecoration: "none", color: "inherit" }}>
               <IconBookmark size={24} stroke={1.5} />
               <div>
                 <Title order={4}>{t("sidemenu.myalbums")}</Title>
@@ -138,7 +137,9 @@ export function AlbumExplore() {
                   <Text size="sm" c="dimmed">
                     {t("explore.albumCount", { count: userAlbums?.length ?? 0 })}
                   </Text>
-                  <Text size="sm" c="dimmed">·</Text>
+                  <Text size="sm" c="dimmed">
+                    ·
+                  </Text>
                   <Text size="sm" c="blue">
                     {t("explore.viewAll")}
                   </Text>
@@ -150,7 +151,7 @@ export function AlbumExplore() {
 
           {isLoadingUser ? (
             <div className={classes.loadingContainer}>
-              {[1, 2, 3, 4, 5].map((i) => (
+              {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className={classes.skeleton}>
                   <Skeleton height={140} radius="md" />
                   <Skeleton height={16} mt={8} width="80%" />
@@ -164,7 +165,7 @@ export function AlbumExplore() {
             </div>
           ) : (
             <div className={classes.scrollContainer}>
-              {userAlbums.slice(0, 12).map((album) => (
+              {userAlbums.slice(0, 12).map(album => (
                 <UserAlbumCard
                   key={album.id}
                   album={album}

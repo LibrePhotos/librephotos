@@ -1,11 +1,16 @@
-import { IconFaceId } from "@tabler/icons-react";
 import { RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
+import { IconFaceId } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import _ from "lodash";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FaceAnalysisMethod, FacesTab, useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import {
+  FaceAnalysisMethod,
+  FacesTab,
+  useDeleteFacesMutation,
+  useSetFacesPersonLabelMutation,
+} from "../../api_client/faces";
 import { notification } from "../../service/notifications";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { EmptyState } from "../common/EmptyState";
@@ -92,7 +97,7 @@ export function FaceDashboard() {
   const handleGridScroll = useCallback(
     ({ scrollTop }: { scrollTop: number }) => {
       currentScrollTop.current = scrollTop;
-      
+
       // Clear scrollTo once we've reached the target (for programmatic scrolls)
       if (scrollTo !== null && scrollTop === scrollTo) {
         setScrollTo(null);
@@ -188,8 +193,7 @@ export function FaceDashboard() {
   }, []);
 
   // Check if the current tab has any faces
-  const isFetching =
-    activeTab === FacesTab.enum.labeled ? fetchingLabeledFacesList : fetchingInferredFacesList;
+  const isFetching = activeTab === FacesTab.enum.labeled ? fetchingLabeledFacesList : fetchingInferredFacesList;
   const currentTabList =
     activeTab === FacesTab.enum.labeled
       ? lists.labeled

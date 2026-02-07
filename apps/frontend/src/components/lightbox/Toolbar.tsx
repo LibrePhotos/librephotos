@@ -9,15 +9,18 @@ import {
   IconStar as Star,
   IconTrash as Trash,
 } from "@tabler/icons-react";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { shareAddress } from "../../api_client/apiClient";
-import { useSetFavoritePhotosMutation, useSetPhotosHiddenMutation, useSetPhotosPublicMutation, useMarkPhotosDeletedMutation } from "../../api_client/photos/hooks";
-import { copyToClipboard } from "../../util/util";
+import {
+  useMarkPhotosDeletedMutation,
+  useSetFavoritePhotosMutation,
+  useSetPhotosHiddenMutation,
+  useSetPhotosPublicMutation,
+} from "../../api_client/photos/hooks";
 import { Photo } from "../../api_client/photos/types";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-
+import { copyToClipboard } from "../../util/util";
 
 type Props = Readonly<{
   photosDetail: Photo | null;
@@ -80,16 +83,16 @@ export function Toolbar(props: Props) {
     const handlePublicEvent = () => handlePublicShortcut();
     const handleDeleteEvent = () => handleDeleteShortcut();
 
-    window.addEventListener('lightbox-favorite-shortcut', handleFavoriteEvent);
-    window.addEventListener('lightbox-hide-shortcut', handleHideEvent);
-    window.addEventListener('lightbox-public-shortcut', handlePublicEvent);
-    window.addEventListener('lightbox-delete-shortcut', handleDeleteEvent);
+    window.addEventListener("lightbox-favorite-shortcut", handleFavoriteEvent);
+    window.addEventListener("lightbox-hide-shortcut", handleHideEvent);
+    window.addEventListener("lightbox-public-shortcut", handlePublicEvent);
+    window.addEventListener("lightbox-delete-shortcut", handleDeleteEvent);
 
     return () => {
-      window.removeEventListener('lightbox-favorite-shortcut', handleFavoriteEvent);
-      window.removeEventListener('lightbox-hide-shortcut', handleHideEvent);
-      window.removeEventListener('lightbox-public-shortcut', handlePublicEvent);
-      window.removeEventListener('lightbox-delete-shortcut', handleDeleteEvent);
+      window.removeEventListener("lightbox-favorite-shortcut", handleFavoriteEvent);
+      window.removeEventListener("lightbox-hide-shortcut", handleHideEvent);
+      window.removeEventListener("lightbox-public-shortcut", handlePublicEvent);
+      window.removeEventListener("lightbox-delete-shortcut", handleDeleteEvent);
     };
   }, [handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut, handleDeleteShortcut]);
 
@@ -97,7 +100,7 @@ export function Toolbar(props: Props) {
     if (!photo || !photo.embedded_media || photo.embedded_media.length === 0) {
       return null;
     }
-    
+
     function togglePlay() {
       if (playerPlaying) {
         setPlayerPlaying(false);
@@ -106,7 +109,11 @@ export function Toolbar(props: Props) {
       }
     }
     return (
-      <Tooltip label={playerPlaying ? t("lightbox.toolbar.pauseVideo") : t("lightbox.toolbar.playVideo")} position="bottom" withArrow>
+      <Tooltip
+        label={playerPlaying ? t("lightbox.toolbar.pauseVideo") : t("lightbox.toolbar.playVideo")}
+        position="bottom"
+        withArrow
+      >
         <ActionIcon onClick={() => togglePlay()} variant="transparent">
           {playerPlaying && <Loader color="grey" />}
           {!playerPlaying && playerPlaying ? <PlayerPause /> : <PlayerPlay />}
@@ -134,7 +141,11 @@ export function Toolbar(props: Props) {
       )}
       {playButton(photosDetail)}
       {!isPhotoDetailsLoading && photosDetail && !isPublic && (
-        <Tooltip label={photosDetail.hidden ? t("lightbox.toolbar.showPhoto") : t("lightbox.toolbar.hidePhoto")} position="bottom" withArrow>
+        <Tooltip
+          label={photosDetail.hidden ? t("lightbox.toolbar.showPhoto") : t("lightbox.toolbar.hidePhoto")}
+          position="bottom"
+          withArrow
+        >
           <ActionIcon
             variant="transparent"
             onClick={() => {
@@ -148,7 +159,15 @@ export function Toolbar(props: Props) {
         </Tooltip>
       )}
       {photosDetail && !isPublic && (
-        <Tooltip label={photosDetail.rating >= favoriteMinRating ? t("lightbox.toolbar.removeFromFavorites") : t("lightbox.toolbar.addToFavorites")} position="bottom" withArrow>
+        <Tooltip
+          label={
+            photosDetail.rating >= favoriteMinRating
+              ? t("lightbox.toolbar.removeFromFavorites")
+              : t("lightbox.toolbar.addToFavorites")
+          }
+          position="bottom"
+          withArrow
+        >
           <ActionIcon
             variant="transparent"
             onClick={() => {
@@ -162,23 +181,29 @@ export function Toolbar(props: Props) {
         </Tooltip>
       )}
       {photosDetail && !isPublic && (
-        <Tooltip label={photosDetail.public ? t("lightbox.toolbar.makePrivate") : t("lightbox.toolbar.makePublic")} position="bottom" withArrow>
+        <Tooltip
+          label={photosDetail.public ? t("lightbox.toolbar.makePrivate") : t("lightbox.toolbar.makePublic")}
+          position="bottom"
+          withArrow
+        >
           <ActionIcon
             variant="transparent"
             onClick={() => {
               const { image_hash: imageHash } = photosDetail;
               const val = !photosDetail.public;
               setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
-              copyToClipboard(
-                `${shareAddress}/media/thumbnails_big/${imageHash}`
-              );
+              copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
             }}
           >
             <Globe color={photosDetail.public ? "green" : "grey"} />
           </ActionIcon>
         </Tooltip>
       )}
-      <Tooltip label={lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel")} position="bottom" withArrow>
+      <Tooltip
+        label={lightboxSidebarShow ? t("lightbox.toolbar.hideInfoPanel") : t("lightbox.toolbar.showInfoPanel")}
+        position="bottom"
+        withArrow
+      >
         <ActionIcon onClick={() => closeSidepanel()} variant="transparent">
           <InfoCircle color={lightboxSidebarShow ? "white" : "grey"} />
         </ActionIcon>

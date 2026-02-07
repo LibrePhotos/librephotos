@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Grid, Text, TextInput, Tree } from "@mantine/core";
-
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useFetchDirsQuery } from "../../api_client/folders/hooks";
 import type { DirTree } from "../../api_client/folders/types";
 import { mergeDirTree } from "../../util/util";
@@ -144,4 +143,3 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
     </>
   );
 }
-

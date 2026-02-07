@@ -11,7 +11,6 @@ import {
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import { Trans, useTranslation } from "react-i18next";
-
 import { useFetchCountStatsQuery } from "../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../api_client/stats/types";
 
@@ -152,17 +151,8 @@ export function CountStats() {
             }
           `}
         </style>
-        <UnstyledButton
-          component={Link}
-          to="/statistics"
-          style={{ display: "block", width: "100%" }}
-        >
-          <Card
-            withBorder
-            p="xs"
-            className="dataviz-card"
-            style={{ cursor: "pointer" }}
-          >
+        <UnstyledButton component={Link} to="/statistics" style={{ display: "block", width: "100%" }}>
+          <Card withBorder p="xs" className="dataviz-card" style={{ cursor: "pointer" }}>
             <Group justify="space-between" gap="xs" wrap="nowrap">
               <Group gap="xs">
                 <ChartLine size={40} strokeWidth={1} color="var(--mantine-color-yellow-6)" />

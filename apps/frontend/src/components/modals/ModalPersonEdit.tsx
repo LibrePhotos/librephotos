@@ -16,11 +16,10 @@ import {
 import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
-import { fuzzyMatch } from "../../util/util";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { fuzzyMatch } from "../../util/util";
 
 type Props = Readonly<{
   isOpen: boolean;

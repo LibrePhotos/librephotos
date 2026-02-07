@@ -2,12 +2,10 @@ import { Avatar, Group, Switch, Text, Title } from "@mantine/core";
 import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { useShareUserAlbumMutation } from "../../api_client/albums/hooks";
+import { useFetchUserAlbumQuery, useShareUserAlbumMutation } from "../../api_client/albums/hooks";
 import type { UserAlbum } from "../../api_client/albums/types";
-import { useFetchUserAlbumQuery } from "../../api_client/albums/hooks";
-import { i18nResolvedLanguage } from "../../i18n";
 import type { User } from "../../api_client/user/types";
+import { i18nResolvedLanguage } from "../../i18n";
 
 type UserEntryProps = Readonly<{
   item: User;
@@ -33,7 +31,6 @@ export function UserEntry(props: UserEntryProps) {
   const { t } = useTranslation();
   const { data: albumDetails } = useFetchUserAlbumQuery(albumID);
   const { mutate: shareAlbum } = useShareUserAlbumMutation();
-
 
   return (
     <Group justify="apart" key={user.id}>

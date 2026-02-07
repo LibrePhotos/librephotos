@@ -5,9 +5,9 @@ import { ChunkedUploadButton } from "../ChunkedUploadButton";
 import { SpotlightTrigger } from "../spotlight";
 import { ColorModeSwitch } from "./ColorModeSwitch";
 import { ProfileButton } from "./ProfileButton";
+import classes from "./TopMenu.module.css";
 import { TopMenuLogo } from "./TopMenuLogo";
 import { WorkerIndicator } from "./WorkerIndicator";
-import classes from "./TopMenu.module.css";
 
 export function TopMenu(): React.ReactNode {
   return (

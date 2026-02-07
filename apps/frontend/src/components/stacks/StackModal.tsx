@@ -258,11 +258,7 @@ function StackPhotoCard({
         ) : photo.file_path ? (
           <Tooltip label={photo.file_path} multiline w={300}>
             <Group gap="xs" wrap="nowrap">
-              <Badge
-                size="xs"
-                variant="outline"
-                color={getFileTypeColor(photo.file_type, photo.file_path)}
-              >
+              <Badge size="xs" variant="outline" color={getFileTypeColor(photo.file_type, photo.file_path)}>
                 {getFileTypeDisplay(photo.file_type, photo.file_path)}
               </Badge>
               <Text size="xs" c="dimmed" truncate style={{ flex: 1 }}>
