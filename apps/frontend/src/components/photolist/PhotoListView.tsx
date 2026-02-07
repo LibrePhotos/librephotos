@@ -640,7 +640,7 @@ function PhotoListViewComponent({
                         if (actionType === "person") {
                           setPersonAlbumCover.mutate({
                             id: `${params.albumID}`,
-                            cover_photo: selectionState.selectedItems[0].id,
+                            cover_photo: selectionState.selectedItems[0].image_hash,
                           });
                         }
                         if (actionType === "useralbum") {
@@ -763,7 +763,7 @@ function PhotoListViewComponent({
           onRequestClose={() => {
             setModalSharePhotosOpen(false);
           }}
-          selectedImageHashes={selectionState.selectedItems.map(i => i.id)}
+          selectedImageHashes={selectionState.selectedItems.map(i => i.image_hash)}
           selectAllMode={selectionState.selectAllMode}
           selectAllQuery={selectionState.selectAllQuery}
         />

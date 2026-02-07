@@ -44,7 +44,7 @@ export function AlbumEditModal(props: Props) {
               className={classes.tile}
               height={40}
               width={40}
-              image_hash={image.id}
+              image_hash={image.image_hash}
               video={image.type === "video"}
             />
           ))}

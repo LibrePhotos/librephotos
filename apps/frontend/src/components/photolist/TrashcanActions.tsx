@@ -1,11 +1,10 @@
-import { ActionIcon, Button, Group, Modal, Stack, Text, Title, Space, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Space, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { IconArrowBackUp as ArrowBackUp, IconTrash as Trash } from "@tabler/icons-react";
+import { useLocation } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useLocation } from "@tanstack/react-router";
-import { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useMarkPhotosDeletedMutation, usePurgeDeletedPhotosMutation } from "../../api_client/photos/hooks";
+import { BulkPhotoQuery } from "../../api_client/photos/types";
 
 type Props = {
   selectedItems: any[];
@@ -28,9 +27,7 @@ export function TrashcanActions(props: Readonly<Props>) {
   };
 
   // Helper to get excluded hashes for selectAll mode
-  const getExcludedHashes = () => {
-    return selectedItems.map(i => i.id);
-  };
+  const getExcludedHashes = () => selectedItems.map(i => i.image_hash);
 
   // Calculate the actual selected count
   const getSelectedCount = () => {
@@ -63,7 +60,7 @@ export function TrashcanActions(props: Readonly<Props>) {
       );
     } else {
       purgeDeletedPhotos.mutate(
-        { image_hashes: selectedItems.map(i => i.id) },
+        { image_hashes: selectedItems.map(i => i.image_hash) },
         {
           onSuccess: () => {
             updateSelectionState({
@@ -87,9 +84,9 @@ export function TrashcanActions(props: Readonly<Props>) {
     <Group>
       {location.pathname.startsWith("/deleted") && (
         <>
-          <Tooltip 
-            label={selectedCount === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count: selectedCount })} 
-            position="bottom" 
+          <Tooltip
+            label={selectedCount === 1 ? t("trash.restorePhoto") : t("trash.restorePhotos", { count: selectedCount })}
+            position="bottom"
             withArrow
           >
             <ActionIcon
@@ -120,7 +117,7 @@ export function TrashcanActions(props: Readonly<Props>) {
                 } else {
                   markPhotosDeleted.mutate(
                     {
-                      image_hashes: selectedItems.map(i => i.id),
+                      image_hashes: selectedItems.map(i => i.image_hash),
                       deleted: false,
                     },
                     {
@@ -140,10 +137,14 @@ export function TrashcanActions(props: Readonly<Props>) {
               <ArrowBackUp />
             </ActionIcon>
           </Tooltip>
-          
-          <Tooltip 
-            label={selectedCount === 1 ? t("trash.deletePermanently") : t("trash.deletePhotosPermanently", { count: selectedCount })} 
-            position="bottom" 
+
+          <Tooltip
+            label={
+              selectedCount === 1
+                ? t("trash.deletePermanently")
+                : t("trash.deletePhotosPermanently", { count: selectedCount })
+            }
+            position="bottom"
             withArrow
           >
             <ActionIcon
@@ -160,10 +161,10 @@ export function TrashcanActions(props: Readonly<Props>) {
           </Tooltip>
         </>
       )}
-      
-      <Modal 
-        opened={openDeleteDialog} 
-        onClose={closeDialog} 
+
+      <Modal
+        opened={openDeleteDialog}
+        onClose={closeDialog}
         centered
         size="md"
         title={
@@ -176,24 +177,18 @@ export function TrashcanActions(props: Readonly<Props>) {
         }
       >
         <Stack>
-          <Text size="sm">
-            {t("trash.permanentDeleteWarning", { count: selectedCount })}
-          </Text>
-          
+          <Text size="sm">{t("trash.permanentDeleteWarning", { count: selectedCount })}</Text>
+
           <Text size="sm" c="red" fw={500}>
             {t("adminarea.cannotbeundone")}
           </Text>
-          
+
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
             <Button variant="default" onClick={closeDialog}>
               {t("cancel")}
             </Button>
             <Space w="md" />
-            <Button 
-              color="red" 
-              onClick={handlePermanentDelete}
-              leftSection={<Trash size={16} />}
-            >
+            <Button color="red" onClick={handlePermanentDelete} leftSection={<Trash size={16} />}>
               {t("delete")}
             </Button>
           </div>
