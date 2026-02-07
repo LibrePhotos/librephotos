@@ -30,7 +30,9 @@ def build_social_graph(user):
             G.add_edge(link[0], link[1])
     pos = nx.spring_layout(G, k=1 / 2, scale=1000, iterations=20)
     return {
-        "nodes": [{"id": node, "x": pos[0], "y": pos[1]} for node, pos in pos.items()],
+        "nodes": [
+            {"id": node, "x": coords[0], "y": coords[1]} for node, coords in pos.items()
+        ],
         "links": [{"source": pair[0], "target": pair[1]} for pair in G.edges()],
     }
 
