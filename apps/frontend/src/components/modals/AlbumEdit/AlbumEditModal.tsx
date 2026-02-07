@@ -67,7 +67,7 @@ export function AlbumEditModal(props: Props) {
             onClick={() => {
               createUserAlbum.mutate({
                 title: newAlbumTitle,
-                photos: selectedImages.map(i => i.image_hash),
+                photos: selectedImages.map(i => i.id),
               });
               onRequestClose();
               setNewAlbumTitle("");
@@ -91,7 +91,7 @@ export function AlbumEditModal(props: Props) {
                   addPhotoToUserAlbum.mutate({
                     id: `${item.id}`,
                     title: item.title,
-                    photos: selectedImages.map(i => i.image_hash),
+                    photos: selectedImages.map(i => i.id),
                   });
                   onRequestClose();
                 }}

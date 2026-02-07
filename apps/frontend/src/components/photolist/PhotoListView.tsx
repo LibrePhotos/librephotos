@@ -646,7 +646,7 @@ function PhotoListViewComponent({
                         if (actionType === "useralbum") {
                           setUserAlbumCover.mutate({
                             id: `${params.albumID}`,
-                            photo: selectionState.selectedItems[0].image_hash,
+                            photo: selectionState.selectedItems[0].id,
                           });
                         }
                       } else if (selectionState.selectedItems.length === 0) {
