@@ -17,6 +17,7 @@ from api.stats import (
 
 from api.face_classify import cluster_faces
 from api.social_graph import build_social_graph
+from api.util import logger
 
 
 class ClusterFaceView(APIView):
@@ -37,8 +38,14 @@ class ClusterFaceView(APIView):
 
 class SocialGraphView(APIView):
     def get(self, request, format=None):
-        res = build_social_graph(request.user)
-        return Response(res)
+        try:
+            res = build_social_graph(request.user)
+            return Response(res)
+        except Exception as e:
+            logger.exception(
+                f"Error in SocialGraphView for user {request.user.id}: {e}"
+            )
+            return Response({"error": "Failed to build social graph"}, status=500)
 
 
 class ServerLogsView(APIView):
