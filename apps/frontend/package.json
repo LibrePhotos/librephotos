@@ -149,5 +149,35 @@
   },
   "resolutions": {
     "react-i18next": "^15.7.4"
+  },
+  "overrides": {
+    "react-d3-graph": {
+      "react": "$react"
+    },
+    "react-vis": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "react-motion": {
+      "react": "$react"
+    },
+    "eslint-config-airbnb": {
+      "eslint": "$eslint",
+      "eslint-plugin-react-hooks": "$eslint-plugin-react-hooks"
+    },
+    "eslint-config-airbnb-base": {
+      "eslint": "$eslint"
+    },
+    "eslint-config-airbnb-typescript": {
+      "eslint": "$eslint",
+      "@typescript-eslint/eslint-plugin": "$@typescript-eslint/eslint-plugin",
+      "@typescript-eslint/parser": "$@typescript-eslint/parser"
+    },
+    "eslint-config-node": {
+      "eslint": "$eslint"
+    },
+    "eslint-config-recommended": {
+      "eslint": "$eslint"
+    }
   }
 }
