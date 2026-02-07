@@ -12,7 +12,7 @@ def build_social_graph(user):
                 SELECT photo_id, person_id, name, owner_id
                 FROM api_face
                 JOIN api_person ON api_person.id = person_id
-                JOIN api_photo ON api_photo.image_hash = photo_id
+                JOIN api_photo ON api_photo.id = photo_id
                 WHERE person_id IS NOT NULL
                     AND owner_id = {}
             )
