@@ -769,12 +769,12 @@
   resolved "https://registry.npmjs.org/@eslint-community/regexpp/-/regexpp-4.12.1.tgz"
   integrity sha512-CCZCDJuduB9OUkFkY2IgppNZMi2lBQgD2qzwXkEia16cge2pijY/aXi96CJMquDMn3nJdlPV1A5KrJEXwfLNzQ==
 
-"@eslint/compat@^1.1.1":
-  version "1.4.0"
-  resolved "https://registry.npmjs.org/@eslint/compat/-/compat-1.4.0.tgz"
-  integrity sha512-DEzm5dKeDBPm3r08Ixli/0cmxr8LkRdwxMRUIJBlSCpAwSrvFEJpVBzV+66JhDxiaqKxnRzCXhtiMiczF7Hglg==
+"@eslint/compat@^1.4.1":
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@eslint/compat/-/compat-1.4.1.tgz#81eaabb3e0b080350582c1a8092a2d355fabf03e"
+  integrity sha512-cfO82V9zxxGBxcQDr1lfaYB7wykTa0b00mGa36FrJl7iTFd0Z2cHfEYuxcBRP/iNijCsWsEkA+jzT8hGYmv33w==
   dependencies:
-    "@eslint/core" "^0.16.0"
+    "@eslint/core" "^0.17.0"
 
 "@eslint/config-array@^0.21.1":
   version "0.21.1"
@@ -796,6 +796,13 @@
   version "0.16.0"
   resolved "https://registry.npmjs.org/@eslint/core/-/core-0.16.0.tgz"
   integrity sha512-nmC8/totwobIiFcGkDza3GIKfAw1+hLiYVrh3I1nIomQ8PEr5cxg34jnkmGawul/ep52wGRAcyeDCNtWKSOj4Q==
+  dependencies:
+    "@types/json-schema" "^7.0.15"
+
+"@eslint/core@^0.17.0":
+  version "0.17.0"
+  resolved "https://registry.yarnpkg.com/@eslint/core/-/core-0.17.0.tgz#77225820413d9617509da9342190a2019e78761c"
+  integrity sha512-yL/sLrpmtDaFEiUj1osRP4TI2MDz1AddJL+jZ7KSqvBuliN4xqYY54IfdN8qD8Toa6g1iloph1fxQNkjOxrrpQ==
   dependencies:
     "@types/json-schema" "^7.0.15"
 
@@ -829,10 +836,15 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@eslint/js@9.38.0", "@eslint/js@^9.7.0":
+"@eslint/js@9.38.0":
   version "9.38.0"
   resolved "https://registry.npmjs.org/@eslint/js/-/js-9.38.0.tgz"
   integrity sha512-UZ1VpFvXf9J06YG9xQBdnzU+kthors6KjhMAl6f4gH4usHyh31rUf2DLGInT8RFYIReYXNSydgPY0V2LuWgl7A==
+
+"@eslint/js@^9.39.2":
+  version "9.39.2"
+  resolved "https://registry.yarnpkg.com/@eslint/js/-/js-9.39.2.tgz#2d4b8ec4c3ea13c1b3748e0c97ecd766bdd80599"
+  integrity sha512-q1mjIoW1VX4IvSocvM/vbTiveKC4k9eLrajNEuSsmjymSDEbpGddtpfOoN7YGAqBK3NG+uqo8ia4PDTt8buCYA==
 
 "@eslint/object-schema@^2.1.7":
   version "2.1.7"
@@ -1686,10 +1698,10 @@
   resolved "https://registry.npmjs.org/@tabler/icons/-/icons-2.47.0.tgz"
   integrity sha512-4w5evLh+7FUUiA1GucvGj2ReX2TvOjEr4ejXdwL/bsjoSkof6r1gQmzqI+VHrE2CpJpB3al7bCTulOkFa/RcyA==
 
-"@tabler/icons@3.35.0":
-  version "3.35.0"
-  resolved "https://registry.npmjs.org/@tabler/icons/-/icons-3.35.0.tgz"
-  integrity sha512-yYXe+gJ56xlZFiXwV9zVoe3FWCGuZ/D7/G4ZIlDtGxSx5CGQK110wrnT29gUj52kEZoxqF7oURTk97GQxELOFQ==
+"@tabler/icons@^3.36.1":
+  version "3.36.1"
+  resolved "https://registry.yarnpkg.com/@tabler/icons/-/icons-3.36.1.tgz#a893104b3c56e02458b13342abb6e466d4a81a8d"
+  integrity sha512-f4Jg3Fof/Vru5ioix/UO4GX+sdDsF9wQo47FbtvG+utIYYVQ/QVAC0QYgcBbAjQGfbdOh2CCf0BgiFOF9Ixtjw==
 
 "@tanstack/history@1.154.14":
   version "1.154.14"
@@ -5104,10 +5116,10 @@ globals@^15.11.0:
   resolved "https://registry.npmjs.org/globals/-/globals-15.15.0.tgz"
   integrity sha512-7ACyT3wmyp3I61S4fG682L0VA2RGD9otkqGJIwNUMF1SWUombIIk+af1unuDYgMm082aHYwD+mzJvv9Iu8dsgg==
 
-globals@^16.0.0:
-  version "16.5.0"
-  resolved "https://registry.npmjs.org/globals/-/globals-16.5.0.tgz"
-  integrity sha512-c/c15i26VrJ4IRt5Z89DnIzCGDn9EcebibhAOjw5ibqEHsE1wLUgkPn9RDmNcUKyU87GeaL633nyJ+pplFR2ZQ==
+globals@^17.3.0:
+  version "17.3.0"
+  resolved "https://registry.yarnpkg.com/globals/-/globals-17.3.0.tgz#8b96544c2fa91afada02747cc9731c002a96f3b9"
+  integrity sha512-yMqGUQVVCkD4tqjOJf3TnrvaaHDMYp4VlUSObbkIiuCPe/ofdMBFIAcBbCSRFWOnos6qRiTVStDwqPLUclaxIw==
 
 globalthis@^1.0.4:
   version "1.0.4"
