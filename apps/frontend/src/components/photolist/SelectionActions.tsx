@@ -93,17 +93,10 @@ export function SelectionActions(props: Readonly<Props>) {
   };
 
   // Helper to get valid image hashes (filter out temp items for non-selectAll mode)
-  const getImageHashes = () =>
-    selectedItems
-      .filter(i => !i.isTemp)
-      .map(i => {
-        // Use image_hash if available (PigPhoto type), otherwise fall back to id
-        const photo = i as unknown as { image_hash?: string };
-        return photo.image_hash || i.id;
-      });
+  const getImageHashes = () => selectedItems.filter(i => !i.isTemp).map(i => i.image_hash);
 
   // Helper to get excluded hashes for selectAll mode
-  const getExcludedHashes = () => selectedItems.map(i => i.id);
+  const getExcludedHashes = () => selectedItems.map(i => i.image_hash);
 
   // Helper to get manual stacks from selected photos
   const getManualStacksFromSelection = (): Array<{ stackId: string; photoHash: string }> => {
