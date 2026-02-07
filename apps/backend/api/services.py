@@ -1,3 +1,4 @@
+import platform
 import subprocess
 import time
 from datetime import timedelta
@@ -124,9 +125,29 @@ def stop_service(service):
         return False
 
 
+def _is_arm_architecture():
+    """Check if the current system is running on ARM architecture
+    
+    Returns:
+        bool: True if ARM architecture, False otherwise
+    """
+    machine = platform.machine().lower()
+    return machine in ['aarch64', 'arm64', 'armv7l', 'armv8']
+
+
 def check_cpu_features():
-    """Check for CPU instruction sets for various services"""
-    # Features to check for
+    """Check for CPU instruction sets for various services
+    
+    Note: x86/x64-specific instruction sets (AVX, SSE, etc.) only apply to x86/x64 CPUs.
+    On ARM architectures, these checks are skipped as they are not relevant.
+    """
+    # Check if we're on ARM architecture
+    if _is_arm_architecture():
+        machine = platform.machine()
+        logger.info(f"Detected ARM architecture ({machine}), skipping x86-specific CPU feature checks")
+        return []  # Return empty list as x86 features don't apply to ARM
+    
+    # Features to check for (x86/x64 specific)
     features_to_check = ["avx", "avx2", "sse4_2", "fma", "f16c"]
     available_features = []
 
@@ -146,9 +167,19 @@ def check_cpu_features():
 
 
 def has_required_cpu_features(service):
-    """Check if CPU has required features for a specific service"""
+    """Check if CPU has required features for a specific service
+    
+    On ARM architectures, x86-specific CPU checks are bypassed since those
+    instruction sets don't exist on ARM. Services like llama.cpp support ARM natively.
+    """
     if service not in SERVICE_CPU_REQUIREMENTS:
         return True  # No CPU requirements for this service
+
+    # Check if we're on ARM architecture
+    if _is_arm_architecture():
+        machine = platform.machine()
+        logger.info(f"Running on ARM architecture ({machine}), skipping x86-specific CPU feature requirements for {service}")
+        return True  # Skip x86-specific checks on ARM
 
     requirements = SERVICE_CPU_REQUIREMENTS[service]
     required_features = requirements.get("required", [])
