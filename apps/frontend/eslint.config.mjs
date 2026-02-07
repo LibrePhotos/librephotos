@@ -52,6 +52,24 @@ export default [
     },
 
     rules: {
+      // Disable @typescript-eslint rules removed in v8 (moved to @stylistic)
+      // that are still referenced by eslint-config-airbnb-typescript
+      "@typescript-eslint/brace-style": "off",
+      "@typescript-eslint/comma-dangle": "off",
+      "@typescript-eslint/comma-spacing": "off",
+      "@typescript-eslint/func-call-spacing": "off",
+      "@typescript-eslint/indent": "off",
+      "@typescript-eslint/keyword-spacing": "off",
+      "@typescript-eslint/lines-between-class-members": "off",
+      "@typescript-eslint/no-extra-parens": "off",
+      "@typescript-eslint/no-extra-semi": "off",
+      "@typescript-eslint/no-throw-literal": "off",
+      "@typescript-eslint/object-curly-spacing": "off",
+      "@typescript-eslint/quotes": "off",
+      "@typescript-eslint/semi": "off",
+      "@typescript-eslint/space-before-blocks": "off",
+      "@typescript-eslint/space-before-function-paren": "off",
+      "@typescript-eslint/space-infix-ops": "off",
       "no-nested-ternary": "off",
       "import/prefer-default-export": "off",
       "import/no-named-as-default": "off",
