@@ -125,6 +125,16 @@ def stop_service(service):
         return False
 
 
+def _is_arm_architecture():
+    """Check if the current system is running on ARM architecture
+    
+    Returns:
+        bool: True if ARM architecture, False otherwise
+    """
+    machine = platform.machine().lower()
+    return machine in ['aarch64', 'arm64', 'armv7l', 'armv8']
+
+
 def check_cpu_features():
     """Check for CPU instruction sets for various services
     
@@ -132,10 +142,8 @@ def check_cpu_features():
     On ARM architectures, these checks are skipped as they are not relevant.
     """
     # Check if we're on ARM architecture
-    machine = platform.machine().lower()
-    is_arm = machine in ['aarch64', 'arm64', 'armv7l', 'armv8']
-    
-    if is_arm:
+    if _is_arm_architecture():
+        machine = platform.machine()
         logger.info(f"Detected ARM architecture ({machine}), skipping x86-specific CPU feature checks")
         return []  # Return empty list as x86 features don't apply to ARM
     
@@ -168,10 +176,8 @@ def has_required_cpu_features(service):
         return True  # No CPU requirements for this service
 
     # Check if we're on ARM architecture
-    machine = platform.machine().lower()
-    is_arm = machine in ['aarch64', 'arm64', 'armv7l', 'armv8']
-    
-    if is_arm:
+    if _is_arm_architecture():
+        machine = platform.machine()
         logger.info(f"Running on ARM architecture ({machine}), skipping x86-specific CPU feature requirements for {service}")
         return True  # Skip x86-specific checks on ARM
 

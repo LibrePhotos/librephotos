@@ -2,11 +2,30 @@
 import unittest
 from unittest.mock import patch
 
-from api.services import check_cpu_features, has_required_cpu_features
+from api.services import check_cpu_features, has_required_cpu_features, _is_arm_architecture
 
 
 class TestServiceCPUCompatibility(unittest.TestCase):
     """Test CPU feature detection and compatibility checks"""
+
+    @patch('api.services.platform.machine')
+    def test_is_arm_architecture_detection(self, mock_machine):
+        """Test that _is_arm_architecture helper correctly identifies ARM"""
+        arm_architectures = ['aarch64', 'arm64', 'armv7l', 'armv8']
+        
+        for arch in arm_architectures:
+            mock_machine.return_value = arch
+            self.assertTrue(_is_arm_architecture(), f"Should detect {arch} as ARM")
+        
+        # Test case-insensitive detection
+        mock_machine.return_value = 'AARCH64'
+        self.assertTrue(_is_arm_architecture(), "Should detect uppercase ARM")
+        
+        # Test x86 architectures
+        x86_architectures = ['x86_64', 'i686', 'i386', 'AMD64']
+        for arch in x86_architectures:
+            mock_machine.return_value = arch
+            self.assertFalse(_is_arm_architecture(), f"Should not detect {arch} as ARM")
 
     @patch('api.services.platform.machine')
     def test_arm_architecture_detection(self, mock_machine):
@@ -93,3 +112,4 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         mock_machine.return_value = 'AArch64'
         features = check_cpu_features()
         self.assertEqual(features, [], "Should detect mixed case ARM architecture")
+
