@@ -8,1029 +8,1015 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as PublicRouteRouteImport } from './routes/public/route'
-import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
-import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
-import { Route as PublicUsersRouteImport } from './routes/public/$users'
-import { Route as ProtectedVideosRouteImport } from './routes/_protected/videos'
-import { Route as ProtectedStacksRouteImport } from './routes/_protected/stacks'
-import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
-import { Route as ProtectedRecentRouteImport } from './routes/_protected/recent'
-import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
-import { Route as ProtectedPhotosRouteImport } from './routes/_protected/photos'
-import { Route as ProtectedNotimestampRouteImport } from './routes/_protected/notimestamp'
-import { Route as ProtectedLibraryRouteImport } from './routes/_protected/library'
-import { Route as ProtectedHiddenRouteImport } from './routes/_protected/hidden'
-import { Route as ProtectedFavoritesRouteImport } from './routes/_protected/favorites'
-import { Route as ProtectedFacesRouteImport } from './routes/_protected/faces'
-import { Route as ProtectedDeletedRouteImport } from './routes/_protected/deleted'
-import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
-import { Route as ProtectedStatisticsIndexRouteImport } from './routes/_protected/statistics/index'
-import { Route as ProtectedSharingIndexRouteImport } from './routes/_protected/sharing/index'
-import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
-import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
-import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
-import { Route as ProtectedStatisticsWordcloudsRouteImport } from './routes/_protected/statistics/wordclouds'
-import { Route as ProtectedStatisticsTimelineRouteImport } from './routes/_protected/statistics/timeline'
-import { Route as ProtectedStatisticsSocialgraphRouteImport } from './routes/_protected/statistics/socialgraph'
-import { Route as ProtectedStatisticsPlacetreeRouteImport } from './routes/_protected/statistics/placetree'
-import { Route as ProtectedStatisticsFaceclustersRouteImport } from './routes/_protected/statistics/faceclusters'
-import { Route as ProtectedSharingPublicRouteImport } from './routes/_protected/sharing/public'
-import { Route as ProtectedSharingLinksRouteImport } from './routes/_protected/sharing/links'
-import { Route as ProtectedSearchQueryRouteImport } from './routes/_protected/search.$query'
-import { Route as ProtectedPhotoIdRouteImport } from './routes/_protected/photo.$id'
-import { Route as ProtectedOrganizingTabRouteImport } from './routes/_protected/organizing.$tab'
-import { Route as ProtectedAlbumUserIndexRouteImport } from './routes/_protected/album/user.index'
-import { Route as ProtectedAlbumThingsIndexRouteImport } from './routes/_protected/album/things.index'
-import { Route as ProtectedAlbumPlacesIndexRouteImport } from './routes/_protected/album/places.index'
-import { Route as ProtectedAlbumPersonsIndexRouteImport } from './routes/_protected/album/persons.index'
-import { Route as ProtectedAlbumFolderIndexRouteImport } from './routes/_protected/album/folder.index'
-import { Route as ProtectedAlbumEventsIndexRouteImport } from './routes/_protected/album/events.index'
-import { Route as ProtectedSharingWithmeTabRouteImport } from './routes/_protected/sharing/withme.$tab'
-import { Route as ProtectedSharingBymeTabRouteImport } from './routes/_protected/sharing/byme.$tab'
-import { Route as ProtectedAlbumUserIdRouteImport } from './routes/_protected/album/user.$id'
-import { Route as ProtectedAlbumThingsIdRouteImport } from './routes/_protected/album/things.$id'
-import { Route as ProtectedAlbumPlacesIdRouteImport } from './routes/_protected/album/places.$id'
-import { Route as ProtectedAlbumPersonsIdRouteImport } from './routes/_protected/album/persons.$id'
-import { Route as ProtectedAlbumFolderIdRouteImport } from './routes/_protected/album/folder.$id'
-import { Route as ProtectedAlbumEventsIdRouteImport } from './routes/_protected/album/events.$id'
-import { Route as ProtectedAdminJobIdRouteImport } from './routes/_protected/admin/job.$id'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as ProtectedAdminRouteImport } from "./routes/_protected/admin";
+import { Route as ProtectedAdminIndexRouteImport } from "./routes/_protected/admin/index";
+import { Route as ProtectedAdminJobIdRouteImport } from "./routes/_protected/admin/job.$id";
+import { Route as ProtectedAlbumEventsIdRouteImport } from "./routes/_protected/album/events.$id";
+import { Route as ProtectedAlbumEventsIndexRouteImport } from "./routes/_protected/album/events.index";
+import { Route as ProtectedAlbumFolderIdRouteImport } from "./routes/_protected/album/folder.$id";
+import { Route as ProtectedAlbumFolderIndexRouteImport } from "./routes/_protected/album/folder.index";
+import { Route as ProtectedAlbumIndexRouteImport } from "./routes/_protected/album/index";
+import { Route as ProtectedAlbumPersonsIdRouteImport } from "./routes/_protected/album/persons.$id";
+import { Route as ProtectedAlbumPersonsIndexRouteImport } from "./routes/_protected/album/persons.index";
+import { Route as ProtectedAlbumPlacesIdRouteImport } from "./routes/_protected/album/places.$id";
+import { Route as ProtectedAlbumPlacesIndexRouteImport } from "./routes/_protected/album/places.index";
+import { Route as ProtectedAlbumThingsIdRouteImport } from "./routes/_protected/album/things.$id";
+import { Route as ProtectedAlbumThingsIndexRouteImport } from "./routes/_protected/album/things.index";
+import { Route as ProtectedAlbumUserIdRouteImport } from "./routes/_protected/album/user.$id";
+import { Route as ProtectedAlbumUserIndexRouteImport } from "./routes/_protected/album/user.index";
+import { Route as ProtectedDeletedRouteImport } from "./routes/_protected/deleted";
+import { Route as ProtectedFacesRouteImport } from "./routes/_protected/faces";
+import { Route as ProtectedFavoritesRouteImport } from "./routes/_protected/favorites";
+import { Route as ProtectedHiddenRouteImport } from "./routes/_protected/hidden";
+import { Route as ProtectedIndexRouteImport } from "./routes/_protected/index";
+import { Route as ProtectedLibraryRouteImport } from "./routes/_protected/library";
+import { Route as ProtectedNotimestampRouteImport } from "./routes/_protected/notimestamp";
+import { Route as ProtectedOrganizingTabRouteImport } from "./routes/_protected/organizing.$tab";
+import { Route as ProtectedPhotoIdRouteImport } from "./routes/_protected/photo.$id";
+import { Route as ProtectedPhotosRouteImport } from "./routes/_protected/photos";
+import { Route as ProtectedProfileRouteImport } from "./routes/_protected/profile";
+import { Route as ProtectedRecentRouteImport } from "./routes/_protected/recent";
+import { Route as ProtectedRouteRouteImport } from "./routes/_protected/route";
+import { Route as ProtectedSearchQueryRouteImport } from "./routes/_protected/search.$query";
+import { Route as ProtectedSettingsRouteImport } from "./routes/_protected/settings";
+import { Route as ProtectedSharingBymeTabRouteImport } from "./routes/_protected/sharing/byme.$tab";
+import { Route as ProtectedSharingIndexRouteImport } from "./routes/_protected/sharing/index";
+import { Route as ProtectedSharingLinksRouteImport } from "./routes/_protected/sharing/links";
+import { Route as ProtectedSharingPublicRouteImport } from "./routes/_protected/sharing/public";
+import { Route as ProtectedSharingWithmeTabRouteImport } from "./routes/_protected/sharing/withme.$tab";
+import { Route as ProtectedStacksRouteImport } from "./routes/_protected/stacks";
+import { Route as ProtectedStatisticsFaceclustersRouteImport } from "./routes/_protected/statistics/faceclusters";
+import { Route as ProtectedStatisticsIndexRouteImport } from "./routes/_protected/statistics/index";
+import { Route as ProtectedStatisticsPlacetreeRouteImport } from "./routes/_protected/statistics/placetree";
+import { Route as ProtectedStatisticsSocialgraphRouteImport } from "./routes/_protected/statistics/socialgraph";
+import { Route as ProtectedStatisticsTimelineRouteImport } from "./routes/_protected/statistics/timeline";
+import { Route as ProtectedStatisticsWordcloudsRouteImport } from "./routes/_protected/statistics/wordclouds";
+import { Route as ProtectedVideosRouteImport } from "./routes/_protected/videos";
+import { Route as LoginRouteImport } from "./routes/login";
+import { Route as PublicUsersRouteImport } from "./routes/public/$users";
+import { Route as PublicRouteRouteImport } from "./routes/public/route";
+import { Route as PublicSSlugRouteImport } from "./routes/public/s.$slug";
+import { Route as SignupRouteImport } from "./routes/signup";
 
 const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+  id: "/signup",
+  path: "/signup",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PublicRouteRoute = PublicRouteRouteImport.update({
-  id: '/public',
-  path: '/public',
+  id: "/public",
+  path: "/public",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
-  id: '/_protected',
+  id: "/_protected",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const PublicUsersRoute = PublicUsersRouteImport.update({
-  id: '/$users',
-  path: '/$users',
+  id: "/$users",
+  path: "/$users",
   getParentRoute: () => PublicRouteRoute,
-} as any)
+} as any);
 const ProtectedVideosRoute = ProtectedVideosRouteImport.update({
-  id: '/videos',
-  path: '/videos',
+  id: "/videos",
+  path: "/videos",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedStacksRoute = ProtectedStacksRouteImport.update({
-  id: '/stacks',
-  path: '/stacks',
+  id: "/stacks",
+  path: "/stacks",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+  id: "/settings",
+  path: "/settings",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedRecentRoute = ProtectedRecentRouteImport.update({
-  id: '/recent',
-  path: '/recent',
+  id: "/recent",
+  path: "/recent",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedProfileRoute = ProtectedProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+  id: "/profile",
+  path: "/profile",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedPhotosRoute = ProtectedPhotosRouteImport.update({
-  id: '/photos',
-  path: '/photos',
+  id: "/photos",
+  path: "/photos",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedNotimestampRoute = ProtectedNotimestampRouteImport.update({
-  id: '/notimestamp',
-  path: '/notimestamp',
+  id: "/notimestamp",
+  path: "/notimestamp",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedLibraryRoute = ProtectedLibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
+  id: "/library",
+  path: "/library",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedHiddenRoute = ProtectedHiddenRouteImport.update({
-  id: '/hidden',
-  path: '/hidden',
+  id: "/hidden",
+  path: "/hidden",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedFavoritesRoute = ProtectedFavoritesRouteImport.update({
-  id: '/favorites',
-  path: '/favorites',
+  id: "/favorites",
+  path: "/favorites",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedFacesRoute = ProtectedFacesRouteImport.update({
-  id: '/faces',
-  path: '/faces',
+  id: "/faces",
+  path: "/faces",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedDeletedRoute = ProtectedDeletedRouteImport.update({
-  id: '/deleted',
-  path: '/deleted',
+  id: "/deleted",
+  path: "/deleted",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+  id: "/admin",
+  path: "/admin",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedStatisticsIndexRoute =
-  ProtectedStatisticsIndexRouteImport.update({
-    id: '/statistics/',
-    path: '/statistics/',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
+} as any);
+const ProtectedStatisticsIndexRoute = ProtectedStatisticsIndexRouteImport.update({
+  id: "/statistics/",
+  path: "/statistics/",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
 const ProtectedSharingIndexRoute = ProtectedSharingIndexRouteImport.update({
-  id: '/sharing/',
-  path: '/sharing/',
+  id: "/sharing/",
+  path: "/sharing/",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumIndexRoute = ProtectedAlbumIndexRouteImport.update({
-  id: '/album/',
-  path: '/album/',
+  id: "/album/",
+  path: "/album/",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => ProtectedAdminRoute,
-} as any)
+} as any);
 const PublicSSlugRoute = PublicSSlugRouteImport.update({
-  id: '/s/$slug',
-  path: '/s/$slug',
+  id: "/s/$slug",
+  path: "/s/$slug",
   getParentRoute: () => PublicRouteRoute,
-} as any)
-const ProtectedStatisticsWordcloudsRoute =
-  ProtectedStatisticsWordcloudsRouteImport.update({
-    id: '/statistics/wordclouds',
-    path: '/statistics/wordclouds',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedStatisticsTimelineRoute =
-  ProtectedStatisticsTimelineRouteImport.update({
-    id: '/statistics/timeline',
-    path: '/statistics/timeline',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedStatisticsSocialgraphRoute =
-  ProtectedStatisticsSocialgraphRouteImport.update({
-    id: '/statistics/socialgraph',
-    path: '/statistics/socialgraph',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedStatisticsPlacetreeRoute =
-  ProtectedStatisticsPlacetreeRouteImport.update({
-    id: '/statistics/placetree',
-    path: '/statistics/placetree',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedStatisticsFaceclustersRoute =
-  ProtectedStatisticsFaceclustersRouteImport.update({
-    id: '/statistics/faceclusters',
-    path: '/statistics/faceclusters',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
+} as any);
+const ProtectedStatisticsWordcloudsRoute = ProtectedStatisticsWordcloudsRouteImport.update({
+  id: "/statistics/wordclouds",
+  path: "/statistics/wordclouds",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedStatisticsTimelineRoute = ProtectedStatisticsTimelineRouteImport.update({
+  id: "/statistics/timeline",
+  path: "/statistics/timeline",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedStatisticsSocialgraphRoute = ProtectedStatisticsSocialgraphRouteImport.update({
+  id: "/statistics/socialgraph",
+  path: "/statistics/socialgraph",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedStatisticsPlacetreeRoute = ProtectedStatisticsPlacetreeRouteImport.update({
+  id: "/statistics/placetree",
+  path: "/statistics/placetree",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedStatisticsFaceclustersRoute = ProtectedStatisticsFaceclustersRouteImport.update({
+  id: "/statistics/faceclusters",
+  path: "/statistics/faceclusters",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
 const ProtectedSharingPublicRoute = ProtectedSharingPublicRouteImport.update({
-  id: '/sharing/public',
-  path: '/sharing/public',
+  id: "/sharing/public",
+  path: "/sharing/public",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedSharingLinksRoute = ProtectedSharingLinksRouteImport.update({
-  id: '/sharing/links',
-  path: '/sharing/links',
+  id: "/sharing/links",
+  path: "/sharing/links",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedSearchQueryRoute = ProtectedSearchQueryRouteImport.update({
-  id: '/search/$query',
-  path: '/search/$query',
+  id: "/search/$query",
+  path: "/search/$query",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedPhotoIdRoute = ProtectedPhotoIdRouteImport.update({
-  id: '/photo/$id',
-  path: '/photo/$id',
+  id: "/photo/$id",
+  path: "/photo/$id",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedOrganizingTabRoute = ProtectedOrganizingTabRouteImport.update({
-  id: '/organizing/$tab',
-  path: '/organizing/$tab',
+  id: "/organizing/$tab",
+  path: "/organizing/$tab",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumUserIndexRoute = ProtectedAlbumUserIndexRouteImport.update({
-  id: '/album/user/',
-  path: '/album/user/',
+  id: "/album/user/",
+  path: "/album/user/",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
-const ProtectedAlbumThingsIndexRoute =
-  ProtectedAlbumThingsIndexRouteImport.update({
-    id: '/album/things/',
-    path: '/album/things/',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedAlbumPlacesIndexRoute =
-  ProtectedAlbumPlacesIndexRouteImport.update({
-    id: '/album/places/',
-    path: '/album/places/',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedAlbumPersonsIndexRoute =
-  ProtectedAlbumPersonsIndexRouteImport.update({
-    id: '/album/persons/',
-    path: '/album/persons/',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedAlbumFolderIndexRoute =
-  ProtectedAlbumFolderIndexRouteImport.update({
-    id: '/album/folder/',
-    path: '/album/folder/',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedAlbumEventsIndexRoute =
-  ProtectedAlbumEventsIndexRouteImport.update({
-    id: '/album/events/',
-    path: '/album/events/',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
-const ProtectedSharingWithmeTabRoute =
-  ProtectedSharingWithmeTabRouteImport.update({
-    id: '/sharing/withme/$tab',
-    path: '/sharing/withme/$tab',
-    getParentRoute: () => ProtectedRouteRoute,
-  } as any)
+} as any);
+const ProtectedAlbumThingsIndexRoute = ProtectedAlbumThingsIndexRouteImport.update({
+  id: "/album/things/",
+  path: "/album/things/",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedAlbumPlacesIndexRoute = ProtectedAlbumPlacesIndexRouteImport.update({
+  id: "/album/places/",
+  path: "/album/places/",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedAlbumPersonsIndexRoute = ProtectedAlbumPersonsIndexRouteImport.update({
+  id: "/album/persons/",
+  path: "/album/persons/",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedAlbumFolderIndexRoute = ProtectedAlbumFolderIndexRouteImport.update({
+  id: "/album/folder/",
+  path: "/album/folder/",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedAlbumEventsIndexRoute = ProtectedAlbumEventsIndexRouteImport.update({
+  id: "/album/events/",
+  path: "/album/events/",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
+const ProtectedSharingWithmeTabRoute = ProtectedSharingWithmeTabRouteImport.update({
+  id: "/sharing/withme/$tab",
+  path: "/sharing/withme/$tab",
+  getParentRoute: () => ProtectedRouteRoute,
+} as any);
 const ProtectedSharingBymeTabRoute = ProtectedSharingBymeTabRouteImport.update({
-  id: '/sharing/byme/$tab',
-  path: '/sharing/byme/$tab',
+  id: "/sharing/byme/$tab",
+  path: "/sharing/byme/$tab",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumUserIdRoute = ProtectedAlbumUserIdRouteImport.update({
-  id: '/album/user/$id',
-  path: '/album/user/$id',
+  id: "/album/user/$id",
+  path: "/album/user/$id",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumThingsIdRoute = ProtectedAlbumThingsIdRouteImport.update({
-  id: '/album/things/$id',
-  path: '/album/things/$id',
+  id: "/album/things/$id",
+  path: "/album/things/$id",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumPlacesIdRoute = ProtectedAlbumPlacesIdRouteImport.update({
-  id: '/album/places/$id',
-  path: '/album/places/$id',
+  id: "/album/places/$id",
+  path: "/album/places/$id",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumPersonsIdRoute = ProtectedAlbumPersonsIdRouteImport.update({
-  id: '/album/persons/$id',
-  path: '/album/persons/$id',
+  id: "/album/persons/$id",
+  path: "/album/persons/$id",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumFolderIdRoute = ProtectedAlbumFolderIdRouteImport.update({
-  id: '/album/folder/$id',
-  path: '/album/folder/$id',
+  id: "/album/folder/$id",
+  path: "/album/folder/$id",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAlbumEventsIdRoute = ProtectedAlbumEventsIdRouteImport.update({
-  id: '/album/events/$id',
-  path: '/album/events/$id',
+  id: "/album/events/$id",
+  path: "/album/events/$id",
   getParentRoute: () => ProtectedRouteRoute,
-} as any)
+} as any);
 const ProtectedAdminJobIdRoute = ProtectedAdminJobIdRouteImport.update({
-  id: '/job/$id',
-  path: '/job/$id',
+  id: "/job/$id",
+  path: "/job/$id",
   getParentRoute: () => ProtectedAdminRoute,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/public': typeof PublicRouteRouteWithChildren
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/admin': typeof ProtectedAdminRouteWithChildren
-  '/deleted': typeof ProtectedDeletedRoute
-  '/faces': typeof ProtectedFacesRoute
-  '/favorites': typeof ProtectedFavoritesRoute
-  '/hidden': typeof ProtectedHiddenRoute
-  '/library': typeof ProtectedLibraryRoute
-  '/notimestamp': typeof ProtectedNotimestampRoute
-  '/photos': typeof ProtectedPhotosRoute
-  '/profile': typeof ProtectedProfileRoute
-  '/recent': typeof ProtectedRecentRoute
-  '/settings': typeof ProtectedSettingsRoute
-  '/stacks': typeof ProtectedStacksRoute
-  '/videos': typeof ProtectedVideosRoute
-  '/public/$users': typeof PublicUsersRoute
-  '/': typeof ProtectedIndexRoute
-  '/organizing/$tab': typeof ProtectedOrganizingTabRoute
-  '/photo/$id': typeof ProtectedPhotoIdRoute
-  '/search/$query': typeof ProtectedSearchQueryRoute
-  '/sharing/links': typeof ProtectedSharingLinksRoute
-  '/sharing/public': typeof ProtectedSharingPublicRoute
-  '/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
-  '/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
-  '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
-  '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
-  '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
-  '/public/s/$slug': typeof PublicSSlugRoute
-  '/admin/': typeof ProtectedAdminIndexRoute
-  '/album': typeof ProtectedAlbumIndexRoute
-  '/sharing': typeof ProtectedSharingIndexRoute
-  '/statistics': typeof ProtectedStatisticsIndexRoute
-  '/admin/job/$id': typeof ProtectedAdminJobIdRoute
-  '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
-  '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
-  '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
-  '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
-  '/album/things/$id': typeof ProtectedAlbumThingsIdRoute
-  '/album/user/$id': typeof ProtectedAlbumUserIdRoute
-  '/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
-  '/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
-  '/album/events': typeof ProtectedAlbumEventsIndexRoute
-  '/album/folder': typeof ProtectedAlbumFolderIndexRoute
-  '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
-  '/album/places': typeof ProtectedAlbumPlacesIndexRoute
-  '/album/things': typeof ProtectedAlbumThingsIndexRoute
-  '/album/user': typeof ProtectedAlbumUserIndexRoute
+  "/": typeof ProtectedIndexRoute;
+  "/public": typeof PublicRouteRouteWithChildren;
+  "/login": typeof LoginRoute;
+  "/signup": typeof SignupRoute;
+  "/admin": typeof ProtectedAdminRouteWithChildren;
+  "/deleted": typeof ProtectedDeletedRoute;
+  "/faces": typeof ProtectedFacesRoute;
+  "/favorites": typeof ProtectedFavoritesRoute;
+  "/hidden": typeof ProtectedHiddenRoute;
+  "/library": typeof ProtectedLibraryRoute;
+  "/notimestamp": typeof ProtectedNotimestampRoute;
+  "/photos": typeof ProtectedPhotosRoute;
+  "/profile": typeof ProtectedProfileRoute;
+  "/recent": typeof ProtectedRecentRoute;
+  "/settings": typeof ProtectedSettingsRoute;
+  "/stacks": typeof ProtectedStacksRoute;
+  "/videos": typeof ProtectedVideosRoute;
+  "/public/$users": typeof PublicUsersRoute;
+  "/organizing/$tab": typeof ProtectedOrganizingTabRoute;
+  "/photo/$id": typeof ProtectedPhotoIdRoute;
+  "/search/$query": typeof ProtectedSearchQueryRoute;
+  "/sharing/links": typeof ProtectedSharingLinksRoute;
+  "/sharing/public": typeof ProtectedSharingPublicRoute;
+  "/statistics/faceclusters": typeof ProtectedStatisticsFaceclustersRoute;
+  "/statistics/placetree": typeof ProtectedStatisticsPlacetreeRoute;
+  "/statistics/socialgraph": typeof ProtectedStatisticsSocialgraphRoute;
+  "/statistics/timeline": typeof ProtectedStatisticsTimelineRoute;
+  "/statistics/wordclouds": typeof ProtectedStatisticsWordcloudsRoute;
+  "/public/s/$slug": typeof PublicSSlugRoute;
+  "/admin/": typeof ProtectedAdminIndexRoute;
+  "/album/": typeof ProtectedAlbumIndexRoute;
+  "/sharing/": typeof ProtectedSharingIndexRoute;
+  "/statistics/": typeof ProtectedStatisticsIndexRoute;
+  "/admin/job/$id": typeof ProtectedAdminJobIdRoute;
+  "/album/events/$id": typeof ProtectedAlbumEventsIdRoute;
+  "/album/folder/$id": typeof ProtectedAlbumFolderIdRoute;
+  "/album/persons/$id": typeof ProtectedAlbumPersonsIdRoute;
+  "/album/places/$id": typeof ProtectedAlbumPlacesIdRoute;
+  "/album/things/$id": typeof ProtectedAlbumThingsIdRoute;
+  "/album/user/$id": typeof ProtectedAlbumUserIdRoute;
+  "/sharing/byme/$tab": typeof ProtectedSharingBymeTabRoute;
+  "/sharing/withme/$tab": typeof ProtectedSharingWithmeTabRoute;
+  "/album/events/": typeof ProtectedAlbumEventsIndexRoute;
+  "/album/folder/": typeof ProtectedAlbumFolderIndexRoute;
+  "/album/persons/": typeof ProtectedAlbumPersonsIndexRoute;
+  "/album/places/": typeof ProtectedAlbumPlacesIndexRoute;
+  "/album/things/": typeof ProtectedAlbumThingsIndexRoute;
+  "/album/user/": typeof ProtectedAlbumUserIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/public': typeof PublicRouteRouteWithChildren
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/deleted': typeof ProtectedDeletedRoute
-  '/faces': typeof ProtectedFacesRoute
-  '/favorites': typeof ProtectedFavoritesRoute
-  '/hidden': typeof ProtectedHiddenRoute
-  '/library': typeof ProtectedLibraryRoute
-  '/notimestamp': typeof ProtectedNotimestampRoute
-  '/photos': typeof ProtectedPhotosRoute
-  '/profile': typeof ProtectedProfileRoute
-  '/recent': typeof ProtectedRecentRoute
-  '/settings': typeof ProtectedSettingsRoute
-  '/stacks': typeof ProtectedStacksRoute
-  '/videos': typeof ProtectedVideosRoute
-  '/public/$users': typeof PublicUsersRoute
-  '/': typeof ProtectedIndexRoute
-  '/organizing/$tab': typeof ProtectedOrganizingTabRoute
-  '/photo/$id': typeof ProtectedPhotoIdRoute
-  '/search/$query': typeof ProtectedSearchQueryRoute
-  '/sharing/links': typeof ProtectedSharingLinksRoute
-  '/sharing/public': typeof ProtectedSharingPublicRoute
-  '/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
-  '/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
-  '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
-  '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
-  '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
-  '/public/s/$slug': typeof PublicSSlugRoute
-  '/admin': typeof ProtectedAdminIndexRoute
-  '/album': typeof ProtectedAlbumIndexRoute
-  '/sharing': typeof ProtectedSharingIndexRoute
-  '/statistics': typeof ProtectedStatisticsIndexRoute
-  '/admin/job/$id': typeof ProtectedAdminJobIdRoute
-  '/album/events/$id': typeof ProtectedAlbumEventsIdRoute
-  '/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
-  '/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
-  '/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
-  '/album/things/$id': typeof ProtectedAlbumThingsIdRoute
-  '/album/user/$id': typeof ProtectedAlbumUserIdRoute
-  '/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
-  '/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
-  '/album/events': typeof ProtectedAlbumEventsIndexRoute
-  '/album/folder': typeof ProtectedAlbumFolderIndexRoute
-  '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
-  '/album/places': typeof ProtectedAlbumPlacesIndexRoute
-  '/album/things': typeof ProtectedAlbumThingsIndexRoute
-  '/album/user': typeof ProtectedAlbumUserIndexRoute
+  "/public": typeof PublicRouteRouteWithChildren;
+  "/login": typeof LoginRoute;
+  "/signup": typeof SignupRoute;
+  "/deleted": typeof ProtectedDeletedRoute;
+  "/faces": typeof ProtectedFacesRoute;
+  "/favorites": typeof ProtectedFavoritesRoute;
+  "/hidden": typeof ProtectedHiddenRoute;
+  "/library": typeof ProtectedLibraryRoute;
+  "/notimestamp": typeof ProtectedNotimestampRoute;
+  "/photos": typeof ProtectedPhotosRoute;
+  "/profile": typeof ProtectedProfileRoute;
+  "/recent": typeof ProtectedRecentRoute;
+  "/settings": typeof ProtectedSettingsRoute;
+  "/stacks": typeof ProtectedStacksRoute;
+  "/videos": typeof ProtectedVideosRoute;
+  "/public/$users": typeof PublicUsersRoute;
+  "/": typeof ProtectedIndexRoute;
+  "/organizing/$tab": typeof ProtectedOrganizingTabRoute;
+  "/photo/$id": typeof ProtectedPhotoIdRoute;
+  "/search/$query": typeof ProtectedSearchQueryRoute;
+  "/sharing/links": typeof ProtectedSharingLinksRoute;
+  "/sharing/public": typeof ProtectedSharingPublicRoute;
+  "/statistics/faceclusters": typeof ProtectedStatisticsFaceclustersRoute;
+  "/statistics/placetree": typeof ProtectedStatisticsPlacetreeRoute;
+  "/statistics/socialgraph": typeof ProtectedStatisticsSocialgraphRoute;
+  "/statistics/timeline": typeof ProtectedStatisticsTimelineRoute;
+  "/statistics/wordclouds": typeof ProtectedStatisticsWordcloudsRoute;
+  "/public/s/$slug": typeof PublicSSlugRoute;
+  "/admin": typeof ProtectedAdminIndexRoute;
+  "/album": typeof ProtectedAlbumIndexRoute;
+  "/sharing": typeof ProtectedSharingIndexRoute;
+  "/statistics": typeof ProtectedStatisticsIndexRoute;
+  "/admin/job/$id": typeof ProtectedAdminJobIdRoute;
+  "/album/events/$id": typeof ProtectedAlbumEventsIdRoute;
+  "/album/folder/$id": typeof ProtectedAlbumFolderIdRoute;
+  "/album/persons/$id": typeof ProtectedAlbumPersonsIdRoute;
+  "/album/places/$id": typeof ProtectedAlbumPlacesIdRoute;
+  "/album/things/$id": typeof ProtectedAlbumThingsIdRoute;
+  "/album/user/$id": typeof ProtectedAlbumUserIdRoute;
+  "/sharing/byme/$tab": typeof ProtectedSharingBymeTabRoute;
+  "/sharing/withme/$tab": typeof ProtectedSharingWithmeTabRoute;
+  "/album/events": typeof ProtectedAlbumEventsIndexRoute;
+  "/album/folder": typeof ProtectedAlbumFolderIndexRoute;
+  "/album/persons": typeof ProtectedAlbumPersonsIndexRoute;
+  "/album/places": typeof ProtectedAlbumPlacesIndexRoute;
+  "/album/things": typeof ProtectedAlbumThingsIndexRoute;
+  "/album/user": typeof ProtectedAlbumUserIndexRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/_protected': typeof ProtectedRouteRouteWithChildren
-  '/public': typeof PublicRouteRouteWithChildren
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/_protected/admin': typeof ProtectedAdminRouteWithChildren
-  '/_protected/deleted': typeof ProtectedDeletedRoute
-  '/_protected/faces': typeof ProtectedFacesRoute
-  '/_protected/favorites': typeof ProtectedFavoritesRoute
-  '/_protected/hidden': typeof ProtectedHiddenRoute
-  '/_protected/library': typeof ProtectedLibraryRoute
-  '/_protected/notimestamp': typeof ProtectedNotimestampRoute
-  '/_protected/photos': typeof ProtectedPhotosRoute
-  '/_protected/profile': typeof ProtectedProfileRoute
-  '/_protected/recent': typeof ProtectedRecentRoute
-  '/_protected/settings': typeof ProtectedSettingsRoute
-  '/_protected/stacks': typeof ProtectedStacksRoute
-  '/_protected/videos': typeof ProtectedVideosRoute
-  '/public/$users': typeof PublicUsersRoute
-  '/_protected/': typeof ProtectedIndexRoute
-  '/_protected/organizing/$tab': typeof ProtectedOrganizingTabRoute
-  '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
-  '/_protected/search/$query': typeof ProtectedSearchQueryRoute
-  '/_protected/sharing/links': typeof ProtectedSharingLinksRoute
-  '/_protected/sharing/public': typeof ProtectedSharingPublicRoute
-  '/_protected/statistics/faceclusters': typeof ProtectedStatisticsFaceclustersRoute
-  '/_protected/statistics/placetree': typeof ProtectedStatisticsPlacetreeRoute
-  '/_protected/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
-  '/_protected/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
-  '/_protected/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
-  '/public/s/$slug': typeof PublicSSlugRoute
-  '/_protected/admin/': typeof ProtectedAdminIndexRoute
-  '/_protected/album/': typeof ProtectedAlbumIndexRoute
-  '/_protected/sharing/': typeof ProtectedSharingIndexRoute
-  '/_protected/statistics/': typeof ProtectedStatisticsIndexRoute
-  '/_protected/admin/job/$id': typeof ProtectedAdminJobIdRoute
-  '/_protected/album/events/$id': typeof ProtectedAlbumEventsIdRoute
-  '/_protected/album/folder/$id': typeof ProtectedAlbumFolderIdRoute
-  '/_protected/album/persons/$id': typeof ProtectedAlbumPersonsIdRoute
-  '/_protected/album/places/$id': typeof ProtectedAlbumPlacesIdRoute
-  '/_protected/album/things/$id': typeof ProtectedAlbumThingsIdRoute
-  '/_protected/album/user/$id': typeof ProtectedAlbumUserIdRoute
-  '/_protected/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
-  '/_protected/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
-  '/_protected/album/events/': typeof ProtectedAlbumEventsIndexRoute
-  '/_protected/album/folder/': typeof ProtectedAlbumFolderIndexRoute
-  '/_protected/album/persons/': typeof ProtectedAlbumPersonsIndexRoute
-  '/_protected/album/places/': typeof ProtectedAlbumPlacesIndexRoute
-  '/_protected/album/things/': typeof ProtectedAlbumThingsIndexRoute
-  '/_protected/album/user/': typeof ProtectedAlbumUserIndexRoute
+  __root__: typeof rootRouteImport;
+  "/_protected": typeof ProtectedRouteRouteWithChildren;
+  "/public": typeof PublicRouteRouteWithChildren;
+  "/login": typeof LoginRoute;
+  "/signup": typeof SignupRoute;
+  "/_protected/admin": typeof ProtectedAdminRouteWithChildren;
+  "/_protected/deleted": typeof ProtectedDeletedRoute;
+  "/_protected/faces": typeof ProtectedFacesRoute;
+  "/_protected/favorites": typeof ProtectedFavoritesRoute;
+  "/_protected/hidden": typeof ProtectedHiddenRoute;
+  "/_protected/library": typeof ProtectedLibraryRoute;
+  "/_protected/notimestamp": typeof ProtectedNotimestampRoute;
+  "/_protected/photos": typeof ProtectedPhotosRoute;
+  "/_protected/profile": typeof ProtectedProfileRoute;
+  "/_protected/recent": typeof ProtectedRecentRoute;
+  "/_protected/settings": typeof ProtectedSettingsRoute;
+  "/_protected/stacks": typeof ProtectedStacksRoute;
+  "/_protected/videos": typeof ProtectedVideosRoute;
+  "/public/$users": typeof PublicUsersRoute;
+  "/_protected/": typeof ProtectedIndexRoute;
+  "/_protected/organizing/$tab": typeof ProtectedOrganizingTabRoute;
+  "/_protected/photo/$id": typeof ProtectedPhotoIdRoute;
+  "/_protected/search/$query": typeof ProtectedSearchQueryRoute;
+  "/_protected/sharing/links": typeof ProtectedSharingLinksRoute;
+  "/_protected/sharing/public": typeof ProtectedSharingPublicRoute;
+  "/_protected/statistics/faceclusters": typeof ProtectedStatisticsFaceclustersRoute;
+  "/_protected/statistics/placetree": typeof ProtectedStatisticsPlacetreeRoute;
+  "/_protected/statistics/socialgraph": typeof ProtectedStatisticsSocialgraphRoute;
+  "/_protected/statistics/timeline": typeof ProtectedStatisticsTimelineRoute;
+  "/_protected/statistics/wordclouds": typeof ProtectedStatisticsWordcloudsRoute;
+  "/public/s/$slug": typeof PublicSSlugRoute;
+  "/_protected/admin/": typeof ProtectedAdminIndexRoute;
+  "/_protected/album/": typeof ProtectedAlbumIndexRoute;
+  "/_protected/sharing/": typeof ProtectedSharingIndexRoute;
+  "/_protected/statistics/": typeof ProtectedStatisticsIndexRoute;
+  "/_protected/admin/job/$id": typeof ProtectedAdminJobIdRoute;
+  "/_protected/album/events/$id": typeof ProtectedAlbumEventsIdRoute;
+  "/_protected/album/folder/$id": typeof ProtectedAlbumFolderIdRoute;
+  "/_protected/album/persons/$id": typeof ProtectedAlbumPersonsIdRoute;
+  "/_protected/album/places/$id": typeof ProtectedAlbumPlacesIdRoute;
+  "/_protected/album/things/$id": typeof ProtectedAlbumThingsIdRoute;
+  "/_protected/album/user/$id": typeof ProtectedAlbumUserIdRoute;
+  "/_protected/sharing/byme/$tab": typeof ProtectedSharingBymeTabRoute;
+  "/_protected/sharing/withme/$tab": typeof ProtectedSharingWithmeTabRoute;
+  "/_protected/album/events/": typeof ProtectedAlbumEventsIndexRoute;
+  "/_protected/album/folder/": typeof ProtectedAlbumFolderIndexRoute;
+  "/_protected/album/persons/": typeof ProtectedAlbumPersonsIndexRoute;
+  "/_protected/album/places/": typeof ProtectedAlbumPlacesIndexRoute;
+  "/_protected/album/things/": typeof ProtectedAlbumThingsIndexRoute;
+  "/_protected/album/user/": typeof ProtectedAlbumUserIndexRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/public'
-    | '/login'
-    | '/signup'
-    | '/admin'
-    | '/deleted'
-    | '/faces'
-    | '/favorites'
-    | '/hidden'
-    | '/library'
-    | '/notimestamp'
-    | '/photos'
-    | '/profile'
-    | '/recent'
-    | '/settings'
-    | '/stacks'
-    | '/videos'
-    | '/public/$users'
-    | '/'
-    | '/organizing/$tab'
-    | '/photo/$id'
-    | '/search/$query'
-    | '/sharing/links'
-    | '/sharing/public'
-    | '/statistics/faceclusters'
-    | '/statistics/placetree'
-    | '/statistics/socialgraph'
-    | '/statistics/timeline'
-    | '/statistics/wordclouds'
-    | '/public/s/$slug'
-    | '/admin/'
-    | '/album'
-    | '/sharing'
-    | '/statistics'
-    | '/admin/job/$id'
-    | '/album/events/$id'
-    | '/album/folder/$id'
-    | '/album/persons/$id'
-    | '/album/places/$id'
-    | '/album/things/$id'
-    | '/album/user/$id'
-    | '/sharing/byme/$tab'
-    | '/sharing/withme/$tab'
-    | '/album/events'
-    | '/album/folder'
-    | '/album/persons'
-    | '/album/places'
-    | '/album/things'
-    | '/album/user'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/public"
+    | "/login"
+    | "/signup"
+    | "/admin"
+    | "/deleted"
+    | "/faces"
+    | "/favorites"
+    | "/hidden"
+    | "/library"
+    | "/notimestamp"
+    | "/photos"
+    | "/profile"
+    | "/recent"
+    | "/settings"
+    | "/stacks"
+    | "/videos"
+    | "/public/$users"
+    | "/organizing/$tab"
+    | "/photo/$id"
+    | "/search/$query"
+    | "/sharing/links"
+    | "/sharing/public"
+    | "/statistics/faceclusters"
+    | "/statistics/placetree"
+    | "/statistics/socialgraph"
+    | "/statistics/timeline"
+    | "/statistics/wordclouds"
+    | "/public/s/$slug"
+    | "/admin/"
+    | "/album/"
+    | "/sharing/"
+    | "/statistics/"
+    | "/admin/job/$id"
+    | "/album/events/$id"
+    | "/album/folder/$id"
+    | "/album/persons/$id"
+    | "/album/places/$id"
+    | "/album/things/$id"
+    | "/album/user/$id"
+    | "/sharing/byme/$tab"
+    | "/sharing/withme/$tab"
+    | "/album/events/"
+    | "/album/folder/"
+    | "/album/persons/"
+    | "/album/places/"
+    | "/album/things/"
+    | "/album/user/";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/public'
-    | '/login'
-    | '/signup'
-    | '/deleted'
-    | '/faces'
-    | '/favorites'
-    | '/hidden'
-    | '/library'
-    | '/notimestamp'
-    | '/photos'
-    | '/profile'
-    | '/recent'
-    | '/settings'
-    | '/stacks'
-    | '/videos'
-    | '/public/$users'
-    | '/'
-    | '/organizing/$tab'
-    | '/photo/$id'
-    | '/search/$query'
-    | '/sharing/links'
-    | '/sharing/public'
-    | '/statistics/faceclusters'
-    | '/statistics/placetree'
-    | '/statistics/socialgraph'
-    | '/statistics/timeline'
-    | '/statistics/wordclouds'
-    | '/public/s/$slug'
-    | '/admin'
-    | '/album'
-    | '/sharing'
-    | '/statistics'
-    | '/admin/job/$id'
-    | '/album/events/$id'
-    | '/album/folder/$id'
-    | '/album/persons/$id'
-    | '/album/places/$id'
-    | '/album/things/$id'
-    | '/album/user/$id'
-    | '/sharing/byme/$tab'
-    | '/sharing/withme/$tab'
-    | '/album/events'
-    | '/album/folder'
-    | '/album/persons'
-    | '/album/places'
-    | '/album/things'
-    | '/album/user'
+    | "/public"
+    | "/login"
+    | "/signup"
+    | "/deleted"
+    | "/faces"
+    | "/favorites"
+    | "/hidden"
+    | "/library"
+    | "/notimestamp"
+    | "/photos"
+    | "/profile"
+    | "/recent"
+    | "/settings"
+    | "/stacks"
+    | "/videos"
+    | "/public/$users"
+    | "/"
+    | "/organizing/$tab"
+    | "/photo/$id"
+    | "/search/$query"
+    | "/sharing/links"
+    | "/sharing/public"
+    | "/statistics/faceclusters"
+    | "/statistics/placetree"
+    | "/statistics/socialgraph"
+    | "/statistics/timeline"
+    | "/statistics/wordclouds"
+    | "/public/s/$slug"
+    | "/admin"
+    | "/album"
+    | "/sharing"
+    | "/statistics"
+    | "/admin/job/$id"
+    | "/album/events/$id"
+    | "/album/folder/$id"
+    | "/album/persons/$id"
+    | "/album/places/$id"
+    | "/album/things/$id"
+    | "/album/user/$id"
+    | "/sharing/byme/$tab"
+    | "/sharing/withme/$tab"
+    | "/album/events"
+    | "/album/folder"
+    | "/album/persons"
+    | "/album/places"
+    | "/album/things"
+    | "/album/user";
   id:
-    | '__root__'
-    | '/_protected'
-    | '/public'
-    | '/login'
-    | '/signup'
-    | '/_protected/admin'
-    | '/_protected/deleted'
-    | '/_protected/faces'
-    | '/_protected/favorites'
-    | '/_protected/hidden'
-    | '/_protected/library'
-    | '/_protected/notimestamp'
-    | '/_protected/photos'
-    | '/_protected/profile'
-    | '/_protected/recent'
-    | '/_protected/settings'
-    | '/_protected/stacks'
-    | '/_protected/videos'
-    | '/public/$users'
-    | '/_protected/'
-    | '/_protected/organizing/$tab'
-    | '/_protected/photo/$id'
-    | '/_protected/search/$query'
-    | '/_protected/sharing/links'
-    | '/_protected/sharing/public'
-    | '/_protected/statistics/faceclusters'
-    | '/_protected/statistics/placetree'
-    | '/_protected/statistics/socialgraph'
-    | '/_protected/statistics/timeline'
-    | '/_protected/statistics/wordclouds'
-    | '/public/s/$slug'
-    | '/_protected/admin/'
-    | '/_protected/album/'
-    | '/_protected/sharing/'
-    | '/_protected/statistics/'
-    | '/_protected/admin/job/$id'
-    | '/_protected/album/events/$id'
-    | '/_protected/album/folder/$id'
-    | '/_protected/album/persons/$id'
-    | '/_protected/album/places/$id'
-    | '/_protected/album/things/$id'
-    | '/_protected/album/user/$id'
-    | '/_protected/sharing/byme/$tab'
-    | '/_protected/sharing/withme/$tab'
-    | '/_protected/album/events/'
-    | '/_protected/album/folder/'
-    | '/_protected/album/persons/'
-    | '/_protected/album/places/'
-    | '/_protected/album/things/'
-    | '/_protected/album/user/'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/_protected"
+    | "/public"
+    | "/login"
+    | "/signup"
+    | "/_protected/admin"
+    | "/_protected/deleted"
+    | "/_protected/faces"
+    | "/_protected/favorites"
+    | "/_protected/hidden"
+    | "/_protected/library"
+    | "/_protected/notimestamp"
+    | "/_protected/photos"
+    | "/_protected/profile"
+    | "/_protected/recent"
+    | "/_protected/settings"
+    | "/_protected/stacks"
+    | "/_protected/videos"
+    | "/public/$users"
+    | "/_protected/"
+    | "/_protected/organizing/$tab"
+    | "/_protected/photo/$id"
+    | "/_protected/search/$query"
+    | "/_protected/sharing/links"
+    | "/_protected/sharing/public"
+    | "/_protected/statistics/faceclusters"
+    | "/_protected/statistics/placetree"
+    | "/_protected/statistics/socialgraph"
+    | "/_protected/statistics/timeline"
+    | "/_protected/statistics/wordclouds"
+    | "/public/s/$slug"
+    | "/_protected/admin/"
+    | "/_protected/album/"
+    | "/_protected/sharing/"
+    | "/_protected/statistics/"
+    | "/_protected/admin/job/$id"
+    | "/_protected/album/events/$id"
+    | "/_protected/album/folder/$id"
+    | "/_protected/album/persons/$id"
+    | "/_protected/album/places/$id"
+    | "/_protected/album/things/$id"
+    | "/_protected/album/user/$id"
+    | "/_protected/sharing/byme/$tab"
+    | "/_protected/sharing/withme/$tab"
+    | "/_protected/album/events/"
+    | "/_protected/album/folder/"
+    | "/_protected/album/persons/"
+    | "/_protected/album/places/"
+    | "/_protected/album/things/"
+    | "/_protected/album/user/";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren
-  PublicRouteRoute: typeof PublicRouteRouteWithChildren
-  LoginRoute: typeof LoginRoute
-  SignupRoute: typeof SignupRoute
+  ProtectedRouteRoute: typeof ProtectedRouteRouteWithChildren;
+  PublicRouteRoute: typeof PublicRouteRouteWithChildren;
+  LoginRoute: typeof LoginRoute;
+  SignupRoute: typeof SignupRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/public': {
-      id: '/public'
-      path: '/public'
-      fullPath: '/public'
-      preLoaderRoute: typeof PublicRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected': {
-      id: '/_protected'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof ProtectedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected/': {
-      id: '/_protected/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof ProtectedIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/public/$users': {
-      id: '/public/$users'
-      path: '/$users'
-      fullPath: '/public/$users'
-      preLoaderRoute: typeof PublicUsersRouteImport
-      parentRoute: typeof PublicRouteRoute
-    }
-    '/_protected/videos': {
-      id: '/_protected/videos'
-      path: '/videos'
-      fullPath: '/videos'
-      preLoaderRoute: typeof ProtectedVideosRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/stacks': {
-      id: '/_protected/stacks'
-      path: '/stacks'
-      fullPath: '/stacks'
-      preLoaderRoute: typeof ProtectedStacksRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/settings': {
-      id: '/_protected/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof ProtectedSettingsRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/recent': {
-      id: '/_protected/recent'
-      path: '/recent'
-      fullPath: '/recent'
-      preLoaderRoute: typeof ProtectedRecentRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/profile': {
-      id: '/_protected/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProtectedProfileRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/photos': {
-      id: '/_protected/photos'
-      path: '/photos'
-      fullPath: '/photos'
-      preLoaderRoute: typeof ProtectedPhotosRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/notimestamp': {
-      id: '/_protected/notimestamp'
-      path: '/notimestamp'
-      fullPath: '/notimestamp'
-      preLoaderRoute: typeof ProtectedNotimestampRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/library': {
-      id: '/_protected/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof ProtectedLibraryRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/hidden': {
-      id: '/_protected/hidden'
-      path: '/hidden'
-      fullPath: '/hidden'
-      preLoaderRoute: typeof ProtectedHiddenRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/favorites': {
-      id: '/_protected/favorites'
-      path: '/favorites'
-      fullPath: '/favorites'
-      preLoaderRoute: typeof ProtectedFavoritesRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/faces': {
-      id: '/_protected/faces'
-      path: '/faces'
-      fullPath: '/faces'
-      preLoaderRoute: typeof ProtectedFacesRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/deleted': {
-      id: '/_protected/deleted'
-      path: '/deleted'
-      fullPath: '/deleted'
-      preLoaderRoute: typeof ProtectedDeletedRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/admin': {
-      id: '/_protected/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof ProtectedAdminRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/statistics/': {
-      id: '/_protected/statistics/'
-      path: '/statistics'
-      fullPath: '/statistics'
-      preLoaderRoute: typeof ProtectedStatisticsIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/sharing/': {
-      id: '/_protected/sharing/'
-      path: '/sharing'
-      fullPath: '/sharing'
-      preLoaderRoute: typeof ProtectedSharingIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/': {
-      id: '/_protected/album/'
-      path: '/album'
-      fullPath: '/album'
-      preLoaderRoute: typeof ProtectedAlbumIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/admin/': {
-      id: '/_protected/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof ProtectedAdminIndexRouteImport
-      parentRoute: typeof ProtectedAdminRoute
-    }
-    '/public/s/$slug': {
-      id: '/public/s/$slug'
-      path: '/s/$slug'
-      fullPath: '/public/s/$slug'
-      preLoaderRoute: typeof PublicSSlugRouteImport
-      parentRoute: typeof PublicRouteRoute
-    }
-    '/_protected/statistics/wordclouds': {
-      id: '/_protected/statistics/wordclouds'
-      path: '/statistics/wordclouds'
-      fullPath: '/statistics/wordclouds'
-      preLoaderRoute: typeof ProtectedStatisticsWordcloudsRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/statistics/timeline': {
-      id: '/_protected/statistics/timeline'
-      path: '/statistics/timeline'
-      fullPath: '/statistics/timeline'
-      preLoaderRoute: typeof ProtectedStatisticsTimelineRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/statistics/socialgraph': {
-      id: '/_protected/statistics/socialgraph'
-      path: '/statistics/socialgraph'
-      fullPath: '/statistics/socialgraph'
-      preLoaderRoute: typeof ProtectedStatisticsSocialgraphRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/statistics/placetree': {
-      id: '/_protected/statistics/placetree'
-      path: '/statistics/placetree'
-      fullPath: '/statistics/placetree'
-      preLoaderRoute: typeof ProtectedStatisticsPlacetreeRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/statistics/faceclusters': {
-      id: '/_protected/statistics/faceclusters'
-      path: '/statistics/faceclusters'
-      fullPath: '/statistics/faceclusters'
-      preLoaderRoute: typeof ProtectedStatisticsFaceclustersRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/sharing/public': {
-      id: '/_protected/sharing/public'
-      path: '/sharing/public'
-      fullPath: '/sharing/public'
-      preLoaderRoute: typeof ProtectedSharingPublicRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/sharing/links': {
-      id: '/_protected/sharing/links'
-      path: '/sharing/links'
-      fullPath: '/sharing/links'
-      preLoaderRoute: typeof ProtectedSharingLinksRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/search/$query': {
-      id: '/_protected/search/$query'
-      path: '/search/$query'
-      fullPath: '/search/$query'
-      preLoaderRoute: typeof ProtectedSearchQueryRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/photo/$id': {
-      id: '/_protected/photo/$id'
-      path: '/photo/$id'
-      fullPath: '/photo/$id'
-      preLoaderRoute: typeof ProtectedPhotoIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/organizing/$tab': {
-      id: '/_protected/organizing/$tab'
-      path: '/organizing/$tab'
-      fullPath: '/organizing/$tab'
-      preLoaderRoute: typeof ProtectedOrganizingTabRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/user/': {
-      id: '/_protected/album/user/'
-      path: '/album/user'
-      fullPath: '/album/user'
-      preLoaderRoute: typeof ProtectedAlbumUserIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/things/': {
-      id: '/_protected/album/things/'
-      path: '/album/things'
-      fullPath: '/album/things'
-      preLoaderRoute: typeof ProtectedAlbumThingsIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/places/': {
-      id: '/_protected/album/places/'
-      path: '/album/places'
-      fullPath: '/album/places'
-      preLoaderRoute: typeof ProtectedAlbumPlacesIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/persons/': {
-      id: '/_protected/album/persons/'
-      path: '/album/persons'
-      fullPath: '/album/persons'
-      preLoaderRoute: typeof ProtectedAlbumPersonsIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/folder/': {
-      id: '/_protected/album/folder/'
-      path: '/album/folder'
-      fullPath: '/album/folder'
-      preLoaderRoute: typeof ProtectedAlbumFolderIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/events/': {
-      id: '/_protected/album/events/'
-      path: '/album/events'
-      fullPath: '/album/events'
-      preLoaderRoute: typeof ProtectedAlbumEventsIndexRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/sharing/withme/$tab': {
-      id: '/_protected/sharing/withme/$tab'
-      path: '/sharing/withme/$tab'
-      fullPath: '/sharing/withme/$tab'
-      preLoaderRoute: typeof ProtectedSharingWithmeTabRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/sharing/byme/$tab': {
-      id: '/_protected/sharing/byme/$tab'
-      path: '/sharing/byme/$tab'
-      fullPath: '/sharing/byme/$tab'
-      preLoaderRoute: typeof ProtectedSharingBymeTabRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/user/$id': {
-      id: '/_protected/album/user/$id'
-      path: '/album/user/$id'
-      fullPath: '/album/user/$id'
-      preLoaderRoute: typeof ProtectedAlbumUserIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/things/$id': {
-      id: '/_protected/album/things/$id'
-      path: '/album/things/$id'
-      fullPath: '/album/things/$id'
-      preLoaderRoute: typeof ProtectedAlbumThingsIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/places/$id': {
-      id: '/_protected/album/places/$id'
-      path: '/album/places/$id'
-      fullPath: '/album/places/$id'
-      preLoaderRoute: typeof ProtectedAlbumPlacesIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/persons/$id': {
-      id: '/_protected/album/persons/$id'
-      path: '/album/persons/$id'
-      fullPath: '/album/persons/$id'
-      preLoaderRoute: typeof ProtectedAlbumPersonsIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/folder/$id': {
-      id: '/_protected/album/folder/$id'
-      path: '/album/folder/$id'
-      fullPath: '/album/folder/$id'
-      preLoaderRoute: typeof ProtectedAlbumFolderIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/album/events/$id': {
-      id: '/_protected/album/events/$id'
-      path: '/album/events/$id'
-      fullPath: '/album/events/$id'
-      preLoaderRoute: typeof ProtectedAlbumEventsIdRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
-    '/_protected/admin/job/$id': {
-      id: '/_protected/admin/job/$id'
-      path: '/job/$id'
-      fullPath: '/admin/job/$id'
-      preLoaderRoute: typeof ProtectedAdminJobIdRouteImport
-      parentRoute: typeof ProtectedAdminRoute
-    }
+    "/signup": {
+      id: "/signup";
+      path: "/signup";
+      fullPath: "/signup";
+      preLoaderRoute: typeof SignupRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/login": {
+      id: "/login";
+      path: "/login";
+      fullPath: "/login";
+      preLoaderRoute: typeof LoginRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/public": {
+      id: "/public";
+      path: "/public";
+      fullPath: "/public";
+      preLoaderRoute: typeof PublicRouteRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_protected": {
+      id: "/_protected";
+      path: "";
+      fullPath: "/";
+      preLoaderRoute: typeof ProtectedRouteRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_protected/": {
+      id: "/_protected/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof ProtectedIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/public/$users": {
+      id: "/public/$users";
+      path: "/$users";
+      fullPath: "/public/$users";
+      preLoaderRoute: typeof PublicUsersRouteImport;
+      parentRoute: typeof PublicRouteRoute;
+    };
+    "/_protected/videos": {
+      id: "/_protected/videos";
+      path: "/videos";
+      fullPath: "/videos";
+      preLoaderRoute: typeof ProtectedVideosRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/stacks": {
+      id: "/_protected/stacks";
+      path: "/stacks";
+      fullPath: "/stacks";
+      preLoaderRoute: typeof ProtectedStacksRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/settings": {
+      id: "/_protected/settings";
+      path: "/settings";
+      fullPath: "/settings";
+      preLoaderRoute: typeof ProtectedSettingsRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/recent": {
+      id: "/_protected/recent";
+      path: "/recent";
+      fullPath: "/recent";
+      preLoaderRoute: typeof ProtectedRecentRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/profile": {
+      id: "/_protected/profile";
+      path: "/profile";
+      fullPath: "/profile";
+      preLoaderRoute: typeof ProtectedProfileRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/photos": {
+      id: "/_protected/photos";
+      path: "/photos";
+      fullPath: "/photos";
+      preLoaderRoute: typeof ProtectedPhotosRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/notimestamp": {
+      id: "/_protected/notimestamp";
+      path: "/notimestamp";
+      fullPath: "/notimestamp";
+      preLoaderRoute: typeof ProtectedNotimestampRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/library": {
+      id: "/_protected/library";
+      path: "/library";
+      fullPath: "/library";
+      preLoaderRoute: typeof ProtectedLibraryRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/hidden": {
+      id: "/_protected/hidden";
+      path: "/hidden";
+      fullPath: "/hidden";
+      preLoaderRoute: typeof ProtectedHiddenRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/favorites": {
+      id: "/_protected/favorites";
+      path: "/favorites";
+      fullPath: "/favorites";
+      preLoaderRoute: typeof ProtectedFavoritesRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/faces": {
+      id: "/_protected/faces";
+      path: "/faces";
+      fullPath: "/faces";
+      preLoaderRoute: typeof ProtectedFacesRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/deleted": {
+      id: "/_protected/deleted";
+      path: "/deleted";
+      fullPath: "/deleted";
+      preLoaderRoute: typeof ProtectedDeletedRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/admin": {
+      id: "/_protected/admin";
+      path: "/admin";
+      fullPath: "/admin";
+      preLoaderRoute: typeof ProtectedAdminRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/statistics/": {
+      id: "/_protected/statistics/";
+      path: "/statistics";
+      fullPath: "/statistics/";
+      preLoaderRoute: typeof ProtectedStatisticsIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/sharing/": {
+      id: "/_protected/sharing/";
+      path: "/sharing";
+      fullPath: "/sharing/";
+      preLoaderRoute: typeof ProtectedSharingIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/": {
+      id: "/_protected/album/";
+      path: "/album";
+      fullPath: "/album/";
+      preLoaderRoute: typeof ProtectedAlbumIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/admin/": {
+      id: "/_protected/admin/";
+      path: "/";
+      fullPath: "/admin/";
+      preLoaderRoute: typeof ProtectedAdminIndexRouteImport;
+      parentRoute: typeof ProtectedAdminRoute;
+    };
+    "/public/s/$slug": {
+      id: "/public/s/$slug";
+      path: "/s/$slug";
+      fullPath: "/public/s/$slug";
+      preLoaderRoute: typeof PublicSSlugRouteImport;
+      parentRoute: typeof PublicRouteRoute;
+    };
+    "/_protected/statistics/wordclouds": {
+      id: "/_protected/statistics/wordclouds";
+      path: "/statistics/wordclouds";
+      fullPath: "/statistics/wordclouds";
+      preLoaderRoute: typeof ProtectedStatisticsWordcloudsRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/statistics/timeline": {
+      id: "/_protected/statistics/timeline";
+      path: "/statistics/timeline";
+      fullPath: "/statistics/timeline";
+      preLoaderRoute: typeof ProtectedStatisticsTimelineRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/statistics/socialgraph": {
+      id: "/_protected/statistics/socialgraph";
+      path: "/statistics/socialgraph";
+      fullPath: "/statistics/socialgraph";
+      preLoaderRoute: typeof ProtectedStatisticsSocialgraphRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/statistics/placetree": {
+      id: "/_protected/statistics/placetree";
+      path: "/statistics/placetree";
+      fullPath: "/statistics/placetree";
+      preLoaderRoute: typeof ProtectedStatisticsPlacetreeRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/statistics/faceclusters": {
+      id: "/_protected/statistics/faceclusters";
+      path: "/statistics/faceclusters";
+      fullPath: "/statistics/faceclusters";
+      preLoaderRoute: typeof ProtectedStatisticsFaceclustersRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/sharing/public": {
+      id: "/_protected/sharing/public";
+      path: "/sharing/public";
+      fullPath: "/sharing/public";
+      preLoaderRoute: typeof ProtectedSharingPublicRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/sharing/links": {
+      id: "/_protected/sharing/links";
+      path: "/sharing/links";
+      fullPath: "/sharing/links";
+      preLoaderRoute: typeof ProtectedSharingLinksRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/search/$query": {
+      id: "/_protected/search/$query";
+      path: "/search/$query";
+      fullPath: "/search/$query";
+      preLoaderRoute: typeof ProtectedSearchQueryRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/photo/$id": {
+      id: "/_protected/photo/$id";
+      path: "/photo/$id";
+      fullPath: "/photo/$id";
+      preLoaderRoute: typeof ProtectedPhotoIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/organizing/$tab": {
+      id: "/_protected/organizing/$tab";
+      path: "/organizing/$tab";
+      fullPath: "/organizing/$tab";
+      preLoaderRoute: typeof ProtectedOrganizingTabRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/user/": {
+      id: "/_protected/album/user/";
+      path: "/album/user";
+      fullPath: "/album/user/";
+      preLoaderRoute: typeof ProtectedAlbumUserIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/things/": {
+      id: "/_protected/album/things/";
+      path: "/album/things";
+      fullPath: "/album/things/";
+      preLoaderRoute: typeof ProtectedAlbumThingsIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/places/": {
+      id: "/_protected/album/places/";
+      path: "/album/places";
+      fullPath: "/album/places/";
+      preLoaderRoute: typeof ProtectedAlbumPlacesIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/persons/": {
+      id: "/_protected/album/persons/";
+      path: "/album/persons";
+      fullPath: "/album/persons/";
+      preLoaderRoute: typeof ProtectedAlbumPersonsIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/folder/": {
+      id: "/_protected/album/folder/";
+      path: "/album/folder";
+      fullPath: "/album/folder/";
+      preLoaderRoute: typeof ProtectedAlbumFolderIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/events/": {
+      id: "/_protected/album/events/";
+      path: "/album/events";
+      fullPath: "/album/events/";
+      preLoaderRoute: typeof ProtectedAlbumEventsIndexRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/sharing/withme/$tab": {
+      id: "/_protected/sharing/withme/$tab";
+      path: "/sharing/withme/$tab";
+      fullPath: "/sharing/withme/$tab";
+      preLoaderRoute: typeof ProtectedSharingWithmeTabRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/sharing/byme/$tab": {
+      id: "/_protected/sharing/byme/$tab";
+      path: "/sharing/byme/$tab";
+      fullPath: "/sharing/byme/$tab";
+      preLoaderRoute: typeof ProtectedSharingBymeTabRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/user/$id": {
+      id: "/_protected/album/user/$id";
+      path: "/album/user/$id";
+      fullPath: "/album/user/$id";
+      preLoaderRoute: typeof ProtectedAlbumUserIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/things/$id": {
+      id: "/_protected/album/things/$id";
+      path: "/album/things/$id";
+      fullPath: "/album/things/$id";
+      preLoaderRoute: typeof ProtectedAlbumThingsIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/places/$id": {
+      id: "/_protected/album/places/$id";
+      path: "/album/places/$id";
+      fullPath: "/album/places/$id";
+      preLoaderRoute: typeof ProtectedAlbumPlacesIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/persons/$id": {
+      id: "/_protected/album/persons/$id";
+      path: "/album/persons/$id";
+      fullPath: "/album/persons/$id";
+      preLoaderRoute: typeof ProtectedAlbumPersonsIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/folder/$id": {
+      id: "/_protected/album/folder/$id";
+      path: "/album/folder/$id";
+      fullPath: "/album/folder/$id";
+      preLoaderRoute: typeof ProtectedAlbumFolderIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/album/events/$id": {
+      id: "/_protected/album/events/$id";
+      path: "/album/events/$id";
+      fullPath: "/album/events/$id";
+      preLoaderRoute: typeof ProtectedAlbumEventsIdRouteImport;
+      parentRoute: typeof ProtectedRouteRoute;
+    };
+    "/_protected/admin/job/$id": {
+      id: "/_protected/admin/job/$id";
+      path: "/job/$id";
+      fullPath: "/admin/job/$id";
+      preLoaderRoute: typeof ProtectedAdminJobIdRouteImport;
+      parentRoute: typeof ProtectedAdminRoute;
+    };
   }
 }
 
 interface ProtectedAdminRouteChildren {
-  ProtectedAdminIndexRoute: typeof ProtectedAdminIndexRoute
-  ProtectedAdminJobIdRoute: typeof ProtectedAdminJobIdRoute
+  ProtectedAdminIndexRoute: typeof ProtectedAdminIndexRoute;
+  ProtectedAdminJobIdRoute: typeof ProtectedAdminJobIdRoute;
 }
 
 const ProtectedAdminRouteChildren: ProtectedAdminRouteChildren = {
   ProtectedAdminIndexRoute: ProtectedAdminIndexRoute,
   ProtectedAdminJobIdRoute: ProtectedAdminJobIdRoute,
-}
+};
 
-const ProtectedAdminRouteWithChildren = ProtectedAdminRoute._addFileChildren(
-  ProtectedAdminRouteChildren,
-)
+const ProtectedAdminRouteWithChildren = ProtectedAdminRoute._addFileChildren(ProtectedAdminRouteChildren);
 
 interface ProtectedRouteRouteChildren {
-  ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren
-  ProtectedDeletedRoute: typeof ProtectedDeletedRoute
-  ProtectedFacesRoute: typeof ProtectedFacesRoute
-  ProtectedFavoritesRoute: typeof ProtectedFavoritesRoute
-  ProtectedHiddenRoute: typeof ProtectedHiddenRoute
-  ProtectedLibraryRoute: typeof ProtectedLibraryRoute
-  ProtectedNotimestampRoute: typeof ProtectedNotimestampRoute
-  ProtectedPhotosRoute: typeof ProtectedPhotosRoute
-  ProtectedProfileRoute: typeof ProtectedProfileRoute
-  ProtectedRecentRoute: typeof ProtectedRecentRoute
-  ProtectedSettingsRoute: typeof ProtectedSettingsRoute
-  ProtectedStacksRoute: typeof ProtectedStacksRoute
-  ProtectedVideosRoute: typeof ProtectedVideosRoute
-  ProtectedIndexRoute: typeof ProtectedIndexRoute
-  ProtectedOrganizingTabRoute: typeof ProtectedOrganizingTabRoute
-  ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute
-  ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute
-  ProtectedSharingLinksRoute: typeof ProtectedSharingLinksRoute
-  ProtectedSharingPublicRoute: typeof ProtectedSharingPublicRoute
-  ProtectedStatisticsFaceclustersRoute: typeof ProtectedStatisticsFaceclustersRoute
-  ProtectedStatisticsPlacetreeRoute: typeof ProtectedStatisticsPlacetreeRoute
-  ProtectedStatisticsSocialgraphRoute: typeof ProtectedStatisticsSocialgraphRoute
-  ProtectedStatisticsTimelineRoute: typeof ProtectedStatisticsTimelineRoute
-  ProtectedStatisticsWordcloudsRoute: typeof ProtectedStatisticsWordcloudsRoute
-  ProtectedAlbumIndexRoute: typeof ProtectedAlbumIndexRoute
-  ProtectedSharingIndexRoute: typeof ProtectedSharingIndexRoute
-  ProtectedStatisticsIndexRoute: typeof ProtectedStatisticsIndexRoute
-  ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute
-  ProtectedAlbumFolderIdRoute: typeof ProtectedAlbumFolderIdRoute
-  ProtectedAlbumPersonsIdRoute: typeof ProtectedAlbumPersonsIdRoute
-  ProtectedAlbumPlacesIdRoute: typeof ProtectedAlbumPlacesIdRoute
-  ProtectedAlbumThingsIdRoute: typeof ProtectedAlbumThingsIdRoute
-  ProtectedAlbumUserIdRoute: typeof ProtectedAlbumUserIdRoute
-  ProtectedSharingBymeTabRoute: typeof ProtectedSharingBymeTabRoute
-  ProtectedSharingWithmeTabRoute: typeof ProtectedSharingWithmeTabRoute
-  ProtectedAlbumEventsIndexRoute: typeof ProtectedAlbumEventsIndexRoute
-  ProtectedAlbumFolderIndexRoute: typeof ProtectedAlbumFolderIndexRoute
-  ProtectedAlbumPersonsIndexRoute: typeof ProtectedAlbumPersonsIndexRoute
-  ProtectedAlbumPlacesIndexRoute: typeof ProtectedAlbumPlacesIndexRoute
-  ProtectedAlbumThingsIndexRoute: typeof ProtectedAlbumThingsIndexRoute
-  ProtectedAlbumUserIndexRoute: typeof ProtectedAlbumUserIndexRoute
+  ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren;
+  ProtectedDeletedRoute: typeof ProtectedDeletedRoute;
+  ProtectedFacesRoute: typeof ProtectedFacesRoute;
+  ProtectedFavoritesRoute: typeof ProtectedFavoritesRoute;
+  ProtectedHiddenRoute: typeof ProtectedHiddenRoute;
+  ProtectedLibraryRoute: typeof ProtectedLibraryRoute;
+  ProtectedNotimestampRoute: typeof ProtectedNotimestampRoute;
+  ProtectedPhotosRoute: typeof ProtectedPhotosRoute;
+  ProtectedProfileRoute: typeof ProtectedProfileRoute;
+  ProtectedRecentRoute: typeof ProtectedRecentRoute;
+  ProtectedSettingsRoute: typeof ProtectedSettingsRoute;
+  ProtectedStacksRoute: typeof ProtectedStacksRoute;
+  ProtectedVideosRoute: typeof ProtectedVideosRoute;
+  ProtectedIndexRoute: typeof ProtectedIndexRoute;
+  ProtectedOrganizingTabRoute: typeof ProtectedOrganizingTabRoute;
+  ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute;
+  ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute;
+  ProtectedSharingLinksRoute: typeof ProtectedSharingLinksRoute;
+  ProtectedSharingPublicRoute: typeof ProtectedSharingPublicRoute;
+  ProtectedStatisticsFaceclustersRoute: typeof ProtectedStatisticsFaceclustersRoute;
+  ProtectedStatisticsPlacetreeRoute: typeof ProtectedStatisticsPlacetreeRoute;
+  ProtectedStatisticsSocialgraphRoute: typeof ProtectedStatisticsSocialgraphRoute;
+  ProtectedStatisticsTimelineRoute: typeof ProtectedStatisticsTimelineRoute;
+  ProtectedStatisticsWordcloudsRoute: typeof ProtectedStatisticsWordcloudsRoute;
+  ProtectedAlbumIndexRoute: typeof ProtectedAlbumIndexRoute;
+  ProtectedSharingIndexRoute: typeof ProtectedSharingIndexRoute;
+  ProtectedStatisticsIndexRoute: typeof ProtectedStatisticsIndexRoute;
+  ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute;
+  ProtectedAlbumFolderIdRoute: typeof ProtectedAlbumFolderIdRoute;
+  ProtectedAlbumPersonsIdRoute: typeof ProtectedAlbumPersonsIdRoute;
+  ProtectedAlbumPlacesIdRoute: typeof ProtectedAlbumPlacesIdRoute;
+  ProtectedAlbumThingsIdRoute: typeof ProtectedAlbumThingsIdRoute;
+  ProtectedAlbumUserIdRoute: typeof ProtectedAlbumUserIdRoute;
+  ProtectedSharingBymeTabRoute: typeof ProtectedSharingBymeTabRoute;
+  ProtectedSharingWithmeTabRoute: typeof ProtectedSharingWithmeTabRoute;
+  ProtectedAlbumEventsIndexRoute: typeof ProtectedAlbumEventsIndexRoute;
+  ProtectedAlbumFolderIndexRoute: typeof ProtectedAlbumFolderIndexRoute;
+  ProtectedAlbumPersonsIndexRoute: typeof ProtectedAlbumPersonsIndexRoute;
+  ProtectedAlbumPlacesIndexRoute: typeof ProtectedAlbumPlacesIndexRoute;
+  ProtectedAlbumThingsIndexRoute: typeof ProtectedAlbumThingsIndexRoute;
+  ProtectedAlbumUserIndexRoute: typeof ProtectedAlbumUserIndexRoute;
 }
 
 const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
@@ -1075,32 +1061,26 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedAlbumPlacesIndexRoute: ProtectedAlbumPlacesIndexRoute,
   ProtectedAlbumThingsIndexRoute: ProtectedAlbumThingsIndexRoute,
   ProtectedAlbumUserIndexRoute: ProtectedAlbumUserIndexRoute,
-}
+};
 
-const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
-  ProtectedRouteRouteChildren,
-)
+const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(ProtectedRouteRouteChildren);
 
 interface PublicRouteRouteChildren {
-  PublicUsersRoute: typeof PublicUsersRoute
-  PublicSSlugRoute: typeof PublicSSlugRoute
+  PublicUsersRoute: typeof PublicUsersRoute;
+  PublicSSlugRoute: typeof PublicSSlugRoute;
 }
 
 const PublicRouteRouteChildren: PublicRouteRouteChildren = {
   PublicUsersRoute: PublicUsersRoute,
   PublicSSlugRoute: PublicSSlugRoute,
-}
+};
 
-const PublicRouteRouteWithChildren = PublicRouteRoute._addFileChildren(
-  PublicRouteRouteChildren,
-)
+const PublicRouteRouteWithChildren = PublicRouteRoute._addFileChildren(PublicRouteRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   ProtectedRouteRoute: ProtectedRouteRouteWithChildren,
   PublicRouteRoute: PublicRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+};
+export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>();
