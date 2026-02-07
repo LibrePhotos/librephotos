@@ -38,8 +38,8 @@ def build_social_graph(user):
             ],
             "links": [{"source": pair[0], "target": pair[1]} for pair in G.edges()],
         }
-    except Exception as e:
-        logger.exception(f"Error building social graph for user {user.id}: {e}")
+    except Exception:
+        logger.exception(f"Error building social graph for user {user.id}")
         raise
 
 
