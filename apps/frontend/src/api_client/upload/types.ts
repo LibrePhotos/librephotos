@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-
 export const UploadOptions = z.object({
   form_data: z.instanceof(FormData),
   offset: z.number(),

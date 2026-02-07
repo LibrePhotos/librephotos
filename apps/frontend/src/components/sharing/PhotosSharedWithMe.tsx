@@ -2,9 +2,8 @@ import { Loader, Stack, Text } from "@mantine/core";
 import { IconPhoto as Photo, IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-
-import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useFetchSharedPhotosWithMeQuery } from "../../api_client/photos/hooks";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { PhotoListView } from "../photolist/PhotoListView";
 
 type GroupHeaderProps = {

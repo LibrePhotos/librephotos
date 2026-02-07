@@ -1,6 +1,5 @@
 import { Box } from "@mantine/core";
 import React from "react";
-
 import type { FaceOverlayProps } from "./lightbox.types";
 
 export function FaceOverlay({ faceLocation, imageDimensions }: FaceOverlayProps) {

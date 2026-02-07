@@ -13,7 +13,6 @@ import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@table
 import React, { useEffect, useState } from "react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useTranslation } from "react-i18next";
-
 import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { getRuleExtraInfo } from "./date-time-settings";

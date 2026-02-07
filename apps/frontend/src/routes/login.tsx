@@ -1,8 +1,8 @@
 import {
   Button,
   Card,
-  Container,
   Center,
+  Container,
   Divider,
   Grid,
   Group,
@@ -10,11 +10,11 @@ import {
   PasswordInput,
   Stack,
   Stepper,
+  Switch,
   Text,
   TextInput,
   Title,
   useComputedColorScheme,
-  Switch,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconLock as Lock, IconMail as Mail, IconUser as User } from "@tabler/icons-react";
@@ -29,13 +29,17 @@ import {
   useLoginMutation,
   useSignUpMutation,
 } from "../api_client/auth";
+import { useScanPhotosMutation } from "../api_client/jobs";
 import { useGetSettingsQuery } from "../api_client/settings";
 import { useUpdateSettingsMutation } from "../api_client/settings/hooks/useUpdateSettingsMutation";
-import { UserListQueryKeys, useCurrentUserSelfDetailsQuery, useUpdateUserScanDirectoryMutation } from "../api_client/user/hooks";
+import {
+  useCurrentUserSelfDetailsQuery,
+  UserListQueryKeys,
+  useUpdateUserScanDirectoryMutation,
+} from "../api_client/user/hooks";
+import { DirectoryPicker } from "../components/setup/DirectoryPicker";
 import { isStringEmpty } from "../util/stringUtils";
 import { EMAIL_REGEX } from "../util/util";
-import { DirectoryPicker } from "../components/setup/DirectoryPicker";
-import { useScanPhotosMutation } from "../api_client/jobs";
 
 export const Route = createFileRoute("/login")();
 
@@ -394,11 +398,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                       variant="gradient"
                       gradient={{ from: "#D38312", to: "#A83279" }}
                       onClick={handleSiteSettingsNext}
-                      disabled={
-                        isSavingSettings ||
-                        allowUpload === null ||
-                        allowRegistration === null
-                      }
+                      disabled={isSavingSettings || allowUpload === null || allowRegistration === null}
                     >
                       {t("continue")}
                     </Button>
@@ -417,10 +417,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                       </Stack>
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, sm: 2 }}>
-                      <Switch
-                        checked={stackRawJpeg}
-                        onChange={event => setStackRawJpeg(event.currentTarget.checked)}
-                      />
+                      <Switch checked={stackRawJpeg} onChange={event => setStackRawJpeg(event.currentTarget.checked)} />
                     </Grid.Col>
                   </Grid>
                   <Divider my="sm" />

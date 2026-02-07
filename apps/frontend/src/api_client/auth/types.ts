@@ -34,15 +34,14 @@ export const AuthState = z.object({
   error: AuthError.nullable(),
 });
 
-
-const DeleteUser = z.object({
+const _DeleteUser = z.object({
   id: z.number(),
 });
 
 export const RefreshPost = z.object({ refresh: z.string() });
 export const RefreshResponse = z.object({ access: z.string() });
 
-export type DeleteUserPost = z.infer<typeof DeleteUser>;
+export type DeleteUserPost = z.infer<typeof _DeleteUser>;
 export type RefreshPost = z.infer<typeof RefreshPost>;
 export type RefreshResponse = z.infer<typeof RefreshResponse>;
 export type Token = z.infer<typeof Token>;

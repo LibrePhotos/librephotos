@@ -20,4 +20,3 @@ export type ScrollerPosition = z.infer<typeof ScrollerPosition>;
 
 export const ScrollerType = z.enum(["alphabet", "date", "labels"]);
 export type ScrollerType = z.infer<typeof ScrollerType>;
-

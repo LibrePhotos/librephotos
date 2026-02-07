@@ -2,7 +2,6 @@ import { ActionIcon, Button, Group, Popover, Text } from "@mantine/core";
 import { IconCheck as Check, IconChecks as Checks } from "@tabler/icons-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import type { BulkPhotoQuery, SelectionState } from "../../api_client/photos/types";
 
 type Props = {
@@ -17,15 +16,7 @@ type Props = {
 
 export function SelectionBar(props: Readonly<Props>) {
   const { t } = useTranslation();
-  const {
-    selectMode,
-    selectAllMode,
-    updateSelectionState,
-    selectedItems,
-    idx2hash,
-    photosetQuery,
-    totalCount,
-  } = props;
+  const { selectMode, selectAllMode, updateSelectionState, selectedItems, idx2hash, photosetQuery, totalCount } = props;
   const [openedAll, setOpenedAll] = useState(false);
   const [openedSelect, setOpenedSelect] = useState(false);
 
@@ -85,9 +76,7 @@ export function SelectionBar(props: Readonly<Props>) {
           </ActionIcon>
         </Popover.Target>
         <Popover.Dropdown>
-          <Text size="sm">
-            {isAllSelected ? t("selectionbar.deselect") : t("selectionbar.select")}
-          </Text>
+          <Text size="sm">{isAllSelected ? t("selectionbar.deselect") : t("selectionbar.select")}</Text>
         </Popover.Dropdown>
       </Popover>
       <div>

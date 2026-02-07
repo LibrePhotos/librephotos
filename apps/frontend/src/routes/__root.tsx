@@ -1,6 +1,5 @@
 import { useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-
 import { SpotlightProvider } from "../components/spotlight";
 
 interface MyRouterContext {}

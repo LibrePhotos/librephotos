@@ -1,6 +1,5 @@
 import { useViewportSize } from "@mantine/hooks";
 import { useEffect, useState } from "react";
-
 import { LEFT_MENU_WIDTH, TOP_MENU_HEIGHT } from "../ui-constants";
 
 interface AlbumGridConfig {
@@ -22,7 +21,7 @@ function calculateGridValues(width: number): { columnWidth: number; squareSize: 
     entries = 5;
   }
   let columnWidth = width - 5 - 5 - 15;
-  if (width >= 700 ) {
+  if (width >= 700) {
     columnWidth -= LEFT_MENU_WIDTH;
   }
   return { columnWidth, squareSize: columnWidth / entries };
@@ -34,7 +33,6 @@ export function useAlbumListGridConfig(albums: Object[]): AlbumGridConfig {
   const [entrySquareSize, setEntrySquareSize] = useState(200);
   const [numberOfRows, setNumberOfRows] = useState(0);
   const [gridHeight, setGridHeight] = useState(0);
-  
 
   useEffect(() => {
     const { columnWidth, squareSize } = calculateGridValues(width);

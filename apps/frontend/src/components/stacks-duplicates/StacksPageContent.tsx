@@ -42,6 +42,7 @@ import {
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
+import { useAccessToken } from "../../api_client/auth";
 import {
   useDeleteStackMutation,
   useDetectStacksMutation,
@@ -50,7 +51,6 @@ import {
 } from "../../api_client/stacks";
 import type { StackType } from "../../api_client/stacks/types";
 import { stackTypeLabels } from "../../api_client/stacks/types";
-import { useAccessToken } from "../../api_client/auth";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { StackModal } from "../stacks/StackModal";
 

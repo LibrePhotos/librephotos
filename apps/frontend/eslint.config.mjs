@@ -1,110 +1,71 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { fixupConfigRules } from "@eslint/compat";
-import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
 import prettier from "eslint-plugin-prettier";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
 
 export default [
   {
-    ignores: ["**/eslint.config.mjs", "**/prettier.config.cjs", "**/proxy.js", "node_modules/*"],
+    ignores: ["**/eslint.config.mjs", "**/prettier.config.cjs", "**/proxy.js", "node_modules/*", "**/dist/*"],
   },
-  ...fixupConfigRules(compat.extends("airbnb", "airbnb-typescript", "airbnb/hooks", "prettier")),
+  js.configs.recommended,
   {
+    files: ["**/*.{js,jsx,ts,tsx}"],
     plugins: {
       prettier,
+      "@typescript-eslint": tseslint,
+      react,
+      "react-hooks": reactHooks,
     },
 
     languageOptions: {
+      parser: tsparser,
       globals: {
         ...globals.browser,
         ...globals.node,
         ...globals.jest,
       },
 
-      // Use modern ECMAScript and ESM modules to match Vite/TypeScript setup
       ecmaVersion: "latest",
       sourceType: "module",
 
       parserOptions: {
         project: "./tsconfig.eslint.json",
-        tsconfigRootDir: __dirname,
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
     },
 
     settings: {
-      // Help eslint-plugin-import resolve TS paths and avoid deep graph walks
-      "import/resolver": {
-        typescript: {
-          project: "./tsconfig.eslint.json",
-        },
-        node: true,
+      react: {
+        version: "detect",
       },
     },
 
     rules: {
-      // Disable @typescript-eslint rules removed in v8 (moved to @stylistic)
-      // that are still referenced by eslint-config-airbnb-typescript
-      "@typescript-eslint/brace-style": "off",
-      "@typescript-eslint/comma-dangle": "off",
-      "@typescript-eslint/comma-spacing": "off",
-      "@typescript-eslint/func-call-spacing": "off",
-      "@typescript-eslint/indent": "off",
-      "@typescript-eslint/keyword-spacing": "off",
-      "@typescript-eslint/lines-between-class-members": "off",
-      "@typescript-eslint/no-extra-parens": "off",
-      "@typescript-eslint/no-extra-semi": "off",
-      "@typescript-eslint/no-throw-literal": "off",
-      "@typescript-eslint/object-curly-spacing": "off",
-      "@typescript-eslint/quotes": "off",
-      "@typescript-eslint/semi": "off",
-      "@typescript-eslint/space-before-blocks": "off",
-      "@typescript-eslint/space-before-function-paren": "off",
-      "@typescript-eslint/space-infix-ops": "off",
-      "no-nested-ternary": "off",
-      "import/prefer-default-export": "off",
-      "import/no-named-as-default": "off",
-      "import/no-named-as-default-member": "off",
-      "import/no-cycle": "off",
-      // Many files intentionally import from the same module in separate lines
-      "import/no-duplicates": "off",
-      // Temporarily disable rule that crashes under certain graph shapes
-      "import/export": "off",
-      // Allow omitting extensions for common module types
-      "import/extensions": [
-        "error",
-        "ignorePackages",
-        {
-          js: "never",
-          jsx: "never",
-          ts: "never",
-          tsx: "never",
-        },
-      ],
-      // React 17+ with new JSX transform doesn't require React in scope
+      // Prettier integration
+      "prettier/prettier": "error",
+
+      // TypeScript rules
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
+
+      // React rules
       "react/react-in-jsx-scope": "off",
-      // TypeScript with optional props doesn't require defaultProps
-      "react/require-default-props": "off",
-      // Allow explicit boolean values in JSX when clearer for readability
       "react/jsx-boolean-value": "off",
-      // Don't require deps for dev-only util hooks files
-      "import/no-extraneous-dependencies": [
-        "error",
-        {
-          devDependencies: ["**/src/wdyr.ts", "**/*.test.{ts,tsx}", "**/e2e/**/*.{ts,tsx}"],
-        },
-      ],
       "react/jsx-props-no-spreading": "off",
+
+      // React hooks
+      "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "off",
+
+      // General rules
+      "no-nested-ternary": "off",
+      "no-unused-vars": "off", // handled by @typescript-eslint/no-unused-vars
+      "no-redeclare": "off", // handled by TypeScript (Zod pattern: const X = z.object(); type X = z.infer<typeof X>)
+      "no-undef": "off", // handled by TypeScript compiler
     },
   },
 ];

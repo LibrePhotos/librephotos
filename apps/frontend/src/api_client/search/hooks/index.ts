@@ -1,2 +1,2 @@
-export * from './useSearchPhotosQuery';
-export * from './useSearchExamplesQuery';
+export * from "./useSearchPhotosQuery";
+export * from "./useSearchExamplesQuery";

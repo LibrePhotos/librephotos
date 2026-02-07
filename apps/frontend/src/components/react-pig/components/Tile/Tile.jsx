@@ -1,6 +1,6 @@
+import { motion } from "motion/react";
 import PropTypes from "prop-types";
 import React, { useState } from "react";
-import { animated, useSpring } from "react-spring";
 import getImageHeight from "../../utils/getImageHeight";
 import getTileMeasurements from "../../utils/getTileMeasurements";
 import styles from "./styles.module.css";
@@ -46,11 +46,6 @@ const Tile = React.memo(
       containerOffsetTop,
     });
 
-    // gridPosition is what has been set by the grid layout logic (in the parent component)
-    const gridPosition = `translate3d(${item.style.translateX}px, ${item.style.translateY}px, 0)`;
-    // screenCenter is positioning logic for when the item is active and expanded
-    const screenCenter = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
-
     function getWidth(exp, sel) {
       if (exp) {
         return `${Math.ceil(calcWidth)}px`;
@@ -71,33 +66,30 @@ const Tile = React.memo(
       return `${item.style.height}px`;
     }
 
-    const { width, height, transform, zIndex, marginLeft, marginRight, marginTop, marginBottom } = useSpring({
-      transform: isExpanded ? screenCenter : gridPosition,
-      zIndex: isExpanded ? 10 : 0, // 10 so that it takes a little longer before settling at 0
-      width: getWidth(isExpanded, isSelected),
-      height: getHeight(isExpanded, isSelected),
-      marginLeft: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
-      marginRight: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
-      marginTop: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
-      marginBottom: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
-      config: { mass: 1.5, tension: 400, friction: 40 },
-    });
+    const springTransition = { type: "spring", mass: 1.5, stiffness: 400, damping: 40 };
 
     return (
-      <animated.button
+      <motion.button
         className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
         onClick={event => handleClick(event, item)}
+        animate={{
+          width: getWidth(isExpanded, isSelected),
+          height: getHeight(isExpanded, isSelected),
+          zIndex: isExpanded ? 10 : 0,
+          marginLeft: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
+          marginRight: isSelected && !isExpanded ? item.style.width * 0.05 : 0,
+          marginTop: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
+          marginBottom: isSelected && !isExpanded ? item.style.height * 0.05 : 0,
+          x: isExpanded ? offsetX : item.style.translateX,
+          y: isExpanded ? offsetY : item.style.translateY,
+        }}
+        transition={springTransition}
         style={{
           outline: isExpanded ? `${settings.gridGap}px solid ${settings.bgColor}` : null,
           backgroundColor: item.dominantColor,
-          zIndex: zIndex.to(t => Math.round(t)),
-          width: width.to(t => t),
-          height: height.to(t => t),
-          marginLeft: marginLeft.to(t => t),
-          marginRight: marginRight.to(t => t),
-          marginTop: marginTop.to(t => t),
-          marginBottom: marginBottom.to(t => t),
-          transform: transform.to(t => t),
+          position: "absolute",
+          left: 0,
+          top: 0,
         }}
       >
         {useLqip && !isTemp && (
@@ -190,7 +182,7 @@ const Tile = React.memo(
           <div className={styles.overlaysBottomLeft}>{BottomLeftOverlay && <BottomLeftOverlay item={item} />}</div>
           <div className={styles.overlaysBottomRight}>{BottomRightOverlay && <BottomRightOverlay item={item} />}</div>
         </div>
-      </animated.button>
+      </motion.button>
     );
   }
 );

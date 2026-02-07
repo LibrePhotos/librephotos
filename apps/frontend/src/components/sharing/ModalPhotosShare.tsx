@@ -1,17 +1,28 @@
-import { ActionIcon, Avatar, Badge, Divider, Group, Modal, ScrollArea, Stack, Text, TextInput, Title } from "@mantine/core";
+import {
+  ActionIcon,
+  Avatar,
+  Badge,
+  Divider,
+  Group,
+  Modal,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { IconShare as Share, IconShareOff as ShareOff } from "@tabler/icons-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { serverAddress } from "../../api_client/apiClient";
 import { useUpdatePhotoSharingMutation } from "../../api_client/photos/hooks";
 import type { BulkPhotoQuery } from "../../api_client/photos/types";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { i18nResolvedLanguage } from "../../i18n";
 import classes from "./ModalAlbumShare.module.css";
 import filterUsers from "./utils";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 
 type Props = Readonly<{
   selectedImageHashes: string[];
@@ -26,13 +37,7 @@ export function ModalPhotosShare(props: Props) {
   const [userNameFilter, setUserNameFilter] = useState("");
   const { data: users = [], isFetching: isUsersLoading, isSuccess: isUsersLoaded } = useFetchUserListQuery();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
-  const {
-    selectedImageHashes,
-    isOpen,
-    onRequestClose,
-    selectAllMode = false,
-    selectAllQuery,
-  } = props;
+  const { selectedImageHashes, isOpen, onRequestClose, selectAllMode = false, selectAllQuery } = props;
   const { mutate: updatePhotoSharing } = useUpdatePhotoSharingMutation();
 
   // In selectAllMode, selectedImageHashes contains exclusions
@@ -41,11 +46,9 @@ export function ModalPhotosShare(props: Props) {
   // Only show preview images in non-selectAll mode
   const selectedImageSrcs = selectAllMode
     ? []
-    : selectedImageHashes.map(
-        (image_hash: string) => `${serverAddress}/media/square_thumbnails/${image_hash}`
-      );
+    : selectedImageHashes.map((image_hash: string) => `${serverAddress}/media/square_thumbnails/${image_hash}`);
 
-  const handleShare = (targetUser: typeof users[0], share: boolean) => {
+  const handleShare = (targetUser: (typeof users)[0], share: boolean) => {
     if (selectAllMode) {
       updatePhotoSharing({
         select_all: true,
@@ -75,7 +78,8 @@ export function ModalPhotosShare(props: Props) {
       <Stack>
         {selectAllMode ? (
           <Badge color="blue" size="lg" variant="light">
-            {t("selectionbar.all")} {excludedHashes.length > 0 && `(${excludedHashes.length} ${t("selectionbar.excluded")})`}
+            {t("selectionbar.all")}{" "}
+            {excludedHashes.length > 0 && `(${excludedHashes.length} ${t("selectionbar.excluded")})`}
           </Badge>
         ) : (
           <ScrollArea>
@@ -119,16 +123,10 @@ export function ModalPhotosShare(props: Props) {
                       </div>
                     </Group>
                     <Group>
-                      <ActionIcon
-                        onClick={() => handleShare(item, true)}
-                        color="green"
-                      >
+                      <ActionIcon onClick={() => handleShare(item, true)} color="green">
                         <Share />
                       </ActionIcon>
-                      <ActionIcon
-                        onClick={() => handleShare(item, false)}
-                        color="red"
-                      >
+                      <ActionIcon onClick={() => handleShare(item, false)} color="red">
                         <ShareOff />
                       </ActionIcon>
                     </Group>

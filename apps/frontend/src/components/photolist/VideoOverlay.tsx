@@ -1,13 +1,12 @@
 import { IconPlayerPlay as PlayerPlay, IconRun as Run } from "@tabler/icons-react";
 import { Duration } from "luxon";
 import React from "react";
-
 import { Media } from "../../api_client/photos/types";
 
 type Props = Readonly<{
   item: {
     type: Media;
-    video_length: string;   
+    video_length: string;
   };
 }>;
 export function VideoOverlay({ item }: Props) {

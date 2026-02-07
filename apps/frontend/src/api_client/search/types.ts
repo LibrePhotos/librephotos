@@ -25,7 +25,7 @@ export const SearchPhotosResult = z.object({
 });
 
 export const SemanticSearchPhotos = z.object({
-  results: z.array(PigPhoto), 
-})
+  results: z.array(PigPhoto),
+});
 
-export type SearchPhotosResult = z.infer<typeof SearchPhotosResult>; 
+export type SearchPhotosResult = z.infer<typeof SearchPhotosResult>;

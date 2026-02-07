@@ -1,6 +1,5 @@
 import { Grid } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
-
 import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 import { WordCloud } from "../../../components/charts/WordCloud";
 

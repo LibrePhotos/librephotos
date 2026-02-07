@@ -49,9 +49,7 @@ export function EmptyState({
     }
   };
 
-  const progressPercent = progress && progress.target > 0 
-    ? (progress.current / progress.target) * 100 
-    : undefined;
+  const progressPercent = progress && progress.target > 0 ? (progress.current / progress.target) * 100 : undefined;
 
   return (
     <Center py={80}>
@@ -64,10 +62,10 @@ export function EmptyState({
         </Title>
         {progress && (
           <Stack w="100%" gap="xs" px="xl">
-            <Progress 
-              value={progressPercent ?? 0} 
-              size="md" 
-              radius="xl" 
+            <Progress
+              value={progressPercent ?? 0}
+              size="md"
+              radius="xl"
               animated={progressPercent === undefined || progressPercent < 100}
               color="blue"
             />
@@ -97,4 +95,3 @@ export function EmptyState({
     </Center>
   );
 }
-

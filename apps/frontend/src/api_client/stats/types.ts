@@ -68,5 +68,4 @@ export const LocationTimeline = z.array(
   })
 );
 
-export type LocationTimeline = z.infer<typeof LocationTimeline>; 
-
+export type LocationTimeline = z.infer<typeof LocationTimeline>;

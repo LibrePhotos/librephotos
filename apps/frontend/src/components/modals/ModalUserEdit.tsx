@@ -139,8 +139,8 @@ export function ModalUserEdit(props: Props) {
       return;
     }
     newUserData.email = email;
-  newUserData.first_name = firstName;
-  newUserData.last_name = lastName;
+    newUserData.first_name = firstName;
+    newUserData.last_name = lastName;
 
     if (userPassword) {
       newUserData.password = userPassword;
@@ -220,7 +220,7 @@ export function ModalUserEdit(props: Props) {
               {...form.getInputProps("last_name")}
             />
           </SimpleGrid>
-          
+
           <Box mt="sm">
             <PasswordEntry createNew={createNew} onValidate={onPasswordValidate} closing={closing} />
           </Box>

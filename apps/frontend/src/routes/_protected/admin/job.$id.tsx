@@ -23,8 +23,8 @@ import { DateTime } from "luxon";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useJobQuery } from "../../../api_client/jobs/hooks";
-import { i18nResolvedLanguage } from "../../../i18n";
 import { JobProgress } from "../../../components/job/JobProgress";
+import { i18nResolvedLanguage } from "../../../i18n";
 
 export const Route = createFileRoute("/_protected/admin/job/$id")();
 
@@ -236,7 +236,10 @@ function JobDetailView() {
                     <Text fw={600} mb="xs">
                       Full Result Data:
                     </Text>
-                    <Code block style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "400px", overflow: "auto" }}>
+                    <Code
+                      block
+                      style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "400px", overflow: "auto" }}
+                    >
                       {JSON.stringify(job.result, null, 2)}
                     </Code>
                   </Box>
@@ -251,7 +254,10 @@ function JobDetailView() {
               <Title order={4} mb="md">
                 Result Data
               </Title>
-              <Code block style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "400px", overflow: "auto" }}>
+              <Code
+                block
+                style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "400px", overflow: "auto" }}
+              >
                 {JSON.stringify(job.result, null, 2)}
               </Code>
             </Card>

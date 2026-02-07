@@ -1,21 +1,5 @@
-import {
-  ActionIcon,
-  Badge,
-  Button,
-  Card,
-  Group,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from "@mantine/core";
-import {
-  IconCamera,
-  IconDownload,
-  IconFile,
-  IconFileCheck,
-  IconVideo,
-} from "@tabler/icons-react";
+import { ActionIcon, Badge, Card, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { IconCamera, IconDownload, IconFile, IconFileCheck, IconVideo } from "@tabler/icons-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
@@ -49,7 +33,7 @@ const fileTypeLabels: Record<FileVariantTypeEnum, string> = {
   unknown: "File",
 };
 
-function formatBytes(bytes: number | null | undefined): string {
+function _formatBytes(bytes: number | null | undefined): string {
   if (!bytes) return "";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
@@ -73,13 +57,10 @@ function FileVariantCard({ variant, imageHash }: FileVariantCardProps) {
   const icon = fileTypeIcons[variant.type];
   const color = fileTypeColors[variant.type];
   const extension = getFileExtension(variant.filename);
-  
+
   const handleDownload = () => {
     // Open download URL in new tab
-    window.open(
-      `${serverAddress}/api/photos/${imageHash}/file/${variant.hash}`,
-      "_blank"
-    );
+    window.open(`${serverAddress}/api/photos/${imageHash}/file/${variant.hash}`, "_blank");
   };
 
   return (
@@ -105,14 +86,9 @@ function FileVariantCard({ variant, imageHash }: FileVariantCardProps) {
             </Tooltip>
           </Stack>
         </Group>
-        
+
         <Tooltip label={t("fileVariants.download", "Download this variant")}>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            size="sm"
-            onClick={handleDownload}
-          >
+          <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleDownload}>
             <IconDownload size={16} />
           </ActionIcon>
         </Tooltip>
@@ -125,10 +101,8 @@ export function FileVariantsSection({ photoDetail }: FileVariantsSectionProps) {
   const { t } = useTranslation();
   const variants = photoDetail.file_variants as FileVariant[] | null | undefined;
 
-  // Check if photo has RAW in stacks (legacy behavior) 
-  const hasRawInStack = photoDetail.stacks?.some(
-    (stack: { type: string }) => stack.type === "raw_jpeg"
-  );
+  // Check if photo has RAW in stacks (legacy behavior)
+  const hasRawInStack = photoDetail.stacks?.some((stack: { type: string }) => stack.type === "raw_jpeg");
 
   // If no variants and no RAW in stacks, don't show section
   if ((!variants || variants.length === 0) && !hasRawInStack) {
@@ -158,20 +132,14 @@ export function FileVariantsSection({ photoDetail }: FileVariantsSectionProps) {
       {variants && variants.length > 0 ? (
         <>
           <Text size="xs" c="dimmed">
-            {t(
-              "fileVariants.description",
-              "This photo has {{count}} file variants (same capture, different formats)",
-              { count: variants.length }
-            )}
+            {t("fileVariants.description", "This photo has {{count}} file variants (same capture, different formats)", {
+              count: variants.length,
+            })}
           </Text>
 
           <Stack gap="xs">
             {variants.map(variant => (
-              <FileVariantCard
-                key={variant.hash}
-                variant={variant}
-                imageHash={photoDetail.image_hash}
-              />
+              <FileVariantCard key={variant.hash} variant={variant} imageHash={photoDetail.image_hash} />
             ))}
           </Stack>
         </>

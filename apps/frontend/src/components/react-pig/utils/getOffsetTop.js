@@ -1,4 +1,3 @@
-
 //   /**
 //    * Returns the distance from `elem` to the top of the page. This is done by
 //    * walking up the node tree, getting the offsetTop of each parent node, until

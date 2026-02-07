@@ -73,11 +73,14 @@ export function useVirtualizedGrid(
   );
 
   // Calculate cell contents for each tab - MEMOIZED to prevent recalculation on every render
-  const cellContents = useMemo(() => ({
-    [FacesTab.enum.labeled]: calculateFaceGridCells(lists.labeled, numEntrySquaresPerRow).cellContents,
-    [FacesTab.enum.inferred]: calculateFaceGridCells(lists.inferred, numEntrySquaresPerRow).cellContents,
-    [FacesTab.enum.unknown]: calculateFaceGridCells(lists.unknown, numEntrySquaresPerRow).cellContents,
-  }), [lists.labeled, lists.inferred, lists.unknown, numEntrySquaresPerRow]);
+  const cellContents = useMemo(
+    () => ({
+      [FacesTab.enum.labeled]: calculateFaceGridCells(lists.labeled, numEntrySquaresPerRow).cellContents,
+      [FacesTab.enum.inferred]: calculateFaceGridCells(lists.inferred, numEntrySquaresPerRow).cellContents,
+      [FacesTab.enum.unknown]: calculateFaceGridCells(lists.unknown, numEntrySquaresPerRow).cellContents,
+    }),
+    [lists.labeled, lists.inferred, lists.unknown, numEntrySquaresPerRow]
+  );
 
   // Get cell contents for the active tab - stable reference due to memoized cellContents
   const getCellContentsForTab = useCallback((tab: FacesTab) => cellContents[tab] || [], [cellContents]);

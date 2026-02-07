@@ -1,11 +1,10 @@
 import { Tooltip } from "@mantine/core";
+import { getRouteApi } from "@tanstack/react-router";
 import { t } from "i18next";
 import { DateTime } from "luxon";
 import React from "react";
-
-import { getRouteApi } from "@tanstack/react-router";
-import { i18nResolvedLanguage } from "../../i18n";
 import { FacesTab } from "../../api_client/faces";
+import { i18nResolvedLanguage } from "../../i18n";
 
 type Props = Readonly<{
   tooltipOpened: boolean;

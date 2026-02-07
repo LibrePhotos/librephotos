@@ -16,4 +16,4 @@ export const DirTree = z.lazy(() =>
   })
 );
 
-export const DirTreeResponse = z.array(DirTree); 
+export const DirTreeResponse = z.array(DirTree);

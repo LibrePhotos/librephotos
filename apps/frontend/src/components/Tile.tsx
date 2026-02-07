@@ -1,7 +1,6 @@
 import { Image } from "@mantine/core";
 import type { CSSProperties, MouseEventHandler } from "react";
 import React from "react";
-
 import { serverAddress } from "../api_client/apiClient";
 
 type DefaultProps = {
@@ -34,6 +33,12 @@ export function Tile({ video, width, height, style, image_hash, className }: Pro
     );
   }
   return (
-    <Image className={className} style={style} width={width} height={height} src={`${serverAddress}/media/square_thumbnails/${image_hash}`} />
+    <Image
+      className={className}
+      style={style}
+      width={width}
+      height={height}
+      src={`${serverAddress}/media/square_thumbnails/${image_hash}`}
+    />
   );
 }

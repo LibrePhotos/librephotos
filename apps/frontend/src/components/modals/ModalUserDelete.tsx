@@ -2,7 +2,6 @@ import { Button, Modal, Space, Text, Title } from "@mantine/core";
 import { IconTrash as Trash } from "@tabler/icons-react";
 import React from "react";
 import { Trans, useTranslation } from "react-i18next";
-
 import { useDeleteUserMutation } from "../../api_client/user/hooks";
 
 type Props = Readonly<{

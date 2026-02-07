@@ -8,7 +8,6 @@ import {
   useFetchDateAlbumsQuery,
   useFetchPeopleAlbumsQuery,
 } from "../../../api_client/albums/hooks";
-
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
 import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";

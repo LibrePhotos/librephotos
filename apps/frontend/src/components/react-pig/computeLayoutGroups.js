@@ -7,9 +7,9 @@ export default function computeLayoutGroups({ imageData, settings, wrapperWidth,
 
   // Calculate group title height based on header size setting
   let groupTitleHeight;
-  if (settings.headerSize === 'small') {
+  if (settings.headerSize === "small") {
     groupTitleHeight = wrapperWidth < settings.breakpoint ? 25 : 30; // Small headers are more compact
-  } else if (settings.headerSize === 'normal') {
+  } else if (settings.headerSize === "normal") {
     groupTitleHeight = wrapperWidth < settings.breakpoint ? 35 : 40; // Normal headers are medium
   } else {
     groupTitleHeight = wrapperWidth < settings.breakpoint ? 45 : 50; // Large headers (default) are full size
@@ -86,9 +86,9 @@ export default function computeLayoutGroups({ imageData, settings, wrapperWidth,
 
     // Calculate group gap based on header size for more compact spacing with smaller headers
     let groupGap;
-    if (settings.headerSize === 'small') {
+    if (settings.headerSize === "small") {
       groupGap = 5; // Much more compact for small headers
-    } else if (settings.headerSize === 'normal') {
+    } else if (settings.headerSize === "normal") {
       groupGap = 20; // Medium spacing for normal headers
     } else {
       groupGap = wrapperWidth < settings.breakpoint ? settings.groupGapSm : settings.groupGapLg; // Use default for large headers

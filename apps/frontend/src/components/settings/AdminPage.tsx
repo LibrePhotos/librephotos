@@ -9,17 +9,17 @@ import {
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
+import { useFetchServerLogsQuery, useFetchServerStatsQuery } from "../../api_client/server/hooks";
+import { useFetchUserListQuery } from "../../api_client/user/hooks";
+import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { i18nResolvedLanguage } from "../../i18n";
 import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
-import { i18nResolvedLanguage } from "../../i18n";
 import { SiteSettings } from "./SiteSettings";
-import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { useFetchServerLogsQuery, useFetchServerStatsQuery } from "../../api_client/server/hooks";
 
-function DownloadLogsButton(){
+function DownloadLogsButton() {
   const { data, isFetching } = useFetchServerLogsQuery();
 
   const handleDownload = () => {

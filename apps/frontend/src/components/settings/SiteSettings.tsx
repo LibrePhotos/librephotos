@@ -2,9 +2,7 @@ import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInpu
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
-
 
 const MAP_API_PROVIDERS = [
   {

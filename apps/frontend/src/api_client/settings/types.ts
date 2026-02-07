@@ -12,8 +12,7 @@ export const SiteSettings = z.object({
 
 export type SiteSettings = z.infer<typeof SiteSettings>;
 
-export type PredefinedRules = string[]; 
-
+export type PredefinedRules = string[];
 
 export const Timezones = z.string().array();
 export type Timezones = z.infer<typeof Timezones>;

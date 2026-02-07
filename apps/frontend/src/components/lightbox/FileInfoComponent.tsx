@@ -6,18 +6,24 @@ export function FileInfoComponent({
   info,
   size = "xs",
   width,
-}: Readonly<{ description?: string; info: string | undefined; size?: string, width?: number }>) {
+}: Readonly<{ description?: string; info: string | undefined; size?: string; width?: number }>) {
   if (!info || info.includes("undefined") || info.includes("null") || info.includes("0 mm")) return null;
 
   // Calculate maxWidth based on size
   const getMaxWidth = () => {
     switch (size) {
-      case "xs": return 100;
-      case "sm": return 150;
-      case "md": return 200;
-      case "lg": return 250;
-      case "xl": return 300;
-      default: return 100;
+      case "xs":
+        return 100;
+      case "sm":
+        return 150;
+      case "md":
+        return 200;
+      case "lg":
+        return 250;
+      case "xl":
+        return 300;
+      default:
+        return 100;
     }
   };
 

@@ -20,18 +20,18 @@ export function SharedWithMe() {
     if (item === "photos") {
       return (
         <Text c="dimmed">
-          {t("sharing.usersSharedPhotosWithYou", { 
-            userCount: photos.flatMap(g => g.userId).length, 
-            photoCount: photos.length 
+          {t("sharing.usersSharedPhotosWithYou", {
+            userCount: photos.flatMap(g => g.userId).length,
+            photoCount: photos.length,
           })}
         </Text>
       );
     }
     return (
       <Text c="dimmed">
-        {t("sharing.usersSharedAlbumsWithYou", { 
-          userCount: albums.length, 
-          albumCount: albums.map(el => el.albums.length).reduce((a, b) => a + b, 0) 
+        {t("sharing.usersSharedAlbumsWithYou", {
+          userCount: albums.length,
+          albumCount: albums.map(el => el.albums.length).reduce((a, b) => a + b, 0),
         })}
       </Text>
     );

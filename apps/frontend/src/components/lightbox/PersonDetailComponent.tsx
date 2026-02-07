@@ -1,14 +1,13 @@
 import { ActionIcon, Avatar, Button, Group, Indicator, Text, Tooltip } from "@mantine/core";
 import { IconEdit, IconTrash, IconUserCheck, IconUserOff } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
-
 import { serverAddress } from "../../api_client/apiClient";
+import { useDeleteFacesMutation, useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { notification } from "../../service/notifications";
 import { calculateProbabiltyColor } from "../facedashboard/FaceComponent";
 import { FaceTooltip } from "../facedashboard/FaceTooltip";
-import { useSetFacesPersonLabelMutation, useDeleteFacesMutation  } from "../../api_client/faces";
 
 type Props = {
   person: any;
@@ -21,8 +20,8 @@ type Props = {
 export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, notThisPerson }: Props) {
   const { t } = useTranslation();
   const [tooltipOpened, setTooltipOpened] = useState(false);
-  const {mutate: setFacesPersonLabel} = useSetFacesPersonLabelMutation();
-  const {mutate: deleteFaces} = useDeleteFacesMutation();
+  const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
+  const { mutate: deleteFaces } = useDeleteFacesMutation();
   const navigate = useNavigate();
 
   return (
@@ -58,9 +57,7 @@ export function PersonDetail({ person, isPublic, setFaceLocation, onPersonEdit, 
       {!isPublic && person.type !== "user" && (
         <Tooltip label={t("facesdashboard.explanationadding")}>
           <ActionIcon
-            onClick={() =>
-              setFacesPersonLabel({ faceIds: [person.face_id], personName: person.name })
-            }
+            onClick={() => setFacesPersonLabel({ faceIds: [person.face_id], personName: person.name })}
             variant="light"
             color="green"
           >

@@ -103,4 +103,3 @@ export function AlbumCoverPickerModal({ isOpen, onRequestClose, photos, onSelect
     </Modal>
   );
 }
-
