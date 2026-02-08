@@ -117,7 +117,7 @@
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "@vitest/coverage-v8": "^3.2.0",
-    "eslint": "9.38.0",
+    "eslint": "9.39.2",
     "eslint-config-prettier": "10.1.8",
     "eslint-filtered-fix": "0.3.0",
     "eslint-nibble": "9.1.1",
