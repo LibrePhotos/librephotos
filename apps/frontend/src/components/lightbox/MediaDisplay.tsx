@@ -73,7 +73,7 @@ export function MediaDisplay({
     }
     return (
       <ReactPlayer
-        url={`${serverAddress}/media/video/${mediaHash}`}
+        url={`${serverAddress}/media/photos/${mediaHash}`}
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
