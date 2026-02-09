@@ -84,6 +84,15 @@ export function MediaDisplay({
           borderRadius: "8px",
           overflow: "hidden",
         }}
+        config={{
+          file: {
+            attributes: {
+              controlsList: "nodownload",
+              disablePictureInPicture: false,
+              crossOrigin: "use-credentials",
+            },
+          },
+        }}
         onError={() => setVideoError(true)}
         onEnded={isMainContent ? onEnded : undefined}
       />
@@ -103,6 +112,15 @@ export function MediaDisplay({
           objectFit: "contain",
           borderRadius: "8px",
           overflow: "hidden",
+        }}
+        config={{
+          file: {
+            attributes: {
+              controlsList: "nodownload",
+              disablePictureInPicture: false,
+              crossOrigin: "use-credentials",
+            },
+          },
         }}
         onEnded={isMainContent ? onEnded : undefined}
       />
