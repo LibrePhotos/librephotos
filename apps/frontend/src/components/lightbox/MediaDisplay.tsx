@@ -88,7 +88,6 @@ export function MediaDisplay({
           file: {
             attributes: {
               controlsList: "nodownload",
-              disablePictureInPicture: false,
               crossOrigin: "use-credentials",
             },
           },
@@ -117,7 +116,6 @@ export function MediaDisplay({
           file: {
             attributes: {
               controlsList: "nodownload",
-              disablePictureInPicture: false,
               crossOrigin: "use-credentials",
             },
           },
