@@ -73,7 +73,7 @@ export function MediaDisplay({
     }
     return (
       <ReactPlayer
-        url={`${serverAddress}/media/video/${mediaHash}`}
+        url={`${serverAddress}/media/photos/${mediaHash}`}
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
@@ -83,6 +83,14 @@ export function MediaDisplay({
           objectFit: "contain",
           borderRadius: "8px",
           overflow: "hidden",
+        }}
+        config={{
+          file: {
+            attributes: {
+              controlsList: "nodownload",
+              crossOrigin: "use-credentials",
+            },
+          },
         }}
         onError={() => setVideoError(true)}
         onEnded={isMainContent ? onEnded : undefined}
@@ -103,6 +111,14 @@ export function MediaDisplay({
           objectFit: "contain",
           borderRadius: "8px",
           overflow: "hidden",
+        }}
+        config={{
+          file: {
+            attributes: {
+              controlsList: "nodownload",
+              crossOrigin: "use-credentials",
+            },
+          },
         }}
         onEnded={isMainContent ? onEnded : undefined}
       />
