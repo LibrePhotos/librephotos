@@ -73,7 +73,7 @@ export function MediaDisplay({
     }
     return (
       <ReactPlayer
-        url={`${serverAddress}/media/photos/${mediaHash}`}
+        url={`${serverAddress}/media/photos/${mediaHash}.mp4`}
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
@@ -101,7 +101,7 @@ export function MediaDisplay({
   if (currentType === "embedded") {
     return (
       <ReactPlayer
-        url={`${serverAddress}/media/embedded_media/${mediaHash}`}
+        url={`${serverAddress}/media/embedded_media/${mediaHash}?type=.mp4`}
         width="100%"
         height={fullHeight ? "100%" : "82vh"}
         controls={isMainContent}
