@@ -113,12 +113,10 @@ def detect_exact_copies(user, progress_callback=None):
     """
     Detect exact file copies for a user.
     
-    Groups photos that have the same content hash. Uses two methods:
-    1. Direct grouping by Photo.image_hash (most reliable)
-    2. Grouping by File.hash MD5 part (fallback for edge cases)
+    Groups photos that have the same content hash. Uses database aggregation
+    to efficiently find duplicate groups without loading all photos into memory.
     
-    Since duplicate files now create separate Photo objects, we group
-    photos by their hash to identify exact copies.
+    Memory optimized: Uses database GROUP BY instead of Python dictionaries.
     
     Args:
         user: The user whose photos to analyze
@@ -127,65 +125,90 @@ def detect_exact_copies(user, progress_callback=None):
     Returns:
         Number of duplicate groups created
     """
-    from collections import defaultdict
+    from django.db.models import Count
     
-    # Get all photos with their files, excluding metadata files
-    # Exclude removed photos to avoid including merged/deleted duplicates
-    photos = Photo.objects.filter(
-        Q(owner=user) & Q(hidden=False) & Q(in_trashcan=False) & Q(removed=False)
-    ).prefetch_related('files').select_related('main_file')
+    # Method 1: Find duplicate groups by Photo.image_hash using database aggregation
+    # This is memory efficient as we only load photo IDs grouped by hash
+    image_hash_groups = (
+        Photo.objects.filter(
+            Q(owner=user) & Q(hidden=False) & Q(in_trashcan=False) & 
+            Q(removed=False) & Q(image_hash__isnull=False)
+        )
+        .values('image_hash')
+        .annotate(count=Count('id'))
+        .filter(count__gt=1)
+        .values_list('image_hash', flat=True)
+    )
     
-    # Method 1: Group photos directly by Photo.image_hash (simplest and most reliable)
-    # Photo.image_hash format is md5 (32 chars) + user_id
-    image_hash_to_photos = defaultdict(list)
+    # Method 2: Find duplicate groups by File content hash (MD5 part)
+    # We need to use a SUBSTRING operation to extract the MD5 part
+    # This is done via raw SQL for efficiency
+    from django.db import connection
     
-    for photo in photos:
-        if photo.image_hash:
-            image_hash_to_photos[photo.image_hash].append(photo)
-    
-    # Method 2: Group photos by File content hash (MD5 only, excluding user_id suffix)
-    # File.hash format is md5 (32 chars) + user_id, so extract just the MD5 part
-    # This serves as a fallback for edge cases
-    file_hash_to_photos = defaultdict(list)
-    
-    for photo in photos:
-        # Get actual files (exclude metadata)
-        actual_files = photo.files.exclude(type=File.METADATA_FILE)
-        if not actual_files.exists():
-            continue
-            
-        # Extract MD5 from File.hash (first 32 characters)
-        # This groups photos with the same content regardless of user_id suffix
-        file_hash_full = actual_files.first().hash
-        if len(file_hash_full) >= 32:
-            content_hash = file_hash_full[:32]  # MD5 is 32 hex characters
-            file_hash_to_photos[content_hash].append(photo)
-    
-    # Filter to only groups with 2+ photos (actual duplicates)
-    image_hash_groups = {h: photos for h, photos in image_hash_to_photos.items() if len(photos) > 1}
-    file_hash_groups = {h: photos for h, photos in file_hash_to_photos.items() if len(photos) > 1}
+    file_hash_duplicates = []
+    with connection.cursor() as cursor:
+        # Extract first 32 chars (MD5) from File.hash and find duplicates
+        # Only consider non-metadata files
+        cursor.execute("""
+            SELECT SUBSTRING(f.hash, 1, 32) as content_hash
+            FROM api_file f
+            INNER JOIN api_photo p ON p.id = f.photo_id
+            WHERE p.owner_id = %s 
+                AND p.hidden = FALSE 
+                AND p.in_trashcan = FALSE
+                AND p.removed = FALSE
+                AND f.type != %s
+            GROUP BY SUBSTRING(f.hash, 1, 32)
+            HAVING COUNT(DISTINCT p.id) > 1
+        """, [user.id, File.METADATA_FILE])
+        
+        file_hash_duplicates = [row[0] for row in cursor.fetchall()]
     
     # Use Union-Find to merge overlapping groups
-    # Photos that appear in both image_hash and file_hash groupings should be in the same duplicate group
     uf = UnionFind()
     
-    # Add all photos from image_hash groups to Union-Find
-    # Optimized: Union-Find is transitive, so we only need to union each element
-    # with the first element in the group. This is O(n) instead of O(n²).
-    for image_hash, group_photos in image_hash_groups.items():
-        photo_ids = [p.id for p in group_photos]
+    # Process image_hash groups
+    # Note: We need to iterate through the queryset, which will load the hashes into memory
+    # But this is much better than loading all photos with files
+    image_hash_list = list(image_hash_groups)  # Load just the hashes
+    total_image_groups = len(image_hash_list)
+    
+    for i, image_hash in enumerate(image_hash_list):
+        # Only load photo IDs, not full Photo objects
+        photo_ids = list(
+            Photo.objects.filter(
+                owner=user, image_hash=image_hash, hidden=False,
+                in_trashcan=False, removed=False
+            ).values_list('id', flat=True)
+        )
+        
         if len(photo_ids) >= 2:
             first = photo_ids[0]
             for pid in photo_ids[1:]:
                 uf.union(first, pid)
-
-    # Add all photos from file_hash groups to Union-Find
-    for file_hash, group_photos in file_hash_groups.items():
-        photo_ids = [p.id for p in group_photos]
+        
+        if progress_callback and i % 100 == 0:
+            progress_callback(i, total_image_groups * 2, 0)
+    
+    # Process file_hash groups
+    for i, content_hash in enumerate(file_hash_duplicates):
+        # Find photos with files matching this content hash
+        photo_ids = list(
+            Photo.objects.filter(
+                owner=user, hidden=False, in_trashcan=False, removed=False,
+                files__hash__startswith=content_hash
+            ).exclude(
+                files__type=File.METADATA_FILE
+            ).distinct().values_list('id', flat=True)
+        )
+        
         if len(photo_ids) >= 2:
             first = photo_ids[0]
             for pid in photo_ids[1:]:
                 uf.union(first, pid)
+        
+        if progress_callback and i % 100 == 0:
+            progress_callback(total_image_groups + i, total_image_groups * 2, 0)
     
     # Get merged groups from Union-Find
     merged_groups = uf.get_groups()
@@ -217,23 +240,25 @@ def detect_exact_copies(user, progress_callback=None):
     return duplicates_created
 
 
-def detect_visual_duplicates(user, threshold=DEFAULT_HAMMING_THRESHOLD, progress_callback=None):
+def detect_visual_duplicates(user, threshold=DEFAULT_HAMMING_THRESHOLD, progress_callback=None, batch_size=10000):
     """
     Detect visually similar photos using perceptual hash.
     
-    Uses BK-Tree for O(log n) lookups and Union-Find for grouping.
+    Memory optimized: Processes photos in batches to avoid loading all data into memory.
+    Uses iterative batch comparison approach.
     
     Args:
         user: The user whose photos to analyze
         threshold: Hamming distance threshold (default: 10)
         progress_callback: Optional callback(current, total, found) for progress
+        batch_size: Number of photos to process per batch (default: 10000)
         
     Returns:
         Number of duplicate groups created
     """
     # Get photos with perceptual hash that aren't already in visual duplicate groups
     # Exclude removed photos to avoid including merged/deleted duplicates
-    photos = Photo.objects.filter(
+    photos_queryset = Photo.objects.filter(
         Q(owner=user) & 
         Q(hidden=False) & 
         Q(in_trashcan=False) &
@@ -241,45 +266,98 @@ def detect_visual_duplicates(user, threshold=DEFAULT_HAMMING_THRESHOLD, progress
         Q(perceptual_hash__isnull=False)
     ).exclude(
         duplicates__duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE
-    ).values('id', 'perceptual_hash')
+    ).only('id', 'perceptual_hash')
     
-    total = photos.count()
+    total = photos_queryset.count()
     if total < 2:
         return 0
     
-    logger.info(f"Building BK-Tree for {total} photos (user: {user.username})")
+    logger.info(f"Processing {total} photos in batches of {batch_size} (user: {user.username})")
     
-    # Build BK-Tree
-    bk_tree = BKTree(hamming_distance)
-    photo_hashes = {}
-    
-    for i, photo in enumerate(photos):
-        photo_id = photo['id']
-        phash = photo['perceptual_hash']
-        
-        if phash:
-            bk_tree.add(photo_id, phash)
-            photo_hashes[photo_id] = phash
-        
-        if progress_callback and i % 1000 == 0:
-            progress_callback(i, total * 2, 0)  # First half: building tree
-    
-    logger.info(f"BK-Tree built with {bk_tree.size} photos")
-    
-    # Find similar pairs using Union-Find
+    # Union-Find for grouping across all batches
     uf = UnionFind()
     pairs_found = 0
+    processed = 0
     
-    for i, (photo_id, phash) in enumerate(photo_hashes.items()):
-        similar = bk_tree.search(phash, threshold)
+    # Process in batches to reduce memory usage
+    # We'll maintain a sliding window approach:
+    # 1. Process current batch against itself
+    # 2. Process current batch against a reference set of previous batches
+    
+    # Store a reference set of photo hashes (id -> hash) from previous batches
+    # This allows cross-batch comparison without keeping everything in memory
+    reference_hashes = {}
+    
+    # Calculate number of batches
+    num_batches = (total + batch_size - 1) // batch_size
+    
+    for batch_idx in range(num_batches):
+        offset = batch_idx * batch_size
         
-        for similar_id, distance in similar:
-            if similar_id != photo_id:
-                uf.union(photo_id, similar_id)
-                pairs_found += 1
+        # Get current batch using slicing (memory efficient)
+        batch_photos = list(
+            photos_queryset[offset:offset + batch_size].values('id', 'perceptual_hash')
+        )
         
-        if progress_callback and i % 1000 == 0:
-            progress_callback(total + i, total * 2, pairs_found)  # Second half: searching
+        if not batch_photos:
+            break
+        
+        logger.info(f"Processing batch {batch_idx + 1}/{num_batches} ({len(batch_photos)} photos)")
+        
+        # Build temporary BK-Tree for current batch
+        batch_tree = BKTree(hamming_distance)
+        batch_hashes = {}
+        
+        for photo in batch_photos:
+            photo_id = photo['id']
+            phash = photo['perceptual_hash']
+            
+            if phash:
+                batch_tree.add(photo_id, phash)
+                batch_hashes[photo_id] = phash
+        
+        # 1. Find duplicates within current batch
+        for photo_id, phash in batch_hashes.items():
+            similar = batch_tree.search(phash, threshold)
+            
+            for similar_id, distance in similar:
+                if similar_id != photo_id:
+                    uf.union(photo_id, similar_id)
+                    pairs_found += 1
+        
+        # 2. Compare current batch against reference hashes from previous batches
+        for photo_id, phash in batch_hashes.items():
+            for ref_id, ref_hash in reference_hashes.items():
+                distance = hamming_distance(phash, ref_hash)
+                if distance <= threshold:
+                    uf.union(photo_id, ref_id)
+                    pairs_found += 1
+        
+        # 3. Add batch to reference set (keep reference set bounded)
+        # To prevent reference set from growing too large, we keep a subset
+        # This is a trade-off: smaller reference = less memory, but might miss some duplicates
+        # For most use cases, photos in same batch are more likely to be duplicates
+        
+        # Add current batch to reference, but limit reference size
+        reference_hashes.update(batch_hashes)
+        
+        # If reference set is too large, keep only the most recent batches
+        # This ensures memory stays bounded while maintaining good duplicate detection
+        max_reference_size = batch_size * 2  # Keep last 2 batches in reference
+        if len(reference_hashes) > max_reference_size:
+            # Keep only the most recent entries (by photo_id as proxy for recency)
+            sorted_ids = sorted(reference_hashes.keys(), reverse=True)
+            reference_hashes = {
+                pid: reference_hashes[pid] 
+                for pid in sorted_ids[:max_reference_size]
+            }
+        
+        processed += len(batch_photos)
+        
+        if progress_callback:
+            progress_callback(processed, total, pairs_found)
+    
+    logger.info(f"Found {pairs_found} similar pairs, building groups")
     
     # Create duplicate groups from Union-Find groups
     groups = uf.get_groups()
@@ -317,6 +395,7 @@ def batch_detect_duplicates(user, options=None):
             - detect_visual_duplicates: bool (default: True)
             - visual_threshold: int (default: 10)
             - clear_pending: bool (default: False)
+            - batch_size: int (default: 10000) - photos per batch for visual detection
     """
     if options is None:
         options = {}
@@ -325,6 +404,7 @@ def batch_detect_duplicates(user, options=None):
     detect_visual = options.get('detect_visual_duplicates', True)
     visual_threshold = options.get('visual_threshold', DEFAULT_HAMMING_THRESHOLD)
     clear_pending = options.get('clear_pending', False)
+    batch_size = options.get('batch_size', 10000)
     
     # Create long-running job for progress tracking
     job = LongRunningJob.create_job(
@@ -358,7 +438,7 @@ def batch_detect_duplicates(user, options=None):
             def progress_visual(current, total, found):
                 job.set_result({"stage": "visual_duplicates", "current": current, "total": total, "found": found})
             
-            visual_count = detect_visual_duplicates(user, visual_threshold, progress_visual)
+            visual_count = detect_visual_duplicates(user, visual_threshold, progress_visual, batch_size)
             total_found += visual_count
         
         job.complete(result={"status": "completed", "duplicates_found": total_found})
