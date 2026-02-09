@@ -325,7 +325,8 @@ def detect_visual_duplicates(
     processed = 0
 
     # Store all photo hashes as (id, hash) tuples for cross-batch comparison
-    # This is memory efficient: 300k photos × (8 bytes id + ~20 bytes hash) = ~8MB
+    # Memory efficient: 300k photos × ~28 bytes = ~8.4MB theoretical
+    # In practice, Python overhead means ~25-40MB for list + objects
     all_photo_hashes = []
 
     # Calculate number of batches
@@ -401,9 +402,12 @@ def detect_visual_duplicates(
         )
 
         # Compare current batch against all previous photos
+        # Store the previous photos slice once to avoid repeated slicing
+        previous_hashes = all_photo_hashes[:start_idx] if start_idx > 0 else []
+
         for photo_id, phash in batch_hashes:
             # Only compare against photos in previous batches (avoid duplicate comparisons)
-            for prev_id, prev_hash in all_photo_hashes[:start_idx]:
+            for prev_id, prev_hash in previous_hashes:
                 distance = hamming_distance(phash, prev_hash)
                 if distance <= threshold:
                     uf.union(photo_id, prev_id)
