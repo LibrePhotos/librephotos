@@ -171,7 +171,8 @@ def detect_exact_copies(user, progress_callback=None):
             """
             SELECT SUBSTRING(f.hash, 1, 32) as content_hash
             FROM api_file f
-            INNER JOIN api_photo p ON p.id = f.photo_id
+            INNER JOIN api_photo_files pf ON pf.file_id = f.hash
+            INNER JOIN api_photo p ON p.id = pf.photo_id
             WHERE p.owner_id = %s 
                 AND p.hidden = FALSE 
                 AND p.in_trashcan = FALSE
