@@ -34,6 +34,7 @@ const Tile = React.memo(
         item.url.includes(".mov") ||
         (item.type !== undefined && item.type.includes("video")));
     const [isFullSizeLoaded, setFullSizeLoaded] = useState(!!isVideo);
+    const [videoFailed, setVideoFailed] = useState(false);
     const TopRightOverlay = toprightoverlay;
     const BottomLeftOverlay = bottomleftoverlay;
     const BottomRightOverlay = bottomrightoverlay;
@@ -128,7 +129,7 @@ const Tile = React.memo(
           />
         )}
 
-        {scrollSpeed === "slow" && isVideo && !isTemp && (
+        {scrollSpeed === "slow" && isVideo && !isTemp && !videoFailed && (
           <video
             className={`${styles.pigImg} ${styles.pigThumbnail}${
               isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
@@ -139,9 +140,21 @@ const Tile = React.memo(
             onFocus={event => event.target.play()}
             onMouseOut={event => event.target.pause()}
             onBlur={event => event.target.pause()}
+            onError={() => setVideoFailed(true)}
             muted
             loop
             playsInline
+          />
+        )}
+
+        {scrollSpeed === "slow" && isVideo && !isTemp && videoFailed && (
+          <img
+            className={`${styles.pigImg} ${styles.pigThumbnail} ${styles.pigThumbnailLoaded}`}
+            src={getUrl(item.url, settings.thumbnailSize)}
+            loading="lazy"
+            width={item.style.width}
+            height={item.style.height}
+            alt=""
           />
         )}
 
@@ -150,7 +163,7 @@ const Tile = React.memo(
           <img className={styles.pigImg} src={getUrl(item.url, settings.expandedSize)} alt="" />
         )}
 
-        {isExpanded && isVideo && !isTemp && (
+        {isExpanded && isVideo && !isTemp && !videoFailed && (
           // full size expanded video
           <video
             className={styles.pigImg}
@@ -159,10 +172,16 @@ const Tile = React.memo(
             onFocus={event => event.target.play()}
             onMouseOut={event => event.target.pause()}
             onBlur={event => event.target.pause()}
+            onError={() => setVideoFailed(true)}
             muted
             loop
             playsInline
           />
+        )}
+
+        {isExpanded && isVideo && !isTemp && videoFailed && (
+          // fallback image when expanded video fails
+          <img className={styles.pigImg} src={getUrl(item.url, settings.expandedSize)} alt="" />
         )}
         <div>
           <div className={styles.overlaysTopLeft}>

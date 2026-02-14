@@ -1,9 +1,8 @@
-import { Alert, Text } from "@mantine/core";
-import React, { useRef, useState } from "react";
-import ReactPlayer from "react-player";
+import React, { useRef } from "react";
 import { serverAddress } from "../../api_client/apiClient";
 import { FaceOverlay } from "./FaceOverlay";
 import type { FaceLocationType } from "./lightbox.types";
+import { VideoPlayer } from "./VideoPlayer";
 
 export type MediaDisplayProps = {
   id: string | undefined;
@@ -38,9 +37,7 @@ export function MediaDisplay({
   photoDetails,
   onEnded,
 }: MediaDisplayProps) {
-  // Hooks must be called unconditionally at the top of the component
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const [videoError, setVideoError] = useState(false);
 
   if (!id) return null;
 
@@ -52,7 +49,6 @@ export function MediaDisplay({
     height: imgRef.current?.naturalHeight ?? 810,
   };
 
-  // Helper function to check if the photo is a GIF
   const isGif = () => {
     if (!photoDetails?.image_path || !Array.isArray(photoDetails.image_path)) {
       return false;
@@ -60,66 +56,27 @@ export function MediaDisplay({
     return photoDetails.image_path.some((path: string) => path.toLowerCase().endsWith(".gif"));
   };
 
-  // Determine the media type for the current slide
-  const currentType = isMainContent ? type : "photo"; // Assuming previews are always photos
+  const currentType = isMainContent ? type : "photo";
+  const videoContainerHeight = fullHeight ? "100%" : "82vh";
+  const thumbnailUrl = `${serverAddress}/media/thumbnails_big/${mediaHash}`;
 
-  if (currentType === "video") {
-    if (videoError) {
-      return (
-        <Alert color="red" title="Video Not Found" style={{ width: "100%", height: fullHeight ? "100%" : "82vh" }}>
-          <Text>The video file could not be found or is no longer available.</Text>
-        </Alert>
-      );
-    }
+  if (currentType === "video" || currentType === "embedded") {
+    // Backend strips extension via fname.split(".")[0], so .mp4 suffix is safe
+    // and helps the browser identify the content type for native playback.
+    // The backend serves either the original file (via X-Accel-Redirect / FileResponse)
+    // or a transcoded stream (StreamingHttpResponse) depending on user settings.
+    const videoUrl =
+      currentType === "video"
+        ? `${serverAddress}/media/photos/${mediaHash}.mp4`
+        : `${serverAddress}/media/embedded_media/${mediaHash}`;
+
     return (
-      <ReactPlayer
-        url={`${serverAddress}/media/photos/${mediaHash}.mp4`}
-        width="100%"
-        height={fullHeight ? "100%" : "82vh"}
+      <VideoPlayer
+        url={videoUrl}
+        posterUrl={thumbnailUrl}
+        height={videoContainerHeight}
         controls={isMainContent}
         playing={isMainContent && playing}
-        progressInterval={100}
-        style={{
-          objectFit: "contain",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-        config={{
-          file: {
-            attributes: {
-              controlsList: "nodownload",
-              crossOrigin: "use-credentials",
-            },
-          },
-        }}
-        onError={() => setVideoError(true)}
-        onEnded={isMainContent ? onEnded : undefined}
-      />
-    );
-  }
-
-  if (currentType === "embedded") {
-    return (
-      <ReactPlayer
-        url={`${serverAddress}/media/embedded_media/${mediaHash}?type=.mp4`}
-        width="100%"
-        height={fullHeight ? "100%" : "82vh"}
-        controls={isMainContent}
-        playing={isMainContent && playing}
-        progressInterval={100}
-        style={{
-          objectFit: "contain",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-        config={{
-          file: {
-            attributes: {
-              controlsList: "nodownload",
-              crossOrigin: "use-credentials",
-            },
-          },
-        }}
         onEnded={isMainContent ? onEnded : undefined}
       />
     );
@@ -161,7 +118,7 @@ export function MediaDisplay({
             borderRadius: 8,
             opacity: isMainContent ? 1 : 0.9,
             willChange: isMainContent ? "transform" : "auto",
-            WebkitTapHighlightColor: "transparent", // Remove tap highlight on mobile
+            WebkitTapHighlightColor: "transparent",
             boxShadow: isMainContent ? "0 4px 16px rgba(0,0,0,0.1)" : "none",
           }}
         />

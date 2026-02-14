@@ -1,6 +1,6 @@
 import { Image } from "@mantine/core";
 import type { CSSProperties, MouseEventHandler } from "react";
-import React from "react";
+import React, { useState } from "react";
 import { serverAddress } from "../api_client/apiClient";
 
 type DefaultProps = {
@@ -17,28 +17,24 @@ type Props = {
 } & Partial<DefaultProps>;
 
 export function Tile({ video, width, height, style, image_hash, className }: Props) {
-  if (video) {
+  const [videoFailed, setVideoFailed] = useState(false);
+  const src = `${serverAddress}/media/square_thumbnails/${image_hash}`;
+
+  if (video && !videoFailed) {
     return (
       <video
         width={width}
         height={height}
         style={style}
         className={className}
-        src={`${serverAddress}/media/square_thumbnails/${image_hash}`}
+        src={src}
         autoPlay
         muted
         loop
         playsInline
+        onError={() => setVideoFailed(true)}
       />
     );
   }
-  return (
-    <Image
-      className={className}
-      style={style}
-      width={width}
-      height={height}
-      src={`${serverAddress}/media/square_thumbnails/${image_hash}`}
-    />
-  );
+  return <Image className={className} style={style} width={width} height={height} src={src} />;
 }
