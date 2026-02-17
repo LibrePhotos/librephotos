@@ -1,7 +1,49 @@
 ---
 title: "🖼️ Viewing Photos"
-excerpt: "How to view photos and use the photo details sidebar"
+excerpt: "Photo views, the lightbox, and the photo details sidebar"
 sidebar_position: 2
+---
+
+## Photo Views
+
+LibrePhotos provides several ways to browse your photo library. You can switch between views using the navigation menu or the header dropdown on the main timeline.
+
+### Timeline (Home)
+
+The default view showing all your photos grouped by date, from newest to oldest. A **scroll scrubber** on the right edge lets you quickly jump to any date — click or drag it to navigate through large libraries.
+
+### Favorites
+
+Photos you've marked as favorites. To favorite a photo, click the heart icon in the lightbox toolbar or use the selection actions menu.
+
+### Hidden
+
+Photos you've hidden from the main timeline. Hiding a photo removes it from the default view without deleting it. To hide photos, select them and choose **"Hide"** from the selection actions menu.
+
+### Recently Added
+
+Photos ordered by when they were added to LibrePhotos (import date rather than capture date), grouped by "Added on [date]".
+
+### Photos Only
+
+Shows only still photos, filtering out all videos.
+
+### Videos Only
+
+Shows only video files, filtering out all still photos.
+
+### Without Timestamp
+
+Photos that don't have a date/time in their EXIF metadata. Useful for finding and fixing photos with missing timestamps.
+
+### My Public Photos
+
+Photos you've marked as publicly visible, accessible at your public profile URL.
+
+### Folders
+
+Browse your photos by filesystem directory structure. The root view shows your scan directory's subfolders with aggregated photo counts. Click into any folder to see its photos and subfolders. This mirrors the actual file organization on disk.
+
 ---
 
 ## Photo Viewer (Lightbox)
@@ -20,9 +62,11 @@ The toolbar at the top provides quick actions:
 
 - **Toggle sidebar** - Show or hide the photo details panel
 - **Favorite** - Mark the photo as a favorite
-- **Download** - Download the original photo
+- **Download** - Download the original photo (with options for stacked/variant photos)
 - **Share** - Share the photo with other users
 - **Delete** - Move the photo to trash
+- **Fullscreen** - Enter fullscreen mode for distraction-free viewing
+- **Slideshow** - Start an automatic slideshow with configurable interval
 
 ## Photo Details Sidebar
 
@@ -32,9 +76,11 @@ The sidebar displays detailed information about the current photo and provides q
 
 Shows when the photo was taken. You can click the edit button to modify the date and time if needed.
 
-### File Versions
+### File Variants
 
-If there are multiple versions of the same photo (e.g., edited copies or motion photos), they will be displayed here for easy access.
+If a photo has multiple file variants (e.g., RAW+JPEG pairs, Live Photos with embedded video, or edited copies), they will be displayed here. You can click on any variant to view it, and when downloading, you can choose to include all variants in a zip file. A RAW badge overlay is shown on photos that have RAW file variants.
+
+For more details on how file variants and stacks work, see [Stacks & File Variants](./stacks-and-file-variants.md).
 
 ### Location
 
@@ -53,8 +99,9 @@ Shows faces detected in the photo. You can:
 The AI-generated or manually entered caption for the photo. You can:
 
 - View scene, attributes, and category tags
-- Edit the caption manually
-- Generate a new AI caption
+- Edit the caption manually — type `#` to get autocomplete suggestions for thing album tags
+- Generate a new AI caption using the suggestion button
+- Use the **AI suggestion button** to quickly fill in a machine-generated caption
 
 ### Albums
 
@@ -83,4 +130,7 @@ Click on any similar photo to view it directly.
 | `←` / `→` | Previous / Next photo |
 | `Escape` | Close photo viewer |
 | `i` | Toggle sidebar |
+| `f` | Toggle fullscreen |
+| `Delete` | Delete photo |
+| `s` | Start / stop slideshow |
 

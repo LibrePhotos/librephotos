@@ -30,7 +30,7 @@ This setting affect how much certainty is needed for a tag to be added to a pict
 
 ### Semantic Search
 
-If you set this to `Top 100`,`Top 50`, `Top 10` you will get semantic search results instead of just looking at the EXIF data. It is disabled as default, because the first search takes a minute to get a response. After that it is fast. Default `Disabled`
+If you set this to `Top 100`,`Top 50`, `Top 10` you will get semantic search results instead of just looking at the EXIF data. It is disabled as default, because the first search takes a minute to get a response. After that it is fast. Default `Disabled`. For more information, see [Search](../search.md).
 
 ### Metadata Options
 
@@ -46,9 +46,27 @@ Here you can set how timestamps are parsed. You can find more information [here]
 
 Always transcode videos will transcode all videos on demand to h264 to improve compatibility. This is not yet well optimized.
 
+### Slideshow Options
+
+- `Slideshow interval` sets the time in seconds between photos when using slideshow mode in the lightbox.
+
 ### Album Options
 
 - `Inferred faces confidence` set the value, which inferred faces need to have to be shown in person albums.
+
+### Scan Options
+
+- `Stack RAW+JPEG` when enabled, RAW and JPEG file pairs with the same basename will be automatically grouped as file variants of a single photo during scanning.
+
+### Public Sharing Defaults
+
+Configure default visibility settings for publicly shared albums. These defaults apply to all new public album shares but can be overridden per-album:
+
+- `Show location` - Whether to display photo location data
+- `Show camera info` - Whether to display camera/lens information
+- `Show timestamps` - Whether to display photo timestamps
+- `Show captions` - Whether to display photo captions
+- `Show faces` - Whether to display recognized faces
 
 ## Admin Area
 
@@ -61,6 +79,8 @@ These are settings that apply to the whole instance.
 - `Skip patterns` Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)
 - `Map API Provider` Select which geocoding service to use for converting GPS coordinates to place names. Options include Nominatim (free, no key required), Mapbox, MapTiler, OpenCage, and TomTom.
 - `Map API Key` Required only if using a commercial geocoding provider (Mapbox, MapTiler, OpenCage, or TomTom). Not needed for Nominatim.
+- `Captioning Model` Select which AI model to use for image captioning. See [Image Captioning](../image-captioning.md).
+- `LLM Model` Select which LLM to use for enhanced captioning (None, Mistral, Moondream). When set to "None", no LLM models will be downloaded.
 
 ## Users
 

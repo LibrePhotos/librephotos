@@ -54,4 +54,4 @@ We could train a classifier to merge faces, based on previous merge decisions, w
 
 ### Face Classification
 
-To get the percentage on how likely a face belongs to a cluster, we use classification. It is planned, that there will be a feature, that the classification will only happen on known person and that you can switch between them, but this is currently not implemented.
+Classification matches unknown faces against already known persons. Unlike clustering (which groups all faces from scratch), classification respects your previous labelling input and only tries to match faces to people you've already identified. This makes it much more accurate for large datasets where most persons are already known. You can filter between cluster and classification results in the face dashboard, and see the label probability for each inferred face. Classification probabilities are saved alongside clustering probabilities, so you can compare both approaches.

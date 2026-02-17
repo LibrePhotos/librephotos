@@ -4,6 +4,14 @@ excerpt: "Here are a couple of advanced tips"
 sidebar_position: 5
 ---
 
+### PostgreSQL v18+ Volume Mount Change
+
+:::warning Breaking Change
+With Postgres v18+, mounting a volume to `/var/lib/postgresql/data` can fail in Docker/Kubernetes due to an upstream change that enforces a new data directory (`/var/lib/postgresql/MAJOR/docker`) and adds a symlink from `/var/lib/postgresql/data` to `/var/lib/postgresql`.
+
+**Action required:** Mount your volume to `/var/lib/postgresql` instead of `/var/lib/postgresql/data`. `pgautoupgrade` will detect any existing data there and migrate it to the new structure.
+:::
+
 ### Utilizing GPU Acceleration
 
 To leverage GPU acceleration for neural networks and face detection, follow these steps:
@@ -43,6 +51,10 @@ To leverage GPU acceleration for neural networks and face detection, follow thes
                  count: 1
                  capabilities: [gpu]
    ```
+
+:::note
+The GPU image is only available for x86 architecture. ARM is not supported for the GPU image.
+:::
 
 ### Changing the container names
 

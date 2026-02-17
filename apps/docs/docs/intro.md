@@ -13,6 +13,7 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 
 - Support for all types of photos, including raw photos
 - Support for videos
+- Live Photos and RAW+JPEG file variant support
 - Timeline view
 - Scans pictures on the file system
 - Multiuser support
@@ -21,8 +22,12 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 - Reverse geocoding
 - Object / Scene detection
 - Semantic image search
-- Search by metadata
+- Search by metadata (person, file type, lens, camera, path)
+- Duplicate detection with perceptual hashing
+- Public album sharing via link with fine-grained privacy controls
 - Photo details sidebar showing location, people, albums, and similar photos
+- Slideshow mode and fullscreen lightbox
+- Spotlight search with keyboard navigation
 
 ## What does it use?
 
@@ -32,6 +37,6 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 - **EXIF Support:** [ExifTool](https://github.com/exiftool/exiftool)
 - **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition)
 - **Face classification/clusterization:** scikit-learn
-- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt)
+- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), [BLIP](https://github.com/salesforce/BLIP), and [Moondream 2](https://github.com/vikhyat/moondream)
 - **Scene classification** [places365](http://places.csail.mit.edu/)
-- **Reverse geocoding:**: [photon](https://photon.komoot.io/) and other providers
+- **Reverse geocoding:** [Nominatim](https://nominatim.openstreetmap.org/) (default) and other providers (Mapbox, MapTiler, OpenCage, TomTom)

@@ -16,7 +16,7 @@ Click on your avatar in the top right, and go to `Admin Area`. There is a settin
 
 ## What is the difference between the models?
 
-Currently, there are three available models: "im2txt PyTorch," "im2txt Onnx," and "Blip."
+Currently, there are four available models: "im2txt PyTorch," "im2txt Onnx," "Blip," and "Moondream 2."
 
 ### im2txt PyTorch
 
@@ -29,5 +29,9 @@ Utilizing the Open Neural Network Exchange (ONNX) as its engine, "im2txt Onnx" i
 ### Blip Base Capfilt Large
 
 The next generation model "Blip" excels in providing highly accurate image descriptions. However, it comes with a trade-off, as it operates at approximately 20 times slower speeds than "im2txt PyTorch." This deliberate sacrifice in speed is made to achieve superior descriptive accuracy, making "Blip" an ideal choice for applications prioritizing precision over real-time processing.
+
+### Moondream 2
+
+Moondream 2 is a multi-modal model (via llama-cpp-python) that can analyze both images and text together. It produces richer, more contextually aware captions compared to the other models and lays the groundwork for advanced features like visual queries. It requires more resources than the simpler models but produces the most detailed descriptions.
 
 Users can choose a model based on their specific requirements, balancing the need for speed, accuracy, and the trade-offs associated with each implementation. It's recommended to consider the performance of your system and the desired performance characteristics when selecting the most suitable model.

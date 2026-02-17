@@ -6,7 +6,7 @@ sidebar_position: 5
 
 ## How does it work
 
-The job system gives you information about the long-running jobs, including which job is running, in a queue, how far it progressed and when it started and stopped. At the moment, there are nine long-running jobs:
+The job system gives you information about the long-running jobs, including which job is running, in a queue, how far it progressed and when it started and stopped. Here are the available long-running jobs:
 
 ### Scan Photos
 
@@ -43,6 +43,14 @@ Clusters the faces into known and unknown groups.
 ### Download Models
 
 This downloads the needed machine learning models to data/protected_media/data_models/.
+
+### Repair File Variants
+
+Runs after each scan to fix any previously ungrouped file variants. If RAW+JPEG pairs or Live Photos were scanned separately before the file variant system was introduced, this job will merge them into proper photo groups. See [Stacks & File Variants](./stacks-and-file-variants.md) for more details.
+
+### Detect Duplicates
+
+Finds duplicate photos in your library using perceptual hashing. It detects both exact copies (via hash comparison) and visual duplicates (via a two-pass algorithm). Results are shown in the Organizing page where you can review and manage them. See [Duplicate Detection](./duplicate-detection.md) for more details.
 
 ## Where to get information about previous run jobs
 

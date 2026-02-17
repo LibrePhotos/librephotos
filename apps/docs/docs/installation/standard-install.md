@@ -34,6 +34,10 @@ Open `.env` in your favorite text editor and make the required changes. E.g., us
 
 Do not forget to create the directories you specified in the `.env` file if they do not exist.
 
+:::warning PostgreSQL v18+ Volume Mount Change
+If you are using Postgres v18+, you must mount your database volume to `/var/lib/postgresql` instead of `/var/lib/postgresql/data`. See the [advanced usage guide](environment-variables.md#postgresql-v18-volume-mount-change) for details.
+:::
+
 Start LibrePhotos with `docker-compose up -d`
 
 You should have LibrePhotos accessible after a few minutes of boot-up on [localhost:3000](http://localhost:3000)

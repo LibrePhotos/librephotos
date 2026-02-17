@@ -65,7 +65,7 @@ Click on your avatar in the top right, and go to `Admin Area`. On this page, it 
 
 ### How to Start a Scan
 
-Click on your avatar in the top right, and go to `Library`. Click the green `Scan photos (file system)` button. See the [auto scan page](./auto-scan.md) if you would like to set up automated scanning for new photos.
+Click on your avatar in the top right, and go to `Library`. Click the green `Scan photos (file system)` button. See the [auto scan page](./auto-scan.md) if you would like to set up automated scanning for new photos. For more details on the Library page and all available actions, see [Library Management](./library.md).
 
 ### How to Import Photos from an External Nextcloud Instance
 

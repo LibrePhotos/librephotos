@@ -98,7 +98,7 @@ sidebar_position: 6
     </tr>
     <tr>
         <td>Live Photos</td>
-        <p hidden>LibrePhotos</p>    <td>❌</td>
+        <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
         <p hidden>Immich</p>         <td>✔️</td>
@@ -387,7 +387,7 @@ sidebar_position: 6
     </tr>
     <tr>
         <td>Search by metadata</td>
-        <p hidden>LibrePhotos</p>    <td>🚧</td>
+        <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❌</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
         <p hidden>Immich</p>         <td>✔️</td>
@@ -472,7 +472,7 @@ sidebar_position: 6
     </tr>
     <tr>
         <td>Share as unique link</td>
-        <p hidden>LibrePhotos</p>    <td>❌</td>
+        <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>✔️</td>
         <p hidden>PhotoPrism</p>     <td>✔️</td>
         <p hidden>Immich</p>         <td>❌</td>
@@ -999,7 +999,7 @@ sidebar_position: 6
     </tr>
         <tr>
         <td>Download Photos</td>
-        <p hidden>LibrePhotos</p>    <td>❌</td>
+        <p hidden>LibrePhotos</p>    <td>✔️</td>
         <p hidden>Photoview</p>      <td>❔</td>
         <p hidden>PhotoPrism</p>     <td>❔</td>
         <p hidden>Immich</p>         <td>❔</td>

@@ -73,13 +73,34 @@ The "Set album cover" option only appears when you're viewing a People Album or 
 
 ## Sharing Albums
 
-User Albums can be shared with other users on your LibrePhotos instance:
+User Albums can be shared with other users on your LibrePhotos instance, or publicly via a link. For full details on all sharing features, see the [Sharing guide](./sharing.md).
 
 1. Navigate to the User Album you want to share
 2. Select any photo to activate the selection toolbar
 3. Click the **three-dot menu** (⋮)
 4. Under "Album Actions", click **"Sharing"**
 5. Search for and select the users you want to share with
+
+---
+
+## Public Sharing via Link
+
+You can share albums publicly with anyone via a unique link, without requiring them to have an account on your LibrePhotos instance:
+
+1. Navigate to the User Album you want to share publicly
+2. Go to the **Sharing** page from the navigation
+3. Click **"Create Public Link"** for the album
+4. A unique URL slug will be generated that you can share with anyone
+5. Configure **privacy settings** for the public link to control what information is visible:
+   - Location data
+   - Camera information
+   - Timestamps
+   - Captions
+   - Recognized faces
+
+Default privacy settings for new public links can be configured in **Settings → Public Sharing Defaults**.
+
+Public albums are accessible at `/public/s/{slug}` and include a lightbox viewer with the same navigation experience as the main app.
 
 ---
 
