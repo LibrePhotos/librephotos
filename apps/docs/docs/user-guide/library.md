@@ -82,7 +82,7 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 | **llm** | Large language model for captioning |
 | **image_captioning** | Image caption generation |
 | **exif** | EXIF metadata extraction |
-| **tags** | Scene and object tag generation |
+| **tags** | Photo tag generation (Places365, JoyTag, or SigLIP 2 depending on your Tagging Model setting) |
 
 For each service, you can:
 

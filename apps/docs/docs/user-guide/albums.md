@@ -23,7 +23,7 @@ Automatically generated albums based on time and location patterns in your photo
 Automatically generated albums based on the GPS location data in your photos.
 
 ### Things Albums
-Automatically generated albums based on detected objects and scenes in your photos.
+Automatically generated albums based on detected objects and scenes in your photos. Things Albums are filtered by the currently active **Tagging Model** (configurable in Site Settings), so only tags from the selected model are shown. Switching models instantly updates which Things Albums are visible.
 
 ---
 
