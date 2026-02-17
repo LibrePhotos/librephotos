@@ -8,6 +8,7 @@ site_settings_schema = {
         {"required": ["map_api_key"]},
         {"required": ["captioning_model"]},
         {"required": ["llm_model"]},
+        {"required": ["tagging_model"]},
     ],
     "properties": {
         "allow_registration": {"type": "boolean"},
@@ -17,5 +18,6 @@ site_settings_schema = {
         "map_api_key": {"type": "string"},
         "captioning_model": {"type": "string"},
         "llm_model": {"type": "string"},
+        "tagging_model": {"type": "string"},
     },
 }

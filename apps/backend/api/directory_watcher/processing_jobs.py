@@ -86,12 +86,16 @@ def generate_tags(user, job_id: UUID, full_scan=False):
             .order_by("-finished_at")
             .first()
         )
+        from constance import config as site_config
+
+        tagging_model = site_config.TAGGING_MODEL
+
         existing_photos = Photo.objects.filter(
             Q(owner=user.id)
             & (
                 Q(caption_instance__isnull=True)
                 | Q(caption_instance__captions_json__isnull=True)
-                | Q(caption_instance__captions_json__places365__isnull=True)
+                | Q(**{f"caption_instance__captions_json__{tagging_model}__isnull": True})
             )
         )
         if not full_scan and last_scan:
@@ -126,7 +130,7 @@ def generate_tag_job(photo: Photo, job_id: str):
     try:
         photo.refresh_from_db()
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        caption_instance.generate_places365_captions(commit=True)
+        caption_instance.generate_tag_captions(commit=True)
     except Exception as err:
         util.logger.exception("An error occurred: %s", photo.image_hash)
         print(f"[ERR]: {err}")

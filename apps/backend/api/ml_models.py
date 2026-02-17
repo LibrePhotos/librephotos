@@ -18,6 +18,7 @@ class MlTypes:
     CLIP = "clip"
     LLM = "llm"
     MOONDREAM = "moondream"
+    TAGGING = "tagging"
 
 
 ML_MODELS = [
@@ -70,6 +71,38 @@ ML_MODELS = [
         "target-dir": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
     },
     {
+        "id": 10,
+        "name": "joytag",
+        "url": "https://huggingface.co/fancyfeast/joytag/resolve/main/model.onnx",
+        "type": MlTypes.TAGGING,
+        "unpack-command": None,
+        "target-dir": "joytag/model.onnx",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/fancyfeast/joytag/resolve/main/top_tags.txt",
+                "target": "joytag/top_tags.txt",
+            },
+        ],
+    },
+    {
+        "id": 11,
+        "name": "siglip2",
+        "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx",
+        "type": MlTypes.TAGGING,
+        "unpack-command": None,
+        "target-dir": "siglip2/vision_model.onnx",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/text_model.onnx",
+                "target": "siglip2/text_model.onnx",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/tokenizer.model",
+                "target": "siglip2/tokenizer.model",
+            },
+        ],
+    },
+    {
         # Moondream 2 GGUF model for llama-cpp-python multimodal support
         "id": 9,
         "name": "moondream",
@@ -119,6 +152,15 @@ def download_model(model):
         for ml_model in ML_MODELS:
             if ml_model["name"] == model_to_download:
                 model = ml_model
+    elif model["type"] == MlTypes.TAGGING:
+        util.logger.info("Downloading tagging model")
+        model_to_download = site_config.TAGGING_MODEL
+        if model_to_download != model["name"]:
+            util.logger.info(
+                f"Tagging model {model['name']} not selected (current: {model_to_download})"
+            )
+            return
+        util.logger.info(f"Model to download: {model_to_download}")
 
     util.logger.info(f"Downloading model {model['name']}")
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
@@ -175,7 +217,9 @@ def download_model(model):
 
 def _download_file(url, target_path, model_name):
     """Helper function to download a single file with progress tracking"""
-    response = requests.get(url, stream=True)
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    response = requests.get(url, stream=True, allow_redirects=True)
     total_size = int(response.headers.get("content-length", 0))
     block_size = 1024
     current_progress = 0
@@ -186,13 +230,20 @@ def _download_file(url, target_path, model_name):
             if chunk:
                 target_file.write(chunk)
                 current_progress += len(chunk)
-                percentage = math.floor((current_progress / total_size) * 100)
 
-                if percentage != previous_percentage:
-                    util.logger.info(
-                        f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
-                    )
-                    previous_percentage = percentage
+                if total_size > 0:
+                    percentage = math.floor((current_progress / total_size) * 100)
+
+                    if percentage != previous_percentage:
+                        util.logger.info(
+                            f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
+                        )
+                        previous_percentage = percentage
+
+    if total_size == 0:
+        util.logger.info(
+            f"Downloaded {model_name}: {current_progress} bytes (size unknown during transfer)"
+        )
 
 
 def download_models(user):
@@ -216,7 +267,7 @@ def download_models(user):
 def do_all_models_exist():
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     for model in ML_MODELS:
-        if model["type"] == MlTypes.LLM or model["type"] == MlTypes.MOONDREAM:
+        if model["type"] in (MlTypes.LLM, MlTypes.MOONDREAM, MlTypes.TAGGING):
             if not model and model != "none":
                 continue
 

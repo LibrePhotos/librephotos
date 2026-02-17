@@ -4,10 +4,14 @@ import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 from places365.places365 import Places365
+from joytag.joytag import JoyTag
+from siglip2.siglip2 import SigLIP2
 
 app = Flask(__name__)
 
 places365_instance = None
+joytag_instance = None
+siglip2_instance = None
 last_request_time = None
 
 
@@ -18,22 +22,37 @@ def log(message):
 @app.route("/generate-tags", methods=["POST"])
 def generate_tags():
     global last_request_time
-    # Update last request time
     last_request_time = time.time()
 
     try:
         data = request.get_json()
         image_path = data["image_path"]
-        confidence = data["confidence"]
+        confidence = data.get("confidence", 0.4)
+        tagging_model = data.get("tagging_model", "places365")
     except Exception as e:
         print(str(e))
         return "", 400
 
-    global places365_instance
-
-    if places365_instance is None:
-        places365_instance = Places365()
-    return {"tags": places365_instance.inference_places365(image_path, confidence)}, 201
+    if tagging_model == "siglip2":
+        global siglip2_instance
+        if siglip2_instance is None:
+            siglip2_instance = SigLIP2()
+        # SigLIP 2 uses cosine similarity (range -1 to 1), not probability scores.
+        # Always return the top 10 most relevant tags above a minimum threshold.
+        result = siglip2_instance.predict(image_path, threshold=0.05, max_tags=10)
+        return {"tags": result}, 201
+    elif tagging_model == "joytag":
+        global joytag_instance
+        if joytag_instance is None:
+            joytag_instance = JoyTag()
+        result = joytag_instance.predict(image_path, threshold=confidence, max_tags=15)
+        return {"tags": result}, 201
+    else:
+        global places365_instance
+        if places365_instance is None:
+            places365_instance = Places365()
+        result = places365_instance.inference_places365(image_path, confidence)
+        return {"tags": result}, 201
 
 
 @app.route("/health", methods=["GET"])

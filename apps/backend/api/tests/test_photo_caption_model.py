@@ -48,11 +48,11 @@ class PhotoCaptionModelTest(TestCase):
         result = caption.save_user_caption("My beautiful photo", commit=True)
         self.assertFalse(result)
 
-    def test_generate_places365_captions(self):
-        """Test generating places365 captions"""
+    def test_generate_tag_captions_skips_existing(self):
+        """Test that generate_tag_captions skips if active model tags already exist"""
         caption = PhotoCaption.objects.create(photo=self.photo)
 
-        # Mock places365 data
+        # Pre-populate places365 data (the default tagging model)
         caption.captions_json = {
             "places365": {
                 "categories": ["outdoor", "landscape"],
@@ -62,7 +62,8 @@ class PhotoCaptionModelTest(TestCase):
         }
         caption.save()
 
-        caption.generate_places365_captions(commit=True)
+        # Should return early since places365 tags already exist
+        caption.generate_tag_captions(commit=True)
         caption.refresh_from_db()
 
         self.assertIn("places365", caption.captions_json)

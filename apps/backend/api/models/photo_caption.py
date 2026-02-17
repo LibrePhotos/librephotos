@@ -266,13 +266,23 @@ class PhotoCaption(models.Model):
         search_instance.recreate_search_captions()
         search_instance.save()
 
-    def generate_places365_captions(self, commit=True):
-        """Generate places365 captions"""
+    def generate_tag_captions(self, commit=True):
+        """Generate tag captions using the active tagging model (Places365 or JoyTag).
+
+        Tags are stored per-model in captions_json and are never deleted when
+        switching models -- only the active model's tags are generated / visible.
+        """
+        from constance import config as site_config
+
+        tagging_model = site_config.TAGGING_MODEL
+
+        if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
+            return
+
+        # Skip if this photo already has tags from the active model
         if (
             self.captions_json is not None
-            and self.captions_json.get("places365") is not None
-            or not self.photo.thumbnail
-            or not self.photo.thumbnail.thumbnail_big
+            and self.captions_json.get(tagging_model) is not None
         ):
             return
 
@@ -284,57 +294,119 @@ class PhotoCaption(models.Model):
             json_data = {
                 "image_path": image_path,
                 "confidence": confidence,
+                "tagging_model": tagging_model,
             }
-            res_places365 = requests.post(
+            response = requests.post(
                 "http://localhost:8011/generate-tags", json=json_data
-            ).json()["tags"]
+            )
+            tags_result = response.json()["tags"]
 
-            if res_places365 is None:
+            if tags_result is None:
                 return
             if self.captions_json is None:
                 self.captions_json = {}
 
-            self.captions_json["places365"] = res_places365
+            # Store under the model-specific key
+            self.captions_json[tagging_model] = tags_result
             self.recreate_search_captions()
 
-            # Remove old album associations
-            for album_thing in api.models.album_thing.AlbumThing.objects.filter(
-                Q(photos__in=[self.photo])
-                & (
-                    Q(thing_type="places365_attribute")
-                    or Q(thing_type="places365_category")
-                )
-                & Q(owner=self.photo.owner)
-            ).all():
-                album_thing.photos.remove(self.photo)
-                album_thing.save()
-
-            # Add new album associations
-            if "attributes" in res_places365:
-                for attribute in res_places365["attributes"]:
-                    album_thing = api.models.album_thing.get_album_thing(
-                        title=attribute,
-                        owner=self.photo.owner,
-                        thing_type="places365_attribute",
-                    )
-                    album_thing.photos.add(self.photo)
-                    album_thing.save()
-
-            if "categories" in res_places365:
-                for category in res_places365["categories"]:
-                    album_thing = api.models.album_thing.get_album_thing(
-                        title=category,
-                        owner=self.photo.owner,
-                        thing_type="places365_category",
-                    )
-                    album_thing.photos.add(self.photo)
-                    album_thing.save()
+            if tagging_model == "siglip2":
+                self._update_siglip2_album_things(tags_result)
+            elif tagging_model == "joytag":
+                self._update_joytag_album_things(tags_result)
+            else:
+                self._update_places365_album_things(tags_result)
 
             if commit:
                 self.save()
-            util.logger.info(f"generated places365 captions for image {image_path}.")
+            util.logger.info(
+                f"generated {tagging_model} tags for image {image_path}."
+            )
         except Exception as e:
             util.logger.exception(
-                f"could not generate captions for image {self.photo.main_file.path if self.photo.main_file else 'no main file'}"
+                f"could not generate tags for image "
+                f"{self.photo.main_file.path if self.photo.main_file else 'no main file'}"
             )
             raise e
+
+    def _update_places365_album_things(self, res_places365):
+        """Create/update AlbumThing entries for Places365 tags."""
+        # Remove old album associations for this photo
+        for album_thing in api.models.album_thing.AlbumThing.objects.filter(
+            Q(photos__in=[self.photo])
+            & (
+                Q(thing_type="places365_attribute")
+                | Q(thing_type="places365_category")
+            )
+            & Q(owner=self.photo.owner)
+        ).all():
+            album_thing.photos.remove(self.photo)
+            album_thing.save()
+
+        if "attributes" in res_places365:
+            for attribute in res_places365["attributes"]:
+                album_thing = api.models.album_thing.get_album_thing(
+                    title=attribute,
+                    owner=self.photo.owner,
+                    thing_type="places365_attribute",
+                )
+                album_thing.photos.add(self.photo)
+                album_thing.save()
+
+        if "categories" in res_places365:
+            for category in res_places365["categories"]:
+                album_thing = api.models.album_thing.get_album_thing(
+                    title=category,
+                    owner=self.photo.owner,
+                    thing_type="places365_category",
+                )
+                album_thing.photos.add(self.photo)
+                album_thing.save()
+
+    def _update_joytag_album_things(self, joytag_result):
+        """Create/update AlbumThing entries for JoyTag tags."""
+        tags = joytag_result.get("tags", [])
+
+        # Remove old joytag album associations for this photo
+        for album_thing in api.models.album_thing.AlbumThing.objects.filter(
+            Q(photos__in=[self.photo])
+            & Q(thing_type="joytag_tag")
+            & Q(owner=self.photo.owner)
+        ).all():
+            album_thing.photos.remove(self.photo)
+            album_thing.save()
+
+        for tag in tags:
+            album_thing = api.models.album_thing.get_album_thing(
+                title=tag,
+                owner=self.photo.owner,
+                thing_type="joytag_tag",
+            )
+            album_thing.photos.add(self.photo)
+            album_thing.save()
+
+    def _update_siglip2_album_things(self, siglip2_result):
+        """Create/update AlbumThing entries for SigLIP 2 tags."""
+        tags = siglip2_result.get("tags", [])
+
+        # Remove old siglip2 album associations for this photo
+        for album_thing in api.models.album_thing.AlbumThing.objects.filter(
+            Q(photos__in=[self.photo])
+            & Q(thing_type="siglip2_tag")
+            & Q(owner=self.photo.owner)
+        ).all():
+            album_thing.photos.remove(self.photo)
+            album_thing.save()
+
+        for tag in tags:
+            album_thing = api.models.album_thing.get_album_thing(
+                title=tag,
+                owner=self.photo.owner,
+                thing_type="siglip2_tag",
+            )
+            album_thing.photos.add(self.photo)
+            album_thing.save()
+
+    # Backward-compatible alias
+    def generate_places365_captions(self, commit=True):
+        return self.generate_tag_captions(commit=commit)

@@ -19,7 +19,7 @@ def generate_captions(overwrite=False):
     for photo in photos:
         logger.info("generating captions for %s" % photo.main_file.path)
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-        caption_instance.generate_places365_captions()
+        caption_instance.generate_tag_captions()
         photo.save()
 
 

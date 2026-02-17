@@ -130,6 +130,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "tagging_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("places365", "Places365 Scene Recognition"),
+                ("joytag", "JoyTag (5000+ content tags)"),
+                ("siglip2", "SigLIP 2 (Real-world photo tags)"),
+            ),
+        },
+    ],
 }
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
@@ -152,6 +163,7 @@ CONSTANCE_CONFIG = {
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
+    "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
 }
 
 INTERNAL_IPS = ("127.0.0.1", "localhost")

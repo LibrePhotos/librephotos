@@ -129,6 +129,18 @@ class PersonViewSet(viewsets.ModelViewSet):
         return qs
 
 
+def _get_active_tag_thing_types():
+    """Return the AlbumThing thing_type values for the active tagging model."""
+    from constance import config as site_config
+
+    tagging_model = site_config.TAGGING_MODEL
+    if tagging_model == "siglip2":
+        return ["siglip2_tag"]
+    if tagging_model == "joytag":
+        return ["joytag_tag"]
+    return ["places365_attribute", "places365_category"]
+
+
 class AlbumThingViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumThingSerializer
     pagination_class = StandardResultsSetPagination
@@ -136,9 +148,11 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_anonymous:
             return AlbumThing.objects.none()
+        active_types = _get_active_tag_thing_types()
         return (
             AlbumThing.objects.filter(Q(owner=self.request.user))
             .filter(Q(photo_count__gt=0))
+            .filter(Q(thing_type__in=active_types) | Q(thing_type="hashtag_attribute"))
             .prefetch_related(
                 Prefetch(
                     "photos",
@@ -181,10 +195,12 @@ class AlbumThingListViewSet(ListViewSet):
         if self.request.user.is_anonymous:
             return AlbumThing.objects.none()
 
+        active_types = _get_active_tag_thing_types()
         queryset = (
             AlbumThing.objects.filter(owner=self.request.user)
             .prefetch_related("cover_photos")
             .filter(photo_count__gt=0)
+            .filter(Q(thing_type__in=active_types) | Q(thing_type="hashtag_attribute"))
             .order_by("-title")
         )
 

@@ -122,6 +122,7 @@ class SiteSettingsView(APIView):
         out["map_api_key"] = site_config.MAP_API_KEY
         out["captioning_model"] = site_config.CAPTIONING_MODEL
         out["llm_model"] = site_config.LLM_MODEL
+        out["tagging_model"] = site_config.TAGGING_MODEL
         return Response(out)
 
     def post(self, request, format=None):
@@ -140,6 +141,8 @@ class SiteSettingsView(APIView):
             site_config.CAPTIONING_MODEL = request.data["captioning_model"]
         if "llm_model" in request.data.keys():
             site_config.LLM_MODEL = request.data["llm_model"]
+        if "tagging_model" in request.data.keys():
+            site_config.TAGGING_MODEL = request.data["tagging_model"]
         if not do_all_models_exist():
             AsyncTask(download_models, User.objects.get(id=request.user.id)).run()
 

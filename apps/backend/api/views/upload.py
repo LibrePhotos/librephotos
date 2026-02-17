@@ -27,7 +27,7 @@ from api.models.photo_caption import PhotoCaption
 def generate_captions_wrapper(photo, commit=True):
     """Wrapper function to generate captions for use in chain"""
     caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
-    caption_instance.generate_places365_captions(commit=commit)
+    caption_instance.generate_tag_captions(commit=commit)
 
 
 class UploadPhotoExists(viewsets.ViewSet):
