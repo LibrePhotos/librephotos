@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Run tests
         run: echo "To-Do Add Tests"
@@ -42,21 +42,25 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build and push (AMD64)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           platforms: linux/amd64
           push: true
           provenance: false
+          sbom: false
           tags: reallibrephotos/librephotos-frontend:dev-amd64
 
   build-arm64:
@@ -65,25 +69,29 @@ jobs:
     # Ensure test job passes before pushing image.
     needs: test
 
-    runs-on: ubuntu-24.04-arm  # Use ARM64 runner
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build and push (ARM64)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           platforms: linux/arm64
           push: true
           provenance: false
+          sbom: false
           tags: reallibrephotos/librephotos-frontend:dev-arm64
 
   combine-manifest-dev:
@@ -93,28 +101,20 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Enable Docker CLI experimental features
-        run: echo '{"experimental":"enabled"}' > ~/.docker/config.json
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Create and push multi-arch manifest (dev)
         run: |
-          docker manifest create reallibrephotos/librephotos-frontend:dev \
+          docker buildx imagetools create -t reallibrephotos/librephotos-frontend:dev \
             reallibrephotos/librephotos-frontend:dev-amd64 \
             reallibrephotos/librephotos-frontend:dev-arm64
-          docker manifest annotate reallibrephotos/librephotos-frontend:dev \
-            reallibrephotos/librephotos-frontend:dev-amd64 --arch amd64
-          docker manifest annotate reallibrephotos/librephotos-frontend:dev \
-            reallibrephotos/librephotos-frontend:dev-arm64 --arch arm64
-          docker manifest push reallibrephotos/librephotos-frontend:dev
 
   release-amd64:
     name: Releasing (AMD64)
@@ -126,21 +126,25 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build and push (AMD64)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           platforms: linux/amd64
           push: true
           provenance: false
+          sbom: false
           tags: reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-amd64
 
   release-arm64:
@@ -149,25 +153,29 @@ jobs:
     # Ensure test job passes before pushing image.
     needs: test
 
-    runs-on: ubuntu-24.04-arm  # Use ARM64 runner
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build and push (ARM64)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           platforms: linux/arm64
           push: true
           provenance: false
+          sbom: false
           tags: reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-arm64
 
   combine-manifest-release:
@@ -177,35 +185,21 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Enable Docker CLI experimental features
-        run: echo '{"experimental":"enabled"}' > ~/.docker/config.json
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Create and push multi-arch manifest (release)
         run: |
-          docker manifest create reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }} \
+          docker buildx imagetools create -t reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }} \
             reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-amd64 \
             reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-arm64
-          docker manifest annotate reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }} \
-            reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-amd64 --arch amd64
-          docker manifest annotate reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }} \
-            reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-arm64 --arch arm64
-          docker manifest push reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}
 
-          # Optionally, tag the release as "latest"
-          docker manifest create reallibrephotos/librephotos-frontend:latest \
+          docker buildx imagetools create -t reallibrephotos/librephotos-frontend:latest \
             reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-amd64 \
             reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-arm64
-          docker manifest annotate reallibrephotos/librephotos-frontend:latest \
-            reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-amd64 --arch amd64
-          docker manifest annotate reallibrephotos/librephotos-frontend:latest \
-            reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-arm64 --arch arm64
-          docker manifest push reallibrephotos/librephotos-frontend:latest
