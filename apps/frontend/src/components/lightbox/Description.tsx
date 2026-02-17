@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
 import { useGenerateImageToTextCaptionMutation, useSavePhotoCaptionMutation } from "../../api_client/photos/hooks";
 import type { Photo as PhotoType } from "../../api_client/photos/types";
+import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { fuzzyMatch } from "../../util/util";
 import { AISuggestionButton } from "./AISuggestionButton";
 import "./Hashtag.css";
@@ -26,6 +27,8 @@ type Props = Readonly<{
 export function Description(props: Props) {
   const { t } = useTranslation();
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
+  const { data: siteSettings } = useGetSettingsQuery();
+  const taggingModel = siteSettings?.tagging_model ?? "places365";
   const navigate = useNavigate();
 
   const { photoDetail, isPublic } = props;
@@ -173,7 +176,49 @@ export function Description(props: Props) {
             </Tooltip>
           </Group>
         )}
-        {photoDetail.captions_json.places365 && (
+        {taggingModel === "siglip2" && photoDetail.captions_json.siglip2 && photoDetail.captions_json.siglip2.tags && (
+          <Stack>
+            <Group>
+              <Tags />
+              <Title order={4}>{t("lightbox.sidebar.tags", "Tags")}</Title>
+            </Group>
+            <Group>
+              {photoDetail.captions_json.siglip2.tags.map((tag: string) => (
+                <Badge
+                  key={`lightbox_siglip2_label_${photoDetail.image_hash}_${tag}`}
+                  color="green"
+                  onClick={() => {
+                    navigate({ to: `/search/${tag}` });
+                  }}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </Group>
+          </Stack>
+        )}
+        {taggingModel === "joytag" && photoDetail.captions_json.joytag && photoDetail.captions_json.joytag.tags && (
+          <Stack>
+            <Group>
+              <Tags />
+              <Title order={4}>{t("lightbox.sidebar.tags", "Tags")}</Title>
+            </Group>
+            <Group>
+              {photoDetail.captions_json.joytag.tags.map((tag: string) => (
+                <Badge
+                  key={`lightbox_joytag_label_${photoDetail.image_hash}_${tag}`}
+                  color="violet"
+                  onClick={() => {
+                    navigate({ to: `/search/${tag}` });
+                  }}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </Group>
+          </Stack>
+        )}
+        {taggingModel === "places365" && photoDetail.captions_json.places365 && (
           <Stack>
             <Group>
               <Tags />

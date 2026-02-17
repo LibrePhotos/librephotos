@@ -1243,51 +1243,6 @@
     rw "^1.3.3"
     tinyqueue "^3.0.0"
 
-"@mux/mux-data-google-ima@^0.3.4":
-  version "0.3.4"
-  resolved "https://registry.npmjs.org/@mux/mux-data-google-ima/-/mux-data-google-ima-0.3.4.tgz"
-  integrity sha512-j8IOD5kw1qIOkbpipEQRGQ7vXB6+CArrhIAvtvj8YFqy0PHi7JcHk4WR3ZBVy5+5yaRCH+nzHkmJmGsg8g6O5g==
-  dependencies:
-    mux-embed "5.16.1"
-
-"@mux/mux-player-react@^3.8.0":
-  version "3.11.4"
-  resolved "https://registry.npmjs.org/@mux/mux-player-react/-/mux-player-react-3.11.4.tgz"
-  integrity sha512-bW0k7eC1d2hmttdWrmRNjiVa77lQ30V8Lz199GnyhwQhBbMa3unEiO5NbcYBuYNZTuXqxgVRiehMktuzbvY7VA==
-  dependencies:
-    "@mux/mux-player" "3.11.4"
-    "@mux/playback-core" "0.33.1"
-    prop-types "^15.8.1"
-
-"@mux/mux-player@3.11.4":
-  version "3.11.4"
-  resolved "https://registry.npmjs.org/@mux/mux-player/-/mux-player-3.11.4.tgz"
-  integrity sha512-E7A6GIx3ECXjDIFuhkmuU0PRnnkTluKoi+jCuVtZWDnBLmeM9WxNTVIDyAJQX2Ro/BkTuZChMspObj9OgngLTg==
-  dependencies:
-    "@mux/mux-video" "0.30.2"
-    "@mux/playback-core" "0.33.1"
-    media-chrome "~4.17.2"
-    player.style "^0.3.0"
-
-"@mux/mux-video@0.30.2":
-  version "0.30.2"
-  resolved "https://registry.npmjs.org/@mux/mux-video/-/mux-video-0.30.2.tgz"
-  integrity sha512-JwNH7FwLSmPGdU355LvCL1MWyrMFl2dy6mSzyqiHp+14eBaoRu1Os4Dg2khw5dECJSIm7Z4ZMeDnHQc/rj7/YQ==
-  dependencies:
-    "@mux/mux-data-google-ima" "^0.3.4"
-    "@mux/playback-core" "0.33.1"
-    castable-video "~1.1.11"
-    custom-media-element "~1.4.5"
-    media-tracks "~0.3.4"
-
-"@mux/playback-core@0.33.1":
-  version "0.33.1"
-  resolved "https://registry.npmjs.org/@mux/playback-core/-/playback-core-0.33.1.tgz"
-  integrity sha512-lyfvZQuc5UebfJBqjZ+TiFHD3B08otJrNG+pYU2klv6ywYjpvnSCbWBif7YtaC4gIPUJjkErspXWND3w34ctIg==
-  dependencies:
-    hls.js "~1.6.15"
-    mux-embed "^5.16.1"
-
 "@pkgjs/parseargs@^0.11.0":
   version "0.11.0"
   resolved "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz"
@@ -1456,41 +1411,6 @@
   integrity sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==
   dependencies:
     "@sinonjs/commons" "^3.0.0"
-
-"@svta/cml-608@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@svta/cml-608/-/cml-608-1.0.1.tgz"
-  integrity sha512-Y/Ier9VPUSOBnf0bJqdDyTlPrt4dDB+jk5mYHa1bnD2kcRl8qn7KkW3PRuj4w1aVN+BS2eHmsLxodt7P2hylUg==
-
-"@svta/cml-cmcd@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@svta/cml-cmcd/-/cml-cmcd-1.0.1.tgz"
-  integrity sha512-eox305g+QUJgXqOLVrbgxeQHCgl90ewwQ9O2bIoo7m+hanR8Xswu5CknFnT5qqIbLOHfw80ug+raycoAFHTQ+w==
-
-"@svta/cml-cmsd@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@svta/cml-cmsd/-/cml-cmsd-1.0.1.tgz"
-  integrity sha512-+nIB8PuSfb/qw+xGaArPhNqPm84tBJUbe3H1DnPL5QUsjSUI7mUIUQwAtRV1ZdEu0+80g9i0op79woB0OIwr/g==
-
-"@svta/cml-dash@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@svta/cml-dash/-/cml-dash-1.0.1.tgz"
-  integrity sha512-lYnD1I7FUbbQND+xICI+kcRaRXuT+whKk27R8m8me5VMVu2sMsAMc7Yui6l9sxw2cBKt8pSETPYRm/1+n4LZkw==
-
-"@svta/cml-id3@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@svta/cml-id3/-/cml-id3-1.0.1.tgz"
-  integrity sha512-90fGlL1qRI88CcaB89k6NG6cC3kky4Eu2jwqU4HefqK+S5k2OASUxf8JXkGz+DsdaiY7sh51vGPYdolfBZS7ug==
-
-"@svta/cml-request@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@svta/cml-request/-/cml-request-1.0.1.tgz"
-  integrity sha512-enL19BuXUjFkDDDF9jdNwUclMNPRsagnjGAetVC7xcmpDMpEx+ZLgsDip6BFNg5p6izSEk/OyujTWW1r8bDNiA==
-
-"@svta/cml-xml@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@svta/cml-xml/-/cml-xml-1.0.1.tgz"
-  integrity sha512-11LkJa5kDEcsRMWkVI1ABH3KLCxGoiSVe4kQ293ItVj8ncTTQ7htmCGiJDjS+Cmy35UgF3e/vc0ysJIiWRTx2g==
 
 "@tabler/icons-react@^3.36.1":
   version "3.36.1"
@@ -2189,14 +2109,6 @@
   dependencies:
     "@use-gesture/core" "10.3.1"
 
-"@vimeo/player@2.29.0":
-  version "2.29.0"
-  resolved "https://registry.npmjs.org/@vimeo/player/-/player-2.29.0.tgz"
-  integrity sha512-9JjvjeqUndb9otCCFd0/+2ESsLk7VkDE6sxOBy9iy2ukezuQbplVRi+g9g59yAurKofbmTi/KcKxBGO/22zWRw==
-  dependencies:
-    native-promise-only "0.8.1"
-    weakmap-polyfill "2.0.4"
-
 "@visx/curve@3.12.0":
   version "3.12.0"
   resolved "https://registry.npmjs.org/@visx/curve/-/curve-3.12.0.tgz"
@@ -2721,28 +2633,6 @@ balanced-match@^4.0.2:
   dependencies:
     jackspeak "^4.2.3"
 
-bcp-47-match@^2.0.0, bcp-47-match@^2.0.3:
-  version "2.0.3"
-  resolved "https://registry.npmjs.org/bcp-47-match/-/bcp-47-match-2.0.3.tgz"
-  integrity sha512-JtTezzbAibu8G0R9op9zb3vcWZd9JF6M0xOYGPn0fNCd7wOpRB1mU2mH9T8gaBGbAAyIIVgB2G7xG0GP98zMAQ==
-
-bcp-47-normalize@^2.3.0:
-  version "2.3.0"
-  resolved "https://registry.npmjs.org/bcp-47-normalize/-/bcp-47-normalize-2.3.0.tgz"
-  integrity sha512-8I/wfzqQvttUFz7HVJgIZ7+dj3vUaIyIxYXaTRP1YWoSDfzt6TUmxaKZeuXR62qBmYr+nvuWINFRl6pZ5DlN4Q==
-  dependencies:
-    bcp-47 "^2.0.0"
-    bcp-47-match "^2.0.0"
-
-bcp-47@^2.0.0:
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/bcp-47/-/bcp-47-2.1.0.tgz"
-  integrity sha512-9IIS3UPrvIa1Ej+lVDdDwO7zLehjqsaByECw0bu2RRGP73jALm6FYbzI5gWbgHLvNdkvfXB5YrSbocZdOS0c0w==
-  dependencies:
-    is-alphabetical "^2.0.0"
-    is-alphanumerical "^2.0.0"
-    is-decimal "^2.0.0"
-
 binary-extensions@^2.0.0:
   version "2.3.0"
   resolved "https://registry.npmjs.org/binary-extensions/-/binary-extensions-2.3.0.tgz"
@@ -2865,18 +2755,6 @@ caniuse-lite@^1.0.30001669:
   resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001672.tgz"
   integrity sha512-XhW1vRo1ob6aeK2w3rTohwTPBLse/rvjq+s3RTSBwnlZqoFFjx9cHsShJjAIbLsLjyoacaTxpLZy9v3gg6zypw==
 
-castable-video@~1.1.11:
-  version "1.1.11"
-  resolved "https://registry.npmjs.org/castable-video/-/castable-video-1.1.11.tgz"
-  integrity sha512-LCRTK6oe7SB1SiUQFzZCo6D6gcEzijqBTVIuj3smKpQdesXM18QTbCVqWgh9MfOeQgTx/i9ji5jGcdqNPeWg2g==
-  dependencies:
-    custom-media-element "~1.4.5"
-
-ce-la-react@^0.3.2:
-  version "0.3.2"
-  resolved "https://registry.npmjs.org/ce-la-react/-/ce-la-react-0.3.2.tgz"
-  integrity sha512-QJ6k4lOD/btI08xG8jBPxRCGXvCnusGGkTsiXk0u3NqUu/W+BXRnFD4PYjwtqh8AWmGa5LDbGk0fLQsqr0nSMA==
-
 chai@^5.2.0:
   version "5.2.1"
   resolved "https://registry.npmjs.org/chai/-/chai-5.2.1.tgz"
@@ -2965,11 +2843,6 @@ cliui@^8.0.1:
     strip-ansi "^6.0.1"
     wrap-ansi "^7.0.0"
 
-cloudflare-video-element@^1.3.4:
-  version "1.3.5"
-  resolved "https://registry.npmjs.org/cloudflare-video-element/-/cloudflare-video-element-1.3.5.tgz"
-  integrity sha512-zj9gjJa6xW8MNrfc4oKuwgGS0njRLpOlQjdifbuNxvy8k4Y3pKCyKCMG2XIsjd2iQGhgjS57b1P5VWdJlxcXBw==
-
 clsx@^1.0.4:
   version "1.2.1"
   resolved "https://registry.npmjs.org/clsx/-/clsx-1.2.1.tgz"
@@ -2984,11 +2857,6 @@ co@^4.6.0:
   version "4.6.0"
   resolved "https://registry.npmjs.org/co/-/co-4.6.0.tgz"
   integrity sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==
-
-codem-isoboxer@0.3.10:
-  version "0.3.10"
-  resolved "https://registry.npmjs.org/codem-isoboxer/-/codem-isoboxer-0.3.10.tgz"
-  integrity sha512-eNk3TRV+xQMJ1PEj0FQGY8KD4m0GPxT487XJ+Iftm7mVa9WpPFDMWqPt+46buiP5j5Wzqe5oMIhqBcAeKfygSA==
 
 collect-v8-coverage@^1.0.0:
   version "1.0.2"
@@ -3107,11 +2975,6 @@ csstype@^3.0.2, csstype@^3.2.2:
   version "3.2.3"
   resolved "https://registry.npmjs.org/csstype/-/csstype-3.2.3.tgz"
   integrity sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==
-
-custom-media-element@^1.4.5, custom-media-element@~1.4.5:
-  version "1.4.5"
-  resolved "https://registry.npmjs.org/custom-media-element/-/custom-media-element-1.4.5.tgz"
-  integrity sha512-cjrsQufETwxjvwZbYbKBCJNvmQ2++G9AvT45zDi7NXL9k2PdVcs2h0jQz96J6G4TMKRCcEsoJ+QTgQD00Igtjw==
 
 "d3-array@2 - 3", "d3-array@2.10.0 - 3", "d3-array@2.5.0 - 3", d3-array@3, d3-array@^3.1.6, d3-array@^3.2.0:
   version "3.2.4"
@@ -3394,37 +3257,6 @@ d3@7.9.0:
     d3-timer "3"
     d3-transition "3"
     d3-zoom "3"
-
-dash-video-element@^0.3.0:
-  version "0.3.1"
-  resolved "https://registry.npmjs.org/dash-video-element/-/dash-video-element-0.3.1.tgz"
-  integrity sha512-KSdCd6lqjum4LizHLtB2EGvaGr7YJU7SZekTTDHixRondaRNcm0t9W2V3I7/itNBzQwdDbC1cKkXryc8I8IViA==
-  dependencies:
-    custom-media-element "^1.4.5"
-    dashjs "^5.0.3"
-    media-tracks "^0.3.4"
-
-dashjs@^5.0.3:
-  version "5.1.1"
-  resolved "https://registry.npmjs.org/dashjs/-/dashjs-5.1.1.tgz"
-  integrity sha512-BzNXlUgzEjhuZ5M5hlSp1qIyQHZ7NpXAR0loP9DAAFVZj/ntL1DHeZ7qp/L3bvI4rq50X5indkAZQ3zEHWJoCA==
-  dependencies:
-    "@svta/cml-608" "1.0.1"
-    "@svta/cml-cmcd" "1.0.1"
-    "@svta/cml-cmsd" "1.0.1"
-    "@svta/cml-dash" "1.0.1"
-    "@svta/cml-id3" "1.0.1"
-    "@svta/cml-request" "1.0.1"
-    "@svta/cml-xml" "1.0.1"
-    bcp-47-match "^2.0.3"
-    bcp-47-normalize "^2.3.0"
-    codem-isoboxer "0.3.10"
-    fast-deep-equal "3.1.3"
-    html-entities "^2.5.2"
-    imsc "^1.1.5"
-    localforage "^1.10.0"
-    path-browserify "^1.0.1"
-    ua-parser-js "^1.0.37"
 
 data-urls@^5.0.0:
   version "5.0.0"
@@ -4190,7 +4022,7 @@ extend-shallow@^3.0.0:
     assign-symbols "^1.0.0"
     is-extendable "^1.0.1"
 
-fast-deep-equal@3.1.3, fast-deep-equal@^3, fast-deep-equal@^3.1.1, fast-deep-equal@^3.1.3:
+fast-deep-equal@^3, fast-deep-equal@^3.1.1, fast-deep-equal@^3.1.3:
   version "3.1.3"
   resolved "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz"
   integrity sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==
@@ -4587,20 +4419,6 @@ hasown@^2.0.2:
   dependencies:
     function-bind "^1.1.2"
 
-hls-video-element@^1.5.9:
-  version "1.5.10"
-  resolved "https://registry.npmjs.org/hls-video-element/-/hls-video-element-1.5.10.tgz"
-  integrity sha512-FruzD03CaQlPlNKfXO1njPbo3jCSImAtFwX1OqgFbMllTQzdYqAHODiWan0q3mr1cYCONOWiAz2/nX+2qHHC+g==
-  dependencies:
-    custom-media-element "^1.4.5"
-    hls.js "^1.6.5"
-    media-tracks "^0.3.4"
-
-hls.js@^1.6.5, hls.js@~1.6.15:
-  version "1.6.15"
-  resolved "https://registry.npmjs.org/hls.js/-/hls.js-1.6.15.tgz"
-  integrity sha512-E3a5VwgXimGHwpRGV+WxRTKeSp2DW5DI5MWv34ulL3t5UNmyJWCQ1KmLEHbYzcfThfXG8amBL+fCYPneGHC4VA==
-
 hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.2:
   version "3.3.2"
   resolved "https://registry.npmjs.org/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz"
@@ -4614,11 +4432,6 @@ html-encoding-sniffer@^4.0.0:
   integrity sha512-Y22oTqIU4uuPgEemfz7NDJz6OeKf12Lsu+QC+s3BVpda64lTiMYCyGwg5ki4vFxkMwQdeZDl2adZoqUgdFuTgQ==
   dependencies:
     whatwg-encoding "^3.1.1"
-
-html-entities@^2.5.2:
-  version "2.6.0"
-  resolved "https://registry.npmjs.org/html-entities/-/html-entities-2.6.0.tgz"
-  integrity sha512-kig+rMn/QOVRvr7c86gQ8lWXq+Hkv6CbAH1hLu+RG338StTpE8Z0b44SDVaqVu7HGKf27frdmUYEs9hTUX/cLQ==
 
 html-escaper@^2.0.0:
   version "2.0.2"
@@ -4694,11 +4507,6 @@ ignore@^7.0.5:
   resolved "https://registry.npmjs.org/ignore/-/ignore-7.0.5.tgz"
   integrity sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==
 
-immediate@~3.0.5:
-  version "3.0.6"
-  resolved "https://registry.npmjs.org/immediate/-/immediate-3.0.6.tgz"
-  integrity sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==
-
 import-fresh@^3.2.1:
   version "3.3.1"
   resolved "https://registry.npmjs.org/import-fresh/-/import-fresh-3.3.1.tgz"
@@ -4714,13 +4522,6 @@ import-local@^3.0.2:
   dependencies:
     pkg-dir "^4.2.0"
     resolve-cwd "^3.0.0"
-
-imsc@^1.1.5:
-  version "1.1.5"
-  resolved "https://registry.npmjs.org/imsc/-/imsc-1.1.5.tgz"
-  integrity sha512-V8je+CGkcvGhgl2C1GlhqFFiUOIEdwXbXLiu1Fcubvvbo+g9inauqT3l0pNYXGoLPBj3jxtZz9t+wCopMkwadQ==
-  dependencies:
-    sax "1.2.1"
 
 imurmurhash@^0.1.4:
   version "0.1.4"
@@ -4758,19 +4559,6 @@ internal-slot@^1.1.0:
   version "2.0.3"
   resolved "https://registry.npmjs.org/internmap/-/internmap-2.0.3.tgz"
   integrity sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==
-
-is-alphabetical@^2.0.0:
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/is-alphabetical/-/is-alphabetical-2.0.1.tgz"
-  integrity sha512-FWyyY60MeTNyeSRpkM2Iry0G9hpr7/9kD40mD/cGQEuilcZYS4okz8SN2Q6rLCJ8gbCt6fN+rC+6tMGS99LaxQ==
-
-is-alphanumerical@^2.0.0:
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/is-alphanumerical/-/is-alphanumerical-2.0.1.tgz"
-  integrity sha512-hmbYhX/9MUMF5uh7tOXyK/n0ZvWpad5caBA17GsC6vyuCqaWliRG5K1qS9inmUhEMaOBIW7/whAnSwveW/LtZw==
-  dependencies:
-    is-alphabetical "^2.0.0"
-    is-decimal "^2.0.0"
 
 is-array-buffer@^3.0.4, is-array-buffer@^3.0.5:
   version "3.0.5"
@@ -4843,11 +4631,6 @@ is-date-object@^1.0.5, is-date-object@^1.1.0:
   dependencies:
     call-bound "^1.0.2"
     has-tostringtag "^1.0.2"
-
-is-decimal@^2.0.0:
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/is-decimal/-/is-decimal-2.0.1.tgz"
-  integrity sha512-AAB9hiomQs5DXWcRB1rqsxGUstbRroFOPPVAomNk/3XHR5JyEZChOyTWe2oayKnsSsr/kcGqF+z6yuH6HHpN0A==
 
 is-docker@^2.0.0:
   version "2.2.1"
@@ -5673,13 +5456,6 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
-lie@3.1.1:
-  version "3.1.1"
-  resolved "https://registry.npmjs.org/lie/-/lie-3.1.1.tgz"
-  integrity sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==
-  dependencies:
-    immediate "~3.0.5"
-
 lines-and-columns@^1.1.6:
   version "1.2.4"
   resolved "https://registry.npmjs.org/lines-and-columns/-/lines-and-columns-1.2.4.tgz"
@@ -5721,13 +5497,6 @@ listr2@^9.0.5:
     log-update "^6.1.0"
     rfdc "^1.4.1"
     wrap-ansi "^9.0.0"
-
-localforage@^1.10.0:
-  version "1.10.0"
-  resolved "https://registry.npmjs.org/localforage/-/localforage-1.10.0.tgz"
-  integrity sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==
-  dependencies:
-    lie "3.1.1"
 
 locate-path@^5.0.0:
   version "5.0.0"
@@ -5887,25 +5656,6 @@ mdurl@^2.0.0:
   resolved "https://registry.npmjs.org/mdurl/-/mdurl-2.0.0.tgz"
   integrity sha512-Lf+9+2r+Tdp5wXDXC4PcIBjTDtq4UKjCPMQhKIuzpJNW0b96kVqSwW0bT7FhRSfmAiFYgP+SCRvdrDozfh0U5w==
 
-media-chrome@~4.16.1:
-  version "4.16.1"
-  resolved "https://registry.npmjs.org/media-chrome/-/media-chrome-4.16.1.tgz"
-  integrity sha512-qtFlsy0lNDVCyVo//ZCAfRPKwgehfOYp6rThZzDUuZ5ypv41yqUfAxK+P9TOs+XSVWXATPTT2WRV0fbW0BH4vQ==
-  dependencies:
-    ce-la-react "^0.3.2"
-
-media-chrome@~4.17.2:
-  version "4.17.2"
-  resolved "https://registry.npmjs.org/media-chrome/-/media-chrome-4.17.2.tgz"
-  integrity sha512-o/IgiHx0tdSVwRxxqF5H12FK31A/A8T71sv3KdAvh7b6XeBS9dXwqvIFwlR9kdEuqg3n7xpmRIuL83rmYq8FTg==
-  dependencies:
-    ce-la-react "^0.3.2"
-
-media-tracks@^0.3.4, media-tracks@~0.3.4:
-  version "0.3.4"
-  resolved "https://registry.npmjs.org/media-tracks/-/media-tracks-0.3.4.tgz"
-  integrity sha512-5SUElzGMYXA7bcyZBL1YzLTxH9Iyw1AeYNJxzByqbestrrtB0F3wfiWUr7aROpwodO4fwnxOt78Xjb3o3ONNQg==
-
 memoize-one@^5.1.1:
   version "5.2.1"
   resolved "https://registry.npmjs.org/memoize-one/-/memoize-one-5.2.1.tgz"
@@ -6012,11 +5762,6 @@ mute-stream@^3.0.0:
   resolved "https://registry.npmjs.org/mute-stream/-/mute-stream-3.0.0.tgz"
   integrity sha512-dkEJPVvun4FryqBmZ5KhDo0K9iDXAwn08tMLDinNdRBNPcYEDiWYysLcc6k3mjTMlbP9KyylvRpd4wFtwrT9rw==
 
-mux-embed@5.16.1, mux-embed@^5.16.1:
-  version "5.16.1"
-  resolved "https://registry.npmjs.org/mux-embed/-/mux-embed-5.16.1.tgz"
-  integrity sha512-XWeOG/nzrfRjdyDajW9VNiP0FuKZhEIHMh8Ybpo8uudQByRSOKH8qOaL+MEGdm7KAHzJunwoyYNodD059Spw/A==
-
 nano-spawn@^2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/nano-spawn/-/nano-spawn-2.0.0.tgz"
@@ -6026,11 +5771,6 @@ nanoid@^3.3.11:
   version "3.3.11"
   resolved "https://registry.npmjs.org/nanoid/-/nanoid-3.3.11.tgz"
   integrity sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==
-
-native-promise-only@0.8.1:
-  version "0.8.1"
-  resolved "https://registry.npmjs.org/native-promise-only/-/native-promise-only-0.8.1.tgz"
-  integrity sha512-zkVhZUA3y8mbz652WrL5x0fB0ehrBkulWT3TomAQ9iDtyXZvzKeEA6GPxAItBYeNYl5yngKRX612qHOhvMkDeg==
 
 natural-compare@^1.4.0:
   version "1.4.0"
@@ -6258,11 +5998,6 @@ patch-package@8.0.1:
     tmp "^0.2.4"
     yaml "^2.2.2"
 
-path-browserify@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/path-browserify/-/path-browserify-1.0.1.tgz"
-  integrity sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==
-
 path-exists@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmjs.org/path-exists/-/path-exists-4.0.0.tgz"
@@ -6348,13 +6083,6 @@ pkg-dir@^4.2.0:
   integrity sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==
   dependencies:
     find-up "^4.0.0"
-
-player.style@^0.3.0:
-  version "0.3.1"
-  resolved "https://registry.npmjs.org/player.style/-/player.style-0.3.1.tgz"
-  integrity sha512-z/T8hJGaTkHT9vdXgWdOgF37eB1FV7/j52VXQZ2lgEhpru9oT8TaUWIxp6GoxTnhPBM4X6nSbpkAHrT7UTjUKg==
-  dependencies:
-    media-chrome "~4.16.1"
 
 possible-typed-array-names@^1.0.0:
   version "1.0.0"
@@ -6712,22 +6440,6 @@ react-number-format@^5.4.4:
   resolved "https://registry.npmjs.org/react-number-format/-/react-number-format-5.4.4.tgz"
   integrity sha512-wOmoNZoOpvMminhifQYiYSTCLUDOiUbBunrMrMjA+dV52sY+vck1S4UhR6PkgnoCquvvMSeJjErXZ4qSaWCliA==
 
-react-player@^3.4.0:
-  version "3.4.0"
-  resolved "https://registry.npmjs.org/react-player/-/react-player-3.4.0.tgz"
-  integrity sha512-QpQSHXtnMBKjQVNeaCYMtTVcynWQ0DDDhz/FJu1OR9PHLC1Aih94UqNstywzSHbJ6Oc7lI8/7kDDqcIvyTI6zQ==
-  dependencies:
-    "@mux/mux-player-react" "^3.8.0"
-    cloudflare-video-element "^1.3.4"
-    dash-video-element "^0.3.0"
-    hls-video-element "^1.5.9"
-    spotify-audio-element "^1.0.3"
-    tiktok-video-element "^0.1.1"
-    twitch-video-element "^0.1.5"
-    vimeo-video-element "^1.6.1"
-    wistia-video-element "^1.3.5"
-    youtube-video-element "^1.8.0"
-
 react-redux@^7.2.0:
   version "7.2.9"
   resolved "https://registry.npmjs.org/react-redux/-/react-redux-7.2.9.tgz"
@@ -7058,11 +6770,6 @@ safe-regex-test@^1.1.0:
   resolved "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz"
   integrity sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==
 
-sax@1.2.1:
-  version "1.2.1"
-  resolved "https://registry.npmjs.org/sax/-/sax-1.2.1.tgz"
-  integrity sha512-8I2a3LovHTOpm7NV5yOyO8IHqgVsfK4+UuySrXU8YXkSRX7k6hCV9b3HrkKCr3nMpgj+0bmocaJJWpvp1oc7ZA==
-
 saxes@^6.0.0:
   version "6.0.0"
   resolved "https://registry.npmjs.org/saxes/-/saxes-6.0.0.tgz"
@@ -7285,11 +6992,6 @@ split-string@^3.0.1:
   dependencies:
     extend-shallow "^3.0.0"
 
-spotify-audio-element@^1.0.3:
-  version "1.0.4"
-  resolved "https://registry.npmjs.org/spotify-audio-element/-/spotify-audio-element-1.0.4.tgz"
-  integrity sha512-QdKrJPkYCzaNwwz2vN2eDGyoW0KmQFmnwVprB41mpMzj4qujbqr6pegEchQeTn0b5PceKiLoVu0pp2QDpTcWnw==
-
 sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz"
@@ -7486,11 +7188,6 @@ strip-literal@^3.0.0:
   dependencies:
     js-tokens "^9.0.1"
 
-super-media-element@~1.4.2:
-  version "1.4.2"
-  resolved "https://registry.npmjs.org/super-media-element/-/super-media-element-1.4.2.tgz"
-  integrity sha512-9pP/CVNp4NF2MNlRzLwQkjiTgKKe9WYXrLh9+8QokWmMxz+zt2mf1utkWLco26IuA3AfVcTb//qtlTIjY3VHxA==
-
 supercluster@^8.0.1:
   version "8.0.1"
   resolved "https://registry.npmjs.org/supercluster/-/supercluster-8.0.1.tgz"
@@ -7561,11 +7258,6 @@ text-table@^0.2.0:
   version "0.2.0"
   resolved "https://registry.npmjs.org/text-table/-/text-table-0.2.0.tgz"
   integrity sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==
-
-tiktok-video-element@^0.1.1:
-  version "0.1.2"
-  resolved "https://registry.npmjs.org/tiktok-video-element/-/tiktok-video-element-0.1.2.tgz"
-  integrity sha512-w6TboLm236XJKKiIXIhCbYCnUxbixBbaAoty0etaEAZ/2kHkVIdfZdv2oouMU/HGMsWCHI/VjQ3wU3MJ+s192Q==
 
 tiny-invariant@^1.0.6, tiny-invariant@^1.3.1, tiny-invariant@^1.3.3:
   version "1.3.3"
@@ -7692,11 +7384,6 @@ tsx@^4.19.2:
   optionalDependencies:
     fsevents "~2.3.3"
 
-twitch-video-element@^0.1.5:
-  version "0.1.6"
-  resolved "https://registry.npmjs.org/twitch-video-element/-/twitch-video-element-0.1.6.tgz"
-  integrity sha512-X7l8gy+DEFKJ/EztUwaVnAYwQN9fUJxPkOVJj2sE62sGvGU4DNLyvmOsmVulM+8Plc5dMg6hYIMNRAPaH+39Uw==
-
 type-check@^0.4.0, type-check@~0.4.0:
   version "0.4.0"
   resolved "https://registry.npmjs.org/type-check/-/type-check-0.4.0.tgz"
@@ -7780,11 +7467,6 @@ typewise@^1.0.3:
   integrity sha512-aXofE06xGhaQSPzt8hlTY+/YWQhm9P0jYUp1f2XtmW/3Bk0qzXcyFWAtPoo2uTGQj1ZwbDuSyuxicq+aDo8lCQ==
   dependencies:
     typewise-core "^1.2.0"
-
-ua-parser-js@^1.0.37:
-  version "1.0.41"
-  resolved "https://registry.npmjs.org/ua-parser-js/-/ua-parser-js-1.0.41.tgz"
-  integrity sha512-LbBDqdIC5s8iROCUjMbW1f5dJQTEFB1+KO9ogbvlb3nm9n4YHa5p4KTvFPWvh2Hs8gZMBuiB1/8+pdfe/tDPug==
 
 uc.micro@^2.0.0, uc.micro@^2.1.0:
   version "2.1.0"
@@ -7924,13 +7606,6 @@ victory-vendor@^36.6.8:
     d3-time "^3.0.0"
     d3-timer "^3.0.1"
 
-vimeo-video-element@^1.6.1:
-  version "1.6.3"
-  resolved "https://registry.npmjs.org/vimeo-video-element/-/vimeo-video-element-1.6.3.tgz"
-  integrity sha512-pSBMYV+7KbChvtzuXGR3Sg7ZqaAZuTOnHrlZxrauIH2GWMLDnOEK5D0o7yWCcnswtQHVlIz6hXeJYbvQC+gAkw==
-  dependencies:
-    "@vimeo/player" "2.29.0"
-
 vite-node@3.2.4:
   version "3.2.4"
   resolved "https://registry.npmjs.org/vite-node/-/vite-node-3.2.4.tgz"
@@ -8017,11 +7692,6 @@ walker@^1.0.8:
   integrity sha512-ts/8E8l5b7kY0vlWLewOkDXMmPdLcVV4GmOQLyxuSswIJsweeFZtAsMF7k1Nszz+TYBQrlYRmzOnr398y1JemQ==
   dependencies:
     makeerror "1.0.12"
-
-weakmap-polyfill@2.0.4:
-  version "2.0.4"
-  resolved "https://registry.npmjs.org/weakmap-polyfill/-/weakmap-polyfill-2.0.4.tgz"
-  integrity sha512-ZzxBf288iALJseijWelmECm/1x7ZwQn3sMYIkDr2VvZp7r6SEKuT8D0O9Wiq6L9Nl5mazrOMcmiZE/2NCenaxw==
 
 webidl-conversions@^7.0.0:
   version "7.0.0"
@@ -8127,13 +7797,6 @@ why-is-node-running@^2.3.0:
   dependencies:
     siginfo "^2.0.0"
     stackback "0.0.2"
-
-wistia-video-element@^1.3.5:
-  version "1.3.6"
-  resolved "https://registry.npmjs.org/wistia-video-element/-/wistia-video-element-1.3.6.tgz"
-  integrity sha512-wPizIpXDaCs6fvDzhU3MBtEpxIqhgXlu00kSrKgmjPb5DRqZt927xZZjE1qm81Df40d445u4a/mRKX5I66zaYA==
-  dependencies:
-    super-media-element "~1.4.2"
 
 word-wrap@^1.2.5:
   version "1.2.5"
@@ -8260,11 +7923,6 @@ yoctocolors@^2.1.2:
   version "2.1.2"
   resolved "https://registry.npmjs.org/yoctocolors/-/yoctocolors-2.1.2.tgz"
   integrity sha512-CzhO+pFNo8ajLM2d2IW/R93ipy99LWjtwblvC1RsoSUMZgyLbYFr221TnSNT7GjGdYui6P459mw9JH/g/zW2ug==
-
-youtube-video-element@^1.8.0:
-  version "1.8.1"
-  resolved "https://registry.npmjs.org/youtube-video-element/-/youtube-video-element-1.8.1.tgz"
-  integrity sha512-+5UuAGaj+5AnBf39huLVpy/4dLtR0rmJP1TxOHVZ81bac4ZHFpTtQ4Dz2FAn2GPnfXISezvUEaQoAdFW4hH9Xg==
 
 zod@3.25.76, zod@^3.24.2:
   version "3.25.76"

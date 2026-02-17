@@ -29,6 +29,12 @@ const LLM_MODELS = [
   { value: "none", label: "None" },
 ];
 
+const TAGGING_MODELS = [
+  { value: "places365", label: "Places365 Scene Recognition" },
+  { value: "joytag", label: "JoyTag (5000+ content tags)" },
+  { value: "siglip2", label: "SigLIP 2 (Real-world photo tags)" },
+];
+
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
@@ -37,6 +43,7 @@ export function SiteSettings() {
   const [allowUpload, setAllowUpload] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
   const [llmModel, setLlmModel] = useState("none");
+  const [taggingModel, setTaggingModel] = useState("places365");
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
@@ -61,6 +68,7 @@ export function SiteSettings() {
       setAllowUpload(settings.allow_upload);
       setCaptioningModel(settings.captioning_model);
       setLlmModel(settings.llm_model);
+      setTaggingModel(settings.tagging_model);
     }
   }, [settings, isLoading]);
 
@@ -229,6 +237,29 @@ export function SiteSettings() {
                   const value = model ?? "";
                   saveSettingsWithValidation({ llm_model: value });
                   setLlmModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.tagging_model_header", "Tagging Model")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t(
+                    "sitesettings.tagging_model_description",
+                    "Select the model used for auto-tagging photos. Switching models does not delete previously generated tags."
+                  )}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={TAGGING_MODELS}
+                value={taggingModel}
+                onChange={model => {
+                  const value = model ?? "places365";
+                  saveSettings({ tagging_model: value });
+                  setTaggingModel(value);
                 }}
               />
             </Grid.Col>

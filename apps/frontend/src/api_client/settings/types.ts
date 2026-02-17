@@ -8,6 +8,7 @@ export const SiteSettings = z.object({
   map_api_provider: z.string(),
   captioning_model: z.string(),
   llm_model: z.string(),
+  tagging_model: z.string(),
 });
 
 export type SiteSettings = z.infer<typeof SiteSettings>;
