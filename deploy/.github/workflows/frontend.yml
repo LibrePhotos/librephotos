@@ -56,6 +56,7 @@ jobs:
           context: ./frontend
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-frontend:dev-amd64
 
   build-arm64:
@@ -82,6 +83,7 @@ jobs:
           context: ./frontend
           platforms: linux/arm64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-frontend:dev-arm64
 
   combine-manifest-dev:
@@ -138,6 +140,7 @@ jobs:
           context: ./frontend
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-amd64
 
   release-arm64:
@@ -164,6 +167,7 @@ jobs:
           context: ./frontend
           platforms: linux/arm64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-frontend:${{ github.event.release.tag_name }}-arm64
 
   combine-manifest-release:

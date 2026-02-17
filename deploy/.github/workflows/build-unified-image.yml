@@ -49,6 +49,7 @@ jobs:
             "IMAGE_TAG=dev-amd64"
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-unified:dev-amd64
 
   build-arm64:
@@ -75,6 +76,7 @@ jobs:
             "IMAGE_TAG=dev-arm64"
           platforms: linux/arm64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-unified:dev-arm64
 
   combine-manifest-dev:
@@ -131,6 +133,7 @@ jobs:
             "IMAGE_TAG=${{ github.event.release.tag_name }}-amd64"
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-amd64
 
   release-arm64:
@@ -157,6 +160,7 @@ jobs:
             "IMAGE_TAG=${{ github.event.release.tag_name }}-arm64"
           platforms: linux/arm64
           push: true
+          provenance: false
           tags: reallibrephotos/librephotos-unified:${{ github.event.release.tag_name }}-arm64
 
   combine-manifest-release:
