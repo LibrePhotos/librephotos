@@ -31,7 +31,6 @@ const LLM_MODELS = [
 
 const TAGGING_MODELS = [
   { value: "places365", label: "Places365 Scene Recognition" },
-  { value: "joytag", label: "JoyTag (5000+ content tags)" },
   { value: "siglip2", label: "SigLIP 2 (Real-world photo tags)" },
 ];
 

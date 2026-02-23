@@ -197,27 +197,6 @@ export function Description(props: Props) {
             </Group>
           </Stack>
         )}
-        {taggingModel === "joytag" && photoDetail.captions_json.joytag && photoDetail.captions_json.joytag.tags && (
-          <Stack>
-            <Group>
-              <Tags />
-              <Title order={4}>{t("lightbox.sidebar.tags", "Tags")}</Title>
-            </Group>
-            <Group>
-              {photoDetail.captions_json.joytag.tags.map((tag: string) => (
-                <Badge
-                  key={`lightbox_joytag_label_${photoDetail.image_hash}_${tag}`}
-                  color="violet"
-                  onClick={() => {
-                    navigate({ to: `/search/${tag}` });
-                  }}
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </Group>
-          </Stack>
-        )}
         {taggingModel === "places365" && photoDetail.captions_json.places365 && (
           <Stack>
             <Group>
