@@ -121,7 +121,9 @@ class UserViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_serializer_class(self):
-        if not self.request.user.is_authenticated and self.action == "create":
+        if self.action == "create":
+            if self.request.user.is_authenticated and self.request.user.is_superuser:
+                return UserSerializer
             return SignupUserSerializer
         if not self.request.user.is_authenticated:
             return PublicUserSerializer
