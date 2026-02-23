@@ -47,11 +47,6 @@ class PhotoSearch(models.Model):
                     siglip2_tags = siglip2_data.get("tags", [])
                     if siglip2_tags:
                         search_captions += " ".join(siglip2_tags) + " "
-                elif tagging_model == "joytag":
-                    joytag_data = captions_json.get("joytag", {})
-                    joytag_tags = joytag_data.get("tags", [])
-                    if joytag_tags:
-                        search_captions += " ".join(joytag_tags) + " "
                 else:
                     places365_captions = captions_json.get("places365", {})
                     attributes = places365_captions.get("attributes", [])

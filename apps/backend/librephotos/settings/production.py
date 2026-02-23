@@ -136,7 +136,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("places365", "Places365 Scene Recognition"),
-                ("joytag", "JoyTag (5000+ content tags)"),
                 ("siglip2", "SigLIP 2 (Real-world photo tags)"),
             ),
         },

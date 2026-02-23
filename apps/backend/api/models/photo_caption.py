@@ -267,7 +267,7 @@ class PhotoCaption(models.Model):
         search_instance.save()
 
     def generate_tag_captions(self, commit=True):
-        """Generate tag captions using the active tagging model (Places365 or JoyTag).
+        """Generate tag captions using the active tagging model (Places365 or SigLIP 2).
 
         Tags are stored per-model in captions_json and are never deleted when
         switching models -- only the active model's tags are generated / visible.
@@ -312,8 +312,6 @@ class PhotoCaption(models.Model):
 
             if tagging_model == "siglip2":
                 self._update_siglip2_album_things(tags_result)
-            elif tagging_model == "joytag":
-                self._update_joytag_album_things(tags_result)
             else:
                 self._update_places365_album_things(tags_result)
 
@@ -362,28 +360,6 @@ class PhotoCaption(models.Model):
                 )
                 album_thing.photos.add(self.photo)
                 album_thing.save()
-
-    def _update_joytag_album_things(self, joytag_result):
-        """Create/update AlbumThing entries for JoyTag tags."""
-        tags = joytag_result.get("tags", [])
-
-        # Remove old joytag album associations for this photo
-        for album_thing in api.models.album_thing.AlbumThing.objects.filter(
-            Q(photos__in=[self.photo])
-            & Q(thing_type="joytag_tag")
-            & Q(owner=self.photo.owner)
-        ).all():
-            album_thing.photos.remove(self.photo)
-            album_thing.save()
-
-        for tag in tags:
-            album_thing = api.models.album_thing.get_album_thing(
-                title=tag,
-                owner=self.photo.owner,
-                thing_type="joytag_tag",
-            )
-            album_thing.photos.add(self.photo)
-            album_thing.save()
 
     def _update_siglip2_album_things(self, siglip2_result):
         """Create/update AlbumThing entries for SigLIP 2 tags."""
