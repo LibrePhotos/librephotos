@@ -116,7 +116,55 @@ Q_CLUSTER = {
 }
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
-
+CONSTANCE_ADDITIONAL_FIELDS = {
+    "map_api_provider": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("mapbox", "Mapbox"),
+                ("maptiler", "MapTiler"),
+                ("nominatim", "Nominatim (OpenStreetMap)"),
+                ("opencage", "OpenCage"),
+                ("photon", "Photon"),
+                ("tomtom", "TomTom"),
+            ),
+        },
+    ],
+    "captioning_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("none", "None"),
+                ("im2txt", "im2txt PyTorch Model"),
+                ("blip_base_capfilt_large", "BLIP Model"),
+                ("moondream", "Moondream Visual LLM"),
+            ),
+        },
+    ],
+    "llm_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("none", "None"),
+                ("mistral-7b-instruct-v0.2.Q5_K_M", "Mistral 7B Instruct v0.2 Q5 K M"),
+                ("moondream", "Moondream Visual LLM"),
+            ),
+        },
+    ],
+    "tagging_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("places365", "Places365 Scene Recognition"),
+                ("siglip2", "SigLIP 2 (Real-world photo tags)"),
+            ),
+        },
+    ],
+}
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
     "ALLOW_UPLOAD": (
@@ -138,6 +186,7 @@ CONSTANCE_CONFIG = {
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
+    "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
 }
 
 INTERNAL_IPS = ("127.0.0.1", "localhost")
