@@ -122,7 +122,10 @@ class SiteSettingsView(APIView):
         out["map_api_key"] = site_config.MAP_API_KEY
         out["captioning_model"] = site_config.CAPTIONING_MODEL
         out["llm_model"] = site_config.LLM_MODEL
-        out["tagging_model"] = site_config.TAGGING_MODEL
+        try:
+            out["tagging_model"] = site_config.TAGGING_MODEL
+        except AttributeError:
+            out["tagging_model"] = "places365"
         return Response(out)
 
     def post(self, request, format=None):
