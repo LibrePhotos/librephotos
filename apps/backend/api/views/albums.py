@@ -124,6 +124,7 @@ class PersonViewSet(viewsets.ModelViewSet):
                 "cover_face",
                 "cover_photo",
             )
+            .order_by("name")
         )
 
         return qs
@@ -166,6 +167,7 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
                     ),
                 ),
             )
+            .order_by("title")
         )
 
     def retrieve(self, *args, **kwargs):
@@ -230,6 +232,7 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
                     .order_by("-exif_timestamp"),
                 )
             )
+            .order_by("title")
         )
 
     def retrieve(self, *args, **kwargs):
