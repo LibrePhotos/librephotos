@@ -105,7 +105,7 @@ class UserSerializer(serializers.ModelSerializer):
             validated_data["username"] = validated_data["username"].lower()
         if "is_superuser" in validated_data.keys():
             is_superuser = validated_data.pop("is_superuser")
-            if is_superuser:
+            if is_superuser and self.context["request"].user.is_authenticated and self.context["request"].user.is_superuser:
                 user = User.objects.create_superuser(**validated_data)
             else:
                 user = User.objects.create_user(**validated_data)
