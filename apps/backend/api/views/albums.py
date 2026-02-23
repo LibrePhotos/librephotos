@@ -134,10 +134,7 @@ def _get_active_tag_thing_types():
     """Return the AlbumThing thing_type values for the active tagging model."""
     from constance import config as site_config
 
-    try:
-        tagging_model = site_config.TAGGING_MODEL
-    except AttributeError:
-        tagging_model = "places365"
+    tagging_model = site_config.TAGGING_MODEL
     if tagging_model == "siglip2":
         return ["siglip2_tag"]
     return ["places365_attribute", "places365_category"]
