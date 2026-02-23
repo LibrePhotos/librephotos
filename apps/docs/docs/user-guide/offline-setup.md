@@ -26,10 +26,7 @@ Manually download the necessary models from their respective URLs. Below is a li
    - URL: `https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/resolve/main/mistral-7b-v0.1.Q5_K_M.gguf?download=true`
 8. **mistral-7b-instruct-v0.2.Q5_K_M** (LLM) (optional)
    - URL: `https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q5_K_M.gguf?download=true`
-9. **joytag** (Tagging) (optional — only if using JoyTag tagging model)
-   - Model: `https://huggingface.co/fancyfeast/joytag/resolve/main/model.onnx`
-   - Tags: `https://huggingface.co/fancyfeast/joytag/resolve/main/top_tags.txt`
-10. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
+9. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
     - Vision model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx`
     - Text model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/text_model.onnx`
     - Tokenizer: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/tokenizer.model`
@@ -52,8 +49,6 @@ For example, if your `MEDIA_ROOT` is set to `/var/lib/librephotos`, then the mod
 - **blip_large.tar.gz** -> Unpack into `<MEDIA_ROOT>/data_models/blip/`
 - **mistral-7b-v0.1.Q5_K_M.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/mistral-7b-v0.1.Q5_K_M.gguf`
 - **mistral-7b-instruct-v0.2.Q5_K_M.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/mistral-7b-instruct-v0.2.Q5_K_M.gguf`
-- **joytag model.onnx** -> Place as `<MEDIA_ROOT>/data_models/joytag/model.onnx`
-- **joytag top_tags.txt** -> Place as `<MEDIA_ROOT>/data_models/joytag/top_tags.txt`
 - **siglip2 vision_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/vision_model.onnx`
 - **siglip2 text_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/text_model.onnx`
 - **siglip2 tokenizer.model** -> Place as `<MEDIA_ROOT>/data_models/siglip2/tokenizer.model`
@@ -72,9 +67,6 @@ data_models/
     ├── blip/
     ├── mistral-7b-v0.1.Q5_K_M.gguf
     ├── mistral-7b-instruct-v0.2.Q5_K_M.gguf
-    ├── joytag/
-    │   ├── model.onnx
-    │   └── top_tags.txt
     └── siglip2/
         ├── vision_model.onnx
         ├── text_model.onnx

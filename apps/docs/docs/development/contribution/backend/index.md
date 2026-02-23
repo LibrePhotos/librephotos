@@ -88,10 +88,9 @@ We use dlib and face_recognition to detect faces. A very cool feature would be t
 The tags service (`service/tags/`) generates auto-tags for photos. Three models are available, selectable via the Tagging Model site setting:
 
 - **places365** — Scene classification using the Places365 CNN. Generates scene category tags (e.g. "kitchen", "beach").
-- **joytag** (`service/tags/joytag/`) — ONNX-based content tagger with 5000+ tags. Returns the top 15 tags sorted by sigmoid confidence.
 - **siglip2** (`service/tags/siglip2/`) — Google's SigLIP 2 vision-language model running as ONNX. Uses zero-shot classification by computing cosine similarity between image embeddings and a curated vocabulary of 900+ text tag embeddings. Tag embeddings are cached to disk after the first run. Returns the top 10 tags.
 
-Tags from each model are stored independently in `PhotoCaption.captions_json` under their model key (e.g. `"places365"`, `"joytag"`, `"siglip2"`), so switching models does not require regeneration.
+Tags from each model are stored independently in `PhotoCaption.captions_json` under their model key (e.g. `"places365"`, `"siglip2"`), so switching models does not require regeneration.
 
 #### Semantic Search
 
