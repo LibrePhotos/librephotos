@@ -88,7 +88,10 @@ def generate_tags(user, job_id: UUID, full_scan=False):
         )
         from constance import config as site_config
 
-        tagging_model = site_config.TAGGING_MODEL
+        try:
+            tagging_model = site_config.TAGGING_MODEL
+        except AttributeError:
+            tagging_model = "places365"
 
         existing_photos = Photo.objects.filter(
             Q(owner=user.id)

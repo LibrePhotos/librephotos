@@ -145,7 +145,12 @@ class SiteSettingsView(APIView):
         if "llm_model" in request.data.keys():
             site_config.LLM_MODEL = request.data["llm_model"]
         if "tagging_model" in request.data.keys():
-            site_config.TAGGING_MODEL = request.data["tagging_model"]
+            try:
+                site_config.TAGGING_MODEL = request.data["tagging_model"]
+            except AttributeError:
+                logger.warning(
+                    "TAGGING_MODEL is not present in CONSTANCE_CONFIG; skipping update"
+                )
         if not do_all_models_exist():
             AsyncTask(download_models, User.objects.get(id=request.user.id)).run()
 

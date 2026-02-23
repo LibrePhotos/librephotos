@@ -274,7 +274,10 @@ class PhotoCaption(models.Model):
         """
         from constance import config as site_config
 
-        tagging_model = site_config.TAGGING_MODEL
+        try:
+            tagging_model = site_config.TAGGING_MODEL
+        except AttributeError:
+            tagging_model = "places365"
 
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
             return

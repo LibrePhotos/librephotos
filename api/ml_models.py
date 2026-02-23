@@ -140,7 +140,10 @@ def download_model(model):
                 model = ml_model
     elif model["type"] == MlTypes.TAGGING:
         util.logger.info("Downloading tagging model")
-        model_to_download = site_config.TAGGING_MODEL
+        try:
+            model_to_download = site_config.TAGGING_MODEL
+        except AttributeError:
+            model_to_download = "places365"
         if model_to_download != model["name"]:
             util.logger.info(
                 f"Tagging model {model['name']} not selected (current: {model_to_download})"

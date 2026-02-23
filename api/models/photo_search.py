@@ -40,7 +40,10 @@ class PhotoSearch(models.Model):
             captions_json = self.photo.caption_instance.captions_json
             if captions_json:
                 # Index tags from the active tagging model only
-                tagging_model = site_config.TAGGING_MODEL
+                try:
+                    tagging_model = site_config.TAGGING_MODEL
+                except AttributeError:
+                    tagging_model = "places365"
 
                 if tagging_model == "siglip2":
                     siglip2_data = captions_json.get("siglip2", {})
