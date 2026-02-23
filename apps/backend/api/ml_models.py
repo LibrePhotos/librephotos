@@ -71,20 +71,6 @@ ML_MODELS = [
         "target-dir": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
     },
     {
-        "id": 10,
-        "name": "joytag",
-        "url": "https://huggingface.co/fancyfeast/joytag/resolve/main/model.onnx",
-        "type": MlTypes.TAGGING,
-        "unpack-command": None,
-        "target-dir": "joytag/model.onnx",
-        "additional_files": [
-            {
-                "url": "https://huggingface.co/fancyfeast/joytag/resolve/main/top_tags.txt",
-                "target": "joytag/top_tags.txt",
-            },
-        ],
-    },
-    {
         "id": 11,
         "name": "siglip2",
         "url": "https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx",

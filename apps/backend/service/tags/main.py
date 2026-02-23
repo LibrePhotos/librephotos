@@ -4,13 +4,11 @@ import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 from places365.places365 import Places365
-from joytag.joytag import JoyTag
 from siglip2.siglip2 import SigLIP2
 
 app = Flask(__name__)
 
 places365_instance = None
-joytag_instance = None
 siglip2_instance = None
 last_request_time = None
 
@@ -40,12 +38,6 @@ def generate_tags():
         # SigLIP 2 uses cosine similarity (range -1 to 1), not probability scores.
         # Always return the top 10 most relevant tags above a minimum threshold.
         result = siglip2_instance.predict(image_path, threshold=0.05, max_tags=10)
-        return {"tags": result}, 201
-    elif tagging_model == "joytag":
-        global joytag_instance
-        if joytag_instance is None:
-            joytag_instance = JoyTag()
-        result = joytag_instance.predict(image_path, threshold=confidence, max_tags=15)
         return {"tags": result}, 201
     else:
         global places365_instance

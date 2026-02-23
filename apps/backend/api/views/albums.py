@@ -136,8 +136,6 @@ def _get_active_tag_thing_types():
     tagging_model = site_config.TAGGING_MODEL
     if tagging_model == "siglip2":
         return ["siglip2_tag"]
-    if tagging_model == "joytag":
-        return ["joytag_tag"]
     return ["places365_attribute", "places365_category"]
 
 
