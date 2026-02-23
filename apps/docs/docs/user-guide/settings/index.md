@@ -83,7 +83,6 @@ These are settings that apply to the whole instance.
 - `LLM Model` Select which LLM to use for enhanced captioning (None, Mistral, Moondream). When set to "None", no LLM models will be downloaded.
 - `Tagging Model` Select which AI model to use for auto-tagging photos. Options:
   - **Places365** — Scene recognition (default). Classifies photos into scene categories like "kitchen", "beach", "forest".
-  - **JoyTag** — Content tagging with 5000+ tags. Returns the top 15 tags sorted by confidence.
   - **SigLIP 2** — Google's vision-language model using zero-shot classification against a curated vocabulary of 900+ real-world photo tags. Returns the top 10 most relevant tags.
   
   Switching models does not delete previously generated tags. Each model's tags are stored independently, so you can switch back and forth without rescanning.
