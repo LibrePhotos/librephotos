@@ -1,3 +1,4 @@
+import json
 import logging.handlers
 import os
 import os.path
@@ -140,6 +141,74 @@ def write_metadata(media_file, tags, use_sidecar=True):
         params = [os.fsencode(f"-{tag}={value}") for tag, value in tags.items()]
         params.append(b"-overwrite_original")
         params.append(os.fsencode(file_path))
+        et.execute(*params)
+    finally:
+        if terminate_et:
+            et.terminate()
+
+
+def write_face_regions_metadata(
+    media_file, face_regions, image_width, image_height, use_sidecar=True
+):
+    """Write MWG face region data to a media file or its XMP sidecar.
+
+    Uses the Metadata Working Group (MWG) RegionInfo XMP format, which is
+    widely supported by photo management software (Lightroom, Picasa,
+    digikam, etc.).
+
+    Args:
+        media_file: Path to the media file.
+        face_regions: List of dicts with keys ``name``, ``x``, ``y``,
+            ``w``, ``h`` (all normalised 0-1).
+        image_width: Original image width in pixels.
+        image_height: Original image height in pixels.
+        use_sidecar: Write to a sidecar file instead of the media file.
+    """
+    et = exiftool.ExifTool()
+    terminate_et = False
+    if not et.running:
+        et.start()
+        terminate_et = True
+    if use_sidecar:
+        file_path = get_sidecar_files_in_priority_order(media_file)[0]
+    else:
+        file_path = media_file
+
+    try:
+        region_list = []
+        for region in face_regions:
+            region_list.append(
+                {
+                    "Area": {
+                        "X": str(region["x"]),
+                        "Y": str(region["y"]),
+                        "W": str(region["w"]),
+                        "H": str(region["h"]),
+                        "Unit": "normalized",
+                    },
+                    "Name": region["name"],
+                    "Type": "Face",
+                }
+            )
+
+        region_info = json.dumps(
+            {
+                "AppliedToDimensions": {
+                    "W": str(image_width),
+                    "H": str(image_height),
+                    "Unit": "pixel",
+                },
+                "RegionList": region_list,
+            }
+        )
+
+        logger.info(f"Writing face regions to {file_path}")
+        params = [
+            b"-struct",
+            os.fsencode(f"-XMP-mwg-rs:RegionInfo={region_info}"),
+            b"-overwrite_original",
+            os.fsencode(file_path),
+        ]
         et.execute(*params)
     finally:
         if terminate_et:

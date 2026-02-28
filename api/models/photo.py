@@ -188,6 +188,61 @@ class Photo(models.Model):
                 self.main_file.path, tags_to_write, use_sidecar=use_sidecar
             )
 
+    def _save_face_regions_to_metadata(self, use_sidecar=True):
+        """Write all labelled face regions back to the photo file or sidecar.
+
+        Uses the MWG RegionInfo XMP format so that other software can read
+        the face tags.
+        """
+        try:
+            faces = self.faces.filter(person__isnull=False, deleted=False)
+            if not faces.exists():
+                return
+
+            thumb_path = self.thumbnail.thumbnail_big.path
+            thumb_image = PIL.Image.open(thumb_path)
+            thumb_width, thumb_height = thumb_image.size
+
+            # Prefer original image dimensions from PhotoMetadata if available.
+            image_width, image_height = thumb_width, thumb_height
+            try:
+                metadata = self.metadata
+                if metadata.width and metadata.height:
+                    image_width = metadata.width
+                    image_height = metadata.height
+            except Exception:
+                pass
+
+            face_regions = []
+            for face in faces:
+                center_x = (face.location_left + face.location_right) / 2 / thumb_width
+                center_y = (
+                    face.location_top + face.location_bottom
+                ) / 2 / thumb_height
+                width = (face.location_right - face.location_left) / thumb_width
+                height = (face.location_bottom - face.location_top) / thumb_height
+                face_regions.append(
+                    {
+                        "name": face.person.name,
+                        "x": round(center_x, 6),
+                        "y": round(center_y, 6),
+                        "w": round(width, 6),
+                        "h": round(height, 6),
+                    }
+                )
+
+            util.write_face_regions_metadata(
+                self.main_file.path,
+                face_regions,
+                image_width,
+                image_height,
+                use_sidecar=use_sidecar,
+            )
+        except Exception as e:
+            logger.warning(
+                f"Could not write face regions for {self.image_hash}: {e}"
+            )
+
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
             Q(photos__in=[self])

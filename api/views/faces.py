@@ -14,6 +14,7 @@ from api.ml_models import do_all_models_exist, download_models
 from api.models import Face
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
+from api.models.user import User
 from api.serializers.face import (
     FaceListSerializer,
     IncompletePersonFaceListSerializer,
@@ -262,6 +263,7 @@ class SetFacePersonLabel(APIView):
 
         updated = []
         not_updated = []
+        affected_photos = set()
         for face in faces.values():
             if face.photo.owner == request.user:
                 face.person = person
@@ -270,6 +272,7 @@ class SetFacePersonLabel(APIView):
                     face.classification_person = classification_person
                 face.save()
                 updated.append(FaceListSerializer(face).data)
+                affected_photos.add(face.photo)
             else:
                 not_updated.append(FaceListSerializer(face).data)
         if person:
@@ -278,6 +281,14 @@ class SetFacePersonLabel(APIView):
         search_instance, created = PhotoSearch.objects.get_or_create(photo=face.photo)
         search_instance.recreate_search_captions()
         search_instance.save()
+
+        # Write face regions back to photo files if the user opted in.
+        user = request.user
+        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
+            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+            for photo in affected_photos:
+                photo._save_face_regions_to_metadata(use_sidecar=use_sidecar)
+
         return Response(
             {
                 "status": True,
