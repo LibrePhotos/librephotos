@@ -203,6 +203,12 @@ class Photo(models.Model):
             thumb_image = PIL.Image.open(thumb_path)
             thumb_width, thumb_height = thumb_image.size
 
+            if not thumb_width or not thumb_height:
+                logger.warning(
+                    f"Thumbnail has zero dimensions for {self.image_hash}"
+                )
+                return
+
             # Prefer original image dimensions from PhotoMetadata if available.
             image_width, image_height = thumb_width, thumb_height
             try:

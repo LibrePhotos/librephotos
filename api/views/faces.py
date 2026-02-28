@@ -283,9 +283,10 @@ class SetFacePersonLabel(APIView):
         search_instance.save()
 
         # Write face regions back to photo files if the user opted in.
-        user = request.user
-        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
-            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+        if request.user.save_metadata_to_disk != User.SaveMetadata.OFF:
+            use_sidecar = (
+                request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+            )
             for photo in affected_photos:
                 photo._save_face_regions_to_metadata(use_sidecar=use_sidecar)
 
