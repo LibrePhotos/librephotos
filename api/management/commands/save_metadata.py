@@ -9,3 +9,4 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         for photo in Photo.objects.all():
             photo._save_metadata()
+            photo._save_face_regions_to_metadata()
