@@ -70,6 +70,8 @@ class UserTest(TestCase):
         "llm_settings",
         "text_alignment",
         "header_size",
+        "save_face_tags_to_disk",
+        "public_sharing_defaults",
     ]
 
     def setUp(self):

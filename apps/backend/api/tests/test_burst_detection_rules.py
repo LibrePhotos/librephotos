@@ -105,10 +105,12 @@ class BurstDetectionRuleTestCase(TestCase):
 
     def test_create_rule_with_minimal_params(self):
         """Test creating rule with minimal required params."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+            }
+        )
         self.assertEqual(rule.id, 1)
         self.assertEqual(rule.rule_type, BurstRuleTypes.EXIF_BURST_MODE)
         self.assertEqual(rule.name, "Unnamed rule")
@@ -117,15 +119,17 @@ class BurstDetectionRuleTestCase(TestCase):
 
     def test_create_rule_with_all_params(self):
         """Test creating rule with all params."""
-        rule = BurstDetectionRule({
-            "id": 42,
-            "name": "My Custom Rule",
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "category": BurstRuleCategory.HARD,
-            "enabled": False,
-            "is_default": False,
-            "custom_pattern": r"_BURST\d+",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 42,
+                "name": "My Custom Rule",
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "category": BurstRuleCategory.HARD,
+                "enabled": False,
+                "is_default": False,
+                "custom_pattern": r"_BURST\d+",
+            }
+        )
         self.assertEqual(rule.id, 42)
         self.assertEqual(rule.name, "My Custom Rule")
         self.assertEqual(rule.rule_type, BurstRuleTypes.FILENAME_PATTERN)
@@ -136,35 +140,41 @@ class BurstDetectionRuleTestCase(TestCase):
 
     def test_get_required_exif_tags_burst_mode(self):
         """Test required tags for burst mode rule."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+            }
+        )
         tags = rule.get_required_exif_tags()
         self.assertIn(Tags.BURST_MODE, tags)
         self.assertIn(Tags.CONTINUOUS_DRIVE, tags)
 
     def test_get_required_exif_tags_sequence_number(self):
         """Test required tags for sequence number rule."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+            }
+        )
         tags = rule.get_required_exif_tags()
         self.assertIn(Tags.SEQUENCE_NUMBER, tags)
         self.assertIn(Tags.IMAGE_NUMBER, tags)
 
     def test_get_required_exif_tags_with_condition(self):
         """Test required tags includes condition tag."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "condition_exif": "EXIF:Make//Canon",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "condition_exif": "EXIF:Make//Canon",
+            }
+        )
         tags = rule.get_required_exif_tags()
         self.assertIn("EXIF:Make", tags)
 
@@ -174,85 +184,93 @@ class RuleConditionTestCase(TestCase):
 
     def test_check_condition_path_matches(self):
         """Test path condition matching."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "condition_path": r"/photos/bursts/",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "condition_path": r"/photos/bursts/",
+            }
+        )
         self.assertTrue(rule._check_condition_path("/photos/bursts/img001.jpg"))
         self.assertFalse(rule._check_condition_path("/photos/normal/img001.jpg"))
 
     def test_check_condition_path_no_condition(self):
         """Test path condition when not set."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+            }
+        )
         self.assertTrue(rule._check_condition_path("/any/path/works.jpg"))
 
     def test_check_condition_filename_matches(self):
         """Test filename condition matching."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "condition_filename": r"^IMG_\d+",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "condition_filename": r"^IMG_\d+",
+            }
+        )
         self.assertTrue(rule._check_condition_filename("/photos/IMG_001.jpg"))
         self.assertFalse(rule._check_condition_filename("/photos/DSC_001.jpg"))
 
     def test_check_condition_exif_matches(self):
         """Test EXIF condition matching."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "condition_exif": "EXIF:Make//Canon",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "condition_exif": "EXIF:Make//Canon",
+            }
+        )
         self.assertTrue(rule._check_condition_exif({"EXIF:Make": "Canon EOS"}))
         self.assertFalse(rule._check_condition_exif({"EXIF:Make": "Nikon"}))
         self.assertFalse(rule._check_condition_exif({}))
 
     def test_check_condition_exif_invalid_format(self):
         """Test EXIF condition with invalid format."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "condition_exif": "InvalidFormat",  # Missing //
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "condition_exif": "InvalidFormat",  # Missing //
+            }
+        )
         self.assertFalse(rule._check_condition_exif({"EXIF:Make": "Canon"}))
 
     def test_check_all_conditions_combined(self):
         """Test checking all conditions together."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "condition_path": r"/bursts/",
-            "condition_filename": r"^IMG",
-            "condition_exif": "EXIF:Make//Canon",
-        })
-        
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "condition_path": r"/bursts/",
+                "condition_filename": r"^IMG",
+                "condition_exif": "EXIF:Make//Canon",
+            }
+        )
+
         # All match
-        self.assertTrue(rule.check_conditions(
-            "/bursts/IMG_001.jpg",
-            {"EXIF:Make": "Canon"}
-        ))
-        
+        self.assertTrue(
+            rule.check_conditions("/bursts/IMG_001.jpg", {"EXIF:Make": "Canon"})
+        )
+
         # Path doesn't match
-        self.assertFalse(rule.check_conditions(
-            "/normal/IMG_001.jpg",
-            {"EXIF:Make": "Canon"}
-        ))
-        
+        self.assertFalse(
+            rule.check_conditions("/normal/IMG_001.jpg", {"EXIF:Make": "Canon"})
+        )
+
         # Filename doesn't match
-        self.assertFalse(rule.check_conditions(
-            "/bursts/DSC_001.jpg",
-            {"EXIF:Make": "Canon"}
-        ))
-        
+        self.assertFalse(
+            rule.check_conditions("/bursts/DSC_001.jpg", {"EXIF:Make": "Canon"})
+        )
+
         # EXIF doesn't match
-        self.assertFalse(rule.check_conditions(
-            "/bursts/IMG_001.jpg",
-            {"EXIF:Make": "Nikon"}
-        ))
+        self.assertFalse(
+            rule.check_conditions("/bursts/IMG_001.jpg", {"EXIF:Make": "Nikon"})
+        )
 
 
 class ExifBurstModeRuleTestCase(TestCase):
@@ -268,74 +286,84 @@ class ExifBurstModeRuleTestCase(TestCase):
 
     def test_burst_mode_on(self):
         """Test detection with BurstMode = 1."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "enabled": True,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, group_key = rule.is_burst_photo(photo, {Tags.BURST_MODE: "1"})
-        
+
         self.assertTrue(is_burst)
         self.assertIsNotNone(group_key)
         self.assertIn("burst_", group_key)
 
     def test_burst_mode_on_string(self):
         """Test detection with BurstMode = 'On'."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "enabled": True,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {Tags.BURST_MODE: "On"})
         self.assertTrue(is_burst)
 
     def test_continuous_drive_on(self):
         """Test detection with ContinuousDrive."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "enabled": True,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {Tags.CONTINUOUS_DRIVE: "Continuous"})
         self.assertTrue(is_burst)
 
     def test_burst_mode_off(self):
         """Test no detection when BurstMode = 0."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "enabled": True,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {Tags.BURST_MODE: "0"})
         self.assertFalse(is_burst)
 
     def test_disabled_rule_returns_false(self):
         """Test disabled rule always returns False."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "enabled": False,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "enabled": False,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {Tags.BURST_MODE: "1"})
         self.assertFalse(is_burst)
 
@@ -353,58 +381,66 @@ class ExifSequenceNumberRuleTestCase(TestCase):
 
     def test_sequence_number_detected(self):
         """Test detection with valid sequence number."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
-            "enabled": True,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, group_key = rule.is_burst_photo(photo, {Tags.SEQUENCE_NUMBER: "5"})
-        
+
         self.assertTrue(is_burst)
         self.assertIsNotNone(group_key)
         self.assertIn("seq_", group_key)
 
     def test_sequence_number_zero(self):
         """Test detection with sequence number 0."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
-            "enabled": True,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {Tags.SEQUENCE_NUMBER: "0"})
         self.assertTrue(is_burst)
 
     def test_invalid_sequence_number(self):
         """Test no detection with invalid sequence number."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
-            "enabled": True,
-        })
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {Tags.SEQUENCE_NUMBER: "not_a_number"})
         self.assertFalse(is_burst)
 
     def test_no_sequence_number(self):
         """Test no detection when tag is missing."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
-            "enabled": True,
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_SEQUENCE_NUMBER,
+                "enabled": True,
+            }
+        )
         photo = self._create_mock_photo()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertFalse(is_burst)
 
@@ -422,73 +458,83 @@ class FilenamePatternRuleTestCase(TestCase):
 
     def test_burst_suffix_detected(self):
         """Test _BURST suffix detection."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "all",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "all",
+            }
+        )
         photo = self._create_mock_photo("/photos/IMG_001_BURST001.jpg")
-        
+
         is_burst, group_key = rule.is_burst_photo(photo, {})
-        
+
         self.assertTrue(is_burst)
         self.assertIsNotNone(group_key)
         self.assertIn("filename_", group_key)
 
     def test_sequence_suffix_detected(self):
         """Test sequence suffix detection."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "all",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "all",
+            }
+        )
         photo = self._create_mock_photo("/photos/IMG_001.jpg")
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertTrue(is_burst)
 
     def test_bracketed_sequence_detected(self):
         """Test (1), (2) pattern detection."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "all",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "all",
+            }
+        )
         photo = self._create_mock_photo("/photos/photo (1).jpg")
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertTrue(is_burst)
 
     def test_custom_pattern(self):
         """Test custom regex pattern."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "custom_pattern": r"_HDR\d+",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "custom_pattern": r"_HDR\d+",
+            }
+        )
         photo = self._create_mock_photo("/photos/IMG_HDR001.jpg")
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertTrue(is_burst)
 
     def test_specific_pattern_type(self):
         """Test specific pattern type selection."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "burst_suffix",
-        })
-        
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "burst_suffix",
+            }
+        )
+
         # Should match burst suffix
         photo1 = self._create_mock_photo("/photos/IMG_BURST001.jpg")
         is_burst, _ = rule.is_burst_photo(photo1, {})
         self.assertTrue(is_burst)
-        
+
         # Should NOT match sequence suffix (different pattern type)
         photo2 = self._create_mock_photo("/photos/IMG_001.jpg")
         is_burst, _ = rule.is_burst_photo(photo2, {})
@@ -496,45 +542,51 @@ class FilenamePatternRuleTestCase(TestCase):
 
     def test_no_pattern_match(self):
         """Test no detection when pattern doesn't match."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "burst_suffix",
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "burst_suffix",
+            }
+        )
         photo = self._create_mock_photo("/photos/normal_photo.jpg")
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertFalse(is_burst)
 
     def test_no_main_file(self):
         """Test handling of photo without main_file."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-        })
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+            }
+        )
         photo = MagicMock()
         photo.main_file = None
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertFalse(is_burst)
 
     def test_group_key_contains_directory(self):
         """Test group key includes directory for proper grouping."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "all",
-        })
-        
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "all",
+            }
+        )
+
         photo1 = self._create_mock_photo("/dir1/IMG_001.jpg")
         photo2 = self._create_mock_photo("/dir2/IMG_001.jpg")
-        
+
         _, key1 = rule.is_burst_photo(photo1, {})
         _, key2 = rule.is_burst_photo(photo2, {})
-        
+
         # Keys should be different for different directories
         self.assertNotEqual(key1, key2)
 
@@ -559,9 +611,9 @@ class GroupPhotosByTimestampTestCase(TestCase):
             self._create_mock_photo(base_time + timedelta(milliseconds=500)),
             self._create_mock_photo(base_time + timedelta(milliseconds=1000)),
         ]
-        
+
         groups = group_photos_by_timestamp(photos, interval_ms=2000)
-        
+
         self.assertEqual(len(groups), 1)
         self.assertEqual(len(groups[0]), 3)
 
@@ -575,9 +627,9 @@ class GroupPhotosByTimestampTestCase(TestCase):
             self._create_mock_photo(base_time + timedelta(seconds=5)),
             self._create_mock_photo(base_time + timedelta(seconds=5, milliseconds=500)),
         ]
-        
+
         groups = group_photos_by_timestamp(photos, interval_ms=2000)
-        
+
         self.assertEqual(len(groups), 2)
         self.assertEqual(len(groups[0]), 2)
         self.assertEqual(len(groups[1]), 2)
@@ -585,9 +637,9 @@ class GroupPhotosByTimestampTestCase(TestCase):
     def test_single_photo_not_grouped(self):
         """Test single photo doesn't form a group."""
         photos = [self._create_mock_photo(datetime.now())]
-        
+
         groups = group_photos_by_timestamp(photos)
-        
+
         self.assertEqual(len(groups), 0)
 
     def test_photos_without_timestamp_skipped(self):
@@ -598,9 +650,9 @@ class GroupPhotosByTimestampTestCase(TestCase):
             self._create_mock_photo(None),  # No timestamp
             self._create_mock_photo(base_time + timedelta(milliseconds=500)),
         ]
-        
+
         groups = group_photos_by_timestamp(photos)
-        
+
         # Should still group the two with timestamps
         self.assertEqual(len(groups), 1)
         self.assertEqual(len(groups[0]), 2)
@@ -615,13 +667,17 @@ class GroupPhotosByTimestampTestCase(TestCase):
         base_time = datetime(2024, 1, 1, 12, 0, 0)
         photos = [
             self._create_mock_photo(base_time, "Canon", "EOS"),
-            self._create_mock_photo(base_time + timedelta(milliseconds=500), "Nikon", "D850"),
-            self._create_mock_photo(base_time + timedelta(milliseconds=1000), "Canon", "EOS"),
+            self._create_mock_photo(
+                base_time + timedelta(milliseconds=500), "Nikon", "D850"
+            ),
+            self._create_mock_photo(
+                base_time + timedelta(milliseconds=1000), "Canon", "EOS"
+            ),
         ]
-        
+
         # With same camera requirement
         groups = group_photos_by_timestamp(photos, require_same_camera=True)
-        
+
         # Different cameras break the group
         self.assertEqual(len(groups), 0)
 
@@ -630,11 +686,13 @@ class GroupPhotosByTimestampTestCase(TestCase):
         base_time = datetime(2024, 1, 1, 12, 0, 0)
         photos = [
             self._create_mock_photo(base_time, "Canon", "EOS"),
-            self._create_mock_photo(base_time + timedelta(milliseconds=500), "Nikon", "D850"),
+            self._create_mock_photo(
+                base_time + timedelta(milliseconds=500), "Nikon", "D850"
+            ),
         ]
-        
+
         groups = group_photos_by_timestamp(photos, require_same_camera=False)
-        
+
         self.assertEqual(len(groups), 1)
         self.assertEqual(len(groups[0]), 2)
 
@@ -645,11 +703,11 @@ class GroupPhotosByTimestampTestCase(TestCase):
             self._create_mock_photo(base_time),
             self._create_mock_photo(base_time + timedelta(milliseconds=3000)),
         ]
-        
+
         # Default 2000ms interval - should NOT group
         groups = group_photos_by_timestamp(photos, interval_ms=2000)
         self.assertEqual(len(groups), 0)
-        
+
         # 5000ms interval - should group
         groups = group_photos_by_timestamp(photos, interval_ms=5000)
         self.assertEqual(len(groups), 1)
@@ -669,15 +727,15 @@ class GroupPhotosByVisualSimilarityTestCase(TestCase):
         """Test grouping visually similar photos."""
         # All photos are similar (distance <= 15)
         mock_hamming.return_value = 5
-        
+
         photos = [
             self._create_mock_photo_with_hash("hash1"),
             self._create_mock_photo_with_hash("hash2"),
             self._create_mock_photo_with_hash("hash3"),
         ]
-        
+
         groups = group_photos_by_visual_similarity(photos, similarity_threshold=15)
-        
+
         self.assertEqual(len(groups), 1)
         self.assertEqual(len(groups[0]), 3)
 
@@ -686,16 +744,16 @@ class GroupPhotosByVisualSimilarityTestCase(TestCase):
         """Test dissimilar photos form separate groups."""
         # Distance alternates between similar and dissimilar
         mock_hamming.side_effect = [5, 30, 5]  # similar, dissimilar, similar
-        
+
         photos = [
             self._create_mock_photo_with_hash("hash1"),
             self._create_mock_photo_with_hash("hash2"),
             self._create_mock_photo_with_hash("hash3"),
             self._create_mock_photo_with_hash("hash4"),
         ]
-        
+
         groups = group_photos_by_visual_similarity(photos)
-        
+
         # First two group, then third and fourth group separately
         self.assertEqual(len(groups), 2)
 
@@ -706,11 +764,11 @@ class GroupPhotosByVisualSimilarityTestCase(TestCase):
             self._create_mock_photo_with_hash(None),
             self._create_mock_photo_with_hash("hash2"),
         ]
-        
+
         # Mock hamming distance for the remaining two
         with patch("api.perceptual_hash.hamming_distance", return_value=5):
             groups = group_photos_by_visual_similarity(photos)
-        
+
         self.assertEqual(len(groups), 1)
         self.assertEqual(len(groups[0]), 2)
 
@@ -722,7 +780,7 @@ class GroupPhotosByVisualSimilarityTestCase(TestCase):
     def test_single_photo_with_hash(self):
         """Test single photo doesn't form a group."""
         photos = [self._create_mock_photo_with_hash("hash1")]
-        
+
         groups = group_photos_by_visual_similarity(photos)
         self.assertEqual(len(groups), 0)
 
@@ -775,46 +833,85 @@ class RuleFilteringTestCase(TestCase):
             {"id": 2, "rule_type": BurstRuleTypes.FILENAME_PATTERN},
         ]
         rules = as_rules(configs)
-        
+
         self.assertEqual(len(rules), 2)
         self.assertIsInstance(rules[0], BurstDetectionRule)
         self.assertEqual(rules[0].id, 1)
 
     def test_get_hard_rules(self):
         """Test filtering hard rules."""
-        rules = as_rules([
-            {"id": 1, "rule_type": BurstRuleTypes.EXIF_BURST_MODE, "category": BurstRuleCategory.HARD, "enabled": True},
-            {"id": 2, "rule_type": BurstRuleTypes.TIMESTAMP_PROXIMITY, "category": BurstRuleCategory.SOFT, "enabled": True},
-            {"id": 3, "rule_type": BurstRuleTypes.FILENAME_PATTERN, "category": BurstRuleCategory.HARD, "enabled": False},
-        ])
-        
+        rules = as_rules(
+            [
+                {
+                    "id": 1,
+                    "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                    "category": BurstRuleCategory.HARD,
+                    "enabled": True,
+                },
+                {
+                    "id": 2,
+                    "rule_type": BurstRuleTypes.TIMESTAMP_PROXIMITY,
+                    "category": BurstRuleCategory.SOFT,
+                    "enabled": True,
+                },
+                {
+                    "id": 3,
+                    "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                    "category": BurstRuleCategory.HARD,
+                    "enabled": False,
+                },
+            ]
+        )
+
         hard_rules = get_hard_rules(rules)
-        
+
         self.assertEqual(len(hard_rules), 1)
         self.assertEqual(hard_rules[0].id, 1)
 
     def test_get_soft_rules(self):
         """Test filtering soft rules."""
-        rules = as_rules([
-            {"id": 1, "rule_type": BurstRuleTypes.EXIF_BURST_MODE, "category": BurstRuleCategory.HARD, "enabled": True},
-            {"id": 2, "rule_type": BurstRuleTypes.TIMESTAMP_PROXIMITY, "category": BurstRuleCategory.SOFT, "enabled": True},
-        ])
-        
+        rules = as_rules(
+            [
+                {
+                    "id": 1,
+                    "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                    "category": BurstRuleCategory.HARD,
+                    "enabled": True,
+                },
+                {
+                    "id": 2,
+                    "rule_type": BurstRuleTypes.TIMESTAMP_PROXIMITY,
+                    "category": BurstRuleCategory.SOFT,
+                    "enabled": True,
+                },
+            ]
+        )
+
         soft_rules = get_soft_rules(rules)
-        
+
         self.assertEqual(len(soft_rules), 1)
         self.assertEqual(soft_rules[0].id, 2)
 
     def test_get_enabled_rules(self):
         """Test filtering enabled rules."""
-        rules = as_rules([
-            {"id": 1, "rule_type": BurstRuleTypes.EXIF_BURST_MODE, "enabled": True},
-            {"id": 2, "rule_type": BurstRuleTypes.FILENAME_PATTERN, "enabled": False},
-            {"id": 3, "rule_type": BurstRuleTypes.TIMESTAMP_PROXIMITY, "enabled": True},
-        ])
-        
+        rules = as_rules(
+            [
+                {"id": 1, "rule_type": BurstRuleTypes.EXIF_BURST_MODE, "enabled": True},
+                {
+                    "id": 2,
+                    "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                    "enabled": False,
+                },
+                {
+                    "id": 3,
+                    "rule_type": BurstRuleTypes.TIMESTAMP_PROXIMITY,
+                    "enabled": True,
+                },
+            ]
+        )
+
         enabled = get_enabled_rules(rules)
-        
+
         self.assertEqual(len(enabled), 2)
         self.assertIn(enabled[0].id, [1, 3])
         self.assertIn(enabled[1].id, [1, 3])
@@ -825,98 +922,108 @@ class EdgeCasesTestCase(TestCase):
 
     def test_rule_with_none_timestamp(self):
         """Test rule handling when photo has no timestamp."""
-        from api.exif_tags import Tags
-        
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "enabled": True,
-        })
-        
+        from api.metadata.tags import Tags
+
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "enabled": True,
+            }
+        )
+
         photo = MagicMock()
         photo.main_file = MagicMock()
         photo.main_file.path = "/photos/test.jpg"
         photo.exif_timestamp = None
-        
+
         is_burst, group_key = rule.is_burst_photo(photo, {Tags.BURST_MODE: "1"})
-        
+
         # Should still detect burst, but group_key may be None
         self.assertTrue(is_burst)
 
     def test_group_key_consistency(self):
         """Test that same photos always produce same group key."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "all",
-        })
-        
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "all",
+            }
+        )
+
         photo = MagicMock()
         photo.main_file = MagicMock()
         photo.main_file.path = "/photos/IMG_001_BURST001.jpg"
         photo.exif_timestamp = datetime(2024, 1, 1, 12, 0, 0)
-        
+
         _, key1 = rule.is_burst_photo(photo, {})
         _, key2 = rule.is_burst_photo(photo, {})
-        
+
         self.assertEqual(key1, key2)
 
     def test_empty_exif_tags(self):
         """Test handling empty EXIF tags dict."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
-            "enabled": True,
-        })
-        
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.EXIF_BURST_MODE,
+                "enabled": True,
+            }
+        )
+
         photo = MagicMock()
         photo.main_file = MagicMock()
         photo.main_file.path = "/photos/test.jpg"
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertFalse(is_burst)
 
     def test_special_characters_in_filename(self):
         """Test filename pattern with special characters."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "all",
-        })
-        
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "all",
+            }
+        )
+
         photo = MagicMock()
         photo.main_file = MagicMock()
         photo.main_file.path = "/photos/my photo (1).jpg"
         photo.exif_timestamp = datetime.now()
-        
+
         is_burst, _ = rule.is_burst_photo(photo, {})
         self.assertTrue(is_burst)
 
     def test_case_insensitive_pattern_matching(self):
         """Test patterns match case-insensitively."""
-        rule = BurstDetectionRule({
-            "id": 1,
-            "rule_type": BurstRuleTypes.FILENAME_PATTERN,
-            "enabled": True,
-            "pattern_type": "all",
-        })
-        
+        rule = BurstDetectionRule(
+            {
+                "id": 1,
+                "rule_type": BurstRuleTypes.FILENAME_PATTERN,
+                "enabled": True,
+                "pattern_type": "all",
+            }
+        )
+
         # Lowercase
         photo1 = MagicMock()
         photo1.main_file = MagicMock()
         photo1.main_file.path = "/photos/img_burst001.jpg"
         photo1.exif_timestamp = datetime.now()
-        
+
         # Uppercase
         photo2 = MagicMock()
         photo2.main_file = MagicMock()
         photo2.main_file.path = "/photos/IMG_BURST001.jpg"
         photo2.exif_timestamp = datetime.now()
-        
+
         is_burst1, _ = rule.is_burst_photo(photo1, {})
         is_burst2, _ = rule.is_burst_photo(photo2, {})
-        
+
         self.assertTrue(is_burst1)
         self.assertTrue(is_burst2)

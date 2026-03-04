@@ -3,7 +3,8 @@ import os
 from django.db import models
 from PIL import Image
 
-from api.exif_tags import Tags
+from api.metadata.reader import get_metadata
+from api.metadata.tags import Tags
 from api.models.photo import Photo
 from api.thumbnails import (
     create_animated_thumbnail,
@@ -12,7 +13,7 @@ from api.thumbnails import (
     does_static_thumbnail_exist,
     does_video_thumbnail_exist,
 )
-from api.util import get_metadata, logger
+from api.util import logger
 
 
 class Thumbnail(models.Model):

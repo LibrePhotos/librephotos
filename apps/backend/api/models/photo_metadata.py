@@ -19,15 +19,15 @@ from fractions import Fraction
 
 from django.db import models
 
-from api.exif_tags import Tags
+from api.metadata.reader import get_metadata
+from api.metadata.tags import Tags
 from api.models.user import User, get_deleted_user
-from api.util import get_metadata
 
 
 class MetadataFile(models.Model):
     """
     Represents a metadata sidecar file (XMP, JSON, etc.) associated with a photo.
-    
+
     A photo can have multiple metadata files:
     - XMP sidecar from camera/software
     - Adobe Lightroom .xmp
@@ -101,10 +101,10 @@ class MetadataFile(models.Model):
 class PhotoMetadata(models.Model):
     """
     Structured metadata for a photo.
-    
+
     This model stores extracted and computed metadata in typed fields,
     making it queryable and more maintainable than a JSON blob.
-    
+
     Metadata Sources (in priority order):
     1. User edits (highest priority)
     2. XMP sidecar files
@@ -133,37 +133,39 @@ class PhotoMetadata(models.Model):
     # ==================== Camera Settings ====================
     # Aperture (f-stop), e.g., 2.8
     aperture = models.FloatField(null=True, blank=True, db_index=True)
-    
+
     # Shutter speed as a string fraction, e.g., "1/250"
     shutter_speed = models.CharField(max_length=20, null=True, blank=True)
-    
+
     # Shutter speed in seconds (for queries), e.g., 0.004
     shutter_speed_seconds = models.FloatField(null=True, blank=True)
-    
+
     # ISO sensitivity
     iso = models.IntegerField(null=True, blank=True, db_index=True)
-    
+
     # Focal length in mm
     focal_length = models.FloatField(null=True, blank=True)
-    
+
     # 35mm equivalent focal length
     focal_length_35mm = models.IntegerField(null=True, blank=True)
-    
+
     # Exposure compensation in EV
     exposure_compensation = models.FloatField(null=True, blank=True)
-    
+
     # Flash fired
     flash_fired = models.BooleanField(null=True, blank=True)
-    
+
     # Metering mode
     metering_mode = models.CharField(max_length=50, null=True, blank=True)
-    
+
     # White balance
     white_balance = models.CharField(max_length=50, null=True, blank=True)
 
     # ==================== Camera/Lens Info ====================
     camera_make = models.CharField(max_length=100, null=True, blank=True, db_index=True)
-    camera_model = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+    camera_model = models.CharField(
+        max_length=100, null=True, blank=True, db_index=True
+    )
     lens_make = models.CharField(max_length=100, null=True, blank=True)
     lens_model = models.CharField(max_length=100, null=True, blank=True, db_index=True)
     serial_number = models.CharField(max_length=100, null=True, blank=True)
@@ -178,13 +180,13 @@ class PhotoMetadata(models.Model):
     # ==================== Timestamps ====================
     # Original capture time from EXIF
     date_taken = models.DateTimeField(null=True, blank=True, db_index=True)
-    
+
     # Sub-second precision (from EXIF:SubSecTimeOriginal)
     date_taken_subsec = models.CharField(max_length=10, null=True, blank=True)
-    
+
     # When the file was last modified
     date_modified = models.DateTimeField(null=True, blank=True)
-    
+
     # Timezone offset if available
     timezone_offset = models.CharField(max_length=10, null=True, blank=True)
 
@@ -192,21 +194,25 @@ class PhotoMetadata(models.Model):
     gps_latitude = models.FloatField(null=True, blank=True, db_index=True)
     gps_longitude = models.FloatField(null=True, blank=True, db_index=True)
     gps_altitude = models.FloatField(null=True, blank=True)
-    
+
     # Location from reverse geocoding
-    location_country = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+    location_country = models.CharField(
+        max_length=100, null=True, blank=True, db_index=True
+    )
     location_state = models.CharField(max_length=100, null=True, blank=True)
-    location_city = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+    location_city = models.CharField(
+        max_length=100, null=True, blank=True, db_index=True
+    )
     location_address = models.TextField(null=True, blank=True)
 
     # ==================== Content Description ====================
     title = models.CharField(max_length=500, null=True, blank=True)
     caption = models.TextField(null=True, blank=True)
     keywords = models.JSONField(null=True, blank=True)  # List of strings
-    
+
     # Rating (0-5 stars)
     rating = models.IntegerField(null=True, blank=True, db_index=True)
-    
+
     # Copyright info
     copyright = models.TextField(null=True, blank=True)
     creator = models.CharField(max_length=200, null=True, blank=True)
@@ -260,7 +266,7 @@ class PhotoMetadata(models.Model):
         """Check if GPS coordinates are available."""
         return self.gps_latitude is not None and self.gps_longitude is not None
 
-    @property  
+    @property
     def camera_display(self):
         """Returns a human-readable camera name."""
         if self.camera_make and self.camera_model:
@@ -283,21 +289,21 @@ class PhotoMetadata(models.Model):
     def extract_exif_data(cls, photo, commit=True):
         """
         Extract EXIF data from a photo's main file and update PhotoMetadata.
-        
+
         This method extracts metadata from the photo's main file and:
         1. Updates Photo fields (size, video_length, rating, exif_timestamp_subsec, image_sequence_number)
         2. Gets or creates PhotoMetadata and populates it with extracted data
-        
+
         Args:
             photo: Photo instance to extract metadata from
             commit: Whether to save Photo and PhotoMetadata after extraction
-            
+
         Returns:
             PhotoMetadata instance
         """
         if not photo.main_file:
             return None
-        
+
         (
             size,
             fstop,
@@ -337,7 +343,7 @@ class PhotoMetadata(models.Model):
             ],
             try_sidecar=True,
         )
-        
+
         # Fields still on Photo model
         if size and isinstance(size, numbers.Number):
             photo.size = size
@@ -355,13 +361,12 @@ class PhotoMetadata(models.Model):
 
         if commit:
             photo.save()
-        
+
         # Store metadata in PhotoMetadata model
         metadata, created = cls.objects.get_or_create(
-            photo=photo,
-            defaults={"source": cls.Source.EMBEDDED}
+            photo=photo, defaults={"source": cls.Source.EMBEDDED}
         )
-        
+
         if fstop and isinstance(fstop, numbers.Number):
             metadata.aperture = fstop
         if focal_length and isinstance(focal_length, numbers.Number):
@@ -369,7 +374,9 @@ class PhotoMetadata(models.Model):
         if iso and isinstance(iso, numbers.Number):
             metadata.iso = iso
         if shutter_speed and isinstance(shutter_speed, numbers.Number):
-            metadata.shutter_speed = str(Fraction(shutter_speed).limit_denominator(1000))
+            metadata.shutter_speed = str(
+                Fraction(shutter_speed).limit_denominator(1000)
+            )
         if camera and isinstance(camera, str):
             metadata.camera_model = camera
         if lens and isinstance(lens, str):
@@ -378,23 +385,25 @@ class PhotoMetadata(models.Model):
             metadata.width = width
         if height and isinstance(height, numbers.Number):
             metadata.height = height
-        if focalLength35Equivalent and isinstance(focalLength35Equivalent, numbers.Number):
+        if focalLength35Equivalent and isinstance(
+            focalLength35Equivalent, numbers.Number
+        ):
             metadata.focal_length_35mm = focalLength35Equivalent
         if rating and isinstance(rating, numbers.Number):
             metadata.rating = rating
         if subsec_time_original:
             metadata.date_taken_subsec = str(subsec_time_original)[:10]
-        
+
         if commit:
             metadata.save()
-        
+
         return metadata
 
 
 class MetadataEdit(models.Model):
     """
     Tracks user edits to photo metadata for history/undo functionality.
-    
+
     Each edit records what field was changed, old value, new value,
     and who made the change.
     """
@@ -415,7 +424,7 @@ class MetadataEdit(models.Model):
 
     # Which field was edited
     field_name = models.CharField(max_length=100)
-    
+
     # JSON-serialized old and new values
     old_value = models.JSONField(null=True, blank=True)
     new_value = models.JSONField(null=True, blank=True)

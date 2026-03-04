@@ -20,13 +20,18 @@ from django.utils import timezone
 from django_q.tasks import AsyncTask, Chain
 
 from api import util
+from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.file import is_metadata
 
 from api.directory_watcher.file_grouping import get_file_grouping_key
 from api.directory_watcher.file_handlers import handle_new_image, handle_file_group
-from api.directory_watcher.processing_jobs import generate_tags, add_geolocation, scan_faces
+from api.directory_watcher.processing_jobs import (
+    generate_tags,
+    add_geolocation,
+    scan_faces,
+)
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.utils import (
     walk_directory,
@@ -54,7 +59,7 @@ def wait_for_group_and_process_metadata(
     *,
     attempt: int = 1,
     max_attempts: int = 2,
-    **kwargs  # Django-Q may pass additional arguments like 'schedule'
+    **kwargs,  # Django-Q may pass additional arguments like 'schedule'
 ):
     """
     Sentinel task: waits until the expected number of image/video tasks in the group complete,
@@ -85,7 +90,7 @@ def wait_for_group_and_process_metadata(
 
     if completed_int < expected_count and attempt < max_attempts:
         util.logger.info(
-            f"Group {group_id} not complete yet: {completed_int}/{expected_count}. Re-enqueue sentinel (attempt {attempt+1})."
+            f"Group {group_id} not complete yet: {completed_int}/{expected_count}. Re-enqueue sentinel (attempt {attempt + 1})."
         )
         # Requeue the sentinel to check again later
         AsyncTask(
@@ -145,11 +150,11 @@ def wait_for_group_and_process_metadata(
 def photo_scanner(user, last_scan, full_scan, path, job_id):
     """
     Check if a single file needs processing and queue it.
-    
+
     Used primarily for metadata files after the main scan.
     """
     files_to_check = [path]
-    files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
+    files_to_check.extend(get_sidecar_files_in_priority_order(path))
     if (
         not Photo.objects.filter(files__path=path).exists()
         or full_scan
@@ -168,17 +173,17 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     """
     Two-phase scan to avoid race conditions with RAW+JPEG grouping.
-    
+
     Phase 1: Collect all files and group by (directory, basename)
              - IMG_001.jpg, IMG_001.CR2, IMG_001.xmp -> one group
              - IMG_002.jpg -> separate group
-    
+
     Phase 2: Process each group sequentially, creating one Photo per group
              with all file variants attached.
-    
+
     This eliminates the race condition where concurrent processing of
     RAW and JPEG files could create separate Photos.
-    
+
     Args:
         user: The user performing the scan
         full_scan: If True, rescan all files; otherwise only new/modified
@@ -193,7 +198,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
     ]
     for directory in thumbnail_dirs:
         os.makedirs(directory, exist_ok=True)
-    
+
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_SCAN_PHOTOS,
@@ -217,12 +222,12 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             .order_by("-finished_at")
             .first()
         )
-        
+
         # === PHASE 1: Group files by (directory, basename) ===
         # This ensures RAW+JPEG pairs are processed together, eliminating race conditions
         file_groups: dict[tuple[str, str], list[str]] = defaultdict(list)
         metadata_paths: list[str] = []
-        
+
         for path in photo_list:
             if is_metadata(path):
                 # Metadata files are processed after their parent photos exist
@@ -231,46 +236,50 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
                 # Group by (directory, basename_lowercase)
                 group_key = get_file_grouping_key(path)
                 file_groups[group_key].append(path)
-        
+
         # Determine which groups need processing
         groups_to_process: list[tuple[tuple[str, str], list[str]]] = []
-        
+
         for group_key, paths in file_groups.items():
             # Check if any file in this group needs processing
             needs_processing = False
-            
+
             for path in paths:
                 files_to_check = [path]
-                files_to_check.extend(util.get_sidecar_files_in_priority_order(path))
-                
+                files_to_check.extend(get_sidecar_files_in_priority_order(path))
+
                 if (
                     not Photo.objects.filter(files__path=path).exists()
                     or full_scan
                     or not last_scan
-                    or any([
-                        _file_was_modified_after(p, last_scan.finished_at)
-                        for p in files_to_check
-                    ])
+                    or any(
+                        [
+                            _file_was_modified_after(p, last_scan.finished_at)
+                            for p in files_to_check
+                        ]
+                    )
                 ):
                     needs_processing = True
                     break
-            
+
             if needs_processing:
                 groups_to_process.append((group_key, paths))
-        
+
         # Progress target is number of groups (not individual files)
         # Each group = one Photo with potentially multiple file variants
         total_groups = len(groups_to_process) + len(metadata_paths)
         lrj.update_progress(current=0, target=total_groups)
         db.connections.close_all()
-        
-        util.logger.info(f"Grouped {files_found} files into {len(file_groups)} groups, {len(groups_to_process)} need processing")
+
+        util.logger.info(
+            f"Grouped {files_found} files into {len(file_groups)} groups, {len(groups_to_process)} need processing"
+        )
 
         # === PHASE 2: Process each file group ===
         # Process groups sequentially to avoid race conditions
         # Each group creates one Photo with all file variants
         image_group_id = str(uuid.uuid4())
-        
+
         for group_key, paths in groups_to_process:
             AsyncTask(
                 handle_file_group,
@@ -328,7 +337,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
             )
             for photo in photos_with_missing_aspect_ratio:
                 try:
-                    thumbnail = getattr(photo, 'thumbnail', None)
+                    thumbnail = getattr(photo, "thumbnail", None)
                     if thumbnail and isinstance(thumbnail, Thumbnail):
                         thumbnail._calculate_aspect_ratio()
                 except Exception as e:
@@ -340,11 +349,11 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         # specific files, there is no need to rescan fully for missing photos.
         if full_scan or (scan_directory == user.scan_directory and not scan_files):
             AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
-        
+
         # Run repair job to fix any previously ungrouped file variants
         # This handles race conditions from previous scans and incremental adds
         AsyncTask(repair_ungrouped_file_variants, user, uuid.uuid4()).run()
-        
+
         AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
         AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
 
@@ -365,7 +374,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
 def scan_missing_photos(user, job_id: UUID):
     """
     Scan for photos whose files no longer exist on disk.
-    
+
     Args:
         user: The user whose photos to check
         job_id: Job ID for tracking progress

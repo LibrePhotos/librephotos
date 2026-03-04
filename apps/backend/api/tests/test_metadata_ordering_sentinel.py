@@ -97,7 +97,7 @@ class MetadataOrderingSentinelTest(TestCase):
         user = create_test_user()
         with tempfile.TemporaryDirectory() as tmpdir:
             user.scan_directory = tmpdir
-            user.save(update_fields=["scan_directory"]) 
+            user.save(update_fields=["scan_directory"])
 
             # Create N image files and corresponding XMP sidecars
             N = 4
@@ -120,35 +120,39 @@ class MetadataOrderingSentinelTest(TestCase):
 
             # Patch environment to make processing synchronous and lightweight
             with override_settings(MEDIA_ROOT=tmpdir):
-                with patch("api.directory_watcher.AsyncTask", DummyAsyncTask), \
-                    patch("api.directory_watcher.Chain", DummyChain), \
+                with (
+                    patch("api.directory_watcher.scan_jobs.AsyncTask", DummyAsyncTask),
+                    patch("api.directory_watcher.scan_jobs.Chain", DummyChain),
                     patch(
                         "django_q.tasks.count_group",
                         side_effect=lambda gid: DummyAsyncTask.GROUP_COMPLETIONS.get(
                             gid, 0
                         ),
-                    ), \
+                    ),
                     patch(
-                        "api.directory_watcher.db.connections.close_all"
-                    ) as _close_all, \
+                        "api.directory_watcher.scan_jobs.db.connections.close_all"
+                    ) as _close_all,
                     patch(
-                        "api.directory_watcher.update_scan_counter"
-                    ) as _update_counter, \
-                    patch("api.directory_watcher.util.logger") as _logger, \
-                    patch("pyvips.Image.thumbnail") as _thumb, \
+                        "api.directory_watcher.scan_jobs.update_scan_counter"
+                    ) as _update_counter,
+                    patch("api.directory_watcher.scan_jobs.util.logger") as _logger,
+                    patch("pyvips.Image.thumbnail") as _thumb,
                     patch(
                         "api.models.thumbnail.Thumbnail._generate_thumbnail"
-                    ) as _gen_thumb, \
+                    ) as _gen_thumb,
                     patch(
                         "api.models.thumbnail.Thumbnail._calculate_aspect_ratio"
-                    ) as _calc_ar, \
+                    ) as _calc_ar,
                     patch(
                         "api.models.thumbnail.Thumbnail._get_dominant_color"
-                    ) as _dom_color, \
-                    patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data") as _exif, \
+                    ) as _dom_color,
+                    patch(
+                        "api.models.photo_metadata.PhotoMetadata.extract_exif_data"
+                    ) as _exif,
                     patch(
                         "api.models.photo.Photo._extract_date_time_from_exif"
-                    ) as _exif_dt:
+                    ) as _exif_dt,
+                ):
                     # No-op patches
                     _thumb.return_value = None
                     _close_all.return_value = None
@@ -162,7 +166,6 @@ class MetadataOrderingSentinelTest(TestCase):
                     _exif.return_value = None
                     _exif_dt.return_value = None
 
-
                     job_id = str(uuid.uuid4())
                     # Emulate the core of scan_photos sequencing explicitly:
                     # 1) Enqueue all images/videos in a group and run them synchronously
@@ -171,6 +174,7 @@ class MetadataOrderingSentinelTest(TestCase):
                         handle_new_image,
                         wait_for_group_and_process_metadata,
                     )
+
                     image_group_id = str(uuid.uuid4())
                     for img in image_paths:
                         DummyAsyncTask(
@@ -189,10 +193,16 @@ class MetadataOrderingSentinelTest(TestCase):
 
             # Validate: image tasks ran and each image must have its XMP associated to the same Photo
             total_completions = sum(DummyAsyncTask.GROUP_COMPLETIONS.values())
-            self.assertEqual(total_completions, N, msg=f"Expected {N} image task completions, got {total_completions}")
+            self.assertEqual(
+                total_completions,
+                N,
+                msg=f"Expected {N} image task completions, got {total_completions}",
+            )
 
             photos = list(Photo.objects.all())
-            self.assertEqual(len(photos), N, msg="All images should produce Photo objects")
+            self.assertEqual(
+                len(photos), N, msg="All images should produce Photo objects"
+            )
 
             # Build a map from image base name to whether an XMP is linked
             linked = {}
@@ -206,4 +216,6 @@ class MetadataOrderingSentinelTest(TestCase):
                 linked[base] = len(xmp_list) >= 1
 
             # All should be True
-            self.assertTrue(all(linked.values()), msg=f"Some photos missing XMP: {linked}")
+            self.assertTrue(
+                all(linked.values()), msg=f"Some photos missing XMP: {linked}"
+            )

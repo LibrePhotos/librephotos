@@ -7,7 +7,7 @@ from datetime import datetime
 
 import pytz
 
-from api.exif_tags import Tags
+from api.metadata.tags import Tags
 from api.util import logger
 
 

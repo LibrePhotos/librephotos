@@ -19,18 +19,18 @@ import os
 import re
 from datetime import timedelta
 
-from api.exif_tags import Tags
+from api.metadata.tags import Tags
 from api.util import logger
 
 
 class BurstRuleTypes:
     """Types of burst detection rules."""
-    
+
     # Hard criteria (deterministic)
     EXIF_BURST_MODE = "exif_burst_mode"
     EXIF_SEQUENCE_NUMBER = "exif_sequence_number"
     FILENAME_PATTERN = "filename_pattern"
-    
+
     # Soft criteria (estimation)
     TIMESTAMP_PROXIMITY = "timestamp_proximity"
     VISUAL_SIMILARITY = "visual_similarity"
@@ -38,6 +38,7 @@ class BurstRuleTypes:
 
 class BurstRuleCategory:
     """Categories for burst detection rules."""
+
     HARD = "hard"  # Deterministic (EXIF, filenames)
     SOFT = "soft"  # Estimation (timestamps, visual similarity)
 
@@ -47,31 +48,25 @@ BURST_FILENAME_PATTERNS = {
     # Pattern name: (regex, description)
     "burst_suffix": (
         r"_BURST\d+",
-        "Files with _BURST followed by numbers (e.g., IMG_001_BURST001.jpg)"
+        "Files with _BURST followed by numbers (e.g., IMG_001_BURST001.jpg)",
     ),
     "sequence_suffix": (
         r"_\d{3,}$",
-        "Files ending with 3+ digit sequence number (e.g., IMG_001.jpg, IMG_002.jpg)"
+        "Files ending with 3+ digit sequence number (e.g., IMG_001.jpg, IMG_002.jpg)",
     ),
     "bracketed_sequence": (
         r"\(\d+\)$",
-        "Files with bracketed numbers at end (e.g., photo (1).jpg, photo (2).jpg)"
+        "Files with bracketed numbers at end (e.g., photo (1).jpg, photo (2).jpg)",
     ),
-    "samsung_burst": (
-        r"_\d{3}_COVER",
-        "Samsung burst cover images"
-    ),
-    "iphone_burst": (
-        r"IMG_\d{4}_\d+",
-        "iPhone burst sequence pattern"
-    ),
+    "samsung_burst": (r"_\d{3}_COVER", "Samsung burst cover images"),
+    "iphone_burst": (r"IMG_\d{4}_\d+", "iPhone burst sequence pattern"),
 }
 
 
 class BurstDetectionRule:
     """
     A rule for detecting burst sequences.
-    
+
     Each rule has:
     - id: Unique identifier
     - name: Human-readable name
@@ -80,7 +75,7 @@ class BurstDetectionRule:
     - enabled: Whether the rule is active
     - is_default: Whether this is a default rule
     - Type-specific parameters (e.g., interval_ms for timestamp_proximity)
-    
+
     Additionally, each rule can have conditions:
     - condition_path: Regex to match full path
     - condition_filename: Regex to match filename
@@ -99,13 +94,13 @@ class BurstDetectionRule:
     def get_required_exif_tags(self):
         """Return set of EXIF tags needed by this rule."""
         tags = set()
-        
+
         # Add condition tag if present
         condition_exif = self.params.get("condition_exif")
         if condition_exif:
             tag_name = condition_exif.split("//", maxsplit=1)[0]
             tags.add(tag_name)
-        
+
         # Add rule-specific tags
         if self.rule_type == BurstRuleTypes.EXIF_BURST_MODE:
             tags.add(Tags.BURST_MODE)
@@ -114,7 +109,7 @@ class BurstDetectionRule:
             tags.add(Tags.SEQUENCE_NUMBER)
             tags.add(Tags.IMAGE_NUMBER)
             tags.add(Tags.SUBSEC_TIME_ORIGINAL)
-        
+
         return tags
 
     def _check_condition_path(self, path):
@@ -137,12 +132,12 @@ class BurstDetectionRule:
         condition = self.params.get("condition_exif")
         if not condition:
             return True
-        
+
         parts = condition.split("//", maxsplit=1)
         if len(parts) != 2:
             logger.warning(f"Invalid condition_exif format: {condition}")
             return False
-        
+
         tag_name, pattern = parts
         tag_value = exif_tags.get(tag_name)
         if not tag_value:
@@ -160,23 +155,23 @@ class BurstDetectionRule:
     def is_burst_photo(self, photo, exif_tags):
         """
         Check if a photo is part of a burst sequence according to this rule.
-        
+
         Args:
             photo: Photo model instance
             exif_tags: Dict of EXIF tag name -> value
-            
+
         Returns:
             Tuple of (is_burst: bool, group_key: str or None)
             group_key can be used to group photos into the same burst
         """
         if not self.enabled:
             return False, None
-        
+
         path = photo.main_file.path if photo.main_file else ""
-        
+
         if not self.check_conditions(path, exif_tags):
             return False, None
-        
+
         if self.rule_type == BurstRuleTypes.EXIF_BURST_MODE:
             return self._check_exif_burst_mode(photo, exif_tags)
         elif self.rule_type == BurstRuleTypes.EXIF_SEQUENCE_NUMBER:
@@ -191,7 +186,7 @@ class BurstDetectionRule:
         """Check if EXIF BurstMode or ContinuousDrive indicates burst."""
         burst_mode = exif_tags.get(Tags.BURST_MODE)
         continuous_drive = exif_tags.get(Tags.CONTINUOUS_DRIVE)
-        
+
         # BurstMode: 1 = On (Canon, etc.)
         if burst_mode and str(burst_mode) in ("1", "On", "True", "Yes"):
             # Group by timestamp (rounded to second) + camera model
@@ -201,7 +196,7 @@ class BurstDetectionRule:
                 group_key = f"burst_{camera}_{timestamp.strftime('%Y%m%d_%H%M%S')}"
                 return True, group_key
             return True, None
-        
+
         # ContinuousDrive: Continuous, etc.
         if continuous_drive and continuous_drive.lower() in ("continuous", "on", "1"):
             camera = exif_tags.get(Tags.CAMERA, "unknown")
@@ -210,13 +205,13 @@ class BurstDetectionRule:
                 group_key = f"burst_{camera}_{timestamp.strftime('%Y%m%d_%H%M%S')}"
                 return True, group_key
             return True, None
-        
+
         return False, None
 
     def _check_exif_sequence_number(self, photo, exif_tags):
         """Check if photo has sequence number indicating burst."""
         sequence_num = exif_tags.get(Tags.SEQUENCE_NUMBER)
-        
+
         # If we have a sequence number, it's likely part of a burst
         if sequence_num is not None:
             try:
@@ -232,21 +227,21 @@ class BurstDetectionRule:
                 return True, None
             except (ValueError, TypeError):
                 pass
-        
+
         return False, None
 
     def _check_filename_pattern(self, photo, exif_tags):
         """Check if filename matches burst pattern."""
         if not photo.main_file:
             return False, None
-        
+
         filename = os.path.basename(photo.main_file.path)
         basename = os.path.splitext(filename)[0]
-        
+
         # Get pattern type from params, default to checking all patterns
         pattern_type = self.params.get("pattern_type", "all")
         custom_pattern = self.params.get("custom_pattern")
-        
+
         if custom_pattern:
             if re.search(custom_pattern, basename):
                 # Extract base name for grouping (remove trailing numbers/burst suffix)
@@ -258,7 +253,12 @@ class BurstDetectionRule:
             # Check all predefined patterns
             for pattern_name, (pattern, _) in BURST_FILENAME_PATTERNS.items():
                 if re.search(pattern, basename, re.IGNORECASE):
-                    base = re.sub(r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$", "", basename, flags=re.IGNORECASE)
+                    base = re.sub(
+                        r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
+                        "",
+                        basename,
+                        flags=re.IGNORECASE,
+                    )
                     directory = os.path.dirname(photo.main_file.path)
                     group_key = f"filename_{directory}_{base}"
                     return True, group_key
@@ -267,42 +267,52 @@ class BurstDetectionRule:
             if pattern_type in BURST_FILENAME_PATTERNS:
                 pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
                 if re.search(pattern, basename, re.IGNORECASE):
-                    base = re.sub(r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$", "", basename, flags=re.IGNORECASE)
+                    base = re.sub(
+                        r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
+                        "",
+                        basename,
+                        flags=re.IGNORECASE,
+                    )
                     directory = os.path.dirname(photo.main_file.path)
                     group_key = f"filename_{directory}_{base}"
                     return True, group_key
-        
+
         return False, None
 
 
 def check_filename_pattern(photo, pattern_type="any"):
     """
     Check if a photo's filename matches a burst pattern.
-    
+
     Standalone function for testing and external use.
-    
+
     Args:
         photo: Photo model instance with main_file
         pattern_type: "any" to check all patterns, or specific pattern name
                      (e.g., "burst_suffix", "sequence_suffix", "bracketed_sequence",
                       "samsung_burst", "iphone_burst")
-    
+
     Returns:
         Tuple of (matches: bool, group_key: str or None)
         group_key can be used to group photos into the same burst
     """
     if not photo.main_file:
         return False, None
-    
+
     filename = os.path.basename(photo.main_file.path)
     basename = os.path.splitext(filename)[0]
     directory = os.path.dirname(photo.main_file.path)
-    
+
     if pattern_type == "any" or pattern_type == "all":
         # Check all predefined patterns
         for pattern_name, (pattern, _) in BURST_FILENAME_PATTERNS.items():
             if re.search(pattern, basename, re.IGNORECASE):
-                base = re.sub(r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$", "", basename, flags=re.IGNORECASE)
+                base = re.sub(
+                    r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
+                    "",
+                    basename,
+                    flags=re.IGNORECASE,
+                )
                 group_key = f"filename_{directory}_{base}"
                 return True, group_key
     else:
@@ -310,57 +320,62 @@ def check_filename_pattern(photo, pattern_type="any"):
         if pattern_type in BURST_FILENAME_PATTERNS:
             pattern, _ = BURST_FILENAME_PATTERNS[pattern_type]
             if re.search(pattern, basename, re.IGNORECASE):
-                base = re.sub(r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$", "", basename, flags=re.IGNORECASE)
+                base = re.sub(
+                    r"(_BURST\d+|_\d{3,}|\(\d+\)|_COVER)$",
+                    "",
+                    basename,
+                    flags=re.IGNORECASE,
+                )
                 group_key = f"filename_{directory}_{base}"
                 return True, group_key
-    
+
     return False, None
 
 
 def group_photos_by_timestamp(photos, interval_ms=2000, require_same_camera=True):
     """
     Group photos by timestamp proximity (soft criterion).
-    
+
     Args:
         photos: QuerySet of Photo objects ordered by exif_timestamp
         interval_ms: Maximum milliseconds between consecutive burst shots
         require_same_camera: If True, only group photos from same camera
-        
+
     Returns:
         List of lists, each inner list is a group of Photo objects
     """
     if not photos:
         return []
-    
+
     interval = timedelta(milliseconds=interval_ms)
     groups = []
     current_group = []
     prev_photo = None
     prev_camera = None
-    
+
     for photo in photos:
         if not photo.exif_timestamp:
             continue
-        
+
         # Get camera info for same-camera check
         camera = None
-        if require_same_camera and hasattr(photo, 'metadata') and photo.metadata:
+        if require_same_camera and hasattr(photo, "metadata") and photo.metadata:
             camera = f"{photo.metadata.camera_make or ''}_{photo.metadata.camera_model or ''}"
-        
+
         if prev_photo is None:
             current_group = [photo]
             prev_photo = photo
             prev_camera = camera
             continue
-        
+
         # Check time difference
         time_diff = photo.exif_timestamp - prev_photo.exif_timestamp
-        
+
         # Check if same camera (if required)
         same_camera = True
         if require_same_camera and camera and prev_camera:
-            same_camera = (camera == prev_camera)
-        
+            same_camera = camera == prev_camera
+
         if time_diff <= interval and same_camera:
             # Part of same burst
             current_group.append(photo)
@@ -370,61 +385,61 @@ def group_photos_by_timestamp(photos, interval_ms=2000, require_same_camera=True
                 groups.append(current_group)
             # Start new group
             current_group = [photo]
-        
+
         prev_photo = photo
         prev_camera = camera
-    
+
     # Don't forget the last group
     if len(current_group) >= 2:
         groups.append(current_group)
-    
+
     return groups
 
 
 def group_photos_by_visual_similarity(photos, similarity_threshold=15):
     """
     Group photos by visual similarity (soft criterion).
-    
+
     Uses perceptual hash comparison to group visually similar photos.
-    
+
     Args:
         photos: List of Photo objects
         similarity_threshold: Maximum hamming distance (lower = more similar)
-        
+
     Returns:
         List of lists, each inner list is a group of visually similar Photo objects
     """
     from api.perceptual_hash import hamming_distance
-    
+
     if not photos:
         return []
-    
+
     # Filter photos with perceptual hashes
     photos_with_hash = [p for p in photos if p.perceptual_hash]
-    
+
     if len(photos_with_hash) < 2:
         return []
-    
+
     # Simple clustering: group consecutive similar photos
     groups = []
     current_group = [photos_with_hash[0]]
-    
+
     for i in range(1, len(photos_with_hash)):
         photo = photos_with_hash[i]
         prev_photo = photos_with_hash[i - 1]
-        
+
         distance = hamming_distance(photo.perceptual_hash, prev_photo.perceptual_hash)
-        
+
         if distance <= similarity_threshold:
             current_group.append(photo)
         else:
             if len(current_group) >= 2:
                 groups.append(current_group)
             current_group = [photo]
-    
+
     if len(current_group) >= 2:
         groups.append(current_group)
-    
+
     return groups
 
 

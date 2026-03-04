@@ -122,10 +122,14 @@ def create_test_photo(**kwargs):
 
     # Extract fields that are no longer part of Photo model
     aspect_ratio = kwargs.pop("aspect_ratio", 1)
-    thumbnail_big = kwargs.pop("thumbnail_big", f"/tmp/{image_hash}_big.jpg")
-    square_thumbnail = kwargs.pop("square_thumbnail", f"/tmp/{image_hash}_square.jpg")
+    is_video = kwargs.get("video", False)
+    square_ext = ".mp4" if is_video else ".webp"
+    thumbnail_big = kwargs.pop("thumbnail_big", f"thumbnails_big/{image_hash}.webp")
+    square_thumbnail = kwargs.pop(
+        "square_thumbnail", f"square_thumbnails/{image_hash}{square_ext}"
+    )
     square_thumbnail_small = kwargs.pop(
-        "square_thumbnail_small", f"/tmp/{image_hash}_square_small.jpg"
+        "square_thumbnail_small", f"square_thumbnails_small/{image_hash}{square_ext}"
     )
     dominant_color = kwargs.pop("dominant_color", None)
 
@@ -138,14 +142,14 @@ def create_test_photo(**kwargs):
     # Map old field names to new PhotoMetadata field names
     metadata_field_mapping = {
         "camera": "camera_model",  # Old 'camera' -> new 'camera_model'
-        "lens": "lens_model",      # Old 'lens' -> new 'lens_model'
+        "lens": "lens_model",  # Old 'lens' -> new 'lens_model'
         "iso": "iso",
-        "fstop": "aperture",       # Old 'fstop' -> new 'aperture'
+        "fstop": "aperture",  # Old 'fstop' -> new 'aperture'
         "focal_length": "focal_length",
         "shutter_speed": "shutter_speed",
         "focalLength35Equivalent": "focal_length_35mm",
         "digitalZoomRatio": None,  # Not in new model, discard
-        "subjectDistance": None,   # Not in new model, discard
+        "subjectDistance": None,  # Not in new model, discard
         "width": "width",
         "height": "height",
         "orientation": "orientation",
@@ -224,7 +228,7 @@ def create_test_file(path: str, user: User, content: bytes):
 
 def share_test_photos(photo_ids, user):
     """Share photos with a user.
-    
+
     Args:
         photo_ids: Can be either photo UUIDs (pk) or image_hashes (for backward compatibility)
         user: The user to share photos with
@@ -247,7 +251,7 @@ def share_test_photos(photo_ids, user):
                     raise ValueError(f"Could not resolve photo_id: {photo_id}")
         else:
             resolved_ids.append(photo_id)
-    
+
     Photo.shared_to.through.objects.bulk_create(
         [
             Photo.shared_to.through(user_id=user.id, photo_id=photo_id)

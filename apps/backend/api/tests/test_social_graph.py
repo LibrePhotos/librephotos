@@ -3,6 +3,7 @@ Tests for social graph functionality.
 """
 
 from django.test import TestCase
+from django.utils import timezone
 
 from api.models import Face, Person, Photo, User
 from api.social_graph import build_social_graph
@@ -24,6 +25,7 @@ class SocialGraphTestCase(TestCase):
         photo = Photo.objects.create(
             owner=self.user,
             image_hash="testhash1",
+            added_on=timezone.now(),
         )
 
         # Create a person
@@ -50,6 +52,7 @@ class SocialGraphTestCase(TestCase):
         photo = Photo.objects.create(
             owner=self.user,
             image_hash="testhash2",
+            added_on=timezone.now(),
         )
 
         # Create two people
@@ -77,15 +80,15 @@ class SocialGraphTestCase(TestCase):
         )
 
         result = build_social_graph(self.user)
-        
+
         # Should have 2 nodes and 1 link
         self.assertEqual(len(result["nodes"]), 2)
         self.assertEqual(len(result["links"]), 1)
-        
+
         # Check node names
         node_ids = {node["id"] for node in result["nodes"]}
         self.assertEqual(node_ids, {"Alice", "Bob"})
-        
+
         # Check link
         link = result["links"][0]
         self.assertIn(link["source"], {"Alice", "Bob"})

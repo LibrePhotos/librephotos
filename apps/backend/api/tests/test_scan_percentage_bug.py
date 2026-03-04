@@ -86,15 +86,19 @@ class ScanPercentageProgressTestCase(TestCase):
         thumbnail_mock._get_dominant_color.return_value = None
         search_instance_mock = MagicMock()
 
-        with patch(
-            "api.directory_watcher.create_new_image",
-            side_effect=mock_create_new_image,
-        ), patch(
-            "api.models.Thumbnail.objects.get_or_create",
-            return_value=(thumbnail_mock, True),
-        ), patch(
-            "api.models.PhotoSearch.objects.get_or_create",
-            return_value=(search_instance_mock, True),
+        with (
+            patch(
+                "api.directory_watcher.create_new_image",
+                side_effect=mock_create_new_image,
+            ),
+            patch(
+                "api.models.Thumbnail.objects.get_or_create",
+                return_value=(thumbnail_mock, True),
+            ),
+            patch(
+                "api.models.PhotoSearch.objects.get_or_create",
+                return_value=(search_instance_mock, True),
+            ),
         ):
             for path in files:
                 handle_new_image(self.user, path, self.job_id)
@@ -105,7 +109,7 @@ class ScanPercentageProgressTestCase(TestCase):
             if lrj.progress_target
             else 0
         )
-        file_breakdown = ["File breakdown:" ]
+        file_breakdown = ["File breakdown:"]
         for ext, total in sorted(discovered_by_ext.items()):
             created = photos_created_by_ext.get(ext, 0)
             behavior = "creates Photo" if created else "skipped"
@@ -166,9 +170,11 @@ class EmptyDirectoryScanTestCase(TestCase):
 
         # Mock db.connections.close_all() to prevent closing test DB connection
         # Mock AsyncTask to prevent background task issues in tests
-        with patch("api.directory_watcher.db.connections.close_all"), \
-             patch("api.directory_watcher.AsyncTask"), \
-             patch("api.directory_watcher.Chain"):
+        with (
+            patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
+            patch("api.directory_watcher.scan_jobs.AsyncTask"),
+            patch("api.directory_watcher.scan_jobs.Chain"),
+        ):
             # Run the scan
             scan_photos(
                 self.user,

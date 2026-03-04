@@ -21,6 +21,8 @@ class Tags:
     SUBJECT_DISTANCE = "EXIF:SubjectDistance"
     DIGITAL_ZOOM_RATIO = "EXIF:DigitalZoomRatio"
     REGION_INFO = "XMP:RegionInfo"
+    REGION_INFO_WRITE = "XMP-mwg-rs:RegionInfo"
+    SUBJECT = "XMP:Subject"
     ROTATION = "QuickTime:Rotation"
     ORIENTATION = "EXIF:Orientation"
 
@@ -35,4 +37,3 @@ class Tags:
     # Camera serial number (useful for grouping shots from same camera)
     SERIAL_NUMBER = "EXIF:SerialNumber"
     CAMERA_SERIAL = "MakerNotes:SerialNumber"
-

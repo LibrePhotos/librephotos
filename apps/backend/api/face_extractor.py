@@ -1,9 +1,10 @@
 import numpy as np
 import PIL
 
-from api.exif_tags import Tags
 from api.face_recognition import get_face_locations
-from api.util import get_metadata, is_number, logger
+from api.metadata.reader import get_metadata
+from api.metadata.tags import Tags
+from api.util import is_number, logger
 
 
 class RuleTypes:

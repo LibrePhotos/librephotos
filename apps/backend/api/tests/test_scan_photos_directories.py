@@ -40,12 +40,13 @@ class ScanPhotosDirectoryCreationTest(TestCase):
             user.save(update_fields=["scan_directory"])
 
             with override_settings(MEDIA_ROOT=media_root):
-                with patch("api.directory_watcher.walk_directory"), patch(
-                    "api.directory_watcher.walk_files"
-                ), patch("api.directory_watcher.photo_scanner"), patch(
-                    "api.directory_watcher.AsyncTask", DummyAsyncTask
-                ), patch("api.directory_watcher.Chain", DummyChain), patch(
-                    "api.directory_watcher.db.connections.close_all"
+                with (
+                    patch("api.directory_watcher.scan_jobs.walk_directory"),
+                    patch("api.directory_watcher.scan_jobs.walk_files"),
+                    patch("api.directory_watcher.scan_jobs.photo_scanner"),
+                    patch("api.directory_watcher.scan_jobs.AsyncTask", DummyAsyncTask),
+                    patch("api.directory_watcher.scan_jobs.Chain", DummyChain),
+                    patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
                 ):
                     scan_photos(user, full_scan=False, job_id=str(uuid.uuid4()))
 
