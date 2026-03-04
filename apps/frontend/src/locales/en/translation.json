@@ -218,6 +218,8 @@
     "min_samples_help": "Changes how conservative clusters are. A smaller value means less conservative.",
     "cluster_selection_epsilon": "Cluster Selection Epsilon",
     "cluster_selection_epsilon_help": "Determines which clusters get merged. A higher value means more clusters will be merged.",
+    "save_face_tags_to_disk": "Write face tags to image files",
+    "save_face_tags_to_disk_help": "When enabled, face labels are written as XMP MWG-RS region tags to your image files (or sidecar files) whenever you label a face. This makes face data portable across photo management software like Lightroom, Digikam, and XnView.",
     "llm": "Large Language Model Settings",
     "enablellm": "Enable Large Language Model For Captions",
     "addperson": "Add Persons to the Captions",
@@ -699,6 +701,18 @@
       "toggleTheme": "Toggle Dark Mode"
     }
   },
+  "services": {
+    "header": "Services",
+    "name": "Service",
+    "port": "Port",
+    "status": "Status",
+    "actions": "Actions",
+    "healthy": "Healthy",
+    "unhealthy": "Unhealthy",
+    "start": "Start",
+    "stop": "Stop",
+    "refresh": "Refresh health status"
+  },
   "adminarea": {
     "header": "Admin Area",
     "sitesettings": "Site settings",
@@ -818,7 +832,9 @@
     "numberof": "Showing {{number}} user created albums",
     "renamealbum": "Rename Album",
     "albumalreadyexists": "Album {{name}} already exists.",
-    "albumplaceholder": "Album title"
+    "albumplaceholder": "Album title",
+    "sharedWith": "Shared with:",
+    "albumIsPublic": "This album is public"
   },
   "personedit": {
     "labelfaces": "Label faces",
@@ -1061,10 +1077,6 @@
     "large": "Large",
     "normal": "Normal",
     "small": "Small"
-  },
-  "useralbum": {
-    "sharedWith": "Shared with:",
-    "albumIsPublic": "This album is public"
   },
   "library": {
     "exploredata": "Explore Data",

@@ -17,6 +17,7 @@ import { i18nResolvedLanguage } from "../../i18n";
 import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
+import { ServiceList } from "./ServiceList";
 import { SiteSettings } from "./SiteSettings";
 
 function DownloadLogsButton() {
@@ -225,6 +226,8 @@ export function AdminPage() {
         <SiteSettings />
 
         <AdminTools />
+
+        <ServiceList />
 
         <UserTable />
 
