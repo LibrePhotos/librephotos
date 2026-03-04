@@ -20,7 +20,13 @@ def write_metadata(media_file, tags, use_sidecar=True):
 
     try:
         logger.info(f"Writing {tags} to {file_path}")
-        params = [os.fsencode(f"-{tag}={value}") for tag, value in tags.items()]
+        params = []
+        for tag, value in tags.items():
+            if isinstance(value, list):
+                for item in value:
+                    params.append(os.fsencode(f"-{tag}={item}"))
+            else:
+                params.append(os.fsencode(f"-{tag}={value}"))
         params.append(b"-overwrite_original")
         params.append(os.fsencode(file_path))
         et.execute(*params)

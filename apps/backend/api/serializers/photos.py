@@ -102,43 +102,59 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
     def get_type(self, obj) -> str:
         if obj.video:
             return "video"
-        if obj.main_file and obj.main_file.embedded_media.count() > 0:
+        # Use len() instead of .count() to leverage prefetched embedded_media
+        if obj.main_file and len(obj.main_file.embedded_media.all()) > 0:
             return "motion_photo"
         return "image"
 
     def get_stacks(self, obj) -> list | None:
-        """Return stack info if photo is part of any stacks."""
+        """Return stack info if photo is part of any stacks.
+
+        Uses prefetched stacks data when available (from AlbumDateViewSet)
+        to avoid N+1 queries. The prefetch filters by valid stack types and
+        annotates photo_count_annotation so no extra queries are needed.
+        """
+        # Use the prefetch cache (obj.stacks.all() won't re-query if prefetched)
+        stacks = obj.stacks.all()
+        if not stacks:
+            return None
+
         from api.models.photo_stack import PhotoStack
-        # Use model-defined valid stack types, plus deprecated types for backwards compatibility
-        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
+        valid_stack_types = set(PhotoStack.VALID_STACK_TYPES + [
             PhotoStack.StackType.RAW_JPEG_PAIR,
             PhotoStack.StackType.LIVE_PHOTO,
-        ]
-        stacks = obj.stacks.filter(stack_type__in=valid_stack_types)
-        if not stacks.exists():
-            return None
-        
+        ])
+
         result = []
         for stack in stacks:
-            # Check if this photo is the primary
+            # If stacks were prefetched with the type filter, all results are valid.
+            # If not prefetched (called from another serializer context), filter in Python.
+            if stack.stack_type not in valid_stack_types:
+                continue
             is_primary = stack.primary_photo_id == obj.pk if stack.primary_photo_id else False
-            
+            # Use annotated count if available, otherwise fall back to DB query
+            photo_count = getattr(stack, "photo_count_annotation", None)
+            if photo_count is None:
+                photo_count = stack.photos.count()
             result.append({
                 "id": str(stack.id),
                 "type": stack.stack_type,
-                "photo_count": stack.photos.count(),
+                "photo_count": photo_count,
                 "is_primary": is_primary,
             })
-        
-        return result
+
+        return result or None
 
     def get_has_raw_variant(self, obj) -> bool:
         """Check if this photo has a RAW file variant.
-        
-        This implements the PhotoPrism-like file variant model.
+
+        Uses prefetched files when available to avoid N+1 queries.
         Returns True if any of the photo's files is a RAW file type.
         """
-        # Check files for RAW type (File.RAW_FILE = 4)
+        # Use prefetch cache if available (iterate in Python), otherwise query DB
+        # File.RAW_FILE = 4
+        if "files" in getattr(obj, "_prefetched_objects_cache", {}):
+            return any(f.type == 4 for f in obj.files.all())
         return obj.files.filter(type=4).exists()
 
 

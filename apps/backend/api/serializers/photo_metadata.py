@@ -220,19 +220,35 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
 class PhotoMetadataSummarySerializer(serializers.Serializer):
     """
     Lightweight metadata summary for photo lists.
-    
+
     Returns key metadata fields without the full detail.
     """
 
-    camera = serializers.CharField(source="camera_display", allow_null=True)
-    lens = serializers.CharField(source="lens_display", allow_null=True)
+    # Camera info
+    camera_display = serializers.CharField(allow_null=True)
+    lens_display = serializers.CharField(allow_null=True)
+    # Capture settings
     aperture = serializers.FloatField(allow_null=True)
     shutter_speed = serializers.CharField(allow_null=True)
     iso = serializers.IntegerField(allow_null=True)
     focal_length = serializers.FloatField(allow_null=True)
+    focal_length_35mm = serializers.IntegerField(allow_null=True)
+    # Image info
+    resolution = serializers.CharField(allow_null=True)
+    megapixels = serializers.FloatField(allow_null=True)
+    # Date/location
     date_taken = serializers.DateTimeField(allow_null=True)
     has_location = serializers.BooleanField()
-    resolution = serializers.CharField(allow_null=True)
+    # Content
+    rating = serializers.IntegerField(allow_null=True)
+    # Edit tracking
+    source = serializers.CharField()
+    version = serializers.IntegerField()
+    has_edits = serializers.SerializerMethodField()
+
+    def get_has_edits(self, obj) -> bool:
+        """Check if this photo has any metadata edits."""
+        return MetadataEdit.objects.filter(photo=obj.photo).exists()
 
 
 def get_backwards_compatible_metadata(photo: Photo) -> dict:

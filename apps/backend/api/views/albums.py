@@ -18,6 +18,7 @@ from api.models import (
     Photo,
     User,
 )
+from api.models.photo_stack import PhotoStack
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
@@ -412,6 +413,19 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
 
         album_date = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
 
+        # Build a prefetch for stacks that filters to valid types and annotates
+        # photo_count, avoiding N+1 queries in the serializer
+        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
+            PhotoStack.StackType.RAW_JPEG_PAIR,
+            PhotoStack.StackType.LIVE_PHOTO,
+        ]
+        stacks_prefetch = Prefetch(
+            "stacks",
+            queryset=PhotoStack.objects.filter(
+                stack_type__in=valid_stack_types
+            ).annotate(photo_count_annotation=Count("photos")),
+        )
+
         photo_qs = (
             album_date.photos.filter(*photo_filter)
             .prefetch_related(
@@ -425,9 +439,10 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
                     "main_file__embedded_media",
                     queryset=File.objects.only("hash"),
                 ),
+                stacks_prefetch,
+                "files",  # Prefetch files for get_has_raw_variant()
             )
             .select_related("thumbnail", "search_instance", "main_file")
-            .prefetch_related("stacks")
             .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
             .order_by("-exif_timestamp")
             .only(

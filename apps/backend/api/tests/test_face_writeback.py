@@ -182,6 +182,39 @@ class TestBuildFaceRegionExiftoolArgs(TestCase):
         value = result["XMP-mwg-rs:RegionInfo"]
         self.assertIn("Test\\{\\=\\}", value)
 
+    def test_applied_to_dimensions(self):
+        """AppliedToDimensions should be included when image dimensions are provided."""
+        regions = [{"name": "Alice", "x": 0.5, "y": 0.3, "w": 0.2, "h": 0.15}]
+        result = build_face_region_exiftool_args(regions, image_width=4000, image_height=3000)
+        value = result["XMP-mwg-rs:RegionInfo"]
+        self.assertIn("AppliedToDimensions={W=4000,H=3000,Unit=pixel}", value)
+
+    def test_no_applied_to_dimensions_when_missing(self):
+        """AppliedToDimensions should be omitted when image dimensions are not available."""
+        regions = [{"name": "Alice", "x": 0.5, "y": 0.3, "w": 0.2, "h": 0.15}]
+        result = build_face_region_exiftool_args(regions)
+        value = result["XMP-mwg-rs:RegionInfo"]
+        self.assertNotIn("AppliedToDimensions", value)
+
+    def test_subject_keywords_for_named_faces(self):
+        """Named faces should be added as XMP:Subject keywords."""
+        regions = [
+            {"name": "Alice", "x": 0.3, "y": 0.3, "w": 0.1, "h": 0.1},
+            {"name": "Bob", "x": 0.7, "y": 0.5, "w": 0.15, "h": 0.2},
+            {"name": "", "x": 0.5, "y": 0.8, "w": 0.12, "h": 0.1},
+        ]
+        result = build_face_region_exiftool_args(regions)
+        self.assertIn("XMP:Subject", result)
+        self.assertEqual(result["XMP:Subject"], ["Alice", "Bob"])
+
+    def test_no_subject_keywords_when_all_unnamed(self):
+        """No XMP:Subject should be set when all faces are unnamed."""
+        regions = [
+            {"name": "", "x": 0.3, "y": 0.3, "w": 0.1, "h": 0.1},
+        ]
+        result = build_face_region_exiftool_args(regions)
+        self.assertNotIn("XMP:Subject", result)
+
 
 class TestRoundTripCoordinates(TestCase):
     def test_round_trip_no_orientation(self):
@@ -241,12 +274,20 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         tags = get_face_region_tags(photo)
 
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         self.assertIn("Alice", tags["XMP-mwg-rs:RegionInfo"])
+        # AppliedToDimensions should be present
+        self.assertIn(
+            "AppliedToDimensions={W=4000,H=3000,Unit=pixel}",
+            tags["XMP-mwg-rs:RegionInfo"],
+        )
+        # XMP:Subject should contain the person name
+        self.assertIn("XMP:Subject", tags)
+        self.assertEqual(tags["XMP:Subject"], ["Alice"])
 
     @patch("api.metadata.face_regions.get_metadata")
     @patch("api.metadata.face_regions.PIL.Image.open")
@@ -271,7 +312,7 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         tags = get_face_region_tags(photo)
 
@@ -304,7 +345,7 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         tags = get_face_region_tags(photo)
 
@@ -335,7 +376,7 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         tags = get_face_region_tags(photo)
 
@@ -378,7 +419,7 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         tags = get_face_region_tags(photo)
 
@@ -422,7 +463,7 @@ class TestGetFaceRegionTags(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         tags = get_face_region_tags(photo)
 
@@ -460,7 +501,7 @@ class TestSaveMetadataIntegration(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         photo._save_metadata(use_sidecar=True, metadata_types=["face_tags"])
 
@@ -520,7 +561,7 @@ class TestSaveMetadataIntegration(TestCase):
         mock_img = MagicMock()
         mock_img.size = (1000, 800)
         mock_pil_open.return_value = mock_img
-        mock_get_metadata.return_value = (None,)
+        mock_get_metadata.return_value = (None, 4000, 3000)
 
         photo._save_metadata(use_sidecar=True, metadata_types=["ratings", "face_tags"])
 
