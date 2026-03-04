@@ -135,7 +135,7 @@ export type PhotoStackDetail = z.infer<typeof PhotoStackDetail>;
 
 // Photo Metadata types - structured EXIF/XMP data with edit history support
 
-export const MetadataSourceEnum = z.enum(["embedded", "xmp_sidecar", "user_edit"]);
+export const MetadataSourceEnum = z.enum(["embedded", "sidecar", "user_edit", "computed"]);
 export type MetadataSourceEnum = z.infer<typeof MetadataSourceEnum>;
 
 // Summary metadata included in Photo response

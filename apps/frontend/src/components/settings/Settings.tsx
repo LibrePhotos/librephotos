@@ -260,6 +260,17 @@ export function Settings() {
               });
             }}
           />
+          <Switch
+            label={t("settings.save_face_tags_to_disk")}
+            description={t("settings.save_face_tags_to_disk_help")}
+            checked={editedUserDetails.save_face_tags_to_disk || false}
+            onChange={event => {
+              setEditedUserDetails({
+                ...editedUserDetails,
+                save_face_tags_to_disk: event.currentTarget.checked,
+              });
+            }}
+          />
         </Card>
         <Card shadow="md">
           <ConfigDateTime
