@@ -12,7 +12,7 @@ type Props = Readonly<{
 export function VideoOverlay({ item }: Props) {
   function getDuration({ video_length }) {
     return (
-      <span style={{ margin: "5px 0 0 5px" }}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>
+      <span style={{ margin: "5px 5px 0 0" }}>{Duration.fromObject({ seconds: video_length }).toFormat("mm:ss")}</span>
     );
   }
 
@@ -21,7 +21,7 @@ export function VideoOverlay({ item }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", color: "white", padding: "0 0 5px 5px" }}>
+    <div style={{ display: "flex", alignItems: "center", color: "white", padding: "0 5px 5px 0" }}>
       {item.type === Media.MOTION_PHOTO ? <Run /> : <PlayerPlay />}
       {item.video_length && item.video_length !== "None" && getDuration(item)}
     </div>

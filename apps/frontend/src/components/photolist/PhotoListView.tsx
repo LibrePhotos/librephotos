@@ -701,8 +701,8 @@ function PhotoListViewComponent({
               groupByDate={isDateView}
               getUrl={getUrl}
               toprightoverlay={TopRightOverlay}
-              bottomleftoverlay={VideoOverlay}
-              bottomrightoverlay={StackOverlay}
+              bottomleftoverlay={StackOverlay}
+              bottomrightoverlay={VideoOverlay}
               numberOfItems={numberOfItems ?? idx2hashRef.current.length}
               updateItems={updateItems ? throttledUpdateItems : () => {}}
               updateGroups={updateGroups ? throttledUpdateGroups : () => {}}

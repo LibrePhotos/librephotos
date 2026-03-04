@@ -19,6 +19,9 @@ export default function computeLayoutGroups({ imageData, settings, wrapperWidth,
   let translateY = 0;
 
   imageData.forEach(g => {
+    // Skip empty groups
+    if (!g.items || g.items.length === 0) return;
+
     let groupHeight = 0;
     let groupTranslateY = 0;
     let row = []; // The list of images in the current row.

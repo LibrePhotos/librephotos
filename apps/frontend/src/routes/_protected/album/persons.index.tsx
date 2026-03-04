@@ -125,7 +125,7 @@ export function AlbumPeople() {
 
   return (
     <>
-      <Group justify="space-between" align="flex-start" pr="md">
+      <Group justify="space-between" align="center" pr="md">
         <HeaderComponent
           icon={<Users size={50} />}
           title={t("people")}

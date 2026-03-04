@@ -40,7 +40,7 @@ export function StackOverlay({ item }: { item: PigPhoto }) {
   // If only RAW badge to show, just show that
   if (showRawBadge && !hasActiveStacks) {
     return (
-      <div style={{ display: "flex", alignItems: "center", padding: "0 5px 5px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "0 0 5px 5px" }}>
         <RawBadge />
       </div>
     );
@@ -55,7 +55,7 @@ export function StackOverlay({ item }: { item: PigPhoto }) {
   const Icon = hasMultipleActiveStacks ? IconLayersLinked : Stack;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "white", padding: "0 5px 5px 0" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "white", padding: "0 0 5px 5px" }}>
       {showRawBadge && <RawBadge />}
       {hasActiveStacks && (
         <div style={{ display: "flex", alignItems: "center" }}>
