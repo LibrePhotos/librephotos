@@ -1,4 +1,4 @@
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.models import AlbumUser, File, Photo, User
+from api.models.photo_stack import PhotoStack
+from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.album_user import AlbumUserListSerializer
@@ -34,15 +36,25 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         if latest_photo is None:
             return Photo.objects.none()
         latest_date = latest_photo.added_on
+
+        # Prefetch stacks with type filter and annotated photo count
+        # to avoid N+1 queries in PhotoSummarySerializer.get_stacks()
+        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
+            PhotoStack.StackType.RAW_JPEG_PAIR,
+            PhotoStack.StackType.LIVE_PHOTO,
+        ]
+        stacks_prefetch = Prefetch(
+            "stacks",
+            queryset=PhotoStack.objects.filter(
+                stack_type__in=valid_stack_types
+            ).annotate(photo_count_annotation=Count("photos")),
+        )
+
         queryset = (
             Photo.visible.filter(
                 Q(owner=self.request.user)
                 & Q(thumbnail__aspect_ratio__isnull=False)
-                & Q(
-                    added_on__year=latest_date.year,
-                    added_on__month=latest_date.month,
-                    added_on__day=latest_date.day,
-                )
+                & Q(added_on__date=latest_date.date())
             )
             .select_related("thumbnail", "search_instance", "main_file")
             .prefetch_related(
@@ -56,6 +68,8 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
                     "main_file__embedded_media",
                     queryset=File.objects.only("hash"),
                 ),
+                stacks_prefetch,
+                "files",  # For get_has_raw_variant()
             )
             .only(
                 "image_hash",
@@ -164,15 +178,20 @@ class SetPhotosDeleted(APIView):
             if not val_deleted:
                 from api.models.stack_review import StackReview
                 from api.models.photo_stack import PhotoStack
+
                 # Get stack IDs from photos that have stacks (ManyToMany)
                 stack_ids = set(
-                    PhotoStack.objects.filter(
-                        photos__in=photos_qs
-                    ).values_list('id', flat=True)
+                    PhotoStack.objects.filter(photos__in=photos_qs).values_list(
+                        "id", flat=True
+                    )
                 )
                 if stack_ids:
-                    StackReview.objects.filter(stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED).update(decision=StackReview.Decision.PENDING)
-                    logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
+                    StackReview.objects.filter(
+                        stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED
+                    ).update(decision=StackReview.Decision.PENDING)
+                    logger.info(
+                        f"Reset {len(stack_ids)} photo stacks to pending after restore"
+                    )
 
             count = photos_qs.update(in_trashcan=val_deleted)
 
@@ -220,23 +239,25 @@ class SetPhotosDeleted(APIView):
             Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
             ).update(in_trashcan=val_deleted)
-            
+
             # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
                 from api.models.stack_review import StackReview
                 from api.models.photo_stack import PhotoStack
+
                 # Get stack IDs from photos that have stacks (ManyToMany)
                 stack_ids = set(
                     PhotoStack.objects.filter(
                         photos__image_hash__in=photos_to_update
-                    ).values_list('id', flat=True)
+                    ).values_list("id", flat=True)
                 )
                 if stack_ids:
                     StackReview.objects.filter(
-                        stack_id__in=stack_ids, 
-                        decision=StackReview.Decision.RESOLVED
+                        stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED
                     ).update(decision=StackReview.Decision.PENDING)
-                    logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
+                    logger.info(
+                        f"Reset {len(stack_ids)} photo stacks to pending after restore"
+                    )
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}
@@ -482,11 +503,12 @@ class PhotoViewSet(viewsets.ModelViewSet):
             # Determine if this is a UUID (36 chars with hyphens) or image_hash (32 hex chars)
             # Note: Python's uuid.UUID() accepts 32 hex chars without hyphens, but those
             # are MD5 hashes used for backward compatibility, not actual UUIDs
-            is_uuid_format = len(lookup_value) == 36 and lookup_value.count('-') == 4
-            
+            is_uuid_format = len(lookup_value) == 36 and lookup_value.count("-") == 4
+
             if is_uuid_format:
                 try:
                     import uuid
+
                     uuid.UUID(lookup_value)
                     filter_kwargs = {"pk": lookup_value}
                 except (ValueError, AttributeError):
@@ -498,8 +520,9 @@ class PhotoViewSet(viewsets.ModelViewSet):
             obj = queryset.filter(**filter_kwargs).first()
             if obj is None:
                 from rest_framework.exceptions import NotFound
+
                 raise NotFound()
-            
+
             # May raise a permission denied
             self.check_object_permissions(self.request, obj)
             return obj
@@ -516,28 +539,31 @@ class PhotoViewSet(viewsets.ModelViewSet):
         # Support both UUID and image_hash lookups
         # Note: 32 hex chars could parse as UUID but are actually MD5 hashes
         # Use Photo.objects instead of get_queryset() to include processing photos
-        is_uuid_format = len(pk) == 36 and pk.count('-') == 4
-        
+        is_uuid_format = len(pk) == 36 and pk.count("-") == 4
+
         if is_uuid_format:
             try:
                 import uuid
+
                 uuid.UUID(pk)
                 queryset = Photo.objects.filter(pk=pk)
             except (ValueError, AttributeError):
                 queryset = Photo.objects.filter(image_hash=pk)
         else:
             queryset = Photo.objects.filter(image_hash=pk)
-        
+
         if not queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
-        
+
         photo = queryset.first()
         # Check permissions - owner, shared, or public
-        if not (photo.owner == request.user or 
-                photo.shared_to.filter(id=request.user.id).exists() or 
-                photo.public):
+        if not (
+            photo.owner == request.user
+            or photo.shared_to.filter(id=request.user.id).exists()
+            or photo.public
+        ):
             return Response(status=status.HTTP_404_NOT_FOUND)
-        
+
         # Serializer expects a queryset (calls .get() internally)
         serializer = PhotoDetailsSummarySerializer(queryset, many=False)
         return Response(serializer.data)
@@ -553,11 +579,12 @@ class PhotoViewSet(viewsets.ModelViewSet):
         # Support both UUID and image_hash lookups
         try:
             import uuid
+
             uuid.UUID(pk)
             photo = Photo.objects.filter(pk=pk).first()
         except (ValueError, AttributeError):
             photo = Photo.objects.filter(image_hash=pk).first()
-            
+
         if not photo:
             return Response(status=status.HTTP_404_NOT_FOUND)
         albums = AlbumUser.objects.filter(
@@ -578,18 +605,26 @@ class PhotoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user.is_anonymous:
-            return Photo.visible.filter(Q(public=True)).prefetch_related("stacks").order_by("-exif_timestamp")
+            return (
+                Photo.visible.filter(Q(public=True))
+                .prefetch_related("stacks")
+                .order_by("-exif_timestamp")
+            )
         else:
             # Include photos that are:
             # 1. Owned by the user
             # 2. Shared directly with the user
             # 3. Public (for retrieve access)
             # Note: Photos in shared albums are handled by the permission class
-            return Photo.visible.filter(
-                Q(owner=self.request.user)
-                | Q(shared_to=self.request.user)
-                | Q(public=True)
-            ).prefetch_related("stacks").order_by("-exif_timestamp")
+            return (
+                Photo.visible.filter(
+                    Q(owner=self.request.user)
+                    | Q(shared_to=self.request.user)
+                    | Q(public=True)
+                )
+                .prefetch_related("stacks")
+                .order_by("-exif_timestamp")
+            )
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
@@ -615,11 +650,12 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
 
         if lookup_value:
             # Check if proper UUID format (36 chars with hyphens) vs MD5 hash (32 hex chars)
-            is_uuid_format = len(lookup_value) == 36 and lookup_value.count('-') == 4
-            
+            is_uuid_format = len(lookup_value) == 36 and lookup_value.count("-") == 4
+
             if is_uuid_format:
                 try:
                     import uuid
+
                     uuid.UUID(lookup_value)
                     filter_kwargs = {"pk": lookup_value}
                 except (ValueError, AttributeError):
@@ -630,8 +666,9 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
             obj = queryset.filter(**filter_kwargs).first()
             if obj is None:
                 from rest_framework.exceptions import NotFound
+
                 raise NotFound()
-            
+
             self.check_object_permissions(self.request, obj)
             return obj
 
@@ -688,7 +725,9 @@ class SetPhotosShared(APIView):
         """
 
         # Look up photo UUIDs from image_hashes (image_hash is no longer the primary key)
-        photos = Photo.objects.filter(image_hash__in=image_hashes).only("id", "image_hash")
+        photos = Photo.objects.filter(image_hash__in=image_hashes).only(
+            "id", "image_hash"
+        )
         photo_ids = [photo.id for photo in photos]
 
         if shared:
@@ -920,7 +959,7 @@ class DeletePhotos(APIView):
 class FileVariantDownloadView(APIView):
     """
     Download a specific file variant for a photo.
-    
+
     Supports downloading RAW, JPEG, video (Live Photo), or other variants
     associated with a Photo entity (PhotoPrism-like file variant model).
     """
@@ -939,7 +978,7 @@ class FileVariantDownloadView(APIView):
         import magic
         import os
         from django.http import FileResponse, HttpResponse
-        
+
         # Find the photo
         try:
             photo = Photo.objects.get(
@@ -948,8 +987,7 @@ class FileVariantDownloadView(APIView):
             )
         except Photo.DoesNotExist:
             return Response(
-                {"error": "Photo not found"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
             )
         except Photo.MultipleObjectsReturned:
             # Multiple photos with same hash - get the one owned by user
@@ -959,25 +997,22 @@ class FileVariantDownloadView(APIView):
             ).first()
             if not photo:
                 return Response(
-                    {"error": "Photo not found"},
-                    status=status.HTTP_404_NOT_FOUND
+                    {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
                 )
-        
+
         # Find the requested file variant
         file_variant = photo.files.filter(hash=file_hash).first()
         if not file_variant:
             return Response(
-                {"error": "File variant not found"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "File variant not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Check file exists
         if not os.path.exists(file_variant.path):
             return Response(
-                {"error": "File not found on disk"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "File not found on disk"}, status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Serve the file
         try:
             response = FileResponse(
@@ -985,28 +1020,28 @@ class FileVariantDownloadView(APIView):
                 as_attachment=True,
                 filename=os.path.basename(file_variant.path),
             )
-            
+
             # Set content type
             try:
                 mime = magic.Magic(mime=True)
                 response["Content-Type"] = mime.from_file(file_variant.path)
             except Exception:
                 response["Content-Type"] = "application/octet-stream"
-            
+
             return response
-            
+
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Error serving file {file_variant.path}: {e}")
             return Response(
                 {"error": "Could not read file"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 class SetMainFileView(APIView):
     """
     Set the main (primary) file for a photo.
-    
+
     Changes which file variant is used as the main display file for the photo.
     Useful when a photo has multiple variants (RAW, JPEG, etc.).
     """
@@ -1014,13 +1049,12 @@ class SetMainFileView(APIView):
     def post(self, request, image_hash):
         """Set the main file for a photo."""
         file_hash = request.data.get("file_hash")
-        
+
         if not file_hash:
             return Response(
-                {"error": "file_hash is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "file_hash is required"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Find the photo
         try:
             photo = Photo.objects.get(
@@ -1029,8 +1063,7 @@ class SetMainFileView(APIView):
             )
         except Photo.DoesNotExist:
             return Response(
-                {"error": "Photo not found"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
             )
         except Photo.MultipleObjectsReturned:
             photo = Photo.objects.filter(
@@ -1039,25 +1072,64 @@ class SetMainFileView(APIView):
             ).first()
             if not photo:
                 return Response(
-                    {"error": "Photo not found"},
-                    status=status.HTTP_404_NOT_FOUND
+                    {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
                 )
-        
+
         # Find the requested file variant
         file_variant = photo.files.filter(hash=file_hash).first()
         if not file_variant:
             return Response(
                 {"error": "File variant not found in this photo"},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND,
             )
-        
+
         # Update main file
         photo.main_file = file_variant
         photo.save(update_fields=["main_file", "last_modified"])
-        
+
         logger.info(f"Set main file for photo {image_hash} to {file_hash}")
-        
-        return Response({
-            "status": "updated",
-            "main_file_hash": file_hash,
-        })
+
+        return Response(
+            {
+                "status": "updated",
+                "main_file_hash": file_hash,
+            }
+        )
+
+
+class SaveMetadataView(APIView):
+    def post(self, request, format=None):
+        """Bulk-write metadata to image files for the authenticated user's photos.
+
+        Accepts {"types": ["ratings", "face_tags"]} to control what gets written.
+        Defaults to ["ratings"] if not specified.
+        """
+        metadata_types = request.data.get("types", ["ratings"])
+        use_sidecar = (
+            request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+        )
+
+        photos = Photo.objects.filter(owner=request.user)
+
+        # When writing face tags, only include photos that have labeled faces
+        if "face_tags" in metadata_types and metadata_types == ["face_tags"]:
+            photos = photos.filter(
+                faces__person__kind=Person.KIND_USER,
+                faces__deleted=False,
+            ).distinct()
+
+        written = 0
+        errors = 0
+        for photo in photos.iterator():
+            try:
+                photo._save_metadata(
+                    use_sidecar=use_sidecar, metadata_types=metadata_types
+                )
+                written += 1
+            except Exception:
+                errors += 1
+                logger.exception(
+                    f"Failed to save metadata for photo {photo.image_hash}"
+                )
+
+        return Response({"status": True, "written": written, "errors": errors})

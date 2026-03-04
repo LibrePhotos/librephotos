@@ -33,16 +33,16 @@ def get_default_llm_settings():
 
 def get_default_public_sharing_settings():
     """Default settings for what metadata to share in public albums.
-    
+
     All options default to False (opt-in) for privacy-first approach.
     Users can change their defaults, and per-album overrides take precedence.
     """
     return {
-        "share_location": False,      # GPS coordinates and location names
-        "share_camera_info": False,   # Camera make/model, lens, settings
-        "share_timestamps": False,    # Date/time when photo was taken
-        "share_captions": False,      # AI-generated or user captions
-        "share_faces": False,         # Detected faces (always recommend False)
+        "share_location": False,  # GPS coordinates and location names
+        "share_camera_info": False,  # Camera make/model, lens, settings
+        "share_timestamps": False,  # Date/time when photo was taken
+        "share_captions": False,  # AI-generated or user captions
+        "share_faces": False,  # Detected faces (always recommend False)
     }
 
 
@@ -77,15 +77,20 @@ class User(AbstractUser):
     save_metadata_to_disk = models.TextField(
         choices=SaveMetadata.choices, default=SaveMetadata.OFF
     )
+    save_face_tags_to_disk = models.BooleanField(default=False)
     llm_settings = models.JSONField(default=get_default_llm_settings)
     datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
-    burst_detection_rules = models.JSONField(default=get_default_config_burst_detection_rules)
+    burst_detection_rules = models.JSONField(
+        default=get_default_config_burst_detection_rules
+    )
     default_timezone = models.TextField(
         choices=[(x, x) for x in pytz.all_timezones],
         default="UTC",
     )
     public_sharing = models.BooleanField(default=False)
-    public_sharing_defaults = models.JSONField(default=get_default_public_sharing_settings)
+    public_sharing_defaults = models.JSONField(
+        default=get_default_public_sharing_settings
+    )
 
     class FaceRecogniton(models.TextChoices):
         HOG = "HOG"
@@ -113,7 +118,9 @@ class User(AbstractUser):
         SMALL = "small"
 
     header_size = models.TextField(choices=HeaderSize.choices, default=HeaderSize.LARGE)
-    skip_raw_files = models.BooleanField(default=False)  # Deprecated: kept for migration compatibility
+    skip_raw_files = models.BooleanField(
+        default=False
+    )  # Deprecated: kept for migration compatibility
     stack_raw_jpeg = models.BooleanField(default=True)
     slideshow_interval = models.IntegerField(default=5)
 

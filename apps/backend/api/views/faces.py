@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.face_classify import cluster_all_faces
 from api.ml_models import do_all_models_exist, download_models
-from api.models import Face
+from api.models import Face, User
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
 from api.serializers.face import (
@@ -278,6 +278,26 @@ class SetFacePersonLabel(APIView):
         search_instance, created = PhotoSearch.objects.get_or_create(photo=face.photo)
         search_instance.recreate_search_captions()
         search_instance.save()
+
+        # Write face regions to image files if user preference is enabled
+        if request.user.save_face_tags_to_disk:
+            use_sidecar = (
+                request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+            )
+            updated_photos = {
+                f.photo for f in faces.values() if f.photo.owner == request.user
+            }
+            for photo in updated_photos:
+                try:
+                    photo._save_metadata(
+                        use_sidecar=use_sidecar,
+                        metadata_types=["face_tags"],
+                    )
+                except Exception:
+                    logger.exception(
+                        f"Failed to write face tags for photo {photo.image_hash}"
+                    )
+
         return Response(
             {
                 "status": True,

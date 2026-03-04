@@ -220,6 +220,7 @@ urlpatterns = [
     re_path(r"^api/dirtree", user.RootPathTreeView.as_view()),
     re_path(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
     re_path(r"^api/deletefaces", faces.DeleteFaces.as_view()),
+    re_path(r"^api/savemetadata", photos.SaveMetadataView.as_view()),
     re_path(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
     re_path(r"^api/photosedit/setdeleted", photos.SetPhotosDeleted.as_view()),
     re_path(r"^api/photosedit/favorite", photos.SetPhotosFavorite.as_view()),

@@ -14,12 +14,14 @@ from django.db.utils import IntegrityError
 
 import api.models
 from api import date_time_extractor, face_extractor, util
-from api.exif_tags import Tags
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
+from api.metadata.reader import get_metadata
+from api.metadata.tags import Tags
+from api.metadata.writer import write_metadata
 from api.models.file import File
 from api.models.user import User, get_deleted_user
-from api.util import get_metadata, logger
+from api.util import logger
 
 
 class VisiblePhotoManager(models.Manager):
@@ -39,11 +41,11 @@ class VisiblePhotoManager(models.Manager):
 class Photo(models.Model):
     # UUID primary key (like Immich) - enables flexible asset management
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Content hash for deduplication - unique per user
     # Format: MD5 hash + user_id (e.g., "abc123def456...789" + "1")
     image_hash = models.CharField(max_length=64, db_index=True)
-    
+
     files = models.ManyToManyField(File)
     main_file = models.ForeignKey(
         File,
@@ -89,7 +91,9 @@ class Photo(models.Model):
     last_modified = models.DateTimeField(auto_now=True)
 
     # Perceptual hash for duplicate detection (pHash algorithm)
-    perceptual_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+    perceptual_hash = models.CharField(
+        max_length=64, blank=True, null=True, db_index=True
+    )
 
     # Organizational photo stacks (RAW+JPEG pairs, bursts, brackets, live photos, manual)
     # A photo can belong to multiple stacks of different types simultaneously
@@ -176,17 +180,38 @@ class Photo(models.Model):
             update_fields=update_fields,
         )
 
-    def _save_metadata(self, modified_fields=None, use_sidecar=True):
+    def _save_metadata(
+        self, modified_fields=None, use_sidecar=True, metadata_types=None
+    ):
+        """Write metadata tags to the photo's file or sidecar.
+
+        Args:
+            modified_fields: List of changed field names (from Photo.save() diff).
+                When None, writes all applicable tags unconditionally.
+            use_sidecar: Write to XMP sidecar file if True, media file if False.
+            metadata_types: List of metadata categories to write, e.g.
+                ["ratings", "face_tags"]. When None, uses default behavior
+                (ratings/timestamps only, for backward compatibility).
+        """
         tags_to_write = {}
-        if modified_fields is None or "rating" in modified_fields:
-            tags_to_write[Tags.RATING] = self.rating
-        if "timestamp" in modified_fields:
-            # To-Do: Only works for files and not for the sidecar file
-            tags_to_write[Tags.DATE_TIME] = self.timestamp
+
+        write_ratings = metadata_types is None or "ratings" in metadata_types
+        write_face_tags = metadata_types is not None and "face_tags" in metadata_types
+
+        if write_ratings:
+            if modified_fields is None or "rating" in modified_fields:
+                tags_to_write[Tags.RATING] = self.rating
+            if modified_fields is not None and "timestamp" in modified_fields:
+                # To-Do: Only works for files and not for the sidecar file
+                tags_to_write[Tags.DATE_TIME] = self.timestamp
+
+        if write_face_tags:
+            from api.metadata.face_regions import get_face_region_tags
+
+            tags_to_write.update(get_face_region_tags(self))
+
         if tags_to_write:
-            util.write_metadata(
-                self.main_file.path, tags_to_write, use_sidecar=use_sidecar
-            )
+            write_metadata(self.main_file.path, tags_to_write, use_sidecar=use_sidecar)
 
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
@@ -346,7 +371,6 @@ class Photo(models.Model):
         # Safe geolocation_json
         album_date.save()
 
-
     def _extract_faces(self, second_try=False):
         unknown_cluster: api.models.cluster.Cluster = (
             api.models.cluster.get_unknown_cluster(user=self.owner)
@@ -473,21 +497,23 @@ class Photo(models.Model):
     def manual_delete(self):
         # Store stack references before cleanup (ManyToMany)
         photo_stacks = list(self.stacks.all())
-        
+
         # Store duplicate group references before cleanup (ManyToMany)
         photo_duplicates = list(self.duplicates.all())
-        
+
         # Handle file cleanup - only delete files not shared with other Photos
         for file in self.files.all():
             # Check if this file is used by other Photos (via files M2M or as main_file)
             other_photos_using_file = (
-                file.photo_set.exclude(pk=self.pk).exists() or
-                file.main_photo.exclude(pk=self.pk).exists()
+                file.photo_set.exclude(pk=self.pk).exists()
+                or file.main_photo.exclude(pk=self.pk).exists()
             )
-            
+
             if other_photos_using_file:
                 # File is shared - just unlink from this photo, don't delete
-                logger.info(f"File {file.path} is shared with other photos, unlinking only")
+                logger.info(
+                    f"File {file.path} is shared with other photos, unlinking only"
+                )
                 self.files.remove(file)
             else:
                 # File is only used by this photo - safe to delete
@@ -495,44 +521,47 @@ class Photo(models.Model):
                     logger.info(f"Removing photo {file.path}")
                     os.remove(file.path)
                 file.delete()
-        
+
         self.files.set([])
         self.main_file = None
         self.removed = True
-        
+
         # Clear all stack references from this photo (ManyToMany)
         self.stacks.clear()
-        
+
         # Clear all duplicate group references from this photo (ManyToMany)
         self.duplicates.clear()
-        
+
         result = self.save()
-        
+
         # Clean up stacks if they're now empty or have only one photo left
         for photo_stack in photo_stacks:
             remaining_photos = photo_stack.photos.filter(removed=False).count()
             if remaining_photos <= 1:
                 # If 0 or 1 photos left, delete the stack (no longer a valid grouping)
-                logger.info(f"Deleting photo stack {photo_stack.id} - only {remaining_photos} photos remaining")
+                logger.info(
+                    f"Deleting photo stack {photo_stack.id} - only {remaining_photos} photos remaining"
+                )
                 # Unlink remaining photos from stack first
                 for remaining_photo in photo_stack.photos.all():
                     remaining_photo.stacks.remove(photo_stack)
                 photo_stack.delete()
-        
+
         # Clean up duplicate groups if they're now empty or have only one photo left
         for duplicate in photo_duplicates:
             remaining_photos = duplicate.photos.filter(removed=False).count()
             if remaining_photos <= 1:
                 # If 0 or 1 photos left, delete the duplicate group (no longer valid)
-                logger.info(f"Deleting duplicate group {duplicate.id} - only {remaining_photos} photos remaining")
+                logger.info(
+                    f"Deleting duplicate group {duplicate.id} - only {remaining_photos} photos remaining"
+                )
                 # Unlink remaining photos from duplicate first
                 for remaining_photo in duplicate.photos.all():
                     remaining_photo.duplicates.remove(duplicate)
                 duplicate.delete()
-        
+
         # To-Do: Handle wrong file permissions
         return result
-
 
     def _set_embedded_media(self, obj):
         return obj.main_file.embedded_media
