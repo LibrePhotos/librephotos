@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { View } from 'react-native'
-import { useDispatch } from 'react-redux'
 import { Text } from 'native-base'
 import moment from 'moment'
 import { useTheme } from '@/Theme'
 import { NoResultsError } from '.'
 import { PhotoComponent } from './PhotoComponent'
 import { LightBox } from './LightBox'
-import FetchAlbumDate from '../Store/Album/FetchAlbumDate'
 import { FlashList } from '@shopify/flash-list'
 
 /**
@@ -25,9 +23,18 @@ type Group = {
  * @param refreshing A boolean indicating whether the list is currently being refreshed.
  * @returns A React component that renders a timeline list.
  */
-const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
+const TimelineList = ({
+  data = [],
+  onRefresh = () => {},
+  refreshing = false,
+  onFetchPage,
+}: {
+  data?: any[]
+  onRefresh?: () => void
+  refreshing?: boolean
+  onFetchPage?: (albumDateId: string, page: number) => void
+}) => {
   const { Colors, Gutters } = useTheme()
-  const dispatch = useDispatch()
 
   const [groups, setGroups] = useState([] as Group[])
   const [lightBoxVisible, setLightBoxVisible] = useState(false)
@@ -50,18 +57,14 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
   const flatData = dataWithIds.flatMap(group => [group.title, ...group.data])
 
   useEffect(() => {
-    groups.forEach(group => {
-      if (group.id && group.page) {
-        dispatch(
-          FetchAlbumDate.action({
-            album_date_id: group.id,
-            page: group.page,
-            photosetType: 'timestamp',
-          }),
-        )
-      }
-    })
-  }, [groups, dispatch])
+    if (onFetchPage) {
+      groups.forEach(group => {
+        if (group.id && group.page) {
+          onFetchPage(group.id, group.page)
+        }
+      })
+    }
+  }, [groups, onFetchPage])
 
   /**
    * Handles the press event for an image in the list.
@@ -214,6 +217,9 @@ const TimelineList = ({ data, onRefresh = () => {}, refreshing = false }) => {
 
 TimelineList.defaultProps = {
   data: [],
+  onRefresh: () => {},
+  refreshing: false,
+  onFetchPage: undefined,
 }
 
 export default TimelineList

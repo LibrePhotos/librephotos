@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createStackNavigator } from '@react-navigation/stack'
 import { IndexStartupContainer, IndexLoginContainer } from '@/Containers'
-import { useSelector } from 'react-redux'
+import { useConfigStore } from '@/stores/configStore'
 import { NavigationContainer } from '@react-navigation/native'
 import { navigationRef } from '@/Navigators/Root'
 import { AppState, SafeAreaView, StatusBar } from 'react-native'
@@ -27,28 +27,20 @@ if (__DEV__) {
   emailTemplate = `Manufacturer: ${getManufacturerSync()}\nBrand: ${getBrand()}\nDevice: ${getDeviceId()}\nSystem: ${getSystemName()} ${getSystemVersion()}\nApp Version:${getVersion()}`
 }
 
-let MainNavigator
+// Eagerly require MainNavigator so it's available when Startup navigates
+const MainNavigator = require('@/Navigators/Main').default
 
 // @refresh reset
 const ApplicationNavigator = () => {
   const { Layout, darkMode, NavigationTheme } = useTheme()
   const { colors } = NavigationTheme
-  const [isApplicationLoaded, setIsApplicationLoaded] = useState(false)
-  const applicationIsLoading = useSelector(state => state.startup.loading)
-  const logging = useSelector(state => state.config.logging)
+  const logging = useConfigStore(s => s.logging)
   const [appState, setAppState] = useState('active')
 
   FileLogger.configure({
     maximumFileSize: 10 * 1024 * 1024, // 10 MiB
     maximumNumberOfFiles: 5,
   })
-
-  useEffect(() => {
-    if (MainNavigator == null && !applicationIsLoading) {
-      MainNavigator = require('@/Navigators/Main').default
-      setIsApplicationLoaded(true)
-    }
-  }, [applicationIsLoading])
 
   useEffect(() => {
     if (logging) {
@@ -85,15 +77,6 @@ const ApplicationNavigator = () => {
     }
   }, [])
 
-  // on destroy needed to be able to reset when app close in background (Android)
-  useEffect(
-    () => () => {
-      setIsApplicationLoaded(false)
-      MainNavigator = null
-    },
-    [],
-  )
-
   return (
     <SafeAreaView style={[Layout.fill, { backgroundColor: colors.card }]}>
       <NavigationContainer theme={NavigationTheme} ref={navigationRef}>
@@ -104,24 +87,20 @@ const ApplicationNavigator = () => {
           }}
         >
           <Stack.Screen name="Startup" component={IndexStartupContainer} />
-          {isApplicationLoaded && (
-            <Stack.Screen
-              name="Login"
-              component={IndexLoginContainer}
-              options={{
-                animationEnabled: false,
-              }}
-            />
-          )}
-          {isApplicationLoaded && MainNavigator != null && (
-            <Stack.Screen
-              name="Main"
-              component={MainNavigator}
-              options={{
-                animationEnabled: false,
-              }}
-            />
-          )}
+          <Stack.Screen
+            name="Login"
+            component={IndexLoginContainer}
+            options={{
+              animationEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="Main"
+            component={MainNavigator}
+            options={{
+              animationEnabled: false,
+            }}
+          />
           <Stack.Screen
             name="AlbumList"
             component={AlbumListContainer}

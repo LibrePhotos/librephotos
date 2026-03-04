@@ -1,40 +1,25 @@
 import React from 'react'
 import { View } from 'react-native'
-import { useGetSettingsQuery } from '../Store/Settings/site-settings'
-import { useAppDispatch, useAppSelector } from '../Store/store'
+import { useGetSettingsQuery } from '../api_client/settings/hooks/useGetSettingsQuery'
+import { useUploadStore } from '../stores/uploadStore'
+import { uploadImages } from '../stores/uploadActions'
 import Icon from 'react-native-vector-icons/Feather'
-import { uploadImages } from '../Store/Upload/UploadSlice'
 import { Spinner } from 'native-base'
 
-/**
- * Props for UploadButton component
- */
 type UploadButtonProps = {
-  /**
-   * The image to be uploaded
-   */
   image: any
 }
 
-/**
- * Component to display an upload button for an image
- * @param props The props for the component
- * @returns {JSX.Element|null} The UploadButton component or null if the image is already uploaded
- */
 export function UploadButton(props: UploadButtonProps) {
   const { data: settings } = useGetSettingsQuery()
-  const { isUploading } = useAppSelector(state => state.upload)
-  const dispatch = useAppDispatch()
+  const isUploading = useUploadStore(s => s.isUploading)
 
   const { image } = props
 
-  /**
-   * Handler for the upload button press event
-   */
   const onPress = () => {
     const images = []
     images.push(image)
-    dispatch(uploadImages(images))
+    uploadImages(images)
     image.syncStatus = 'synced'
   }
 

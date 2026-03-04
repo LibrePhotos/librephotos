@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { View, Platform, KeyboardAvoidingView } from 'react-native'
+// @ts-ignore
+const isDev = __DEV__
 import {
   Alert,
   Button,
@@ -16,39 +18,45 @@ import FeatherIcon from 'react-native-vector-icons/Feather'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/Theme'
 import { Brand } from '@/Components'
-import { navigateAndSimpleReset } from '@/Navigators/Root'
 // To-Do: Replace this with a new API call
 import { CheckServerService } from '../../Services/Config'
 
-import { useLoginMutation } from '@/Store/api'
-import {
-  selectIsAuthenticated,
-  selectAuthErrors,
-} from '@/Store/Auth/authSelectors'
-import { useAppSelector, useAppDispatch } from '@/Store/store'
-import { changeBaseurl } from '@/Store/Config/configSlice'
+import { useLoginMutation } from '@/api_client/auth'
+import { useIsAuthenticatedQuery } from '@/api_client/auth'
+import { useConfigStore } from '@/stores/configStore'
+import { navigateAndSimpleReset } from '@/Navigators/Root'
 
 const IndexLoginContainer = () => {
   const { Colors, Layout, Gutters } = useTheme()
 
   const { t } = useTranslation()
 
-  const [server, setServer] = useState('')
+  // Pre-populate server from stored config (strip protocol for display)
+  const storedBaseurl = useConfigStore(s => s.baseurl)
+  const [server, setServer] = useState(() => {
+    if (!storedBaseurl) return ''
+    // Show just the host:port part so preprocessserver can re-add protocol
+    return storedBaseurl
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+  })
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
   const [isValidServer, setValidServer] = useState(false)
   const [isValidating, setServerValidation] = useState(false)
+  const [loginError, setLoginError] = useState<any>(null)
 
-  const isLoggedin = useAppSelector(selectIsAuthenticated)
-  const [login, { isLoading }] = useLoginMutation()
-  const dispatch = useAppDispatch()
+  const { data: isAuthenticated } = useIsAuthenticatedQuery()
+  const { mutate: login, isPending: isLoading } = useLoginMutation({
+    navigateOnSuccess: true,
+  })
 
   useEffect(() => {
-    if (isLoggedin) {
+    if (isAuthenticated) {
       navigateAndSimpleReset('Main')
     }
-  }, [isLoggedin])
+  }, [isAuthenticated])
 
   const preprocessserver = (serverInput: string, secure: boolean) => {
     let serverName = serverInput.trim().toLowerCase()
@@ -63,14 +71,27 @@ const IndexLoginContainer = () => {
     if (serverName.endsWith('/')) {
       serverName = serverName.substring(0, serverName.length - 1)
     }
+
+    // On Android emulator, localhost refers to the emulator itself.
+    // Replace with 10.0.2.2 to reach the host machine in dev mode.
+    if (isDev && Platform.OS === 'android') {
+      serverName = serverName.replace('://localhost', '://10.0.2.2')
+    }
+
     return serverName
   }
 
   const loginOnClick = (_evt: any) => {
-    login({ username, password })
+    setLoginError(null)
+    login(
+      { username, password },
+      {
+        onError: (error: any) => {
+          setLoginError(error)
+        },
+      },
+    )
   }
-
-  const error = useAppSelector(selectAuthErrors)
 
   useEffect(() => {
     setServerValidation(true)
@@ -81,14 +102,14 @@ const IndexLoginContainer = () => {
           setServerValidation(false)
           const serverName = preprocessserver(server, true)
           if (isValid) {
-            dispatch(changeBaseurl({ baseurl: serverName }))
+            useConfigStore.getState().changeBaseurl({ baseurl: serverName })
           }
         })
       } else {
         setValidServer(isValid)
         setServerValidation(false)
         const serverName = preprocessserver(server, false)
-        dispatch(changeBaseurl({ baseurl: serverName }))
+        useConfigStore.getState().changeBaseurl({ baseurl: serverName })
       }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,10 +125,10 @@ const IndexLoginContainer = () => {
           <Brand />
         </View>
 
-        {error && error.data && error.data.detail && (
+        {loginError && (
           <Alert status="danger" w="100%" style={[Gutters.largeVMargin]}>
             <Alert.Icon />
-            <Text flexShrink={1}>{error.data.detail?.toString()}</Text>
+            <Text flexShrink={1}>{loginError?.message || 'Login failed'}</Text>
           </Alert>
         )}
 
@@ -150,16 +171,13 @@ const IndexLoginContainer = () => {
                   </>
                 }
               />
-              {/* <FormControl.HelperText>
-              We'll keep this between us.
-            </FormControl.HelperText> */}
               <FormControl.ErrorMessage>
                 Unable to connect to the server
               </FormControl.ErrorMessage>
             </Stack>
           </FormControl>
 
-          <FormControl w="85%" isInvalid={error?.data?.username}>
+          <FormControl w="85%" isInvalid={!!loginError}>
             <Stack mx={4}>
               <FormControl.Label>Username</FormControl.Label>
               <Input
@@ -170,16 +188,10 @@ const IndexLoginContainer = () => {
                 placeholder={t('auth.label.username')?.toString()}
                 placeholderTextColor={Colors.textLight}
               />
-              {/* <FormControl.HelperText>
-              We'll keep this between us.
-            </FormControl.HelperText> */}
-              <FormControl.ErrorMessage>
-                {error?.data?.username}
-              </FormControl.ErrorMessage>
             </Stack>
           </FormControl>
 
-          <FormControl w="85%" isInvalid={error?.data?.password}>
+          <FormControl w="85%" isInvalid={!!loginError}>
             <Stack mx={4}>
               <FormControl.Label>Password</FormControl.Label>
               <Input
@@ -190,12 +202,6 @@ const IndexLoginContainer = () => {
                 type="password"
                 placeholderTextColor={Colors.textLight}
               />
-              {/* <FormControl.HelperText>
-              We'll keep this between us.
-            </FormControl.HelperText> */}
-              <FormControl.ErrorMessage>
-                {error?.data?.password}
-              </FormControl.ErrorMessage>
             </Stack>
           </FormControl>
 

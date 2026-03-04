@@ -1,6 +1,6 @@
 import React from 'react'
 import { useColorScheme } from 'react-native'
-import { useSelector } from 'react-redux'
+import { useThemeStore } from '@/stores/themeStore'
 import { HStack, IconButton, Icon, Text, StatusBar } from 'native-base'
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
 import { useTheme } from '@/Theme'
@@ -13,7 +13,7 @@ const TopBar = ({ showBack = false, showMenu = false }) => {
   // Get the scheme device
   const colorScheme = useColorScheme()
 
-  const isDark = useSelector(state => state.theme.darkMode)
+  const isDark = useThemeStore(s => s.darkMode)
   const darkMode = isDark === null ? colorScheme === 'dark' : isDark
   const statusBarStyle = darkMode ? 'light-content' : 'dark-content'
 

@@ -1,26 +1,40 @@
-import React from 'react'
-import { useSelector } from 'react-redux'
+import React, { useState } from 'react'
 import { View } from 'react-native'
 import { useTheme } from '@/Theme'
 import TimelineList from '../../Components/TimelineList'
 import SearchBar from './SearchBar'
 import LoadingSpinner from '../../Components/LoadingSpinner'
 import StartSearch from './StartSearch'
-import { photoMapper } from '@/Services/DataMapper'
+import { useSearchPhotosQuery } from '@/api_client/search/hooks/useSearchPhotosQuery'
 
 const SearchContainer = () => {
   const { Common, Layout } = useTheme()
 
-  const searchState = useSelector(state => state.search)
-  const photosByDate = searchState.searchResults?.results || []
+  const [searchTerm, setSearchTerm] = useState('')
+  const { data: searchResults, isLoading } = useSearchPhotosQuery(searchTerm)
+
+  // Transform to the format expected by TimelineList
+  const photosByDate = (searchResults?.photosGroupedByDate || []).map(
+    group => ({
+      id: group.date,
+      title: group.date,
+      data: group.items || [],
+      incomplete: false,
+      numberOfItems: group.items?.length || 0,
+    }),
+  )
 
   return (
     <>
-      <SearchBar />
-      {searchState.query && searchState.query.length > 0 ? (
+      <SearchBar
+        searchTerm={searchTerm}
+        onSearch={setSearchTerm}
+        onClear={() => setSearchTerm('')}
+      />
+      {searchTerm && searchTerm.length > 0 ? (
         <View style={[Layout.fill, Common.backgroundDefault]}>
-          {!searchState.loading ? (
-            <TimelineList data={photoMapper(photosByDate)} />
+          {!isLoading ? (
+            <TimelineList data={photosByDate} />
           ) : (
             <LoadingSpinner />
           )}

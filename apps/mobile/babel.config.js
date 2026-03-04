@@ -1,11 +1,16 @@
 const presets = ['module:metro-react-native-babel-preset']
-const plugins = ['react-native-reanimated/plugin']
+const plugins = [
+  ['@babel/plugin-transform-private-methods', { loose: true }],
+  ['@babel/plugin-transform-private-property-in-object', { loose: true }],
+  ['@babel/plugin-transform-class-properties', { loose: true }],
+  'react-native-reanimated/plugin',
+]
 
 plugins.push([
   'module-resolver',
   {
     root: ['./src'],
-    extensions: ['.js', '.json'],
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {
       '@': './src',
     },

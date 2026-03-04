@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useColorScheme } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
+import { useThemeStore } from '@/stores/themeStore'
 import {
   Button,
   Input,
@@ -12,29 +12,34 @@ import {
 } from 'native-base'
 import Feather from 'react-native-vector-icons/Feather'
 import { useTheme } from '@/Theme'
-import FindPhotos from '../../Store/Search/FindPhotos'
-import UpdateQuery from '../../Store/Search/UpdateQuery'
 
-const SearchBar = ({ showMenu = false }) => {
+const SearchBar = ({
+  showMenu = false,
+  searchTerm = '',
+  onSearch,
+  onClear,
+}) => {
   const { Colors, Gutters } = useTheme()
-  const dispatch = useDispatch()
 
   const colorScheme = useColorScheme()
 
-  const isDark = useSelector(state => state.theme.darkMode)
+  const isDark = useThemeStore(s => s.darkMode)
   const darkMode = isDark === null ? colorScheme === 'dark' : isDark
   const statusBarStyle = darkMode ? 'light-content' : 'dark-content'
 
-  const [searchQuery, setSearchQuery] = useState('')
+  const [localQuery, setLocalQuery] = useState(searchTerm)
 
   const handleSearch = ({ nativeEvent: { text } }) => {
-    dispatch(FindPhotos.action({ searchQuery: text }))
+    if (onSearch) {
+      onSearch(text)
+    }
   }
 
   const handleBack = () => {
-    setSearchQuery('')
-    dispatch(UpdateQuery.action({ searchQuery: '' }))
-    // navigation.goBack()
+    setLocalQuery('')
+    if (onClear) {
+      onClear()
+    }
   }
 
   return (
@@ -44,8 +49,6 @@ const SearchBar = ({ showMenu = false }) => {
         barStyle={statusBarStyle}
       />
 
-      {/* <Box safeAreaTop backgroundColor="#6200ee" /> */}
-
       <HStack
         bg={Colors.screenBackground}
         px={2}
@@ -54,7 +57,7 @@ const SearchBar = ({ showMenu = false }) => {
         alignItems="center"
       >
         <HStack size={1}>
-          {searchQuery.length > 0 && (
+          {localQuery.length > 0 && (
             <IconButton
               mr={2}
               icon={
@@ -75,9 +78,9 @@ const SearchBar = ({ showMenu = false }) => {
             }}
             returnKeyType="search"
             autoFocus={true}
-            onChangeText={setSearchQuery}
+            onChangeText={setLocalQuery}
             onSubmitEditing={handleSearch}
-            value={searchQuery}
+            value={localQuery}
             clearButtonMode="while-editing"
             style={[Gutters.smallHMargin]}
             placeholder="Search"

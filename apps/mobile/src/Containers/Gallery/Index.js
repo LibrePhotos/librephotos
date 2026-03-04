@@ -1,76 +1,152 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { View } from 'react-native'
 import { Button, HStack, ScrollView } from 'native-base'
 import { useTheme } from '@/Theme'
-import FetchAlbumByDate from '@/Store/Album/FetchByDate'
-import FetchPhotosWithoutDate from '@/Store/Album/FetchPhotosWithoutDate'
-import FetchRecentlyAdded from '@/Store/Album/FetchRecentlyAdded'
-import FetchFavourites from '@/Store/Album/FetchFavourites'
-import FetchHidden from '@/Store/Album/FetchHidden'
-import FetchPublic from '@/Store/Album/FetchPublic'
+import { useFetchDateAlbumsQuery } from '@/api_client/albums'
+import { DateAlbumsQueryKeys } from '@/api_client/albums/hooks/useFetchDateAlbumsQuery'
+import { fetchClient, queryClient } from '@/api_client/api'
+import { useFetchPhotosWithoutTimestampQuery } from '@/api_client/photos/hooks/useFetchPhotosWithoutTimestampQuery'
+import { useFetchRecentlyAddedPhotosQuery } from '@/api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery'
+import { Photoset } from '@/api_client/photos/types'
 import TimelineList from '@/Components/TimelineList'
 import { TopBar } from '@/Components'
 import ImageGrid from '@/Components/ImageGrid'
-import { selectAlbumDateWithLocalImages } from '@/Store/Album/Selectors'
-import {
-  loadLocalImages,
-  checkIfLocalImagesAreSynced,
-} from '@/Store/LocalImages/LocalImagesSlice'
+import { SyncStatus } from '@/stores/types/localImages.zod'
+import { useLocalImagesStore } from '@/stores/localImagesStore'
+import { loadLocalImages } from '@/stores/localImagesActions'
 
 const CategoryType = {
   PhotosByDate: 'With Timestamp',
   PhotosWithoutDate: 'Without Timestamp',
   Recent: 'Recently Added',
   Favourite: 'Favourites',
+  Videos: 'Videos',
   Public: 'Public Photos',
   Hidden: 'Hidden',
 }
 
 const GalleryContainer = () => {
   const { Common, Layout } = useTheme()
-  const dispatch = useDispatch()
-
-  const albums = useSelector(state => state.album)
-  const memoizedSelector = useMemo(() => selectAlbumDateWithLocalImages, [])
-  const photosByDate = useSelector(memoizedSelector)
-  const albumWithoutDate = useSelector(state => state.album.albumWithoutDate)
-  const albumRecentlyAdded = useSelector(
-    state => state.album.albumRecentlyAdded,
-  )
-  const albumFavourites = useSelector(state => state.album.albumFavourites)
-  const albumPublic = useSelector(state => state.album.albumPublic)
-  const albumHidden = useSelector(state => state.album.albumHidden)
-  const photosWithoutDate = albumWithoutDate
 
   const [category, setCategory] = useState(CategoryType.PhotosByDate)
 
-  useEffect(() => {
-    console.log('Fetching Category: ' + category)
+  // React Query hooks for each category
+  const photosetType = useMemo(() => {
     switch (category) {
       case CategoryType.PhotosByDate:
-        // To-Do: Figure out how to reload when new local images are added
-        dispatch(loadLocalImages())
-        // dispatch(checkIfLocalImagesAreSynced())
-        dispatch(FetchAlbumByDate.action())
-        break
-      case CategoryType.PhotosWithoutDate:
-        dispatch(FetchPhotosWithoutDate.action({ page: 1 }))
-        break
-      case CategoryType.Recent:
-        dispatch(FetchRecentlyAdded.action())
-        break
+        return Photoset.TIMESTAMP
       case CategoryType.Favourite:
-        dispatch(FetchFavourites.action())
-        break
+        return Photoset.FAVORITES
+      case CategoryType.Videos:
+        return Photoset.VIDEOS
       case CategoryType.Public:
-        dispatch(FetchPublic.action())
-        break
+        return Photoset.PUBLIC
       case CategoryType.Hidden:
-        dispatch(FetchHidden.action())
-        break
+        return Photoset.HIDDEN
+      default:
+        return Photoset.TIMESTAMP
     }
-  }, [category, dispatch])
+  }, [category])
+
+  const useTimeline =
+    category === CategoryType.PhotosByDate ||
+    category === CategoryType.Favourite ||
+    category === CategoryType.Videos ||
+    category === CategoryType.Public ||
+    category === CategoryType.Hidden
+
+  const {
+    data: dateAlbums,
+    isLoading: dateAlbumsLoading,
+    refetch: refetchDateAlbums,
+  } = useFetchDateAlbumsQuery(
+    { photosetType },
+  )
+
+  const {
+    data: photosWithoutDate,
+    isLoading: noDateLoading,
+    refetch: refetchNoDate,
+  } = useFetchPhotosWithoutTimestampQuery(1)
+
+  const {
+    data: recentlyAdded,
+    isLoading: recentLoading,
+    refetch: refetchRecent,
+  } = useFetchRecentlyAddedPhotosQuery()
+
+  // Local images from Zustand
+  const localImages = useLocalImagesStore(s => s.images)
+
+  useEffect(() => {
+    if (category === CategoryType.PhotosByDate) {
+      loadLocalImages()
+    }
+  }, [category])
+
+  const isLoading =
+    (useTimeline && dateAlbumsLoading) ||
+    (category === CategoryType.PhotosWithoutDate && noDateLoading) ||
+    (category === CategoryType.Recent && recentLoading)
+
+  // Track fetched/in-flight pages to prevent duplicate requests
+  const fetchedPagesRef = useRef(new Set())
+
+  // Clear the dedup set when category changes
+  useEffect(() => {
+    fetchedPagesRef.current.clear()
+  }, [photosetType])
+
+  // Callback for TimelineList to lazy-load album date pages when temp elements become visible
+  const handleFetchPage = useCallback(
+    async (albumDateId, page) => {
+      const key = `${albumDateId}:${page}`
+      if (fetchedPagesRef.current.has(key)) {
+        return
+      }
+      fetchedPagesRef.current.add(key)
+
+      try {
+        // Build filter params matching useFetchDateAlbumsQuery
+        const params = {
+          page: String(page),
+          favorite: Photoset.FAVORITES === photosetType ? 'true' : undefined,
+          public: Photoset.PUBLIC === photosetType ? 'true' : undefined,
+          hidden: Photoset.HIDDEN === photosetType ? 'true' : undefined,
+          video: Photoset.VIDEOS === photosetType ? 'true' : undefined,
+        }
+        const qs = Object.entries(params)
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => `${k}=${v}`)
+          .join('&')
+        const response = await fetchClient.get(
+          `/albums/date/${albumDateId}/?${qs}`,
+        )
+        const result = response.results
+        // Update the dateAlbums cache so the component re-renders with real data
+        // Key must match useFetchDateAlbumsQuery exactly (includes undefined trailing params)
+        const dateAlbumsQueryKey = [...DateAlbumsQueryKeys, photosetType, undefined, undefined, undefined]
+        const oldData = queryClient.getQueryData(dateAlbumsQueryKey)
+        if (oldData && result) {
+          const newData = [...oldData]
+          const idx = newData.findIndex(g => g.id === albumDateId)
+          if (idx !== -1) {
+            const group = { ...newData[idx] }
+            group.items = group.items
+              .slice(0, (page - 1) * 100)
+              .concat(result.items)
+              .concat(group.items.slice(page * 100))
+            newData[idx] = group
+            queryClient.setQueryData(dateAlbumsQueryKey, newData)
+          }
+        }
+      } catch (err) {
+        fetchedPagesRef.current.delete(key)
+        console.error('[Gallery] Failed to fetch album date page', err)
+      }
+    },
+    [photosetType],
+  )
 
   const renderButton = (index, buttonCategory) => {
     return (
@@ -86,60 +162,106 @@ const GalleryContainer = () => {
     )
   }
 
+  // Transform dateAlbums to the format expected by TimelineList, merging local images
+  const timelineData = useMemo(() => {
+    if (!dateAlbums) {
+      return []
+    }
+    // Map the frontend format to mobile's expected format
+    let mapped = (dateAlbums || []).map(group => ({
+      id: group.id,
+      title: group.date,
+      data: [...(group.items || [])],
+      incomplete: group.numberOfItems > 0,
+      numberOfItems: group.numberOfItems || 0,
+    }))
+
+    // Merge local images for PhotosByDate category
+    if (category === CategoryType.PhotosByDate && localImages) {
+      localImages.forEach(photo => {
+        const date = photo.birthTime
+        const index = mapped.findIndex(x => x.title === date)
+        if (index === -1) {
+          mapped = [
+            ...mapped,
+            {
+              id: date,
+              title: date,
+              data: [photo],
+              incomplete: false,
+              numberOfItems: 1,
+            },
+          ]
+          mapped.sort((a, b) => new Date(b.title) - new Date(a.title))
+        } else {
+          const albumDate = mapped[index]
+          albumDate.data = [
+            ...albumDate.data.filter(i => i.id !== photo.id),
+            photo,
+          ].sort((a, b) => new Date(b.date) - new Date(a.date))
+          if (photo.syncStatus === SyncStatus.LOCAL) {
+            albumDate.numberOfItems += 1
+          }
+        }
+      })
+      // Remove temp elements for synced local images
+      mapped.forEach(albumDate => {
+        const syncedCount = albumDate.data.filter(
+          p => p.syncStatus === SyncStatus.SYNCED,
+        ).length
+        const tempElements = albumDate.data
+          .filter(p => p.isTemp === true)
+          .slice(0, syncedCount)
+        albumDate.data = albumDate.data.filter(
+          p => tempElements.indexOf(p) === -1,
+        )
+      })
+    }
+
+    return mapped
+  }, [category, dateAlbums, localImages])
+
   const renderContent = () => {
     switch (category) {
       case CategoryType.PhotosByDate:
         return (
           <TimelineList
-            data={photosByDate}
-            onRefresh={() => dispatch(FetchAlbumByDate.action())}
-            refreshing={albums.loading}
+            data={timelineData}
+            onRefresh={() => refetchDateAlbums()}
+            refreshing={isLoading}
+            onFetchPage={handleFetchPage}
           />
         )
       case CategoryType.PhotosWithoutDate:
         return (
           <ImageGrid
-            data={photosWithoutDate}
+            data={photosWithoutDate?.results}
             numColumns={3}
             displayError={true}
-            onRefresh={() =>
-              dispatch(FetchPhotosWithoutDate.action({ page: 1 }))
-            }
-            refreshing={albums.loading}
+            onRefresh={() => refetchNoDate()}
+            refreshing={isLoading}
           />
         )
       case CategoryType.Recent:
         return (
           <ImageGrid
-            data={albumRecentlyAdded?.results}
+            data={recentlyAdded?.results}
             numColumns={3}
             displayError={true}
-            onRefresh={() => dispatch(FetchAlbumByDate.action())}
-            refreshing={albums.loading}
+            onRefresh={() => refetchRecent()}
+            refreshing={isLoading}
           />
         )
       case CategoryType.Favourite:
-        return (
-          <TimelineList
-            data={albumFavourites}
-            onRefresh={() => dispatch(FetchFavourites.action())}
-            refreshing={albums.loading}
-          />
-        )
+      case CategoryType.Videos:
       case CategoryType.Public:
-        return (
-          <TimelineList
-            data={albumPublic}
-            onRefresh={() => dispatch(FetchPublic.action())}
-            refreshing={albums.loading}
-          />
-        )
       case CategoryType.Hidden:
         return (
           <TimelineList
-            data={albumHidden}
-            onRefresh={() => dispatch(FetchHidden.action())}
-            refreshing={albums.loading}
+            data={timelineData}
+            onRefresh={() => refetchDateAlbums()}
+            refreshing={isLoading}
+            onFetchPage={handleFetchPage}
           />
         )
     }
