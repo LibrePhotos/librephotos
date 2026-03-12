@@ -31,7 +31,7 @@ PyExifTool==0.4.9
 pyvips==3.0.0
 scikit-learn<1.7.3
 seaborn==0.13.2
-sentence_transformers==2.7.0
+sentence_transformers==5.3.0
 timezonefinder==6.6.3
 tqdm==4.67.1
 gevent==25.9.1
