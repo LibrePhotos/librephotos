@@ -196,7 +196,15 @@
         "enablellm": "Large Language Model gebruiken voor bijschriften",
         "addperson": "Personen vermelden in bijschriften",
         "addlocation": "Locaties vermelden in bijschriften",
-        "hindi": "Hindi"
+        "hindi": "Hindi",
+        "catalan": "Catalaans",
+        "esperanto": "Esperanto",
+        "estonian": "Ests",
+        "romanian": "Roemeens",
+        "tamil": "Tamil",
+        "turkish": "Turks",
+        "publicsharingdefaults": "Standaard deelopties",
+        "interface": "Vormgeving"
     },
     "topmenu": {
         "profile": "Profiel",
