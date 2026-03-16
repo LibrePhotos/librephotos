@@ -1427,13 +1427,13 @@
     "@sinonjs/commons" "^3.0.0"
 
 "@tabler/icons-react@^3.36.1":
-  version "3.36.1"
-  resolved "https://registry.npmjs.org/@tabler/icons-react/-/icons-react-3.36.1.tgz"
-  integrity sha512-/8nOXeNeMoze9xY/QyEKG65wuvRhkT3q9aytaur6Gj8bYU2A98YVJyLc9MRmc5nVvpy+bRlrrwK/Ykr8WGyUWg==
+  version "3.40.0"
+  resolved "https://registry.yarnpkg.com/@tabler/icons-react/-/icons-react-3.40.0.tgz#07360d9dcfcdd07f1904316885884b6eeed96fa4"
+  integrity sha512-oO5+6QCnna4a//mYubx4euZfECtzQZFDGsDMIdzZUhbdyBCT+3bRVFBPueGIcemWld4Vb/0UQ39C/cmGfGylAg==
   dependencies:
-    "@tabler/icons" ""
+    "@tabler/icons" "3.40.0"
 
-"@tabler/icons@", "@tabler/icons@^3.36.1":
+"@tabler/icons@3.40.0", "@tabler/icons@^3.36.1":
   version "3.40.0"
   resolved "https://registry.yarnpkg.com/@tabler/icons/-/icons-3.40.0.tgz#44848a28e23153ca57e24ef69488213e74acf6d4"
   integrity sha512-V/Q4VgNPKubRTiLdmWjV/zscYcj5IIk+euicUtaVVqF6luSC9rDngYWgST5/yh3Mrg/mYUwRv1YVTk71Jp0twQ==
