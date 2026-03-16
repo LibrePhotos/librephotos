@@ -1434,23 +1434,23 @@
     "@tabler/icons" ""
 
 "@tabler/icons@", "@tabler/icons@^3.36.1":
-  version "3.36.1"
-  resolved "https://registry.npmjs.org/@tabler/icons/-/icons-3.36.1.tgz"
-  integrity sha512-f4Jg3Fof/Vru5ioix/UO4GX+sdDsF9wQo47FbtvG+utIYYVQ/QVAC0QYgcBbAjQGfbdOh2CCf0BgiFOF9Ixtjw==
+  version "3.40.0"
+  resolved "https://registry.yarnpkg.com/@tabler/icons/-/icons-3.40.0.tgz#44848a28e23153ca57e24ef69488213e74acf6d4"
+  integrity sha512-V/Q4VgNPKubRTiLdmWjV/zscYcj5IIk+euicUtaVVqF6luSC9rDngYWgST5/yh3Mrg/mYUwRv1YVTk71Jp0twQ==
 
 "@tanstack/history@1.154.14":
   version "1.154.14"
-  resolved "https://registry.npmjs.org/@tanstack/history/-/history-1.154.14.tgz"
+  resolved "https://registry.yarnpkg.com/@tanstack/history/-/history-1.154.14.tgz#eccbfd62a14c8364a0287ede0fb955bd6ae5aade"
   integrity sha512-xyIfof8eHBuub1CkBnbKNKQXeRZC4dClhmzePHVOEel4G7lk/dW+TQ16da7CFdeNLv6u6Owf5VoBQxoo6DFTSA==
 
 "@tanstack/query-core@5.90.20":
   version "5.90.20"
-  resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.90.20.tgz"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.90.20.tgz#e12128e39210715d4ce4fb299c33498ac297771e"
   integrity sha512-OMD2HLpNouXEfZJWcKeVKUgQ5n+n3A2JFmBaScpNDUqSrQSjiveC7dKMe53uJUg1nDG16ttFPz2xfilz6i2uVg==
 
 "@tanstack/react-query@^5.90.20":
   version "5.90.21"
-  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.90.21.tgz"
+  resolved "https://registry.yarnpkg.com/@tanstack/react-query/-/react-query-5.90.21.tgz#e0eb40831a76510be438109435b8807ef63ab1b9"
   integrity sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg==
   dependencies:
     "@tanstack/query-core" "5.90.20"
