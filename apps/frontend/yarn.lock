@@ -1444,18 +1444,13 @@
     "@sinonjs/commons" "^3.0.0"
 
 "@tabler/icons-react@^3.36.1":
-  version "3.40.0"
-  resolved "https://registry.yarnpkg.com/@tabler/icons-react/-/icons-react-3.40.0.tgz#07360d9dcfcdd07f1904316885884b6eeed96fa4"
-  integrity sha512-oO5+6QCnna4a//mYubx4euZfECtzQZFDGsDMIdzZUhbdyBCT+3bRVFBPueGIcemWld4Vb/0UQ39C/cmGfGylAg==
+  version "3.41.0"
+  resolved "https://registry.yarnpkg.com/@tabler/icons-react/-/icons-react-3.41.0.tgz#3709165efd0e578e959d503b25b036f7fa049dd6"
+  integrity sha512-8XKc3wZKf1icxqwIPSOO61M+dtf8yJPwAE/rtFAVzc5Ros+OjCqowfcoI5IpKK09RSo8s0hHrWvydGgnXqYILg==
   dependencies:
-    "@tabler/icons" "3.40.0"
+    "@tabler/icons" "3.41.0"
 
-"@tabler/icons@3.40.0":
-  version "3.40.0"
-  resolved "https://registry.yarnpkg.com/@tabler/icons/-/icons-3.40.0.tgz#44848a28e23153ca57e24ef69488213e74acf6d4"
-  integrity sha512-V/Q4VgNPKubRTiLdmWjV/zscYcj5IIk+euicUtaVVqF6luSC9rDngYWgST5/yh3Mrg/mYUwRv1YVTk71Jp0twQ==
-
-"@tabler/icons@^3.36.1":
+"@tabler/icons@3.41.0", "@tabler/icons@^3.36.1":
   version "3.41.0"
   resolved "https://registry.yarnpkg.com/@tabler/icons/-/icons-3.41.0.tgz#d4aef4bb044e5ecff4dbe7afb946fe4a0488d18a"
   integrity sha512-arlig0nkaC9UGqTZuT1MMZepX29t3Ysx5HSy2UvmR+CZrhlNxZrCM6Z4qYBoaIO+2ICZykttjBCSpf+p/t0H3w==
