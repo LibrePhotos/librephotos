@@ -204,7 +204,10 @@
         "cluster_selection_epsilon_help": "어떤 클러스터가 병합될지 결정합니다. 값이 높을수록 더 많은 클러스터가 병합됩니다.",
         "llm": "대규모 언어 모델(LLM) 설정",
         "enablellm": "캡션에 대규모 언어 모델(LLM) 사용 활성화",
-        "stack_raw_jpeg_note": "활성화할 경우 스캔하는 동안 RAW 파일이 자동으로 JPEG 버전과 묶입니다. 두 파일이 라이브러리에 남아 있습니다."
+        "stack_raw_jpeg_note": "활성화할 경우 스캔하는 동안 RAW 파일이 자동으로 JPEG 버전과 묶입니다. 두 파일이 라이브러리에 남아 있습니다.",
+        "publicsharingdefaults": "공개 공유 기본값",
+        "delete_rule": "규칙 삭제",
+        "reset_to_defaults": "기본값으로 되돌리기"
     },
     "sitesettings": {
         "map_api_provider_header": "지도 제공자",
