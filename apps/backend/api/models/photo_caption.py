@@ -299,7 +299,23 @@ class PhotoCaption(models.Model):
             response = requests.post(
                 "http://localhost:8011/generate-tags", json=json_data
             )
-            tags_result = response.json()["tags"]
+
+            if not response.ok:
+                util.logger.warning(
+                    f"Tag service returned status {response.status_code} "
+                    f"for image {image_path}"
+                )
+                return
+
+            try:
+                response_json = response.json()
+            except (ValueError, RuntimeError):
+                util.logger.warning(
+                    f"Tag service returned non-JSON response for image {image_path}"
+                )
+                return
+
+            tags_result = response_json.get("tags")
 
             if tags_result is None:
                 return
