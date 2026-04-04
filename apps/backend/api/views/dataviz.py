@@ -1,3 +1,4 @@
+import collections
 import os
 
 from django.http import FileResponse, HttpResponseForbidden
@@ -60,6 +61,36 @@ class ServerLogsView(APIView):
             )
         else:
             return Response({"error": "Log file not found"}, status=404)
+
+
+class ServerLogsViewerView(APIView):
+    def get(self, request, format=None):
+        if not (request.user and request.user.is_staff):
+            return HttpResponseForbidden()
+
+        try:
+            num_lines = int(request.query_params.get("lines", 100))
+        except (ValueError, TypeError):
+            num_lines = 100
+        num_lines = max(1, min(num_lines, 1000))
+
+        BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
+        log_file = os.path.join(BASE_LOGS, "ownphotos.log")
+
+        if not os.path.exists(log_file):
+            return Response({"logs": "", "count": 0, "error": "Log file not found"})
+
+        try:
+            with open(log_file, "rb") as f:
+                lines = collections.deque(f, maxlen=num_lines)
+            log_text = b"".join(lines).decode("utf-8", errors="replace")
+            return Response({"logs": log_text, "count": len(lines)})
+        except Exception:
+            logger.exception("Error reading log file")
+            return Response(
+                {"logs": "", "count": 0, "error": "Failed to read log file"},
+                status=500,
+            )
 
 
 class ServerStatsView(APIView):
