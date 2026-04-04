@@ -98,17 +98,20 @@ class FetchClient {
           window.location.href = "/login";
         }
 
-        // Only show notifications when NOT on a public/login/signup page
-        if (!suppressAuthNotifications) {
+        // Always show notifications for login attempts (wrong credentials),
+        // but suppress other 401 notifications on public/login/signup pages
+        const isLoginAttempt = endpoint.includes("/auth/token/obtain/");
+        if (!suppressAuthNotifications || isLoginAttempt) {
           const data = await response.json();
           if (data.errors) {
             data.errors.forEach((error: { field: string; message: string }) => {
               if (error.field === "detail") {
-                const isLogin = endpoint.includes("/auth/token/obtain/");
-                notification.authError(isLogin, error.field, error.message);
+                notification.authError(isLoginAttempt, error.field, error.message);
               }
             });
-          } else {
+          } else if (isLoginAttempt && data.detail) {
+            notification.authError(true, "detail", data.detail);
+          } else if (!isLoginAttempt) {
             notification.invalidToken();
           }
         }
