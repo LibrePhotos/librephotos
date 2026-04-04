@@ -217,34 +217,49 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
-class PhotoMetadataSummarySerializer(serializers.Serializer):
+class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
     """
     Lightweight metadata summary for photo lists.
 
     Returns key metadata fields without the full detail.
     """
 
-    # Camera info
-    camera_display = serializers.CharField(allow_null=True)
-    lens_display = serializers.CharField(allow_null=True)
-    # Capture settings
-    aperture = serializers.FloatField(allow_null=True)
-    shutter_speed = serializers.CharField(allow_null=True)
-    iso = serializers.IntegerField(allow_null=True)
-    focal_length = serializers.FloatField(allow_null=True)
-    focal_length_35mm = serializers.IntegerField(allow_null=True)
-    # Image info
-    resolution = serializers.CharField(allow_null=True)
-    megapixels = serializers.FloatField(allow_null=True)
-    # Date/location
-    date_taken = serializers.DateTimeField(allow_null=True)
-    has_location = serializers.BooleanField()
-    # Content
-    rating = serializers.IntegerField(allow_null=True)
-    # Edit tracking
-    source = serializers.CharField()
-    version = serializers.IntegerField()
+    # Computed @property fields need ReadOnlyField to be resolved
+    camera_display = serializers.ReadOnlyField()
+    lens_display = serializers.ReadOnlyField()
+    resolution = serializers.ReadOnlyField()
+    megapixels = serializers.ReadOnlyField()
+    has_location = serializers.ReadOnlyField()
+
+    # SerializerMethodField for cross-model query
     has_edits = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PhotoMetadata
+        fields = (
+            # Camera info
+            "camera_display",
+            "lens_display",
+            # Capture settings
+            "aperture",
+            "shutter_speed",
+            "iso",
+            "focal_length",
+            "focal_length_35mm",
+            # Image info
+            "resolution",
+            "megapixels",
+            # Date/location
+            "date_taken",
+            "has_location",
+            # Content
+            "rating",
+            # Edit tracking
+            "source",
+            "version",
+            "has_edits",
+        )
+        read_only_fields = fields
 
     def get_has_edits(self, obj) -> bool:
         """Check if this photo has any metadata edits."""
