@@ -1,7 +1,8 @@
-import logging.handlers
+import logging
 import os
 import os.path
 
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 from django.conf import settings
 
 logger = logging.getLogger("ownphotos")
@@ -12,7 +13,10 @@ formatter = logging.Formatter(
 DEFAULT_LOG_MAX_BYTES = 200 * 1024 * 1024  # 200 MB
 DEFAULT_LOG_BACKUP_COUNT = 10
 
-FILE_HANDLER = logging.handlers.RotatingFileHandler(
+# Use ConcurrentRotatingFileHandler instead of RotatingFileHandler to avoid
+# premature log rotation when multiple processes (gunicorn workers, django-q2
+# workers) write to the same log file simultaneously.
+FILE_HANDLER = ConcurrentRotatingFileHandler(
     os.path.join(settings.LOGS_ROOT, "ownphotos.log"),
     maxBytes=DEFAULT_LOG_MAX_BYTES,
     backupCount=DEFAULT_LOG_BACKUP_COUNT,

@@ -1,5 +1,7 @@
-import unittest
 from unittest.mock import patch
+
+from concurrent_log_handler import ConcurrentRotatingFileHandler
+from django.test import SimpleTestCase
 
 from api.util import (
     DEFAULT_LOG_BACKUP_COUNT,
@@ -9,7 +11,7 @@ from api.util import (
 )
 
 
-class LogRotationDefaultsTest(unittest.TestCase):
+class LogRotationDefaultsTest(SimpleTestCase):
     """Verify that the default log rotation values are sensible."""
 
     def test_default_max_bytes_is_200mb(self):
@@ -23,8 +25,11 @@ class LogRotationDefaultsTest(unittest.TestCase):
         self.assertEqual(FILE_HANDLER.maxBytes, DEFAULT_LOG_MAX_BYTES)
         self.assertEqual(FILE_HANDLER.backupCount, DEFAULT_LOG_BACKUP_COUNT)
 
+    def test_handler_is_concurrent(self):
+        self.assertIsInstance(FILE_HANDLER, ConcurrentRotatingFileHandler)
 
-class ReconfigureLoggingTest(unittest.TestCase):
+
+class ReconfigureLoggingTest(SimpleTestCase):
     """Test that reconfigure_logging reads from CONSTANCE and updates the handler."""
 
     def tearDown(self):
@@ -72,7 +77,7 @@ class ReconfigureLoggingTest(unittest.TestCase):
         self.assertEqual(FILE_HANDLER.backupCount, DEFAULT_LOG_BACKUP_COUNT)
 
 
-class ConstanceConfigTest(unittest.TestCase):
+class ConstanceConfigTest(SimpleTestCase):
     """Verify that CONSTANCE_CONFIG includes the log rotation entries."""
 
     def test_log_max_bytes_in_constance(self):
