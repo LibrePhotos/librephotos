@@ -70,3 +70,35 @@ weekdays = {
     6: "Saturday",
     7: "Sunday",
 }
+
+
+def calculate_iou(box1_top, box1_right, box1_bottom, box1_left,
+                  box2_top, box2_right, box2_bottom, box2_left):
+    """Calculate Intersection over Union (IoU) of two bounding boxes.
+
+    Each box is defined by (top, right, bottom, left) pixel coordinates,
+    where top < bottom and left < right.
+
+    Returns a float in [0, 1]. A value of 0 means no overlap.
+    """
+    inter_top = max(box1_top, box2_top)
+    inter_left = max(box1_left, box2_left)
+    inter_bottom = min(box1_bottom, box2_bottom)
+    inter_right = min(box1_right, box2_right)
+
+    inter_width = max(0, inter_right - inter_left)
+    inter_height = max(0, inter_bottom - inter_top)
+    intersection = inter_width * inter_height
+
+    area1 = (box1_bottom - box1_top) * (box1_right - box1_left)
+    area2 = (box2_bottom - box2_top) * (box2_right - box2_left)
+    union = area1 + area2 - intersection
+
+    if union <= 0:
+        return 0.0
+
+    return intersection / union
+
+
+# Minimum IoU to consider two face bounding boxes as the same face.
+FACE_OVERLAP_IOU_THRESHOLD = 0.3

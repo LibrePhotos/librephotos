@@ -21,7 +21,22 @@ from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
 from api.models.file import File
 from api.models.user import User, get_deleted_user
-from api.util import logger
+from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou, logger
+
+
+def _overlaps_existing_face(existing_face_locations, top, right, bottom, left):
+    """Return True if a new face region overlaps significantly with any
+    existing face (IoU >= FACE_OVERLAP_IOU_THRESHOLD).
+
+    *existing_face_locations* is an iterable of (top, right, bottom, left) tuples.
+    """
+    for ex_top, ex_right, ex_bottom, ex_left in existing_face_locations:
+        iou = calculate_iou(
+            top, right, bottom, left, ex_top, ex_right, ex_bottom, ex_left
+        )
+        if iou >= FACE_OVERLAP_IOU_THRESHOLD:
+            return True
+    return False
 
 
 class VisiblePhotoManager(models.Manager):
@@ -387,6 +402,13 @@ class Photo(models.Model):
             if len(face_locations) == 0:
                 return
 
+            # Fetch existing face locations once to avoid repeated DB queries.
+            existing_face_locations = list(
+                api.models.face.Face.objects.filter(photo=self).values_list(
+                    "location_top", "location_right", "location_bottom", "location_left"
+                )
+            )
+
             for idx_face, face_location in enumerate(face_locations):
                 top, right, bottom, left, person_name = face_location
                 if person_name:
@@ -402,20 +424,7 @@ class Photo(models.Model):
 
                 image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                margin = int((right - left) * 0.05)
-                existing_faces = api.models.face.Face.objects.filter(
-                    photo=self,
-                    location_top__lte=top + margin,
-                    location_top__gte=top - margin,
-                    location_right__lte=right + margin,
-                    location_right__gte=right - margin,
-                    location_bottom__lte=bottom + margin,
-                    location_bottom__gte=bottom - margin,
-                    location_left__lte=left + margin,
-                    location_left__gte=left - margin,
-                )
-
-                if existing_faces.count() != 0:
+                if _overlaps_existing_face(existing_face_locations, top, right, bottom, left):
                     continue
 
                 face = api.models.face.Face(
@@ -436,6 +445,7 @@ class Photo(models.Model):
                 face.image.save(image_path, ContentFile(face_io.getvalue()))
                 face_io.close()
                 face.save()
+                existing_face_locations.append((top, right, bottom, left))
             logger.info(f"image {self.image_hash}: {len(face_locations)} face(s) saved")
         except IntegrityError:
             # When using multiple processes, then we can save at the same time, which leads to this error
