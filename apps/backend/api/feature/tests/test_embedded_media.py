@@ -1,16 +1,18 @@
+import os
+
 from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient, APITestCase
 
-from api.feature.embedded_media import (
-    GOOGLE_PIXEL_MOTION_PHOTO_MP4_SIGNATURES,
-    JPEG_EOI_MARKER,
-    SAMSUNG_MOTION_PHOTO_MARKER,
-    extract_embedded_media,
-    has_embedded_media,
-)
 from api.models import User
 from api.models.file import File
+from api.stacks.live_photo import (
+    GOOGLE_PIXEL_MP4_SIGNATURES,
+    JPEG_EOI_MARKER,
+    SAMSUNG_MOTION_MARKER,
+    extract_embedded_motion_video,
+    has_embedded_motion_video,
+)
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -38,45 +40,47 @@ class EmbeddedMediaTest(APITestCase):
 
     def test_should_not_process_non_jpeg_files(self):
         file = create_test_file(self.test_video_path, self.user, MP4)
-        actual = has_embedded_media(file.path)
+        actual = has_embedded_motion_video(file.path)
         self.assertFalse(actual)
 
     def test_google_pixel_motion_photo_signatures(self):
-        for signature in GOOGLE_PIXEL_MOTION_PHOTO_MP4_SIGNATURES:
+        for signature in GOOGLE_PIXEL_MP4_SIGNATURES:
             content = JPEG + MP4_PREFIX + signature + MP4_DATA
             file = create_test_file(self.test_image_path, self.user, content)
-            actual = has_embedded_media(file.path)
+            actual = has_embedded_motion_video(file.path)
             self.assertTrue(actual)
 
     def test_samsung_motion_photo_signature(self):
-        content = JPEG + SAMSUNG_MOTION_PHOTO_MARKER + MP4_DATA
+        content = JPEG + SAMSUNG_MOTION_MARKER + MP4_DATA
         file = create_test_file(self.test_image_path, self.user, content)
-        actual = has_embedded_media(file.path)
+        actual = has_embedded_motion_video(file.path)
         self.assertTrue(actual)
 
     def test_other_content_should_not_report_as_having_embedded_media(self):
         file = create_test_file(self.test_image_path, self.user, RANDOM_BYTES)
-        actual = has_embedded_media(file.path)
+        actual = has_embedded_motion_video(file.path)
         self.assertFalse(actual)
 
     def test_extract_embedded_media_from_google_motion_photo(self):
-        for signature in GOOGLE_PIXEL_MOTION_PHOTO_MP4_SIGNATURES:
+        for signature in GOOGLE_PIXEL_MP4_SIGNATURES:
             content = JPEG + MP4_PREFIX + signature + MP4_DATA
             file = create_test_file(self.test_image_path, self.user, content)
-            path = extract_embedded_media(file.path, file.hash)
-            expected = f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_1.mp4"
+            path = extract_embedded_motion_video(file.path, file.hash)
+            expected = (
+                f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_motion.mp4"
+            )
             self.assertEqual(path, expected)
             with open(path, "rb") as f:
                 contents = f.read()
                 self.assertEqual(MP4_PREFIX + signature + MP4_DATA, contents)
 
     def test_extract_embedded_media_from_samsung_motion_photo(self):
-        content = JPEG + SAMSUNG_MOTION_PHOTO_MARKER + MP4
+        content = JPEG + SAMSUNG_MOTION_MARKER + MP4
         file = create_test_file(self.test_image_path, self.user, content)
-        path = extract_embedded_media(file.path, file.hash)
-        expected = f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_1.mp4"
+        path = extract_embedded_motion_video(file.path, file.hash)
+        expected = f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_motion.mp4"
         self.assertEqual(expected, path)
-        with open(path, "rb+") as f:
+        with open(path, "rb") as f:
             contents = f.read()
             self.assertEqual(MP4, contents)
 
@@ -112,3 +116,23 @@ class EmbeddedMediaTest(APITestCase):
 
         response = self.client.get(f"/media/embedded_media/{photo.pk}")
         self.assertEqual(response.status_code, 404)
+
+    @override_settings(SERVE_FRONTEND=True)
+    def test_fetch_embedded_media_uses_actual_file_path(self):
+        """Embedded media should be served using the actual File.path from the
+        database, not a hardcoded filename pattern like '{hash}_1.mp4'.
+
+        This is a regression test for a bug where the extraction code saved
+        files as '{hash}_motion.mp4' but the view looked for '{hash}_1.mp4'.
+        """
+        self.client.force_authenticate(user=self.user)
+        # Use a path with _motion.mp4 suffix to mimic the new extraction naming
+        motion_video_path = "/tmp/embedded_media/testhash_motion.mp4"
+        os.makedirs(os.path.dirname(motion_video_path), exist_ok=True)
+        embedded_media = create_test_file(motion_video_path, self.user, MP4)
+        photo = create_test_photo(owner=self.user)
+        photo.main_file.embedded_media.add(embedded_media)
+
+        response = self.client.get(f"/media/embedded_media/{photo.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "video/mp4")
