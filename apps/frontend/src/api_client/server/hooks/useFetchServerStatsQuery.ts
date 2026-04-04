@@ -100,7 +100,7 @@ export const ServerStatsResponse = z.object({
   image_tag: z.string(),
   available_ram_in_mb: z.number(),
   gpu_name: z.string(),
-  gpu_memory_in_mb: z.string(),
+  gpu_memory_in_mb: z.union([z.string(), z.number()]),
   total_storage_in_mb: z.number(),
   used_storage_in_mb: z.number(),
   free_storage_in_mb: z.number(),
