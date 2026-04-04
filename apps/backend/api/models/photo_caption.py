@@ -309,7 +309,7 @@ class PhotoCaption(models.Model):
 
             try:
                 response_json = response.json()
-            except Exception:
+            except (ValueError, RuntimeError):
                 util.logger.warning(
                     f"Tag service returned non-JSON response for image {image_path}"
                 )

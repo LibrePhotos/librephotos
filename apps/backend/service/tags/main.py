@@ -48,7 +48,7 @@ def generate_tags():
             return {"tags": result}, 201
     except Exception as e:
         print(f"tags: Error processing image {image_path}: {e}")
-        return {"error": str(e)}, 500
+        return {"error": "Failed to process image"}, 500
 
 
 @app.route("/health", methods=["GET"])
