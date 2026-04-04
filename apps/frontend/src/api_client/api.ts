@@ -100,7 +100,7 @@ class FetchClient {
 
         // Always show notifications for login attempts (wrong credentials),
         // but suppress other 401 notifications on public/login/signup pages
-        const isLoginAttempt = endpoint.includes("/auth/token/obtain/");
+        const isLoginAttempt = endpoint === "/auth/token/obtain/";
         if (!suppressAuthNotifications || isLoginAttempt) {
           const data = await response.json();
           if (data.errors) {
