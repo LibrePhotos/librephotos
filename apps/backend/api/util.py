@@ -1,22 +1,50 @@
-import logging.handlers
+import logging
 import os
 import os.path
 
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 from django.conf import settings
 
 logger = logging.getLogger("ownphotos")
 formatter = logging.Formatter(
     "%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s"
 )
-FILE_MAX_BYTE = 256 * 1024 * 200  # 100MB
-FILE_HANDLER = logging.handlers.RotatingFileHandler(
+
+DEFAULT_LOG_MAX_BYTES = 200 * 1024 * 1024  # 200 MB
+DEFAULT_LOG_BACKUP_COUNT = 10
+
+# Use ConcurrentRotatingFileHandler instead of RotatingFileHandler to avoid
+# premature log rotation when multiple processes (gunicorn workers, django-q2
+# workers) write to the same log file simultaneously.
+FILE_HANDLER = ConcurrentRotatingFileHandler(
     os.path.join(settings.LOGS_ROOT, "ownphotos.log"),
-    maxBytes=FILE_MAX_BYTE,
-    backupCount=10,
+    maxBytes=DEFAULT_LOG_MAX_BYTES,
+    backupCount=DEFAULT_LOG_BACKUP_COUNT,
 )
 FILE_HANDLER.setFormatter(formatter)
 logger.addHandler(FILE_HANDLER)
 logger.setLevel(logging.INFO)
+
+
+def reconfigure_logging():
+    """Reconfigure the log handler from CONSTANCE settings.
+
+    Call this after Django is fully initialised and the database is available
+    so that ``constance.config`` can be read.
+    """
+    try:
+        from constance import config as constance_config
+
+        max_bytes = int(getattr(constance_config, "LOG_MAX_BYTES", DEFAULT_LOG_MAX_BYTES))
+        backup_count = int(
+            getattr(constance_config, "LOG_BACKUP_COUNT", DEFAULT_LOG_BACKUP_COUNT)
+        )
+    except Exception:
+        max_bytes = DEFAULT_LOG_MAX_BYTES
+        backup_count = DEFAULT_LOG_BACKUP_COUNT
+
+    FILE_HANDLER.maxBytes = max_bytes
+    FILE_HANDLER.backupCount = backup_count
 
 
 def is_valid_path(path, root_path):
