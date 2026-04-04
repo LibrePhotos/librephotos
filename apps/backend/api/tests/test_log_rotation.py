@@ -54,11 +54,18 @@ class ReconfigureLoggingTest(unittest.TestCase):
         self.assertEqual(FILE_HANDLER.backupCount, custom_count)
 
     def test_reconfigure_falls_back_on_error(self):
-        # If constance is unavailable, defaults should be preserved
-        FILE_HANDLER.maxBytes = DEFAULT_LOG_MAX_BYTES
-        FILE_HANDLER.backupCount = DEFAULT_LOG_BACKUP_COUNT
+        """When constance raises (e.g. DB unavailable), defaults are preserved."""
 
-        with patch("builtins.__import__", side_effect=ImportError):
+        class _BrokenConfig:
+            """Simulates constance when the database is not reachable."""
+
+            @property
+            def LOG_MAX_BYTES(self):
+                raise Exception("DB unavailable")
+
+        mock_constance = type("m", (), {"config": _BrokenConfig()})()
+
+        with patch.dict("sys.modules", {"constance": mock_constance}):
             reconfigure_logging()
 
         self.assertEqual(FILE_HANDLER.maxBytes, DEFAULT_LOG_MAX_BYTES)
