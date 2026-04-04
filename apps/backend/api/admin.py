@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django_q.tasks import AsyncTask
 
-from api.util import calculate_iou
+from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 from .models import (
     AlbumAuto,
     AlbumDate,
@@ -17,9 +17,6 @@ from .models import (
     User,
     Thumbnail,
 )
-
-# Minimum IoU to consider two face bounding boxes as the same face.
-FACE_OVERLAP_IOU_THRESHOLD = 0.3
 
 
 def deduplicate_faces_function(queryset):

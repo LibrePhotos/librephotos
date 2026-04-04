@@ -3,14 +3,14 @@
 from django.test import TestCase
 
 from api.admin import deduplicate_faces_function
-from api.models.photo import FACE_OVERLAP_IOU_THRESHOLD, _overlaps_existing_face
+from api.models.photo import _overlaps_existing_face
 from api.tests.utils import (
     create_test_face,
     create_test_person,
     create_test_photo,
     create_test_user,
 )
-from api.util import calculate_iou
+from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
 
 
 class CalculateIoUTest(TestCase):
@@ -80,54 +80,32 @@ class CalculateIoUTest(TestCase):
 class OverlapsExistingFaceTest(TestCase):
     """Tests for _overlaps_existing_face in the photo model."""
 
-    def setUp(self):
-        self.user = create_test_user()
-        self.photo = create_test_photo(owner=self.user)
-
     def test_no_existing_faces(self):
         """When no faces exist on the photo, should return False."""
         self.assertFalse(
-            _overlaps_existing_face(self.photo, 100, 300, 300, 100)
+            _overlaps_existing_face([], 100, 300, 300, 100)
         )
 
     def test_overlapping_face_detected(self):
         """A new face that overlaps significantly with an existing face should be rejected."""
-        create_test_face(
-            photo=self.photo,
-            location_top=100,
-            location_right=300,
-            location_bottom=300,
-            location_left=100,
-        )
+        existing = [(100, 300, 300, 100)]
         # Slightly shifted face — high IoU
         self.assertTrue(
-            _overlaps_existing_face(self.photo, 110, 310, 310, 110)
+            _overlaps_existing_face(existing, 110, 310, 310, 110)
         )
 
     def test_non_overlapping_face_allowed(self):
         """A new face far away from the existing face should not be rejected."""
-        create_test_face(
-            photo=self.photo,
-            location_top=100,
-            location_right=300,
-            location_bottom=300,
-            location_left=100,
-        )
+        existing = [(100, 300, 300, 100)]
         # Completely different region
         self.assertFalse(
-            _overlaps_existing_face(self.photo, 500, 700, 700, 500)
+            _overlaps_existing_face(existing, 500, 700, 700, 500)
         )
 
     def test_same_face_different_model_sizes(self):
         """A tighter or wider bounding box around the same face should be detected."""
         # Existing face: large box
-        create_test_face(
-            photo=self.photo,
-            location_top=50,
-            location_right=350,
-            location_bottom=350,
-            location_left=50,
-        )
+        existing = [(50, 350, 350, 50)]
         # New face: smaller box centred inside the large one
         # Box2: (100, 300, 300, 100) -> 200x200 = 40000
         # Intersection: (100, 300, 300, 100) -> 200x200 = 40000
@@ -135,7 +113,7 @@ class OverlapsExistingFaceTest(TestCase):
         # Union: 90000 + 40000 - 40000 = 90000
         # IoU: 40000 / 90000 ≈ 0.444
         self.assertTrue(
-            _overlaps_existing_face(self.photo, 100, 300, 300, 100)
+            _overlaps_existing_face(existing, 100, 300, 300, 100)
         )
 
 

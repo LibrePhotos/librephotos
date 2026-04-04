@@ -98,3 +98,7 @@ def calculate_iou(box1_top, box1_right, box1_bottom, box1_left,
         return 0.0
 
     return intersection / union
+
+
+# Minimum IoU to consider two face bounding boxes as the same face.
+FACE_OVERLAP_IOU_THRESHOLD = 0.3
