@@ -82,28 +82,32 @@ export function ServiceList() {
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
-                      <Button
-                        size="xs"
-                        color="green"
-                        variant="outline"
-                        leftSection={<Play size={14} />}
-                        loading={isThisServicePending && pendingAction?.action === "start"}
-                        disabled={isPending}
-                        onClick={() => performAction({ serviceName: name, action: "start" })}
-                      >
-                        {t("services.start")}
-                      </Button>
-                      <Button
-                        size="xs"
-                        color="red"
-                        variant="outline"
-                        leftSection={<Stop size={14} />}
-                        loading={isThisServicePending && pendingAction?.action === "stop"}
-                        disabled={isPending}
-                        onClick={() => performAction({ serviceName: name, action: "stop" })}
-                      >
-                        {t("services.stop")}
-                      </Button>
+                      {!healthy && (
+                        <Button
+                          size="xs"
+                          color="green"
+                          variant="outline"
+                          leftSection={<Play size={14} />}
+                          loading={isThisServicePending && pendingAction?.action === "start"}
+                          disabled={isPending}
+                          onClick={() => performAction({ serviceName: name, action: "start" })}
+                        >
+                          {t("services.start")}
+                        </Button>
+                      )}
+                      {healthy && (
+                        <Button
+                          size="xs"
+                          color="red"
+                          variant="outline"
+                          leftSection={<Stop size={14} />}
+                          loading={isThisServicePending && pendingAction?.action === "stop"}
+                          disabled={isPending}
+                          onClick={() => performAction({ serviceName: name, action: "stop" })}
+                        >
+                          {t("services.stop")}
+                        </Button>
+                      )}
                     </Group>
                   </Table.Td>
                 </Table.Tr>
