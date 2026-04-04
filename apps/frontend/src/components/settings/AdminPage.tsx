@@ -10,38 +10,16 @@ import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDeleteAllAutoAlbumsMutation } from "../../api_client/albums/hooks";
-import { useFetchServerLogsQuery, useFetchServerStatsQuery } from "../../api_client/server/hooks";
+import { useFetchServerStatsQuery } from "../../api_client/server/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { i18nResolvedLanguage } from "../../i18n";
 import { JobList } from "../job/JobList";
 import { ModalUserDelete } from "../modals/ModalUserDelete";
 import { ModalUserEdit } from "../modals/ModalUserEdit";
+import { ServerLogsCard } from "./ServerLogsCard";
 import { ServiceList } from "./ServiceList";
 import { SiteSettings } from "./SiteSettings";
-
-function DownloadLogsButton() {
-  const { data, isFetching } = useFetchServerLogsQuery();
-
-  const handleDownload = () => {
-    if (!data) return;
-
-    const url = window.URL.createObjectURL(data);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "ownphotos.log"; // Set default filename
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
-  return (
-    <Button onClick={handleDownload} disabled={isFetching}>
-      {isFetching ? "Downloading..." : "Download Logs"}
-    </Button>
-  );
-}
 
 function UserTable() {
   const { t } = useTranslation();
@@ -196,10 +174,6 @@ function AdminTools() {
             {t("adminarea.download")}
           </Button>
         </Flex>
-        <Flex justify="space-between">
-          <div>Download Server Logs</div>
-          <DownloadLogsButton />
-        </Flex>
       </Stack>
     </Card>
   );
@@ -226,6 +200,8 @@ export function AdminPage() {
         <SiteSettings />
 
         <AdminTools />
+
+        <ServerLogsCard />
 
         <ServiceList />
 
