@@ -21,7 +21,25 @@ from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
 from api.models.file import File
 from api.models.user import User, get_deleted_user
-from api.util import logger
+from api.util import calculate_iou, logger
+
+# Minimum IoU to consider two face bounding boxes as the same face.
+FACE_OVERLAP_IOU_THRESHOLD = 0.3
+
+
+def _overlaps_existing_face(photo, top, right, bottom, left):
+    """Return True if a new face region overlaps significantly with any
+    existing face on *photo* (IoU >= FACE_OVERLAP_IOU_THRESHOLD)."""
+    existing_faces = api.models.face.Face.objects.filter(photo=photo).values_list(
+        "location_top", "location_right", "location_bottom", "location_left"
+    )
+    for ex_top, ex_right, ex_bottom, ex_left in existing_faces:
+        iou = calculate_iou(
+            top, right, bottom, left, ex_top, ex_right, ex_bottom, ex_left
+        )
+        if iou >= FACE_OVERLAP_IOU_THRESHOLD:
+            return True
+    return False
 
 
 class VisiblePhotoManager(models.Manager):
@@ -402,20 +420,7 @@ class Photo(models.Model):
 
                 image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                margin = int((right - left) * 0.05)
-                existing_faces = api.models.face.Face.objects.filter(
-                    photo=self,
-                    location_top__lte=top + margin,
-                    location_top__gte=top - margin,
-                    location_right__lte=right + margin,
-                    location_right__gte=right - margin,
-                    location_bottom__lte=bottom + margin,
-                    location_bottom__gte=bottom - margin,
-                    location_left__lte=left + margin,
-                    location_left__gte=left - margin,
-                )
-
-                if existing_faces.count() != 0:
+                if _overlaps_existing_face(self, top, right, bottom, left):
                     continue
 
                 face = api.models.face.Face(
