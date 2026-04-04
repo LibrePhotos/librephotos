@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient, APITestCase
@@ -112,3 +114,23 @@ class EmbeddedMediaTest(APITestCase):
 
         response = self.client.get(f"/media/embedded_media/{photo.pk}")
         self.assertEqual(response.status_code, 404)
+
+    @override_settings(SERVE_FRONTEND=True)
+    def test_fetch_embedded_media_uses_actual_file_path(self):
+        """Embedded media should be served using the actual File.path from the
+        database, not a hardcoded filename pattern like '{hash}_1.mp4'.
+
+        This is a regression test for a bug where the extraction code saved
+        files as '{hash}_motion.mp4' but the view looked for '{hash}_1.mp4'.
+        """
+        self.client.force_authenticate(user=self.user)
+        # Use a path with _motion.mp4 suffix to mimic the new extraction naming
+        motion_video_path = "/tmp/embedded_media/testhash_motion.mp4"
+        os.makedirs(os.path.dirname(motion_video_path), exist_ok=True)
+        embedded_media = create_test_file(motion_video_path, self.user, MP4)
+        photo = create_test_photo(owner=self.user)
+        photo.main_file.embedded_media.add(embedded_media)
+
+        response = self.client.get(f"/media/embedded_media/{photo.pk}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "video/mp4")

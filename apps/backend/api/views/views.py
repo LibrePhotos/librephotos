@@ -761,7 +761,10 @@ class UnifiedMediaAccessView(APIView):
                     photo = Photo.objects.filter(query, pk=fname).first()
                 else:
                     photo = Photo.objects.filter(query, image_hash=fname).first()
-                if not photo or photo.main_file.embedded_media.count() < 1:
+                embedded_media_file = (
+                    photo.main_file.embedded_media.first() if photo else None
+                )
+                if not photo or not embedded_media_file:
                     raise Photo.DoesNotExist()
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
@@ -769,11 +772,10 @@ class UnifiedMediaAccessView(APIView):
                 response = HttpResponse()
                 response["Content-Type"] = "video/mp4"
                 response["X-Accel-Redirect"] = self._protected_media_url(
-                    path, fname + "_1.mp4"
+                    path, os.path.basename(embedded_media_file.path)
                 )
                 return response
-            file_path = os.path.join(settings.MEDIA_ROOT, path, fname + "_1.mp4")
-            return self._serve_file_direct(file_path, "video/mp4")
+            return self._serve_file_direct(embedded_media_file.path, "video/mp4")
 
         # Determine photo by hash
         image_hash = fname.split(".")[0].split("_")[0]
@@ -1018,7 +1020,12 @@ class ZipListPhotosView_V2(APIView):
         if isinstance(include_stacked, (list, tuple)):
             include_stacked = include_stacked[0] if include_stacked else False
         if isinstance(include_stacked, str):
-            include_stacked = include_stacked.strip().lower() in ("1", "true", "yes", "on")
+            include_stacked = include_stacked.strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
         include_stacked = bool(include_stacked)
 
         photo_query = Photo.objects.filter(owner=self.request.user)
