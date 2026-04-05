@@ -17,7 +17,11 @@ from api import util
 from api.face_classify import cluster_all_faces
 from api.models import Face, LongRunningJob, Photo
 from api.models.photo_caption import PhotoCaption
-from api.directory_watcher.utils import update_scan_counter
+from api.directory_watcher.utils import (
+    CANCELLATION_CHECK_INTERVAL,
+    is_job_cancelled,
+    update_scan_counter,
+)
 
 
 def generate_face_embeddings(user, job_id: UUID):
@@ -42,7 +46,11 @@ def generate_face_embeddings(user, job_id: UUID):
         lrj.update_progress(current=0, target=faces.count())
         db.connections.close_all()
 
-        for face in faces:
+        for idx, face in enumerate(faces):
+            # Check for cancellation periodically
+            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+                util.logger.info("Generate face embeddings job cancelled")
+                return
             failed = False
             error = None
             try:
@@ -108,7 +116,11 @@ def generate_tags(user, job_id: UUID, full_scan=False):
         lrj.update_progress(current=0, target=existing_photos.count())
         db.connections.close_all()
 
-        for photo in existing_photos:
+        for idx, photo in enumerate(existing_photos):
+            # Check for cancellation periodically
+            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+                util.logger.info("Generate tags job cancelled")
+                return
             AsyncTask(generate_tag_job, photo, job_id).run()
 
     except Exception as err:
@@ -173,7 +185,11 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
         lrj.update_progress(current=0, target=existing_photos.count())
         db.connections.close_all()
 
-        for photo in existing_photos:
+        for idx, photo in enumerate(existing_photos):
+            # Check for cancellation periodically
+            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+                util.logger.info("Add geolocation job cancelled")
+                return
             AsyncTask(geolocation_job, photo, job_id).run()
 
     except Exception as err:
@@ -241,7 +257,11 @@ def scan_faces(user, job_id: UUID, full_scan=False):
         lrj.update_progress(current=0, target=existing_photos.count())
         db.connections.close_all()
 
-        for photo in existing_photos:
+        for idx, photo in enumerate(existing_photos):
+            # Check for cancellation periodically
+            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+                util.logger.info("Scan faces job cancelled")
+                return
             failed = False
             error = None
             try:

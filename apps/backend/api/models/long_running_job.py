@@ -50,6 +50,7 @@ class LongRunningJob(models.Model):
 
     finished = models.BooleanField(default=False, blank=False, null=False)
     failed = models.BooleanField(default=False, blank=False, null=False)
+    cancelled = models.BooleanField(default=False, blank=False, null=False)
     job_id = models.CharField(max_length=36, unique=True, db_index=True)
     queued_at = models.DateTimeField(default=datetime.now, null=False)
     started_at = models.DateTimeField(null=True)
@@ -106,6 +107,14 @@ class LongRunningJob(models.Model):
         if error is not None:
             self.result = {"status": "failed", "error": str(error)}
         self.save(update_fields=["failed", "finished", "finished_at", "result"])
+
+    def cancel(self):
+        """Mark job as cancelled and finished."""
+        self.cancelled = True
+        self.finished = True
+        self.finished_at = timezone.now()
+        self.result = {"status": "cancelled"}
+        self.save(update_fields=["cancelled", "finished", "finished_at", "result"])
 
     def update_progress(self, current, target=None, step=None):
         """Update job progress counters and optional step description."""
