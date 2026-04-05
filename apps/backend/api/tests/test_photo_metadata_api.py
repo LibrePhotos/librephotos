@@ -352,7 +352,7 @@ class PhotoMetadataRevertAllTestCase(APITestCase):
         
         try:
             _response = self.client.post(f"/api/photos/{self.photo.pk}/metadata/revert-all/")
-        except Exception:
+        except (ConnectionError, OSError):
             # The endpoint may try to contact external services (e.g. EXIF/tag)
             # that are not available in the test environment
             pass

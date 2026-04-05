@@ -11,10 +11,13 @@ from api.models import File, Person, Photo
 from api.tests.utils import create_test_user
 
 
+EXIF_SERVICE_URL = "http://localhost:8010/"
+
+
 def _exif_service_available():
     """Check if the EXIF metadata service is reachable."""
     try:
-        requests.get("http://localhost:8010/", timeout=1)
+        requests.get(EXIF_SERVICE_URL, timeout=1)
         return True
     except Exception:
         return False
