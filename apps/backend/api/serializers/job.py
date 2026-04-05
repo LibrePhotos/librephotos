@@ -17,6 +17,7 @@ class LongRunningJobSerializer(serializers.ModelSerializer):
             "finished_at",
             "started_at",
             "failed",
+            "cancelled",
             "job_type_str",
             "job_type",
             "started_by",

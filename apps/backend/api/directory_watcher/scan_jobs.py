@@ -390,6 +390,12 @@ def scan_missing_photos(user, job_id: UUID):
         paginator = Paginator(existing_photos, 5000)
         lrj.update_progress(current=0, target=paginator.num_pages)
         for page in range(1, paginator.num_pages + 1):
+            # Check for cancellation
+            if LongRunningJob.objects.filter(
+                job_id=job_id, cancelled=True
+            ).exists():
+                util.logger.info("Scan missing photos job cancelled")
+                return
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_files()
 

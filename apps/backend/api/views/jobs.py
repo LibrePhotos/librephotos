@@ -1,5 +1,6 @@
 from django.db.models import Prefetch
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -21,6 +22,40 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
     )
     serializer_class = LongRunningJobSerializer
     pagination_class = TinyResultsSetPagination
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        """Cancel a running or queued job."""
+        try:
+            job = self.get_object()
+        except LongRunningJob.DoesNotExist:
+            return Response(
+                {"status": False, "message": "Job not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if job.finished:
+            return Response(
+                {"status": False, "message": "Job is already finished"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        job.cancel()
+
+        # Best-effort: remove queued django-q tasks that haven't started yet
+        try:
+            from django_q.models import OrmQ
+
+            OrmQ.objects.filter(name__contains=str(job.job_id)).delete()
+        except Exception:
+            pass  # Non-critical; cooperative cancellation handles running tasks
+
+        return Response(
+            {
+                "status": True,
+                "job": LongRunningJobSerializer(job).data,
+            }
+        )
 
 
 class QueueAvailabilityView(APIView):

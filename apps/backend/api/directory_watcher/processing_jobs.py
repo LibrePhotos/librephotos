@@ -43,6 +43,12 @@ def generate_face_embeddings(user, job_id: UUID):
         db.connections.close_all()
 
         for face in faces:
+            # Check for cancellation
+            if LongRunningJob.objects.filter(
+                job_id=job_id, cancelled=True
+            ).exists():
+                util.logger.info("Generate face embeddings job cancelled")
+                return
             failed = False
             error = None
             try:
@@ -242,6 +248,12 @@ def scan_faces(user, job_id: UUID, full_scan=False):
         db.connections.close_all()
 
         for photo in existing_photos:
+            # Check for cancellation
+            if LongRunningJob.objects.filter(
+                job_id=job_id, cancelled=True
+            ).exists():
+                util.logger.info("Scan faces job cancelled")
+                return
             failed = False
             error = None
             try:

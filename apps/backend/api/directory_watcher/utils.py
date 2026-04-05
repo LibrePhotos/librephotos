@@ -98,6 +98,10 @@ def update_scan_counter(job_id, failed=False, error=None):
     if not job:
         return
 
+    # If job has been cancelled, stop processing
+    if job.cancelled:
+        return
+
     # Mark the job as finished if the current progress equals the target
     if job.progress_current >= job.progress_target:
         # Job is finishing, update result with errors if any
