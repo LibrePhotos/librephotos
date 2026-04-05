@@ -321,6 +321,8 @@ class PhotoMetadata(models.Model):
             rating,
             subsec_time_original,
             image_number,
+            xmp_subject,
+            iptc_keywords,
         ) = get_metadata(  # noqa: E501
             photo.main_file.path,
             tags=[
@@ -340,6 +342,8 @@ class PhotoMetadata(models.Model):
                 Tags.RATING,
                 Tags.SUBSEC_TIME_ORIGINAL,
                 Tags.IMAGE_NUMBER,
+                Tags.SUBJECT,
+                Tags.IPTC_KEYWORDS,
             ],
             try_sidecar=True,
         )
@@ -393,6 +397,21 @@ class PhotoMetadata(models.Model):
             metadata.rating = rating
         if subsec_time_original:
             metadata.date_taken_subsec = str(subsec_time_original)[:10]
+
+        # Merge keywords from XMP:Subject and IPTC:Keywords (deduplicated)
+        merged_keywords = set()
+        if xmp_subject:
+            if isinstance(xmp_subject, list):
+                merged_keywords.update(xmp_subject)
+            elif isinstance(xmp_subject, str):
+                merged_keywords.add(xmp_subject)
+        if iptc_keywords:
+            if isinstance(iptc_keywords, list):
+                merged_keywords.update(iptc_keywords)
+            elif isinstance(iptc_keywords, str):
+                merged_keywords.add(iptc_keywords)
+        if merged_keywords:
+            metadata.keywords = sorted(merged_keywords)
 
         if commit:
             metadata.save()

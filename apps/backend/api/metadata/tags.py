@@ -23,6 +23,7 @@ class Tags:
     REGION_INFO = "XMP:RegionInfo"
     REGION_INFO_WRITE = "XMP-mwg-rs:RegionInfo"
     SUBJECT = "XMP:Subject"
+    IPTC_KEYWORDS = "IPTC:Keywords"
     ROTATION = "QuickTime:Rotation"
     ORIENTATION = "EXIF:Orientation"
 
