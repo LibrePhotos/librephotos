@@ -18,6 +18,7 @@ import { notification } from "../../service/notifications";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { AlbumsSection } from "./AlbumsSection";
 import { Description } from "./Description";
+import { KeywordsSection } from "./KeywordsSection";
 import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
@@ -261,6 +262,7 @@ export function Sidebar({
           notThisPerson={notThisPerson}
         />
         <Description photoDetail={photoDetail} isPublic={isPublic} />
+        {!isPublic && <KeywordsSection photoDetail={photoDetail} />}
         {!isPublic && <AlbumsSection imageHash={photoDetail.image_hash} />}
         <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />
       </Stack>

@@ -466,7 +466,12 @@
       "similarity": "Similarity",
       "potentialSavings": "Potential savings",
       "primary": "Primary",
-      "multipleStacksInfo": "This photo belongs to multiple groupings"
+      "multipleStacksInfo": "This photo belongs to multiple groupings",
+      "keywords": "Keywords",
+      "editKeywords": "Edit keywords",
+      "addKeyword": "Add keyword…",
+      "noKeywords": "No keywords",
+      "save": "Save"
     },
     "controls": {
       "fullscreen": "Fullscreen (G)",
