@@ -86,6 +86,8 @@ class PhotoSearch(models.Model):
                 search_captions += metadata.camera_display + " "
             if metadata.lens_display:
                 search_captions += metadata.lens_display + " "
+            if metadata.keywords:
+                search_captions += " ".join(metadata.keywords) + " "
         except Exception:
             # PhotoMetadata may not exist yet
             pass

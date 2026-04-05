@@ -246,3 +246,30 @@ class PhotoSearchModelTest(TestCase):
 
         # Should not crash with None values
         self.assertIsInstance(search.search_captions, str)
+
+    def test_recreate_search_captions_with_keywords(self):
+        """Test recreating search captions includes IPTC/XMP keywords."""
+        PhotoMetadata.objects.create(
+            photo=self.photo,
+            keywords=["vacation", "beach", "sunset"],
+        )
+
+        search = PhotoSearch.objects.create(photo=self.photo)
+        search.recreate_search_captions()
+
+        self.assertIn("vacation", search.search_captions)
+        self.assertIn("beach", search.search_captions)
+        self.assertIn("sunset", search.search_captions)
+
+    def test_recreate_search_captions_with_empty_keywords(self):
+        """Test recreating search captions with empty keywords list."""
+        PhotoMetadata.objects.create(
+            photo=self.photo,
+            keywords=[],
+        )
+
+        search = PhotoSearch.objects.create(photo=self.photo)
+        search.recreate_search_captions()
+
+        # Should not crash with empty keywords
+        self.assertIsInstance(search.search_captions, str)
