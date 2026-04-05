@@ -9,7 +9,7 @@ image_size = 256
 
 def resize_image(image, size):
     """Resize an image to the given size."""
-    return image.resize(size, Image.ANTIALIAS)
+    return image.resize(size, Image.LANCZOS)
 
 
 def resize_images(image_dir, output_dir, size):
