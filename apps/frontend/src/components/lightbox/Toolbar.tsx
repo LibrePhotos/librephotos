@@ -6,6 +6,8 @@ import {
   IconInfoCircle as InfoCircle,
   IconPlayerPause as PlayerPause,
   IconPlayerPlay as PlayerPlay,
+  IconRotate2 as RotateCCW,
+  IconRotateClockwise2 as RotateCW,
   IconStar as Star,
   IconTrash as Trash,
 } from "@tabler/icons-react";
@@ -14,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { shareAddress } from "../../api_client/apiClient";
 import {
   useMarkPhotosDeletedMutation,
+  useRotatePhotosMutation,
   useSetFavoritePhotosMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
@@ -42,6 +45,7 @@ export function Toolbar(props: Props) {
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
+  const rotatePhotos = useRotatePhotosMutation();
 
   // Callback functions for keyboard shortcuts
   const handleFavoriteShortcut = useCallback(() => {
@@ -208,6 +212,32 @@ export function Toolbar(props: Props) {
           <InfoCircle color={lightboxSidebarShow ? "white" : "grey"} />
         </ActionIcon>
       </Tooltip>
+      {photosDetail && !isPublic && (
+        <Tooltip label={t("lightbox.toolbar.rotateCCW")} position="bottom" withArrow>
+          <ActionIcon
+            variant="transparent"
+            onClick={() => {
+              const { image_hash: imageHash } = photosDetail;
+              rotatePhotos.mutate({ image_hashes: [imageHash], rotation: -90 });
+            }}
+          >
+            <RotateCCW color="grey" />
+          </ActionIcon>
+        </Tooltip>
+      )}
+      {photosDetail && !isPublic && (
+        <Tooltip label={t("lightbox.toolbar.rotateCW")} position="bottom" withArrow>
+          <ActionIcon
+            variant="transparent"
+            onClick={() => {
+              const { image_hash: imageHash } = photosDetail;
+              rotatePhotos.mutate({ image_hashes: [imageHash], rotation: 90 });
+            }}
+          >
+            <RotateCW color="grey" />
+          </ActionIcon>
+        </Tooltip>
+      )}
       {photosDetail && !isPublic && (
         <Tooltip label={t("lightbox.toolbar.deletePhoto")} position="bottom" withArrow>
           <ActionIcon
