@@ -5,15 +5,12 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
 import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { BulkPhotoQuery, Photo } from "../types";
+import { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const RotatePhotosResponse = z.object({
   status: z.boolean(),
-  results: Photo.array().optional(),
-  updated: Photo.array().optional(),
-  not_updated: Photo.array().optional(),
   count: z.number().optional(),
 });
 
