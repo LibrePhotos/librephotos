@@ -162,7 +162,7 @@ export function Library() {
 
   const handleNextcloudPasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (userSelfDetails) {
-      setEditedUser({ ...userSelfDetails, nextcloud_scan_directory: event.currentTarget.value });
+      setEditedUser({ ...userSelfDetails, nextcloud_app_password: event.currentTarget.value });
     }
   };
 
@@ -550,7 +550,7 @@ export function Library() {
                 onChange={handleNextcloudPasswordChange}
                 type="password"
                 placeholder={t("settings.nextcloudpasswordplaceholder")}
-                value={userSelfDetails.nextcloud_scan_directory}
+                value={editedUser?.nextcloud_app_password ?? ""}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 10 }}>

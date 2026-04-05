@@ -37,6 +37,7 @@ export const User = z.object({
   photo_count: z.number(),
   nextcloud_server_address: z.any().nullable(),
   nextcloud_username: z.any().nullable(),
+  nextcloud_app_password: z.string().optional(),
   nextcloud_scan_directory: z.any().nullable(),
   avatar_url: z.any().nullable(),
   favorite_min_rating: z.number(),
