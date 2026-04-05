@@ -65,8 +65,9 @@ class PhotoModelIntegrationTest(TestCase):
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
         result = caption_instance.save_user_caption(caption="My test caption")
 
-        # The method should return False due to missing thumbnail but still create instance
-        self.assertFalse(result)
+        # The method succeeds because create_test_photo creates a Thumbnail
+        # with a thumbnail_big path (even though the file doesn't exist on disk)
+        self.assertTrue(result)
         self.assertTrue(PhotoCaption.objects.filter(photo=self.photo).exists())
 
     def test_photo_search_methods_work_directly(self):

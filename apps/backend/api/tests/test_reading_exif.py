@@ -20,18 +20,22 @@ class ReadFacesFromPhotosTest(TestCase):
 
         exif_file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.xmp"
 
-        fake = Faker()
-        pk = fake.md5()
-        os.system("cp " + file + " " + "/tmp/" + str(pk) + ".jpg")
+        import uuid
+
+        pk = uuid.uuid4()
+        pk_str = str(pk)
+        os.system("cp " + file + " " + "/tmp/" + pk_str + ".jpg")
         # copy exif file to photo and rename it to have the same name as the photo but with .xmp extension
-        os.system("cp " + exif_file + " " + "/tmp/" + str(pk) + ".xmp")
+        os.system("cp " + exif_file + " " + "/tmp/" + pk_str + ".xmp")
         # we need a thumbnail in the thumbnails_big folder
         os.system(
-            "cp " + file + " " + "/protected_media/thumbnails_big/" + str(pk) + ".jpg"
+            "cp " + file + " " + "/protected_media/thumbnails_big/" + pk_str + ".jpg"
         )
 
-        photo = Photo(pk=pk, image_hash=pk, owner=self.user1)
-        fileObject = File.create("/tmp/" + str(photo.pk) + ".jpg", self.user1)
+        fake = Faker()
+        image_hash = fake.md5()
+        photo = Photo(pk=pk, image_hash=image_hash, owner=self.user1)
+        fileObject = File.create("/tmp/" + pk_str + ".jpg", self.user1)
         photo.main_file = fileObject
         photo.added_on = timezone.now()
         photo.save()
@@ -41,7 +45,7 @@ class ReadFacesFromPhotosTest(TestCase):
 
         Thumbnail.objects.create(
             photo=photo,
-            thumbnail_big="/protected_media/thumbnails_big/" + str(photo.pk) + ".jpg",
+            thumbnail_big="thumbnails_big/" + pk_str + ".jpg",
             aspect_ratio=1.0,
         )
 
