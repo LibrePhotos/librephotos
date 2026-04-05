@@ -76,6 +76,23 @@ def walk_files(scan_files, callback):
             callback.append(fpath)
 
 
+def is_job_cancelled(job_id) -> bool:
+    """
+    Check if a long-running job has been cancelled.
+
+    Use this in processing loops to cooperatively stop work when the user
+    cancels a job. Typically called every N iterations to avoid excessive
+    DB queries.
+
+    Args:
+        job_id: The job ID to check
+
+    Returns:
+        True if the job has been cancelled, False otherwise
+    """
+    return LongRunningJob.objects.filter(job_id=job_id, cancelled=True).exists()
+
+
 def update_scan_counter(job_id, failed=False, error=None):
     """
     Update the progress counter for a long-running job.

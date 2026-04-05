@@ -1,7 +1,5 @@
 """Tests for job cancellation feature."""
 
-from unittest.mock import patch
-
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -106,6 +104,50 @@ class LongRunningJobCancelAPITest(TestCase):
         results = response.data["results"]
         self.assertGreater(len(results), 0)
         self.assertIn("cancelled", results[0])
+
+
+class IsJobCancelledHelperTest(TestCase):
+    """Test the is_job_cancelled() shared helper function."""
+
+    def setUp(self):
+        self.user = create_test_user()
+
+    def test_returns_false_for_running_job(self):
+        from api.directory_watcher.utils import is_job_cancelled
+
+        job = LongRunningJob.create_job(
+            user=self.user,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            start_now=True,
+        )
+        self.assertFalse(is_job_cancelled(job.job_id))
+
+    def test_returns_true_for_cancelled_job(self):
+        from api.directory_watcher.utils import is_job_cancelled
+
+        job = LongRunningJob.create_job(
+            user=self.user,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            start_now=True,
+        )
+        job.cancel()
+        self.assertTrue(is_job_cancelled(job.job_id))
+
+    def test_returns_false_for_nonexistent_job(self):
+        from api.directory_watcher.utils import is_job_cancelled
+
+        self.assertFalse(is_job_cancelled("nonexistent-job-id"))
+
+    def test_returns_false_for_completed_job(self):
+        from api.directory_watcher.utils import is_job_cancelled
+
+        job = LongRunningJob.create_job(
+            user=self.user,
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+            start_now=True,
+        )
+        job.complete()
+        self.assertFalse(is_job_cancelled(job.job_id))
 
 
 class UpdateScanCounterCancellationTest(TestCase):

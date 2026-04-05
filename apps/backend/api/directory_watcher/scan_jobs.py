@@ -36,6 +36,7 @@ from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.utils import (
     walk_directory,
     walk_files,
+    is_job_cancelled,
     update_scan_counter,
 )
 
@@ -391,9 +392,7 @@ def scan_missing_photos(user, job_id: UUID):
         lrj.update_progress(current=0, target=paginator.num_pages)
         for page in range(1, paginator.num_pages + 1):
             # Check for cancellation
-            if LongRunningJob.objects.filter(
-                job_id=job_id, cancelled=True
-            ).exists():
+            if is_job_cancelled(job_id):
                 util.logger.info("Scan missing photos job cancelled")
                 return
             for existing_photo in paginator.page(page).object_list:

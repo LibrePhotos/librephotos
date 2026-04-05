@@ -36,11 +36,21 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
 
         job.cancel()
 
-        # Best-effort: remove queued django-q tasks that haven't started yet
+        # Best-effort: try to remove queued django-q tasks that haven't started yet.
+        # OrmQ stores tasks with a signed/pickled payload; the job_id is embedded
+        # in the task arguments, not in the OrmQ.key or humanized name fields.
+        # We iterate queued tasks and check the deserialized args for our job_id.
         try:
             from django_q.models import OrmQ
 
-            OrmQ.objects.filter(name__contains=str(job.job_id)).delete()
+            job_id_str = str(job.job_id)
+            for queued in OrmQ.objects.all():
+                try:
+                    task_args = queued.task.get("args", ())
+                    if any(str(arg) == job_id_str for arg in task_args):
+                        queued.delete()
+                except Exception:
+                    continue  # Skip unparseable entries
         except Exception:
             pass  # Non-critical; cooperative cancellation handles running tasks
 
