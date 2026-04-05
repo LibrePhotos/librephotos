@@ -43,7 +43,7 @@ psutil==7.2.2
 concurrent-log-handler==0.9.29
 
 # Dependencies for blip
-timm==1.0.19
+timm==1.0.26
 # Dependencies for Moondream chat handler (llama-cpp-python multimodal)
 transformers==4.56.2
 # Dependencies for mistral quantized and multimodal models like Moondream
