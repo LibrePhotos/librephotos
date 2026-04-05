@@ -93,7 +93,10 @@
             "item4": "Hvis denne medie fil allerede er i databasen, tilføjer vi stien til den eksisterende medie fil.",
             "item5": "Generer et antal thumbnails",
             "item6": "Generer billedetekster",
-            "item7": "Udtræk Exif info"
+            "item7": "Udtræk Exif info",
+            "item8": "Reverser geolokation til at fine lokationsnavne fra GPS koordinater",
+            "item9": "Udtræk ansigter.",
+            "item10": "Tilføj billede til ting og steder albummer."
         }
     }
 }
