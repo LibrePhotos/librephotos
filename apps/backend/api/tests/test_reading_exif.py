@@ -1,5 +1,7 @@
 import os
+import unittest
 
+import requests
 from django.test import TestCase
 from django.utils import timezone
 from faker import Faker
@@ -9,12 +11,25 @@ from api.models import File, Person, Photo
 from api.tests.utils import create_test_user
 
 
+def _exif_service_available():
+    """Check if the EXIF metadata service is reachable."""
+    try:
+        requests.get("http://localhost:8010/", timeout=1)
+        return True
+    except Exception:
+        return False
+
+
 class ReadFacesFromPhotosTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user1 = create_test_user(favorite_min_rating=1)
         self.client.force_authenticate(user=self.user1)
 
+    @unittest.skipUnless(
+        _exif_service_available(),
+        "EXIF metadata service at localhost:8010 is not available",
+    )
     def test_reading_from_photo(self):
         file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
 
