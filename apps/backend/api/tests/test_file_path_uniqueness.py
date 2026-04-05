@@ -234,9 +234,17 @@ class MigrationDeduplicationTestCase(TestCase):
 
 
 class ConcurrentScanTestCase(TransactionTestCase):
-    """Tests for concurrent scan handling with unique constraint."""
+    """Tests for concurrent scan handling with unique constraint.
+    
+    Note: These tests use threads which require a real database connection
+    that can be shared across threads. SQLite in-memory databases cannot
+    be accessed from multiple threads, so these tests are skipped on SQLite.
+    """
 
     def setUp(self):
+        from django.conf import settings
+        if settings.DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+            self.skipTest("Concurrent tests require a multi-thread-safe database (not SQLite in-memory)")
         self.user = create_test_user()
         self.temp_dir = tempfile.mkdtemp()
 

@@ -45,10 +45,10 @@ class PhotoCaptionModelTest(TestCase):
         """Test saving user captions"""
         caption = PhotoCaption.objects.create(photo=self.photo)
 
-        # This method requires thumbnail access which isn't available in tests
-        # We'll test that it returns False when no thumbnail is available
+        # create_test_photo creates a Thumbnail with a thumbnail_big path,
+        # so save_user_caption succeeds even though the actual file doesn't exist
         result = caption.save_user_caption("My beautiful photo", commit=True)
-        self.assertFalse(result)
+        self.assertTrue(result)
 
     def test_generate_tag_captions_skips_existing(self):
         """Test that generate_tag_captions skips if active model tags already exist"""

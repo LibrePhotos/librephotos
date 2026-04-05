@@ -1,5 +1,7 @@
 import os
+import unittest
 
+import requests
 from django.test import TestCase
 from django.utils import timezone
 from faker import Faker
@@ -9,29 +11,49 @@ from api.models import File, Person, Photo
 from api.tests.utils import create_test_user
 
 
+EXIF_SERVICE_URL = "http://localhost:8010/"
+
+
+def _exif_service_available():
+    """Check if the EXIF metadata service is reachable."""
+    try:
+        requests.get(EXIF_SERVICE_URL, timeout=1)
+        return True
+    except Exception:
+        return False
+
+
 class ReadFacesFromPhotosTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user1 = create_test_user(favorite_min_rating=1)
         self.client.force_authenticate(user=self.user1)
 
+    @unittest.skipUnless(
+        _exif_service_available(),
+        "EXIF metadata service at localhost:8010 is not available",
+    )
     def test_reading_from_photo(self):
         file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.jpg"
 
         exif_file = os.path.dirname(os.path.abspath(__file__)) + "/fixtures/niaz.xmp"
 
-        fake = Faker()
-        pk = fake.md5()
-        os.system("cp " + file + " " + "/tmp/" + str(pk) + ".jpg")
+        import uuid
+
+        pk = uuid.uuid4()
+        pk_str = str(pk)
+        os.system("cp " + file + " " + "/tmp/" + pk_str + ".jpg")
         # copy exif file to photo and rename it to have the same name as the photo but with .xmp extension
-        os.system("cp " + exif_file + " " + "/tmp/" + str(pk) + ".xmp")
+        os.system("cp " + exif_file + " " + "/tmp/" + pk_str + ".xmp")
         # we need a thumbnail in the thumbnails_big folder
         os.system(
-            "cp " + file + " " + "/protected_media/thumbnails_big/" + str(pk) + ".jpg"
+            "cp " + file + " " + "/protected_media/thumbnails_big/" + pk_str + ".jpg"
         )
 
-        photo = Photo(pk=pk, image_hash=pk, owner=self.user1)
-        fileObject = File.create("/tmp/" + str(photo.pk) + ".jpg", self.user1)
+        fake = Faker()
+        image_hash = fake.md5()
+        photo = Photo(pk=pk, image_hash=image_hash, owner=self.user1)
+        fileObject = File.create("/tmp/" + pk_str + ".jpg", self.user1)
         photo.main_file = fileObject
         photo.added_on = timezone.now()
         photo.save()
@@ -41,7 +63,7 @@ class ReadFacesFromPhotosTest(TestCase):
 
         Thumbnail.objects.create(
             photo=photo,
-            thumbnail_big="/protected_media/thumbnails_big/" + str(photo.pk) + ".jpg",
+            thumbnail_big="thumbnails_big/" + pk_str + ".jpg",
             aspect_ratio=1.0,
         )
 

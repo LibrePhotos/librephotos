@@ -72,7 +72,7 @@ def hamming_distance(hash1: str, hash2: str) -> int:
     try:
         h1 = imagehash.hex_to_hash(hash1)
         h2 = imagehash.hex_to_hash(hash2)
-        return h1 - h2  # imagehash overloads subtraction to return Hamming distance
+        return int(h1 - h2)  # imagehash overloads subtraction to return Hamming distance
     except Exception as e:
         logger.error(f"Failed to calculate Hamming distance: {e}")
         return 64  # Maximum distance (completely different)

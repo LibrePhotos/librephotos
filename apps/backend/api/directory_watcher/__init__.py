@@ -17,6 +17,7 @@ from api.directory_watcher.scan_jobs import (
     scan_photos,
     scan_missing_photos,
     photo_scanner,
+    wait_for_group_and_process_metadata,
 )
 
 # File handling
@@ -70,6 +71,7 @@ __all__ = [
     "scan_photos",
     "scan_missing_photos",
     "photo_scanner",
+    "wait_for_group_and_process_metadata",
     # File handling
     "create_new_image",
     "create_file_record",

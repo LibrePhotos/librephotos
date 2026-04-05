@@ -175,7 +175,9 @@ def create_test_photo(**kwargs):
 
     # Create the photo with remaining kwargs
     photo = Photo(pk=pk, image_hash=image_hash, **kwargs)
-    file = create_test_file(f"/tmp/{image_hash}.png", photo.owner, ONE_PIXEL_PNG)
+    # Use unique content per photo so each File gets a unique hash (primary key)
+    unique_content = ONE_PIXEL_PNG + pk.bytes
+    file = create_test_file(f"/tmp/{image_hash}.png", photo.owner, unique_content)
     photo.main_file = file
     if "added_on" not in kwargs.keys():
         photo.added_on = timezone.now()

@@ -29,7 +29,7 @@ class SocialGraphTestCase(TestCase):
         )
 
         # Create a person
-        person = Person.objects.create(name="John Doe", owner=self.user)
+        person = Person.objects.create(name="John Doe", cluster_owner=self.user)
 
         # Create a face
         Face.objects.create(
@@ -56,8 +56,8 @@ class SocialGraphTestCase(TestCase):
         )
 
         # Create two people
-        person1 = Person.objects.create(name="Alice", owner=self.user)
-        person2 = Person.objects.create(name="Bob", owner=self.user)
+        person1 = Person.objects.create(name="Alice", cluster_owner=self.user)
+        person2 = Person.objects.create(name="Bob", cluster_owner=self.user)
 
         # Create faces for both people in the same photo
         Face.objects.create(
