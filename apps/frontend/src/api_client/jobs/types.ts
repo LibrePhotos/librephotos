@@ -9,6 +9,7 @@ export const JobDetail = z.object({
   finished_at: z.string().nullable(),
   started_at: z.string().nullable(),
   failed: z.boolean(),
+  cancelled: z.boolean(),
   job_type_str: z.string(),
   job_type: z.number(),
   started_by: z.object({
@@ -41,6 +42,7 @@ export const Job = z.object({
   finished_at: z.string().nullable(),
   finished: z.boolean(),
   failed: z.boolean(),
+  cancelled: z.boolean(),
   job_type: z.number(),
   job_type_str: z.string(),
   started_by: SimpleUser,
@@ -69,3 +71,11 @@ export const JobsResponse = z.object({
 });
 
 export type JobsResponse = z.infer<typeof JobsResponse>;
+
+export const CancelJobResponse = z.object({
+  status: z.boolean(),
+  job: JobDetail.optional(),
+  message: z.string().optional(),
+});
+
+export type CancelJobResponse = z.infer<typeof CancelJobResponse>;

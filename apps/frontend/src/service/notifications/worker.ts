@@ -9,6 +9,14 @@ function jobFinished(title: string, job: string) {
   });
 }
 
+function jobCancelled() {
+  showNotification({
+    message: i18n.t("toasts.jobcancelled"),
+    title: i18n.t("toasts.jobcancelledtitle"),
+    color: "orange",
+  });
+}
+
 function requestFailed(title: string, message: string) {
   showNotification({
     message,
@@ -18,6 +26,7 @@ function requestFailed(title: string, message: string) {
 }
 
 export const worker = {
+  jobCancelled,
   jobFinished,
   requestFailed,
 };

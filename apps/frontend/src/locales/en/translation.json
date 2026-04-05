@@ -760,7 +760,8 @@
     "running": "running",
     "waiting": "waiting",
     "failed": "Failed",
-    "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
+    "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
+    "cancel": "Cancel"
   },
   "modaluseredit": {
     "header": "Edit User",
@@ -1030,7 +1031,9 @@
     "removefacestopersontitle": "Remove faces from person",
     "savecaptions": "Image caption updated",
     "captionupdate": "Update Caption",
-    "scan_directory_required": "Scan directory not configured - contact administrator"
+    "scan_directory_required": "Scan directory not configured - contact administrator",
+    "jobcancelled": "Job has been cancelled",
+    "jobcancelledtitle": "Job Cancelled"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
