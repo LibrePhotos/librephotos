@@ -38,6 +38,16 @@ XMP_SUBJECT = {"vacation", "beach", "nature"}
 ALL_KEYWORDS_SORTED = sorted(IPTC_KEYWORDS | XMP_SUBJECT)
 
 
+def _read_tags_with_exiftool(file_path, tags):
+    """Read metadata tags from a file using exiftool directly.
+
+    Returns a list of values, one per tag (``None`` when not found).
+    Uses a context manager so the exiftool process is always cleaned up.
+    """
+    with exiftool.ExifTool() as et:
+        return [et.get_tag(tag, file_path) for tag in tags]
+
+
 def _exiftool_get_metadata(media_file, tags, try_sidecar=True, struct=False):
     """Call exiftool directly, bypassing the HTTP service.
 
@@ -48,12 +58,8 @@ def _exiftool_get_metadata(media_file, tags, try_sidecar=True, struct=False):
 
     files = _get_existing_metadata_files_reversed(media_file, try_sidecar)
 
-    et = exiftool.ExifTool()
-    if not et.running:
-        et.start()
-
-    values = []
-    try:
+    with exiftool.ExifTool() as et:
+        values = []
         for tag in tags:
             value = None
             for f in files:
@@ -61,8 +67,6 @@ def _exiftool_get_metadata(media_file, tags, try_sidecar=True, struct=False):
                 if retrieved is not None:
                     value = retrieved
             values.append(value)
-    finally:
-        et.terminate()
 
     return values
 
@@ -111,13 +115,9 @@ class IPTCKeywordIntegrationTest(TestCase):
 
     def test_fixture_has_expected_tags(self):
         """Sanity-check: the fixture JPEG contains the expected metadata."""
-        et = exiftool.ExifTool()
-        et.start()
-        try:
-            xmp = et.get_tag("XMP:Subject", self.tmp_path)
-            iptc = et.get_tag("IPTC:Keywords", self.tmp_path)
-        finally:
-            et.terminate()
+        xmp, iptc = _read_tags_with_exiftool(
+            self.tmp_path, ["XMP:Subject", "IPTC:Keywords"]
+        )
 
         self.assertIsInstance(xmp, list)
         self.assertIsInstance(iptc, list)
