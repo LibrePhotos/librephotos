@@ -21,3 +21,4 @@ export * from "./hooks/useFetchMetadataHistoryQuery";
 export * from "./hooks/usePhotoMetadataMutations";
 // Public photo hooks
 export * from "./hooks/useFetchPublicPhotoDetailQuery";
+export * from "./hooks/useRotatePhotosMutation";

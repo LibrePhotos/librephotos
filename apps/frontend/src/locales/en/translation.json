@@ -435,7 +435,9 @@
     "mergestacks": "Merge Stacks",
     "breakapartstacks": "Break Apart Stacks",
     "nostackstomerge": "No stacks to merge",
-    "stacksmerged": "Stacks merged successfully"
+    "stacksmerged": "Stacks merged successfully",
+    "rotatecw": "Rotate 90° Clockwise",
+    "rotateccw": "Rotate 90° Counter-Clockwise"
   },
   "lightbox": {
     "sidebar": {
@@ -492,7 +494,9 @@
       "makePrivate": "Make private (P)",
       "showInfoPanel": "Show info panel (I)",
       "hideInfoPanel": "Hide info panel (I)",
-      "deletePhoto": "Delete photo (D)"
+      "deletePhoto": "Delete photo (D)",
+      "rotateCW": "Rotate 90° clockwise",
+      "rotateCCW": "Rotate 90° counter-clockwise"
     }
   },
   "exif": {
@@ -1026,6 +1030,8 @@
     "finaldeletephototitle": "Delete Images",
     "editphoto": "Photo edited",
     "editphototitle": "Edit photo",
+    "rotatephoto": "{{numberOfPhotos}} photo(s) rotated by {{rotation}}°.",
+    "rotatephototitle": "Rotate photo",
     "uploadsuccess": "Upload successful",
     "removefacestoperson": "{{numberOfFaces}} face(s) were moved to 'Unknown - Other'",
     "removefacestopersontitle": "Remove faces from person",

@@ -136,6 +136,14 @@ function updatePhoto() {
   });
 }
 
+function rotatePhotos(numberOfPhotos: number, rotation: number) {
+  showNotification({
+    message: i18n.t("toasts.rotatephoto", { numberOfPhotos, rotation }),
+    title: i18n.t("toasts.rotatephototitle"),
+    color: "teal",
+  });
+}
+
 function deleteMissingPhotos() {
   showNotification({
     message: i18n.t("toasts.deletemissingphotos"),
@@ -150,6 +158,7 @@ export const photos = {
   downloadFailed,
   downloadStarting,
   removePhotos,
+  rotatePhotos,
   savePhotoCaptions,
   startFullPhotoScan,
   startNextcloudPhotoScan,
