@@ -1026,7 +1026,9 @@
     "removefacestopersontitle": "Remove faces from person",
     "savecaptions": "Image caption updated",
     "captionupdate": "Update Caption",
-    "scan_directory_required": "Scan directory not configured - contact administrator"
+    "scan_directory_required": "Scan directory not configured - contact administrator",
+    "jobcancelled": "Job has been cancelled",
+    "jobcancelledtitle": "Job Cancelled"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",

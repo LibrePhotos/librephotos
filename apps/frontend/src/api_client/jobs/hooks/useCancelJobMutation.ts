@@ -13,7 +13,7 @@ export const useCancelJobMutation = () =>
       return parseWithNotification(CancelJobResponse, response, "Failed to parse cancel job response");
     },
     onSuccess: () => {
-      notification.jobFinished("Job Cancelled", "Job has been cancelled");
+      notification.jobCancelled();
       queryClient.invalidateQueries({ queryKey: [...JobsQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...WorkerQueryKeys] });
     },
