@@ -39,13 +39,15 @@ def _apply_local_orientation(image: pyvips.Image, local_orientation: int) -> pyv
         # 90° CCW + flip H
         return image.rot90().flip(pyvips.enums.Direction.HORIZONTAL)
     if local_orientation == 6:
-        # 90° CW — pyvips rot270 = 270° CCW = 90° CW
+        # pyvips.rot270() rotates 270° counter-clockwise, which is the same
+        # as 90° clockwise — matching EXIF orientation 6 (display: 90° CW).
         return image.rot270()
     if local_orientation == 7:
         # 90° CW + flip H
         return image.rot270().flip(pyvips.enums.Direction.HORIZONTAL)
     if local_orientation == 8:
-        # 90° CCW — pyvips rot90 = 90° CCW
+        # pyvips.rot90() rotates 90° counter-clockwise — matching EXIF
+        # orientation 8 (display: 270° CW = 90° CCW).
         return image.rot90()
     return image
 

@@ -600,10 +600,10 @@ class Photo(models.Model):
         Raises:
             ValueError: If ``angle`` is not a multiple of 90.
         """
+        angle = int(angle) % 360  # normalise first so -90 → 270, 360 → 0
+
         if angle % 90 != 0:
             raise ValueError("angle must be a multiple of 90 degrees")
-
-        angle = int(angle) % 360
 
         if angle == 0 and not flip_horizontal:
             return

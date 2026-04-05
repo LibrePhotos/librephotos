@@ -174,6 +174,12 @@ def compose_orientation(
         New EXIF Orientation code (1-8).
     """
     n_a, m_a = _ORIENTATION_TO_PARAMS.get(current_orientation, (0, 0))
+    if current_orientation not in _ORIENTATION_TO_PARAMS:
+        import logging
+        logging.getLogger("ownphotos").warning(
+            "compose_orientation: invalid orientation value %r, treating as 1",
+            current_orientation,
+        )
 
     # Number of 90° CW steps for the requested delta angle
     n_b = int(round(delta_angle_cw / 90.0)) % 4

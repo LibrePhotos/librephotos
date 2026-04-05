@@ -1207,10 +1207,10 @@ class RotatePhotoView(APIView):
 
         try:
             photo.rotate(angle=angle, flip_horizontal=flip_horizontal)
-        except Exception as e:
+        except Exception:
             logger.exception(f"Failed to rotate photo {image_hash}")
             return Response(
-                {"status": False, "message": str(e)},
+                {"status": False, "message": "failed to rotate photo"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
