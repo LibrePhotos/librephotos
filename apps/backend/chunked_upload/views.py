@@ -249,8 +249,8 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
         """
         if chunked_upload.status == COMPLETE:
             error_msg = "Upload has already been marked as complete"
-            return ChunkedUploadError(status=http_status.HTTP_400_BAD_REQUEST,
-                                      detail=error_msg)
+            raise ChunkedUploadError(status=http_status.HTTP_400_BAD_REQUEST,
+                                     detail=error_msg)
 
     def md5_check(self, chunked_upload, md5):
         """
