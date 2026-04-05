@@ -40,6 +40,8 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
         # OrmQ stores tasks with a signed/pickled payload; the job_id is embedded
         # in the task arguments, not in the OrmQ.key or humanized name fields.
         # We iterate queued tasks and check the deserialized args for our job_id.
+        # This is bounded by Q_CLUSTER["queue_limit"] (default 50) and only runs
+        # on explicit user cancellation, so the overhead is minimal.
         try:
             from django_q.models import OrmQ
 

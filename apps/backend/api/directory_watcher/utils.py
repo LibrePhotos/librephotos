@@ -11,6 +11,10 @@ from django.utils import timezone
 
 from api.models import LongRunningJob
 
+# How often (in loop iterations) to check the DB for job cancellation.
+# Lower values are more responsive but increase DB load.
+CANCELLATION_CHECK_INTERVAL = 100
+
 
 def should_skip(path):
     """Check if a path should be skipped based on configured patterns."""
