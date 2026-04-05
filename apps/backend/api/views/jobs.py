@@ -26,13 +26,7 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         """Cancel a running or queued job."""
-        try:
-            job = self.get_object()
-        except LongRunningJob.DoesNotExist:
-            return Response(
-                {"status": False, "message": "Job not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        job = self.get_object()
 
         if job.finished:
             return Response(

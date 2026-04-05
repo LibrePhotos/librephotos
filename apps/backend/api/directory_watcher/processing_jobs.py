@@ -42,9 +42,9 @@ def generate_face_embeddings(user, job_id: UUID):
         lrj.update_progress(current=0, target=faces.count())
         db.connections.close_all()
 
-        for face in faces:
-            # Check for cancellation
-            if LongRunningJob.objects.filter(
+        for idx, face in enumerate(faces):
+            # Check for cancellation periodically (every 100 items)
+            if idx % 100 == 0 and LongRunningJob.objects.filter(
                 job_id=job_id, cancelled=True
             ).exists():
                 util.logger.info("Generate face embeddings job cancelled")
@@ -247,9 +247,9 @@ def scan_faces(user, job_id: UUID, full_scan=False):
         lrj.update_progress(current=0, target=existing_photos.count())
         db.connections.close_all()
 
-        for photo in existing_photos:
-            # Check for cancellation
-            if LongRunningJob.objects.filter(
+        for idx, photo in enumerate(existing_photos):
+            # Check for cancellation periodically (every 100 items)
+            if idx % 100 == 0 and LongRunningJob.objects.filter(
                 job_id=job_id, cancelled=True
             ).exists():
                 util.logger.info("Scan faces job cancelled")
