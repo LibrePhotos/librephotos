@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useJobsQuery } from "../../api_client/jobs/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
+import { CancelJobButton } from "./CancelJobButton";
 import { DeleteJobButton } from "./DeleteJobButton";
 import { JobDuration } from "./JobDuration";
 import { JobIndicator } from "./JobIndicator";
@@ -51,6 +52,7 @@ export function JobList() {
                 <Table.Th> {t("joblist.startedby")}</Table.Th>
               </>
             )}
+            <Table.Th> {t("joblist.cancel")}</Table.Th>
             <Table.Th> {t("joblist.delete")}</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -101,6 +103,9 @@ export function JobList() {
                 startedAt={job.started_at}
               />
               {matches && <Table.Td>{job.started_by.username}</Table.Td>}
+              <Table.Td onClick={e => e.stopPropagation()}>
+                <CancelJobButton job={job} />
+              </Table.Td>
               <Table.Td onClick={e => e.stopPropagation()}>
                 <DeleteJobButton job={job} />
               </Table.Td>

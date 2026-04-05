@@ -755,7 +755,8 @@
     "running": "running",
     "waiting": "waiting",
     "failed": "Failed",
-    "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc."
+    "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
+    "cancel": "Cancel"
   },
   "modaluseredit": {
     "header": "Edit User",
