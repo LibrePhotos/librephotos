@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.db import models
 from PIL import Image
 
@@ -30,6 +31,7 @@ class Thumbnail(models.Model):
         try:
             # Use photo.image_hash for thumbnail paths for frontend compatibility
             photo_hash = self.photo.image_hash
+            local_orientation = getattr(self.photo, "local_orientation", 1) or 1
             if not does_static_thumbnail_exist("thumbnails_big", photo_hash):
                 if not self.photo.video:
                     create_thumbnail(
@@ -38,6 +40,7 @@ class Thumbnail(models.Model):
                         output_path="thumbnails_big",
                         hash=photo_hash,
                         file_type=".webp",
+                        local_orientation=local_orientation,
                     )
                 else:
                     create_thumbnail_for_video(
@@ -56,6 +59,7 @@ class Thumbnail(models.Model):
                     output_path="square_thumbnails",
                     hash=photo_hash,
                     file_type=".webp",
+                    local_orientation=local_orientation,
                 )
             if self.photo.video and not does_video_thumbnail_exist(
                 "square_thumbnails", photo_hash
@@ -77,6 +81,7 @@ class Thumbnail(models.Model):
                     output_path="square_thumbnails_small",
                     hash=photo_hash,
                     file_type=".webp",
+                    local_orientation=local_orientation,
                 )
             if self.photo.video and not does_video_thumbnail_exist(
                 "square_thumbnails_small", photo_hash
@@ -106,6 +111,30 @@ class Thumbnail(models.Model):
                 f"could not generate thumbnail for image {self.photo.main_file.path}"
             )
             raise e
+
+    def _regenerate_thumbnails(self) -> None:
+        """Delete all existing thumbnail files and regenerate them.
+
+        Picks up ``photo.local_orientation`` automatically via
+        ``_generate_thumbnail``.  Should be called after updating
+        ``Photo.local_orientation``.
+        """
+        photo_hash = self.photo.image_hash
+
+        # Remove static (image) thumbnails
+        for output_dir in ("thumbnails_big", "square_thumbnails", "square_thumbnails_small"):
+            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".webp")
+            if os.path.exists(path):
+                os.remove(path)
+
+        # Remove video thumbnails (animated MP4 clips)
+        for output_dir in ("square_thumbnails", "square_thumbnails_small"):
+            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".mp4")
+            if os.path.exists(path):
+                os.remove(path)
+
+        self._generate_thumbnail()
+        self._calculate_aspect_ratio()
 
     def _calculate_aspect_ratio(self):
         try:

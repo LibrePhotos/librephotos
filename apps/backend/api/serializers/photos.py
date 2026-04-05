@@ -53,6 +53,7 @@ class PhotoSummarySerializer(serializers.ModelSerializer):
             "in_trashcan",
             "stacks",
             "has_raw_variant",
+            "local_orientation",
         )
 
     # TODO: Rename this field to aspect_ratio
@@ -378,6 +379,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "file_variants",
             "stacks",
             "metadata",
+            "local_orientation",
         )
     
     def _get_metadata(self, obj) -> PhotoMetadata | None:

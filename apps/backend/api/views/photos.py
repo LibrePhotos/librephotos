@@ -1133,3 +1133,95 @@ class SaveMetadataView(APIView):
                 )
 
         return Response({"status": True, "written": written, "errors": errors})
+
+
+class RotatePhotoView(APIView):
+    """Non-destructive photo rotation.
+
+    Applies a clockwise rotation (and optional horizontal flip) to a photo by
+    updating the ``local_orientation`` field and regenerating thumbnails.
+    The original file is never modified unless the user has opted into
+    ``save_metadata_to_disk``, in which case the combined EXIF Orientation tag
+    is also written to the file / sidecar.
+
+    **Request body (JSON)**::
+
+        {
+            "image_hash": "<md5-hash>",   // required
+            "angle": 90,                  // degrees CW, must be multiple of 90
+            "flip_horizontal": false      // optional, default false
+        }
+
+    Negative ``angle`` values rotate counter-clockwise (e.g. ``-90`` = 90° CCW).
+
+    **Response**::
+
+        {
+            "status": true,
+            "image_hash": "<md5-hash>",
+            "local_orientation": 6,          // new EXIF orientation code (1–8)
+            "last_modified": "2024-01-01T00:00:00Z"  // for client cache-busting
+        }
+    """
+
+    def post(self, request, format=None):
+        image_hash = request.data.get("image_hash")
+        angle = request.data.get("angle", 0)
+        flip_horizontal = bool(request.data.get("flip_horizontal", False))
+
+        if not image_hash:
+            return Response(
+                {"status": False, "message": "image_hash is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            angle = int(angle)
+        except (TypeError, ValueError):
+            return Response(
+                {"status": False, "message": "angle must be an integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if angle % 90 != 0:
+            return Response(
+                {"status": False, "message": "angle must be a multiple of 90 degrees"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            photo = Photo.objects.select_related("thumbnail", "main_file", "owner").get(
+                image_hash=image_hash, owner=request.user
+            )
+        except Photo.DoesNotExist:
+            return Response(
+                {"status": False, "message": "photo not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if photo.video:
+            return Response(
+                {"status": False, "message": "rotation is not supported for videos"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            photo.rotate(angle=angle, flip_horizontal=flip_horizontal)
+        except Exception as e:
+            logger.exception(f"Failed to rotate photo {image_hash}")
+            return Response(
+                {"status": False, "message": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Refresh from DB to get updated last_modified
+        photo.refresh_from_db(fields=["local_orientation", "last_modified"])
+
+        return Response(
+            {
+                "status": True,
+                "image_hash": photo.image_hash,
+                "local_orientation": photo.local_orientation,
+                "last_modified": photo.last_modified.isoformat(),
+            }
+        )
