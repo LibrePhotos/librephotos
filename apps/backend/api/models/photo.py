@@ -134,6 +134,13 @@ class Photo(models.Model):
     # From EXIF:ImageNumber or MakerNotes
     image_sequence_number = models.IntegerField(blank=True, null=True)
 
+    # User-controlled orientation override (EXIF Orientation code 1–8).
+    # Stored as the *additional* rotation applied on top of whatever pyvips
+    # auto-orientation produces from the file's own EXIF tag.  Defaults to 1
+    # (identity – no extra rotation).  The value is updated by the rotate
+    # endpoint and is applied when regenerating thumbnails.
+    local_orientation = models.IntegerField(default=1)
+
     objects = models.Manager()
     visible = VisiblePhotoManager()
 
@@ -572,6 +579,73 @@ class Photo(models.Model):
 
         # To-Do: Handle wrong file permissions
         return result
+
+    def rotate(self, angle: int = 0, flip_horizontal: bool = False) -> None:
+        """Rotate the photo non-destructively.
+
+        Updates ``local_orientation`` and regenerates thumbnails.  The original
+        file is never modified by this method; the change is stored in the DB
+        and reflected in the regenerated thumbnails.
+
+        Optionally writes the combined orientation to the photo's file (or
+        sidecar) if the owner has ``save_metadata_to_disk`` enabled.
+
+        Args:
+            angle: Clockwise rotation in degrees.  Must be a multiple of 90.
+                Use negative values for counter-clockwise rotation (e.g. -90
+                for 90° CCW).
+            flip_horizontal: If True, apply a horizontal flip on top of the
+                rotation.
+
+        Raises:
+            ValueError: If ``angle`` is not a multiple of 90.
+        """
+        angle = int(angle) % 360  # normalise first so -90 → 270, 360 → 0
+
+        if angle % 90 != 0:
+            raise ValueError("angle must be a multiple of 90 degrees")
+
+        if angle == 0 and not flip_horizontal:
+            return
+
+        from api.util import compose_orientation
+
+        new_orientation = compose_orientation(
+            self.local_orientation,
+            delta_angle_cw=angle,
+            flip_h=flip_horizontal,
+        )
+        self.local_orientation = new_orientation
+        # Bypass _save_metadata – orientation is stored in the DB only for
+        # now; writing to disk is handled separately.
+        self.save(save_metadata=False)
+
+        # Regenerate thumbnails so the UI sees the updated orientation.
+        self.thumbnail._regenerate_thumbnails()
+
+        # Write combined orientation to the file / sidecar when the user has
+        # opted into persisting metadata to disk.
+        user = self.owner
+        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
+            try:
+                exif_orientation = self.metadata.orientation or 1
+            except Exception:
+                exif_orientation = 1
+
+            # Compose the user's local rotation with the original EXIF
+            # orientation so a standards-compliant viewer shows the image
+            # correctly without relying on LibrePhotos-specific DB fields.
+            combined = compose_orientation(
+                exif_orientation,
+                delta_angle_cw=angle,
+                flip_h=flip_horizontal,
+            )
+            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+            write_metadata(
+                self.main_file.path,
+                {Tags.ORIENTATION: combined},
+                use_sidecar=use_sidecar,
+            )
 
     def _set_embedded_media(self, obj):
         return obj.main_file.embedded_media
