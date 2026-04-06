@@ -32,7 +32,7 @@ subprocess.check_call([
 subprocess.check_call([
     sys.executable,
     "-c",
-    "import onnxruntime as ort; providers = ort.get_available_providers(); print(ort.__version__); print(providers); assert 'CUDAExecutionProvider' in providers, providers",
+    "import onnxruntime as ort; providers = ort.get_available_providers(); print(ort.__version__); print(providers); assert 'CUDAExecutionProvider' in providers, f'CUDAExecutionProvider not found in available providers: {providers}'",
 ])
 PY
 RUN if [ "$DEBUG" = 1 ] ; then \
