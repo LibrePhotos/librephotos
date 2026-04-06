@@ -21,6 +21,8 @@ export type MediaDisplayProps = {
   onEnded?: () => void;
   rotationAngle?: number;
   imageCacheKey?: number;
+  suppressRotationTransition?: boolean;
+  onImageLoad?: () => void;
 };
 
 export function MediaDisplay({
@@ -40,6 +42,8 @@ export function MediaDisplay({
   onEnded,
   rotationAngle = 0,
   imageCacheKey = 0,
+  suppressRotationTransition = false,
+  onImageLoad,
 }: MediaDisplayProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
 
@@ -116,8 +120,9 @@ export function MediaDisplay({
           loading="eager"
           onDragStart={handleDragStart}
           onDoubleClick={isMainContent && toggleZoom ? toggleZoom : undefined}
+          onLoad={isMainContent ? onImageLoad : undefined}
           style={{
-            transition: isMainContent ? "transform 0.3s ease-out" : "none",
+            transition: isMainContent && !suppressRotationTransition ? "transform 0.3s ease-out" : "none",
             transform: isMainContent
               ? `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotationAngle}deg)`
               : "none",

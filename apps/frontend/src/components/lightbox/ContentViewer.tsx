@@ -40,6 +40,11 @@ export function ContentViewer({
   const [playing, setPlaying] = useState(true);
   const [rotationAngle, setRotationAngle] = useState(0);
   const [imageCacheKey, setImageCacheKey] = useState(0);
+  // Tracks whether we should skip the rotation CSS transition on next render
+  // (used to silently reset angle to 0 once the server-rotated image has loaded)
+  const [suppressRotationTransition, setSuppressRotationTransition] = useState(false);
+  // True while we are waiting for the newly reloaded image to arrive after a rotation
+  const pendingRotationReset = useRef(false);
 
   // Slideshow state
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
@@ -67,6 +72,8 @@ export function ContentViewer({
     setSlideshowProgress(0);
     setRotationAngle(0);
     setImageCacheKey(0);
+    pendingRotationReset.current = false;
+    setSuppressRotationTransition(false);
   }, [mainSrc]);
 
   // Slideshow timer and progress for images
@@ -116,6 +123,15 @@ export function ContentViewer({
     setIsSlideshowActive(prev => !prev);
   }, []);
 
+  // Re-enable the CSS rotation transition after we have silently snapped back to 0.
+  // We do this in the next animation frame so the suppression is in effect for exactly
+  // one render cycle (the one that resets rotationAngle to 0).
+  useEffect(() => {
+    if (!suppressRotationTransition) return undefined;
+    const raf = requestAnimationFrame(() => setSuppressRotationTransition(false));
+    return () => cancelAnimationFrame(raf);
+  }, [suppressRotationTransition]);
+
   // Handle rotation with optimistic update.
   // `angle` is the visual CSS rotation (positive = clockwise, matching UI convention).
   // The API angle is negated because the server uses the mathematical convention
@@ -128,10 +144,13 @@ export function ContentViewer({
         { image_hash: photoDetails.image_hash, angle: -angle },
         {
           onSuccess: () => {
-            setRotationAngle(0);
+            // Don't reset the angle here — the image is still loading.
+            // Signal that we should snap back to 0 once the new image arrives.
+            pendingRotationReset.current = true;
             setImageCacheKey(Date.now());
           },
           onError: () => {
+            // On error the image won't reload, so animate back immediately.
             setRotationAngle(0);
           },
         }
@@ -139,6 +158,17 @@ export function ContentViewer({
     },
     [photoDetails, rotatePhotos]
   );
+
+  // Called when the main image finishes loading.  When a rotation just completed
+  // and the server has physically baked the new orientation into the file, we
+  // instantly (no transition) snap the CSS angle back to 0 so the swap is invisible.
+  const handleImageLoad = useCallback(() => {
+    if (!pendingRotationReset.current) return;
+    pendingRotationReset.current = false;
+    // Suppress the transition for this one render so the angle change is instant.
+    setSuppressRotationTransition(true);
+    setRotationAngle(0);
+  }, []);
 
   // Setup slide change handler for Embla
   useEffect(() => {
@@ -379,6 +409,8 @@ export function ContentViewer({
                         onEnded={handleVideoEnded}
                         rotationAngle={rotationAngle}
                         imageCacheKey={imageCacheKey}
+                        suppressRotationTransition={suppressRotationTransition}
+                        onImageLoad={handleImageLoad}
                         {...(photoDetails ? { photoDetails } : {})}
                       />
                     </motion.div>
