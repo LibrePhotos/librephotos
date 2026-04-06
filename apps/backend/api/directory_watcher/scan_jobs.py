@@ -171,7 +171,7 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
         update_scan_counter(job_id)
 
 
-def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
+def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
     """
     Two-phase scan to avoid race conditions with RAW+JPEG grouping.
 
@@ -192,6 +192,8 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=[]):
         scan_directory: Directory to scan (defaults to user's scan_directory)
         scan_files: Optional list of specific files to scan
     """
+    if scan_files is None:
+        scan_files = []
     thumbnail_dirs = [
         os.path.join(settings.MEDIA_ROOT, "square_thumbnails_small"),
         os.path.join(settings.MEDIA_ROOT, "square_thumbnails"),

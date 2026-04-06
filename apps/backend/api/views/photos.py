@@ -1,7 +1,10 @@
+import uuid
+
 from django.db.models import Count, Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -25,6 +28,22 @@ from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
+
+
+def _get_photo_filter_kwargs(lookup_value):
+    """Return filter kwargs for looking up a photo by UUID or image_hash.
+
+    UUID format is 36 chars with 4 hyphens (e.g. 123e4567-e89b-12d3-a456-426614174000).
+    Image hash is a 32-char MD5 hex string (backward compatibility).
+    """
+    is_uuid_format = len(lookup_value) == 36 and lookup_value.count("-") == 4
+    if is_uuid_format:
+        try:
+            uuid.UUID(lookup_value)  # validate; raises ValueError if malformed
+            return {"pk": lookup_value}
+        except (ValueError, AttributeError):
+            pass
+    return {"image_hash": lookup_value}
 
 
 class RecentlyAddedPhotoListViewSet(ListViewSet):
@@ -500,27 +519,10 @@ class PhotoViewSet(viewsets.ModelViewSet):
         lookup_value = self.kwargs.get(lookup_url_kwarg)
 
         if lookup_value:
-            # Determine if this is a UUID (36 chars with hyphens) or image_hash (32 hex chars)
-            # Note: Python's uuid.UUID() accepts 32 hex chars without hyphens, but those
-            # are MD5 hashes used for backward compatibility, not actual UUIDs
-            is_uuid_format = len(lookup_value) == 36 and lookup_value.count("-") == 4
-
-            if is_uuid_format:
-                try:
-                    import uuid
-
-                    uuid.UUID(lookup_value)
-                    filter_kwargs = {"pk": lookup_value}
-                except (ValueError, AttributeError):
-                    filter_kwargs = {"image_hash": lookup_value}
-            else:
-                # 32 hex chars = MD5 image_hash (backward compatibility)
-                filter_kwargs = {"image_hash": lookup_value}
+            filter_kwargs = _get_photo_filter_kwargs(lookup_value)
 
             obj = queryset.filter(**filter_kwargs).first()
             if obj is None:
-                from rest_framework.exceptions import NotFound
-
                 raise NotFound()
 
             # May raise a permission denied
@@ -536,21 +538,9 @@ class PhotoViewSet(viewsets.ModelViewSet):
         serializer_class=PhotoDetailsSummarySerializer,
     )
     def summary(self, request, pk):
-        # Support both UUID and image_hash lookups
-        # Note: 32 hex chars could parse as UUID but are actually MD5 hashes
         # Use Photo.objects instead of get_queryset() to include processing photos
-        is_uuid_format = len(pk) == 36 and pk.count("-") == 4
-
-        if is_uuid_format:
-            try:
-                import uuid
-
-                uuid.UUID(pk)
-                queryset = Photo.objects.filter(pk=pk)
-            except (ValueError, AttributeError):
-                queryset = Photo.objects.filter(image_hash=pk)
-        else:
-            queryset = Photo.objects.filter(image_hash=pk)
+        filter_kwargs = _get_photo_filter_kwargs(pk)
+        queryset = Photo.objects.filter(**filter_kwargs)
 
         if not queryset.exists():
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -576,14 +566,8 @@ class PhotoViewSet(viewsets.ModelViewSet):
     )
     def albums(self, request, pk):
         """Return user albums that contain this photo."""
-        # Support both UUID and image_hash lookups
-        try:
-            import uuid
-
-            uuid.UUID(pk)
-            photo = Photo.objects.filter(pk=pk).first()
-        except (ValueError, AttributeError):
-            photo = Photo.objects.filter(image_hash=pk).first()
+        filter_kwargs = _get_photo_filter_kwargs(pk)
+        photo = Photo.objects.filter(**filter_kwargs).first()
 
         if not photo:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -649,24 +633,10 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
         lookup_value = self.kwargs.get(lookup_url_kwarg)
 
         if lookup_value:
-            # Check if proper UUID format (36 chars with hyphens) vs MD5 hash (32 hex chars)
-            is_uuid_format = len(lookup_value) == 36 and lookup_value.count("-") == 4
-
-            if is_uuid_format:
-                try:
-                    import uuid
-
-                    uuid.UUID(lookup_value)
-                    filter_kwargs = {"pk": lookup_value}
-                except (ValueError, AttributeError):
-                    filter_kwargs = {"image_hash": lookup_value}
-            else:
-                filter_kwargs = {"image_hash": lookup_value}
+            filter_kwargs = _get_photo_filter_kwargs(lookup_value)
 
             obj = queryset.filter(**filter_kwargs).first()
             if obj is None:
-                from rest_framework.exceptions import NotFound
-
                 raise NotFound()
 
             self.check_object_permissions(self.request, obj)
