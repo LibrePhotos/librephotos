@@ -13,8 +13,6 @@ import {
   IconKey as Key,
   IconPhoto as Photo,
   IconPlus as Plus,
-  IconRotate2 as RotateCCW,
-  IconRotateClockwise2 as RotateCW,
   IconShare as Share,
   IconStar as Star,
   IconStarOff as StarOff,
@@ -29,7 +27,6 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useDownloadPhotosMutation } from "../../api_client/jobs";
 import {
   useMarkPhotosDeletedMutation,
-  useRotatePhotosMutation,
   useSetFavoritePhotosMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
@@ -68,7 +65,6 @@ export function SelectionActions(props: Readonly<Props>) {
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const setPhotosDeleted = useMarkPhotosDeletedMutation();
   const downloadPhotoArchive = useDownloadPhotosMutation();
-  const rotatePhotos = useRotatePhotosMutation();
   const createManualStack = useCreateManualStackMutation();
   const mergeStacks = useMergeStacksMutation();
   const removeFromStack = useRemoveFromStackMutation();
@@ -230,54 +226,6 @@ export function SelectionActions(props: Readonly<Props>) {
             }}
           >
             {`  ${t("selectionactions.unfavorite")}`}
-          </Menu.Item>
-
-          <Menu.Divider />
-
-          <Menu.Item
-            leftSection={<RotateCW size={16} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                rotatePhotos.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  rotation: 90,
-                });
-              } else {
-                rotatePhotos.mutate({
-                  image_hashes: getImageHashes(),
-                  rotation: 90,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {`  ${t("selectionactions.rotatecw")}`}
-          </Menu.Item>
-
-          <Menu.Item
-            leftSection={<RotateCCW size={16} />}
-            disabled={!hasSelection}
-            onClick={() => {
-              if (selectAllMode) {
-                rotatePhotos.mutate({
-                  select_all: true,
-                  query: selectAllQuery ?? {},
-                  excluded_hashes: getExcludedHashes(),
-                  rotation: -90,
-                });
-              } else {
-                rotatePhotos.mutate({
-                  image_hashes: getImageHashes(),
-                  rotation: -90,
-                });
-              }
-              resetSelection();
-            }}
-          >
-            {`  ${t("selectionactions.rotateccw")}`}
           </Menu.Item>
 
           <Menu.Divider />

@@ -1,7 +1,8 @@
-import { Indicator, Popover, Progress, Stack, Text } from "@mantine/core";
+import { Button, Indicator, Popover, Progress, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useCancelJobMutation } from "../../api_client/jobs/hooks";
 import { JobDetail } from "../../api_client/jobs/types";
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 
@@ -11,6 +12,7 @@ type IWorkerIndicator = Readonly<{
 
 function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
   const { t } = useTranslation();
+  const { mutate: cancelJob, isPending } = useCancelJobMutation();
 
   if (workerRunningJob) {
     return (
@@ -22,6 +24,11 @@ function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
         <Text size="sm" ta="center">
           {t("topmenu.running")} {workerRunningJob.job_type_str} ...
         </Text>
+        {!workerRunningJob.finished && !workerRunningJob.cancelled && (
+          <Button onClick={() => cancelJob(workerRunningJob.id)} color="red" variant="outline" size="xs" loading={isPending}>
+            {t("joblist.cancel")}
+          </Button>
+        )}
       </Stack>
     );
   }
