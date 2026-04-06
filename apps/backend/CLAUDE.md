@@ -2,7 +2,7 @@
 
 ## Build & Development Commands
 
-**Note:** All commands should be run inside the backend Docker container (`docker exec -it backend bash`).
+**Note:** Django management commands are normally run inside the backend Docker container (`docker exec -it backend bash`). For running tests outside Docker (e.g. in a CI sandbox), see the Testing section below.
 
 ### Django Management
 - **Run Migrations**: `python manage.py migrate`
@@ -24,9 +24,42 @@
 - **Lint + Fix**: `ruff check --fix .`
 
 ### Testing
+
+**Inside the Docker container** (the default environment):
 - **Run All Tests**: `python manage.py test api.tests`
 - **Run Specific Test**: `python manage.py test api.tests.test_module`
 - **Run with Verbosity**: `python manage.py test api.tests -v 2`
+
+**Outside Docker** (e.g. in a CI sandbox or local virtualenv):
+
+1. Install system and Python dependencies (one-time setup):
+   ```bash
+   bash scripts/setup_test_env.sh
+   ```
+   This installs `libvips-dev`, `libimage-exiftool-perl`, `libmagic1`, and all Python
+   packages from `requirements.txt` and `requirements.dev.txt`.
+
+2. Run the tests using the SQLite in-memory settings and pointing the runtime
+   directories to a writable location:
+   ```bash
+   BASE_LOGS=/tmp/librephotos/logs \
+   BASE_DATA=/tmp/librephotos \
+   SECRET_KEY=test-secret-key \
+   DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite \
+   python manage.py test api.tests
+   ```
+
+3. Run a single test module:
+   ```bash
+   BASE_LOGS=/tmp/librephotos/logs \
+   BASE_DATA=/tmp/librephotos \
+   SECRET_KEY=test-secret-key \
+   DJANGO_SETTINGS_MODULE=librephotos.settings.test_sqlite \
+   python manage.py test api.tests.test_photo_metadata
+   ```
+
+   The `test_sqlite` settings module (`librephotos/settings/test_sqlite.py`) uses
+   an in-memory SQLite database so no PostgreSQL instance is required.
 
 ### Debugging
 - **PDB Breakpoint**: Add `import pdb; pdb.set_trace()` in code
