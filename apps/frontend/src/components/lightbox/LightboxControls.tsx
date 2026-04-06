@@ -74,7 +74,7 @@ export function LightboxControls({
   const handleRotate = useCallback(
     (rotation: number) => {
       if (photoDetail) {
-        rotatePhotos.mutate({ image_hashes: [photoDetail.image_hash], rotation });
+        rotatePhotos.mutate({ image_hash: photoDetail.image_hash, angle: rotation });
       }
     },
     [photoDetail, rotatePhotos]
