@@ -22,7 +22,6 @@ RUN apt-get update && \
 		ffmpeg \
 		git \
   		libltdl-dev \
-		libboost-all-dev \
 		libcfitsio-dev \ 
 		libexif-dev \
 		libexpat-dev \
@@ -34,6 +33,7 @@ RUN apt-get update && \
 		libimage-exiftool-perl \
 		libimagequant-dev \
 		libjpeg-dev \
+		libgomp1 \
 		liblapack-dev \
 		liblcms2-dev \
 		libmagic1 \
@@ -67,8 +67,7 @@ RUN apt-get update && \
   		libc6-dev \
     		cmake \
 		libbz2-dev \
-        	libzip-dev \
-		swig && \
+        	libzip-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -90,17 +89,6 @@ RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_
 	./configure --with-modules && \
 	make install && \
 	ldconfig /usr/local/lib && \
-    rm -rf /tmp/builds/*
-
-# Build and install dlib
-WORKDIR /tmp/builds
-RUN git clone --depth 1 --branch 'master' https://github.com/davisking/dlib.git && \
-    mkdir dlib/build && \
-    cd dlib/build && \
-    cmake .. -DLIB_USE_CUDA=0 -DUSE_AVX_INSTRUCTIONS=0 -DLIB_NO_GUI_SUPPORT=0 && \
-    cmake --build . && \
-    cd /tmp/builds/dlib && \
-    python3 setup.py install --no USE_AVX_INSTRUCTIONS --no DLIB_USE_CUDA --no USE_SSE4_INSTRUCTIONS && \
     rm -rf /tmp/builds/*
 
 # Install ExifTool
