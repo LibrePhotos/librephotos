@@ -98,19 +98,24 @@ RUN apt-get update \
 
 # Install minimal required libraries
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+	apt-get install -y --no-install-recommends \
     curl \
     ffmpeg \
     git \
+    libgl1 \
+    libglib2.0-0 \
     libvips-dev \
     libjpeg-dev \
     libgif-dev \
     libpng-dev \
+    libsm6 \
     libtiff-dev \
     libtiff5-dev \
     libwebp-dev \
     libopenblas-dev \
     libpq-dev \
+    libxext6 \
+    libxrender1 \
     libmagic1 \
     libgomp1 \
     && apt-get clean && \
