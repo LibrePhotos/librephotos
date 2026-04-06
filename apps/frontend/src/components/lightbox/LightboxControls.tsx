@@ -8,6 +8,8 @@ import {
   IconArrowsMinimize as Minimize,
   IconPlayerPause as Pause,
   IconPlayerPlay as Play,
+  IconRotate2 as RotateCCW,
+  IconRotateClockwise2 as RotateCW,
   IconStar as Star,
   IconTrash as Trash,
   IconX as X,
@@ -19,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import { shareAddress } from "../../api_client/apiClient";
 import {
   useMarkPhotosDeletedMutation,
+  useRotatePhotosMutation,
   useSetFavoritePhotosMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
@@ -66,6 +69,16 @@ export function LightboxControls({
   const setPhotosPublic = useSetPhotosPublicMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
+  const rotatePhotos = useRotatePhotosMutation();
+
+  const handleRotate = useCallback(
+    (rotation: number) => {
+      if (photoDetail) {
+        rotatePhotos.mutate({ image_hashes: [photoDetail.image_hash], rotation });
+      }
+    },
+    [photoDetail, rotatePhotos]
+  );
 
   // Keyboard shortcut handlers
   const handleFavoriteShortcut = useCallback(() => {
@@ -298,6 +311,20 @@ export function LightboxControls({
                   }}
                 >
                   <Trash size={18} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {photoDetail && (
+              <Tooltip label={t("lightbox.toolbar.rotateCCW")} position="bottom" withArrow>
+                <ActionIcon variant="subtle" color="gray" size={28} onClick={() => handleRotate(-90)}>
+                  <RotateCCW size={18} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+            {photoDetail && (
+              <Tooltip label={t("lightbox.toolbar.rotateCW")} position="bottom" withArrow>
+                <ActionIcon variant="subtle" color="gray" size={28} onClick={() => handleRotate(90)}>
+                  <RotateCW size={18} />
                 </ActionIcon>
               </Tooltip>
             )}
