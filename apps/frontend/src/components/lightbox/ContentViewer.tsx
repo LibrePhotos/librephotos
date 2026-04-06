@@ -127,7 +127,7 @@ export function ContentViewer({
   // We do this in the next animation frame so the suppression is in effect for exactly
   // one render cycle (the one that resets rotationAngle to 0).
   useEffect(() => {
-    if (!suppressRotationTransition) return undefined;
+    if (!suppressRotationTransition) return;
     const raf = requestAnimationFrame(() => setSuppressRotationTransition(false));
     return () => cancelAnimationFrame(raf);
   }, [suppressRotationTransition]);
