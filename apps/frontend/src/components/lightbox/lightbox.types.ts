@@ -68,6 +68,7 @@ export type LightboxControlsProps = {
   isZoomed: boolean;
   toggleZoom: () => void;
   onCloseRequest: () => void;
+  onRotate: (angle: number) => void;
   playing: boolean;
   setPlaying: React.Dispatch<React.SetStateAction<boolean>>;
   isFullscreen: boolean;

@@ -6,6 +6,7 @@ import { useGesture } from "@use-gesture/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
+import { useRotatePhotosMutation } from "../../api_client/photos/hooks/useRotatePhotosMutation";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { ImagePreloader } from "./ImagePreloader";
 import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
@@ -37,6 +38,8 @@ export function ContentViewer({
   const [faceLocation, setFaceLocation] = useState<FaceLocationType>(null);
   const [embla, setEmbla] = useState<any | null>(null);
   const [playing, setPlaying] = useState(true);
+  const [rotationAngle, setRotationAngle] = useState(0);
+  const [imageCacheKey, setImageCacheKey] = useState(0);
 
   // Slideshow state
   const [isSlideshowActive, setIsSlideshowActive] = useState(false);
@@ -56,10 +59,14 @@ export function ContentViewer({
   // Skip this query on public pages since we don't have authenticated access to photo details
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash, isPublic);
 
+  const rotatePhotos = useRotatePhotosMutation();
+
   // Reset playing state when slide changes
   useEffect(() => {
     setPlaying(true);
     setSlideshowProgress(0);
+    setRotationAngle(0);
+    setImageCacheKey(0);
   }, [mainSrc]);
 
   // Slideshow timer and progress for images
@@ -108,6 +115,30 @@ export function ContentViewer({
   const toggleSlideshow = useCallback(() => {
     setIsSlideshowActive(prev => !prev);
   }, []);
+
+  // Handle rotation with optimistic update.
+  // `angle` is the visual CSS rotation (positive = clockwise, matching UI convention).
+  // The API angle is negated because the server uses the mathematical convention
+  // (positive = counter-clockwise), which is opposite to the UI convention.
+  const handleRotate = useCallback(
+    (angle: number) => {
+      if (!photoDetails?.image_hash) return;
+      setRotationAngle(prev => prev + angle);
+      rotatePhotos.mutate(
+        { image_hash: photoDetails.image_hash, angle: -angle },
+        {
+          onSuccess: () => {
+            setRotationAngle(0);
+            setImageCacheKey(Date.now());
+          },
+          onError: () => {
+            setRotationAngle(0);
+          },
+        }
+      );
+    },
+    [photoDetails, rotatePhotos]
+  );
 
   // Setup slide change handler for Embla
   useEffect(() => {
@@ -267,6 +298,7 @@ export function ContentViewer({
               isZoomed={isZoomed}
               toggleZoom={toggleZoom}
               onCloseRequest={handleClose}
+              onRotate={handleRotate}
               playing={playing}
               setPlaying={setPlaying}
               isFullscreen={isFullscreen}
@@ -345,6 +377,8 @@ export function ContentViewer({
                         handleDragStart={handleDragStart}
                         playing={playing}
                         onEnded={handleVideoEnded}
+                        rotationAngle={rotationAngle}
+                        imageCacheKey={imageCacheKey}
                         {...(photoDetails ? { photoDetails } : {})}
                       />
                     </motion.div>
