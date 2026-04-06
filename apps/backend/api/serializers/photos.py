@@ -390,42 +390,38 @@ class PhotoSerializer(serializers.ModelSerializer):
             except PhotoMetadata.DoesNotExist:
                 obj._cached_metadata = None
         return obj._cached_metadata
-    
+
+    def _get_metadata_field(self, obj, field: str, default=None):
+        """Return a single field from PhotoMetadata, or *default* when absent."""
+        metadata = self._get_metadata(obj)
+        return getattr(metadata, field, default) if metadata else default
+
     def get_height(self, obj) -> int:
-        metadata = self._get_metadata(obj)
-        return metadata.height if metadata else 0
-    
+        return self._get_metadata_field(obj, 'height', default=0)
+
     def get_width(self, obj) -> int:
-        metadata = self._get_metadata(obj)
-        return metadata.width if metadata else 0
-    
+        return self._get_metadata_field(obj, 'width', default=0)
+
     def get_focal_length(self, obj) -> float | None:
-        metadata = self._get_metadata(obj)
-        return metadata.focal_length if metadata else None
-    
+        return self._get_metadata_field(obj, 'focal_length')
+
     def get_fstop(self, obj) -> float | None:
-        metadata = self._get_metadata(obj)
-        return metadata.aperture if metadata else None
-    
+        return self._get_metadata_field(obj, 'aperture')
+
     def get_iso(self, obj) -> int | None:
-        metadata = self._get_metadata(obj)
-        return metadata.iso if metadata else None
-    
+        return self._get_metadata_field(obj, 'iso')
+
     def get_shutter_speed(self, obj) -> str | None:
-        metadata = self._get_metadata(obj)
-        return metadata.shutter_speed if metadata else None
-    
+        return self._get_metadata_field(obj, 'shutter_speed')
+
     def get_lens(self, obj) -> str | None:
-        metadata = self._get_metadata(obj)
-        return metadata.lens_display if metadata else None
-    
+        return self._get_metadata_field(obj, 'lens_display')
+
     def get_camera(self, obj) -> str | None:
-        metadata = self._get_metadata(obj)
-        return metadata.camera_display if metadata else None
-    
+        return self._get_metadata_field(obj, 'camera_display')
+
     def get_focalLength35Equivalent(self, obj) -> int | None:
-        metadata = self._get_metadata(obj)
-        return metadata.focal_length_35mm if metadata else None
+        return self._get_metadata_field(obj, 'focal_length_35mm')
     
     def get_digitalZoomRatio(self, obj) -> float | None:
         # Not stored in PhotoMetadata (rarely used field)
@@ -779,6 +775,13 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
                 obj._cached_metadata = None
         return obj._cached_metadata
 
+    def _get_camera_field(self, obj, field: str, default=None):
+        """Return a metadata field only when camera info sharing is enabled."""
+        if not self._get_sharing_settings().get('share_camera_info', False):
+            return default
+        metadata = self._get_metadata(obj)
+        return getattr(metadata, field, default) if metadata else default
+
     # Always available
     def get_square_thumbnail_url(self, obj) -> str:
         return obj.thumbnail.square_thumbnail.url if obj.thumbnail and obj.thumbnail.square_thumbnail else ""
@@ -819,52 +822,28 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
 
     # Camera info - conditional
     def get_camera(self, obj) -> str | None:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.camera_display if metadata else None
-        return None
+        return self._get_camera_field(obj, 'camera_display')
 
     def get_lens(self, obj) -> str | None:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.lens_display if metadata else None
-        return None
+        return self._get_camera_field(obj, 'lens_display')
 
     def get_focal_length(self, obj) -> float | None:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.focal_length if metadata else None
-        return None
+        return self._get_camera_field(obj, 'focal_length')
 
     def get_fstop(self, obj) -> float | None:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.aperture if metadata else None
-        return None
+        return self._get_camera_field(obj, 'aperture')
 
     def get_iso(self, obj) -> int | None:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.iso if metadata else None
-        return None
+        return self._get_camera_field(obj, 'iso')
 
     def get_shutter_speed(self, obj) -> str | None:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.shutter_speed if metadata else None
-        return None
+        return self._get_camera_field(obj, 'shutter_speed')
 
     def get_width(self, obj) -> int:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.width if metadata else 0
-        return 0
+        return self._get_camera_field(obj, 'width', default=0)
 
     def get_height(self, obj) -> int:
-        if self._get_sharing_settings().get('share_camera_info', False):
-            metadata = self._get_metadata(obj)
-            return metadata.height if metadata else 0
-        return 0
+        return self._get_camera_field(obj, 'height', default=0)
 
     # Captions - conditional
     def get_search_captions(self, obj) -> str:

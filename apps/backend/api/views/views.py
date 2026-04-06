@@ -504,7 +504,6 @@ class MediaAccessView(APIView):
 
         # grant access if the user is owner of the requested photo,
         # the photo is shared with the user, or the photo belongs to a public user album
-        image_hash = fname.split(".")[0].split("_")[0]  # janky alert
         user = User.objects.filter(id=token["user_id"]).only("id").first()
         if photo.owner == user or user in photo.shared_to.all():
             response = HttpResponse()
