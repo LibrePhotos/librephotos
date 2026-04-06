@@ -29,7 +29,7 @@ PyExifTool==0.4.9
 pyvips==3.1.1
 scikit-learn==1.7.2
 sentence_transformers==5.3.0
-timezonefinder==8.2.2
+timezonefinder==8.2.0
 tqdm==4.67.3
 gevent==25.9.1
 python-magic==0.4.27
