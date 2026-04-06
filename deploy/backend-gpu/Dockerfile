@@ -17,7 +17,7 @@ import sys
 try:
     version = metadata.version("onnxruntime")
 except metadata.PackageNotFoundError:
-    raise SystemExit(0)
+    raise RuntimeError("onnxruntime must be installed by requirements.txt before switching to onnxruntime-gpu")
 
 subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", "onnxruntime"])
 subprocess.check_call([
@@ -32,7 +32,7 @@ subprocess.check_call([
 subprocess.check_call([
     sys.executable,
     "-c",
-    "import onnxruntime as ort; print(ort.__version__); print(ort.get_available_providers())",
+    "import onnxruntime as ort; providers = ort.get_available_providers(); print(ort.__version__); print(providers); assert 'CUDAExecutionProvider' in providers, providers",
 ])
 PY
 RUN if [ "$DEBUG" = 1 ] ; then \
