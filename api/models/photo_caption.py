@@ -79,7 +79,7 @@ class PhotoCaption(models.Model):
             if captioning_model != SMOLVLM_256M_CAPTIONING_MODEL:
                 util.logger.warning(
                     "Unsupported legacy captioning model '%s'; using %s instead",
-                    site_config.CAPTIONING_MODEL,
+                    captioning_model,
                     SMOLVLM_256M_CAPTIONING_MODEL,
                 )
 
