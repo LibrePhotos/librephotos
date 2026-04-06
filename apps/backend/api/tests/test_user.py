@@ -56,7 +56,6 @@ class UserTest(TestCase):
         "datetime_rules",
         "default_timezone",
         "public_sharing",
-        "face_recognition_model",
         "min_cluster_size",
         "confidence_unknown_face",
         "min_samples",

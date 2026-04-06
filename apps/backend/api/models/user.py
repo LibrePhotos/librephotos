@@ -92,6 +92,9 @@ class User(AbstractUser):
         default=get_default_public_sharing_settings
     )
 
+    # Deprecated legacy user-level setting kept only for migration compatibility.
+    # Runtime face model selection is now site-wide via Constance
+    # FACE_RECOGNITION_MODEL.
     class FaceRecogniton(models.TextChoices):
         HOG = "HOG"
         CNN = "CNN"

@@ -1,11 +1,13 @@
 import numpy as np
 import requests
+from constance import config as site_config
 
 
 def get_face_encodings(image_path, known_face_locations):
     json = {
         "source": image_path,
         "face_locations": known_face_locations,
+        "model_name": site_config.FACE_RECOGNITION_MODEL,
     }
     face_encoding = requests.post(
         "http://localhost:8005/face-encodings", json=json
@@ -17,8 +19,11 @@ def get_face_encodings(image_path, known_face_locations):
     return face_encodings
 
 
-def get_face_locations(image_path, model="hog"):
-    json = {"source": image_path, "model": model}
+def get_face_locations(image_path):
+    json = {
+        "source": image_path,
+        "model_name": site_config.FACE_RECOGNITION_MODEL,
+    }
     face_locations = requests.post(
         "http://localhost:8005/face-locations", json=json
     ).json()

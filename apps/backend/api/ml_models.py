@@ -1,6 +1,7 @@
 import math
 import os
 import tarfile
+import zipfile
 from pathlib import Path
 
 import requests
@@ -55,12 +56,36 @@ ML_MODELS = [
         "target-dir": "resnet18-5c106cde.pth",
     },
     {
+        "id": 5,
+        "name": "buffalo_sc",
+        "url": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip",
+        "type": MlTypes.FACE_RECOGNITION,
+        "unpack-command": "zip",
+        "target-dir": "face_recognition/models/buffalo_sc",
+    },
+    {
+        "id": 7,
+        "name": "buffalo_s",
+        "url": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip",
+        "type": MlTypes.FACE_RECOGNITION,
+        "unpack-command": "zip",
+        "target-dir": "face_recognition/models/buffalo_s",
+    },
+    {
         "id": 6,
         "name": "blip_base_capfilt_large",
         "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/blip_large.tar.gz?download=true",
         "type": MlTypes.CAPTIONING,
         "unpack-command": "tar -zxC",
         "target-dir": "blip",
+    },
+    {
+        "id": 10,
+        "name": "buffalo_m",
+        "url": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip",
+        "type": MlTypes.FACE_RECOGNITION,
+        "unpack-command": "zip",
+        "target-dir": "face_recognition/models/buffalo_m",
     },
     {
         "id": 8,
@@ -89,6 +114,22 @@ ML_MODELS = [
         ],
     },
     {
+        "id": 12,
+        "name": "buffalo_l",
+        "url": "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip",
+        "type": MlTypes.FACE_RECOGNITION,
+        "unpack-command": "zip",
+        "target-dir": "face_recognition/models/buffalo_l",
+    },
+    {
+        "id": 13,
+        "name": "antelopev2",
+        "url": "https://github.com/deepinsight/insightface/releases/download/v0.7/antelopev2.zip",
+        "type": MlTypes.FACE_RECOGNITION,
+        "unpack-command": "zip",
+        "target-dir": "face_recognition/models/antelopev2",
+    },
+    {
         # Moondream 2 GGUF model for llama-cpp-python multimodal support
         "id": 9,
         "name": "moondream",
@@ -106,90 +147,93 @@ ML_MODELS = [
 ]
 
 
+def _is_model_not_selected(value):
+    return not value or str(value).strip().lower() == "none"
+
+
+def _is_model_selected(model):
+    model_type = model["type"]
+    if model_type == MlTypes.CAPTIONING:
+        return model["name"] == site_config.CAPTIONING_MODEL
+    if model_type == MlTypes.TAGGING:
+        return model["name"] == site_config.TAGGING_MODEL
+    if model_type == MlTypes.LLM:
+        return not _is_model_not_selected(site_config.LLM_MODEL) and (
+            model["name"] == site_config.LLM_MODEL
+        )
+    if model_type == MlTypes.MOONDREAM:
+        return site_config.LLM_MODEL == model["name"]
+    if model_type == MlTypes.FACE_RECOGNITION:
+        return model["name"] == site_config.FACE_RECOGNITION_MODEL
+    return True
+
+
+def _iter_required_models():
+    for model in ML_MODELS:
+        if _is_model_selected(model):
+            yield model
+
+
+def _get_download_target(model_folder, model):
+    if model["unpack-command"] == "tar -zxC":
+        return model_folder / (model["target-dir"] + ".tar.gz")
+    if model["unpack-command"] == "tar -xvf":
+        return model_folder / (model["target-dir"] + ".tar")
+    if model["unpack-command"] == "zip":
+        return model_folder / (model["target-dir"] + ".zip")
+    return model_folder / model["target-dir"]
+
+
+def _model_target_exists(model_folder, model):
+    target_dir = model_folder / model["target-dir"]
+    if not target_dir.exists():
+        return False
+
+    if model["type"] == MlTypes.FACE_RECOGNITION and not any(
+        target_dir.glob("*.onnx")
+    ):
+        return False
+
+    if model.get("additional_files"):
+        for additional_file in model["additional_files"]:
+            additional_target = model_folder / additional_file["target"]
+            if not additional_target.exists():
+                return False
+    return True
+
+
 def download_model(model):
     model = model.copy()
-    if model["type"] == MlTypes.LLM:
-        util.logger.info("Downloading LLM model")
-        model_to_download = site_config.LLM_MODEL
-        if not model_to_download or str(model_to_download).strip().lower() == "none":
-            util.logger.info("No LLM model selected")
-            return
-        util.logger.info(f"Model to download: {model_to_download}")
-        # Look through ML_MODELS and find the model with the name
-        for ml_model in ML_MODELS:
-            if ml_model["name"] == model_to_download:
-                model = ml_model
-    elif model["type"] == MlTypes.MOONDREAM:
-        util.logger.info("Downloading Moondream model")
-        model_to_download = site_config.LLM_MODEL
-        if model_to_download != "moondream":
-            util.logger.info("Moondream not selected")
-            return
-        util.logger.info(f"Model to download: {model_to_download}")
-        # Look through ML_MODELS and find the model with the name
-        for ml_model in ML_MODELS:
-            if ml_model["name"] == model_to_download:
-                model = ml_model
-    elif model["type"] == MlTypes.CAPTIONING:
-        util.logger.info("Downloading captioning model")
-        model_to_download = site_config.CAPTIONING_MODEL
-        util.logger.info(f"Model to download: {model_to_download}")
-        # Look through ML_MODELS and find the model with the name
-        for ml_model in ML_MODELS:
-            if ml_model["name"] == model_to_download:
-                model = ml_model
-    elif model["type"] == MlTypes.TAGGING:
-        util.logger.info("Downloading tagging model")
-        model_to_download = site_config.TAGGING_MODEL
-        if model_to_download != model["name"]:
-            util.logger.info(
-                f"Tagging model {model['name']} not selected (current: {model_to_download})"
-            )
-            return
-        util.logger.info(f"Model to download: {model_to_download}")
+    if not _is_model_selected(model):
+        util.logger.info(f"Skipping unselected model {model['name']}")
+        return
 
     util.logger.info(f"Downloading model {model['name']}")
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
 
-    # Handle regular models
-    target_dir = model_folder / model["target-dir"]
-
-    if target_dir.exists():
+    if _model_target_exists(model_folder, model):
         util.logger.info(f"Model {model['name']} already downloaded")
-        # Check if all additional files exist for models like Moondream
-        if model.get("additional_files"):
-            for additional_file in model["additional_files"]:
-                additional_target = model_folder / additional_file["target"]
-                if not additional_target.exists():
-                    util.logger.info(
-                        f"Additional file {additional_file['target']} missing, downloading..."
-                    )
-                    _download_file(
-                        additional_file["url"],
-                        additional_target,
-                        f"{model['name']} ({additional_file['target']})",
-                    )
         return
 
+    target_path = _get_download_target(model_folder, model)
+
+    _download_file(model["url"], target_path, model["name"])
+
     if model["unpack-command"] == "tar -zxC":
-        target_dir = model_folder / (model["target-dir"] + ".tar.gz")
+        with tarfile.open(target_path, mode="r:gz") as tar:
+            tar.extractall(path=model_folder)
+        os.remove(target_path)
     if model["unpack-command"] == "tar -xvf":
-        target_dir = model_folder / (model["target-dir"] + ".tar")
-    if model["unpack-command"] is None:
+        with tarfile.open(target_path, mode="r:") as tar:
+            tar.extractall(path=model_folder)
+        os.remove(target_path)
+    if model["unpack-command"] == "zip":
         target_dir = model_folder / model["target-dir"]
+        target_dir.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(target_path) as archive:
+            archive.extractall(path=target_dir)
+        os.remove(target_path)
 
-    _download_file(model["url"], target_dir, model["name"])
-
-    if model["unpack-command"] == "tar -zxC":
-        with tarfile.open(target_dir, mode="r:gz") as tar:
-            tar.extractall(path=model_folder)
-        os.remove(target_dir)
-    if model["unpack-command"] == "tar -xvf":
-        with tarfile.open(target_dir, mode="r:") as tar:
-            tar.extractall(path=model_folder)
-        os.remove(target_dir)
-
-    # Download additional files if they exist (e.g., mmproj for Moondream)
     if model.get("additional_files"):
         for additional_file in model["additional_files"]:
             additional_target = model_folder / additional_file["target"]
@@ -252,20 +296,7 @@ def download_models(user):
 
 def do_all_models_exist():
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
-    for model in ML_MODELS:
-        if model["type"] in (MlTypes.LLM, MlTypes.MOONDREAM, MlTypes.TAGGING):
-            if not model and model != "none":
-                continue
-
-        # Check main model file
-        target_dir = model_folder / model["target-dir"]
-        if not target_dir.exists():
+    for model in _iter_required_models():
+        if not _model_target_exists(model_folder, model):
             return False
-
-        # Check additional files if they exist (like mmproj for Moondream)
-        if model.get("additional_files"):
-            for additional_file in model["additional_files"]:
-                additional_target = model_folder / additional_file["target"]
-                if not additional_target.exists():
-                    return False
     return True
