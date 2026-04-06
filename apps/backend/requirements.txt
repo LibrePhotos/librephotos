@@ -17,7 +17,6 @@ Flask-RESTful==0.3.10
 geopy==2.4.1
 gunicorn==25.3.0
 hdbscan==0.8.42
-networkx==3.6.1
 nltk==3.9.4
 markupsafe==3.0.3
 Pillow==12.2.0
