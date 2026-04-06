@@ -8,12 +8,18 @@ import { fetchClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
-const RotatePhotosResponse = z.object({
-  status: z.boolean(),
-  image_hash: z.string().optional(),
-  local_orientation: z.number().optional(),
-  last_modified: z.string().optional(),
-});
+const RotatePhotosResponse = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal(true),
+    image_hash: z.string(),
+    local_orientation: z.number(),
+    last_modified: z.string(),
+  }),
+  z.object({
+    status: z.literal(false),
+    message: z.string().optional(),
+  }),
+]);
 
 export type RotatePhotosRequest = {
   image_hash: string;
