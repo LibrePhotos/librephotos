@@ -321,7 +321,7 @@ class Photo(models.Model):
         if (
             old_gps_lat == float(new_gps_lat)
             and old_gps_lon == float(new_gps_lon)
-            and old_album_places.count() != 0
+            and old_album_places.exists()
             and self.geolocation_json
             and "_v" in self.geolocation_json
             and self.geolocation_json["_v"] == GEOCODE_VERSION
@@ -456,12 +456,12 @@ class Photo(models.Model):
             logger.info(f"image {self.image_hash}: {len(face_locations)} face(s) saved")
         except IntegrityError:
             # When using multiple processes, then we can save at the same time, which leads to this error
-            if self.files.count() > 0:
+            if self.files.exists():
                 # print out the location of the image only if we have a path
                 logger.info(f"image {self.main_file.path}: rescan face failed")
             if not second_try:
                 self._extract_faces(True)
-            elif self.files.count() > 0:
+            elif self.files.exists():
                 logger.error(f"image {self.main_file.path}: rescan face failed")
             else:
                 logger.error(f"image {self}: rescan face failed")
