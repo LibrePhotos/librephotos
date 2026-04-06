@@ -71,6 +71,7 @@ def create_thumbnail(
                 # any user-specified rotation on top.
                 if local_orientation and local_orientation != 1:
                     x = pyvips.Image.new_from_file(complete_path)
+                    x = x.copy_memory()
                     x = _apply_local_orientation(x, local_orientation)
                     x.write_to_file(complete_path, Q=95)
                 return response["thumbnail"]
@@ -97,6 +98,7 @@ def create_thumbnail(
                 input_path, 10000, height=output_height, size=pyvips.enums.Size.DOWN
             )
             if local_orientation and local_orientation != 1:
+                x = x.copy_memory()
                 x = _apply_local_orientation(x, local_orientation)
             complete_path = os.path.join(
                 settings.MEDIA_ROOT, output_path, hash + file_type
