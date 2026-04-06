@@ -367,7 +367,7 @@ class SignupUserSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        should_be_superuser = User.objects.filter(is_superuser=True).count() == 0
+        should_be_superuser = not User.objects.filter(is_superuser=True).exists()
         user = super().create(validated_data)
         user.set_password(validated_data.pop("password"))
         user.is_staff = should_be_superuser

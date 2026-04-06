@@ -55,21 +55,21 @@ class PersonSerializer(serializers.ModelSerializer):
     def get_face_url(self, obj) -> str:
         if obj.cover_face:
             return "/media/" + obj.cover_face.image.name
-        if obj.faces.count() == 0:
+        if not obj.faces.exists():
             return ""
         return "/media/" + obj.faces.first().image.name
 
     def get_face_photo_url(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.image_hash
-        if obj.faces.count() == 0:
+        if not obj.faces.exists():
             return ""
         return obj.faces.first().photo.image_hash
 
     def get_video(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.video
-        if obj.faces.count() == 0:
+        if not obj.faces.exists():
             return "False"
         return obj.faces.first().photo.video
 
@@ -78,7 +78,7 @@ class PersonSerializer(serializers.ModelSerializer):
         if len(name.strip()) == 0:
             raise serializers.ValidationError("Name cannot be empty")
         qs = Person.objects.filter(name=name)
-        if qs.count() > 0:
+        if qs.exists():
             return qs[0]
         else:
             new_person = Person()

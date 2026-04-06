@@ -362,7 +362,7 @@ class Photo(models.Model):
             album_place = api.models.album_place.get_album_place(
                 feature["text"], owner=self.owner
             )
-            if album_place.photos.filter(image_hash=self.image_hash).count() == 0:
+            if not album_place.photos.filter(image_hash=self.image_hash).exists():
                 album_place.geolocation_level = (
                     len(self.geolocation_json["features"]) - geolocation_level
                 )
@@ -484,7 +484,7 @@ class Photo(models.Model):
                     title=attribute,
                     owner=self.owner,
                 )
-                if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
+                if not album_thing.photos.filter(image_hash=self.image_hash).exists():
                     album_thing.photos.add(self)
                     album_thing.thing_type = "places365_attribute"
                     album_thing.save()
@@ -495,10 +495,7 @@ class Photo(models.Model):
                     title=category,
                     owner=self.owner,
                 )
-                if album_thing.photos.filter(image_hash=self.image_hash).count() == 0:
-                    album_thing = api.models.album_thing.get_album_thing(
-                        title=category, owner=self.owner
-                    )
+                if not album_thing.photos.filter(image_hash=self.image_hash).exists():
                     album_thing.photos.add(self)
                     album_thing.thing_type = "places365_category"
                     album_thing.save()
