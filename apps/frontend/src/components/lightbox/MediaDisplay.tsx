@@ -19,6 +19,8 @@ export type MediaDisplayProps = {
   playing?: boolean;
   photoDetails?: any | null; // Allow null values from the API
   onEnded?: () => void;
+  rotationAngle?: number;
+  imageCacheKey?: number;
 };
 
 export function MediaDisplay({
@@ -36,6 +38,8 @@ export function MediaDisplay({
   playing = false,
   photoDetails,
   onEnded,
+  rotationAngle = 0,
+  imageCacheKey = 0,
 }: MediaDisplayProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
 
@@ -84,10 +88,11 @@ export function MediaDisplay({
 
   // For GIFs, use the original photo endpoint to get the animated file
   // For regular photos, use the big thumbnail
+  const cacheParam = imageCacheKey ? `?v=${imageCacheKey}` : "";
   const imageUrl =
     isGif() && isMainContent
-      ? `${serverAddress}/media/photos/${mediaHash}`
-      : `${serverAddress}/media/thumbnails_big/${mediaHash}`;
+      ? `${serverAddress}/media/photos/${mediaHash}${cacheParam}`
+      : `${serverAddress}/media/thumbnails_big/${mediaHash}${cacheParam}`;
 
   return (
     <div
@@ -111,8 +116,10 @@ export function MediaDisplay({
           onDragStart={handleDragStart}
           onDoubleClick={isMainContent && toggleZoom ? toggleZoom : undefined}
           style={{
-            transition: isMainContent ? "transform 0.15s ease-out" : "none",
-            transform: isMainContent ? `translate(${offset.x}px, ${offset.y}px) scale(${scale})` : "none",
+            transition: isMainContent ? "transform 0.3s ease-out" : "none",
+            transform: isMainContent
+              ? `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotationAngle}deg)`
+              : "none",
             maxHeight: "82vh",
             maxWidth: "100%",
             borderRadius: 8,

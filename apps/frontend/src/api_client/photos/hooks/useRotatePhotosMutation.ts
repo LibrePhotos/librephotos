@@ -31,17 +31,16 @@ export const useRotatePhotosMutation = () =>
   useMutation({
     mutationFn: async (request: RotatePhotosRequest) => {
       const response = await fetchClient.post("/photosedit/rotate/", request);
-      const data = parseWithNotification(
-        RotatePhotosResponse,
-        response,
-        "Failed to parse rotate photos response"
-      );
+      const data = parseWithNotification(RotatePhotosResponse, response, "Failed to parse rotate photos response");
 
-      notification.rotatePhotos(1, request.angle);
+      if (data.status === true) {
+        notification.rotatePhotos(1, request.angle);
+      }
 
       return data;
     },
     onSuccess: (data, request) => {
+      if (data.status !== true) return;
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
       queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
