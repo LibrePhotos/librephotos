@@ -9,6 +9,7 @@ site_settings_schema = {
         {"required": ["captioning_model"]},
         {"required": ["llm_model"]},
         {"required": ["tagging_model"]},
+        {"required": ["face_recognition_model"]},
     ],
     "properties": {
         "allow_registration": {"type": "boolean"},
@@ -19,5 +20,6 @@ site_settings_schema = {
         "captioning_model": {"type": "string"},
         "llm_model": {"type": "string"},
         "tagging_model": {"type": "string"},
+        "face_recognition_model": {"type": "string"},
     },
 }

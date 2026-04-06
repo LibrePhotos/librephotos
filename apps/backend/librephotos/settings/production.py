@@ -163,6 +163,11 @@ CONSTANCE_CONFIG = {
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
     "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
+    "FACE_RECOGNITION_MODEL": (
+        "buffalo_sc",
+        "Face recognition model",
+        "face_recognition_model",
+    ),
     "LOG_MAX_BYTES": (
         200 * 1024 * 1024,
         "Maximum log file size in bytes before rotation (default 200 MB)",

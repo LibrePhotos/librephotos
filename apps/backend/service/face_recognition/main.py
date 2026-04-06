@@ -1,6 +1,5 @@
 import time
 
-import face_recognition
 import gevent
 import numpy as np
 import PIL
@@ -10,10 +9,99 @@ from gevent.pywsgi import WSGIServer
 app = Flask(__name__)
 
 last_request_time = None
+face_analysis_models = {}
+DEFAULT_MODEL_NAME = "buffalo_sc"
+FACE_MODEL_ROOT = "/protected_media/data_models/face_recognition"
+SUPPORTED_FACE_MODELS = {
+    "antelopev2",
+    "buffalo_l",
+    "buffalo_m",
+    "buffalo_s",
+    "buffalo_sc",
+}
 
 
 def log(message):
     print(f"face_recognition: {message}")
+
+
+def _normalize_model_name(model_name):
+    if model_name in SUPPORTED_FACE_MODELS:
+        return model_name
+    return DEFAULT_MODEL_NAME
+
+
+def _get_face_analysis(model_name):
+    model_name = _normalize_model_name(model_name)
+    if model_name not in face_analysis_models:
+        from insightface.app import FaceAnalysis
+
+        face_analysis = FaceAnalysis(
+            name=model_name,
+            root=FACE_MODEL_ROOT,
+            allowed_modules=["detection", "recognition"],
+            providers=["CPUExecutionProvider"],
+        )
+        face_analysis.prepare(ctx_id=-1, det_size=(640, 640))
+        face_analysis_models[model_name] = face_analysis
+    return face_analysis_models[model_name]
+
+
+def _to_face_location(bbox):
+    left, top, right, bottom = bbox
+    return (
+        int(round(top)),
+        int(round(right)),
+        int(round(bottom)),
+        int(round(left)),
+    )
+
+
+def _iou(face_location, detected_location):
+    top = max(face_location[0], detected_location[0])
+    right = min(face_location[1], detected_location[1])
+    bottom = min(face_location[2], detected_location[2])
+    left = max(face_location[3], detected_location[3])
+
+    width = max(0, right - left)
+    height = max(0, bottom - top)
+    intersection = width * height
+
+    if intersection == 0:
+        return 0.0
+
+    face_area = (face_location[1] - face_location[3]) * (
+        face_location[2] - face_location[0]
+    )
+    detected_area = (detected_location[1] - detected_location[3]) * (
+        detected_location[2] - detected_location[0]
+    )
+    union = face_area + detected_area - intersection
+    if union <= 0:
+        return 0.0
+    return intersection / union
+
+
+def _find_best_face_match(face_locations, detected_faces):
+    matches = []
+    remaining_indices = list(range(len(detected_faces)))
+
+    for face_location in face_locations:
+        best_index = None
+        best_score = -1.0
+        for detected_index in remaining_indices:
+            score = _iou(face_location, _to_face_location(detected_faces[detected_index].bbox))
+            if score > best_score:
+                best_score = score
+                best_index = detected_index
+
+        if best_index is None:
+            continue
+
+        remaining_indices.remove(best_index)
+        matches.append(detected_faces[best_index])
+
+    return matches
 
 
 @app.route("/face-encodings", methods=["POST"])
@@ -26,17 +114,15 @@ def create_face_encodings():
         data = request.get_json()
         source = data["source"]
         face_locations = data["face_locations"]
+        model_name = data.get("model_name")
     except Exception:
         return "", 400
 
     image = np.array(PIL.Image.open(source))
-    face_encodings = face_recognition.face_encodings(
-        image,
-        known_face_locations=face_locations,
-    )
-    # Convert NumPy arrays to Python lists
-    face_encodings_list = [enc.tolist() for enc in face_encodings]
-    # Log number of face encodings
+    face_analysis = _get_face_analysis(model_name)
+    detected_faces = face_analysis.get(image, max_num=max(len(face_locations), 1))
+    matched_faces = _find_best_face_match(face_locations, detected_faces)
+    face_encodings_list = [face.embedding.tolist() for face in matched_faces]
     log(f"created face_encodings={len(face_encodings_list)}")
     return {"encodings": face_encodings_list}, 201
 
@@ -50,12 +136,13 @@ def create_face_locations():
     try:
         data = request.get_json()
         source = data["source"]
-        model = data["model"]
+        model_name = data.get("model_name")
     except Exception:
         return "", 400
 
     image = np.array(PIL.Image.open(source))
-    face_locations = face_recognition.face_locations(image, model=model)
+    face_analysis = _get_face_analysis(model_name)
+    face_locations = [_to_face_location(face.bbox) for face in face_analysis.get(image)]
     log(f"created face_location={face_locations}")
     return {"face_locations": face_locations}, 201
 
