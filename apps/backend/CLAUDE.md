@@ -58,8 +58,8 @@
    python manage.py test api.tests.test_photo_metadata
    ```
 
-   The `test_sqlite` settings module uses an in-memory SQLite database so no
-   PostgreSQL instance is required.
+   The `test_sqlite` settings module (`librephotos/settings/test_sqlite.py`) uses
+   an in-memory SQLite database so no PostgreSQL instance is required.
 
 ### Debugging
 - **PDB Breakpoint**: Add `import pdb; pdb.set_trace()` in code
