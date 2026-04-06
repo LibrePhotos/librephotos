@@ -154,13 +154,13 @@ export function ContentViewer({
     [" ", () => type === "video" && setPlaying(prev => !prev)],
     ["z", () => type === "photo" && toggleZoom()],
     ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
-    // Additional shortcuts for photo actions (will be implemented in toolbar)
+    // Additional shortcuts for photo actions handled by lightbox controls
     [
       "f",
       () => {
         // Trigger favorite action if photo details are available and not public
         if (photoDetails && !isPublic) {
-          // We'll trigger this via a custom event that the Toolbar can listen to
+          // Trigger a custom event that LightboxControls listens to
           window.dispatchEvent(new CustomEvent("lightbox-favorite-shortcut"));
         }
       },
