@@ -56,6 +56,7 @@ def _l2_normalize(embeddings):
 class SigLIP2:
     def __init__(self):
         self.vision_session = None
+        self.text_session = None
         self.tokenizer = None
         self.tags = None
         self.tag_embeddings = None
@@ -65,6 +66,10 @@ class SigLIP2:
         """Load the vision model, tokenizer, tag list, and pre-computed embeddings."""
         self.vision_session = ort.InferenceSession(
             SIGLIP2_VISION_PATH,
+            providers=["CPUExecutionProvider"],
+        )
+        self.text_session = ort.InferenceSession(
+            SIGLIP2_TEXT_PATH,
             providers=["CPUExecutionProvider"],
         )
 
@@ -106,9 +111,11 @@ class SigLIP2:
 
     def unload(self):
         del self.vision_session
+        del self.text_session
         del self.tag_embeddings
         del self.tokenizer
         self.vision_session = None
+        self.text_session = None
         self.tag_embeddings = None
         self.tokenizer = None
         self.tags = None
@@ -151,14 +158,14 @@ class SigLIP2:
     def _build_tag_embeddings(self):
         """Encode all tags with the text model and cache the embeddings."""
         print("siglip2: building tag embeddings (first run, this may take a minute)...")
+        if self.text_session is None:
+            self.text_session = ort.InferenceSession(
+                SIGLIP2_TEXT_PATH,
+                providers=["CPUExecutionProvider"],
+            )
 
-        text_session = ort.InferenceSession(
-            SIGLIP2_TEXT_PATH,
-            providers=["CPUExecutionProvider"],
-        )
-
-        text_input_names = [inp.name for inp in text_session.get_inputs()]
-        text_output_names = [out.name for out in text_session.get_outputs()]
+        text_input_names = [inp.name for inp in self.text_session.get_inputs()]
+        text_output_names = [out.name for out in self.text_session.get_outputs()]
 
         print(f"siglip2: text model inputs: {text_input_names}")
         print(f"siglip2: text model outputs: {text_output_names}")
@@ -178,7 +185,7 @@ class SigLIP2:
                 feed[text_input_names[1]] = attention_mask
 
             # Run all outputs so we can pick the best one
-            raw_outputs = text_session.run(None, feed)
+            raw_outputs = self.text_session.run(None, feed)
 
             # Find the output that gives us pooled embeddings (batch, hidden_dim)
             # Prefer a 2-D output; if all are 3-D, pool the first one via EOS token
@@ -204,8 +211,6 @@ class SigLIP2:
                     f"/{len(prompted_tags)} tags"
                 )
 
-        del text_session
-
         self.tag_embeddings = np.concatenate(all_embeddings, axis=0)
 
         os.makedirs(os.path.dirname(SIGLIP2_EMBEDDINGS_CACHE), exist_ok=True)
@@ -227,29 +232,44 @@ class SigLIP2:
         # Add batch dimension
         return arr[np.newaxis, :]
 
-    def predict(self, image_path, threshold=0.05, max_tags=10):
-        """Run inference and return the top tags by cosine similarity.
-
-        Args:
-            image_path: Path to the image file.
-            threshold: Minimum cosine similarity to include a tag.
-            max_tags: Maximum number of tags to return.
-
-        Returns:
-            dict with "tags" key containing a list of predicted tag strings.
-        """
+    def encode_text(self, texts):
+        """Encode one or more texts into normalized embeddings."""
         if not self.is_loaded:
             self.load()
 
-        image = Image.open(image_path)
-        pixel_values = self.prepare_image(image)
+        if isinstance(texts, str):
+            texts = [texts]
+
+        input_ids, attention_mask = self._tokenize(texts)
+        text_input_names = [inp.name for inp in self.text_session.get_inputs()]
+        feed = {text_input_names[0]: input_ids}
+        if len(text_input_names) > 1:
+            feed[text_input_names[1]] = attention_mask
+
+        raw_outputs = self.text_session.run(None, feed)
+        embeddings = None
+        for out in raw_outputs:
+            if out.ndim == 2 and out.shape[0] == len(texts):
+                embeddings = out
+                break
+
+        if embeddings is None:
+            embeddings = _pool_embeddings(raw_outputs[0], attention_mask)
+
+        return _l2_normalize(embeddings)
+
+    def encode_image(self, image_path):
+        """Encode an image into a normalized embedding."""
+        if not self.is_loaded:
+            self.load()
+
+        with Image.open(image_path) as image:
+            pixel_values = self.prepare_image(image)
 
         vision_input_name = self.vision_session.get_inputs()[0].name
 
-        # Run all outputs
         raw_outputs = self.vision_session.run(None, {vision_input_name: pixel_values})
 
-        # Find the pooled image embedding (2-D preferred, else pool from 3-D)
         image_embeds = None
         for out in raw_outputs:
             if out.ndim == 2 and out.shape[0] == 1:
@@ -257,12 +277,15 @@ class SigLIP2:
                 break
 
         if image_embeds is None:
-            # 3-D output: pool via CLS token (position 0)
             image_embeds = _pool_embeddings(raw_outputs[0], attention_mask=None)
 
         image_embeds = _l2_normalize(image_embeds)
+        return image_embeds[0]
 
-        # Compute cosine similarity: (1, dim) @ (n_tags, dim).T -> (1, n_tags)
+    def predict(self, image_path, threshold=0.05, max_tags=10):
+        """Run inference and return the top tags by cosine similarity."""
+        image_embeds = self.encode_image(image_path)[np.newaxis, :]
+
         similarities = image_embeds @ self.tag_embeddings.T
         scores = similarities[0]
 

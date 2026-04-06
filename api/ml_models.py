@@ -31,14 +31,6 @@ ML_MODELS = [
         "target-dir": "im2txt",
     },
     {
-        "id": 2,
-        "name": "clip-embeddings",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/clip-embeddings.tar.gz",
-        "type": MlTypes.CLIP,
-        "unpack-command": "tar -zxC",
-        "target-dir": "clip-embeddings",
-    },
-    {
         "id": 3,
         "name": "places365",
         "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz",

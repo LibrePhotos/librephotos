@@ -10,8 +10,6 @@ from api.semantic_search import create_clip_embeddings
 
 
 def batch_calculate_clip_embedding(user):
-    import torch
-
     lrj = LongRunningJob.create_job(
         user=user,
         job_type=LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
@@ -22,16 +20,9 @@ def batch_calculate_clip_embedding(user):
         Q(owner=user) & Q(clip_embeddings__isnull=True)
     ).count()
     lrj.update_progress(current=0, target=count)
-    
-    if not torch.cuda.is_available():
-        num_threads = 1
-        torch.set_num_threads(num_threads)
-        os.environ["OMP_NUM_THREADS"] = str(num_threads)
-    else:
-        torch.multiprocessing.set_start_method("spawn", force=True)
 
     BATCH_SIZE = 64
-    util.logger.info(f"Using threads: {torch.get_num_threads()}")
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
 
     done_count = 0
     while done_count < count:
