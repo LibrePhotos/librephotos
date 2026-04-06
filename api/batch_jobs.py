@@ -22,7 +22,7 @@ def batch_calculate_clip_embedding(user):
     lrj.update_progress(current=0, target=count)
 
     BATCH_SIZE = 64
-    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    util.logger.info("Using multimodal inference service for semantic embeddings")
 
     done_count = 0
     while done_count < count:

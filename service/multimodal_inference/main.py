@@ -104,7 +104,7 @@ def create_semantic_text_embeddings():
         }, 201
     except Exception as e:
         print(f"multimodal inference: Error processing semantic text request: {e}")
-        return {"error": "Failed to process image"}, 500
+        return {"error": "Failed to generate semantic text embeddings"}, 500
 
 
 @app.route("/health", methods=["GET"])

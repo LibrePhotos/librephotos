@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
@@ -297,7 +298,8 @@ class PhotoCaption(models.Model):
                 "tagging_model": tagging_model,
             }
             response = requests.post(
-                "http://localhost:8011/generate-tags", json=json_data
+                f"{settings.MULTIMODAL_INFERENCE_SERVER}/generate-tags",
+                json=json_data,
             )
 
             if not response.ok:

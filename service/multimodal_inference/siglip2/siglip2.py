@@ -68,10 +68,6 @@ class SigLIP2:
             SIGLIP2_VISION_PATH,
             providers=["CPUExecutionProvider"],
         )
-        self.text_session = ort.InferenceSession(
-            SIGLIP2_TEXT_PATH,
-            providers=["CPUExecutionProvider"],
-        )
 
         with open(TAGS_FILE, "r") as f:
             self.tags = [line.strip() for line in f if line.strip()]
@@ -126,6 +122,14 @@ class SigLIP2:
             self.tokenizer = spm.SentencePieceProcessor()
             self.tokenizer.Load(SIGLIP2_TOKENIZER_PATH)
 
+    def _get_text_session(self):
+        if self.text_session is None:
+            self.text_session = ort.InferenceSession(
+                SIGLIP2_TEXT_PATH,
+                providers=["CPUExecutionProvider"],
+            )
+        return self.text_session
+
     def _tokenize(self, texts, max_length=MAX_TOKEN_LENGTH):
         """Tokenize a list of texts using SentencePiece, returning input_ids and attention_mask."""
         self._load_tokenizer()
@@ -158,14 +162,10 @@ class SigLIP2:
     def _build_tag_embeddings(self):
         """Encode all tags with the text model and cache the embeddings."""
         print("siglip2: building tag embeddings (first run, this may take a minute)...")
-        if self.text_session is None:
-            self.text_session = ort.InferenceSession(
-                SIGLIP2_TEXT_PATH,
-                providers=["CPUExecutionProvider"],
-            )
+        text_session = self._get_text_session()
 
-        text_input_names = [inp.name for inp in self.text_session.get_inputs()]
-        text_output_names = [out.name for out in self.text_session.get_outputs()]
+        text_input_names = [inp.name for inp in text_session.get_inputs()]
+        text_output_names = [out.name for out in text_session.get_outputs()]
 
         print(f"siglip2: text model inputs: {text_input_names}")
         print(f"siglip2: text model outputs: {text_output_names}")
@@ -185,7 +185,7 @@ class SigLIP2:
                 feed[text_input_names[1]] = attention_mask
 
             # Run all outputs so we can pick the best one
-            raw_outputs = self.text_session.run(None, feed)
+            raw_outputs = text_session.run(None, feed)
 
             # Find the output that gives us pooled embeddings (batch, hidden_dim)
             # Prefer a 2-D output; if all are 3-D, pool the first one via EOS token
@@ -241,12 +241,13 @@ class SigLIP2:
             texts = [texts]
 
         input_ids, attention_mask = self._tokenize(texts)
-        text_input_names = [inp.name for inp in self.text_session.get_inputs()]
+        text_session = self._get_text_session()
+        text_input_names = [inp.name for inp in text_session.get_inputs()]
         feed = {text_input_names[0]: input_ids}
         if len(text_input_names) > 1:
             feed[text_input_names[1]] = attention_mask
 
-        raw_outputs = self.text_session.run(None, feed)
+        raw_outputs = text_session.run(None, feed)
         embeddings = None
         for out in raw_outputs:
             if out.ndim == 2 and out.shape[0] == len(texts):

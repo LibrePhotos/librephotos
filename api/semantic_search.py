@@ -1,8 +1,9 @@
 import numpy as np
 import requests
+from django.conf import settings
 
 
-MULTIMODAL_INFERENCE_URL = "http://localhost:8011"
+MULTIMODAL_INFERENCE_URL = settings.MULTIMODAL_INFERENCE_SERVER
 
 
 def create_clip_embeddings(imgs):
