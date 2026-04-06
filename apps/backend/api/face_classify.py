@@ -2,7 +2,6 @@ import datetime
 import uuid
 
 import numpy as np
-import seaborn as sns
 from bulk_update.helper import bulk_update
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -12,6 +11,7 @@ from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPClassifier
 
 from api.cluster_manager import ClusterManager
+from api.color_palettes import hex_palette
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.user import User, get_deleted_user
@@ -33,7 +33,7 @@ def cluster_faces(user, inferred=True):
     persons = [p.id for p in Person.objects.filter(faces__photo__owner=user).distinct()]
 
     # Create a color mapping for each person
-    p2c = dict(zip(persons, sns.color_palette(n_colors=len(persons)).as_hex()))
+    p2c = dict(zip(persons, hex_palette(n_colors=len(persons))))
 
     face_encoding = []
     faces_with_encoding = []

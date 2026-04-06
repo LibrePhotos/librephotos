@@ -9,7 +9,7 @@ from django.db.models.functions import TruncMonth
 import random
 import re
 
-import seaborn as sns
+from api.color_palettes import hex_palette
 from api.util import logger
 
 from api.models import (
@@ -633,7 +633,7 @@ def get_location_sunburst(user):
     levels = sorted(levels, key=lambda x: (x[0], x[1], x[2]))
 
     data_structure = {"name": "Places I've visited", "children": []}
-    palette = sns.color_palette("hls", 10).as_hex()
+    palette = hex_palette("hls", 10)
 
     for data in levels:
         depth_cursor = data_structure["children"]
@@ -757,7 +757,7 @@ def get_location_timeline(user):
         duration_sec = (new_end - begin).total_seconds()
         city_start_end_duration.append((loc, begin, new_end, duration_sec))
 
-    colors = sns.color_palette("Paired", len(city_start_end_duration)).as_hex()
+    colors = hex_palette("Paired", len(city_start_end_duration))
 
     data = []
     for idx, sted in enumerate(city_start_end_duration):
