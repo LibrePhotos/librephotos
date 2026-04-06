@@ -3,11 +3,19 @@ import base64
 import io
 from PIL import Image
 from constance import config as site_config
+from django.conf import settings
 
 
-SMOLVLM_256M_MODEL_PATH = "/protected_media/data_models/SmolVLM-256M-Instruct-f16.gguf"
-SMOLVLM_256M_MMPROJ_PATH = (
-    "/protected_media/data_models/mmproj-SmolVLM-256M-Instruct-f16.gguf"
+SMOLVLM_256M_CAPTIONING_MODEL = "smolvlm-256m"
+
+
+def _data_model_path(filename):
+    return f"{settings.MEDIA_ROOT}/data_models/{filename}"
+
+
+SMOLVLM_256M_MODEL_PATH = _data_model_path("SmolVLM-256M-Instruct-f16.gguf")
+SMOLVLM_256M_MMPROJ_PATH = _data_model_path(
+    "mmproj-SmolVLM-256M-Instruct-f16.gguf"
 )
 
 
@@ -47,10 +55,10 @@ def _caption_model_config():
     if captioning_model in ("", "none"):
         return None
 
-    if captioning_model != "smolvlm-256m":
+    if captioning_model != SMOLVLM_256M_CAPTIONING_MODEL:
         print(
             "Unsupported captioning model "
-            f"'{site_config.CAPTIONING_MODEL}', using smolvlm-256m"
+            f"'{site_config.CAPTIONING_MODEL}', using {SMOLVLM_256M_CAPTIONING_MODEL}"
         )
 
     return {

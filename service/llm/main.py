@@ -33,6 +33,8 @@ def build_multimodal_chat_handler(mmproj_path, chat_format):
     from llama_cpp.llama_chat_format import Llava15ChatHandler
 
     class SmolVLMChatHandler(Llava15ChatHandler):
+        """Llava-style handler with SmolVLM's chat template and stop markers."""
+
         DEFAULT_SYSTEM_MESSAGE = (
             "You are a visual assistant. Describe images clearly and answer "
             "questions based on visual content."

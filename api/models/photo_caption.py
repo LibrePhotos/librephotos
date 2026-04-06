@@ -5,7 +5,7 @@ from django.db.models import Q
 import api.models
 from api import util
 from api.image_captioning import generate_caption
-from api.llm import generate_prompt
+from api.llm import SMOLVLM_256M_CAPTIONING_MODEL, generate_prompt
 from api.models.user import User
 
 
@@ -76,10 +76,11 @@ class PhotoCaption(models.Model):
                 util.logger.info("Generating captions is disabled")
                 return False
 
-            if captioning_model != "smolvlm-256m":
+            if captioning_model != SMOLVLM_256M_CAPTIONING_MODEL:
                 util.logger.warning(
-                    "Unsupported legacy captioning model '%s'; using smolvlm-256m instead",
+                    "Unsupported legacy captioning model '%s'; using %s instead",
                     site_config.CAPTIONING_MODEL,
+                    SMOLVLM_256M_CAPTIONING_MODEL,
                 )
 
             caption = generate_caption(image_path=image_path)
