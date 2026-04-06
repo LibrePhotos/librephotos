@@ -34,6 +34,14 @@ const TAGGING_MODELS = [
   { value: "siglip2", label: "SigLIP 2 (Real-world photo tags)" },
 ];
 
+const FACE_RECOGNITION_MODELS = [
+  { value: "buffalo_sc", label: "buffalo_sc (lightweight, default)" },
+  { value: "buffalo_s", label: "buffalo_s" },
+  { value: "buffalo_m", label: "buffalo_m" },
+  { value: "buffalo_l", label: "buffalo_l (most accurate)" },
+  { value: "antelopev2", label: "antelopev2" },
+];
+
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
@@ -43,6 +51,7 @@ export function SiteSettings() {
   const [captioningModel, setCaptioningModel] = useState("im2txt");
   const [llmModel, setLlmModel] = useState("none");
   const [taggingModel, setTaggingModel] = useState("places365");
+  const [faceRecognitionModel, setFaceRecognitionModel] = useState("buffalo_sc");
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
@@ -68,6 +77,7 @@ export function SiteSettings() {
       setCaptioningModel(settings.captioning_model);
       setLlmModel(settings.llm_model);
       setTaggingModel(settings.tagging_model);
+      setFaceRecognitionModel(settings.face_recognition_model);
     }
   }, [settings, isLoading]);
 
@@ -259,6 +269,29 @@ export function SiteSettings() {
                   const value = model ?? "places365";
                   saveSettings({ tagging_model: value });
                   setTaggingModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.face_recognition_model_header", "Face Recognition Model")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t(
+                    "sitesettings.face_recognition_model_description",
+                    "Select the InsightFace model pack used for face recognition. Larger models are more accurate but require more resources."
+                  )}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={FACE_RECOGNITION_MODELS}
+                value={faceRecognitionModel}
+                onChange={model => {
+                  const value = model ?? "buffalo_sc";
+                  saveSettings({ face_recognition_model: value });
+                  setFaceRecognitionModel(value);
                 }}
               />
             </Grid.Col>

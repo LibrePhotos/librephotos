@@ -9,6 +9,7 @@ export const SiteSettings = z.object({
   captioning_model: z.string(),
   llm_model: z.string(),
   tagging_model: z.string(),
+  face_recognition_model: z.string(),
 });
 
 export type SiteSettings = z.infer<typeof SiteSettings>;
