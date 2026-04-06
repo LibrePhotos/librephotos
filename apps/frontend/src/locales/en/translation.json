@@ -806,7 +806,9 @@
     "llm_model_description": "Select a model for postprocessing a caption with an large language model.",
     "ram_warning_header": "Large RAM Size possible",
     "heavyweight_process_warning": "Setting the number of heavyweight processes to more than 3 will likely require more than 16GB of RAM. Please consider this before proceeding.",
-    "blip_warning": "This feature needs an additional 3GBs of RAM to work properly. Please consider this before proceeding."
+    "blip_warning": "This feature needs an additional 3GBs of RAM to work properly. Please consider this before proceeding.",
+    "face_recognition_model_header": "Face Recognition Model",
+    "face_recognition_model_description": "Select the InsightFace model pack used for face recognition. Larger models are more accurate but require more resources."
   },
   "countstats": {
     "photos": "Photos",

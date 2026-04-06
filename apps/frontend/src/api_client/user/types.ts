@@ -54,7 +54,6 @@ export const User = z.object({
   password: z.string().optional(),
   is_superuser: z.boolean().optional(),
   public_sharing: z.boolean(),
-  face_recognition_model: z.string(),
   confidence_unknown_face: z.number(),
   min_cluster_size: z.number(),
   min_samples: z.number(),

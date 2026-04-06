@@ -363,7 +363,7 @@ export function useSpotlightActions(query: string = "") {
         description: t("spotlight.nav.faceSettingsDesc"),
         leftSection: React.createElement(IconFaceId, iconProps),
         onClick: () => navigate({ to: "/settings" }),
-        keywords: ["face", "recognition", "model", "hog", "cnn", "cluster", "clustering"],
+        keywords: ["face", "recognition", "cluster", "clustering", "unknown faces"],
       },
       {
         id: "nav-settings-llm",
