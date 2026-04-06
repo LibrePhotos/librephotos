@@ -176,19 +176,6 @@ export function Settings() {
             {t("settings.face_options")}
           </Title>
           <Radio.Group
-            label={t("settings.face_recognition_model")}
-            description={t("settings.face_recognition_model_help")}
-            value={editedUserDetails.face_recognition_model}
-            onChange={value => {
-              setEditedUserDetails({ ...editedUserDetails, face_recognition_model: value || "HOG" });
-            }}
-          >
-            <Group mt="xs">
-              <Radio value="HOG" label={t("settings.models.hog")} />
-              <Radio value="CNN" label={t("settings.models.cnn")} />
-            </Group>
-          </Radio.Group>
-          <Radio.Group
             label={t("settings.min_cluster_size")}
             description={t("settings.min_cluster_size_help")}
             value={editedUserDetails.min_cluster_size ? editedUserDetails.min_cluster_size.toString() : "0"}
