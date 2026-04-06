@@ -84,7 +84,7 @@ def _iou(face_location, detected_location):
 
 def _find_best_face_match(face_locations, detected_faces):
     matches = []
-    remaining_indices = list(range(len(detected_faces)))
+    remaining_indices = set(range(len(detected_faces)))
 
     for face_location in face_locations:
         best_index = None
@@ -98,7 +98,7 @@ def _find_best_face_match(face_locations, detected_faces):
         if best_index is None:
             continue
 
-        remaining_indices.remove(best_index)
+        remaining_indices.discard(best_index)
         matches.append(detected_faces[best_index])
 
     return matches
@@ -120,7 +120,7 @@ def create_face_encodings():
 
     image = np.array(PIL.Image.open(source))
     face_analysis = _get_face_analysis(model_name)
-    detected_faces = face_analysis.get(image, max_num=max(len(face_locations), 1))
+    detected_faces = face_analysis.get(image)
     matched_faces = _find_best_face_match(face_locations, detected_faces)
     face_encodings_list = [face.embedding.tolist() for face in matched_faces]
     log(f"created face_encodings={len(face_encodings_list)}")

@@ -20,6 +20,8 @@ def get_face_encodings(image_path, known_face_locations):
 
 
 def get_face_locations(image_path, model="hog"):
+    # `model` is kept for compatibility with existing callers, but the face service
+    # now uses the selected InsightFace model pack from site settings.
     json = {
         "source": image_path,
         "model": model,

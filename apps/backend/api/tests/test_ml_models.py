@@ -2,12 +2,12 @@ import tempfile
 from pathlib import Path
 
 from constance.test import override_config
-from django.test import SimpleTestCase, override_settings
+from django.test import TestCase, override_settings
 
 from api.ml_models import do_all_models_exist
 
 
-class MlModelsTest(SimpleTestCase):
+class MlModelsTest(TestCase):
     def _create_required_models(self, model_root: Path):
         (model_root / "im2txt").mkdir(parents=True)
         (model_root / "clip-embeddings").mkdir(parents=True)
