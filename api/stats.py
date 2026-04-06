@@ -86,6 +86,7 @@ def get_server_stats():
             check=True,
             capture_output=True,
             text=True,
+            timeout=5,
         )
         first_gpu = next(
             (line.strip() for line in result.stdout.splitlines() if line.strip()),
@@ -95,7 +96,7 @@ def get_server_stats():
             name, _, memory = first_gpu.partition(",")
             gpu_name = name.strip()
             gpu_memory = calc_megabytes(int(memory.strip()) * 1024 * 1024)
-    except (FileNotFoundError, subprocess.CalledProcessError, ValueError):
+    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
         pass
     # Total Capacity
     import shutil

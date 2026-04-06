@@ -122,9 +122,9 @@ def download_model(model):
 
     if model["unpack-command"] == "tar -zxC":
         target_dir = model_folder / (model["target-dir"] + ".tar.gz")
-    if model["unpack-command"] == "tar -xvf":
+    elif model["unpack-command"] == "tar -xvf":
         target_dir = model_folder / (model["target-dir"] + ".tar")
-    if model["unpack-command"] is None:
+    elif model["unpack-command"] is None:
         target_dir = model_folder / model["target-dir"]
 
     _download_file(model["url"], target_dir, model["name"])
