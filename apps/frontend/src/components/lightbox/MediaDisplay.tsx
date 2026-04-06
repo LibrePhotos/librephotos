@@ -88,11 +88,12 @@ export function MediaDisplay({
 
   // For GIFs, use the original photo endpoint to get the animated file
   // For regular photos, use the big thumbnail
-  const cacheParam = imageCacheKey ? `?v=${imageCacheKey}` : "";
+  // Append a version param after rotation so the browser discards its cached copy
+  const cacheBustingParam = imageCacheKey ? `?v=${imageCacheKey}` : "";
   const imageUrl =
     isGif() && isMainContent
-      ? `${serverAddress}/media/photos/${mediaHash}${cacheParam}`
-      : `${serverAddress}/media/thumbnails_big/${mediaHash}${cacheParam}`;
+      ? `${serverAddress}/media/photos/${mediaHash}${cacheBustingParam}`
+      : `${serverAddress}/media/thumbnails_big/${mediaHash}${cacheBustingParam}`;
 
   return (
     <div

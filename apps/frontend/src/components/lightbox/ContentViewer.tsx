@@ -117,8 +117,9 @@ export function ContentViewer({
   }, []);
 
   // Handle rotation with optimistic update.
-  // `angle` is the visual CSS rotation (positive = clockwise).
-  // The API angle is negated because the server uses the opposite convention.
+  // `angle` is the visual CSS rotation (positive = clockwise, matching UI convention).
+  // The API angle is negated because the server uses the mathematical convention
+  // (positive = counter-clockwise), which is opposite to the UI convention.
   const handleRotate = useCallback(
     (angle: number) => {
       if (!photoDetails?.image_hash) return;
