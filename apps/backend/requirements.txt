@@ -27,7 +27,7 @@ pytz==2026.1
 tzdata==2026.1
 PyExifTool==0.4.9
 pyvips==3.1.1
-scikit-learn==1.8.0
+scikit-learn==1.7.2
 sentence_transformers==5.3.0
 timezonefinder==8.2.2
 tqdm==4.67.3
