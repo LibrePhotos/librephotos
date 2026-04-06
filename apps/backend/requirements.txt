@@ -48,6 +48,6 @@ transformers==4.56.2
 llama-cpp-python==0.3.20
 argon2-cffi==25.1.0
 # Dependencies for SigLIP 2 ONNX inference
-onnxruntime==1.24.4
+onnxruntime==1.23.2
 # SentencePiece tokenizer for SigLIP 2
 sentencepiece==0.2.1
