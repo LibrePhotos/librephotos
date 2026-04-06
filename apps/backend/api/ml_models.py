@@ -147,7 +147,7 @@ ML_MODELS = [
 ]
 
 
-def _is_model_none_or_empty(value):
+def _is_model_not_selected(value):
     return not value or str(value).strip().lower() == "none"
 
 
@@ -158,7 +158,7 @@ def _is_model_selected(model):
     if model_type == MlTypes.TAGGING:
         return model["name"] == site_config.TAGGING_MODEL
     if model_type == MlTypes.LLM:
-        return not _is_model_none_or_empty(site_config.LLM_MODEL) and (
+        return not _is_model_not_selected(site_config.LLM_MODEL) and (
             model["name"] == site_config.LLM_MODEL
         )
     if model_type == MlTypes.MOONDREAM:
