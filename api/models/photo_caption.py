@@ -66,6 +66,11 @@ class PhotoCaption(models.Model):
                 )
 
             caption = generate_caption(image_path=image_path)
+            if not caption:
+                util.logger.warning(
+                    f"Captioning service returned an empty caption for image {image_path}"
+                )
+                return False
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             settings = User.objects.get(username=self.photo.owner).llm_settings
@@ -176,6 +181,11 @@ class PhotoCaption(models.Model):
 
             # Generate caption with the final prompt
             caption = generate_moondream_caption(prompt=prompt, image_path=image_path)
+            if not caption:
+                util.logger.warning(
+                    f"Moondream captioning returned an empty caption for image {image_path}"
+                )
+                return False
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             # Save the result

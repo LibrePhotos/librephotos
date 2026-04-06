@@ -2,7 +2,10 @@ from django.db import migrations
 
 
 def switch_to_non_torch_models(apps, schema_editor):
-    Constance = apps.get_model("constance", "Constance")
+    try:
+        Constance = apps.get_model("constance", "Constance")
+    except LookupError:
+        return
 
     updates = {
         "CAPTIONING_MODEL": {"im2txt", "blip_base_capfilt_large", "moondream"},
