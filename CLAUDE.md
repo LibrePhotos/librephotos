@@ -89,12 +89,11 @@
 - `feature/` - Feature extraction utilities
 
 ### `service/` - Microservices
-- `clip_embeddings/` - CLIP model for semantic search
 - `face_recognition/` - Face detection and recognition
 - `image_captioning/` - Image captioning (im2txt, BLIP)
 - `thumbnail/` - Thumbnail generation
 - `llm/` - LLM integration for chat features
-- `tags/` - Tag extraction (places365)
+- `multimodal_inference/` - Shared semantic embeddings and tag generation
 - `exif/` - EXIF metadata extraction
 
 ### `image_similarity/` - Similarity Search
@@ -135,4 +134,3 @@ Key environment variables (set in Docker or `.env`):
 1. Add model loading in `api/ml_models.py`
 2. Create service wrapper in `service/<model_name>/`
 3. Integrate with API views as needed
-

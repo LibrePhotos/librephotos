@@ -14,7 +14,6 @@ IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
 
 BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
 PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
-CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
 MULTIMODAL_INFERENCE_SERVER = os.environ.get(
     "MULTIMODAL_INFERENCE_SERVER", "http://localhost:8011"
 )

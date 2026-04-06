@@ -26,11 +26,10 @@ SERVICES = {
     "image_similarity": 8002,
     "thumbnail": 8003,
     "face_recognition": 8005,
-    "clip_embeddings": 8006,
     "llm": 8008,
     "image_captioning": 8007,
     "exif": 8010,
-    "tags": 8011,
+    "multimodal_inference": 8011,
 }
 
 HTTP_OK = 200

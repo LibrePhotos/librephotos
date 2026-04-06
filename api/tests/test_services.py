@@ -1,8 +1,14 @@
 """Tests for CPU architecture detection and service compatibility checks"""
+
 import unittest
 from unittest.mock import patch
 
-from api.services import check_cpu_features, has_required_cpu_features, _is_arm_architecture
+from api.services import (
+    SERVICES,
+    _is_arm_architecture,
+    check_cpu_features,
+    has_required_cpu_features,
+)
 
 
 class TestServiceCPUCompatibility(unittest.TestCase):
@@ -11,6 +17,12 @@ class TestServiceCPUCompatibility(unittest.TestCase):
     # Constants for testing
     ARM_ARCHITECTURES = ['aarch64', 'arm64', 'armv7l', 'armv8']
     X86_ARCHITECTURES = ['x86_64', 'i686', 'i386', 'AMD64']
+
+    def test_services_register_multimodal_inference(self):
+        """Test service registry uses the consolidated multimodal service."""
+        self.assertEqual(SERVICES["multimodal_inference"], 8011)
+        self.assertNotIn("clip_embeddings", SERVICES)
+        self.assertNotIn("tags", SERVICES)
 
     @patch('api.services.platform.machine')
     def test_is_arm_architecture_detection(self, mock_machine):
@@ -98,5 +110,4 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         
         result = has_required_cpu_features('llm')
         self.assertTrue(result, "Should be compatible with required features even if missing recommended")
-
 
