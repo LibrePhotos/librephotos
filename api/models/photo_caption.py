@@ -33,15 +33,12 @@ class PhotoCaption(models.Model):
     def __str__(self):
         return f"Captions for {self.photo.image_hash}"
 
-    def generate_captions_im2txt(self, commit=True):
-        """Generate captions for the photo using the active non-torch model."""
+    def _get_thumbnail_big_path(self):
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
             util.logger.warning(
                 f"No thumbnail available for photo {self.photo.image_hash}"
             )
-            return False
-
-        util.logger.info("Generating captions with Im2txt")
+            return None
 
         try:
             image_path = self.photo.thumbnail.thumbnail_big.path
@@ -49,6 +46,22 @@ class PhotoCaption(models.Model):
             util.logger.warning(
                 f"Cannot access thumbnail path for photo {self.photo.image_hash}"
             )
+            return None
+
+        if not image_path:
+            util.logger.warning(
+                f"Thumbnail path is empty for photo {self.photo.image_hash}"
+            )
+            return None
+
+        return image_path
+
+    def generate_captions_im2txt(self, commit=True):
+        """Generate captions for the photo using the active non-torch model."""
+        util.logger.info("Generating captions with Im2txt")
+
+        image_path = self._get_thumbnail_big_path()
+        if not image_path:
             return False
         if self.captions_json is None:
             self.captions_json = {}
@@ -124,18 +137,8 @@ class PhotoCaption(models.Model):
 
     def _generate_captions_moondream(self, commit=True):
         """Generate captions using Moondream with enhanced prompt"""
-        if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
-            util.logger.warning(
-                f"No thumbnail available for photo {self.photo.image_hash}"
-            )
-            return False
-
-        try:
-            image_path = self.photo.thumbnail.thumbnail_big.path
-        except Exception:
-            util.logger.warning(
-                f"Cannot access thumbnail path for photo {self.photo.image_hash}"
-            )
+        image_path = self._get_thumbnail_big_path()
+        if not image_path:
             return False
         if self.captions_json is None:
             self.captions_json = {}
@@ -211,18 +214,8 @@ class PhotoCaption(models.Model):
 
     def save_user_caption(self, caption, commit=True):
         """Save user-provided caption"""
-        if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
-            util.logger.warning(
-                f"No thumbnail available for photo {self.photo.image_hash}"
-            )
-            return False
-
-        try:
-            image_path = self.photo.thumbnail.thumbnail_big.path
-        except Exception:
-            util.logger.warning(
-                f"Cannot access thumbnail path for photo {self.photo.image_hash}"
-            )
+        image_path = self._get_thumbnail_big_path()
+        if not image_path:
             return False
 
         try:
@@ -297,7 +290,8 @@ class PhotoCaption(models.Model):
             )
             tagging_model = "siglip2"
 
-        if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
+        image_path = self._get_thumbnail_big_path()
+        if not image_path:
             return
 
         # Skip if this photo already has tags from the active model
@@ -310,7 +304,6 @@ class PhotoCaption(models.Model):
         try:
             import requests
 
-            image_path = self.photo.thumbnail.thumbnail_big.path
             confidence = self.photo.owner.confidence
             json_data = {
                 "image_path": image_path,

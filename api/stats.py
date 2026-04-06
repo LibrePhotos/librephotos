@@ -96,8 +96,13 @@ def get_server_stats():
             name, _, memory = first_gpu.partition(",")
             gpu_name = name.strip()
             gpu_memory = calc_megabytes(int(memory.strip()) * 1024 * 1024)
-    except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError):
-        pass
+    except (
+        FileNotFoundError,
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        ValueError,
+    ) as exc:
+        logger.debug(f"Could not determine GPU stats from nvidia-smi: {exc}")
     # Total Capacity
     import shutil
 

@@ -27,8 +27,6 @@ def switch_to_non_torch_models(apps, schema_editor):
             row.value = f'"{desired_values[key]}"'
             row.save(update_fields=["value"])
 
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("api", "0124_photo_local_orientation"),
