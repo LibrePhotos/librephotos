@@ -202,8 +202,17 @@ def download_models(user):
 def do_all_models_exist():
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     for model in ML_MODELS:
-        if model["type"] in (MlTypes.LLM, MlTypes.MOONDREAM, MlTypes.TAGGING):
-            if not model and model != "none":
+        model_name = model["name"]
+
+        if model["type"] == MlTypes.LLM:
+            selected_llm = str(site_config.LLM_MODEL).strip().lower()
+            if selected_llm == "none" or selected_llm != model_name.lower():
+                continue
+
+        if model["type"] == MlTypes.MOONDREAM:
+            captioning_model = str(site_config.CAPTIONING_MODEL).strip().lower()
+            llm_model = str(site_config.LLM_MODEL).strip().lower()
+            if captioning_model != "moondream" and llm_model != "moondream":
                 continue
 
         # Check main model file

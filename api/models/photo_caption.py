@@ -9,6 +9,10 @@ from api.llm import generate_moondream_caption, generate_prompt
 from api.models.user import User
 
 
+def _llm_model_enabled(site_config):
+    return str(site_config.LLM_MODEL).strip().lower() != "none"
+
+
 class PhotoCaption(models.Model):
     """Model for handling image captions and related functionality"""
 
@@ -74,7 +78,7 @@ class PhotoCaption(models.Model):
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             settings = User.objects.get(username=self.photo.owner).llm_settings
-            if str(site_config.LLM_MODEL).strip().lower() != "none" and settings["enabled"]:
+            if _llm_model_enabled(site_config) and settings["enabled"]:
                 face = api.models.Face.objects.filter(photo=self.photo).first()
                 person_name = ""
                 if face and settings["add_person"]:
@@ -148,7 +152,7 @@ class PhotoCaption(models.Model):
             prompt = "Describe this image in a short, natural image caption."
 
             # Enhanced prompting if LLM is enabled
-            if str(site_config.LLM_MODEL).strip().lower() != "none" and settings["enabled"]:
+            if _llm_model_enabled(site_config) and settings["enabled"]:
                 face = api.models.Face.objects.filter(photo=self.photo).first()
                 person_name = ""
                 if face and settings["add_person"]:
