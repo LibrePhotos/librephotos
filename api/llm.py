@@ -5,6 +5,12 @@ from PIL import Image
 from constance import config as site_config
 
 
+SMOLVLM_256M_MODEL_PATH = "/protected_media/data_models/SmolVLM-256M-Instruct-f16.gguf"
+SMOLVLM_256M_MMPROJ_PATH = (
+    "/protected_media/data_models/mmproj-SmolVLM-256M-Instruct-f16.gguf"
+)
+
+
 def image_to_base64_data_uri(image_path):
     """Convert image file to base64 data URI, converting to JPEG for compatibility"""
     try:
@@ -32,9 +38,37 @@ def _normalized_llm_model_name():
     return str(site_config.LLM_MODEL).strip().lower()
 
 
-def generate_moondream_caption(prompt, image_path, max_tokens=256):
+def _normalized_captioning_model_name():
+    return str(site_config.CAPTIONING_MODEL).strip().lower()
+
+
+def _caption_model_config():
+    captioning_model = _normalized_captioning_model_name()
+    if captioning_model in ("", "none"):
+        return None
+
+    if captioning_model != "smolvlm-256m":
+        print(
+            "Unsupported captioning model "
+            f"'{site_config.CAPTIONING_MODEL}', using smolvlm-256m"
+        )
+
+    return {
+        "model_path": SMOLVLM_256M_MODEL_PATH,
+        "mmproj_path": SMOLVLM_256M_MMPROJ_PATH,
+        "chat_format": "smolvlm",
+    }
+
+
+def generate_visual_caption(prompt, image_path, max_tokens=256):
+    model_config = _caption_model_config()
+    if model_config is None:
+        return None
+
     json_data = {
-        "model_path": "/protected_media/data_models/moondream2-text-model-f16.gguf",
+        "model_path": model_config["model_path"],
+        "mmproj_path": model_config["mmproj_path"],
+        "chat_format": model_config["chat_format"],
         "max_tokens": max_tokens,
         "prompt": prompt,
         "multimodal": True,
@@ -51,20 +85,24 @@ def generate_moondream_caption(prompt, image_path, max_tokens=256):
 
         if response.status_code != 201:
             print(
-                f"Error with Moondream service: HTTP {response.status_code} - {response.text}"
+                "Error with visual captioning service: "
+                f"HTTP {response.status_code} - {response.text}"
             )
             return None
 
         response_data = response.json()
         return response_data.get("response", "")
     except requests.exceptions.ConnectionError:
-        print("Error with Moondream service: Cannot connect to service on port 8008")
+        print(
+            "Error with visual captioning service: Cannot connect to service "
+            "on port 8008"
+        )
         return None
     except requests.exceptions.Timeout:
-        print("Error with Moondream service: Request timeout")
+        print("Error with visual captioning service: Request timeout")
         return None
     except Exception as e:
-        print(f"Error with Moondream service: {e}")
+        print(f"Error with visual captioning service: {e}")
         return None
 
 
@@ -74,10 +112,8 @@ def generate_prompt(prompt, image_path=None):
     if llm_model == "none":
         return None
 
-    # Use the unified LLM service for all models including Moondream
-    if llm_model == "moondream":
-        model_path = "/protected_media/data_models/moondream2-text-model-f16.gguf"
-    elif llm_model == "mistral-7b-instruct-v0.2.q5_k_m":
+    # Use the unified LLM service for supported text-only models.
+    if llm_model == "mistral-7b-instruct-v0.2.q5_k_m":
         model_path = "/protected_media/data_models/mistral-7b-instruct-v0.2.Q5_K_M.gguf"
     else:
         return None

@@ -21,7 +21,7 @@ app = Flask(__name__)
 
 # Global model instance and last request time for health monitoring
 llm_model = None
-current_model_path = None
+current_model_config = None
 last_request_time = None
 
 
@@ -29,25 +29,69 @@ def log(message):
     print(f"llm: {message}")
 
 
-def load_model(model_path, multimodal=False):
-    """Load a model with optional multimodal support"""
-    global llm_model, current_model_path
+def build_multimodal_chat_handler(mmproj_path, chat_format):
+    from llama_cpp.llama_chat_format import Llava15ChatHandler
 
-    if llm_model is None or current_model_path != model_path:
+    class SmolVLMChatHandler(Llava15ChatHandler):
+        DEFAULT_SYSTEM_MESSAGE = (
+            "You are a visual assistant. Describe images clearly and answer "
+            "questions based on visual content."
+        )
+
+        CHAT_FORMAT = (
+            "{% for message in messages %}"
+            "{% if message['role'] == 'system' %}"
+            "<|im_start|>system\n{{ message['content'] }}\n<end_of_utterance>\n"
+            "{% endif %}"
+            "{% if message['role'] == 'user' %}"
+            "<|im_start|>user:\n"
+            "{% if message['content'] is iterable and message['content'] is not string %}"
+            "{% for content in message['content'] %}"
+            "{% if content.type == 'image_url' %}"
+            "{% if content.image_url is string %}{{ content.image_url }}{% endif %}"
+            "{% if content.image_url is mapping %}{{ content.image_url.url }}{% endif %}"
+            "{% endif %}"
+            "{% endfor %}"
+            "{% for content in message['content'] %}"
+            "{% if content.type == 'text' %}{{ content.text }}{% endif %}"
+            "{% endfor %}"
+            "{% else %}{{ message['content'] }}{% endif %}\n"
+            "<end_of_utterance>\n"
+            "{% endif %}"
+            "{% if message['role'] == 'assistant' and message['content'] is not none %}"
+            "<|im_start|>assistant\n{{ message['content'] }}\n<end_of_utterance>\n"
+            "{% endif %}"
+            "{% endfor %}"
+            "{% if add_generation_prompt %}<|im_start|>assistant\n{% endif %}"
+        )
+
+    if chat_format == "smolvlm":
+        return SmolVLMChatHandler(clip_model_path=mmproj_path)
+
+    raise ValueError(f"Unsupported multimodal chat format: {chat_format}")
+
+
+def load_model(model_path, multimodal=False, mmproj_path=None, chat_format=None):
+    """Load a model with optional multimodal support"""
+    global llm_model, current_model_config
+
+    model_config = (model_path, multimodal, mmproj_path, chat_format)
+    if llm_model is None or current_model_config != model_config:
         try:
             log(f"Loading model from {model_path}, multimodal: {multimodal}")
             if multimodal:
-                # For Moondream, we need to use the chat handler approach
-                from llama_cpp.llama_chat_format import MoondreamChatHandler
-
-                # Path to the mmproj file for Moondream
-                mmproj_path = "/protected_media/data_models/moondream2-mmproj-f16.gguf"
-
+                if not mmproj_path:
+                    raise ValueError("mmproj_path is required for multimodal models")
+                if not chat_format:
+                    raise ValueError("chat_format is required for multimodal models")
                 if not Path(mmproj_path).exists():
-                    raise Exception(f"Moondream mmproj file not found at {mmproj_path}")
+                    raise Exception(f"Multimodal projector file not found at {mmproj_path}")
 
-                log(f"Loading Moondream chat handler with mmproj: {mmproj_path}")
-                chat_handler = MoondreamChatHandler(clip_model_path=mmproj_path)
+                log(
+                    f"Loading multimodal chat handler '{chat_format}' with mmproj: "
+                    f"{mmproj_path}"
+                )
+                chat_handler = build_multimodal_chat_handler(mmproj_path, chat_format)
 
                 llm_model = Llama(
                     model_path=model_path,
@@ -59,7 +103,7 @@ def load_model(model_path, multimodal=False):
                 # For text-only models
                 llm_model = Llama(model_path=model_path, verbose=False)
 
-            current_model_path = model_path
+            current_model_config = model_config
             log("Model loaded successfully")
         except Exception as e:
             log(f"Error loading model: {str(e)}")
@@ -77,17 +121,22 @@ def generate():
         image_data = data.get("image_data")  # Now expects base64 data URI directly
         prompt = data["prompt"]
         max_tokens = data.get("max_tokens", 128)
-        model_path = data.get(
-            "model_path", "/protected_media/data_models/moondream2-text-model-f16.gguf"
-        )
+        model_path = data["model_path"]
+        mmproj_path = data.get("mmproj_path")
+        chat_format = data.get("chat_format")
     except Exception as e:
         log(f"Error parsing request: {str(e)}")
         return "", 400
 
     try:
         if image_data:
-            # Multimodal prompt with image using Moondream
-            load_model(model_path, multimodal=True)
+            # Multimodal prompt with image
+            load_model(
+                model_path,
+                multimodal=True,
+                mmproj_path=mmproj_path,
+                chat_format=chat_format,
+            )
 
             response = llm_model.create_chat_completion(
                 messages=[
@@ -100,7 +149,8 @@ def generate():
                     }
                 ],
                 max_tokens=max_tokens,
-                temperature=0.1,
+                temperature=0.01,
+                stop=["<end_of_utterance>", "<|im_start|>"],
             )
 
             response_text = response["choices"][0]["message"]["content"]

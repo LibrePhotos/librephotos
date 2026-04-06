@@ -5,7 +5,7 @@ from django.db.models import Q
 import api.models
 from api import util
 from api.image_captioning import generate_caption
-from api.llm import generate_moondream_caption, generate_prompt
+from api.llm import generate_prompt
 from api.models.user import User
 
 
@@ -76,9 +76,9 @@ class PhotoCaption(models.Model):
                 util.logger.info("Generating captions is disabled")
                 return False
 
-            if captioning_model != "moondream":
+            if captioning_model != "smolvlm-256m":
                 util.logger.warning(
-                    "Unsupported legacy captioning model '%s'; using moondream instead",
+                    "Unsupported legacy captioning model '%s'; using smolvlm-256m instead",
                     site_config.CAPTIONING_MODEL,
                 )
 
@@ -132,83 +132,6 @@ class PhotoCaption(models.Model):
         except Exception:
             util.logger.exception(
                 f"could not generate im2txt captions for image {image_path}"
-            )
-            return False
-
-    def _generate_captions_moondream(self, commit=True):
-        """Generate captions using Moondream with enhanced prompt"""
-        image_path = self._get_thumbnail_big_path()
-        if not image_path:
-            return False
-        if self.captions_json is None:
-            self.captions_json = {}
-        captions = self.captions_json
-
-        try:
-            from constance import config as site_config
-
-            util.logger.info("Generating Moondream captions")
-
-            settings = User.objects.get(username=self.photo.owner).llm_settings
-
-            # Default prompt
-            prompt = "Describe this image in a short, natural image caption."
-
-            # Enhanced prompting if LLM is enabled
-            if _llm_model_enabled(site_config) and settings["enabled"]:
-                face = api.models.Face.objects.filter(photo=self.photo).first()
-                person_name = ""
-                if face and settings["add_person"]:
-                    person_name = (
-                        f" The person in the photo is named {face.person.name}. "
-                        f"Use the name '{face.person.name}' directly in the caption — do not say 'a person named'. "
-                        f"Keep the caption casual and to the point, like a friend tagging a photo."
-                    )
-
-                place = ""
-                if (
-                    self.photo.search_instance
-                    and self.photo.search_instance.search_location
-                    and settings["add_location"]
-                ):
-                    place = f" This photo was taken at {self.photo.search_instance.search_location}."
-
-                keywords_instruction = ""
-                if settings["add_keywords"]:
-                    keywords_instruction = " Include relevant tags and keywords."
-
-                prompt = (
-                    "Write a short, natural image caption."
-                    + person_name
-                    + place
-                    + keywords_instruction
-                )
-
-            util.logger.info(f"Moondream prompt: {prompt}")
-
-            # Generate caption with the final prompt
-            caption = generate_moondream_caption(prompt=prompt, image_path=image_path)
-            if not caption:
-                util.logger.warning(
-                    f"Moondream captioning returned an empty caption for image {image_path}"
-                )
-                return False
-            caption = caption.replace("<start>", "").replace("<end>", "").strip()
-
-            # Save the result
-            captions["im2txt"] = caption
-            self.captions_json = captions
-            self.recreate_search_captions()
-            if commit:
-                self.save()
-
-            util.logger.info(
-                f"Generated Moondream captions for image {image_path}, caption: {caption}"
-            )
-            return True
-        except Exception:
-            util.logger.exception(
-                f"Could not generate Moondream captions for image {image_path}"
             )
             return False
 

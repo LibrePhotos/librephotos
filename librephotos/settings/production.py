@@ -115,7 +115,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("none", "None"),
-                ("moondream", "Moondream Visual LLM"),
+                ("smolvlm-256m", "SmolVLM-256M GGUF"),
             ),
         },
     ],
@@ -126,7 +126,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "choices": (
                 ("none", "None"),
                 ("mistral-7b-instruct-v0.2.Q5_K_M", "Mistral 7B Instruct v0.2 Q5 K M"),
-                ("moondream", "Moondream Visual LLM"),
             ),
         },
     ],
@@ -159,7 +158,7 @@ CONSTANCE_CONFIG = {
     ),
     "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
-    "CAPTIONING_MODEL": ("moondream", "Captioning model", "captioning_model"),
+    "CAPTIONING_MODEL": ("smolvlm-256m", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
     "TAGGING_MODEL": ("siglip2", "Tagging model", "tagging_model"),
     "LOG_MAX_BYTES": (

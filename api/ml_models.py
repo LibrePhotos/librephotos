@@ -14,7 +14,7 @@ from api.models.long_running_job import LongRunningJob
 class MlTypes:
     FACE_RECOGNITION = "face_recognition"
     LLM = "llm"
-    MOONDREAM = "moondream"
+    CAPTIONING = "captioning"
     TAGGING = "tagging"
 
 
@@ -46,17 +46,16 @@ ML_MODELS = [
         ],
     },
     {
-        # Moondream 2 GGUF model for llama-cpp-python multimodal support
         "id": 9,
-        "name": "moondream",
-        "url": "https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-text-model-f16.gguf?download=true",
-        "type": MlTypes.MOONDREAM,
+        "name": "smolvlm-256m",
+        "url": "https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/SmolVLM-256M-Instruct-f16.gguf?download=true",
+        "type": MlTypes.CAPTIONING,
         "unpack-command": None,
-        "target-dir": "moondream2-text-model-f16.gguf",
+        "target-dir": "SmolVLM-256M-Instruct-f16.gguf",
         "additional_files": [
             {
-                "url": "https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-mmproj-f16.gguf?download=true",
-                "target": "moondream2-mmproj-f16.gguf",
+                "url": "https://huggingface.co/ggml-org/SmolVLM-256M-Instruct-GGUF/resolve/main/mmproj-SmolVLM-256M-Instruct-f16.gguf?download=true",
+                "target": "mmproj-SmolVLM-256M-Instruct-f16.gguf",
             }
         ],
     },
@@ -76,17 +75,15 @@ def download_model(model):
         for ml_model in ML_MODELS:
             if ml_model["name"] == model_to_download:
                 model = ml_model
-    elif model["type"] == MlTypes.MOONDREAM:
-        util.logger.info("Downloading Moondream model")
-        model_to_download = site_config.LLM_MODEL
-        if model_to_download != "moondream":
-            util.logger.info("Moondream not selected")
+    elif model["type"] == MlTypes.CAPTIONING:
+        util.logger.info("Downloading captioning model")
+        model_to_download = str(site_config.CAPTIONING_MODEL).strip().lower()
+        if model_to_download != model["name"]:
+            util.logger.info(
+                f"Captioning model {model['name']} not selected (current: {model_to_download})"
+            )
             return
         util.logger.info(f"Model to download: {model_to_download}")
-        # Look through ML_MODELS and find the model with the name
-        for ml_model in ML_MODELS:
-            if ml_model["name"] == model_to_download:
-                model = ml_model
     elif model["type"] == MlTypes.TAGGING:
         util.logger.info("Downloading tagging model")
         model_to_download = site_config.TAGGING_MODEL
@@ -105,7 +102,7 @@ def download_model(model):
 
     if target_dir.exists():
         util.logger.info(f"Model {model['name']} already downloaded")
-        # Check if all additional files exist for models like Moondream
+        # Check if all additional files exist for multimodal models
         if model.get("additional_files"):
             for additional_file in model["additional_files"]:
                 additional_target = model_folder / additional_file["target"]
@@ -138,7 +135,7 @@ def download_model(model):
             tar.extractall(path=model_folder)
         os.remove(target_dir)
 
-    # Download additional files if they exist (e.g., mmproj for Moondream)
+    # Download additional files if they exist (e.g., mmproj for multimodal models)
     if model.get("additional_files"):
         for additional_file in model["additional_files"]:
             additional_target = model_folder / additional_file["target"]
@@ -209,10 +206,9 @@ def do_all_models_exist():
             if selected_llm == "none" or selected_llm != model_name.lower():
                 continue
 
-        if model["type"] == MlTypes.MOONDREAM:
+        if model["type"] == MlTypes.CAPTIONING:
             captioning_model = str(site_config.CAPTIONING_MODEL).strip().lower()
-            llm_model = str(site_config.LLM_MODEL).strip().lower()
-            if captioning_model != "moondream" and llm_model != "moondream":
+            if captioning_model != model_name.lower():
                 continue
 
         # Check main model file
@@ -220,7 +216,7 @@ def do_all_models_exist():
         if not target_dir.exists():
             return False
 
-        # Check additional files if they exist (like mmproj for Moondream)
+        # Check additional files if they exist for multimodal models.
         if model.get("additional_files"):
             for additional_file in model["additional_files"]:
                 additional_target = model_folder / additional_file["target"]
