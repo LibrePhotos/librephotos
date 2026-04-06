@@ -30,7 +30,7 @@ PAIRED_PALETTE = [
 
 
 def _rgb_to_hex(rgb: tuple[float, float, float]) -> str:
-    return "#%02x%02x%02x" % tuple(int(round(channel * 255)) for channel in rgb)
+    return "#" + "".join(f"{int(round(channel * 255)):02x}" for channel in rgb)
 
 
 def _cycled_palette(base_palette: list[str], n_colors: int) -> list[str]:
@@ -39,7 +39,9 @@ def _cycled_palette(base_palette: list[str], n_colors: int) -> list[str]:
     return [base_palette[idx % len(base_palette)] for idx in range(n_colors)]
 
 
-def _hls_palette(n_colors: int, lightness: float = 0.6, saturation: float = 0.65):
+def _hls_palette(
+    n_colors: int, lightness: float = 0.6, saturation: float = 0.65
+) -> list[str]:
     if n_colors <= 0:
         return []
     return [
