@@ -72,9 +72,15 @@ def download_model(model):
             return
         util.logger.info(f"Model to download: {model_to_download}")
         # Look through ML_MODELS and find the model with the name
+        selected_model = None
         for ml_model in ML_MODELS:
             if ml_model["name"] == model_to_download:
-                model = ml_model
+                selected_model = ml_model
+                break
+        if selected_model is None:
+            util.logger.warning(f"Unknown LLM model selected: {model_to_download}")
+            return
+        model = selected_model
     elif model["type"] == MlTypes.CAPTIONING:
         util.logger.info("Downloading captioning model")
         model_to_download = str(site_config.CAPTIONING_MODEL).strip().lower()
