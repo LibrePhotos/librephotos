@@ -17,7 +17,7 @@ import sys
 try:
     version = metadata.version("onnxruntime")
 except metadata.PackageNotFoundError:
-    raise RuntimeError("onnxruntime must be installed by requirements.txt before switching to onnxruntime-gpu")
+    raise RuntimeError("onnxruntime must be listed in requirements.txt and installed before switching to onnxruntime-gpu")
 
 subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", "onnxruntime"])
 subprocess.check_call([
