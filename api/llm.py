@@ -28,14 +28,56 @@ def image_to_base64_data_uri(image_path):
         raise
 
 
+def _normalized_llm_model_name():
+    return str(site_config.LLM_MODEL).strip().lower()
+
+
+def generate_moondream_caption(prompt, image_path, max_tokens=256):
+    json_data = {
+        "model_path": "/protected_media/data_models/moondream2-text-model-f16.gguf",
+        "max_tokens": max_tokens,
+        "prompt": prompt,
+        "multimodal": True,
+    }
+
+    try:
+        json_data["image_data"] = image_to_base64_data_uri(image_path)
+    except Exception as e:
+        print(f"Error converting image: {e}")
+        return None
+
+    try:
+        response = requests.post("http://localhost:8008/generate", json=json_data)
+
+        if response.status_code != 201:
+            print(
+                f"Error with Moondream service: HTTP {response.status_code} - {response.text}"
+            )
+            return None
+
+        response_data = response.json()
+        return response_data.get("response", "")
+    except requests.exceptions.ConnectionError:
+        print("Error with Moondream service: Cannot connect to service on port 8008")
+        return None
+    except requests.exceptions.Timeout:
+        print("Error with Moondream service: Request timeout")
+        return None
+    except Exception as e:
+        print(f"Error with Moondream service: {e}")
+        return None
+
+
 def generate_prompt(prompt, image_path=None):
-    if site_config.LLM_MODEL == "none":
+    llm_model = _normalized_llm_model_name()
+
+    if llm_model == "none":
         return None
 
     # Use the unified LLM service for all models including Moondream
-    if site_config.LLM_MODEL == "moondream":
+    if llm_model == "moondream":
         model_path = "/protected_media/data_models/moondream2-text-model-f16.gguf"
-    elif site_config.LLM_MODEL == "mistral-7b-instruct-v0.2.Q5_K_M":
+    elif llm_model == "mistral-7b-instruct-v0.2.q5_k_m":
         model_path = "/protected_media/data_models/mistral-7b-instruct-v0.2.Q5_K_M.gguf"
     else:
         return None

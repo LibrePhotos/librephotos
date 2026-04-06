@@ -27,7 +27,6 @@ SERVICES = {
     "thumbnail": 8003,
     "face_recognition": 8005,
     "llm": 8008,
-    "image_captioning": 8007,
     "exif": 8010,
     "multimodal_inference": 8011,
 }

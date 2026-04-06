@@ -5,7 +5,7 @@ from django.db.models import Q
 import api.models
 from api import util
 from api.image_captioning import generate_caption
-from api.llm import generate_prompt
+from api.llm import generate_moondream_caption, generate_prompt
 from api.models.user import User
 
 
@@ -30,7 +30,7 @@ class PhotoCaption(models.Model):
         return f"Captions for {self.photo.image_hash}"
 
     def generate_captions_im2txt(self, commit=True):
-        """Generate im2txt captions for the photo"""
+        """Generate captions for the photo using the active non-torch model."""
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
             util.logger.warning(
                 f"No thumbnail available for photo {self.photo.image_hash}"
@@ -53,23 +53,23 @@ class PhotoCaption(models.Model):
         try:
             from constance import config as site_config
 
-            if site_config.CAPTIONING_MODEL == "None":
+            captioning_model = str(site_config.CAPTIONING_MODEL).strip().lower()
+
+            if captioning_model == "none":
                 util.logger.info("Generating captions is disabled")
                 return False
 
-            if site_config.CAPTIONING_MODEL == "moondream":
-                util.logger.info("Generating captions with Moondream")
-                return self._generate_captions_moondream(commit=commit)
+            if captioning_model != "moondream":
+                util.logger.warning(
+                    "Unsupported legacy captioning model '%s'; using moondream instead",
+                    site_config.CAPTIONING_MODEL,
+                )
 
-            blip = False
-            if site_config.CAPTIONING_MODEL == "blip_base_capfilt_large":
-                blip = True
-
-            caption = generate_caption(image_path=image_path, blip=blip)
+            caption = generate_caption(image_path=image_path)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             settings = User.objects.get(username=self.photo.owner).llm_settings
-            if site_config.LLM_MODEL != "None" and settings["enabled"]:
+            if str(site_config.LLM_MODEL).strip().lower() != "none" and settings["enabled"]:
                 face = api.models.Face.objects.filter(photo=self.photo).first()
                 person_name = ""
                 if face and settings["add_person"]:
@@ -104,7 +104,7 @@ class PhotoCaption(models.Model):
                 self.save()
 
             util.logger.info(
-                f"generated im2txt captions for image {image_path} with SiteConfig {site_config.CAPTIONING_MODEL} with Blip: {blip} caption: {caption}"
+                f"generated caption for image {image_path} with SiteConfig {site_config.CAPTIONING_MODEL}: {caption}"
             )
             return True
         except Exception:
@@ -143,7 +143,7 @@ class PhotoCaption(models.Model):
             prompt = "Describe this image in a short, natural image caption."
 
             # Enhanced prompting if LLM is enabled
-            if site_config.LLM_MODEL != "None" and settings["enabled"]:
+            if str(site_config.LLM_MODEL).strip().lower() != "none" and settings["enabled"]:
                 face = api.models.Face.objects.filter(photo=self.photo).first()
                 person_name = ""
                 if face and settings["add_person"]:
@@ -175,7 +175,7 @@ class PhotoCaption(models.Model):
             util.logger.info(f"Moondream prompt: {prompt}")
 
             # Generate caption with the final prompt
-            caption = generate_prompt(image_path=image_path, prompt=prompt)
+            caption = generate_moondream_caption(prompt=prompt, image_path=image_path)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             # Save the result
@@ -268,14 +268,20 @@ class PhotoCaption(models.Model):
         search_instance.save()
 
     def generate_tag_captions(self, commit=True):
-        """Generate tag captions using the active tagging model (Places365 or SigLIP 2).
+        """Generate tag captions using the active tagging model.
 
         Tags are stored per-model in captions_json and are never deleted when
         switching models -- only the active model's tags are generated / visible.
         """
         from constance import config as site_config
 
-        tagging_model = site_config.TAGGING_MODEL
+        tagging_model = str(site_config.TAGGING_MODEL).strip().lower()
+        if tagging_model != "siglip2":
+            util.logger.warning(
+                "Unsupported legacy tagging model '%s'; using siglip2 instead",
+                site_config.TAGGING_MODEL,
+            )
+            tagging_model = "siglip2"
 
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
             return

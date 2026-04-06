@@ -12,48 +12,13 @@ from api.models.long_running_job import LongRunningJob
 
 
 class MlTypes:
-    CAPTIONING = "captioning"
     FACE_RECOGNITION = "face_recognition"
-    CATEGORIES = "categories"
-    CLIP = "clip"
     LLM = "llm"
     MOONDREAM = "moondream"
     TAGGING = "tagging"
 
 
 ML_MODELS = [
-    {
-        "id": 1,
-        "name": "im2txt",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/im2txt.tar.gz",
-        "type": MlTypes.CAPTIONING,
-        "unpack-command": "tar -zxC",
-        "target-dir": "im2txt",
-    },
-    {
-        "id": 3,
-        "name": "places365",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz",
-        "type": MlTypes.CATEGORIES,
-        "unpack-command": "tar -zxC",
-        "target-dir": "places365",
-    },
-    {
-        "id": 4,
-        "name": "resnet18",
-        "url": "https://download.pytorch.org/models/resnet18-5c106cde.pth",
-        "type": MlTypes.CATEGORIES,
-        "unpack-command": None,
-        "target-dir": "resnet18-5c106cde.pth",
-    },
-    {
-        "id": 6,
-        "name": "blip_base_capfilt_large",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/blip_large.tar.gz?download=true",
-        "type": MlTypes.CAPTIONING,
-        "unpack-command": "tar -zxC",
-        "target-dir": "blip",
-    },
     {
         "id": 8,
         "name": "mistral-7b-instruct-v0.2.Q5_K_M",
@@ -117,14 +82,6 @@ def download_model(model):
         if model_to_download != "moondream":
             util.logger.info("Moondream not selected")
             return
-        util.logger.info(f"Model to download: {model_to_download}")
-        # Look through ML_MODELS and find the model with the name
-        for ml_model in ML_MODELS:
-            if ml_model["name"] == model_to_download:
-                model = ml_model
-    elif model["type"] == MlTypes.CAPTIONING:
-        util.logger.info("Downloading captioning model")
-        model_to_download = site_config.CAPTIONING_MODEL
         util.logger.info(f"Model to download: {model_to_download}")
         # Look through ML_MODELS and find the model with the name
         for ml_model in ML_MODELS:

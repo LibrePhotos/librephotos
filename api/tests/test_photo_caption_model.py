@@ -54,21 +54,19 @@ class PhotoCaptionModelTest(TestCase):
         """Test that generate_tag_captions skips if active model tags already exist"""
         caption = PhotoCaption.objects.create(photo=self.photo)
 
-        # Pre-populate places365 data (the default tagging model)
+        # Pre-populate siglip2 data (the default tagging model)
         caption.captions_json = {
-            "places365": {
-                "categories": ["outdoor", "landscape"],
-                "attributes": ["natural", "sunny"],
-                "environment": "outdoor",
+            "siglip2": {
+                "tags": ["outdoor", "landscape", "sunny"],
             }
         }
         caption.save()
 
-        # Should return early since places365 tags already exist
+        # Should return early since siglip2 tags already exist
         caption.generate_tag_captions(commit=True)
         caption.refresh_from_db()
 
-        self.assertIn("places365", caption.captions_json)
+        self.assertIn("siglip2", caption.captions_json)
 
     def test_recreate_search_captions_delegates_to_photo_search(self):
         """Test that recreate_search_captions delegates to PhotoSearch"""

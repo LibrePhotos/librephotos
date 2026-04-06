@@ -23,6 +23,7 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         self.assertEqual(SERVICES["multimodal_inference"], 8011)
         self.assertNotIn("clip_embeddings", SERVICES)
         self.assertNotIn("tags", SERVICES)
+        self.assertNotIn("image_captioning", SERVICES)
 
     @patch('api.services.platform.machine')
     def test_is_arm_architecture_detection(self, mock_machine):
@@ -110,4 +111,3 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         
         result = has_required_cpu_features('llm')
         self.assertTrue(result, "Should be compatible with required features even if missing recommended")
-

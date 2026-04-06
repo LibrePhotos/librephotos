@@ -72,14 +72,31 @@ def get_server_stats():
 
     available_ram = calc_megabytes(psutil.virtual_memory().total)
     # GPU
-    import torch
+    import subprocess
 
-    if torch.cuda.is_available():
-        gpu_name = torch.cuda.get_device_name(0)
-        gpu_memory = calc_megabytes(torch.cuda.get_device_properties(0).total_memory)
-    else:
-        gpu_name = ""
-        gpu_memory = ""
+    gpu_name = ""
+    gpu_memory = ""
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        first_gpu = next(
+            (line.strip() for line in result.stdout.splitlines() if line.strip()),
+            "",
+        )
+        if first_gpu:
+            name, _, memory = first_gpu.partition(",")
+            gpu_name = name.strip()
+            gpu_memory = calc_megabytes(int(memory.strip()) * 1024 * 1024)
+    except (FileNotFoundError, subprocess.CalledProcessError, ValueError):
+        pass
     # Total Capacity
     import shutil
 

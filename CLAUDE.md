@@ -90,10 +90,9 @@
 
 ### `service/` - Microservices
 - `face_recognition/` - Face detection and recognition
-- `image_captioning/` - Image captioning (im2txt, BLIP)
 - `thumbnail/` - Thumbnail generation
 - `llm/` - LLM integration for chat features
-- `multimodal_inference/` - Shared semantic embeddings and tag generation
+- `multimodal_inference/` - Shared semantic embeddings and SigLIP2 tag generation
 - `exif/` - EXIF metadata extraction
 
 ### `image_similarity/` - Similarity Search

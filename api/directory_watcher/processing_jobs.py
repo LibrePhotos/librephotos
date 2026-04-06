@@ -73,7 +73,7 @@ def generate_face_embeddings(user, job_id: UUID):
 
 def generate_tags(user, job_id: UUID, full_scan=False):
     """
-    Generate image tags (Places365 captions) for photos.
+    Generate image tags for photos using the active tagging model.
     
     Args:
         user: The user whose photos to process

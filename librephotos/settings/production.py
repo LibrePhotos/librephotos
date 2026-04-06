@@ -115,8 +115,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("none", "None"),
-                ("im2txt", "im2txt PyTorch Model"),
-                ("blip_base_capfilt_large", "BLIP Model"),
                 ("moondream", "Moondream Visual LLM"),
             ),
         },
@@ -137,7 +135,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         {
             "widget": "django.forms.Select",
             "choices": (
-                ("places365", "Places365 Scene Recognition"),
                 ("siglip2", "SigLIP 2 (Real-world photo tags)"),
             ),
         },
@@ -162,9 +159,9 @@ CONSTANCE_CONFIG = {
     ),
     "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
-    "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
+    "CAPTIONING_MODEL": ("moondream", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
-    "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
+    "TAGGING_MODEL": ("siglip2", "Tagging model", "tagging_model"),
     "LOG_MAX_BYTES": (
         200 * 1024 * 1024,
         "Maximum log file size in bytes before rotation (default 200 MB)",
