@@ -80,7 +80,6 @@ class UserSerializer(serializers.ModelSerializer):
             "default_timezone",
             "public_sharing",
             "public_sharing_defaults",
-            "face_recognition_model",
             "min_cluster_size",
             "confidence_unknown_face",
             "min_samples",
@@ -232,11 +231,6 @@ class UserSerializer(serializers.ModelSerializer):
             )
         if "public_sharing" in validated_data:
             instance.public_sharing = validated_data.pop("public_sharing")
-            instance.save()
-        if "face_recognition_model" in validated_data:
-            instance.face_recognition_model = validated_data.pop(
-                "face_recognition_model"
-            )
             instance.save()
         if "min_cluster_size" in validated_data:
             instance.min_cluster_size = validated_data.pop("min_cluster_size")
