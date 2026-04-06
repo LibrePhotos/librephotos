@@ -35,7 +35,7 @@ export type RotatePhotosRequest = IndividualRequest | SelectAllRequest;
 export const useRotatePhotosMutation = () =>
   useMutation({
     mutationFn: async (request: RotatePhotosRequest) => {
-      const response = await fetchClient.post("/photosedit/rotate", request);
+      const response = await fetchClient.post("/photosedit/rotate/", request);
       const data = parseWithNotification(
         RotatePhotosResponse,
         response,
