@@ -125,8 +125,8 @@ RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.p
 
 # Install ExifTool
 WORKDIR /tmp/exiftool
-RUN curl -SL https://exiftool.org/Image-ExifTool-13.04.tar.gz | tar -xz && \
-    cd Image-ExifTool-13.04 && \
+RUN curl -SL https://exiftool.org/Image-ExifTool-13.54.tar.gz | tar -xz && \
+    cd Image-ExifTool-13.54 && \
     perl Makefile.PL && \
     make install && \
     rm -rf /tmp/exiftool
