@@ -118,11 +118,16 @@ def create_face_encodings():
     except Exception:
         return "", 400
 
-    image = np.array(PIL.Image.open(source))
-    face_analysis = _get_face_analysis(model_name)
-    detected_faces = face_analysis.get(image)
-    matched_faces = _find_best_face_match(face_locations, detected_faces)
-    face_encodings_list = [face.embedding.tolist() for face in matched_faces]
+    try:
+        image = np.array(PIL.Image.open(source))
+        face_analysis = _get_face_analysis(model_name)
+        detected_faces = face_analysis.get(image)
+        matched_faces = _find_best_face_match(face_locations, detected_faces)
+        face_encodings_list = [face.embedding.tolist() for face in matched_faces]
+    except Exception as exc:
+        log(f"error creating face_encodings for {source}: {exc}")
+        return {"error": str(exc)}, 500
+
     log(f"created face_encodings={len(face_encodings_list)}")
     return {"encodings": face_encodings_list}, 201
 
@@ -140,9 +145,14 @@ def create_face_locations():
     except Exception:
         return "", 400
 
-    image = np.array(PIL.Image.open(source))
-    face_analysis = _get_face_analysis(model_name)
-    face_locations = [_to_face_location(face.bbox) for face in face_analysis.get(image)]
+    try:
+        image = np.array(PIL.Image.open(source))
+        face_analysis = _get_face_analysis(model_name)
+        face_locations = [_to_face_location(face.bbox) for face in face_analysis.get(image)]
+    except Exception as exc:
+        log(f"error creating face_locations for {source}: {exc}")
+        return {"error": str(exc)}, 500
+
     log(f"created face_location={face_locations}")
     return {"face_locations": face_locations}, 201
 
