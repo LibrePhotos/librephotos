@@ -56,6 +56,21 @@ def _get_response_preview(response, max_length=500):
     return response_text
 
 
+def _get_error_detail(response):
+    """Return the most useful error detail from a failed response.
+
+    Prefers the ``error`` field from a JSON body (as returned by the face
+    service itself) and falls back to the plain-text preview helper.
+    """
+    try:
+        body = response.json()
+        if isinstance(body, dict) and body.get("error"):
+            return body["error"]
+    except ValueError:
+        pass
+    return _get_response_preview(response)
+
+
 def _post_to_face_service(url, payload):
     """POST to the face service and raise errors with response details."""
     response = requests.post(url, json=payload)
@@ -66,7 +81,7 @@ def _post_to_face_service(url, payload):
         raise requests.HTTPError(
             "Face recognition service request failed for "
             f"{url} with status {response.status_code}: "
-            f"{_get_response_preview(response)}"
+            f"{_get_error_detail(response)}"
         ) from exc
 
     try:
