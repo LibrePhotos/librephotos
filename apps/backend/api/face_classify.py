@@ -295,7 +295,10 @@ def train_faces(user: User, job_id) -> bool:
         # First, sort all faces into known and unknown ones
         face: Face
         for face in Face.objects.filter(
-            Q(photo__owner=user) & Q(encoding__isnull=False) & Q(deleted=False)
+            Q(photo__owner=user)
+            & Q(encoding__isnull=False)
+            & ~Q(encoding="")
+            & Q(deleted=False)
         ).prefetch_related("person"):
             if not face.person:
                 data_unknown["encoding"].append(face.get_encoding_array())
@@ -337,6 +340,13 @@ def train_faces(user: User, job_id) -> bool:
 
         # Collect the probabilities for each unknown face. The probabilities returned
         # are arrays in the same order as the people IDs in the original training set
+        if data_unknown["encoding"]:
+            filtered_unknown_encodings, filtered_unknown_ids = filter_data(
+                data_unknown["encoding"], data_unknown["id"]
+            )
+            data_unknown["encoding"] = list(filtered_unknown_encodings)
+            data_unknown["id"] = [int(face_id) for face_id in filtered_unknown_ids]
+
         target_count = len(data_unknown["id"])
         if target_count == 0:
             logger.info("No clusters found")

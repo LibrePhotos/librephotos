@@ -62,21 +62,22 @@ class Face(models.Model):
         return "%d" % self.id
 
     def generate_encoding(self):
-        self.encoding = (
-            get_face_encodings(
-                self.photo.thumbnail.thumbnail_big.path,
-                [
-                    (
-                        self.location_top,
-                        self.location_right,
-                        self.location_bottom,
-                        self.location_left,
-                    )
-                ],
-            )[0]
-            .tobytes()
-            .hex()
+        encodings = get_face_encodings(
+            self.photo.thumbnail.thumbnail_big.path,
+            [
+                (
+                    self.location_top,
+                    self.location_right,
+                    self.location_bottom,
+                    self.location_left,
+                )
+            ],
         )
+        if not encodings:
+            raise ValueError(
+                f"Face service returned no encoding for face {self.id}"
+            )
+        self.encoding = encodings[0].tobytes().hex()
         self.save()
 
     def get_encoding_array(self):
