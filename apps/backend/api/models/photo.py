@@ -448,6 +448,8 @@ class Photo(models.Model):
                     person._calculate_face_count()
                     person._set_default_cover_photo()
                 face_io = BytesIO()
+                if face_image.mode in ("RGBA", "P"):
+                    face_image = face_image.convert("RGB")
                 face_image.save(face_io, format="JPEG")
                 face.image.save(image_path, ContentFile(face_io.getvalue()))
                 face_io.close()
