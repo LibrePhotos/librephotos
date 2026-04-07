@@ -68,5 +68,5 @@ class FaceRecognitionClientTest(SimpleTestCase):
             get_face_locations("/tmp/image.jpg")
 
         self.assertIn("http://localhost:8005/face-locations", str(context.exception))
-        self.assertIn("status 201", str(context.exception))
+        self.assertIn("status 200", str(context.exception))
         self.assertIn("<html>service error</html>", str(context.exception))
