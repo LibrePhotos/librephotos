@@ -126,8 +126,25 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
     data = {
         "all": {"encoding": [], "id": [], "person_id": [], "person_labeled": []},
     }
-    for face in Face.objects.filter(photo__owner=user).prefetch_related("person"):
-        data["all"]["encoding"].append(face.get_encoding_array())
+    encoding_length: int | None = None
+    for face in Face.objects.filter(
+        photo__owner=user, encoding__isnull=False
+    ).prefetch_related("person"):
+        if not face.encoding:
+            continue
+        enc = face.get_encoding_array()
+        if encoding_length is None:
+            encoding_length = len(enc)
+        elif len(enc) != encoding_length:
+            logger.warning(
+                "Skipping face %d: encoding length %d does not match expected %d "
+                "(face recognition model may have changed)",
+                face.id,
+                len(enc),
+                encoding_length,
+            )
+            continue
+        data["all"]["encoding"].append(enc)
         data["all"]["id"].append(face.id)
 
     target_count = len(data["all"]["id"])
