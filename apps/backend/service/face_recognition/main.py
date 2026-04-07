@@ -2,7 +2,7 @@ import time
 
 import gevent
 import numpy as np
-import PIL
+from PIL import Image
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
@@ -119,7 +119,7 @@ def create_face_encodings():
         return "", 400
 
     try:
-        image = np.array(PIL.Image.open(source))
+        image = np.array(Image.open(source))
         face_analysis = _get_face_analysis(model_name)
         detected_faces = face_analysis.get(image)
         matched_faces = _find_best_face_match(face_locations, detected_faces)
@@ -146,7 +146,7 @@ def create_face_locations():
         return "", 400
 
     try:
-        image = np.array(PIL.Image.open(source))
+        image = np.array(Image.open(source))
         face_analysis = _get_face_analysis(model_name)
         face_locations = [_to_face_location(face.bbox) for face in face_analysis.get(image)]
     except Exception as exc:
