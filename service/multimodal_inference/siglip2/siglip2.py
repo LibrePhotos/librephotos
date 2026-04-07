@@ -22,6 +22,14 @@ PAD_TOKEN_ID = 0
 EOS_TOKEN_ID = 1
 
 
+def _normalize_text(text):
+    return text.lower()
+
+
+def _prompt_tag(tag):
+    return f"this is a photo of {_normalize_text(tag)}."
+
+
 def _pool_embeddings(raw_output, attention_mask=None):
     """Pool model output to (batch, hidden_dim).
 
@@ -138,7 +146,7 @@ class SigLIP2:
         batch_attention_mask = []
 
         for text in texts:
-            token_ids = self.tokenizer.Encode(text)
+            token_ids = self.tokenizer.Encode(_normalize_text(text))
             # Truncate (leave room for EOS)
             token_ids = token_ids[: max_length - 1]
             # Append EOS
@@ -171,7 +179,7 @@ class SigLIP2:
         print(f"siglip2: text model outputs: {text_output_names}")
 
         # Use prompt template for better zero-shot performance
-        prompted_tags = [f"a photo of {tag}" for tag in self.tags]
+        prompted_tags = [_prompt_tag(tag) for tag in self.tags]
 
         all_embeddings = []
         batch_size = 32
