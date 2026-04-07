@@ -4,6 +4,7 @@ from constance import config as site_config
 
 
 def _get_response_preview(response, max_length=500):
+    """Return a trimmed face-service response body preview for error messages."""
     response_text = response.text.strip()
     if not response_text:
         return "<empty body>"
@@ -17,6 +18,7 @@ def _get_response_preview(response, max_length=500):
 
 
 def _post_to_face_service(url, payload):
+    """POST to the face service and raise errors with response details."""
     response = requests.post(url, json=payload)
 
     try:
