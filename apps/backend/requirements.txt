@@ -1,4 +1,4 @@
-Django==5.2.12
+Django==5.2.13
 django-constance==4.3.5
 django-cors-headers==4.9.0
 django-cryptography-5==2.0.3
