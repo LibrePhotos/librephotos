@@ -23,7 +23,7 @@ ImageHash==4.3.2
 insightface==0.7.3
 psycopg==3.3.3
 https://github.com/owncloud/pyocclient/archive/master.zip
-pytz==2026.1
+pytz==2026.1.post1
 tzdata==2026.1
 PyExifTool==0.4.9
 pyvips==3.1.1
