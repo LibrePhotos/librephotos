@@ -208,12 +208,69 @@
         "publicsharingdefaults": "공개 공유 기본값",
         "delete_rule": "규칙 삭제",
         "reset_to_defaults": "기본값으로 되돌리기",
-        "publicsharingdefaultsdesc": "앨범 또는 사진을 공개할 때 어떤 사진 세부정보를 공유할지를 결정하는 기본 설정입니다. 개별 앨범 설정에 의해 변경될 수 있습니다."
+        "publicsharingdefaultsdesc": "앨범 또는 사진을 공개할 때 어떤 사진 세부정보를 공유할지를 결정하는 기본 설정입니다. 개별 앨범 설정에 의해 변경될 수 있습니다.",
+        "burst": {
+            "title": "버스트 감지 규칙",
+            "description": "버스트 시퀀스 감지 방법을 설정합니다. 엄격한 기준은 EXIF 데이터와 파일명 패턴(신뢰 가능)을 사용하며, 완화된 기준은 타임스탬프 근접성 및 시각적 유사성(추정)을 사용합니다.",
+            "hard_criterion": "엄격",
+            "soft_criterion": "완화",
+            "enabled": "활성화됨",
+            "rule": "규칙",
+            "add_rule_title": "버스트 감지 규칙 추가",
+            "add_rule_description": "버스트 시퀀스 탐지 규칙을 선택합니다. 엄격한 기준이 더 신뢰할 수 있지만 일부 버스트는 놓칠 수 있습니다. 완화된 기준은 버스트를 더 많이 탐지할 수 있으나 관련 없는 사진을 그룹화할 수 있습니다.",
+            "search_placeholder": "이름 또는 유형으로 규칙 검색..."
+        },
+        "save_face_tags_to_disk": "이미지 파일에 얼굴 태그 쓰기",
+        "save_face_tags_to_disk_help": "활성화하면 얼굴 라벨을 설정할 때마다 이미지 파일(또는 사이드카 파일)에 XMP MWG-RS 영역으로 표시됩니다. 이렇게 하면 Lightroom, Digikam, XnView와 같은 사진 관리 소프트웨어에서 얼굴 데이터를 확인할 수 있습니다.",
+        "addperson": "캡션에 인물 추가",
+        "addlocation": "캡션에 위치 추가"
     },
     "sitesettings": {
         "map_api_provider_header": "지도 제공자",
         "map_api_provider_description": "이미지 GPS 메타데이터에서 위치 이름을 가져 오는 데 사용됩니다.",
         "map_api_key_header": "지도 제공자용 API 키",
         "map_api_key_description": "{{url}}에서 API 키를 가져오세요"
+    },
+    "modalalbum": {
+        "title": "앨범에 추가",
+        "alreadyexists": "{{title}} 앨범이 이미 존재합니다.",
+        "selectedimages": "선택된 {{count}}개 사진을 추가…",
+        "newalbum": "새 앨범",
+        "placeholder": "앨범 제목",
+        "create": "생성",
+        "items": "{{count}}개 항목",
+        "updated": "{{duration}}에 업데이트됨"
+    },
+    "modalalbumcover": {
+        "title": "앨범 커버 선택",
+        "selectphoto": "{{album}} 앨범 커버에 사용할 사진 선택",
+        "nophotos": "이 앨범에 사진이 없습니다",
+        "tip": "팁: 앨범에서 단일 사진을 선택하여 메뉴에서 \"앨범 커버로 설정\"을 클릭할 수도 있습니다.",
+        "loadmore": "{{count}}개 사진 더 불러오기",
+        "showing": "사진 {{total}}개 중 {{visible}}개 표시중"
+    },
+    "modalnextcloud": {
+        "setdirectory": "Nextcloud 스캔 경로 설정",
+        "currentdirectory": "현재 Nextcloud 스캔 경로",
+        "browse": "탐색",
+        "update": "업데이트",
+        "cancel": "취소",
+        "choosedirectory": "아래에서 경로 선택"
+    },
+    "modalphotosshare": {
+        "title": "사진 공유",
+        "search": "사용자 검색",
+        "name": "인물 이름",
+        "share": "공유",
+        "unshare": "공유 해제",
+        "loading": "불러오는 중..."
+    },
+    "modalalbumsshare": {
+        "title": "앨범 공유",
+        "search": "사용자 검색",
+        "name": "인물 이름"
+    },
+    "topmenu": {
+        "running": "실행 중"
     }
 }
