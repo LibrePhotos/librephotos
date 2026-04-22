@@ -16,7 +16,7 @@ Open-Source Android and iOS Mobile Application for the [LibrePhotos](https://git
 
 ### 📱 Android
 
-1. Download the Latest Build from [releases](https://github.com/LibrePhotos/librephotos-mobile/releases).
+1. Download the Latest Build from [releases](https://github.com/LibrePhotos/librephotos/releases?q=mobile%2F).
 2. Install the APK
 
 ### 🍎 iOS

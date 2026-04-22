@@ -129,14 +129,14 @@ Images are built automatically via GitHub Actions on pushes and releases.
 
 ### Manual Build
 ```bash
-cd librephotos-docker
+cd librephotos/deploy/compose
 ./build-unified.sh [tag]
 ```
 
-Or directly:
+Or directly (build context must be the monorepo root):
 ```bash
-cd librephotos-docker/unified
-docker build -t my-librephotos-unified .
+cd librephotos
+docker build -t my-librephotos-unified -f deploy/docker/unified/Dockerfile .
 ```
 
 ## Backwards Compatibility

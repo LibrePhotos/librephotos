@@ -22,38 +22,36 @@ Thank you for your interest in contributing to LibrePhotos! This guide will help
 - **Node.js 18+** and **Yarn** - for frontend development (optional, if developing outside Docker)
 - **Python 3.11+** - for backend development (optional, if developing outside Docker)
 
-### Step 1: Clone the Repositories
+### Step 1: Clone the Monorepo
 
-Create a directory for the project and clone all required repositories:
+Create a directory for the project and clone the LibrePhotos monorepo. All apps (backend, frontend, mobile, docs) and the deploy configs live in a single repository.
 
 **Linux/macOS:**
 ```bash
-export codedir=~/dev/librephotos
+export codedir=~/dev
 mkdir -p $codedir
 cd $codedir
 
-git clone https://github.com/LibrePhotos/librephotos-frontend.git
 git clone https://github.com/LibrePhotos/librephotos.git
-git clone https://github.com/LibrePhotos/librephotos-docker.git
+cd librephotos
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$Env:codedir = "$HOME\dev\librephotos"
+$Env:codedir = "$HOME\dev"
 New-Item -ItemType Directory -Force -Path $Env:codedir
 Set-Location $Env:codedir
 
-git clone https://github.com/LibrePhotos/librephotos-frontend.git
 git clone https://github.com/LibrePhotos/librephotos.git
-git clone https://github.com/LibrePhotos/librephotos-docker.git
+Set-Location librephotos
 ```
 
 ### Step 2: Configure Environment
 
-Navigate to the `librephotos-docker` directory and create your `.env` file:
+Navigate to the `deploy/compose` directory and create your `.env` file:
 
 ```bash
-cd librephotos-docker
+cd deploy/compose
 cp librephotos.env .env
 ```
 
@@ -66,7 +64,7 @@ scanDirectory=/path/to/your/test/photos
 # Path to LibrePhotos data
 data=./librephotos/data
 
-# IMPORTANT: Path where you cloned the repositories
+# IMPORTANT: Path to the monorepo checkout
 codedir=~/dev/librephotos
 ```
 
@@ -171,7 +169,7 @@ VS Code is the recommended IDE with excellent Docker and Python support.
 
 **Workspace Settings:**
 
-The repository includes VS Code settings in `librephotos-docker/vscode/settings.json` that are automatically mounted into the backend container.
+The repository includes VS Code settings in `deploy/vscode/settings.json` that are automatically mounted into the backend container.
 
 **Attaching to Backend Container:**
 

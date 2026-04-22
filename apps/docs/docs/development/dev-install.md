@@ -24,38 +24,36 @@ Before you begin, ensure you have the following installed:
 
 ## Quick Start (30 Minutes)
 
-### Step 1: Clone All Repositories
+### Step 1: Clone the Monorepo
 
-Create a project directory and clone the three required repositories:
+Create a project directory and clone the LibrePhotos monorepo. All apps (backend, frontend, mobile, docs) and the deploy configs live in a single repository.
 
 **Linux/macOS:**
 ```bash
-export codedir=~/dev/librephotos
+export codedir=~/dev
 mkdir -p $codedir
 cd $codedir
 
-git clone https://github.com/LibrePhotos/librephotos-frontend.git
 git clone https://github.com/LibrePhotos/librephotos.git
-git clone https://github.com/LibrePhotos/librephotos-docker.git
+cd librephotos
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$Env:codedir = "$HOME\dev\librephotos"
+$Env:codedir = "$HOME\dev"
 New-Item -ItemType Directory -Force -Path $Env:codedir
 Set-Location $Env:codedir
 
-git clone https://github.com/LibrePhotos/librephotos-frontend.git
 git clone https://github.com/LibrePhotos/librephotos.git
-git clone https://github.com/LibrePhotos/librephotos-docker.git
+Set-Location librephotos
 ```
 
 ### Step 2: Configure Environment
 
-Navigate to the `librephotos-docker` directory and create your environment file:
+Navigate to the `deploy/compose` directory and create your environment file:
 
 ```bash
-cd librephotos-docker
+cd deploy/compose
 cp librephotos.env .env
 ```
 
@@ -63,19 +61,19 @@ Edit the `.env` file with your preferred editor and set these important variable
 
 ```bash
 # Path to test photos (create a folder with some sample images)
-scanDirectory=/home/youruser/dev/librephotos/test-photos
+scanDirectory=/home/youruser/dev/test-photos
 
 # Internal data directory
 data=./librephotos/data
 
-# CRITICAL: Path where you cloned the repositories
-# This must match where you ran the git clone commands
+# CRITICAL: Path to the monorepo checkout
+# This must match where you ran the git clone command
 codedir=/home/youruser/dev/librephotos
 ```
 
 :::warning
 
-The `codedir` variable must be an absolute path and match exactly where you cloned the repositories. Docker will mount the source code from this location.
+The `codedir` variable must be an absolute path and point at the root of the cloned monorepo. Docker will mount the source code from this location.
 
 :::
 
@@ -272,7 +270,7 @@ httpPort=3001
 
 ### Source Code Not Updating
 
-Ensure your `codedir` path in `.env` exactly matches where you cloned the repositories. The path must be absolute (starting with `/` on Linux/macOS).
+Ensure your `codedir` path in `.env` exactly matches the root of the cloned monorepo. The path must be absolute (starting with `/` on Linux/macOS).
 
 ## Next Steps
 

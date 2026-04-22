@@ -1,4 +1,4 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=plastic)](https://github.com/LibrePhotos/librephotos-frontend/blob/dev/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=plastic)](https://github.com/LibrePhotos/librephotos/blob/dev/apps/frontend/LICENSE)
 <a href="https://hosted.weblate.org/engage/librephotos/">
 <img src="https://hosted.weblate.org/widgets/librephotos/-/librephotos-frontend/svg-badge.svg" alt="Translation status" />
 </a>
@@ -28,7 +28,7 @@ Built with **React 18**, **TypeScript**, and **Vite**.
 
 ### Using Docker (recommended)
 
-The easiest way to develop is via Docker Compose, which sets up the full stack (backend, frontend, database, proxy) with hot-reload enabled. See the [development install guide](https://docs.librephotos.com/docs/development/dev-install) and the backend [CONTRIBUTING.md](https://github.com/LibrePhotos/librephotos/blob/dev/CONTRIBUTING.md) for step-by-step instructions.
+The easiest way to develop is via Docker Compose, which sets up the full stack (backend, frontend, database, proxy) with hot-reload enabled. See the [development install guide](https://docs.librephotos.com/docs/development/dev-install) and the backend [CONTRIBUTING.md](https://github.com/LibrePhotos/librephotos/blob/dev/apps/backend/CONTRIBUTING.md) for step-by-step instructions.
 
 ### Standalone (frontend only)
 
@@ -74,7 +74,7 @@ Code style conventions:
 
 ## Contributing
 
-Contributions are welcome! Please see the [CONTRIBUTING.md](https://github.com/LibrePhotos/librephotos/blob/dev/CONTRIBUTING.md) in the backend repository for:
+Contributions are welcome! Please see the [CONTRIBUTING.md](https://github.com/LibrePhotos/librephotos/blob/dev/apps/backend/CONTRIBUTING.md) in the backend app for:
 
 - Development environment setup
 - Docker architecture overview
@@ -82,14 +82,6 @@ Contributions are welcome! Please see the [CONTRIBUTING.md](https://github.com/L
 - Pull request guidelines
 
 For translations, help out on [Weblate](https://hosted.weblate.org/engage/librephotos/).
-
-## Related Projects
-
-| Repository                                                              | Description                                      |
-| ----------------------------------------------------------------------- | ------------------------------------------------ |
-| [librephotos](https://github.com/LibrePhotos/librephotos)               | Django backend (API, ML models, background jobs) |
-| [librephotos-docker](https://github.com/LibrePhotos/librephotos-docker) | Docker Compose deployment configurations         |
-| [librephotos.docs](https://github.com/LibrePhotos/librephotos.docs)     | Documentation website source                     |
 
 ## License
 

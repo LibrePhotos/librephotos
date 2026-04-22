@@ -315,7 +315,7 @@ This ensures the frontend can display appropriate UI for missing photos.
 
 ### Video Error Handling
 
-**File**: `librephotos-frontend/src/components/lightbox/MediaDisplay.tsx:64-69`
+**File**: `apps/frontend/src/components/lightbox/MediaDisplay.tsx:64-69`
 
 The frontend displays an error alert when video files are missing:
 

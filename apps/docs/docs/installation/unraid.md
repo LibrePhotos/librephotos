@@ -28,13 +28,13 @@ mkdir /mnt/user/librephotos && cd /mnt/user/librephotos
 Download this file and save it as .env:
 
 ```bash
-wget -O .env https://raw.githubusercontent.com/LibrePhotos/librephotos-docker/main/librephotos.env
+wget -O .env https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/deploy/compose/librephotos.env
 ```
 
 ​Download this file to the same directory, but keep the original name:
 
 ```bash
-wget https://raw.githubusercontent.com/LibrePhotos/librephotos-docker/main/docker-compose.yml
+wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/deploy/compose/docker-compose.yml
 ```
 
 You'll need to edit the .env file with paths to your photos (myPhotos) and possibly the timeZone variable. Optionally, you'll want to grab a mapbox API key as documented in the file. Keep note of the default HTTP port, 3000.

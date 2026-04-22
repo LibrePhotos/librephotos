@@ -18,9 +18,9 @@ You will need at least 10 GB of HDD Space for the docker images, thumbnails, dat
 
 ### 🚀 Installation
 
-Clone the repo: `git clone https://github.com/LibrePhotos/librephotos-docker.git`
+Clone the repo: `git clone https://github.com/LibrePhotos/librephotos.git`
 
-Navigate to the librephotos-docker folder: `cd librephotos-docker`
+Navigate to the deploy/compose folder: `cd librephotos/deploy/compose`
 
 Copy the template variable file (containing options such as the location of your photos): `cp librephotos.env .env`
 
@@ -54,7 +54,7 @@ For more details, see the [first steps guide](../user-guide/first-steps.md).
 
 ### Updating
 
-To update LibrePhotos when using Docker Compose, navigate to the librephotos-docker folder that was created when you installed LibrePhotos.
+To update LibrePhotos when using Docker Compose, navigate to the `librephotos/deploy/compose` folder that was created when you installed LibrePhotos.
 
 Then run:
 

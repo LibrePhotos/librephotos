@@ -47,14 +47,14 @@ Some APIs are not yet well documented, as the generation of the swagger API thro
 
 ## 🏙️ Structure
 
-- You can find all the routes in [App.js](https://github.com/LibrePhotos/librephotos-frontend/blob/dev/src/App.js).
-- The pages are in [layouts](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/layouts)
+- You can find all the routes in [App.js](https://github.com/LibrePhotos/librephotos/blob/dev/apps/frontend/src/App.js).
+- The pages are in [layouts](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/layouts)
 - Pages should be split up into React Components, which you can find in
-  [components](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/components)
+  [components](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/components)
 - The API calls are made into split into actions, which you can find in
-  [actions](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/actions)
+  [actions](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/actions)
 - To handle the state for the whole page, we use Redux. You can find the states and reducers in
-  [reducers](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/reducers)
-- [api_client](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/api_client) is just a simple Axios
+  [reducers](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/reducers)
+- [api_client](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/api_client) is just a simple Axios
   client
-- In [util](https://github.com/LibrePhotos/librephotos-frontend/tree/dev/src/util) you can find miscellaneous functions.
+- In [util](https://github.com/LibrePhotos/librephotos/tree/dev/apps/frontend/src/util) you can find miscellaneous functions.

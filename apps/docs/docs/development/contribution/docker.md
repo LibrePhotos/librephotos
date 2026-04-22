@@ -7,13 +7,13 @@ category: 5
 
 ## Overview
 
-The `librephotos-docker` repository contains the Docker configuration for running LibrePhotos. This includes:
+The `deploy/` directory in the monorepo contains the Docker configuration for running LibrePhotos. This includes:
 
-- `docker-compose.yml` - Production configuration
-- `docker-compose.dev.yml` - Development overrides
-- `backend/` - Backend Dockerfile and entrypoint
-- `frontend/` - Frontend Dockerfile and development config
-- `proxy/` - Nginx reverse proxy configuration
+- `deploy/compose/docker-compose.yml` - Production configuration
+- `deploy/compose/docker-compose.dev.yml` - Development overrides
+- `deploy/docker/backend/` - Backend Dockerfile and entrypoint
+- `deploy/docker/frontend/` - Frontend Dockerfile and development config
+- `deploy/docker/proxy/` - Nginx reverse proxy configuration
 
 ## ✨ Code Standards
 
@@ -58,10 +58,10 @@ When modifying Docker files, please ensure:
 
 ### Modifying the Backend Dockerfile
 
-The backend Dockerfile (`backend/Dockerfile`) builds the Django application:
+The backend Dockerfile (`deploy/docker/backend/Dockerfile`) builds the Django application:
 
 ```bash
-cd librephotos-docker
+cd librephotos/deploy/compose
 
 # Test your changes
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend
@@ -75,12 +75,12 @@ docker compose logs -f backend
 
 The frontend has two Dockerfiles:
 
-- `frontend/Dockerfile` - Production build (static files served by nginx)
-- `frontend/Dockerfile.dev` - Development build (hot reload)
+- `deploy/docker/frontend/Dockerfile` - Production build (static files served by nginx)
+- `deploy/docker/frontend/Dockerfile.dev` - Development build (hot reload)
 
 ### Modifying the Proxy (Nginx)
 
-The proxy configuration is in `proxy/nginx.conf`. After changes:
+The proxy configuration is in `deploy/docker/proxy/nginx.conf`. After changes:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build proxy
@@ -110,7 +110,7 @@ Before submitting a PR:
 
 ## GPU Support
 
-The `backend-gpu/` directory contains GPU-enabled Dockerfiles for NVIDIA CUDA support:
+The `deploy/docker/backend-gpu/` directory contains GPU-enabled Dockerfiles for NVIDIA CUDA support:
 
 ```bash
 # Build GPU image

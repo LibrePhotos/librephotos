@@ -14,6 +14,6 @@ The app is currently in [open beta on the Google Play Store](https://play.google
 
 ## LibrePhotos Mobile
 
-[LibrePhotos Mobile](https://github.com/LibrePhotos/librephotos-mobile) is the official app, which is at the proof-of-concept stage. It's written in react-native and in the future will share more code with the frontend.
+[LibrePhotos Mobile](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile) is the official app, which is at the proof-of-concept stage. It's written in react-native and in the future will share more code with the frontend.
 
-You can download the .apk [here](https://github.com/LibrePhotos/librephotos-mobile/releases/tag/latest). It is technically possible to compile it to also work on iOS, but nobody stepped up to do that yet.
+You can download the .apk [here](https://github.com/LibrePhotos/librephotos/releases/tag/mobile%2Flatest). It is technically possible to compile it to also work on iOS, but nobody stepped up to do that yet.
