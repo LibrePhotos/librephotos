@@ -8,6 +8,7 @@ from api import util
 
 from api.image_similarity import search_similar_image
 from api.models import AlbumDate, File, Photo
+from api.models.album_place import get_album_place
 from api.models.photo_metadata import PhotoMetadata
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.simple import SimpleUserSerializer
@@ -247,7 +248,7 @@ class PhotoEditSerializer(serializers.ModelSerializer):
                                 or str(feature["text"]).isnumeric()
                             ):
                                 continue
-                            album_place = api.models.album_place.get_album_place(
+                            album_place = get_album_place(
                                 feature["text"], owner=instance.owner
                             )
                             if (
