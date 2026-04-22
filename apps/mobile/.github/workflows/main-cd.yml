@@ -1,0 +1,103 @@
+name: Beta Distribution
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  beta-distribution:
+    runs-on: ubuntu-latest
+    name: Beta Distribution
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - uses: actions/setup-node@master
+    - uses: c-hive/gha-yarn-cache@v2
+
+    - name: Install node modules
+      run: |
+        yarn install
+    - name: Run test
+      run: |
+        yarn lint
+    
+    - name: Cache Gradle Wrapper
+      uses: actions/cache@v4
+      with:
+        path: ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+
+    - name: Cache Gradle Dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-caches-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-caches-
+    - name: Make Gradlew Executable
+      run: cd android && chmod +x ./gradlew
+
+    # - name: Build Android App Bundle
+    #   run: |
+    #     cd android && ./gradlew bundleRelease --no-daemon
+
+    - name: Build Android App APK
+      run: |
+        cd android && ./gradlew assembleRelease --no-daemon
+
+    # - name: Sign App Bundle
+    #   id: sign_app
+    #   uses: r0adkll/sign-android-release@v1
+    #   with:
+    #     releaseDirectory: android/app/build/outputs/bundle/release
+    #     signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+    #     alias: ${{ secrets.ANDROID_SIGNING_ALIAS }}
+    #     keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+    #     keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+
+    - name: Sign App APK
+      id: sign_apk
+      uses: r0adkll/sign-android-release@v1
+      with:
+        releaseDirectory: android/app/build/outputs/apk/release
+        signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+        alias: ${{ secrets.ANDROID_SIGNING_ALIAS }}
+        keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+      env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+    - name: Rename Android App APK
+      run: cp $SIGNED_FILE librephotos-latest-signed.apk
+      env:
+        SIGNED_FILE: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Signed Apk Bundle
+        path: librephotos-latest-signed.apk
+
+    - name: Create APK Release
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        draft: false
+        title: "Latest Release"
+        files: |
+          librephotos-latest-signed.apk
+
+    # - name: Deploy to Play Store (BETA)
+    #   uses: r0adkll/upload-google-play@v1
+    #   with:
+    #     serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT }}
+    #     packageName: com.testedapp
+    #     releaseFile: ${{steps.sign_app.outputs.signedReleaseFile}}
+    #     track: beta
+    #     inAppUpdatePriority: 3
+    #     userFraction: 0.5
+    #     whatsNewDirectory: android/release-notes/
+    #     # mappingFile: android/app/build/outputs/mapping/release/mapping.txt

@@ -1,0 +1,10 @@
+{
+    "extends": "@tsconfig/react-native/tsconfig.json",
+    // allow imports with @ prefix
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"]
+        }
+    }
+}
