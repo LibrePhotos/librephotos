@@ -1,0 +1,25 @@
+name: lint-mobile
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/lint-mobile.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/mobile/.node-version
+          cache: yarn
+          cache-dependency-path: apps/mobile/yarn.lock
+      - name: install
+        run: yarn install
+      - name: lint
+        run: yarn lint

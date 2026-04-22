@@ -1,0 +1,13 @@
+# Default owners — everyone on the core team reviews anything un-scoped.
+*                               @LibrePhotos/core
+
+# Per-app ownership.
+/apps/backend/                  @LibrePhotos/backend
+/apps/frontend/                 @LibrePhotos/frontend
+/apps/mobile/                   @LibrePhotos/mobile
+/apps/docs/                     @LibrePhotos/docs
+
+# Deployment / infrastructure.
+/deploy/                        @LibrePhotos/infra
+/.github/                       @LibrePhotos/infra
+/.github/workflows/             @LibrePhotos/infra

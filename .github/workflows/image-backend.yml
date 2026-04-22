@@ -1,0 +1,31 @@
+name: image-backend
+
+on:
+  release:
+    types: [created]
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/backend/**'
+      - 'deploy/docker/backend/Dockerfile'
+      - 'deploy/docker/backend/entrypoint.sh'
+      - '.github/workflows/image-backend.yml'
+      - '.github/workflows/_build-image.yml'
+
+jobs:
+  dev:
+    if: github.event_name != 'release'
+    uses: ./.github/workflows/_build-image.yml
+    with:
+      image: reallibrephotos/librephotos
+      dockerfile: deploy/docker/backend/Dockerfile
+    secrets: inherit
+
+  release:
+    if: github.event_name == 'release' && github.event.action == 'created'
+    uses: ./.github/workflows/_build-image.yml
+    with:
+      image: reallibrephotos/librephotos
+      dockerfile: deploy/docker/backend/Dockerfile
+      release-tag: ${{ github.event.release.tag_name }}
+    secrets: inherit

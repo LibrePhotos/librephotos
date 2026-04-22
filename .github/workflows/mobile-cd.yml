@@ -1,0 +1,83 @@
+name: mobile-cd (Beta Distribution)
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-cd.yml'
+
+jobs:
+  beta-distribution:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/mobile/.node-version
+          cache: yarn
+          cache-dependency-path: apps/mobile/yarn.lock
+
+      - name: Install node modules
+        run: yarn install
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Cache Gradle Wrapper
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-caches-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-caches-
+
+      - name: Make Gradlew Executable
+        run: cd android && chmod +x ./gradlew
+
+      - name: Build Android App APK
+        run: cd android && ./gradlew assembleRelease --no-daemon
+
+      - name: Sign App APK
+        id: sign_apk
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: apps/mobile/android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_SIGNING_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Rename Android App APK
+        working-directory: ${{ github.workspace }}
+        run: cp "$SIGNED_FILE" librephotos-latest-signed.apk
+        env:
+          SIGNED_FILE: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Signed Apk Bundle
+          path: librephotos-latest-signed.apk
+
+      - name: Create APK Release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: "mobile/latest"
+          prerelease: true
+          draft: false
+          title: "Latest Mobile Release"
+          files: |
+            librephotos-latest-signed.apk

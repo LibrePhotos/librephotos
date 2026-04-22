@@ -1,0 +1,34 @@
+name: image-frontend
+
+on:
+  release:
+    types: [created]
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/frontend/**'
+      - 'deploy/docker/frontend/Dockerfile'
+      - '.github/workflows/image-frontend.yml'
+      - '.github/workflows/_build-image.yml'
+
+jobs:
+  dev:
+    if: github.event_name != 'release'
+    uses: ./.github/workflows/_build-image.yml
+    with:
+      image: reallibrephotos/librephotos-frontend
+      dockerfile: deploy/docker/frontend/Dockerfile
+      build-args: |
+        GIT_HASH=${{ github.sha }}
+    secrets: inherit
+
+  release:
+    if: github.event_name == 'release' && github.event.action == 'created'
+    uses: ./.github/workflows/_build-image.yml
+    with:
+      image: reallibrephotos/librephotos-frontend
+      dockerfile: deploy/docker/frontend/Dockerfile
+      release-tag: ${{ github.event.release.tag_name }}
+      build-args: |
+        GIT_HASH=${{ github.sha }}
+    secrets: inherit

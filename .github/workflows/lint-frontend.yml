@@ -1,0 +1,42 @@
+name: lint-frontend
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/lint-frontend.yml'
+  pull_request:
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/lint-frontend.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/frontend/.nvmrc
+          cache: yarn
+          cache-dependency-path: apps/frontend/yarn.lock
+      - name: install dependencies
+        run: yarn install --network-timeout 1000000
+      - name: postinstall (patch-package)
+        run: yarn run postinstall
+      - name: lint
+        run: yarn run lint:error
+      - name: test
+        run: yarn run test
+      - name: build
+        run: yarn run build
+        env:
+          DISABLE_ESLINT_PLUGIN: true
