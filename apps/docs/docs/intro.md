@@ -1,0 +1,42 @@
+---
+title: "Introduction"
+excerpt: "A self-hosted open source photo management service."
+sidebar_position: 1
+---
+
+![](../static/img/mockups_main_fhd.png)
+<sub>Mock-up designed by rawpixel.com / Freepik</sub>
+
+Unlike commercial service that store your photos in the cloud and scan/index them to train their machine learning models and collect ad targeting data on you, LibrePhotos keeps all your photos and metadata on your local machine. Your data is never sent to or stored on a 3rd party server. Get the same power as those commercial services without giving up your personal data and privacy.
+
+## Features
+
+- Support for all types of photos, including raw photos
+- Support for videos
+- Live Photos and RAW+JPEG file variant support
+- Timeline view
+- Scans pictures on the file system
+- Multiuser support
+- Generate albums based on events like "Thursday in Berlin"
+- Face recognition / Face classification
+- Reverse geocoding
+- Object / Scene detection
+- Semantic image search
+- Search by metadata (person, file type, lens, camera, path)
+- Duplicate detection with perceptual hashing
+- Public album sharing via link with fine-grained privacy controls
+- Photo details sidebar showing location, people, albums, and similar photos
+- Slideshow mode and fullscreen lightbox
+- Spotlight search with keyboard navigation
+
+## What does it use?
+
+- **Image Conversion:** [libvips](https://github.com/libvips/libvips)
+- **RAW Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick)
+- **Video Conversion:** [FFmpeg](https://github.com/FFmpeg/FFmpeg)
+- **EXIF Support:** [ExifTool](https://github.com/exiftool/exiftool)
+- **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition)
+- **Face classification/clusterization:** scikit-learn
+- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), [BLIP](https://github.com/salesforce/BLIP), and [Moondream 2](https://github.com/vikhyat/moondream)
+- **Scene classification** [places365](http://places.csail.mit.edu/)
+- **Reverse geocoding:** [Nominatim](https://nominatim.openstreetmap.org/) (default) and other providers (Mapbox, MapTiler, OpenCage, TomTom)
