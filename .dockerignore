@@ -1,0 +1,59 @@
+# Root .dockerignore for the monorepo.
+# Build context is the repo root for every image. Without these excludes,
+# every image build would ship hundreds of MB of irrelevant files.
+
+# VCS
+.git
+.gitattributes
+.gitignore
+.github
+
+# Editor / IDE
+.idea
+.vscode
+deploy/vscode
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node dependencies and build output — every app has its own, none ship in any image
+**/node_modules
+apps/frontend/dist
+apps/frontend/.yarn
+apps/docs/build
+apps/docs/.docusaurus
+apps/mobile/android/build
+apps/mobile/android/app/build
+apps/mobile/android/.gradle
+apps/mobile/ios/build
+apps/mobile/ios/Pods
+
+# Python caches
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+apps/backend/media
+apps/backend/static
+
+# Logs, env, secrets
+**/*.log
+.env
+.env.*
+!.env.development.example
+
+# Screenshots / docs assets that don't belong in images
+apps/backend/screenshots
+
+# Compose files and other docker configs are not needed inside images
+deploy/compose
+deploy/k8s
+deploy/e2e
+
+# Import scratch dirs (migration artifacts; should never be committed but
+# guard against accidents)
+import-*
+monorepo

@@ -1,24 +1,19 @@
-# Run options:
-# 1. There are no options - This add additional tools to aid in the development of Libre Photos
-#   run cmd: docker-compose up -f docker-compose.yml -f docker-compose.dev.yml -d
-# 2. Current added tools:
-#    pgadmin User admin@admin pass admin port 3001
-
-# DO NOT EDIT
-# The .env file has everything you need to edit.
-# Run options:
-# 1. Use prebuilt images (preferred method):
-#   run cmd: docker-compose up -d
-# 2. Build images on your own machine:
-#   build cmd: COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build
-#   run cmd: docker-compose up -d
+# Dev compose: builds images from local sources and mounts the monorepo for
+# hot-reload. Paths are relative to this file (deploy/compose/).
+#
+# Run from anywhere with:
+#   docker compose -f deploy/compose/docker-compose.yml \
+#                  -f deploy/compose/docker-compose.dev.yml up -d
+#
+# Added tools vs. production compose:
+#   pgadmin — user admin@admin / pass admin — port 3001
 
 services:
   proxy:
     tty: true
     build:
-      context: ./proxy
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/proxy/Dockerfile
     container_name: proxy
     volumes:
       - ${scanDirectory}:/data
@@ -28,13 +23,13 @@ services:
     tty: true
     environment:
       - DEBUG=1
-      - WDS_SOCKET_PORT=0 # needed for webpack-dev-server
+      - WDS_SOCKET_PORT=0 # needed for Vite HMR behind the proxy
     build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+      context: ../..
+      dockerfile: deploy/docker/frontend/Dockerfile.dev
     container_name: frontend
     volumes:
-      - ${codedir}/librephotos-frontend:/usr/src/app
+      - ../../apps/frontend:/usr/src/app
 
   backend:
     tty: true
@@ -42,8 +37,8 @@ services:
     environment:
       - DEBUG=1
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/backend/Dockerfile
       args:
         DEBUG: 1
     container_name: backend
@@ -52,11 +47,11 @@ services:
       - ${data}/protected_media:/protected_media
       - ${data}/logs:/logs
       - ${data}/cache:/root/.cache
-      - ${codedir}/librephotos:/code
-      - ./vscode/server-extensions:/root/.vscode-server/extensions
-      - ./vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
-      - ./vscode/settings.json:/code/.vscode/settings.json
-      - ./backend/entrypoint.sh:/entrypoint.sh
+      - ../../apps/backend:/code
+      - ../vscode/server-extensions:/root/.vscode-server/extensions
+      - ../vscode/server-insiders-extensions:/root/.vscode-server-insiders/extensions
+      - ../vscode/settings.json:/code/.vscode/settings.json
+      - ../docker/backend/entrypoint.sh:/entrypoint.sh
 
   pgadmin:
     image: dpage/pgadmin4

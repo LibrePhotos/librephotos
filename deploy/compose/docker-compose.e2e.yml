@@ -1,3 +1,7 @@
+# End-to-end compose: builds images from local sources, wires them behind the
+# e2e proxy, and bootstraps a test database. Paths are relative to this file
+# (deploy/compose/).
+
 networks:
   e2e:
 
@@ -40,7 +44,7 @@ services:
       - POSTGRES_PASSWORD=${dbPass}
       - POSTGRES_DB=${dbName}
     volumes:
-      - ${e2e_bootstrap_dir:-./e2e}/init.sql.gz:/docker-entrypoint-initdb.d/init.sql.gz
+      - ${e2e_bootstrap_dir:-../e2e}/init.sql.gz:/docker-entrypoint-initdb.d/init.sql.gz
     healthcheck:
       test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
       interval: 5s
@@ -53,14 +57,14 @@ services:
     container_name: e2e-frontend
     environment:
       - DEBUG=1
-      - WDS_SOCKET_PORT=0 # needed for webpack-dev-server
+      - WDS_SOCKET_PORT=0 # needed for Vite HMR
     tty: true
     build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+      context: ../..
+      dockerfile: deploy/docker/frontend/Dockerfile.dev
     restart: unless-stopped
     volumes:
-      - ${codedir}/librephotos-frontend:/usr/src/app
+      - ../../apps/frontend:/usr/src/app
     healthcheck:
       test: curl -sI localhost:3000 | grep HTTP | grep 200
       interval: 5s
@@ -77,15 +81,15 @@ services:
     tty: true
     stdin_open: true
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: deploy/docker/backend/Dockerfile
       args:
         DEBUG: 1
     restart: unless-stopped
     entrypoint: /e2e/entrypoint.sh
     volumes:
-      - ${e2e_bootstrap_dir:-./e2e}:/e2e
-      - ${codedir}/librephotos:/code
+      - ${e2e_bootstrap_dir:-../e2e}:/e2e
+      - ../../apps/backend:/code
       - e2e_scan_directory:/data
       - e2e_protected_media:/protected_media
       - e2e_logs:/logs

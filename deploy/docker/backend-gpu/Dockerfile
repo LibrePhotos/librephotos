@@ -7,7 +7,8 @@ ARG IMAGE_TAG
 ENV IMAGE_TAG ${IMAGE_TAG}
 
 WORKDIR /code
-RUN git clone --depth 1 https://github.com/LibrePhotos/librephotos .
+# Build context is the monorepo root; source lives under apps/backend/.
+COPY apps/backend/ /code/
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt && \
   python - <<'PY'
 from importlib import metadata
@@ -50,5 +51,5 @@ RUN if [ "$MLVALIDATION" = 1 ] ; then \
   fi
 EXPOSE 8001
 
-COPY entrypoint.sh /entrypoint.sh
+COPY deploy/docker/backend-gpu/entrypoint.sh /entrypoint.sh
 CMD ["/entrypoint.sh"]

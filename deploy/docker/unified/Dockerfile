@@ -1,13 +1,16 @@
 # Multi-stage build: First build the frontend
 FROM node:20-slim as frontend-builder
 
-RUN apt-get update && apt-get install -y git
 RUN npm config set fetch-retry-maxtimeout 60000
 
 WORKDIR /frontend
 ENV CLI_WIDTH 80
-RUN git clone https://github.com/LibrePhotos/librephotos-frontend .
+
+COPY apps/frontend/package.json apps/frontend/yarn.lock ./
+COPY apps/frontend/patches/ ./patches/
 RUN yarn install --network-timeout 1000000
+
+COPY apps/frontend/ ./
 RUN yarn run build
 
 # Second stage: Build the backend with frontend included
@@ -21,7 +24,7 @@ ENV IMAGE_TAG ${IMAGE_TAG}
 WORKDIR /code
 
 # Install backend
-RUN git clone --depth 1 https://github.com/LibrePhotos/librephotos .
+COPY apps/backend/ /code/
 RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
 
 # Install additional packages for frontend serving
@@ -40,10 +43,10 @@ COPY --from=frontend-builder /frontend/dist /code/frontend_build/
 RUN mkdir -p /code/static
 
 # Copy no-proxy configuration files
-COPY production_noproxy.py /code/
-COPY entrypoint.sh /entrypoint.sh
+COPY deploy/docker/unified/production_noproxy.py /code/
+COPY deploy/docker/unified/entrypoint.sh /entrypoint.sh
 
 EXPOSE 8001
 
 RUN chmod +x /entrypoint.sh
-CMD ["/entrypoint.sh"] 
+CMD ["/entrypoint.sh"]
