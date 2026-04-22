@@ -298,18 +298,21 @@ class ApiHelpView(APIView):
 class ImageTagView(APIView):
     @method_decorator(cache_page(60 * 60 * 2))
     def get(self, request, format=None):
-        # Add an exception for the directory '/code'
-        subprocess.run(
-            ["git", "config", "--global", "--add", "safe.directory", "/code"],
-            check=False,
-        )
-
-        # Get the current commit hash
-        git_hash = (
-            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-            .strip()
-            .decode("utf-8")
-        )
+        try:
+            subprocess.run(
+                ["git", "config", "--global", "--add", "safe.directory", "/code"],
+                check=False,
+            )
+            git_hash = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"],
+                    stderr=subprocess.DEVNULL,
+                )
+                .strip()
+                .decode("utf-8")
+            )
+        except Exception:
+            git_hash = os.environ.get("IMAGE_TAG", "unknown")
         return Response(
             {"image_tag": os.environ.get("IMAGE_TAG", ""), "git_hash": git_hash}
         )
