@@ -18,8 +18,8 @@ const config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: "LibrePhotos", // Usually your GitHub org/user name.
-  projectName: "librephotos.docs", // Usually your repo name.
+  organizationName: "LibrePhotos",
+  projectName: "librephotos",
 
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
@@ -40,12 +40,12 @@ const config = {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           editUrl:
-            "https://github.com/LibrePhotos/librephotos.docs/tree/master/",
+            "https://github.com/LibrePhotos/librephotos/tree/dev/apps/docs/",
         },
         blog: {
           showReadingTime: true,
           editUrl:
-            "https://github.com/LibrePhotos/librephotos.docs/tree/master/",
+            "https://github.com/LibrePhotos/librephotos/tree/dev/apps/docs/",
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
