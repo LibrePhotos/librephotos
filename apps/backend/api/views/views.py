@@ -166,7 +166,7 @@ class SetUserAlbumShared(APIView):
                 f"Cannot share album to user: target user_id {target_user_id} does not exist"
             )
             return Response(
-                {"status": False, "message": "No such user"}, status_code=400
+                {"status": False, "message": "No such user"}, status=400
             )
 
         try:
@@ -176,7 +176,7 @@ class SetUserAlbumShared(APIView):
                 f"Cannot share album to user: source user_album_id {user_album_id} does not exist"
             )
             return Response(
-                {"status": False, "message": "No such album"}, status_code=400
+                {"status": False, "message": "No such album"}, status=400
             )
 
         if user_album_to_share.owner != request.user:
@@ -185,7 +185,7 @@ class SetUserAlbumShared(APIView):
             )
             return Response(
                 {"status": False, "message": "You cannot share an album you don't own"},
-                status_code=400,
+                status=400,
             )
 
         if shared:

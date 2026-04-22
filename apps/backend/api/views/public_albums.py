@@ -66,7 +66,7 @@ class SetUserAlbumPublic(APIView):
                 share.share_captions = sharing_options.get("share_captions")
             if "share_faces" in sharing_options:
                 share.share_faces = sharing_options.get("share_faces")
-        
+
         share.save()
 
         return Response({"status": True, "album": AlbumUserListSerializer(album).data})

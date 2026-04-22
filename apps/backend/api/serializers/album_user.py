@@ -143,7 +143,7 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
                     cnt += 1
                     instance.photos.remove(obj)
 
-            logger.info(f"Removed {cnt} photos to user album {instance.id}")
+            logger.info(f"Removed {cnt} photos from user album {instance.id}")
 
         if "cover_photo" in validated_data.keys():
             cover_photo = validated_data["cover_photo"]
