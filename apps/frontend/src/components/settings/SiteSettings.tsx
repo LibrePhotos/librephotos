@@ -1,0 +1,303 @@
+import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
+
+const MAP_API_PROVIDERS = [
+  {
+    value: "nominatim",
+    label: "Nominatim (OpenStreetMap)",
+    data: { use_api_key: false, url: "https://nominatim.org/" },
+  },
+  { value: "mapbox", label: "Mapbox", data: { use_api_key: true, url: "https://www.mapbox.com/" } },
+  { value: "maptiler", label: "MapTiler", data: { use_api_key: true, url: "https://www.maptiler.com/" } },
+  { value: "opencage", label: "OpenCage", data: { use_api_key: true, url: "https://opencagedata.com/" } },
+  { value: "tomtom", label: "TomTom", data: { use_api_key: true, url: "https://www.tomtom.com/" } },
+];
+
+const CAPTIONING_MODELS = [
+  { value: "im2txt", label: "im2txt PyTorch" },
+  { value: "blip_base_capfilt_large", label: "BLIP Base Capfilt Large" },
+  { value: "moondream", label: "Moondream Visual LLM" },
+  { value: "none", label: "None" },
+];
+
+const LLM_MODELS = [
+  { value: "mistral-7b-instruct-v0.2.Q5_K_M", label: "Mistral 7B Instruct v0.2 Q5 K M" },
+  { value: "moondream", label: "Moondream Visual LLM" },
+  { value: "none", label: "None" },
+];
+
+const TAGGING_MODELS = [
+  { value: "places365", label: "Places365 Scene Recognition" },
+  { value: "siglip2", label: "SigLIP 2 (Real-world photo tags)" },
+];
+
+const FACE_RECOGNITION_MODELS = [
+  { value: "buffalo_sc", label: "buffalo_sc (lightweight, default)" },
+  { value: "buffalo_s", label: "buffalo_s" },
+  { value: "buffalo_m", label: "buffalo_m" },
+  { value: "buffalo_l", label: "buffalo_l (most accurate)" },
+  { value: "antelopev2", label: "antelopev2" },
+];
+
+export function SiteSettings() {
+  const [skipPatterns, setSkipPatterns] = useState("");
+  const [mapApiKey, setMapApiKey] = useState("");
+  const [mapApiProvider, setMapApiProvider] = useState<string>("nominatim");
+  const [allowRegistration, setAllowRegistration] = useState(false);
+  const [allowUpload, setAllowUpload] = useState(false);
+  const [captioningModel, setCaptioningModel] = useState("im2txt");
+  const [llmModel, setLlmModel] = useState("none");
+  const [taggingModel, setTaggingModel] = useState("places365");
+  const [faceRecognitionModel, setFaceRecognitionModel] = useState("buffalo_sc");
+  const [warning, setWarning] = useState("none");
+  const { t } = useTranslation();
+  const { data: settings, isLoading } = useGetSettingsQuery();
+  const { mutate: saveSettings } = useUpdateSettingsMutation();
+  const [opened, { open, close }] = useDisclosure(false);
+
+  const saveSettingsWithValidation = (input: any) => {
+    if (input.captioning_model === "blip_base_capfilt_large") {
+      setWarning("blip");
+      open();
+      return;
+    }
+    saveSettings(input);
+  };
+
+  useEffect(() => {
+    if (!isLoading && settings) {
+      setSkipPatterns(settings.skip_patterns);
+      setMapApiKey(settings.map_api_key);
+      setMapApiProvider(settings.map_api_provider);
+      setAllowRegistration(settings.allow_registration);
+      setAllowUpload(settings.allow_upload);
+      setCaptioningModel(settings.captioning_model);
+      setLlmModel(settings.llm_model);
+      setTaggingModel(settings.tagging_model);
+      setFaceRecognitionModel(settings.face_recognition_model);
+    }
+  }, [settings, isLoading]);
+
+  return (
+    <div>
+      <Modal
+        opened={opened}
+        onClose={() => {
+          if (warning === "blip") {
+            setCaptioningModel("im2txt");
+            saveSettings({ captioning_model: "im2txt" });
+          }
+          close();
+        }}
+        title={<Title order={4}>{t("sitesettings.ram_warning_header")}</Title>}
+      >
+        <Stack>
+          <Text>{t("sitesettings.blip_warning")}</Text>
+          <Group>
+            <Button
+              onClick={() => {
+                if (warning === "blip") {
+                  setCaptioningModel("im2txt");
+                  saveSettings({ captioning_model: "im2txt" });
+                }
+                close();
+              }}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                if (warning === "blip") {
+                  saveSettings({ captioning_model: captioningModel });
+                }
+                close();
+              }}
+              color="red"
+            >
+              {t("save")}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Card shadow="md" mb={10}>
+        <Stack>
+          <Title order={4} mb={16}>
+            {t("adminarea.sitesettings")}
+          </Title>
+
+          <Switch
+            label={t("sitesettings.header")}
+            onChange={() => saveSettings({ allow_registration: !allowRegistration })}
+            checked={allowRegistration}
+          />
+          <Switch
+            label={t("sitesettings.headerupload")}
+            onChange={() => saveSettings({ allow_upload: !allowUpload })}
+            checked={allowUpload}
+          />
+
+          <Grid justify="flex-end">
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.headerskippatterns")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t("sitesettings.skippatterns")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <TextInput
+                value={skipPatterns}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    saveSettings({ skip_patterns: skipPatterns });
+                  }
+                }}
+                onBlur={() => saveSettings({ skip_patterns: skipPatterns })}
+                onChange={event => setSkipPatterns(event.currentTarget.value)}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.map_api_provider_header")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t("sitesettings.map_api_provider_description", {
+                    url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
+                  })}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={MAP_API_PROVIDERS}
+                value={mapApiProvider}
+                onChange={provider => {
+                  const value = provider || "";
+                  setMapApiProvider(value);
+                  saveSettings({ map_api_provider: value });
+                }}
+              />
+            </Grid.Col>
+            {MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.use_api_key && (
+              <>
+                <Grid.Col span={8}>
+                  <Stack gap={0}>
+                    <Text>{t("sitesettings.map_api_key_header")}</Text>
+                    <Text fz="sm" c="dimmed">
+                      {t("sitesettings.map_api_key_description", {
+                        url: MAP_API_PROVIDERS.find(provider => provider.value === mapApiProvider)?.data.url,
+                      })}
+                    </Text>
+                  </Stack>
+                </Grid.Col>
+                <Grid.Col span={4}>
+                  <TextInput
+                    value={mapApiKey}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        saveSettings({ map_api_key: mapApiKey });
+                      }
+                    }}
+                    onBlur={() => saveSettings({ map_api_key: mapApiKey })}
+                    onChange={e => setMapApiKey(e.target.value)}
+                  />
+                </Grid.Col>
+              </>
+            )}
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.captioning_model_header")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t("sitesettings.captioning_model_description")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={CAPTIONING_MODELS}
+                value={captioningModel}
+                onChange={model => {
+                  const value = model ?? "";
+                  saveSettingsWithValidation({ captioning_model: value });
+                  setCaptioningModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.llm_model_header")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t("sitesettings.llm_model_description")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={LLM_MODELS}
+                value={llmModel}
+                onChange={model => {
+                  const value = model ?? "";
+                  saveSettingsWithValidation({ llm_model: value });
+                  setLlmModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.tagging_model_header", "Tagging Model")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t(
+                    "sitesettings.tagging_model_description",
+                    "Select the model used for auto-tagging photos. Switching models does not delete previously generated tags."
+                  )}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={TAGGING_MODELS}
+                value={taggingModel}
+                onChange={model => {
+                  const value = model ?? "places365";
+                  saveSettings({ tagging_model: value });
+                  setTaggingModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.face_recognition_model_header", "Face Recognition Model")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t(
+                    "sitesettings.face_recognition_model_description",
+                    "Select the InsightFace model pack used for face recognition. Larger models are more accurate but require more resources."
+                  )}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={FACE_RECOGNITION_MODELS}
+                value={faceRecognitionModel}
+                onChange={model => {
+                  const value = model ?? "buffalo_sc";
+                  saveSettings({ face_recognition_model: value });
+                  setFaceRecognitionModel(value);
+                }}
+              />
+            </Grid.Col>
+          </Grid>
+        </Stack>
+      </Card>
+    </div>
+  );
+}

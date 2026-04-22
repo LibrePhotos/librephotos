@@ -1,0 +1,54 @@
+import { Group, Loader, Tabs } from "@mantine/core";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { FacesTab } from "../../api_client/faces/types";
+import { FacesCountersHoverCard } from "./FacesCountersHoverCard";
+
+type Props = Readonly<{
+  fetchingLabeledFacesList: boolean;
+  fetchingInferredFacesList: boolean;
+}>;
+
+const routeApi = getRouteApi("/_protected/faces");
+
+export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesList }: Props) {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { tab: activeTab } = routeApi.useSearch();
+
+  return (
+    <Group justify="apart">
+      <Tabs
+        defaultValue={activeTab}
+        value={activeTab}
+        w="100%"
+        onChange={value => {
+          navigate({
+            to: "/faces",
+            search: prev => ({
+              ...prev,
+              tab: value as FacesTab,
+            }),
+          });
+        }}
+      >
+        <Tabs.List>
+          <FacesCountersHoverCard tab={FacesTab.enum.inferred}>
+            <Tabs.Tab value={FacesTab.enum.inferred}>
+              {t("settings.inferred")} {fetchingInferredFacesList ? <Loader size="sm" /> : null}
+            </Tabs.Tab>
+          </FacesCountersHoverCard>
+          <FacesCountersHoverCard tab={FacesTab.enum.unknown}>
+            <Tabs.Tab value={FacesTab.enum.unknown}>{t("settings.unknown")}</Tabs.Tab>
+          </FacesCountersHoverCard>
+          <FacesCountersHoverCard tab={FacesTab.enum.labeled}>
+            <Tabs.Tab value={FacesTab.enum.labeled}>
+              {t("settings.labeled")} {fetchingLabeledFacesList ? <Loader size="sm" /> : null}
+            </Tabs.Tab>
+          </FacesCountersHoverCard>
+        </Tabs.List>
+      </Tabs>
+    </Group>
+  );
+}

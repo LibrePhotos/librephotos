@@ -1,0 +1,65 @@
+.scrollscrubbertarget {
+  overflow: auto;
+  height: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+}
+ 
+.scrollscrubbertarget::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollscrubber {
+  width: 28px;
+  right: 0;
+  position: fixed!important;
+  user-select: none;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  z-index: 101;
+  background-size: 4px 100%;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.scrollscrubber-background-layer {
+  width: 28px;
+  right: 0;
+  position: fixed!important;
+  opacity: 0.9;
+  z-index: 100;
+}
+
+.scrollscrubber-marker {
+  position: absolute;
+  right: 30px;
+  margin-top: -2px;
+}
+
+.scrollscrubber-marker-dot {
+  position: absolute;
+  right: 12px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  margin-top: -2px;
+}
+
+.scrollscrubber-current-position {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  position: absolute;
+  right: 11px;
+  margin-top: -2px;
+}
+
+.scrollscrubber-drag-position {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  position: absolute;
+  right: 11px;
+  z-index: 105;
+}

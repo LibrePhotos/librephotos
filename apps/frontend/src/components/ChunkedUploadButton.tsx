@@ -1,0 +1,223 @@
+import { ActionIcon, Progress, Tooltip } from "@mantine/core";
+import { IconUpload as Upload } from "@tabler/icons-react";
+import CryptoJS from "crypto-js";
+import MD5 from "crypto-js/md5";
+import React, { useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { useTranslation } from "react-i18next";
+import { fetchClient } from "../api_client/api";
+import { useGetSettingsQuery } from "../api_client/settings";
+import { UploadExistResponse, useUploadFinishedMutation, useUploadMutation } from "../api_client/upload";
+import { useCurrentUserSelfDetailsQuery } from "../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
+import { parseWithNotification } from "../util/zodUtils";
+
+export function ChunkedUploadButton() {
+  const { t } = useTranslation();
+  const [totalSize, setTotalSize] = useState(1);
+  const [currentSize, setCurrentSize] = useState(1);
+  const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
+  const { data: settings } = useGetSettingsQuery();
+  const uploadFinishedMutation = useUploadFinishedMutation();
+  const uploadMutation = useUploadMutation();
+  const chunkSize = 1000000; // < 1MB chunks, because of default of nginx
+
+  let currentUploadedFileSize = 0;
+
+  const calculateMD5 = async (file: File) => {
+    const temporaryFileReader = new FileReader();
+    const fileSize = file.size;
+    const blockSize = 25 * 1024 * 1024; // 25MB
+    let offset = 0;
+    const md5 = CryptoJS.algo.MD5.create();
+    return new Promise<string>((resolve, reject) => {
+      function readNext() {
+        const fileSlice = file.slice(offset, offset + blockSize);
+        temporaryFileReader.readAsBinaryString(fileSlice);
+      }
+
+      temporaryFileReader.onerror = () => {
+        temporaryFileReader.abort();
+        reject(new DOMException("Problem parsing input file."));
+      };
+
+      temporaryFileReader.onload = () => {
+        if (temporaryFileReader.result) {
+          // @ts-ignore
+          offset += temporaryFileReader.result.length;
+
+          md5.update(
+            // @ts-ignore
+            CryptoJS.enc.Latin1.parse(temporaryFileReader.result)
+          );
+          if (offset >= fileSize) {
+            resolve(md5.finalize().toString(CryptoJS.enc.Hex));
+          }
+          readNext();
+        }
+      };
+
+      readNext();
+    });
+  };
+
+  const checkIfAlreadyUploaded = async (hash: string) => {
+    if (!userSelfDetails) return false;
+    const response = await fetchClient.get<string>(`/exists/${hash + userSelfDetails.id}`);
+    return parseWithNotification(UploadExistResponse, response, "Failed to parse upload exists response").exists;
+  };
+
+  const uploadFinished = async (file: File, uploadId: string, shouldInvalidate: boolean = true) => {
+    if (!userSelfDetails) return;
+    const formData = new FormData();
+    formData.append("upload_id", uploadId);
+    formData.append("md5", await calculateMD5(file));
+    formData.append("user", userSelfDetails.id.toString());
+    formData.append("filename", file.name);
+    // Pass shouldInvalidate to control query invalidation
+    await uploadFinishedMutation.mutateAsync({ formData, shouldInvalidate });
+  };
+
+  const calculateMD5Blob = async (blob: Blob) => {
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(blob);
+    reader.onload = () => {
+      const buffer = reader.result;
+      // @ts-ignore
+      return MD5(buffer).toString();
+    };
+    return "";
+  };
+
+  const uploadChunk = async (chunk: Blob, uploadId: string, offset: number): Promise<any> => {
+    if (!userSelfDetails) return Promise.resolve();
+    // only send first chunk without upload id
+    const formData = new FormData();
+    if (uploadId) {
+      formData.append("upload_id", uploadId);
+    }
+    formData.append("file", chunk);
+    // FIX-ME: This is empty
+    formData.append("md5", await calculateMD5Blob(chunk));
+    formData.append("offset", offset.toString());
+    formData.append("user", userSelfDetails.id.toString());
+    return uploadMutation.mutateAsync({
+      form_data: formData,
+      offset,
+      chunk_size: chunk.size,
+    });
+  };
+
+  const calculateChunks = (file: File, blockSize: number) => {
+    const chunks = Math.ceil(file.size / blockSize);
+    const chunk = [] as Blob[];
+    for (let i = 0; i < chunks; i += 1) {
+      const chunkEnd = Math.min((i + 1) * blockSize, file.size);
+      chunk.push(file.slice(i * blockSize, chunkEnd));
+    }
+    return chunk;
+  };
+
+  async function uploadFile(file: File, shouldInvalidate: boolean = true) {
+    const currentUploadedFileSizeStartValue = currentUploadedFileSize;
+    let offset = 0;
+    let uploadId = "";
+    const chunks = calculateChunks(file, chunkSize);
+    // To-Do: Handle Resume and Pause
+    // eslint-disable-next-line no-restricted-syntax
+    for (const chunk of chunks) {
+      // eslint-disable-next-line no-await-in-loop
+      const response = await uploadChunk(chunk, uploadId, offset);
+      if (response) {
+        offset = response.offset;
+        uploadId = response.upload_id;
+      }
+      // To-Do: Handle Error
+      if (chunk.size) {
+        currentUploadedFileSize += chunk.size;
+      } else {
+        currentUploadedFileSize += file.size - (currentUploadedFileSize - currentUploadedFileSizeStartValue);
+      }
+      setCurrentSize(currentUploadedFileSize);
+    }
+    await uploadFinished(file, uploadId, shouldInvalidate);
+  }
+
+  async function onDrop(acceptedFiles: File[]) {
+    setTotalSize(acceptedFiles.reduce((acc, file) => acc + file.size, 0));
+    // Upload files sequentially to avoid overwhelming the server
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < acceptedFiles.length; i++) {
+      const file = acceptedFiles[i];
+      const isLastFile = i === acceptedFiles.length - 1;
+      // eslint-disable-next-line no-await-in-loop
+      const hash = await calculateMD5(file);
+      // eslint-disable-next-line no-await-in-loop
+      const foundOnServer = await checkIfAlreadyUploaded(hash);
+      if (!foundOnServer) {
+        // Only invalidate queries after the last file is uploaded
+        // eslint-disable-next-line no-await-in-loop
+        await uploadFile(file, isLastFile);
+      } else {
+        currentUploadedFileSize += file.size;
+        setCurrentSize(currentUploadedFileSize);
+      }
+    }
+  }
+  // Check if user has scan directory configured
+  const hasScanDirectory = userSelfDetails?.scan_directory && userSelfDetails.scan_directory.trim() !== "";
+
+  const { getRootProps, getInputProps, open } = useDropzone({
+    accept: {
+      "image/*": [],
+      "video/*": [],
+    },
+    // prevent react-dropzone from automatically opening the file dialog
+    // when the dropzone is clicked. We manually trigger it via the button
+    // click handler, which otherwise would result in the dialog opening
+    // twice due to event bubbling.
+    noClick: true,
+    noKeyboard: true,
+    onDrop: hasScanDirectory ? onDrop : () => {},
+    disabled: !hasScanDirectory,
+  });
+
+  if (settings?.allow_upload) {
+    const uploadContent = (
+      <div style={{ width: "50px" }}>
+        <div {...getRootProps({ className: "dropzone" })} style={{ alignContent: "center", display: "flex" }}>
+          <input {...getInputProps()} />
+          {currentSize / totalSize > 0.99 && (
+            <ActionIcon
+              color="gray"
+              variant="light"
+              loading={currentSize / totalSize < 1}
+              onClick={hasScanDirectory ? open : undefined}
+              disabled={!hasScanDirectory}
+              style={!hasScanDirectory ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+            >
+              <Upload />
+            </ActionIcon>
+          )}
+
+          {currentSize / totalSize < 1 && (
+            <Progress
+              value={(currentSize / totalSize) * 100}
+              style={{
+                width: "100%",
+                margin: "0",
+                marginTop: "5px",
+              }}
+            />
+          )}
+        </div>
+      </div>
+    );
+
+    if (!hasScanDirectory) {
+      return <Tooltip label={t("toasts.scan_directory_required")}>{uploadContent}</Tooltip>;
+    }
+
+    return uploadContent;
+  }
+  return null;
+}

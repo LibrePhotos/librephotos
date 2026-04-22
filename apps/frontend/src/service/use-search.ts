@@ -1,0 +1,133 @@
+import { useInterval } from "@mantine/hooks";
+import { random } from "lodash";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  useFetchPeopleAlbumsQuery,
+  useFetchPlacesAlbumsQuery,
+  useFetchThingsAlbumsQuery,
+  useFetchUserAlbumsQuery,
+} from "../api_client/albums/hooks";
+import { useSearchExamplesQuery } from "../api_client/search/hooks/useSearchExamplesQuery";
+import { fuzzyMatch } from "../util/util";
+
+export enum SearchOptionType {
+  EXAMPLE,
+  PLACE_ALBUM,
+  THING_ALBUM,
+  USER_ALBUM,
+  PEOPLE,
+}
+
+export type SearchOption = {
+  value: string;
+  type: SearchOptionType;
+  data: string | null;
+  thumbnail?: string;
+};
+
+function toExampleOption(item: string): SearchOption {
+  return { value: item, type: SearchOptionType.EXAMPLE, data: item };
+}
+
+function toPlaceOption(item: any): SearchOption {
+  const coverHash = item.cover_photos?.[0]?.image_hash;
+  return {
+    value: item.title,
+    type: SearchOptionType.PLACE_ALBUM,
+    data: item.id,
+    thumbnail: coverHash,
+  };
+}
+
+function toThingOption(item: any): SearchOption {
+  const coverHash = item.cover_photos?.[0]?.image_hash;
+  return {
+    value: item.title,
+    type: SearchOptionType.THING_ALBUM,
+    data: item.id,
+    thumbnail: coverHash,
+  };
+}
+
+function toUserAlbumOption(item: any): SearchOption {
+  return {
+    value: item.title,
+    type: SearchOptionType.USER_ALBUM,
+    data: item.id,
+    thumbnail: item.cover_photo?.image_hash,
+  };
+}
+
+function toPersonOption(item: any): SearchOption {
+  return { value: item.name, type: SearchOptionType.PEOPLE, data: item.id, thumbnail: item.face_url };
+}
+
+export function useSearch() {
+  const { t } = useTranslation();
+  // Skip queries on public pages to avoid 401 errors
+  const isPublicPage = typeof window !== "undefined" && window.location.pathname.startsWith("/public");
+  const { data: searchExamples, isLoading: isExamplesLoading } = useSearchExamplesQuery(isPublicPage);
+  const { data: placeAlbums, isLoading: isPlacesLoading } = useFetchPlacesAlbumsQuery(isPublicPage);
+  const { data: thingAlbums, isLoading: isThingsLoading } = useFetchThingsAlbumsQuery(isPublicPage);
+  const { data: userAlbums, isLoading: isAlbumsLoading } = useFetchUserAlbumsQuery(isPublicPage);
+  const { data: people, isLoading: isPeopleLoading } = useFetchPeopleAlbumsQuery(isPublicPage);
+  const [options, setOptions] = useState<SearchOption[]>([]);
+  const [placeholder, setPlaceholder] = useState(t("search.search"));
+  const isLoading = isExamplesLoading || isPlacesLoading || isThingsLoading || isAlbumsLoading || isPeopleLoading;
+
+  const filterOptions = useCallback(
+    (q: string = "") => {
+      if (!searchExamples || !placeAlbums || !thingAlbums || !userAlbums || !people) {
+        return;
+      }
+      setOptions([
+        ...searchExamples
+          .filter((item: string) => fuzzyMatch(q, item))
+          .slice(0, 2)
+          .map(toExampleOption),
+        ...placeAlbums
+          .filter((item: any) => fuzzyMatch(q, item.title))
+          .slice(0, 2)
+          .map(toPlaceOption),
+        ...thingAlbums
+          .filter((item: any) => fuzzyMatch(q, item.title))
+          .slice(0, 2)
+          .map(toThingOption),
+        ...userAlbums
+          .filter((item: any) => fuzzyMatch(q, item.title))
+          .slice(0, 2)
+          .map(toUserAlbumOption),
+        ...people
+          .filter((item: any) => fuzzyMatch(q, item.name))
+          .slice(0, 9)
+          .map(toPersonOption),
+      ]);
+    },
+    [placeAlbums, searchExamples, thingAlbums, userAlbums, people]
+  );
+
+  const updateSearchPlaceholder = useInterval(() => {
+    if (!searchExamples) {
+      return;
+    }
+    const example = searchExamples[Math.floor(random(0.1, 1) * searchExamples.length)];
+    setPlaceholder(`${t("search.search")} ${example}`);
+  }, 5000);
+
+  useEffect(() => {
+    updateSearchPlaceholder.start();
+    return updateSearchPlaceholder.stop;
+  }, [updateSearchPlaceholder]);
+
+  useEffect(() => {
+    if (!isLoading) filterOptions("");
+  }, [isLoading]);
+
+  return {
+    options,
+    filterOptions,
+    placeholder,
+    isLoading,
+  };
+}

@@ -1,0 +1,240 @@
+import { ActionIcon, Badge, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { RichTextEditor } from "@mantine/tiptap";
+import "@mantine/tiptap/styles.css";
+import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand } from "@tabler/icons-react";
+import { useNavigate } from "@tanstack/react-router";
+import Document from "@tiptap/extension-document";
+import Mention from "@tiptap/extension-mention";
+import Paragraph from "@tiptap/extension-paragraph";
+import { Text as TipTapText } from "@tiptap/extension-text";
+import { useEditor } from "@tiptap/react";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useFetchThingsAlbumsQuery } from "../../api_client/albums/hooks";
+import { useGenerateImageToTextCaptionMutation, useSavePhotoCaptionMutation } from "../../api_client/photos/hooks";
+import type { Photo as PhotoType } from "../../api_client/photos/types";
+import { useGetSettingsQuery } from "../../api_client/settings/hooks";
+import { fuzzyMatch } from "../../util/util";
+import { AISuggestionButton } from "./AISuggestionButton";
+import "./Hashtag.css";
+import suggestion from "./Suggestion";
+
+type Props = Readonly<{
+  isPublic: boolean;
+  photoDetail: PhotoType;
+}>;
+
+export function Description(props: Props) {
+  const { t } = useTranslation();
+  const { data: thingAlbums } = useFetchThingsAlbumsQuery();
+  const { data: siteSettings } = useGetSettingsQuery();
+  const taggingModel = siteSettings?.tagging_model ?? "places365";
+  const navigate = useNavigate();
+
+  const { photoDetail, isPublic } = props;
+
+  const [editMode, setEditMode] = useState(false);
+  const [imageCaption, setImageCaption] = useState<string | null>(null);
+  const { mutate: updateCaption } = useSavePhotoCaptionMutation();
+  const { mutate: generateImageToTextCaptions, isPending: generatingCaptionIm2txt } =
+    useGenerateImageToTextCaptionMutation();
+
+  const editor = useEditor({
+    editable: editMode,
+    extensions: [
+      Document,
+      Paragraph,
+      TipTapText,
+      Mention.configure({
+        HTMLAttributes: {
+          class: "hashtag",
+        },
+        renderLabel({ options, node }) {
+          return `${options.suggestion.char}${node.attrs.label ?? node.attrs.id}`;
+        },
+        suggestion: {
+          items: ({ query }) => {
+            if (thingAlbums == null) {
+              return [];
+            }
+            return thingAlbums
+              ?.filter(item => fuzzyMatch(query, item.title) && item.thing_type === "hashtag_attribute")
+              .map(item => item.title)
+              .slice(0, 5)
+              .concat(query)
+              .reverse();
+          },
+          char: suggestion.char,
+          render: suggestion.render,
+        },
+      }),
+    ],
+    content: imageCaption,
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    onUpdate({ editor }) {
+      setImageCaption(editor.getText());
+    },
+  });
+
+  useEffect(() => {
+    if (photoDetail) {
+      const currentCaption = photoDetail.captions_json?.user_caption ? photoDetail.captions_json.user_caption : "";
+      const replacedCaption = currentCaption.replace(/#(\w+)/g, '<span data-type="mention" data-id=$1>#$1</span>');
+      editor?.commands.setContent(replacedCaption);
+      setImageCaption(currentCaption);
+    }
+  }, [photoDetail, editor]);
+
+  return (
+    <Stack>
+      <Stack>
+        <Stack>
+          <Group>
+            <Note />
+            <Title order={4}>{t("lightbox.sidebar.caption")}</Title>
+          </Group>
+          {photoDetail.captions_json &&
+            photoDetail.captions_json.im2txt &&
+            editMode &&
+            !imageCaption?.includes(photoDetail.captions_json.im2txt) && (
+              <div>
+                <AISuggestionButton
+                  suggestion={photoDetail.captions_json?.im2txt || ""}
+                  onClick={() => {
+                    editor?.commands.setContent(photoDetail.captions_json?.im2txt || "");
+                    setImageCaption(photoDetail.captions_json?.im2txt || "");
+                  }}
+                />
+              </div>
+            )}
+        </Stack>
+        <div
+          style={{
+            position: "relative",
+            borderStyle: !editMode ? "none" : "solid",
+            border: "0.0625rem #ced4da",
+            borderRadius: "0.25rem",
+          }}
+        >
+          <RichTextEditor editor={editor} style={{ borderColor: "none" }}>
+            <RichTextEditor.Content style={{ paddingRight: 10 }} />
+            {editMode && (
+              <ActionIcon
+                style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
+                loading={generatingCaptionIm2txt}
+                variant="subtle"
+                color="gray"
+                onClick={() => {
+                  generateImageToTextCaptions({ id: photoDetail.image_hash });
+                }}
+                disabled={isPublic || (generatingCaptionIm2txt != null && generatingCaptionIm2txt)}
+              >
+                <Wand />
+              </ActionIcon>
+            )}
+            {!editMode && !isPublic && (
+              <ActionIcon
+                style={{ position: "absolute", right: 0, top: 0, margin: "5px" }}
+                loading={generatingCaptionIm2txt}
+                variant="subtle"
+                color="gray"
+                onClick={() => {
+                  setEditMode(true);
+                  editor?.setEditable(true);
+                }}
+                disabled={isPublic || (generatingCaptionIm2txt != null && generatingCaptionIm2txt)}
+              >
+                <IconEdit />
+              </ActionIcon>
+            )}
+          </RichTextEditor>
+        </div>
+        {editMode && (
+          <Group justify="center">
+            <Tooltip label={t("lightbox.sidebar.cancel")}>
+              <ActionIcon
+                variant="light"
+                onClick={() => {
+                  setEditMode(false);
+                }}
+                color="red"
+              >
+                <IconX />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label={t("lightbox.sidebar.submit")}>
+              <ActionIcon
+                variant="light"
+                color="green"
+                onClick={() => {
+                  updateCaption({ id: photoDetail.image_hash, caption: imageCaption || "" });
+                  setEditMode(false);
+                }}
+              >
+                <IconCheck />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        )}
+        {taggingModel === "siglip2" && photoDetail.captions_json.siglip2 && photoDetail.captions_json.siglip2.tags && (
+          <Stack>
+            <Group>
+              <Tags />
+              <Title order={4}>{t("lightbox.sidebar.tags", "Tags")}</Title>
+            </Group>
+            <Group>
+              {photoDetail.captions_json.siglip2.tags.map((tag: string) => (
+                <Badge
+                  key={`lightbox_siglip2_label_${photoDetail.image_hash}_${tag}`}
+                  color="green"
+                  onClick={() => {
+                    navigate({ to: `/search/${tag}` });
+                  }}
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </Group>
+          </Stack>
+        )}
+        {taggingModel === "places365" && photoDetail.captions_json.places365 && (
+          <Stack>
+            <Group>
+              <Tags />
+              <Title order={4}>{t("lightbox.sidebar.scene")}</Title>
+            </Group>
+            <Text fw={700}>{t("lightbox.sidebar.attributes")}</Text>
+            <Group>
+              {photoDetail.captions_json.places365.attributes.map(nc => (
+                <Badge
+                  key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
+                  color="blue"
+                  onClick={() => {
+                    navigate({ to: `/search/${nc}` });
+                  }}
+                >
+                  {nc}
+                </Badge>
+              ))}
+            </Group>
+
+            <Text fw={700}>{t("lightbox.sidebar.categories")}</Text>
+            <Group>
+              {photoDetail.captions_json.places365.categories.map(nc => (
+                <Badge
+                  key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
+                  color="teal"
+                  onClick={() => {
+                    navigate({ to: `/search/${nc}` });
+                  }}
+                >
+                  {nc}
+                </Badge>
+              ))}
+            </Group>
+          </Stack>
+        )}
+      </Stack>
+    </Stack>
+  );
+}

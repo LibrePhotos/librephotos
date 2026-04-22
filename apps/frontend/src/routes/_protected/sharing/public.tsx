@@ -1,0 +1,60 @@
+import { Avatar, Button, Group, Stack, Text, Title } from "@mantine/core";
+import { IconUser as User } from "@tabler/icons-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import React from "react";
+import { UserList } from "../../../api_client/user";
+import { useFetchUserListQuery } from "../../../api_client/user/hooks";
+
+export const Route = createFileRoute("/_protected/sharing/public")();
+
+function publicUsers(items: UserList = []) {
+  return items.filter(el => el.public_sharing);
+}
+
+export function PublicUserList() {
+  const navigate = useNavigate();
+  const { data: users } = useFetchUserListQuery();
+
+  return (
+    <Stack align="flex-start" p="md">
+      <Title order={2}>
+        <div>
+          <Group>
+            <User />
+            Users
+          </Group>
+          <Text c="dimmed">Showing {publicUsers(users).length} users</Text>
+        </div>
+      </Title>
+      {publicUsers(users).map(el => {
+        let displayName: string;
+        if (el.first_name.length > 0 && el.last_name.length > 0) {
+          displayName = `${el.first_name} ${el.last_name}`;
+        } else {
+          displayName = el.username;
+        }
+
+        return (
+          <Button
+            key={el.id}
+            variant="subtle"
+            style={{
+              height: 42,
+            }}
+            onClick={() => navigate({ to: `/user/${el.username}/` })}
+            leftSection={<Avatar size={25} radius="xl" src="/unknown_user.jpg" />}
+          >
+            <div>
+              <Text left="left">{displayName}</Text>
+              <Text size="sm" c="dimmed">
+                {el.public_photo_count} public photos
+              </Text>
+            </div>
+          </Button>
+        );
+      })}
+    </Stack>
+  );
+}
+
+Route.update({ component: PublicUserList });

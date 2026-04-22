@@ -1,0 +1,51 @@
+import { MantineColor } from "@mantine/core";
+import type { Icon } from "@tabler/icons-react";
+import {
+  IconAlbum as Album,
+  IconPhoto as Photo,
+  IconLayersSubtract as Stacks,
+  IconTrash as Trash,
+  IconUsers as Users,
+} from "@tabler/icons-react";
+import { TFunction } from "i18next";
+
+type SubmenuItem = {
+  label: string;
+  link: string;
+  icon: any;
+  header: string;
+  separator: boolean;
+  disabled: boolean;
+  color: MantineColor;
+};
+
+type MenuItem = {
+  label: string;
+  link: string;
+  icon: Icon;
+  color?: MantineColor;
+  display?: boolean;
+  submenu?: Array<Partial<SubmenuItem>>;
+};
+
+export function getNavigationItems(t: TFunction<"translation", undefined>, isAuthenticated: boolean): Array<MenuItem> {
+  return [
+    { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
+    { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
+    {
+      label: t("sidemenu.sharing"),
+      link: "/sharing",
+      display: isAuthenticated,
+      icon: Users,
+      color: "red",
+    },
+    {
+      label: t("sidemenu.organizing", "Organizing"),
+      link: "/organizing/duplicates",
+      display: isAuthenticated,
+      icon: Stacks,
+      color: "yellow",
+    },
+    { label: t("photos.deleted"), link: "/deleted", icon: Trash, color: "gray" },
+  ];
+}

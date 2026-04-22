@@ -1,0 +1,10 @@
+# Tasks related to upgrade to Mantine 7
+
+- medium: fix logout to redirect to login page
+- medium: fix public user list and public photos for authenticated user
+- medium: remove the use of useMediaquery
+- medium: Fix Modal Person Edit button and hover
+- low: rework mobile top menu for usability (upload, search, etc.)
+- low: fix warnings (in console) related to defaultProps (photo list view, etc.)
+- low: dark mode visibility text sidemenu
+- low: refactor sidebar with NavLink

@@ -1,0 +1,149 @@
+import {
+  Avatar,
+  Button,
+  Divider,
+  Group,
+  Modal,
+  ScrollArea,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  UnstyledButton,
+  useComputedColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
+import { serverAddress } from "../../api_client/apiClient";
+import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { fuzzyMatch } from "../../util/util";
+
+type Props = Readonly<{
+  isOpen: boolean;
+  onRequestClose: () => void;
+  resetGroups?: () => void;
+  selectedFaces: any[];
+}>;
+
+export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGroups = () => {} }: Props) {
+  const [newPersonName, setNewPersonName] = useState("");
+  const matches = useMediaQuery("(min-width: 700px)");
+  const theme = useMantineTheme();
+  const colorScheme = useComputedColorScheme();
+  const { data: people } = useFetchPeopleAlbumsQuery();
+  const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
+
+  const { t } = useTranslation();
+
+  let filteredPeopleList = people;
+
+  if (newPersonName.length > 0) {
+    filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.name));
+  }
+
+  const selectedImageIDs = selectedFaces.map(face => face.face_url);
+  const selectedFaceIDs = selectedFaces.map(face => face.face_id);
+
+  function personExist(name: string) {
+    return people?.map(person => person.name.toLowerCase().trim()).includes(name.toLowerCase().trim());
+  }
+
+  return (
+    <Modal
+      zIndex={1500}
+      opened={isOpen}
+      title={<Title>{t("personedit.labelfaces")}</Title>}
+      onClose={() => {
+        onRequestClose();
+        setNewPersonName("");
+      }}
+    >
+      <Stack>
+        <Text c="dimmed">
+          {t("personedit.numberselected", {
+            number: selectedFaces.length,
+          })}
+        </Text>
+        <ScrollArea style={{ height: 50 }}>
+          <Group>
+            {selectedImageIDs.map(image => (
+              <Avatar key={`selected_image${image}`} size={40} src={`${serverAddress}${image}`} radius="xl" />
+            ))}
+          </Group>
+        </ScrollArea>
+
+        <Divider />
+        <Title order={5}>{t("personedit.newperson")}</Title>
+        <Group>
+          <TextInput
+            error={
+              personExist(newPersonName) ? t("personalbum.personalreadyexists", { name: newPersonName.trim() }) : ""
+            }
+            onChange={v => {
+              setNewPersonName(v.currentTarget.value);
+            }}
+            placeholder={t("personedit.personname")}
+          />
+          <Button
+            onClick={() => {
+              setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: newPersonName });
+              if (resetGroups) {
+                resetGroups();
+              }
+              onRequestClose();
+              setNewPersonName("");
+            }}
+            disabled={personExist(newPersonName) || newPersonName.trim().length === 0}
+            type="submit"
+          >
+            {t("personedit.addperson")}
+          </Button>
+        </Group>
+        <Divider />
+        <Stack
+          style={{
+            height: matches ? "50vh" : "25vh",
+            overflowY: "scroll",
+          }}
+        >
+          {filteredPeopleList &&
+            filteredPeopleList.length > 0 &&
+            filteredPeopleList?.map(item => (
+              <UnstyledButton
+                key={item.id}
+                style={{
+                  display: "block",
+                  borderRadius: theme.radius.xl,
+                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                }}
+                onClick={() => {
+                  setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: item.name });
+                  onRequestClose();
+                }}
+              >
+                <Group key={item.id}>
+                  <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
+                  <div>
+                    <Title
+                      style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
+                      order={4}
+                    >
+                      {item.name}
+                    </Title>
+                    <Text size="sm" c="dimmed">
+                      {t("numberofphotos", {
+                        number: item.face_count,
+                      })}
+                    </Text>
+                  </div>
+                </Group>
+              </UnstyledButton>
+            ))}
+        </Stack>
+      </Stack>
+    </Modal>
+  );
+}

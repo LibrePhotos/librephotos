@@ -1,0 +1,15 @@
+.topMenuGroup {
+  justify-content: center;
+  align-items: center;
+  margin-top: 4px;
+}
+
+@media (min-width: 48em) {
+  .topMenuGroup {
+    /* adjust by offsetting drom top menu height */
+    margin-top: 3px;
+    justify-content: space-between;
+    align-items: unset;
+  }
+}
+

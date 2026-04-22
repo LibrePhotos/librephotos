@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="theme-color" content="#000000" />
+    <!--
+      manifest.json provides metadata used when your web app is added to the
+      homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
+    -->
+    <style type="text/css">
+      .maplibregl-map {
+        height: 250px;
+        width: 100%;
+        z-index: 2;
+        position: relative;
+      }
+    </style>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <title>LibrePhotos</title>
+  </head>
+
+  <body>
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <div id="root"></div>
+    <script>
+      if (global === undefined) {
+        var global = window;
+      }
+      global.random = function () {
+        return Math.random();
+      };
+    </script>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
