@@ -1,0 +1,21 @@
+# Root-level .gitignore. Each app keeps its own .gitignore for app-specific rules.
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors / IDEs
+.idea/
+.vscode/
+!.vscode/settings.json.example
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Env
+.env
+.env.local

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "matchFileNames": ["apps/backend/**"],
+      "groupName": "backend dependencies",
+      "addLabels": ["backend"]
+    },
+    {
+      "matchFileNames": ["apps/frontend/**"],
+      "groupName": "frontend dependencies",
+      "addLabels": ["frontend"]
+    },
+    {
+      "matchFileNames": ["apps/mobile/**"],
+      "groupName": "mobile dependencies",
+      "addLabels": ["mobile"]
+    },
+    {
+      "matchFileNames": ["apps/docs/**"],
+      "groupName": "docs dependencies",
+      "addLabels": ["docs"]
+    },
+    {
+      "matchFileNames": ["deploy/**"],
+      "groupName": "deploy dependencies",
+      "addLabels": ["deploy"]
+    },
+    {
+      "matchFileNames": [".github/workflows/**"],
+      "groupName": "github-actions",
+      "addLabels": ["ci"]
+    }
+  ]
+}
