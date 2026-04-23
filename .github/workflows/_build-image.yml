@@ -26,6 +26,11 @@ on:
         required: false
         default: ""
         type: string
+      amd64-only:
+        description: "Build only linux/amd64. Use for images whose base has no arm64 manifest (e.g. GPU)."
+        required: false
+        default: false
+        type: boolean
     secrets:
       DOCKER_HUB_USERNAME:
         required: true
@@ -65,6 +70,7 @@ jobs:
           tags: ${{ steps.tag.outputs.tag }}
 
   build-arm64:
+    if: ${{ !inputs.amd64-only }}
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
@@ -97,6 +103,10 @@ jobs:
 
   combine-manifest:
     needs: [build-amd64, build-arm64]
+    if: |
+      always() &&
+      needs.build-amd64.result == 'success' &&
+      (inputs.amd64-only || needs.build-arm64.result == 'success')
     runs-on: ubuntu-24.04
     steps:
       - name: Set up Docker Buildx
@@ -106,17 +116,21 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-      - name: Combine multi-arch manifest
+      - name: Combine manifest
         run: |
-          if [ -n "${{ inputs.release-tag }}" ]; then
-            docker buildx imagetools create -t ${{ inputs.image }}:${{ inputs.release-tag }} \
-              ${{ inputs.image }}:${{ inputs.release-tag }}-amd64 \
-              ${{ inputs.image }}:${{ inputs.release-tag }}-arm64
-            docker buildx imagetools create -t ${{ inputs.image }}:latest \
-              ${{ inputs.image }}:${{ inputs.release-tag }}-amd64 \
-              ${{ inputs.image }}:${{ inputs.release-tag }}-arm64
+          if [ "${{ inputs.amd64-only }}" = "true" ]; then
+            ARM64_SUFFIX=""
           else
-            docker buildx imagetools create -t ${{ inputs.image }}:dev \
-              ${{ inputs.image }}:dev-amd64 \
-              ${{ inputs.image }}:dev-arm64
+            ARM64_SUFFIX="-arm64"
+          fi
+          if [ -n "${{ inputs.release-tag }}" ]; then
+            BASE="${{ inputs.image }}:${{ inputs.release-tag }}"
+            SOURCES="${BASE}-amd64"
+            [ -n "$ARM64_SUFFIX" ] && SOURCES="$SOURCES ${BASE}${ARM64_SUFFIX}"
+            docker buildx imagetools create -t "${BASE}" $SOURCES
+            docker buildx imagetools create -t ${{ inputs.image }}:latest $SOURCES
+          else
+            SOURCES="${{ inputs.image }}:dev-amd64"
+            [ -n "$ARM64_SUFFIX" ] && SOURCES="$SOURCES ${{ inputs.image }}:dev${ARM64_SUFFIX}"
+            docker buildx imagetools create -t ${{ inputs.image }}:dev $SOURCES
           fi

@@ -19,6 +19,7 @@ jobs:
     with:
       image: reallibrephotos/librephotos-gpu
       dockerfile: deploy/docker/backend-gpu/Dockerfile
+      amd64-only: true
       build-args: |
         IMAGE_TAG=dev
     secrets: inherit
@@ -29,6 +30,7 @@ jobs:
     with:
       image: reallibrephotos/librephotos-gpu
       dockerfile: deploy/docker/backend-gpu/Dockerfile
+      amd64-only: true
       release-tag: ${{ github.event.release.tag_name }}
       build-args: |
         IMAGE_TAG=${{ github.event.release.tag_name }}
