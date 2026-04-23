@@ -65,8 +65,23 @@ The toolbar at the top provides quick actions:
 - **Download** - Download the original photo (with options for stacked/variant photos)
 - **Share** - Share the photo with other users
 - **Delete** - Move the photo to trash
+- **Rotate counter-clockwise** - Rotate the photo 90° counter-clockwise (see [Rotating Photos](#rotating-photos))
+- **Rotate clockwise** - Rotate the photo 90° clockwise (see [Rotating Photos](#rotating-photos))
 - **Fullscreen** - Enter fullscreen mode for distraction-free viewing
 - **Slideshow** - Start an automatic slideshow with configurable interval
+
+### Rotating Photos
+
+The two rotate buttons in the toolbar let you reorient a photo in 90° steps — useful for images that were captured at the wrong angle or whose EXIF Orientation tag is missing or incorrect.
+
+Rotation in LibrePhotos is **non-destructive**:
+
+- The original image file on disk is **not modified**. Instead, the rotation is recorded as an EXIF Orientation override stored in the database, and the thumbnails are regenerated so the new orientation is visible everywhere in the UI.
+- Each click composes on top of the previous rotation, so two clicks of the clockwise button produce a 180° rotation and four clicks return the photo to its original orientation.
+- The change applies to the photo for every viewer, not just your own session.
+- Rotation is only available for still images. Videos cannot be rotated from the lightbox.
+
+If you have **"Save metadata to disk"** enabled in your user settings, LibrePhotos will additionally write the combined EXIF Orientation tag back to the original file (or its XMP sidecar), so the new orientation is also visible in external tools. With that setting disabled — the default — only the LibrePhotos database and thumbnails are updated and the file on disk stays byte-for-byte identical.
 
 ## Photo Details Sidebar
 
