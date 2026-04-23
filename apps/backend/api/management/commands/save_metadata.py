@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
 
 from api.models import Photo, User
-from api.models.person import Person
 
 
 class Command(BaseCommand):

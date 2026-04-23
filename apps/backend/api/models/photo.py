@@ -1,8 +1,6 @@
 import json
-import numbers
 import os
 import uuid
-from fractions import Fraction
 from io import BytesIO
 
 import numpy as np

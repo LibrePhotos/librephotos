@@ -22,7 +22,7 @@ from importlib import import_module
 from unittest.mock import MagicMock, patch
 
 from django.db import connection
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase
 
 # Import the migration module (name starts with a digit, use importlib)
 _mod = import_module("api.migrations.0099_photo_uuid_primary_key")

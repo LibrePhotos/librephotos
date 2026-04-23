@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.models import AlbumUser, Photo
+from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
 from api.serializers.album_user import (
     AlbumUserListSerializer,

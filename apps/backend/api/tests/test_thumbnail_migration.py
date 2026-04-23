@@ -6,9 +6,8 @@ import os
 import tempfile
 from unittest.mock import patch
 from django.test import TestCase
-from django.conf import settings
 
-from api.models import Photo, Thumbnail
+from api.models import Thumbnail
 from api.tests.utils import create_test_user, create_test_photo
 
 

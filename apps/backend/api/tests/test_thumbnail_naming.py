@@ -1,12 +1,9 @@
 """
 Tests for thumbnail naming using image_hash instead of UUID.
 """
-import os
 from unittest import mock
 from django.test import TestCase
-from django.conf import settings
 
-from api.models import Photo, Thumbnail
 from api.tests.utils import create_test_user, create_test_photo
 
 

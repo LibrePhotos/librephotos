@@ -947,7 +947,7 @@ class FileVariantDownloadView(APIView):
         """Download a specific file variant by hash."""
         import magic
         import os
-        from django.http import FileResponse, HttpResponse
+        from django.http import FileResponse
 
         # Find the photo
         try:
