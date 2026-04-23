@@ -6,7 +6,7 @@
 
 # LibrePhotos
 
-![](https://github.com/LibrePhotos/librephotos/blob/dev/screenshots/mockups_main_fhd.png?raw=true)
+![](https://github.com/LibrePhotos/librephotos/blob/dev/apps/backend/screenshots/mockups_main_fhd.png?raw=true)
 <sub>Mockup designed by rawpixel.com / Freepik</sub>
 
 A self-hosted, open-source photo management service with automatic face recognition, object detection, and semantic search — powered by modern machine learning.
