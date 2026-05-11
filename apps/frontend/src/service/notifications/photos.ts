@@ -152,6 +152,14 @@ function deleteMissingPhotos() {
   });
 }
 
+function scanDirectoryRequired() {
+  showNotification({
+    message: i18n.t("toasts.scan_directory_required"),
+    title: i18n.t("toasts.scanphotostitle"),
+    color: "red",
+  });
+}
+
 export const photos = {
   deleteMissingPhotos,
   downloadCompleted,
@@ -160,6 +168,7 @@ export const photos = {
   removePhotos,
   rotatePhotos,
   savePhotoCaptions,
+  scanDirectoryRequired,
   startFullPhotoScan,
   startNextcloudPhotoScan,
   startPhotoScan,

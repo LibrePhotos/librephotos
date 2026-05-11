@@ -41,6 +41,7 @@ import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { fetchClient } from "../../api_client/api";
 import { serverAddress } from "../../api_client/apiClient";
+import { useAccessToken } from "../../api_client/auth/hooks";
 import { useTrainFacesMutation } from "../../api_client/faces";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
 import {
@@ -53,12 +54,13 @@ import {
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
-import { useUpdateUserMutation } from "../../api_client/user/hooks";
+import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { User } from "../../api_client/user/types";
 import { notification } from "../../service/notifications";
 import { CountStats } from "../CountStats";
 import { ModalNextcloudScanDirectoryEdit } from "../modals/ModalNextcloudScanDirectoryEdit";
+import { ModalUserEdit } from "../modals/ModalUserEdit";
 
 function BadgeIcon(details: User, isSuccess: boolean, isError: boolean, isFetching: boolean) {
   const { nextcloud_server_address: server } = details;
@@ -80,7 +82,10 @@ export function Library() {
   const [isOpenNextcloudHelp, setIsOpenNextcloudHelp] = useState(false);
   const [avatarImgSrc, setAvatarImgSrc] = useState("/unknown_user.jpg");
   const [modalNextcloudScanDirectoryOpen, setModalNextcloudScanDirectoryOpen] = useState(false);
+  const [scanDirectorySetupOpen, setScanDirectorySetupOpen] = useState(false);
   const { data: userSelfDetails } = useCurrentUserSelfDetailsQuery();
+  const { data: auth } = useAccessToken();
+  const { data: userList } = useFetchUserListQuery();
   const [editedUser, setEditedUser] = useState<User | null>(null);
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
@@ -109,6 +114,18 @@ export function Library() {
   const onDeleteMissingPhotosButtonClick = () => {
     deleteMissingPhotos.mutate();
     close();
+  };
+
+  const guardScan = (run: () => void) => {
+    if (userSelfDetails?.scan_directory) {
+      run();
+      return;
+    }
+    if (auth?.access?.is_admin) {
+      setScanDirectorySetupOpen(true);
+    } else {
+      notification.scanDirectoryRequired();
+    }
   };
 
   // open update dialog, when user was edited
@@ -266,7 +283,7 @@ export function Library() {
               <Grid.Col span={{ base: 12, sm: 2 }}>
                 <Group wrap="nowrap" gap={0} justify="flex-end">
                   <Button
-                    onClick={() => scanPhotos.mutate()}
+                    onClick={() => guardScan(() => scanPhotos.mutate())}
                     disabled={!workerAvailability}
                     leftSection={<Refresh />}
                     variant="filled"
@@ -295,7 +312,7 @@ export function Library() {
                     <Menu.Dropdown>
                       <Menu.Item
                         leftSection={<Refresh size="1rem" />}
-                        onClick={() => rescanPhotos.mutate()}
+                        onClick={() => guardScan(() => rescanPhotos.mutate())}
                         disabled={!workerAvailability}
                       >
                         {t("settings.statusrescanphotosfalse")}
@@ -608,6 +625,16 @@ export function Library() {
             }}
           />
         </Card>
+
+        <ModalUserEdit
+          onRequestClose={() => setScanDirectorySetupOpen(false)}
+          userToEdit={userSelfDetails}
+          isOpen={scanDirectorySetupOpen}
+          updateAndScan
+          userList={userList ?? []}
+          createNew={false}
+          firstTimeSetup
+        />
 
         <Dialog opened={isOpenUpdateDialog} withCloseButton onClose={handleCancel} size="lg" radius="md">
           <Text size="sm" style={{ marginBottom: 10 }} fw={500}>
