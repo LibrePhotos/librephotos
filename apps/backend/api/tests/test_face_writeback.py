@@ -185,7 +185,9 @@ class TestBuildFaceRegionExiftoolArgs(TestCase):
     def test_applied_to_dimensions(self):
         """AppliedToDimensions should be included when image dimensions are provided."""
         regions = [{"name": "Alice", "x": 0.5, "y": 0.3, "w": 0.2, "h": 0.15}]
-        result = build_face_region_exiftool_args(regions, image_width=4000, image_height=3000)
+        result = build_face_region_exiftool_args(
+            regions, image_width=4000, image_height=3000
+        )
         value = result["XMP-mwg-rs:RegionInfo"]
         self.assertIn("AppliedToDimensions={W=4000,H=3000,Unit=pixel}", value)
 
@@ -386,9 +388,7 @@ class TestGetFaceRegionTags(TestCase):
 
     @patch("api.metadata.face_regions.get_metadata")
     @patch("api.metadata.face_regions.PIL.Image.open")
-    def test_mixed_labeled_and_unlabeled_faces(
-        self, mock_pil_open, mock_get_metadata
-    ):
+    def test_mixed_labeled_and_unlabeled_faces(self, mock_pil_open, mock_get_metadata):
         """Photo with both labeled and unlabeled faces should include all."""
         photo = create_test_photo(
             owner=self.user, thumbnail_big="thumbnails_big/test.jpg"

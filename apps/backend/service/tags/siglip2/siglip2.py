@@ -76,7 +76,9 @@ class SigLIP2:
             # Invalidate cache if tag count changed or embedding dimension is wrong
             needs_rebuild = False
             if self.tag_embeddings.ndim != 2:
-                print(f"siglip2: cache has wrong shape {self.tag_embeddings.shape}, rebuilding...")
+                print(
+                    f"siglip2: cache has wrong shape {self.tag_embeddings.shape}, rebuilding..."
+                )
                 needs_rebuild = True
             elif self.tag_embeddings.shape[0] != len(self.tags):
                 print(

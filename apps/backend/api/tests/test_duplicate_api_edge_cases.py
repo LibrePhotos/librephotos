@@ -30,7 +30,7 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         """Test resolving a duplicate that's already resolved."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -38,16 +38,16 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
             kept_photo=photo1,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Try to resolve again with different kept photo
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             {"keep_photo_hash": photo2.image_hash},
         )
-        
+
         # Should succeed (changing which photo to keep)
         self.assertEqual(response.status_code, 200)
-        
+
         duplicate.refresh_from_db()
         self.assertEqual(duplicate.kept_photo, photo2)
 
@@ -55,53 +55,53 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         """Test resolving when one photo is already trashed."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user, in_trashcan=True)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Resolve keeping photo1
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             {"keep_photo_hash": photo1.image_hash},
         )
-        
+
         self.assertEqual(response.status_code, 200)
-        
+
         # Photo2 was already trashed, shouldn't change
         photo2.refresh_from_db()
         self.assertTrue(photo2.in_trashcan)
 
     def test_resolve_with_trash_others_false(self):
         """Test resolving without trashing other photos.
-        
+
         Note: Must use format='json' to properly send boolean False.
         Form data converts False to string "False" which is truthy.
         """
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Use format='json' to properly send boolean False
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             {"keep_photo_hash": photo1.image_hash, "trash_others": False},
-            format='json',
+            format="json",
         )
-        
+
         self.assertEqual(response.status_code, 200)
-        
+
         # Photo2 should NOT be trashed
         photo2.refresh_from_db()
         self.assertFalse(photo2.in_trashcan)
-        
+
         # But duplicate should still be marked resolved
         duplicate.refresh_from_db()
         self.assertEqual(duplicate.review_status, Duplicate.ReviewStatus.RESOLVED)
@@ -110,18 +110,18 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         """Test resolving with a photo hash that doesn't exist in the group."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             {"keep_photo_hash": "nonexistent_hash"},
         )
-        
+
         self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.data)
 
@@ -129,18 +129,18 @@ class DuplicateResolveEdgeCasesTestCase(TestCase):
         """Test resolving with empty request body."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             {},
         )
-        
+
         self.assertEqual(response.status_code, 400)
 
 
@@ -156,16 +156,16 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         """Test reverting a pending (not resolved) duplicate."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         response = self.client.post(f"/api/duplicates/{duplicate.id}/revert/")
-        
+
         # Should fail - can only revert resolved
         self.assertEqual(response.status_code, 400)
 
@@ -173,16 +173,16 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         """Test reverting a dismissed duplicate."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.DISMISSED,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         response = self.client.post(f"/api/duplicates/{duplicate.id}/revert/")
-        
+
         # Should fail - can only revert resolved
         self.assertEqual(response.status_code, 400)
 
@@ -190,24 +190,24 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         """Test reverting when trashed photos were permanently deleted."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Resolve keeping photo1
         duplicate.resolve(kept_photo=photo1)
-        
+
         # Now permanently delete photo2 (simulating user emptying trash)
         photo2.in_trashcan = True
         photo2.save()
         photo2.manual_delete()
-        
+
         # Try to revert
         response = self.client.post(f"/api/duplicates/{duplicate.id}/revert/")
-        
+
         # Should succeed but restored_count may be 0
         # Bug: Duplicate group might be deleted now due to Bug #12 fix
         # Let me check if duplicate still exists
@@ -221,20 +221,20 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
         """Test reverting the same duplicate multiple times."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Resolve
         duplicate.resolve(kept_photo=photo1)
-        
+
         # Revert first time
         response1 = self.client.post(f"/api/duplicates/{duplicate.id}/revert/")
         self.assertEqual(response1.status_code, 200)
-        
+
         # Try to revert again (should fail - now pending)
         response2 = self.client.post(f"/api/duplicates/{duplicate.id}/revert/")
         self.assertEqual(response2.status_code, 400)
@@ -243,7 +243,7 @@ class DuplicateRevertEdgeCasesTestCase(TestCase):
 class DuplicateDeleteEdgeCasesTestCase(TestCase):
     """
     Edge cases for duplicate delete.
-    
+
     Note: Delete endpoint is at /api/duplicates/{id}/delete with DELETE method.
     """
 
@@ -255,43 +255,46 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
     def test_delete_duplicate_unlinks_all_photos(self):
         """Test that deleting a duplicate unlinks ALL photos."""
         photos = [create_test_photo(owner=self.user) for _ in range(5)]
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         for photo in photos:
             duplicate.photos.add(photo)
-        
+
         duplicate_id = duplicate.id
-        
+
         # Correct URL: /api/duplicates/{id}/delete
         response = self.client.delete(f"/api/duplicates/{duplicate_id}/delete")
-        
+
         self.assertEqual(response.status_code, 200)
-        
+
         # Verify duplicate is deleted
         self.assertFalse(Duplicate.objects.filter(id=duplicate_id).exists())
-        
+
         # Verify ALL photos are unlinked
         for photo in photos:
             photo.refresh_from_db()
-            self.assertEqual(photo.duplicates.count(), 0,
-                "All photos should be unlinked from deleted duplicate")
+            self.assertEqual(
+                photo.duplicates.count(),
+                0,
+                "All photos should be unlinked from deleted duplicate",
+            )
 
     def test_delete_duplicate_with_many_photos(self):
         """Test deleting a duplicate with many photos."""
         photos = [create_test_photo(owner=self.user) for _ in range(20)]
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         for photo in photos:
             duplicate.photos.add(photo)
-        
+
         response = self.client.delete(f"/api/duplicates/{duplicate.id}/delete")
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["unlinked_count"], 20)
 
@@ -299,7 +302,7 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
         """Test deleting a resolved duplicate."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -307,9 +310,9 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
             kept_photo=photo1,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         response = self.client.delete(f"/api/duplicates/{duplicate.id}/delete")
-        
+
         # Should succeed - can delete any duplicate
         self.assertEqual(response.status_code, 200)
 
@@ -323,15 +326,15 @@ class DuplicateDeleteEdgeCasesTestCase(TestCase):
         other_user = create_test_user()
         photo1 = create_test_photo(owner=other_user)
         photo2 = create_test_photo(owner=other_user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=other_user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         response = self.client.delete(f"/api/duplicates/{duplicate.id}/delete")
-        
+
         # Should return 404 (not found for this user)
         self.assertEqual(response.status_code, 404)
 
@@ -348,19 +351,19 @@ class DuplicateDetailEdgeCasesTestCase(TestCase):
         """Test detail view when photos have no metadata."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         # Ensure no metadata exists
         PhotoMetadata.objects.filter(photo__in=[photo1, photo2]).delete()
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Should not crash
         response = self.client.get(f"/api/duplicates/{duplicate.id}/")
-        
+
         self.assertEqual(response.status_code, 200)
         # Photos should have null width/height/camera
         for photo_data in response.data["photos"]:
@@ -373,23 +376,23 @@ class DuplicateDetailEdgeCasesTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo1.main_file = None
         photo1.save()
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Should not crash
         response = self.client.get(f"/api/duplicates/{duplicate.id}/")
-        
+
         self.assertEqual(response.status_code, 200)
 
     def test_detail_with_deleted_kept_photo(self):
         """Test detail view when kept_photo has been deleted."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -397,17 +400,17 @@ class DuplicateDetailEdgeCasesTestCase(TestCase):
             kept_photo=photo1,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Permanently delete the kept photo
         photo1.in_trashcan = True
         photo1.save()
         photo1.manual_delete()
-        
+
         # Check if duplicate still exists (might be deleted due to Bug #12 fix)
         if not Duplicate.objects.filter(id=duplicate.id).exists():
             # Expected behavior: duplicate deleted when < 2 photos
             return
-        
+
         # If duplicate still exists, detail should not crash
         response = self.client.get(f"/api/duplicates/{duplicate.id}/")
         # Either 200 or 404 depending on photo count
@@ -425,28 +428,28 @@ class DuplicateListEdgeCasesTestCase(TestCase):
     def test_list_excludes_single_photo_duplicates(self):
         """Test that list excludes duplicates with only 1 photo."""
         photo1 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1)  # Only 1 photo
-        
+
         response = self.client.get("/api/duplicates/")
-        
+
         self.assertEqual(response.status_code, 200)
         # Should not include the single-photo duplicate
         self.assertEqual(response.data["count"], 0)
 
     def test_list_with_kept_photo_deleted(self):
         """Test list view when kept_photo reference is broken.
-        
+
         ForeignKey SET_NULL should handle this, but let's verify.
         """
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -454,15 +457,15 @@ class DuplicateListEdgeCasesTestCase(TestCase):
             kept_photo=photo1,
         )
         duplicate.photos.add(photo1, photo2, photo3)
-        
+
         # Delete the kept photo
         photo1.in_trashcan = True
         photo1.save()
         photo1.manual_delete()
-        
+
         # Try listing - should not crash
         response = self.client.get("/api/duplicates/")
-        
+
         self.assertEqual(response.status_code, 200)
 
     def test_list_pagination_edge_cases(self):
@@ -476,14 +479,14 @@ class DuplicateListEdgeCasesTestCase(TestCase):
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
             dup.photos.add(photo1, photo2)
-        
+
         # Page beyond results - Django's get_page() returns last page for out-of-range
         # So page 100 will still return results (the last page)
         response = self.client.get("/api/duplicates/?page=100")
         self.assertEqual(response.status_code, 200)
         # Django returns last valid page, not empty
         self.assertGreaterEqual(len(response.data["results"]), 0)
-        
+
         # Page 0 should become page 1 (our code uses max(1, page))
         response = self.client.get("/api/duplicates/?page=0")
         self.assertEqual(response.status_code, 200)
@@ -502,7 +505,7 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
-        
+
         result = duplicate.auto_select_best_photo()
         self.assertIsNone(result)
 
@@ -514,13 +517,13 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
         photo2.main_file = None
         photo1.save()
         photo2.save()
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Should handle gracefully (might return None or first photo)
         _result = duplicate.auto_select_best_photo()
         # Just verify it doesn't crash
@@ -529,16 +532,16 @@ class DuplicateAutoSelectBestEdgeCasesTestCase(TestCase):
         """Test auto_select for visual duplicates when photos have no metadata."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         # Delete any metadata
         PhotoMetadata.objects.filter(photo__in=[photo1, photo2]).delete()
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Should handle gracefully
         _result = duplicate.auto_select_best_photo()
         # Just verify it doesn't crash
@@ -556,17 +559,17 @@ class DuplicateDismissEdgeCasesTestCase(TestCase):
         """Test dismissing an already dismissed duplicate."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.DISMISSED,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Dismiss again
         response = self.client.post(f"/api/duplicates/{duplicate.id}/dismiss/")
-        
+
         # Should succeed (idempotent operation)
         self.assertEqual(response.status_code, 200)
 
@@ -574,7 +577,7 @@ class DuplicateDismissEdgeCasesTestCase(TestCase):
         """Test dismissing a resolved duplicate."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -582,13 +585,13 @@ class DuplicateDismissEdgeCasesTestCase(TestCase):
             kept_photo=photo1,
         )
         duplicate.photos.add(photo1, photo2)
-        
+
         # Dismiss the resolved duplicate
         response = self.client.post(f"/api/duplicates/{duplicate.id}/dismiss/")
-        
+
         # Should succeed
         self.assertEqual(response.status_code, 200)
-        
+
         duplicate.refresh_from_db()
         self.assertEqual(duplicate.review_status, Duplicate.ReviewStatus.DISMISSED)
 
@@ -604,7 +607,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
     def test_stats_with_no_duplicates(self):
         """Test stats endpoint with no duplicates."""
         response = self.client.get("/api/duplicates/stats/")
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["total_duplicates"], 0)
         self.assertEqual(response.data["pending_duplicates"], 0)
@@ -617,23 +620,23 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         photo2 = create_test_photo(owner=self.user)
         photo3 = create_test_photo(owner=self.user)
         photo4 = create_test_photo(owner=self.user)
-        
+
         # Create exact copy duplicate
         dup1 = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photo1, photo2)
-        
+
         # Create visual duplicate
         dup2 = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
         dup2.photos.add(photo3, photo4)
-        
+
         response = self.client.get("/api/duplicates/stats/")
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["total_duplicates"], 2)
         self.assertEqual(response.data["by_type"]["exact_copy"], 1)
@@ -642,7 +645,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
     def test_stats_counts_by_status(self):
         """Test stats counts by review status."""
         photos = [create_test_photo(owner=self.user) for _ in range(6)]
-        
+
         # Pending
         dup1 = Duplicate.objects.create(
             owner=self.user,
@@ -650,7 +653,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
             review_status=Duplicate.ReviewStatus.PENDING,
         )
         dup1.photos.add(photos[0], photos[1])
-        
+
         # Resolved
         dup2 = Duplicate.objects.create(
             owner=self.user,
@@ -658,7 +661,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
             review_status=Duplicate.ReviewStatus.RESOLVED,
         )
         dup2.photos.add(photos[2], photos[3])
-        
+
         # Dismissed
         dup3 = Duplicate.objects.create(
             owner=self.user,
@@ -666,9 +669,9 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
             review_status=Duplicate.ReviewStatus.DISMISSED,
         )
         dup3.photos.add(photos[4], photos[5])
-        
+
         response = self.client.get("/api/duplicates/stats/")
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["pending_duplicates"], 1)
         self.assertEqual(response.data["resolved_duplicates"], 1)
@@ -678,7 +681,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
         """Test stats potential savings calculation."""
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         dup = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -686,9 +689,9 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
             potential_savings=1024 * 1024 * 5,  # 5 MB
         )
         dup.photos.add(photo1, photo2)
-        
+
         response = self.client.get("/api/duplicates/stats/")
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["potential_savings_bytes"], 5 * 1024 * 1024)
         self.assertEqual(response.data["potential_savings_mb"], 5.0)
@@ -696,23 +699,23 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
     def test_stats_photos_in_duplicates(self):
         """Test stats counts photos in duplicate groups correctly."""
         photos = [create_test_photo(owner=self.user) for _ in range(5)]
-        
+
         # Create duplicate with 3 photos
         dup1 = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photos[0], photos[1], photos[2])
-        
+
         # Create another duplicate with 2 photos (one overlapping)
         dup2 = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
         dup2.photos.add(photos[2], photos[3])  # photos[2] is in both
-        
+
         response = self.client.get("/api/duplicates/stats/")
-        
+
         self.assertEqual(response.status_code, 200)
         # 4 unique photos are in duplicate groups (photos 0,1,2,3)
         self.assertEqual(response.data["photos_in_duplicates"], 4)
@@ -720,7 +723,7 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
     def test_stats_other_users_not_included(self):
         """Test stats don't include other user's duplicates."""
         other_user = create_test_user()
-        
+
         # Create duplicate for other user
         other_photo1 = create_test_photo(owner=other_user)
         other_photo2 = create_test_photo(owner=other_user)
@@ -729,9 +732,9 @@ class DuplicateStatsEdgeCasesTestCase(TestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup.photos.add(other_photo1, other_photo2)
-        
+
         # Current user should see 0 duplicates
         response = self.client.get("/api/duplicates/stats/")
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["total_duplicates"], 0)

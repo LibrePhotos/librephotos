@@ -46,7 +46,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
             dup.photos.add(*photos)
-        
+
         # Create visual duplicates
         for _ in range(2):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
@@ -55,7 +55,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
                 duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
             )
             dup.photos.add(*photos)
-        
+
         response = self.client.get("/api/duplicates/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["by_type"]["exact_copy"], 3)
@@ -72,7 +72,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
                 review_status=Duplicate.ReviewStatus.PENDING,
             )
             dup.photos.add(*photos)
-        
+
         # Create resolved
         for _ in range(2):
             photos = [create_test_photo(owner=self.user) for _ in range(2)]
@@ -82,7 +82,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
                 review_status=Duplicate.ReviewStatus.RESOLVED,
             )
             dup.photos.add(*photos)
-        
+
         # Create dismissed
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
         dup = Duplicate.objects.create(
@@ -91,7 +91,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
             review_status=Duplicate.ReviewStatus.DISMISSED,
         )
         dup.photos.add(*photos)
-        
+
         response = self.client.get("/api/duplicates/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["pending_duplicates"], 4)
@@ -108,7 +108,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
             dup.photos.add(*photos)
-        
+
         response = self.client.get("/api/duplicates/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["photos_in_duplicates"], 6)
@@ -124,7 +124,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
             potential_savings=1000000,  # 1MB
         )
         pending_dup.photos.add(*photos)
-        
+
         # Create resolved duplicate - should not count
         photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
         resolved_dup = Duplicate.objects.create(
@@ -134,7 +134,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
             potential_savings=5000000,  # 5MB - should be ignored
         )
         resolved_dup.photos.add(*photos2)
-        
+
         response = self.client.get("/api/duplicates/stats")
         self.assertEqual(response.status_code, 200)
         # Only pending savings should be counted
@@ -143,7 +143,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
     def test_stats_user_scoped(self):
         """Test that stats only include current user's duplicates."""
         other_user = create_test_user()
-        
+
         # Create duplicate for other user
         other_photos = [create_test_photo(owner=other_user) for _ in range(2)]
         other_dup = Duplicate.objects.create(
@@ -151,7 +151,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         other_dup.photos.add(*other_photos)
-        
+
         # Create duplicate for current user
         my_photos = [create_test_photo(owner=self.user) for _ in range(2)]
         my_dup = Duplicate.objects.create(
@@ -159,7 +159,7 @@ class DuplicateStatsAccuracyTestCase(APITestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         my_dup.photos.add(*my_photos)
-        
+
         response = self.client.get("/api/duplicates/stats")
         self.assertEqual(response.status_code, 200)
         # Should only see our duplicate
@@ -191,7 +191,7 @@ class StackStatsAccuracyTestCase(APITestCase):
                 stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
             )
             stack.photos.add(*photos)
-        
+
         # Create burst sequences
         for _ in range(3):
             photos = [create_test_photo(owner=self.user) for _ in range(3)]
@@ -200,7 +200,7 @@ class StackStatsAccuracyTestCase(APITestCase):
                 stack_type=PhotoStack.StackType.BURST_SEQUENCE,
             )
             stack.photos.add(*photos)
-        
+
         # Create manual stack
         photos = [create_test_photo(owner=self.user) for _ in range(2)]
         stack = PhotoStack.objects.create(
@@ -208,7 +208,7 @@ class StackStatsAccuracyTestCase(APITestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(*photos)
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["by_type"]["raw_jpeg"], 2)
@@ -225,7 +225,7 @@ class StackStatsAccuracyTestCase(APITestCase):
                 stack_type=PhotoStack.StackType.RAW_JPEG_PAIR,
             )
             stack.photos.add(*photos)
-        
+
         # 1 burst (3 photos)
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
         stack = PhotoStack.objects.create(
@@ -233,7 +233,7 @@ class StackStatsAccuracyTestCase(APITestCase):
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         stack.photos.add(*photos)
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         # Total: 4 + 3 = 7 photos
@@ -242,21 +242,21 @@ class StackStatsAccuracyTestCase(APITestCase):
     def test_photo_in_multiple_stacks_counted_once(self):
         """Test that a photo in multiple stacks is counted only once."""
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
-        
+
         # Add first two photos to one stack
         stack1 = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(photos[0], photos[1])
-        
+
         # Add last two photos to another stack (photos[1] is in both)
         stack2 = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack2.photos.add(photos[1], photos[2])
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         # Should be 3 distinct photos, not 4
@@ -265,7 +265,7 @@ class StackStatsAccuracyTestCase(APITestCase):
     def test_stats_user_scoped(self):
         """Test that stats only include current user's stacks."""
         other_user = create_test_user()
-        
+
         # Create stack for other user
         other_photos = [create_test_photo(owner=other_user) for _ in range(2)]
         other_stack = PhotoStack.objects.create(
@@ -273,7 +273,7 @@ class StackStatsAccuracyTestCase(APITestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         other_stack.photos.add(*other_photos)
-        
+
         # Create stack for current user
         my_photos = [create_test_photo(owner=self.user) for _ in range(2)]
         my_stack = PhotoStack.objects.create(
@@ -281,7 +281,7 @@ class StackStatsAccuracyTestCase(APITestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         my_stack.photos.add(*my_photos)
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         # Should only see our stack
@@ -296,10 +296,10 @@ class StackStatsAccuracyTestCase(APITestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         valid_stack.photos.add(*photos)
-        
+
         # Create an old duplicate-type stack (should be excluded)
         # Note: These types may not exist anymore, but test the filtering
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["total_stacks"], 1)
@@ -349,7 +349,7 @@ class CountStatsTestCase(TestCase):
         # Create some photos
         for _ in range(5):
             create_test_photo(owner=self.user)
-        
+
         stats = get_count_stats(self.user)
         self.assertEqual(stats["num_photos"], 5)
 
@@ -358,12 +358,12 @@ class CountStatsTestCase(TestCase):
         # Create visible photos
         for _ in range(3):
             create_test_photo(owner=self.user)
-        
+
         # Create hidden photo
         hidden = create_test_photo(owner=self.user)
         hidden.hidden = True
         hidden.save()
-        
+
         _stats = get_count_stats(self.user)
         # Depending on implementation, hidden may or may not be counted
         # The important thing is no crash
@@ -371,15 +371,15 @@ class CountStatsTestCase(TestCase):
     def test_count_stats_user_scoped(self):
         """Test that count stats are user-scoped."""
         other_user = create_test_user()
-        
+
         # Create photos for other user
         for _ in range(10):
             create_test_photo(owner=other_user)
-        
+
         # Create photos for current user
         for _ in range(3):
             create_test_photo(owner=self.user)
-        
+
         stats = get_count_stats(self.user)
         self.assertEqual(stats["num_photos"], 3)
 
@@ -400,7 +400,7 @@ class StatsEdgeCasesTestCase(APITestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         # Don't add any photos
-        
+
         response = self.client.get("/api/duplicates/stats")
         self.assertEqual(response.status_code, 200)
         # Should handle gracefully
@@ -413,7 +413,7 @@ class StatsEdgeCasesTestCase(APITestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(photo)
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["total_stacks"], 1)
@@ -422,16 +422,16 @@ class StatsEdgeCasesTestCase(APITestCase):
     def test_deleted_photo_in_group(self):
         """Test stats when photo has been deleted from group."""
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
-        
+
         stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(*photos)
-        
+
         # Delete one photo from stack
         stack.photos.remove(photos[0])
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["photos_in_stacks"], 2)
@@ -441,12 +441,12 @@ class StatsEdgeCasesTestCase(APITestCase):
         # Create normal photos
         for _ in range(3):
             create_test_photo(owner=self.user)
-        
+
         # Create trashed photo
         trashed = create_test_photo(owner=self.user)
         trashed.in_trashcan = True
         trashed.save()
-        
+
         response = self.client.get("/api/stacks/stats")
         self.assertEqual(response.status_code, 200)
         # total_photos should not include trashed
@@ -462,7 +462,7 @@ class StatsEdgeCasesTestCase(APITestCase):
                 duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             )
             dup.photos.add(*photos)
-        
+
         response = self.client.get("/api/duplicates/stats")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["total_duplicates"], 50)

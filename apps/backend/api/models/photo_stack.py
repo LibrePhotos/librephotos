@@ -30,17 +30,17 @@ class PhotoStack(models.Model):
     """
     Represents a group of related but DISTINCT photos that should be kept together.
     Only the primary photo is shown in the timeline, with others accessible via expansion.
-    
+
     NOTE: This is for grouping DIFFERENT captures (bursts, brackets, manual).
     For same-capture file variants (RAW+JPEG, Live Photos), use Photo.files instead.
-    
+
     Stacks are informational groupings - they help organize related photos
     but don't imply that any should be deleted (unlike Duplicates).
     """
 
     class StackType(models.TextChoices):
         # === ACTIVE STACK TYPES (for different captures) ===
-        
+
         # Photos taken in rapid succession (burst/continuous mode)
         # User may want to browse all or pick the best
         BURST_SEQUENCE = "burst", "Burst Sequence"
@@ -50,10 +50,10 @@ class PhotoStack(models.Model):
         # User manually grouped photos
         # User explicitly created the grouping
         MANUAL = "manual", "Manual Stack"
-        
+
         # === DEPRECATED STACK TYPES (migrated to Photo.files) ===
         # Kept for backwards compatibility during migration
-        
+
         # DEPRECATED: Use Photo.files for RAW+JPEG variants
         RAW_JPEG_PAIR = "raw_jpeg", "RAW + JPEG Pair (Deprecated)"
         # DEPRECATED: Use Photo.files for Live Photo variants
@@ -128,7 +128,7 @@ class PhotoStack(models.Model):
         For BURST_SEQUENCE: Middle of sequence by timestamp
         For EXPOSURE_BRACKET: Middle exposure
         For MANUAL: Highest resolution
-        
+
         For deprecated types (RAW_JPEG_PAIR, LIVE_PHOTO):
         These should be migrated to Photo.files, but for compatibility:
         - RAW_JPEG_PAIR: Prefer JPEG (non-RAW)
@@ -193,7 +193,9 @@ class PhotoStack(models.Model):
         other_stack.delete()
 
     @classmethod
-    def create_or_merge(cls, owner, stack_type, photos, sequence_start=None, sequence_end=None):
+    def create_or_merge(
+        cls, owner, stack_type, photos, sequence_start=None, sequence_end=None
+    ):
         """
         Create a new stack or merge into existing if any photo is already stacked.
 
@@ -231,11 +233,19 @@ class PhotoStack(models.Model):
 
             # Update sequence timestamps if provided and this is a burst/bracket stack
             if sequence_start is not None and sequence_end is not None:
-                if target_stack.sequence_start is None or target_stack.sequence_start > sequence_start:
+                if (
+                    target_stack.sequence_start is None
+                    or target_stack.sequence_start > sequence_start
+                ):
                     target_stack.sequence_start = sequence_start
-                if target_stack.sequence_end is None or target_stack.sequence_end < sequence_end:
+                if (
+                    target_stack.sequence_end is None
+                    or target_stack.sequence_end < sequence_end
+                ):
                     target_stack.sequence_end = sequence_end
-                target_stack.save(update_fields=['sequence_start', 'sequence_end', 'updated_at'])
+                target_stack.save(
+                    update_fields=["sequence_start", "sequence_end", "updated_at"]
+                )
 
             target_stack.auto_select_primary()
             return target_stack

@@ -61,7 +61,9 @@ class LongRunningJob(models.Model):
     progress_current = models.PositiveIntegerField(default=0)
     progress_target = models.PositiveIntegerField(default=0)
     # New fields for detailed progress reporting
-    progress_step = models.CharField(max_length=100, null=True, blank=True)  # Current step description
+    progress_step = models.CharField(
+        max_length=100, null=True, blank=True
+    )  # Current step description
     result = models.JSONField(null=True, blank=True)  # Detailed result/progress data
 
     class Meta:
@@ -70,7 +72,17 @@ class LongRunningJob(models.Model):
         verbose_name_plural = "Long Running Jobs"
 
     def __str__(self):
-        status = "failed" if self.failed else ("finished" if self.finished else "running" if self.started_at else "queued")
+        status = (
+            "failed"
+            if self.failed
+            else (
+                "finished"
+                if self.finished
+                else "running"
+                if self.started_at
+                else "queued"
+            )
+        )
         return f"Job {self.job_id} - {self.get_job_type_display()} - {status}"
 
     @property
@@ -137,13 +149,13 @@ class LongRunningJob(models.Model):
     def create_job(cls, user, job_type, job_id=None, start_now=False):
         """
         Factory method to create a new job with proper defaults.
-        
+
         Args:
             user: The user who started the job
             job_type: One of the JOB_* constants
             job_id: Optional job ID (auto-generated UUID if not provided)
             start_now: If True, set started_at to now
-        
+
         Returns:
             The newly created LongRunningJob instance
         """
@@ -163,15 +175,15 @@ class LongRunningJob(models.Model):
     def get_or_create_job(cls, user, job_type, job_id):
         """
         Get an existing job by job_id or create a new one.
-        
+
         This is useful for queued jobs where the job_id is known ahead of time.
         If the job exists, it will be marked as started. If not, a new job is created.
-        
+
         Args:
             user: The user who started the job
             job_type: One of the JOB_* constants
             job_id: The job ID to look up or use for creation
-        
+
         Returns:
             The LongRunningJob instance (existing or newly created)
         """
@@ -179,34 +191,34 @@ class LongRunningJob(models.Model):
             job = cls.objects.get(job_id=job_id)
             job.start()
             return job
-        return cls.create_job(user=user, job_type=job_type, job_id=job_id, start_now=True)
+        return cls.create_job(
+            user=user, job_type=job_type, job_id=job_id, start_now=True
+        )
 
     @classmethod
     def cleanup_stuck_jobs(cls, hours=24):
         """
         Mark jobs as failed if they've been running for too long.
-        
+
         Jobs that have started_at set but finished=False for longer than
         the specified hours are considered stuck and will be marked as failed.
-        
+
         Args:
             hours: Number of hours after which a running job is considered stuck
-        
+
         Returns:
             Number of jobs marked as failed
         """
         cutoff = timezone.now() - timedelta(hours=hours)
         stuck_jobs = cls.objects.filter(
-            finished=False,
-            started_at__isnull=False,
-            started_at__lt=cutoff
+            finished=False, started_at__isnull=False, started_at__lt=cutoff
         )
         count = stuck_jobs.count()
         stuck_jobs.update(
             failed=True,
             finished=True,
             finished_at=timezone.now(),
-            result={"status": "failed", "error": f"Job timed out after {hours} hours"}
+            result={"status": "failed", "error": f"Job timed out after {hours} hours"},
         )
         return count
 
@@ -214,16 +226,13 @@ class LongRunningJob(models.Model):
     def cleanup_old_jobs(cls, days=30):
         """
         Delete completed/failed jobs older than specified days.
-        
+
         Args:
             days: Number of days after which completed jobs should be deleted
-        
+
         Returns:
             Number of jobs deleted
         """
         cutoff = timezone.now() - timedelta(days=days)
-        deleted, _ = cls.objects.filter(
-            finished=True,
-            finished_at__lt=cutoff
-        ).delete()
+        deleted, _ = cls.objects.filter(finished=True, finished_at__lt=cutoff).delete()
         return deleted

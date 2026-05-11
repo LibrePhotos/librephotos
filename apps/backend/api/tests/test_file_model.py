@@ -71,9 +71,7 @@ def _ensure_stub_modules():
 
         pyvips_module.Image = Image
         pyvips_module.enums = Enums
-        pyvips_module.__spec__ = importlib.machinery.ModuleSpec(
-            "pyvips", loader=None
-        )
+        pyvips_module.__spec__ = importlib.machinery.ModuleSpec("pyvips", loader=None)
         sys.modules["pyvips"] = pyvips_module
 
     if "api" not in sys.modules:
@@ -135,9 +133,7 @@ def _load_file_module():
     module_name = "api.models.file._test_stub"
     if module_name in sys.modules:
         return sys.modules[module_name]
-    spec = importlib.util.spec_from_file_location(
-        module_name, "api/models/file.py"
-    )
+    spec = importlib.util.spec_from_file_location(module_name, "api/models/file.py")
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)

@@ -50,8 +50,7 @@ def _get_response_preview(response, max_length=500):
     if len(response_text) > max_length:
         truncated_char_count = len(response_text) - max_length
         return (
-            f"{response_text[:max_length]}..."
-            f" [truncated {truncated_char_count} chars]"
+            f"{response_text[:max_length]}... [truncated {truncated_char_count} chars]"
         )
     return response_text
 

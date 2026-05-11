@@ -44,7 +44,7 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
-        
+
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             data={},
@@ -59,7 +59,7 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
-        
+
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             data={"photo_id": "not-a-valid-uuid"},
@@ -74,7 +74,7 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         fake_uuid = str(uuid.uuid4())
-        
+
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             data={"photo_id": fake_uuid},
@@ -85,14 +85,14 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
     def test_access_nonexistent_duplicate(self):
         """Should return 404 for nonexistent duplicate."""
         fake_uuid = str(uuid.uuid4())
-        
+
         response = self.client.get(f"/api/duplicates/{fake_uuid}/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_delete_nonexistent_duplicate(self):
         """Should return 404 for deleting nonexistent duplicate."""
         fake_uuid = str(uuid.uuid4())
-        
+
         # Actual delete URL is /api/duplicates/<id>/delete with DELETE method
         response = self.client.delete(f"/api/duplicates/{fake_uuid}/delete")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -131,7 +131,7 @@ class DuplicatesAPIRobustnessTestCase(TestCase):
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
-        
+
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",
             data={"photo_id": "test\x00injection"},
@@ -179,7 +179,7 @@ class StacksAPIRobustnessTestCase(TestCase):
     def test_create_manual_stack_with_single_photo(self):
         """Should reject creating stack with only one photo."""
         photo = self._create_photo("1")
-        
+
         response = self.client.post(
             "/api/stacks/manual",
             data={"photo_ids": [str(photo.pk)]},
@@ -200,7 +200,7 @@ class StacksAPIRobustnessTestCase(TestCase):
     def test_create_manual_stack_with_nonexistent_photos(self):
         """Should handle nonexistent photo IDs."""
         fake_uuids = [str(uuid.uuid4()), str(uuid.uuid4())]
-        
+
         response = self.client.post(
             "/api/stacks/manual",
             data={"photo_ids": fake_uuids},
@@ -226,7 +226,7 @@ class StacksAPIRobustnessTestCase(TestCase):
             added_on=timezone.now(),
         )
         my_photo = self._create_photo("2")
-        
+
         response = self.client.post(
             "/api/stacks/manual",
             data={"photo_ids": [str(my_photo.pk), str(other_photo.pk)]},
@@ -240,7 +240,7 @@ class StacksAPIRobustnessTestCase(TestCase):
         photo1 = self._create_photo("3")
         photo2 = self._create_photo("4")
         photo3 = self._create_photo("5")
-        
+
         stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
@@ -248,7 +248,7 @@ class StacksAPIRobustnessTestCase(TestCase):
         photo1.stacks.add(stack)
         photo2.stacks.add(stack)
         # photo3 is NOT in stack
-        
+
         # Actual URL is /api/stacks/<id>/primary
         response = self.client.post(
             f"/api/stacks/{stack.id}/primary",
@@ -261,7 +261,7 @@ class StacksAPIRobustnessTestCase(TestCase):
         """Should return 404 for adding to nonexistent stack."""
         photo = self._create_photo("6")
         fake_uuid = str(uuid.uuid4())
-        
+
         # Actual URL is /api/stacks/<id>/add (no trailing slash)
         response = self.client.post(
             f"/api/stacks/{fake_uuid}/add",
@@ -274,14 +274,14 @@ class StacksAPIRobustnessTestCase(TestCase):
         """Should handle removing all photos (stack should be deleted or empty)."""
         photo1 = self._create_photo("7")
         photo2 = self._create_photo("8")
-        
+
         stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         photo1.stacks.add(stack)
         photo2.stacks.add(stack)
-        
+
         # Actual URL is /api/stacks/<id>/remove
         response = self.client.post(
             f"/api/stacks/{stack.id}/remove",
@@ -304,14 +304,14 @@ class StacksAPIRobustnessTestCase(TestCase):
         """Should reject merging with only one stack."""
         photo1 = self._create_photo("9")
         photo2 = self._create_photo("10")
-        
+
         stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         photo1.stacks.add(stack)
         photo2.stacks.add(stack)
-        
+
         response = self.client.post(
             "/api/stacks/merge/",
             data={"stack_ids": [str(stack.id)]},
@@ -336,7 +336,7 @@ class PhotoMetadataAPIRobustnessTestCase(TestCase):
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
-        
+
         file = File.objects.create(
             hash="meta" + "a" * 28,
             path="/photos/meta.jpg",
@@ -381,7 +381,7 @@ class PhotoMetadataAPIRobustnessTestCase(TestCase):
     def test_update_nonexistent_photo_metadata(self):
         """Should return 404 for nonexistent photo."""
         fake_uuid = str(uuid.uuid4())
-        
+
         response = self.client.patch(
             f"/api/photos/{fake_uuid}/metadata/",
             data={"camera": "Test Camera"},
@@ -406,7 +406,7 @@ class PhotoMetadataAPIRobustnessTestCase(TestCase):
             image_hash="othermeta" + "b" * 23,
             added_on=timezone.now(),
         )
-        
+
         response = self.client.patch(
             f"/api/photos/{other_photo.pk}/metadata/",
             data={"camera": "Hacked Camera"},
@@ -417,7 +417,7 @@ class PhotoMetadataAPIRobustnessTestCase(TestCase):
     def test_revert_nonexistent_edit(self):
         """Should return 404 for reverting nonexistent edit."""
         fake_uuid = str(uuid.uuid4())
-        
+
         response = self.client.post(
             f"/api/photos/{self.photo.pk}/metadata/revert/{fake_uuid}/",
         )
@@ -489,10 +489,10 @@ class ConcurrentOperationsTestCase(TestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup_id = duplicate.id
-        
+
         # First delete
         duplicate.delete()
-        
+
         # Second delete attempt via API - DELETE method
         response = self.client.delete(f"/api/duplicates/{dup_id}/delete")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -506,10 +506,10 @@ class ConcurrentOperationsTestCase(TestCase):
         )
         photo.stacks.add(stack)
         stack_id = stack.id
-        
+
         # First delete
         stack.delete()
-        
+
         # Second delete attempt via API - DELETE method
         response = self.client.delete(f"/api/stacks/{stack_id}/delete")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -518,17 +518,17 @@ class ConcurrentOperationsTestCase(TestCase):
         """Should handle resolving an already-resolved duplicate."""
         photo1 = self._create_photo("2")
         photo2 = self._create_photo("3")
-        
+
         duplicate = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         photo1.duplicates.add(duplicate)
         photo2.duplicates.add(duplicate)
-        
+
         # Resolve first time
         duplicate.resolve(photo1, trash_others=True)
-        
+
         # Resolve second time via API
         response = self.client.post(
             f"/api/duplicates/{duplicate.id}/resolve/",

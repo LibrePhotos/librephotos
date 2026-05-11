@@ -7,6 +7,7 @@ Tests cover:
 - Edge cases: permissions, invalid IDs, concurrent operations
 - BK-Tree algorithm for visual duplicate search
 """
+
 import uuid
 
 from django.test import TestCase
@@ -174,7 +175,7 @@ class DuplicateModelTest(TestCase):
         # Set known sizes
         self.photos[0].size = 1000000  # 1MB
         self.photos[0].save()
-        self.photos[1].size = 500000   # 0.5MB
+        self.photos[1].size = 500000  # 0.5MB
         self.photos[1].save()
 
         duplicate = Duplicate.create_or_merge(
@@ -562,7 +563,7 @@ class DuplicateEdgeCasesTest(TestCase):
 
     def test_invalid_uuid_format(self):
         """Test invalid UUID format.
-        
+
         Note: The URL regex pattern [0-9a-f-]+ matches any hex-like string,
         so 'not-a-valid-uuid' partially matches. The view then returns an
         empty result rather than 404/400. This is acceptable behavior.
@@ -574,7 +575,7 @@ class DuplicateEdgeCasesTest(TestCase):
 
     def test_concurrent_resolve_same_duplicate(self):
         """Test handling multiple resolution attempts.
-        
+
         The API allows re-resolving a duplicate with the same or different photo.
         This is useful if the user changes their mind about which photo to keep.
         """

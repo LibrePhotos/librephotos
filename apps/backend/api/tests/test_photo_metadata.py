@@ -37,7 +37,7 @@ class PhotoMetadataModelTestCase(TestCase):
             focal_length=50.0,
             camera_model="Canon EOS R5",
         )
-        
+
         self.assertEqual(metadata.photo, self.photo)
         self.assertEqual(metadata.aperture, 2.8)
         self.assertEqual(metadata.iso, 100)
@@ -58,7 +58,7 @@ class PhotoMetadataModelTestCase(TestCase):
             width=1920,
             height=1080,
         )
-        
+
         self.assertEqual(metadata.resolution, "1920x1080")
 
     def test_resolution_property_missing_dimensions(self):
@@ -68,7 +68,7 @@ class PhotoMetadataModelTestCase(TestCase):
             width=1920,
             height=None,
         )
-        
+
         self.assertIsNone(metadata.resolution)
 
     def test_megapixels_property(self):
@@ -78,7 +78,7 @@ class PhotoMetadataModelTestCase(TestCase):
             width=8256,
             height=5504,
         )
-        
+
         # 8256 * 5504 = 45,441,024 pixels ≈ 45.4 MP
         self.assertEqual(metadata.megapixels, 45.4)
 
@@ -89,7 +89,7 @@ class PhotoMetadataModelTestCase(TestCase):
             width=None,
             height=None,
         )
-        
+
         self.assertIsNone(metadata.megapixels)
 
     def test_has_location_property_with_gps(self):
@@ -99,7 +99,7 @@ class PhotoMetadataModelTestCase(TestCase):
             gps_latitude=40.7128,
             gps_longitude=-74.0060,
         )
-        
+
         self.assertTrue(metadata.has_location)
 
     def test_has_location_property_without_gps(self):
@@ -107,7 +107,7 @@ class PhotoMetadataModelTestCase(TestCase):
         metadata = PhotoMetadata.objects.create(
             photo=self.photo,
         )
-        
+
         self.assertFalse(metadata.has_location)
 
     def test_has_location_partial_gps(self):
@@ -117,7 +117,7 @@ class PhotoMetadataModelTestCase(TestCase):
             gps_latitude=40.7128,
             gps_longitude=None,
         )
-        
+
         self.assertFalse(metadata.has_location)
 
     def test_camera_display_make_and_model(self):
@@ -127,7 +127,7 @@ class PhotoMetadataModelTestCase(TestCase):
             camera_make="Canon",
             camera_model="EOS R5",
         )
-        
+
         self.assertEqual(metadata.camera_display, "Canon EOS R5")
 
     def test_camera_display_model_includes_make(self):
@@ -137,7 +137,7 @@ class PhotoMetadataModelTestCase(TestCase):
             camera_make="Canon",
             camera_model="Canon EOS R5",
         )
-        
+
         # Should not duplicate make
         self.assertEqual(metadata.camera_display, "Canon EOS R5")
 
@@ -147,7 +147,7 @@ class PhotoMetadataModelTestCase(TestCase):
             photo=self.photo,
             camera_model="EOS R5",
         )
-        
+
         self.assertEqual(metadata.camera_display, "EOS R5")
 
     def test_lens_display(self):
@@ -157,7 +157,7 @@ class PhotoMetadataModelTestCase(TestCase):
             lens_make="Canon",
             lens_model="RF 50mm F1.2L",
         )
-        
+
         self.assertEqual(metadata.lens_display, "Canon RF 50mm F1.2L")
 
     def test_lens_display_model_includes_make(self):
@@ -167,7 +167,7 @@ class PhotoMetadataModelTestCase(TestCase):
             lens_make="Canon",
             lens_model="Canon RF 50mm F1.2L",
         )
-        
+
         self.assertEqual(metadata.lens_display, "Canon RF 50mm F1.2L")
 
     def test_version_increments(self):
@@ -176,13 +176,13 @@ class PhotoMetadataModelTestCase(TestCase):
             photo=self.photo,
             aperture=2.8,
         )
-        
+
         self.assertEqual(metadata.version, 1)
-        
+
         metadata.aperture = 4.0
         metadata.version += 1
         metadata.save()
-        
+
         metadata.refresh_from_db()
         self.assertEqual(metadata.version, 2)
 
@@ -193,23 +193,23 @@ class PhotoMetadataModelTestCase(TestCase):
             "EXIF:Model": "EOS R5",
             "EXIF:ISO": 100,
         }
-        
+
         metadata = PhotoMetadata.objects.create(
             photo=self.photo,
             raw_exif=raw_data,
         )
-        
+
         self.assertEqual(metadata.raw_exif, raw_data)
 
     def test_keywords_json_field(self):
         """Test keywords JSON field stores list."""
         keywords = ["landscape", "sunset", "nature"]
-        
+
         metadata = PhotoMetadata.objects.create(
             photo=self.photo,
             keywords=keywords,
         )
-        
+
         metadata.refresh_from_db()
         self.assertEqual(metadata.keywords, keywords)
 
@@ -237,9 +237,7 @@ class PhotoMetadataModelTestCase(TestCase):
             ["beach", "sunset", "travel"],  # IPTC:Keywords
         ]
 
-        with patch(
-            "api.models.photo_metadata.get_metadata", return_value=mock_values
-        ):
+        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
             metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
         self.assertIsNotNone(metadata)
@@ -251,15 +249,27 @@ class PhotoMetadataModelTestCase(TestCase):
     def test_extract_exif_data_xmp_subject_only(self):
         """Test extract_exif_data with only XMP:Subject keywords."""
         mock_values = [
-            None, None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
             ["nature", "landscape"],  # XMP:Subject
             None,  # IPTC:Keywords (not set)
         ]
 
-        with patch(
-            "api.models.photo_metadata.get_metadata", return_value=mock_values
-        ):
+        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
             metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
         self.assertIsNotNone(metadata)
@@ -268,15 +278,27 @@ class PhotoMetadataModelTestCase(TestCase):
     def test_extract_exif_data_iptc_keywords_only(self):
         """Test extract_exif_data with only IPTC:Keywords."""
         mock_values = [
-            None, None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
             None,  # XMP:Subject (not set)
             ["family", "birthday"],  # IPTC:Keywords
         ]
 
-        with patch(
-            "api.models.photo_metadata.get_metadata", return_value=mock_values
-        ):
+        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
             metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
         self.assertIsNotNone(metadata)
@@ -285,15 +307,27 @@ class PhotoMetadataModelTestCase(TestCase):
     def test_extract_exif_data_single_string_keyword(self):
         """Test extract_exif_data handles single string keyword (not a list)."""
         mock_values = [
-            None, None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
             "solo-keyword",  # XMP:Subject as a single string
             None,  # IPTC:Keywords
         ]
 
-        with patch(
-            "api.models.photo_metadata.get_metadata", return_value=mock_values
-        ):
+        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
             metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
         self.assertIsNotNone(metadata)
@@ -302,15 +336,27 @@ class PhotoMetadataModelTestCase(TestCase):
     def test_extract_exif_data_no_keywords(self):
         """Test extract_exif_data with no keywords sets None."""
         mock_values = [
-            None, None, None, None, None, None, None, None, None,
-            None, None, None, None, None, None, None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
             None,  # XMP:Subject
             None,  # IPTC:Keywords
         ]
 
-        with patch(
-            "api.models.photo_metadata.get_metadata", return_value=mock_values
-        ):
+        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
             metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
 
         self.assertIsNotNone(metadata)
@@ -355,7 +401,7 @@ class MetadataEditModelTestCase(TestCase):
             old_value="Old Title",
             new_value="New Title",
         )
-        
+
         self.assertEqual(edit.photo, self.photo)
         self.assertEqual(edit.user, self.user)
         self.assertEqual(edit.field_name, "title")
@@ -379,7 +425,7 @@ class MetadataEditModelTestCase(TestCase):
             old_value="First",
             new_value="Second",
         )
-        
+
         edits = list(MetadataEdit.objects.filter(photo=self.photo))
         # Most recent first
         self.assertEqual(edits[0].id, edit2.id)
@@ -394,7 +440,7 @@ class PhotoMetadataAPITestCase(TestCase):
         self.user = create_test_user()
         self.other_user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        
+
         self.photo = create_test_photo(owner=self.user)
         self.metadata = PhotoMetadata.objects.create(
             photo=self.photo,
@@ -410,7 +456,7 @@ class PhotoMetadataAPITestCase(TestCase):
     def test_retrieve_metadata(self):
         """Test retrieving metadata for a photo."""
         response = self.client.get(f"/api/photos/{self.photo.id}/metadata")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["aperture"], 2.8)
@@ -420,18 +466,18 @@ class PhotoMetadataAPITestCase(TestCase):
     def test_retrieve_metadata_by_image_hash(self):
         """Test retrieving metadata using image_hash."""
         response = self.client.get(f"/api/photos/{self.photo.image_hash}/metadata")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_retrieve_metadata_creates_if_missing(self):
         """Test retrieve creates metadata if it doesn't exist."""
         photo2 = create_test_photo(owner=self.user)
-        
+
         # Delete any auto-created metadata
         PhotoMetadata.objects.filter(photo=photo2).delete()
-        
+
         response = self.client.get(f"/api/photos/{photo2.id}/metadata")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Metadata should now exist
         self.assertTrue(PhotoMetadata.objects.filter(photo=photo2).exists())
@@ -439,9 +485,9 @@ class PhotoMetadataAPITestCase(TestCase):
     def test_retrieve_metadata_other_user_forbidden(self):
         """Test retrieving other user's photo metadata is forbidden."""
         other_photo = create_test_photo(owner=self.other_user)
-        
+
         response = self.client.get(f"/api/photos/{other_photo.id}/metadata")
-        
+
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_update_metadata(self):
@@ -451,9 +497,9 @@ class PhotoMetadataAPITestCase(TestCase):
             {"title": "My Beautiful Photo", "rating": 5},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         self.metadata.refresh_from_db()
         self.assertEqual(self.metadata.title, "My Beautiful Photo")
         self.assertEqual(self.metadata.rating, 5)
@@ -465,9 +511,9 @@ class PhotoMetadataAPITestCase(TestCase):
             {"caption": "A stunning sunset"},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         # Check edit history was created
         edits = MetadataEdit.objects.filter(photo=self.photo)
         self.assertTrue(edits.exists())
@@ -492,9 +538,9 @@ class PhotoMetadataAPITestCase(TestCase):
             old_value="First",
             new_value="Second",
         )
-        
+
         response = self.client.get(f"/api/photos/{self.photo.id}/metadata/history")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertIn("results", data)
@@ -506,7 +552,7 @@ class PhotoMetadataAPITestCase(TestCase):
         # Set initial value
         self.metadata.title = "Original Title"
         self.metadata.save()
-        
+
         # Create an edit
         edit = MetadataEdit.objects.create(
             photo=self.photo,
@@ -517,12 +563,14 @@ class PhotoMetadataAPITestCase(TestCase):
         )
         self.metadata.title = "Changed Title"
         self.metadata.save()
-        
+
         # Revert the edit
-        response = self.client.post(f"/api/photos/{self.photo.id}/metadata/revert/{edit.id}")
-        
+        response = self.client.post(
+            f"/api/photos/{self.photo.id}/metadata/revert/{edit.id}"
+        )
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         self.metadata.refresh_from_db()
         self.assertEqual(self.metadata.title, "Original Title")
 
@@ -537,28 +585,30 @@ class PhotoMetadataAPITestCase(TestCase):
         )
         self.metadata.title = "Changed"
         self.metadata.save()
-        
+
         initial_count = MetadataEdit.objects.filter(photo=self.photo).count()
-        
+
         self.client.post(f"/api/photos/{self.photo.id}/metadata/revert/{edit.id}")
-        
+
         final_count = MetadataEdit.objects.filter(photo=self.photo).count()
         self.assertEqual(final_count, initial_count + 1)
 
     def test_revert_nonexistent_edit(self):
         """Test reverting nonexistent edit returns 404."""
         fake_edit_id = uuid.uuid4()
-        
-        response = self.client.post(f"/api/photos/{self.photo.id}/metadata/revert/{fake_edit_id}")
-        
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.id}/metadata/revert/{fake_edit_id}"
+        )
+
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_unauthenticated_request(self):
         """Test unauthenticated requests return 401."""
         self.client.force_authenticate(user=None)
-        
+
         response = self.client.get(f"/api/photos/{self.photo.id}/metadata")
-        
+
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
@@ -569,11 +619,11 @@ class BulkMetadataAPITestCase(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        
+
         self.photo1 = create_test_photo(owner=self.user)
         self.photo2 = create_test_photo(owner=self.user)
         self.photo3 = create_test_photo(owner=self.user)
-        
+
         self.meta1 = PhotoMetadata.objects.create(
             photo=self.photo1,
             camera_model="Canon R5",
@@ -588,9 +638,9 @@ class BulkMetadataAPITestCase(TestCase):
     def test_bulk_get_metadata(self):
         """Test getting metadata for multiple photos."""
         photo_ids = f"{self.photo1.id},{self.photo2.id}"
-        
+
         response = self.client.get(f"/api/photos/metadata/bulk?photo_ids={photo_ids}")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertIn(str(self.photo1.id), data)
@@ -599,16 +649,16 @@ class BulkMetadataAPITestCase(TestCase):
     def test_bulk_get_no_photo_ids(self):
         """Test bulk get without photo_ids returns error."""
         response = self.client.get("/api/photos/metadata/bulk")
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_bulk_get_max_100_photos(self):
         """Test bulk get with >100 photos returns error."""
         # Create 101 fake photo IDs
         photo_ids = ",".join([str(uuid.uuid4()) for _ in range(101)])
-        
+
         response = self.client.get(f"/api/photos/metadata/bulk?photo_ids={photo_ids}")
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Maximum 100", response.json()["error"])
 
@@ -622,11 +672,11 @@ class BulkMetadataAPITestCase(TestCase):
             },
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["updated_count"], 2)
-        
+
         self.meta1.refresh_from_db()
         self.meta2.refresh_from_db()
         self.assertEqual(self.meta1.rating, 5)
@@ -639,7 +689,7 @@ class BulkMetadataAPITestCase(TestCase):
             {"updates": {"rating": 5}},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_bulk_update_no_updates(self):
@@ -649,7 +699,7 @@ class BulkMetadataAPITestCase(TestCase):
             {"photo_ids": [str(self.photo1.id)]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_bulk_update_invalid_fields(self):
@@ -662,14 +712,14 @@ class BulkMetadataAPITestCase(TestCase):
             },
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("Invalid fields", response.json()["error"])
 
     def test_bulk_update_creates_edit_history(self):
         """Test bulk update creates edit history for each photo."""
         initial_count = MetadataEdit.objects.count()
-        
+
         self.client.patch(
             "/api/photos/metadata/bulk",
             {
@@ -678,7 +728,7 @@ class BulkMetadataAPITestCase(TestCase):
             },
             format="json",
         )
-        
+
         # Should have 2 new edit records (one per photo)
         self.assertEqual(MetadataEdit.objects.count(), initial_count + 2)
 
@@ -686,7 +736,7 @@ class BulkMetadataAPITestCase(TestCase):
         """Test bulk update ignores other user's photos."""
         other_user = create_test_user()
         other_photo = create_test_photo(owner=other_user)
-        
+
         response = self.client.patch(
             "/api/photos/metadata/bulk",
             {
@@ -695,7 +745,7 @@ class BulkMetadataAPITestCase(TestCase):
             },
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["updated_count"], 1)  # Only our photo
@@ -717,7 +767,7 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             title="Photo with émojis 📷 and ünïcödé",
             caption="<script>alert('xss')</script>",
         )
-        
+
         metadata.refresh_from_db()
         self.assertIn("émojis", metadata.title)
         self.assertIn("📷", metadata.title)
@@ -730,7 +780,7 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             photo=self.photo,
             caption=long_caption,
         )
-        
+
         metadata.refresh_from_db()
         self.assertEqual(len(metadata.caption), 10000)
 
@@ -742,7 +792,7 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             iso=None,
             camera_model=None,
         )
-        
+
         self.assertIsNone(metadata.aperture)
         self.assertIsNone(metadata.iso)
         self.assertIsNone(metadata.camera_model)
@@ -756,7 +806,7 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             focal_length=0,
             rating=0,
         )
-        
+
         self.assertEqual(metadata.iso, 0)
         self.assertEqual(metadata.focal_length, 0)
         self.assertEqual(metadata.rating, 0)
@@ -768,21 +818,21 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             gps_latitude=-33.8688,
             gps_longitude=151.2093,
         )
-        
+
         self.assertEqual(metadata.gps_latitude, -33.8688)
         self.assertTrue(metadata.has_location)
 
     def test_one_to_one_relationship_enforced(self):
         """Test only one PhotoMetadata per photo."""
         PhotoMetadata.objects.create(photo=self.photo)
-        
+
         with self.assertRaises(Exception):
             PhotoMetadata.objects.create(photo=self.photo)
 
     def test_invalid_uuid_in_url(self):
         """Test invalid UUID in URL returns appropriate error."""
         response = self.client.get("/api/photos/not-a-valid-uuid/metadata")
-        
+
         # Should return 404 (photo not found by image_hash fallback)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -790,13 +840,13 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
         """Test staff users can access any photo's metadata."""
         admin = create_test_user(is_admin=True)
         self.client.force_authenticate(user=admin)
-        
+
         other_user = create_test_user()
         other_photo = create_test_photo(owner=other_user)
         PhotoMetadata.objects.create(photo=other_photo, iso=100)
-        
+
         response = self.client.get(f"/api/photos/{other_photo.id}/metadata")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_increments_version(self):
@@ -806,13 +856,13 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             title="Initial",
             version=1,
         )
-        
+
         self.client.patch(
             f"/api/photos/{self.photo.id}/metadata",
             {"title": "Updated"},
             format="json",
         )
-        
+
         metadata.refresh_from_db()
         # Version may or may not increment depending on serializer - just check it's >= 1
         self.assertGreaterEqual(metadata.version, 1)
@@ -824,17 +874,18 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             title="Modified",
             source=PhotoMetadata.Source.USER_EDIT,
         )
-        
+
         # Mock the extract_exif_data to avoid file operations
-        with patch.object(PhotoMetadata, 'extract_exif_data', return_value=metadata):
-            response = self.client.post(f"/api/photos/{self.photo.id}/metadata/revert-all")
-        
+        with patch.object(PhotoMetadata, "extract_exif_data", return_value=metadata):
+            response = self.client.post(
+                f"/api/photos/{self.photo.id}/metadata/revert-all"
+            )
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         # Check that a revert_all edit was recorded
         revert_edit = MetadataEdit.objects.filter(
-            photo=self.photo,
-            field_name="_all"
+            photo=self.photo, field_name="_all"
         ).first()
         self.assertIsNotNone(revert_edit)
         self.assertEqual(revert_edit.old_value["action"], "revert_all")
@@ -845,15 +896,15 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             photo=self.photo,
             keywords=["original", "tags"],
         )
-        
+
         response = self.client.patch(
             f"/api/photos/{self.photo.id}/metadata",
             {"keywords": ["new", "keywords", "list"]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         metadata.refresh_from_db()
         self.assertEqual(metadata.keywords, ["new", "keywords", "list"])
 
@@ -863,14 +914,14 @@ class PhotoMetadataEdgeCasesTestCase(TestCase):
             photo=self.photo,
             keywords=["original", "tags"],
         )
-        
+
         response = self.client.patch(
             f"/api/photos/{self.photo.id}/metadata",
             {"keywords": []},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         metadata.refresh_from_db()
         self.assertEqual(metadata.keywords, [])

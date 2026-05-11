@@ -67,6 +67,7 @@ class StackReviewModelTestCase(TestCase):
         )
         # Creating second review for same stack should raise error
         from django.db import IntegrityError
+
         with self.assertRaises(IntegrityError):
             StackReview.objects.create(
                 stack=self.stack,
@@ -154,7 +155,7 @@ class IsReviewableTypeTestCase(TestCase):
 
     def test_no_stack_types_are_reviewable(self):
         """No current stack types should be reviewable.
-        
+
         This is because:
         - Duplicates are now handled by the separate Duplicate model
         - Other stack types are informational only
@@ -163,7 +164,7 @@ class IsReviewableTypeTestCase(TestCase):
         for stack_type in PhotoStack.StackType.values:
             self.assertFalse(
                 StackReview.is_reviewable_type(stack_type),
-                f"{stack_type} should not be reviewable"
+                f"{stack_type} should not be reviewable",
             )
 
     def test_manual_not_reviewable(self):
@@ -172,7 +173,9 @@ class IsReviewableTypeTestCase(TestCase):
 
     def test_burst_not_reviewable(self):
         """BURST_SEQUENCE stacks should not be reviewable."""
-        self.assertFalse(StackReview.is_reviewable_type(PhotoStack.StackType.BURST_SEQUENCE))
+        self.assertFalse(
+            StackReview.is_reviewable_type(PhotoStack.StackType.BURST_SEQUENCE)
+        )
 
 
 class CreateForStackTestCase(TestCase):
@@ -191,8 +194,7 @@ class CreateForStackTestCase(TestCase):
             )
             review = StackReview.create_for_stack(stack)
             self.assertIsNone(
-                review,
-                f"create_for_stack should return None for {stack_type}"
+                review, f"create_for_stack should return None for {stack_type}"
             )
 
     def test_returns_none_for_manual_stack(self):
@@ -220,7 +222,7 @@ class ResolveTestCase(TestCase):
     def setUp(self):
         """Create test user, photos, and stack."""
         self.user = User.objects.create(username="resolvetest")
-        
+
         # Create photos with files
         self.photos = []
         for i in range(3):
@@ -237,7 +239,7 @@ class ResolveTestCase(TestCase):
                 in_trashcan=False,
             )
             self.photos.append(photo)
-        
+
         # Create stack with photos
         self.stack = PhotoStack.objects.create(
             owner=self.user,
@@ -245,7 +247,7 @@ class ResolveTestCase(TestCase):
         )
         for photo in self.photos:
             photo.stacks.add(self.stack)
-        
+
         # Create review directly (since create_for_stack returns None)
         self.review = StackReview.objects.create(
             stack=self.stack,
@@ -256,23 +258,23 @@ class ResolveTestCase(TestCase):
         """Should set the kept_photo field."""
         kept = self.photos[0]
         self.review.resolve(kept)
-        
+
         self.review.refresh_from_db()
         self.assertEqual(self.review.kept_photo, kept)
 
     def test_resolve_sets_decision_to_resolved(self):
         """Should change decision to RESOLVED."""
         self.review.resolve(self.photos[0])
-        
+
         self.review.refresh_from_db()
         self.assertEqual(self.review.decision, StackReview.Decision.RESOLVED)
 
     def test_resolve_sets_reviewed_at(self):
         """Should set reviewed_at timestamp."""
         self.assertIsNone(self.review.reviewed_at)
-        
+
         self.review.resolve(self.photos[0])
-        
+
         self.review.refresh_from_db()
         self.assertIsNotNone(self.review.reviewed_at)
 
@@ -280,7 +282,7 @@ class ResolveTestCase(TestCase):
         """Should update stack's primary_photo."""
         kept = self.photos[0]
         self.review.resolve(kept)
-        
+
         self.stack.refresh_from_db()
         self.assertEqual(self.stack.primary_photo, kept)
 
@@ -288,10 +290,10 @@ class ResolveTestCase(TestCase):
         """Should move non-kept photos to trashcan."""
         kept = self.photos[0]
         self.review.resolve(kept, trash_others=True)
-        
+
         for photo in self.photos:
             photo.refresh_from_db()
-        
+
         self.assertFalse(self.photos[0].in_trashcan)
         self.assertTrue(self.photos[1].in_trashcan)
         self.assertTrue(self.photos[2].in_trashcan)
@@ -299,14 +301,14 @@ class ResolveTestCase(TestCase):
     def test_resolve_sets_trashed_count(self):
         """Should count trashed photos."""
         self.review.resolve(self.photos[0], trash_others=True)
-        
+
         self.review.refresh_from_db()
         self.assertEqual(self.review.trashed_count, 2)
 
     def test_resolve_without_trashing(self):
         """Should not trash photos when trash_others=False."""
         self.review.resolve(self.photos[0], trash_others=False)
-        
+
         for photo in self.photos:
             photo.refresh_from_db()
             self.assertFalse(photo.in_trashcan)
@@ -323,7 +325,7 @@ class DismissTestCase(TestCase):
     def setUp(self):
         """Create test user, photos, and stack."""
         self.user = User.objects.create(username="dismisstest")
-        
+
         # Create photos
         self.photos = []
         for i in range(2):
@@ -339,7 +341,7 @@ class DismissTestCase(TestCase):
                 added_on=timezone.now(),
             )
             self.photos.append(photo)
-        
+
         # Create stack
         self.stack = PhotoStack.objects.create(
             owner=self.user,
@@ -347,7 +349,7 @@ class DismissTestCase(TestCase):
         )
         for photo in self.photos:
             photo.stacks.add(self.stack)
-        
+
         # Create review directly
         self.review = StackReview.objects.create(
             stack=self.stack,
@@ -357,14 +359,14 @@ class DismissTestCase(TestCase):
     def test_dismiss_sets_decision_to_dismissed(self):
         """Should change decision to DISMISSED."""
         self.review.dismiss()
-        
+
         self.review.refresh_from_db()
         self.assertEqual(self.review.decision, StackReview.Decision.DISMISSED)
 
     def test_dismiss_sets_reviewed_at(self):
         """Should set reviewed_at timestamp."""
         self.review.dismiss()
-        
+
         self.review.refresh_from_db()
         self.assertIsNotNone(self.review.reviewed_at)
 
@@ -372,9 +374,9 @@ class DismissTestCase(TestCase):
         """Should remove photos from the stack."""
         # Verify photos are in stack
         self.assertEqual(self.stack.photos.count(), 2)
-        
+
         self.review.dismiss()
-        
+
         # Verify photos are unlinked
         self.stack.refresh_from_db()
         self.assertEqual(self.stack.photos.count(), 0)
@@ -387,9 +389,9 @@ class DismissTestCase(TestCase):
     def test_dismiss_photos_still_exist(self):
         """Photos should not be deleted, just unlinked."""
         photo_ids = [p.id for p in self.photos]
-        
+
         self.review.dismiss()
-        
+
         for pid in photo_ids:
             self.assertTrue(Photo.objects.filter(id=pid).exists())
 
@@ -400,7 +402,7 @@ class RevertTestCase(TestCase):
     def setUp(self):
         """Create test user, photos, and resolved review."""
         self.user = User.objects.create(username="reverttest")
-        
+
         # Create photos
         self.photos = []
         for i in range(3):
@@ -417,7 +419,7 @@ class RevertTestCase(TestCase):
                 in_trashcan=False,
             )
             self.photos.append(photo)
-        
+
         # Create stack
         self.stack = PhotoStack.objects.create(
             owner=self.user,
@@ -425,7 +427,7 @@ class RevertTestCase(TestCase):
         )
         for photo in self.photos:
             photo.stacks.add(self.stack)
-        
+
         # Create and resolve review
         self.review = StackReview.objects.create(
             stack=self.stack,
@@ -440,9 +442,9 @@ class RevertTestCase(TestCase):
         self.photos[2].refresh_from_db()
         self.assertTrue(self.photos[1].in_trashcan)
         self.assertTrue(self.photos[2].in_trashcan)
-        
+
         self.review.revert()
-        
+
         # Verify photos are restored
         self.photos[1].refresh_from_db()
         self.photos[2].refresh_from_db()
@@ -452,35 +454,35 @@ class RevertTestCase(TestCase):
     def test_revert_resets_decision_to_pending(self):
         """Should change decision back to PENDING."""
         self.review.revert()
-        
+
         self.review.refresh_from_db()
         self.assertEqual(self.review.decision, StackReview.Decision.PENDING)
 
     def test_revert_clears_kept_photo(self):
         """Should clear the kept_photo field."""
         self.review.revert()
-        
+
         self.review.refresh_from_db()
         self.assertIsNone(self.review.kept_photo)
 
     def test_revert_clears_trashed_count(self):
         """Should reset trashed_count to 0."""
         self.review.revert()
-        
+
         self.review.refresh_from_db()
         self.assertEqual(self.review.trashed_count, 0)
 
     def test_revert_clears_reviewed_at(self):
         """Should clear reviewed_at timestamp."""
         self.review.revert()
-        
+
         self.review.refresh_from_db()
         self.assertIsNone(self.review.reviewed_at)
 
     def test_revert_clears_stack_primary_photo(self):
         """Should clear stack's primary_photo."""
         self.review.revert()
-        
+
         self.stack.refresh_from_db()
         self.assertIsNone(self.stack.primary_photo)
 
@@ -501,9 +503,9 @@ class RevertTestCase(TestCase):
             reviewer=self.user,
             decision=StackReview.Decision.PENDING,
         )
-        
+
         result = review2.revert()
-        
+
         review2.refresh_from_db()
         self.assertEqual(result, review2)  # Returns self, not count
         self.assertEqual(review2.decision, StackReview.Decision.PENDING)
@@ -512,9 +514,9 @@ class RevertTestCase(TestCase):
         """Should do nothing if decision is DISMISSED."""
         self.review.decision = StackReview.Decision.DISMISSED
         self.review.save()
-        
+
         result = self.review.revert()
-        
+
         self.review.refresh_from_db()
         self.assertEqual(result, self.review)  # Returns self
         self.assertEqual(self.review.decision, StackReview.Decision.DISMISSED)
@@ -545,13 +547,13 @@ class EdgeCasesTestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         photo.stacks.add(stack)
-        
+
         review = StackReview.objects.create(
             stack=stack,
             reviewer=self.user,
         )
         review.resolve(photo)
-        
+
         review.refresh_from_db()
         self.assertEqual(review.trashed_count, 0)
         self.assertEqual(review.kept_photo, photo)
@@ -566,10 +568,10 @@ class EdgeCasesTestCase(TestCase):
             stack=stack,
             reviewer=self.user,
         )
-        
+
         # Should not raise error
         review.dismiss()
-        
+
         review.refresh_from_db()
         self.assertEqual(review.decision, StackReview.Decision.DISMISSED)
 
@@ -592,7 +594,7 @@ class EdgeCasesTestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         photo.stacks.add(stack)
-        
+
         review = StackReview.objects.create(
             stack=stack,
             reviewer=self.user,
@@ -600,7 +602,7 @@ class EdgeCasesTestCase(TestCase):
             kept_photo=photo,
             trashed_count=0,
         )
-        
+
         # Should not raise error, returns 0 restored
         count = review.revert()
         self.assertEqual(count, 0)
@@ -616,9 +618,9 @@ class EdgeCasesTestCase(TestCase):
             reviewer=self.user,
         )
         review_id = review.id
-        
+
         stack.delete()
-        
+
         self.assertFalse(StackReview.objects.filter(id=review_id).exists())
 
     def test_user_set_to_deleted_on_reviewer_delete(self):
@@ -632,9 +634,9 @@ class EdgeCasesTestCase(TestCase):
             stack=stack,
             reviewer=temp_user,
         )
-        
+
         temp_user.delete()
-        
+
         review.refresh_from_db()
         self.assertEqual(review.reviewer.username, "deleted")
 
@@ -649,7 +651,7 @@ class EdgeCasesTestCase(TestCase):
             reviewer=self.user,
             note="These are from different events, not duplicates",
         )
-        
+
         review.refresh_from_db()
         self.assertEqual(review.note, "These are from different events, not duplicates")
 
@@ -666,7 +668,7 @@ class EdgeCasesTestCase(TestCase):
                 reviewer=self.user,
                 decision=decision,
             )
-        
+
         # Query should be efficient (index used)
         pending = StackReview.objects.filter(
             reviewer=self.user,

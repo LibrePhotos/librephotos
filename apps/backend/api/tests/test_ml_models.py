@@ -25,7 +25,9 @@ class MlModelsTest(TestCase):
             media_root = Path(temp_dir) / "protected_media"
             model_root = media_root / "data_models"
             self._create_required_models(model_root)
-            selected_face_model = model_root / "face_recognition" / "models" / "buffalo_sc"
+            selected_face_model = (
+                model_root / "face_recognition" / "models" / "buffalo_sc"
+            )
             selected_face_model.mkdir(parents=True)
             (selected_face_model / "w600k_mbf.onnx").write_bytes(b"model")
 

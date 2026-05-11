@@ -5,6 +5,7 @@ This test verifies:
 1. The fix for the PostgreSQL error: "operator does not exist: uuid = character varying"
 2. The fix for the SQLite issue: cursor-during-writes conflict with iterator() + writes
 """
+
 from importlib import import_module
 
 from django.db import models
@@ -30,7 +31,7 @@ class Migration0101TestCase(TestCase):
     def test_subquery_with_uuid_primary_key(self):
         """
         Test that the subquery correctly references the UUID primary key.
-        
+
         This test ensures the fix for the PostgreSQL error where
         photo_id (UUID) was incorrectly compared with image_hash (VARCHAR).
         """
@@ -45,8 +46,10 @@ class Migration0101TestCase(TestCase):
 
         # Test the subquery pattern from the migration (FIXED version)
         caption_subquery = PhotoCaption.objects.filter(
-            photo_id=OuterRef('pk')  # Using 'pk' (UUID) instead of 'image_hash' (VARCHAR)
-        ).values('captions_json')[:1]
+            photo_id=OuterRef(
+                "pk"
+            )  # Using 'pk' (UUID) instead of 'image_hash' (VARCHAR)
+        ).values("captions_json")[:1]
 
         # Query photos with the subquery annotation
         photos = Photo.objects.annotate(
@@ -58,8 +61,7 @@ class Migration0101TestCase(TestCase):
         photo_with_caption = photos.first()
         self.assertIsNotNone(photo_with_caption.captions_data)
         self.assertEqual(
-            photo_with_caption.captions_data.get("user_caption"),
-            "Test caption"
+            photo_with_caption.captions_data.get("user_caption"), "Test caption"
         )
 
     def test_migration_logic_creates_metadata(self):
@@ -73,7 +75,10 @@ class Migration0101TestCase(TestCase):
         )
         photo2 = create_test_photo(
             owner=self.user,
-            captions_json={"user_caption": "Second photo", "keywords": ["tag1", "tag2"]},
+            captions_json={
+                "user_caption": "Second photo",
+                "keywords": ["tag1", "tag2"],
+            },
         )
 
         # Manually delete any metadata that might have been auto-created
@@ -84,15 +89,13 @@ class Migration0101TestCase(TestCase):
         self.assertFalse(PhotoMetadata.objects.filter(photo=photo2).exists())
 
         # Simulate the migration logic
-        caption_subquery = PhotoCaption.objects.filter(
-            photo_id=OuterRef('pk')
-        ).values('captions_json')[:1]
+        caption_subquery = PhotoCaption.objects.filter(photo_id=OuterRef("pk")).values(
+            "captions_json"
+        )[:1]
 
-        existing_metadata = PhotoMetadata.objects.filter(photo_id=OuterRef('pk'))
+        existing_metadata = PhotoMetadata.objects.filter(photo_id=OuterRef("pk"))
 
-        photos = Photo.objects.filter(
-            ~models.Exists(existing_metadata)
-        ).annotate(
+        photos = Photo.objects.filter(~models.Exists(existing_metadata)).annotate(
             captions_data=Subquery(caption_subquery)
         )
 
@@ -102,7 +105,9 @@ class Migration0101TestCase(TestCase):
             PhotoMetadata.objects.create(
                 photo=photo,
                 caption=captions_json.get("user_caption") if captions_json else None,
-                keywords=list(captions_json.get("keywords", [])) if captions_json else [],
+                keywords=list(captions_json.get("keywords", []))
+                if captions_json
+                else [],
                 source="embedded",
                 version=1,
             )
@@ -152,16 +157,16 @@ class Migration0101TestCase(TestCase):
         PhotoMetadata.objects.filter(photo__in=[photo1, photo2, photo3]).delete()
 
         # --- Simulate the fixed migration approach ---
-        existing_metadata = PhotoMetadata.objects.filter(photo_id=OuterRef('pk'))
+        existing_metadata = PhotoMetadata.objects.filter(photo_id=OuterRef("pk"))
         photo_ids = list(
-            Photo.objects
-            .filter(~Exists(existing_metadata))
-            .values_list('pk', flat=True)
+            Photo.objects.filter(~Exists(existing_metadata)).values_list(
+                "pk", flat=True
+            )
         )
 
         all_batch = []
         for chunk_start in range(0, len(photo_ids), BATCH_SIZE):
-            chunk_ids = photo_ids[chunk_start:chunk_start + BATCH_SIZE]
+            chunk_ids = photo_ids[chunk_start : chunk_start + BATCH_SIZE]
             captions = {
                 c.photo_id: c.captions_json
                 for c in PhotoCaption.objects.filter(photo_id__in=chunk_ids)
@@ -169,13 +174,19 @@ class Migration0101TestCase(TestCase):
             batch = []
             for photo in Photo.objects.filter(pk__in=chunk_ids):
                 captions_json = captions.get(photo.pk)
-                batch.append(PhotoMetadata(
-                    photo=photo,
-                    caption=captions_json.get("user_caption") if captions_json else None,
-                    keywords=list(captions_json.get("keywords", [])) if captions_json else [],
-                    source="embedded",
-                    version=1,
-                ))
+                batch.append(
+                    PhotoMetadata(
+                        photo=photo,
+                        caption=captions_json.get("user_caption")
+                        if captions_json
+                        else None,
+                        keywords=list(captions_json.get("keywords", []))
+                        if captions_json
+                        else [],
+                        source="embedded",
+                        version=1,
+                    )
+                )
             PhotoMetadata.objects.bulk_create(batch, ignore_conflicts=True)
             all_batch.extend(batch)
 
@@ -198,7 +209,9 @@ class Migration0101TestCase(TestCase):
 
         # photo_already_done must NOT have been re-processed — exactly one record,
         # the pre-existing one, and its caption must still be the original value.
-        self.assertEqual(PhotoMetadata.objects.filter(photo=photo_already_done).count(), 1)
+        self.assertEqual(
+            PhotoMetadata.objects.filter(photo=photo_already_done).count(), 1
+        )
         existing_meta.refresh_from_db()
         self.assertEqual(existing_meta.caption, "pre-existing")
 
@@ -213,11 +226,11 @@ class Migration0101TestCase(TestCase):
         PhotoMetadata.objects.filter(photo=photo).delete()
 
         def run_migration_logic():
-            existing_metadata = PhotoMetadata.objects.filter(photo_id=OuterRef('pk'))
+            existing_metadata = PhotoMetadata.objects.filter(photo_id=OuterRef("pk"))
             photo_ids = list(
-                Photo.objects
-                .filter(~Exists(existing_metadata))
-                .values_list('pk', flat=True)
+                Photo.objects.filter(~Exists(existing_metadata)).values_list(
+                    "pk", flat=True
+                )
             )
             captions = {
                 c.photo_id: c.captions_json
@@ -226,13 +239,19 @@ class Migration0101TestCase(TestCase):
             batch = []
             for p in Photo.objects.filter(pk__in=photo_ids):
                 captions_json = captions.get(p.pk)
-                batch.append(PhotoMetadata(
-                    photo=p,
-                    caption=captions_json.get("user_caption") if captions_json else None,
-                    keywords=list(captions_json.get("keywords", [])) if captions_json else [],
-                    source="embedded",
-                    version=1,
-                ))
+                batch.append(
+                    PhotoMetadata(
+                        photo=p,
+                        caption=captions_json.get("user_caption")
+                        if captions_json
+                        else None,
+                        keywords=list(captions_json.get("keywords", []))
+                        if captions_json
+                        else [],
+                        source="embedded",
+                        version=1,
+                    )
+                )
             PhotoMetadata.objects.bulk_create(batch, ignore_conflicts=True)
 
         run_migration_logic()

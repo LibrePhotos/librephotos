@@ -61,9 +61,9 @@ class PhotoStackModelTestCase(TestCase):
         )
         self.photo1.stacks.add(stack)
         self.photo2.stacks.add(stack)
-        
+
         stack.auto_select_primary()
-        
+
         # Primary should be set
         self.assertIsNotNone(stack.primary_photo)
         self.assertIn(stack.primary_photo, [self.photo1, self.photo2])
@@ -74,9 +74,9 @@ class PhotoStackModelTestCase(TestCase):
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
-        
+
         result = stack.auto_select_primary()
-        
+
         self.assertIsNone(result)
         self.assertIsNone(stack.primary_photo)
 
@@ -90,20 +90,20 @@ class PhotoStackModelTestCase(TestCase):
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
-        
+
         self.photo1.stacks.add(stack1)
         self.photo2.stacks.add(stack2)
         self.photo3.stacks.add(stack2)
-        
+
         stack2_id = stack2.pk
         stack1.merge_with(stack2)
-        
+
         # All photos should be in stack1
         self.assertEqual(stack1.photos.count(), 3)
         self.assertIn(self.photo1, stack1.photos.all())
         self.assertIn(self.photo2, stack1.photos.all())
         self.assertIn(self.photo3, stack1.photos.all())
-        
+
         # stack2 should be deleted
         self.assertFalse(PhotoStack.objects.filter(pk=stack2_id).exists())
 
@@ -114,9 +114,9 @@ class PhotoStackModelTestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         self.photo1.stacks.add(stack)
-        
+
         stack.merge_with(stack)
-        
+
         # Stack should still exist and have same photo
         self.assertTrue(PhotoStack.objects.filter(pk=stack.pk).exists())
         self.assertEqual(stack.photos.count(), 1)
@@ -124,13 +124,13 @@ class PhotoStackModelTestCase(TestCase):
     def test_create_or_merge_new_stack(self):
         """Test create_or_merge creates a new stack when no overlap."""
         photos = [self.photo1, self.photo2]
-        
+
         stack = PhotoStack.create_or_merge(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             photos=photos,
         )
-        
+
         self.assertIsNotNone(stack)
         self.assertEqual(stack.photos.count(), 2)
         self.assertIsNotNone(stack.primary_photo)
@@ -142,7 +142,7 @@ class PhotoStackModelTestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
             photos=[self.photo1],
         )
-        
+
         self.assertIsNone(stack)
 
     def test_create_or_merge_merges_existing_stacks(self):
@@ -153,14 +153,14 @@ class PhotoStackModelTestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         self.photo1.stacks.add(existing_stack)
-        
+
         # Now create_or_merge with photo1 and photo2
         result = PhotoStack.create_or_merge(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
             photos=[self.photo1, self.photo2],
         )
-        
+
         # Should return the existing stack with both photos
         self.assertEqual(result.pk, existing_stack.pk)
         self.assertEqual(result.photos.count(), 2)
@@ -176,10 +176,10 @@ class PhotoStackModelTestCase(TestCase):
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
-        
+
         self.photo1.stacks.add(raw_jpeg_stack)
         self.photo1.stacks.add(manual_stack)
-        
+
         self.assertEqual(self.photo1.stacks.count(), 2)
 
 
@@ -191,12 +191,12 @@ class PhotoStackAPITestCase(TestCase):
         self.user = create_test_user()
         self.other_user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        
+
         # Create photos for testing
         self.photo1 = create_test_photo(owner=self.user)
         self.photo2 = create_test_photo(owner=self.user)
         self.photo3 = create_test_photo(owner=self.user)
-        
+
         # Create a test stack
         self.stack = PhotoStack.objects.create(
             owner=self.user,
@@ -209,7 +209,7 @@ class PhotoStackAPITestCase(TestCase):
     def test_list_stacks_returns_user_stacks(self):
         """Test listing stacks returns only user's stacks."""
         response = self.client.get("/api/stacks")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertIn("results", data)
@@ -229,9 +229,9 @@ class PhotoStackAPITestCase(TestCase):
         )
         other_photo.stacks.add(other_stack)
         other_photo2.stacks.add(other_stack)
-        
+
         response = self.client.get("/api/stacks")
-        
+
         data = response.json()
         self.assertEqual(data["count"], 1)  # Only our stack
         self.assertNotEqual(data["results"][0]["id"], str(other_stack.id))
@@ -244,9 +244,9 @@ class PhotoStackAPITestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         self.photo3.stacks.add(single_photo_stack)
-        
+
         response = self.client.get("/api/stacks")
-        
+
         data = response.json()
         self.assertEqual(data["count"], 1)  # Only the stack with 2 photos
 
@@ -260,9 +260,9 @@ class PhotoStackAPITestCase(TestCase):
         self.photo3.stacks.add(burst_stack)
         photo4 = create_test_photo(owner=self.user)
         photo4.stacks.add(burst_stack)
-        
+
         response = self.client.get("/api/stacks?stack_type=burst")
-        
+
         data = response.json()
         self.assertEqual(data["count"], 1)
         self.assertEqual(data["results"][0]["stack_type"], "burst")
@@ -270,7 +270,7 @@ class PhotoStackAPITestCase(TestCase):
     def test_list_stacks_pagination(self):
         """Test pagination works correctly."""
         response = self.client.get("/api/stacks?page=1&page_size=10")
-        
+
         data = response.json()
         self.assertIn("page", data)
         self.assertIn("page_size", data)
@@ -282,7 +282,7 @@ class PhotoStackAPITestCase(TestCase):
     def test_get_stack_detail(self):
         """Test getting stack detail."""
         response = self.client.get(f"/api/stacks/{self.stack.id}")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["id"], str(self.stack.id))
@@ -295,7 +295,7 @@ class PhotoStackAPITestCase(TestCase):
         """Test getting non-existent stack returns 404."""
         fake_id = uuid.uuid4()
         response = self.client.get(f"/api/stacks/{fake_id}")
-        
+
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_get_stack_detail_other_user_returns_404(self):
@@ -308,9 +308,9 @@ class PhotoStackAPITestCase(TestCase):
         )
         other_photo.stacks.add(other_stack)
         other_photo2.stacks.add(other_stack)
-        
+
         response = self.client.get(f"/api/stacks/{other_stack.id}")
-        
+
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_delete_stack(self):
@@ -318,17 +318,17 @@ class PhotoStackAPITestCase(TestCase):
         stack_id = self.stack.id
         photo1_pk = self.photo1.pk
         photo2_pk = self.photo2.pk
-        
+
         response = self.client.delete(f"/api/stacks/{stack_id}/delete")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["status"], "deleted")
         self.assertEqual(data["unlinked_count"], 2)
-        
+
         # Stack should be deleted
         self.assertFalse(PhotoStack.objects.filter(pk=stack_id).exists())
-        
+
         # Photos should still exist
         self.assertTrue(Photo.objects.filter(pk=photo1_pk).exists())
         self.assertTrue(Photo.objects.filter(pk=photo2_pk).exists())
@@ -337,7 +337,7 @@ class PhotoStackAPITestCase(TestCase):
         """Test deleting non-existent stack returns 404."""
         fake_id = uuid.uuid4()
         response = self.client.delete(f"/api/stacks/{fake_id}/delete")
-        
+
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_set_primary_photo(self):
@@ -347,12 +347,12 @@ class PhotoStackAPITestCase(TestCase):
             {"photo_hash": self.photo2.image_hash},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["status"], "updated")
         self.assertEqual(data["primary_photo_hash"], self.photo2.image_hash)
-        
+
         # Verify in database
         self.stack.refresh_from_db()
         self.assertEqual(self.stack.primary_photo.image_hash, self.photo2.image_hash)
@@ -364,7 +364,7 @@ class PhotoStackAPITestCase(TestCase):
             {"photo_hash": self.photo3.image_hash},  # photo3 not in stack
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", response.json())
 
@@ -375,7 +375,7 @@ class PhotoStackAPITestCase(TestCase):
             {},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_add_photos_to_stack(self):
@@ -385,13 +385,13 @@ class PhotoStackAPITestCase(TestCase):
             {"photo_hashes": [self.photo3.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["status"], "updated")
         self.assertEqual(data["added_count"], 1)
         self.assertEqual(data["total_count"], 3)
-        
+
         # Verify in database
         self.assertIn(self.photo3, self.stack.photos.all())
 
@@ -402,7 +402,7 @@ class PhotoStackAPITestCase(TestCase):
             {"photo_hashes": [self.photo1.image_hash]},  # Already in stack
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["added_count"], 0)  # Not added again
@@ -412,13 +412,13 @@ class PhotoStackAPITestCase(TestCase):
         """Test removing photos from a stack."""
         # First add photo3 so we have 3 photos
         self.photo3.stacks.add(self.stack)
-        
+
         response = self.client.post(
             f"/api/stacks/{self.stack.id}/remove",
             {"photo_hashes": [self.photo3.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["status"], "updated")
@@ -428,26 +428,26 @@ class PhotoStackAPITestCase(TestCase):
     def test_remove_photos_deletes_stack_if_less_than_2_remain(self):
         """Test removing photos deletes stack if <2 photos remain."""
         stack_id = self.stack.id
-        
+
         response = self.client.post(
             f"/api/stacks/{self.stack.id}/remove",
             {"photo_hashes": [self.photo1.image_hash, self.photo2.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["status"], "deleted")
-        
+
         # Stack should be deleted
         self.assertFalse(PhotoStack.objects.filter(pk=stack_id).exists())
 
     def test_unauthenticated_request_returns_401(self):
         """Test unauthenticated requests return 401."""
         self.client.force_authenticate(user=None)
-        
+
         response = self.client.get("/api/stacks")
-        
+
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
@@ -458,7 +458,7 @@ class ManualStackCreationTestCase(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        
+
         self.photo1 = create_test_photo(owner=self.user)
         self.photo2 = create_test_photo(owner=self.user)
         self.photo3 = create_test_photo(owner=self.user)
@@ -470,13 +470,13 @@ class ManualStackCreationTestCase(TestCase):
             {"photo_hashes": [self.photo1.image_hash, self.photo2.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         data = response.json()
         self.assertEqual(data["status"], "created")
         self.assertIn("stack_id", data)
         self.assertEqual(data["photo_count"], 2)
-        
+
         # Verify stack was created
         stack = PhotoStack.objects.get(pk=data["stack_id"])
         self.assertEqual(stack.stack_type, PhotoStack.StackType.MANUAL)
@@ -489,7 +489,7 @@ class ManualStackCreationTestCase(TestCase):
             {"photo_hashes": [self.photo1.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_manual_stack_invalid_photo_hash(self):
@@ -499,7 +499,7 @@ class ManualStackCreationTestCase(TestCase):
             {"photo_hashes": [self.photo1.image_hash, "invalid_hash"]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("error", response.json())
 
@@ -507,13 +507,13 @@ class ManualStackCreationTestCase(TestCase):
         """Test creating stack with other user's photo returns error."""
         other_user = create_test_user()
         other_photo = create_test_photo(owner=other_user)
-        
+
         response = self.client.post(
             "/api/stacks/manual",
             {"photo_hashes": [self.photo1.image_hash, other_photo.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_manual_stack_adds_to_existing_if_already_stacked(self):
@@ -525,18 +525,18 @@ class ManualStackCreationTestCase(TestCase):
         )
         self.photo1.stacks.add(existing_stack)
         self.photo2.stacks.add(existing_stack)
-        
+
         # Try to create new stack with photo1 and photo3
         response = self.client.post(
             "/api/stacks/manual",
             {"photo_hashes": [self.photo1.image_hash, self.photo3.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         data = response.json()
         self.assertEqual(data["stack_id"], str(existing_stack.id))
-        
+
         # Verify photo3 was added to existing stack
         self.assertIn(self.photo3, existing_stack.photos.all())
 
@@ -548,7 +548,7 @@ class MergeStacksTestCase(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        
+
         self.photo1 = create_test_photo(owner=self.user)
         self.photo2 = create_test_photo(owner=self.user)
         self.photo3 = create_test_photo(owner=self.user)
@@ -563,31 +563,31 @@ class MergeStacksTestCase(TestCase):
         )
         self.photo1.stacks.add(stack1)
         self.photo2.stacks.add(stack1)
-        
+
         stack2 = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         self.photo3.stacks.add(stack2)
         self.photo4.stacks.add(stack2)
-        
+
         stack1_id = stack1.id
         stack2_id = stack2.id
-        
+
         # Merge stacks using photos from both
         response = self.client.post(
             "/api/stacks/merge",
             {"photo_hashes": [self.photo1.image_hash, self.photo3.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        
+
         self.assertEqual(data["status"], "merged")
         self.assertEqual(data["merged_count"], 1)
         self.assertEqual(data["photo_count"], 4)
-        
+
         # The non-target stack should be deleted
         # The target stack is the one returned in the response
         returned_stack_id = data.get("stack_id")
@@ -595,13 +595,13 @@ class MergeStacksTestCase(TestCase):
             # stack1 was target, stack2 should be deleted
             self.assertFalse(
                 PhotoStack.objects.filter(pk=stack2_id).exists(),
-                "stack2 should be deleted but still exists"
+                "stack2 should be deleted but still exists",
             )
         else:
             # stack2 was target, stack1 should be deleted
             self.assertFalse(
                 PhotoStack.objects.filter(pk=stack1_id).exists(),
-                "stack1 should be deleted but still exists"
+                "stack1 should be deleted but still exists",
             )
 
     def test_merge_single_stack_no_merge_needed(self):
@@ -612,13 +612,13 @@ class MergeStacksTestCase(TestCase):
         )
         self.photo1.stacks.add(stack)
         self.photo2.stacks.add(stack)
-        
+
         response = self.client.post(
             "/api/stacks/merge",
             {"photo_hashes": [self.photo1.image_hash, self.photo2.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["status"], "no_merge_needed")
@@ -630,7 +630,7 @@ class MergeStacksTestCase(TestCase):
             {"photo_hashes": [self.photo1.image_hash, self.photo2.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_merge_missing_photo_hashes(self):
@@ -640,7 +640,7 @@ class MergeStacksTestCase(TestCase):
             {},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
@@ -656,19 +656,19 @@ class StackDetectionTestCase(TestCase):
     def test_detect_stacks_queues_background_job(self, mock_async_task):
         """Test detect stacks queues a background job."""
         response = self.client.post("/api/stacks/detect")
-        
+
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         data = response.json()
         self.assertEqual(data["status"], "queued")
         self.assertIn("options", data)
-        
+
         # Verify async_task was called
         mock_async_task.assert_called_once()
 
     @patch("api.views.stacks.async_task")
     def test_detect_stacks_with_options(self, mock_async_task):
         """Test detect stacks with custom options.
-        
+
         NOTE: detect_raw_jpeg and detect_live_photos options were removed.
         RAW+JPEG and Live Photos are now handled via file variants during scan.
         Only detect_bursts is available.
@@ -680,7 +680,7 @@ class StackDetectionTestCase(TestCase):
             },
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         data = response.json()
         self.assertEqual(data["options"]["detect_bursts"], False)
@@ -693,7 +693,7 @@ class StackStatsTestCase(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        
+
         self.photo1 = create_test_photo(owner=self.user)
         self.photo2 = create_test_photo(owner=self.user)
         self.photo3 = create_test_photo(owner=self.user)
@@ -708,16 +708,16 @@ class StackStatsTestCase(TestCase):
         )
         self.photo1.stacks.add(manual_stack)
         self.photo2.stacks.add(manual_stack)
-        
+
         burst_stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.BURST_SEQUENCE,
         )
         self.photo3.stacks.add(burst_stack)
         self.photo4.stacks.add(burst_stack)
-        
+
         response = self.client.get("/api/stacks/stats")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["total_stacks"], 2)
@@ -734,22 +734,25 @@ class StackEdgeCasesTestCase(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
-        
+
         self.photo1 = create_test_photo(owner=self.user)
         self.photo2 = create_test_photo(owner=self.user)
 
     def test_invalid_uuid_format_in_url(self):
         """Test invalid UUID format in URL is handled gracefully."""
         response = self.client.get("/api/stacks/not-a-valid-uuid")
-        
+
         # The URL pattern [0-9a-f-]+ is permissive and partial matches fall through
         # to the list endpoint which returns 200. This is acceptable behavior -
         # the important thing is we don't get a 500 error.
-        self.assertIn(response.status_code, [
-            status.HTTP_200_OK,  # Falls through to list endpoint
-            status.HTTP_400_BAD_REQUEST,
-            status.HTTP_404_NOT_FOUND
-        ])
+        self.assertIn(
+            response.status_code,
+            [
+                status.HTTP_200_OK,  # Falls through to list endpoint
+                status.HTTP_400_BAD_REQUEST,
+                status.HTTP_404_NOT_FOUND,
+            ],
+        )
 
     def test_stack_with_deleted_photo_handles_gracefully(self):
         """Test stack behavior when a photo is deleted."""
@@ -761,13 +764,13 @@ class StackEdgeCasesTestCase(TestCase):
         self.photo2.stacks.add(stack)
         stack.primary_photo = self.photo1
         stack.save()
-        
+
         # Delete photo1
         self.photo1.delete()
-        
+
         # Stack detail should still work
         response = self.client.get(f"/api/stacks/{stack.id}")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         # primary_photo should be None or the remaining photo
@@ -780,7 +783,7 @@ class StackEdgeCasesTestCase(TestCase):
             {"photo_hashes": []},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_duplicate_photo_hashes_in_request(self):
@@ -790,14 +793,14 @@ class StackEdgeCasesTestCase(TestCase):
             {"photo_hashes": [self.photo1.image_hash, self.photo1.image_hash]},
             format="json",
         )
-        
+
         # Should fail since we need 2 unique photos
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_remove_primary_photo_auto_selects_new_primary(self):
         """Test removing primary photo auto-selects a new primary."""
         photo3 = create_test_photo(owner=self.user)
-        
+
         stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
@@ -807,15 +810,15 @@ class StackEdgeCasesTestCase(TestCase):
         photo3.stacks.add(stack)
         stack.primary_photo = self.photo1
         stack.save()
-        
+
         response = self.client.post(
             f"/api/stacks/{stack.id}/remove",
             {"photo_hashes": [self.photo1.image_hash]},
             format="json",
         )
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         # Refresh and check primary was auto-selected
         stack.refresh_from_db()
         self.assertIsNotNone(stack.primary_photo)
@@ -824,7 +827,7 @@ class StackEdgeCasesTestCase(TestCase):
     def test_stack_list_page_size_max_100(self):
         """Test page_size is capped at 100."""
         response = self.client.get("/api/stacks?page_size=500")
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["page_size"], 100)  # Capped at 100

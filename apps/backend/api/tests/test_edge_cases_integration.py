@@ -8,7 +8,6 @@ Tests:
 - Empty/invalid data handling
 """
 
-
 from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient, APITestCase
 
@@ -29,7 +28,7 @@ class PhotoNoExifDataTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
         photo.exif_timestamp = None
         photo.save()
-        
+
         # Should still be usable
         self.assertIsNotNone(photo.pk)
         self.assertIsNone(photo.exif_timestamp)
@@ -40,7 +39,7 @@ class PhotoNoExifDataTestCase(TestCase):
         photo.exif_gps_lat = None
         photo.exif_gps_lon = None
         photo.save()
-        
+
         # Should still be usable
         self.assertIsNotNone(photo.pk)
 
@@ -49,7 +48,7 @@ class PhotoNoExifDataTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
         photo.image_phash = None
         photo.save()
-        
+
         # Should still be usable but not in visual duplicate detection
         self.assertIsNotNone(photo.pk)
         self.assertIsNone(photo.image_phash)
@@ -62,13 +61,13 @@ class PhotoNoExifDataTestCase(TestCase):
             photo.exif_timestamp = None
             photo.save()
             photos.append(photo)
-        
+
         stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(*photos)
-        
+
         # auto_select_primary should still work
         _result = stack.auto_select_primary()
         # May or may not select one depending on implementation
@@ -82,13 +81,13 @@ class PhotoNoExifDataTestCase(TestCase):
             # Don't create metadata
             PhotoMetadata.objects.filter(photo=photo).delete()
             photos.append(photo)
-        
+
         dup = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
         dup.photos.add(*photos)
-        
+
         # auto_select_best_photo should handle gracefully
         _result = dup.auto_select_best_photo()
         # Should return something (or None) without crashing
@@ -101,7 +100,7 @@ class PhotoNoExifDataTestCase(TestCase):
             photo.exif_timestamp = None
             photo.save()
             photos.append(photo)
-        
+
         # Should not create burst stacks for photos without timestamps
         # (timestamps are required for burst proximity detection)
 
@@ -115,7 +114,7 @@ class MissingFileTestCase(TestCase):
     def test_photo_with_null_main_file(self):
         """Test handling photo with null main_file reference."""
         photo = create_test_photo(owner=self.user)
-        
+
         # This might not be allowed by the model, but test graceful handling
         # Note: Can't actually set main_file to None due to NOT NULL constraint
         # So we test that the photo with a valid file still works
@@ -124,16 +123,16 @@ class MissingFileTestCase(TestCase):
     def test_stack_photos_with_missing_metadata(self):
         """Test stack with photos that have no PhotoMetadata records."""
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
-        
+
         # Delete metadata records
         PhotoMetadata.objects.filter(photo__in=photos).delete()
-        
+
         stack = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(*photos)
-        
+
         # Stack should still function
         self.assertEqual(stack.photos.count(), 3)
 
@@ -151,25 +150,25 @@ class ConcurrentDetectionTestCase(TransactionTestCase):
         # Create photos
         for _ in range(5):
             create_test_photo(owner=self.user)
-        
+
         results = []
         errors = []
-        
+
         def trigger_detection():
             try:
                 response = self.client.post("/api/duplicates/detect")
                 results.append(response.status_code)
             except Exception as e:
                 errors.append(str(e))
-        
+
         # Trigger multiple detections (simulated - they run sequentially in test)
         for _ in range(3):
             trigger_detection()
-        
+
         # All requests should succeed (or be queued)
         for status in results:
             self.assertIn(status, [200, 202, 409])  # 409 = conflict if already running
-        
+
         # No errors should occur
         self.assertEqual(len(errors), 0)
 
@@ -178,13 +177,13 @@ class ConcurrentDetectionTestCase(TransactionTestCase):
         # Create photos
         for _ in range(5):
             create_test_photo(owner=self.user)
-        
+
         results = []
-        
+
         for _ in range(3):
             response = self.client.post("/api/stacks/detect")
             results.append(response.status_code)
-        
+
         # All requests should succeed or be handled gracefully
         for status in results:
             self.assertIn(status, [200, 202, 409])
@@ -249,11 +248,11 @@ class InvalidDataTestCase(APITestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup.photos.add(*photos)
-        
+
         response = self.client.post(
             f"/api/duplicates/{dup.id}/resolve",
             {"kept_photo_id": "not-a-valid-uuid"},
-            format="json"
+            format="json",
         )
         self.assertIn(response.status_code, [400, 404])
 
@@ -265,11 +264,11 @@ class InvalidDataTestCase(APITestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(*photos)
-        
+
         response = self.client.post(
             f"/api/stacks/{stack.id}/add",
             {"photo_ids": ["invalid-id-1", "invalid-id-2"]},
-            format="json"
+            format="json",
         )
         # Should handle gracefully
         self.assertIn(response.status_code, [200, 400, 404])
@@ -282,20 +281,16 @@ class InvalidDataTestCase(APITestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(*photos)
-        
+
         response = self.client.post(
-            f"/api/stacks/{stack.id}/primary",
-            {"photo_id": "not-a-uuid"},
-            format="json"
+            f"/api/stacks/{stack.id}/primary", {"photo_id": "not-a-uuid"}, format="json"
         )
         self.assertIn(response.status_code, [400, 404])
 
     def test_detection_with_invalid_options(self):
         """Test detection with invalid options."""
         response = self.client.post(
-            "/api/duplicates/detect",
-            {"invalid_option": "value"},
-            format="json"
+            "/api/duplicates/detect", {"invalid_option": "value"}, format="json"
         )
         # Should ignore invalid options and proceed
         self.assertIn(response.status_code, [200, 202, 400])
@@ -315,10 +310,10 @@ class SinglePhotoGroupTestCase(TestCase):
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup.photos.add(*photos)
-        
+
         # Remove one photo
         dup.photos.remove(photos[0])
-        
+
         # Group should still exist but may be cleaned up depending on implementation
         # The important thing is no crash occurs
 
@@ -330,7 +325,7 @@ class SinglePhotoGroupTestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(photo)
-        
+
         # Single photo stack is valid for manual stacks
         self.assertEqual(stack.photos.count(), 1)
 
@@ -342,10 +337,10 @@ class SinglePhotoGroupTestCase(TestCase):
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack.photos.add(photo)
-        
+
         _result = stack.auto_select_primary()
         stack.refresh_from_db()
-        
+
         # Should select the only photo
         self.assertEqual(stack.primary_photo, photo)
 
@@ -361,22 +356,22 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
         other_photos1 = [create_test_photo(owner=self.user) for _ in range(2)]
         other_photos2 = [create_test_photo(owner=self.user) for _ in range(2)]
-        
+
         stack1 = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack1.photos.add(photo, *other_photos1)
-        
+
         stack2 = PhotoStack.objects.create(
             owner=self.user,
             stack_type=PhotoStack.StackType.MANUAL,
         )
         stack2.photos.add(photo, *other_photos2)
-        
+
         # Delete the shared photo
         photo.manual_delete()
-        
+
         # Both stacks should still exist with remaining photos
         stack1.refresh_from_db()
         stack2.refresh_from_db()
@@ -388,22 +383,22 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
         photo = create_test_photo(owner=self.user)
         other_photos1 = [create_test_photo(owner=self.user)]
         other_photos2 = [create_test_photo(owner=self.user)]
-        
+
         dup1 = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup1.photos.add(photo, *other_photos1)
-        
+
         dup2 = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.VISUAL_DUPLICATE,
         )
         dup2.photos.add(photo, *other_photos2)
-        
+
         # Delete the shared photo
         photo.manual_delete()
-        
+
         # Both groups should be cleaned up (single photo remaining)
         # Depending on implementation, they may be deleted or left with 1 photo
 
@@ -416,12 +411,12 @@ class PhotoDeletionEdgeCasesTestCase(TestCase):
             primary_photo=photos[0],
         )
         stack.photos.add(*photos)
-        
+
         # Delete the primary photo
         photos[0].manual_delete()
-        
+
         stack.refresh_from_db()
-        
+
         # Stack should still exist
         self.assertEqual(stack.photos.count(), 2)
         # Primary may be cleared or set to another photo depending on implementation
@@ -437,12 +432,12 @@ class MetadataEdgeCasesTestCase(TestCase):
         """Test handling photos with extreme dimensions."""
         photo = create_test_photo(owner=self.user)
         metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
-        
+
         # Very large dimensions
         metadata.width = 50000
         metadata.height = 50000
         metadata.save()
-        
+
         # Should not crash on resolution calculation
         self.assertIsNotNone(metadata.resolution)
 
@@ -450,11 +445,11 @@ class MetadataEdgeCasesTestCase(TestCase):
         """Test handling photos with zero dimensions."""
         photo = create_test_photo(owner=self.user)
         metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
-        
+
         metadata.width = 0
         metadata.height = 0
         metadata.save()
-        
+
         # Should handle gracefully
         self.assertEqual(metadata.width, 0)
 
@@ -464,12 +459,12 @@ class MetadataEdgeCasesTestCase(TestCase):
         for photo in photos:
             photo.size = 0
             photo.save()
-        
+
         dup = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
         )
         dup.photos.add(*photos)
-        
+
         savings = dup.calculate_potential_savings()
         self.assertEqual(savings, 0)

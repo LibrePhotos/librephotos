@@ -68,7 +68,9 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return AlbumUser.objects.filter(shared_to__id__exact=self.request.user.id).order_by("id")
+        return AlbumUser.objects.filter(
+            shared_to__id__exact=self.request.user.id
+        ).order_by("id")
 
 
 class SharedFromMeAlbumUserListViewSet(ListViewSet):

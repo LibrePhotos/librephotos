@@ -59,7 +59,7 @@ class MetadataEditSerializer(serializers.ModelSerializer):
 class PhotoMetadataSerializer(serializers.ModelSerializer):
     """
     Full metadata serializer with all structured fields.
-    
+
     Used for the detailed metadata view and editing.
     """
 
@@ -149,7 +149,9 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
 
     def get_edit_history(self, obj) -> list:
         """Get recent edit history for this photo."""
-        edits = MetadataEdit.objects.filter(photo=obj.photo).order_by("-created_at")[:10]
+        edits = MetadataEdit.objects.filter(photo=obj.photo).order_by("-created_at")[
+            :10
+        ]
         return MetadataEditSerializer(edits, many=True).data
 
     def get_sidecar_files(self, obj) -> list:
@@ -161,7 +163,7 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
 class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer for updating metadata with change tracking.
-    
+
     Only allows editing specific fields and automatically
     creates MetadataEdit records for history.
     """
@@ -191,10 +193,10 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """Update metadata and create edit history records."""
         user = self.context.get("request").user if self.context.get("request") else None
-        
+
         for field_name, new_value in validated_data.items():
             old_value = getattr(instance, field_name)
-            
+
             # Only track actual changes
             if old_value != new_value:
                 # Create edit history record
@@ -205,15 +207,15 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
                     old_value=old_value,
                     new_value=new_value,
                 )
-                
+
                 # Update the field
                 setattr(instance, field_name, new_value)
-        
+
         # Update source to user_edit and increment version
         instance.source = PhotoMetadata.Source.USER_EDIT
         instance.version += 1
         instance.save()
-        
+
         return instance
 
 
@@ -269,10 +271,10 @@ class PhotoMetadataSummarySerializer(serializers.ModelSerializer):
 def get_backwards_compatible_metadata(photo: Photo) -> dict:
     """
     Generate backwards-compatible metadata dict from PhotoMetadata.
-    
+
     This function returns metadata in the same format as the original
     Photo model fields for API backwards compatibility.
-    
+
     Note: Metadata fields have been fully migrated to PhotoMetadata model.
     If no PhotoMetadata exists, return None/empty values.
     """
@@ -289,7 +291,7 @@ def get_backwards_compatible_metadata(photo: Photo) -> dict:
             "height": metadata.height,
             "focalLength35Equivalent": metadata.focal_length_35mm,
             "digitalZoomRatio": None,  # Not stored in PhotoMetadata
-            "subjectDistance": None,   # Not stored in PhotoMetadata
+            "subjectDistance": None,  # Not stored in PhotoMetadata
         }
     except PhotoMetadata.DoesNotExist:
         # No PhotoMetadata exists - return None/empty values
