@@ -396,8 +396,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
         if not self.request.query_params.get("show_all_stack_photos"):
             photo_filter.append(
-                Q(stacks__isnull=True) |
-                Q(primary_in_stack__isnull=False)
+                Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False)
             )
 
         if self.request.query_params.get("person"):
@@ -543,8 +542,8 @@ class AlbumDateListViewSet(ListViewSet):
         # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
         if not self.request.query_params.get("show_all_stack_photos"):
             filter.append(
-                Q(photos__stacks__isnull=True) |
-                Q(photos__primary_in_stack__isnull=False)
+                Q(photos__stacks__isnull=True)
+                | Q(photos__primary_in_stack__isnull=False)
             )
 
         # Filter by folder path if provided

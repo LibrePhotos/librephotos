@@ -74,9 +74,7 @@ class Face(models.Model):
             ],
         )
         if not encodings:
-            raise ValueError(
-                f"Face service returned no encoding for face {self.id}"
-            )
+            raise ValueError(f"Face service returned no encoding for face {self.id}")
         self.encoding = encodings[0].tobytes().hex()
         self.save()
 

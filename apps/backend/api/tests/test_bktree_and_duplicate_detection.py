@@ -29,16 +29,16 @@ class BKTreeTestCase(TestCase):
     def test_empty_tree_search(self):
         """Test searching an empty tree."""
         tree = BKTree(lambda a, b: abs(a - b))
-        
+
         results = tree.search(5, 2)
-        
+
         self.assertEqual(results, [])
 
     def test_add_single_item(self):
         """Test adding a single item to tree."""
         tree = BKTree(lambda a, b: abs(a - b))
         tree.add("item1", 10)
-        
+
         self.assertEqual(tree.size, 1)
         self.assertIsNotNone(tree.root)
 
@@ -48,7 +48,7 @@ class BKTreeTestCase(TestCase):
         tree.add("item1", 10)
         tree.add("item2", 15)
         tree.add("item3", 20)
-        
+
         self.assertEqual(tree.size, 3)
 
     def test_search_exact_match(self):
@@ -56,9 +56,9 @@ class BKTreeTestCase(TestCase):
         tree = BKTree(lambda a, b: abs(a - b))
         tree.add("item1", 10)
         tree.add("item2", 20)
-        
+
         results = tree.search(10, 0)
-        
+
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0][0], "item1")
         self.assertEqual(results[0][1], 0)
@@ -69,9 +69,9 @@ class BKTreeTestCase(TestCase):
         tree.add("item1", 10)
         tree.add("item2", 12)
         tree.add("item3", 20)
-        
+
         results = tree.search(11, 2)
-        
+
         # Should find item1 (distance 1) and item2 (distance 1)
         ids = [r[0] for r in results]
         self.assertIn("item1", ids)
@@ -83,25 +83,26 @@ class BKTreeTestCase(TestCase):
         tree = BKTree(lambda a, b: abs(a - b))
         tree.add("item1", 10)
         tree.add("item2", 20)
-        
+
         results = tree.search(100, 5)
-        
+
         self.assertEqual(results, [])
 
     def test_hamming_distance_search(self):
         """Test BK-Tree with hamming distance (simulated)."""
+
         def simple_hamming(a, b):
             """Simple hamming distance for integers."""
             xor = a ^ b
-            return bin(xor).count('1')
-        
+            return bin(xor).count("1")
+
         tree = BKTree(simple_hamming)
         tree.add("photo1", 0b11110000)
         tree.add("photo2", 0b11110001)  # 1 bit different
         tree.add("photo3", 0b00001111)  # 8 bits different
-        
+
         results = tree.search(0b11110000, 2)
-        
+
         ids = [r[0] for r in results]
         self.assertIn("photo1", ids)
         self.assertIn("photo2", ids)
@@ -114,7 +115,7 @@ class UnionFindTestCase(TestCase):
     def test_initial_state(self):
         """Test that items start in their own set."""
         uf = UnionFind()
-        
+
         self.assertEqual(uf.find(1), 1)
         self.assertEqual(uf.find(2), 2)
         self.assertNotEqual(uf.find(1), uf.find(2))
@@ -123,7 +124,7 @@ class UnionFindTestCase(TestCase):
         """Test unioning two items."""
         uf = UnionFind()
         uf.union(1, 2)
-        
+
         self.assertEqual(uf.find(1), uf.find(2))
 
     def test_transitive_union(self):
@@ -131,7 +132,7 @@ class UnionFindTestCase(TestCase):
         uf = UnionFind()
         uf.union(1, 2)
         uf.union(2, 3)
-        
+
         self.assertEqual(uf.find(1), uf.find(3))
 
     def test_get_groups(self):
@@ -140,9 +141,9 @@ class UnionFindTestCase(TestCase):
         uf.union(1, 2)
         uf.union(3, 4)
         uf.find(5)  # Singleton - not returned by get_groups
-        
+
         groups = uf.get_groups()
-        
+
         # Should have 2 groups: {1,2}, {3,4}
         # Singletons are filtered out (only groups with 2+ items)
         self.assertEqual(len(groups), 2)
@@ -188,7 +189,9 @@ class ExactCopyDetectionTestCase(TestCase):
         # Create photos with same hash but different paths (simulating exact copies)
         shared_hash = "duplicate_hash" + "a" * 19  # Pad to 32 chars
         photo1 = self._create_photo_with_hash(shared_hash)
-        photo2 = self._create_photo_with_hash(shared_hash + "2")  # Different hash to avoid PK conflict
+        photo2 = self._create_photo_with_hash(
+            shared_hash + "2"
+        )  # Different hash to avoid PK conflict
 
         # For true duplicate detection, we need same hash - but hash is PK
         # So we test with photos that already have same hash from creation
@@ -258,13 +261,13 @@ class VisualDuplicateDetectionTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo1.image_phash = "0000000000000000"
         photo1.save()
-        
+
         photo2 = create_test_photo(owner=self.user)
         photo2.image_phash = "ffffffffffffffff"
         photo2.save()
-        
+
         count = detect_visual_duplicates(self.user, threshold=5)
-        
+
         self.assertEqual(count, 0)
 
     def test_detect_visual_duplicates(self):
@@ -273,13 +276,13 @@ class VisualDuplicateDetectionTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo1.image_phash = "0000000000000000"
         photo1.save()
-        
+
         photo2 = create_test_photo(owner=self.user)
         photo2.image_phash = "0000000000000001"  # 1 bit different
         photo2.save()
-        
+
         count = detect_visual_duplicates(self.user, threshold=5)
-        
+
         # Should find as duplicates
         self.assertGreaterEqual(count, 0)
 
@@ -288,17 +291,17 @@ class VisualDuplicateDetectionTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo1.image_phash = "0000000000000000"
         photo1.save()
-        
+
         photo2 = create_test_photo(owner=self.user)
         photo2.image_phash = "000000000000000f"  # 4 bits different
         photo2.save()
-        
+
         # Strict threshold should not match
         count_strict = detect_visual_duplicates(self.user, threshold=2)
-        
+
         # Loose threshold should match
         count_loose = detect_visual_duplicates(self.user, threshold=10)
-        
+
         # Loose should find more or equal
         self.assertGreaterEqual(count_loose, count_strict)
 
@@ -307,11 +310,11 @@ class VisualDuplicateDetectionTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo1.image_phash = None
         photo1.save()
-        
+
         photo2 = create_test_photo(owner=self.user)
         photo2.image_phash = None
         photo2.save()
-        
+
         # Should not crash
         count = detect_visual_duplicates(self.user, threshold=10)
         self.assertEqual(count, 0)
@@ -321,14 +324,14 @@ class VisualDuplicateDetectionTestCase(TestCase):
         photo1 = create_test_photo(owner=self.user)
         photo1.image_phash = "0000000000000000"
         photo1.save()
-        
+
         photo2 = create_test_photo(owner=self.user)
         photo2.image_phash = "0000000000000001"
         photo2.in_trashcan = True
         photo2.save()
-        
+
         count = detect_visual_duplicates(self.user, threshold=10)
-        
+
         self.assertEqual(count, 0)
 
 
@@ -341,50 +344,50 @@ class BatchDetectionTestCase(TestCase):
     def test_batch_detection_all_enabled(self):
         """Test batch detection with all types enabled."""
         options = {
-            'detect_exact_copies': True,
-            'detect_visual_duplicates': True,
-            'visual_threshold': 10,
-            'clear_pending': False,
+            "detect_exact_copies": True,
+            "detect_visual_duplicates": True,
+            "visual_threshold": 10,
+            "clear_pending": False,
         }
-        
+
         # Function runs as job and may not return value
         try:
             batch_detect_duplicates(self.user, options)
             success = True
         except Exception:
             success = False
-        
+
         self.assertTrue(success)
 
     def test_batch_detection_exact_only(self):
         """Test batch detection with only exact copies."""
         options = {
-            'detect_exact_copies': True,
-            'detect_visual_duplicates': False,
+            "detect_exact_copies": True,
+            "detect_visual_duplicates": False,
         }
-        
+
         try:
             batch_detect_duplicates(self.user, options)
             success = True
         except Exception:
             success = False
-        
+
         self.assertTrue(success)
 
     def test_batch_detection_visual_only(self):
         """Test batch detection with only visual duplicates."""
         options = {
-            'detect_exact_copies': False,
-            'detect_visual_duplicates': True,
-            'visual_threshold': 10,
+            "detect_exact_copies": False,
+            "detect_visual_duplicates": True,
+            "visual_threshold": 10,
         }
-        
+
         try:
             batch_detect_duplicates(self.user, options)
             success = True
         except Exception:
             success = False
-        
+
         self.assertTrue(success)
 
     def test_batch_detection_with_clear_pending(self):
@@ -392,25 +395,25 @@ class BatchDetectionTestCase(TestCase):
         # Create existing pending duplicate
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         dup = Duplicate.objects.create(
             owner=self.user,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
             review_status=Duplicate.ReviewStatus.PENDING,
         )
         dup.photos.add(photo1, photo2)
-        
+
         options = {
-            'detect_exact_copies': True,
-            'clear_pending': True,
+            "detect_exact_copies": True,
+            "clear_pending": True,
         }
-        
+
         try:
             batch_detect_duplicates(self.user, options)
             success = True
         except Exception:
             success = False
-        
+
         self.assertTrue(success)
 
     def test_batch_detection_with_null_options(self):
@@ -420,7 +423,7 @@ class BatchDetectionTestCase(TestCase):
             success = True
         except Exception:
             success = False
-        
+
         self.assertTrue(success)
 
     def test_batch_detection_with_empty_options(self):
@@ -430,7 +433,7 @@ class BatchDetectionTestCase(TestCase):
             success = True
         except Exception:
             success = False
-        
+
         self.assertTrue(success)
 
 
@@ -479,14 +482,15 @@ class MultiUserDuplicateIsolationTestCase(TestCase):
                 review_status=Duplicate.ReviewStatus.PENDING,
             )
             dup.photos.add(photo1, photo2)
-        
+
         # Run batch detection with clear_pending for user1
-        batch_detect_duplicates(self.user1, {'clear_pending': True, 'detect_exact_copies': True})
-        
+        batch_detect_duplicates(
+            self.user1, {"clear_pending": True, "detect_exact_copies": True}
+        )
+
         # User2 should still have their pending duplicate
         u2_pending = Duplicate.objects.filter(
-            owner=self.user2,
-            review_status=Duplicate.ReviewStatus.PENDING
+            owner=self.user2, review_status=Duplicate.ReviewStatus.PENDING
         )
         self.assertEqual(u2_pending.count(), 1)
 

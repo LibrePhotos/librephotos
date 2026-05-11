@@ -287,7 +287,9 @@ class CalculatePerceptualHashTestCase(TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def _create_test_image(self, filename, size=(100, 100), mode="RGB", color=(255, 0, 0)):
+    def _create_test_image(
+        self, filename, size=(100, 100), mode="RGB", color=(255, 0, 0)
+    ):
         """Helper to create a test image file."""
         path = os.path.join(self.temp_dir, filename)
         img = Image.new(mode, size, color)
@@ -593,9 +595,13 @@ class EdgeCasesTestCase(TestCase):
                     elif i == 2:
                         img.putpixel((x, y), (0, 0, (x + y) * 2))  # Diagonal blue
                     elif i == 3:
-                        img.putpixel((x, y), ((x * y) % 256, 0, 0))  # Multiplicative pattern
+                        img.putpixel(
+                            (x, y), ((x * y) % 256, 0, 0)
+                        )  # Multiplicative pattern
                     else:
-                        img.putpixel((x, y), (255 if x > 25 else 0, 255 if y > 25 else 0, 0))  # Quadrants
+                        img.putpixel(
+                            (x, y), (255 if x > 25 else 0, 255 if y > 25 else 0, 0)
+                        )  # Quadrants
             img.save(path)
             paths.append(path)
 
@@ -608,7 +614,9 @@ class EdgeCasesTestCase(TestCase):
         self.assertTrue(all(r is not None for r in results))
         # Most should be unique (distinct patterns) - allow some similarity
         unique_count = len(set(results))
-        self.assertGreaterEqual(unique_count, 3)  # At least 3 unique hashes from 5 distinct patterns
+        self.assertGreaterEqual(
+            unique_count, 3
+        )  # At least 3 unique hashes from 5 distinct patterns
 
 
 class PerformanceTestCase(TestCase):

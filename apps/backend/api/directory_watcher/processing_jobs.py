@@ -27,14 +27,14 @@ from api.directory_watcher.utils import (
 def generate_face_embeddings(user, job_id: UUID):
     """
     Generate face embeddings for faces that don't have them yet.
-    
+
     Args:
         user: The user whose faces to process
         job_id: Job ID for tracking progress
     """
     if Face.objects.filter(encoding="").count() == 0:
         return
-    
+
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_GENERATE_FACE_EMBEDDINGS,
@@ -74,7 +74,7 @@ def generate_face_embeddings(user, job_id: UUID):
 def generate_tags(user, job_id: UUID, full_scan=False):
     """
     Generate image tags (Places365 captions) for photos.
-    
+
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
@@ -103,7 +103,11 @@ def generate_tags(user, job_id: UUID, full_scan=False):
             & (
                 Q(caption_instance__isnull=True)
                 | Q(caption_instance__captions_json__isnull=True)
-                | Q(**{f"caption_instance__captions_json__{tagging_model}__isnull": True})
+                | Q(
+                    **{
+                        f"caption_instance__captions_json__{tagging_model}__isnull": True
+                    }
+                )
             )
         )
         if not full_scan and last_scan:
@@ -132,7 +136,7 @@ def generate_tags(user, job_id: UUID, full_scan=False):
 def generate_tag_job(photo: Photo, job_id: str):
     """
     Worker task to generate tags for a single photo.
-    
+
     Args:
         photo: The photo to process
         job_id: Job ID for tracking progress
@@ -155,7 +159,7 @@ def generate_tag_job(photo: Photo, job_id: str):
 def add_geolocation(user, job_id: UUID, full_scan=False):
     """
     Add geolocation data to photos based on GPS coordinates.
-    
+
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
@@ -201,7 +205,7 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
 def geolocation_job(photo: Photo, job_id: UUID):
     """
     Worker task to add geolocation for a single photo.
-    
+
     Args:
         photo: The photo to process
         job_id: Job ID for tracking progress
@@ -223,7 +227,7 @@ def geolocation_job(photo: Photo, job_id: UUID):
 def scan_faces(user, job_id: UUID, full_scan=False):
     """
     Detect and extract faces from photos.
-    
+
     Args:
         user: The user whose photos to process
         job_id: Job ID for tracking progress
@@ -270,7 +274,9 @@ def scan_faces(user, job_id: UUID, full_scan=False):
                 util.logger.exception("An error occurred: ")
                 print(f"[ERR]: {err}")
                 failed = True
-                error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+                error_msg = (
+                    f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+                )
                 error = error_msg
             update_scan_counter(job_id, failed, error)
     except Exception as err:

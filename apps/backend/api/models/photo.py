@@ -429,7 +429,9 @@ class Photo(models.Model):
 
                 image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
 
-                if _overlaps_existing_face(existing_face_locations, top, right, bottom, left):
+                if _overlaps_existing_face(
+                    existing_face_locations, top, right, bottom, left
+                ):
                     continue
 
                 face = api.models.face.Face(

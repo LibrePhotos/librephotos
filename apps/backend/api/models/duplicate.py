@@ -26,7 +26,7 @@ from api.models.user import User, get_deleted_user
 class Duplicate(models.Model):
     """
     Represents a group of duplicate photos that should be reviewed.
-    
+
     Photos in a duplicate group are candidates for deletion - the user
     reviews them and decides which to keep.
     """
@@ -115,7 +115,7 @@ class Duplicate(models.Model):
         Returns photos ordered by quality metrics.
         Higher resolution and larger file size are considered better quality.
         """
-        return self.photos.select_related('metadata').order_by(
+        return self.photos.select_related("metadata").order_by(
             "-metadata__width", "-metadata__height", "-size"
         )
 
@@ -123,15 +123,15 @@ class Duplicate(models.Model):
         """
         Automatically selects the best quality photo as the kept photo.
         Used as a suggestion for the user.
-        
+
         For EXACT_COPY: Picks the one with shortest path (likely "original")
         For VISUAL_DUPLICATE: Highest resolution
-        
+
         Returns:
             The best Photo instance or None
         """
         from django.db.models.functions import Length
-        
+
         photos = self.photos.all()
         if not photos.exists():
             return None
@@ -142,9 +142,8 @@ class Duplicate(models.Model):
         else:
             # For visual duplicates: highest resolution
             from django.db.models import F
-            best = photos.order_by(
-                F("metadata__width") * F("metadata__height")
-            ).last()
+
+            best = photos.order_by(F("metadata__width") * F("metadata__height")).last()
 
         return best
 
@@ -159,6 +158,7 @@ class Duplicate(models.Model):
         else:
             # Sum size of all photos except best
             from django.db.models import Sum
+
             non_best_size = (
                 self.photos.exclude(pk=best.pk)
                 .aggregate(total=Sum("size"))
@@ -172,7 +172,7 @@ class Duplicate(models.Model):
     def resolve(self, kept_photo, trash_others: bool = True):
         """
         Mark the duplicate as resolved by selecting a photo to keep.
-        
+
         Args:
             kept_photo: The Photo instance to keep
             trash_others: Whether to move other photos to trash
@@ -186,7 +186,7 @@ class Duplicate(models.Model):
         if trash_others:
             other_photos = self.photos.exclude(pk=kept_photo.pk)
             self.trashed_count = other_photos.update(in_trashcan=True)
-        
+
         self.save()
         return self
 
@@ -194,11 +194,11 @@ class Duplicate(models.Model):
         """Mark as 'not actually duplicates' and unlink photos from group."""
         self.review_status = self.ReviewStatus.DISMISSED
         self.reviewed_at = timezone.now()
-        
+
         # Unlink photos from duplicate group (ManyToMany)
         for photo in self.photos.all():
             photo.duplicates.remove(self)
-        
+
         self.save()
         return self
 
@@ -208,9 +208,7 @@ class Duplicate(models.Model):
             return 0
 
         # Restore trashed photos in this duplicate group
-        restored_count = self.photos.filter(
-            in_trashcan=True
-        ).update(in_trashcan=False)
+        restored_count = self.photos.filter(in_trashcan=True).update(in_trashcan=False)
 
         # Reset to pending
         self.review_status = self.ReviewStatus.PENDING

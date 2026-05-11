@@ -28,14 +28,14 @@ class FilePathUniqueConstraintTestCase(TestCase):
     def test_unique_constraint_prevents_duplicate_paths(self):
         """Test that the database prevents creating two Files with the same path."""
         path = "/photos/test_image.jpg"
-        
+
         # Create first file
         _file1 = File.objects.create(
             hash="hash1" + "a" * 28,
             path=path,
             type=File.IMAGE,
         )
-        
+
         # Attempting to create second file with same path should fail
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
@@ -57,7 +57,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
             path="/photos/image2.jpg",
             type=File.IMAGE,
         )
-        
+
         self.assertEqual(File.objects.count(), 2)
         self.assertNotEqual(file1.path, file2.path)
 
@@ -69,7 +69,7 @@ class FilePathUniqueConstraintTestCase(TestCase):
             path="",
             type=File.IMAGE,
         )
-        
+
         # Second empty path should fail
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
@@ -91,6 +91,7 @@ class FileCreateMethodTestCase(TestCase):
     def tearDown(self):
         # Clean up temp files
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _create_test_file(self, filename, content=b"test content"):
@@ -103,17 +104,17 @@ class FileCreateMethodTestCase(TestCase):
     def test_create_returns_existing_file_for_same_path(self):
         """Test that File.create() returns existing File for same path."""
         path = self._create_test_file("test.jpg")
-        
+
         # Create first file
         file1 = File.create(path, self.user)
-        
+
         # Create second file with same path - should return existing
         file2 = File.create(path, self.user)
-        
+
         # Should be the same file
         self.assertEqual(file1.hash, file2.hash)
         self.assertEqual(file1.path, file2.path)
-        
+
         # Should only have one File in database
         self.assertEqual(File.objects.filter(path=path).count(), 1)
 
@@ -121,10 +122,10 @@ class FileCreateMethodTestCase(TestCase):
         """Test that File.create() creates new File for different path."""
         path1 = self._create_test_file("test1.jpg", b"content1")
         path2 = self._create_test_file("test2.jpg", b"content2")
-        
+
         file1 = File.create(path1, self.user)
         file2 = File.create(path2, self.user)
-        
+
         self.assertNotEqual(file1.hash, file2.hash)
         self.assertNotEqual(file1.path, file2.path)
         self.assertEqual(File.objects.count(), 2)
@@ -132,18 +133,18 @@ class FileCreateMethodTestCase(TestCase):
     def test_create_returns_existing_even_if_content_changed(self):
         """Test that File.create() returns existing File even if content changed."""
         path = self._create_test_file("test.jpg", b"original content")
-        
+
         # Create first file
         file1 = File.create(path, self.user)
         original_hash = file1.hash
-        
+
         # Modify file content
         with open(path, "wb") as f:
             f.write(b"modified content")
-        
+
         # Create again - should return existing File (not recalculate hash)
         file2 = File.create(path, self.user)
-        
+
         # Should return existing file (hash stays the same)
         self.assertEqual(file1.hash, file2.hash)
         self.assertEqual(file2.hash, original_hash)
@@ -154,12 +155,12 @@ class FileCreateMethodTestCase(TestCase):
         img_path = self._create_test_file("photo.jpg")
         img_file = File.create(img_path, self.user)
         self.assertEqual(img_file.type, File.IMAGE)
-        
+
         # Create RAW file
         raw_path = self._create_test_file("photo.CR2")
         raw_file = File.create(raw_path, self.user)
         self.assertEqual(raw_file.type, File.RAW_FILE)
-        
+
         # Create metadata file
         xmp_path = self._create_test_file("photo.xmp")
         xmp_file = File.create(xmp_path, self.user)
@@ -174,7 +175,7 @@ class MigrationDeduplicationTestCase(TestCase):
 
     def test_deduplication_prefers_non_missing_file(self):
         """Test that deduplication logic prefers non-missing files.
-        
+
         This tests the scoring logic that the migration uses.
         """
         # Create two files to simulate pre-migration state
@@ -190,21 +191,21 @@ class MigrationDeduplicationTestCase(TestCase):
             type=File.IMAGE,
             missing=False,
         )
-        
+
         # Scoring logic: non-missing files get +100
         def score_file(f):
             score = 0
             if not f.missing:
                 score += 100
             return score
-        
+
         # Non-missing file should have higher score
         self.assertGreater(score_file(file_ok), score_file(file_missing))
 
     def test_deduplication_keeps_file_with_more_photos(self):
         """Test that deduplication prefers files linked to more photos."""
         _path = "/photos/popular.jpg"
-        
+
         # Create two files
         file_popular = File.objects.create(
             hash="hash_popular" + "a" * 20,
@@ -216,18 +217,18 @@ class MigrationDeduplicationTestCase(TestCase):
             path="/photos/lonely1.jpg",
             type=File.IMAGE,
         )
-        
+
         # Link popular file to multiple photos
         for i in range(3):
             photo = create_test_photo(owner=self.user)
             photo.files.add(file_popular)
             photo.save()
-        
+
         # Link lonely file to one photo
         photo = create_test_photo(owner=self.user)
         photo.files.add(file_lonely)
         photo.save()
-        
+
         # Verify photo counts
         self.assertEqual(file_popular.photo_set.count(), 3)
         self.assertEqual(file_lonely.photo_set.count(), 1)
@@ -235,7 +236,7 @@ class MigrationDeduplicationTestCase(TestCase):
 
 class ConcurrentScanTestCase(TransactionTestCase):
     """Tests for concurrent scan handling with unique constraint.
-    
+
     Note: These tests use threads which require a real database connection
     that can be shared across threads. SQLite in-memory databases cannot
     be accessed from multiple threads, so these tests are skipped on SQLite.
@@ -243,13 +244,17 @@ class ConcurrentScanTestCase(TransactionTestCase):
 
     def setUp(self):
         from django.conf import settings
+
         if settings.DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
-            self.skipTest("Concurrent tests require a multi-thread-safe database (not SQLite in-memory)")
+            self.skipTest(
+                "Concurrent tests require a multi-thread-safe database (not SQLite in-memory)"
+            )
         self.user = create_test_user()
         self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _create_test_file(self, filename, content=b"test content"):
@@ -264,33 +269,34 @@ class ConcurrentScanTestCase(TransactionTestCase):
         path = self._create_test_file("concurrent_test.jpg")
         results = []
         errors = []
-        
+
         def create_file():
             try:
                 file = File.create(path, self.user)
                 results.append(file.hash)
             except Exception as e:
                 errors.append(str(e))
-        
+
         # Run multiple threads trying to create the same file
         threads = []
         for _ in range(5):
             t = threading.Thread(target=create_file)
             threads.append(t)
-        
+
         for t in threads:
             t.start()
-        
+
         for t in threads:
             t.join()
-        
+
         # All should succeed (due to get_or_create pattern)
         self.assertEqual(len(errors), 0, f"Errors occurred: {errors}")
-        
+
         # All should return the same file
-        self.assertTrue(len(set(results)) <= 1, 
-            f"Expected same hash for all, got: {results}")
-        
+        self.assertTrue(
+            len(set(results)) <= 1, f"Expected same hash for all, got: {results}"
+        )
+
         # Should only have one File in database
         self.assertEqual(File.objects.filter(path=path).count(), 1)
 
@@ -301,22 +307,22 @@ class ConcurrentScanTestCase(TransactionTestCase):
             for i in range(5)
         ]
         results = []
-        
+
         def create_file(path):
             file = File.create(path, self.user)
             results.append(file.hash)
-        
+
         threads = []
         for path in paths:
             t = threading.Thread(target=create_file, args=(path,))
             threads.append(t)
-        
+
         for t in threads:
             t.start()
-        
+
         for t in threads:
             t.join()
-        
+
         # All 5 files should be created
         self.assertEqual(len(results), 5)
         self.assertEqual(File.objects.count(), 5)
@@ -340,7 +346,7 @@ class FilePathLookupTestCase(TestCase):
             path="/photos/image2.jpg",
             type=File.IMAGE,
         )
-        
+
         # Exact match should find only one
         result = File.objects.filter(path="/photos/image.jpg")
         self.assertEqual(result.count(), 1)
@@ -358,10 +364,10 @@ class FilePathLookupTestCase(TestCase):
             path="/photos/image2.jpg",
             type=File.IMAGE,
         )
-        
+
         photo = create_test_photo(owner=self.user)
         photo.files.add(file1, file2)
-        
+
         # Should find exact path
         self.assertTrue(photo.files.filter(path="/photos/image1.jpg").exists())
         self.assertFalse(photo.files.filter(path="/photos/image3.jpg").exists())
@@ -380,18 +386,18 @@ class PhotoFileAssociationTestCase(TestCase):
             path="/photos/shared_image.jpg",
             type=File.IMAGE,
         )
-        
+
         photo1 = create_test_photo(owner=self.user)
         photo2 = create_test_photo(owner=self.user)
-        
+
         photo1.files.add(file)
         photo1.main_file = file
         photo1.save()
-        
+
         photo2.files.add(file)
         photo2.main_file = file
         photo2.save()
-        
+
         # Both photos should reference the same file
         self.assertEqual(photo1.main_file.hash, photo2.main_file.hash)
         self.assertEqual(file.photo_set.count(), 2)

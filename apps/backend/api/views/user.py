@@ -36,6 +36,7 @@ class PredefinedRulesView(APIView):
 
 class DefaultBurstRulesView(APIView):
     """Get default burst detection rules."""
+
     def get(self, request, format=None):
         res = BURST_DEFAULT_RULES_JSON
         return Response(res)
@@ -43,6 +44,7 @@ class DefaultBurstRulesView(APIView):
 
 class PredefinedBurstRulesView(APIView):
     """Get all predefined burst detection rules (default + optional)."""
+
     def get(self, request, format=None):
         res = BURST_PREDEFINED_RULES_JSON
         return Response(res)

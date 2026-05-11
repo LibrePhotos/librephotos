@@ -9,7 +9,9 @@ from api import util
 from api.models.file import is_raw
 
 
-def _apply_local_orientation(image: pyvips.Image, local_orientation: int) -> pyvips.Image:
+def _apply_local_orientation(
+    image: pyvips.Image, local_orientation: int
+) -> pyvips.Image:
     """Apply a user-specified orientation transform to an already-upright pyvips image.
 
     ``local_orientation`` follows the EXIF Orientation convention (1-8).
@@ -112,9 +114,7 @@ def create_thumbnail(
 
 def create_animated_thumbnail(input_path, output_height, output_path, hash, file_type):
     try:
-        output = os.path.join(
-            settings.MEDIA_ROOT, output_path, hash + file_type
-        )
+        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
             "ffmpeg",
             "-i",
@@ -140,9 +140,7 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
 
 def create_thumbnail_for_video(input_path, output_path, hash, file_type):
     try:
-        output = os.path.join(
-            settings.MEDIA_ROOT, output_path, hash + file_type
-        )
+        output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
             "ffmpeg",
             "-i",
@@ -168,6 +166,4 @@ def does_static_thumbnail_exist(output_path, hash):
 
 
 def does_video_thumbnail_exist(output_path, hash):
-    return os.path.exists(
-        os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4")
-    )
+    return os.path.exists(os.path.join(settings.MEDIA_ROOT, output_path, hash + ".mp4"))

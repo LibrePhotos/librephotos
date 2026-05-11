@@ -32,6 +32,7 @@ _mod = import_module("api.migrations.0099_photo_uuid_primary_key")
 # Helpers
 # ============================================================================
 
+
 def _sqlite_table_exists(cursor, table_name):
     cursor.execute(
         "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?",
@@ -178,9 +179,7 @@ def _build_test_db():
 
     hashes = [f"hash_{i:032d}" for i in range(1, 4)]
     for h in hashes:
-        cur.execute(
-            "INSERT INTO api_photo (image_hash) VALUES (?)", [h]
-        )
+        cur.execute("INSERT INTO api_photo (image_hash) VALUES (?)", [h])
 
     # face referencing photo 0
     cur.execute(
@@ -197,24 +196,56 @@ def _build_test_db():
         [hashes[1]],
     )
     # thumbnail for photo 0
-    cur.execute("INSERT INTO api_thumbnail (photo_id, aspect_ratio) VALUES (?, 1.5)", [hashes[0]])
+    cur.execute(
+        "INSERT INTO api_thumbnail (photo_id, aspect_ratio) VALUES (?, 1.5)",
+        [hashes[0]],
+    )
     # caption for photo 1
     cur.execute("INSERT INTO api_photo_caption (photo_id) VALUES (?)", [hashes[1]])
     # search for photo 2
     cur.execute("INSERT INTO api_photo_search (photo_id) VALUES (?)", [hashes[2]])
     # person with cover_photo
-    cur.execute("INSERT INTO api_person (name, cover_photo_id) VALUES (?, ?)", ["Alice", hashes[0]])
+    cur.execute(
+        "INSERT INTO api_person (name, cover_photo_id) VALUES (?, ?)",
+        ["Alice", hashes[0]],
+    )
     # album user with cover_photo
-    cur.execute("INSERT INTO api_albumuser (title, cover_photo_id) VALUES (?, ?)", ["My Album", hashes[1]])
+    cur.execute(
+        "INSERT INTO api_albumuser (title, cover_photo_id) VALUES (?, ?)",
+        ["My Album", hashes[1]],
+    )
     # M2M entries
-    cur.execute("INSERT INTO api_photo_shared_to (photo_id, user_id) VALUES (?, 1)", [hashes[0]])
-    cur.execute("INSERT INTO api_albumuser_photos (albumuser_id, photo_id) VALUES (1, ?)", [hashes[0]])
-    cur.execute("INSERT INTO api_albumthing_photos (albumthing_id, photo_id) VALUES (1, ?)", [hashes[1]])
-    cur.execute("INSERT INTO api_albumplace_photos (albumplace_id, photo_id) VALUES (1, ?)", [hashes[2]])
-    cur.execute("INSERT INTO api_albumdate_photos (albumdate_id, photo_id) VALUES (1, ?)", [hashes[0]])
-    cur.execute("INSERT INTO api_albumauto_photos (albumauto_id, photo_id) VALUES (1, ?)", [hashes[1]])
-    cur.execute("INSERT INTO api_albumthing_cover_photos (albumthing_id, photo_id) VALUES (1, ?)", [hashes[2]])
-    cur.execute("INSERT INTO api_photostack (id, primary_photo_id) VALUES (?, ?)", ["stack-1", hashes[0]])
+    cur.execute(
+        "INSERT INTO api_photo_shared_to (photo_id, user_id) VALUES (?, 1)", [hashes[0]]
+    )
+    cur.execute(
+        "INSERT INTO api_albumuser_photos (albumuser_id, photo_id) VALUES (1, ?)",
+        [hashes[0]],
+    )
+    cur.execute(
+        "INSERT INTO api_albumthing_photos (albumthing_id, photo_id) VALUES (1, ?)",
+        [hashes[1]],
+    )
+    cur.execute(
+        "INSERT INTO api_albumplace_photos (albumplace_id, photo_id) VALUES (1, ?)",
+        [hashes[2]],
+    )
+    cur.execute(
+        "INSERT INTO api_albumdate_photos (albumdate_id, photo_id) VALUES (1, ?)",
+        [hashes[0]],
+    )
+    cur.execute(
+        "INSERT INTO api_albumauto_photos (albumauto_id, photo_id) VALUES (1, ?)",
+        [hashes[1]],
+    )
+    cur.execute(
+        "INSERT INTO api_albumthing_cover_photos (albumthing_id, photo_id) VALUES (1, ?)",
+        [hashes[2]],
+    )
+    cur.execute(
+        "INSERT INTO api_photostack (id, primary_photo_id) VALUES (?, ?)",
+        ["stack-1", hashes[0]],
+    )
 
     conn.commit()
     return conn, hashes
@@ -222,19 +253,24 @@ def _build_test_db():
 
 def _run_migration_on(sqlite_conn):
     """Run the SQLite migration path on the given raw sqlite3 connection."""
+
     # _migrate_sqlite expects a Django-like schema_editor with
     # .connection.cursor() returning something with .execute/.fetchall.
     # We wrap the raw sqlite3 connection to match.
     class _CursorWrapper:
         """Thin adapter so _migrate_sqlite can call cursor.execute(sql, params)."""
+
         def __init__(self, raw_cursor):
             self._cur = raw_cursor
+
         def execute(self, sql, params=None):
             if params is None:
                 return self._cur.execute(sql)
             return self._cur.execute(sql, params)
+
         def fetchall(self):
             return self._cur.fetchall()
+
         def fetchone(self):
             return self._cur.fetchone()
 
@@ -242,6 +278,7 @@ def _run_migration_on(sqlite_conn):
         def __init__(self, raw_conn):
             self._conn = raw_conn
             self.vendor = "sqlite"
+
         def cursor(self):
             return _CursorWrapper(self._conn.cursor())
 
@@ -256,6 +293,7 @@ def _run_migration_on(sqlite_conn):
 # ============================================================================
 # Test: Full end-to-end SQLite migration
 # ============================================================================
+
 
 class TestSQLiteMigration0099(TestCase):
     """
@@ -342,8 +380,8 @@ class TestSQLiteMigration0099(TestCase):
         """Faces should join to photos via the new UUID id."""
         cur = self._cursor()
         cur.execute(
-            'SELECT f.photo_id, p.id FROM api_face f '
-            'JOIN api_photo p ON f.photo_id = p.id'
+            "SELECT f.photo_id, p.id FROM api_face f "
+            "JOIN api_photo p ON f.photo_id = p.id"
         )
         rows = cur.fetchall()
         self.assertEqual(len(rows), 2)
@@ -354,17 +392,17 @@ class TestSQLiteMigration0099(TestCase):
     def test_no_orphan_faces(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT COUNT(*) FROM api_face f '
-            'LEFT JOIN api_photo p ON f.photo_id = p.id '
-            'WHERE p.id IS NULL'
+            "SELECT COUNT(*) FROM api_face f "
+            "LEFT JOIN api_photo p ON f.photo_id = p.id "
+            "WHERE p.id IS NULL"
         )
         self.assertEqual(cur.fetchone()[0], 0)
 
     def test_thumbnail_fk_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT t.photo_id, p.id FROM api_thumbnail t '
-            'JOIN api_photo p ON t.photo_id = p.id'
+            "SELECT t.photo_id, p.id FROM api_thumbnail t "
+            "JOIN api_photo p ON t.photo_id = p.id"
         )
         rows = cur.fetchall()
         self.assertEqual(len(rows), 1)
@@ -373,8 +411,8 @@ class TestSQLiteMigration0099(TestCase):
     def test_photo_caption_fk_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT c.photo_id, p.id FROM api_photo_caption c '
-            'JOIN api_photo p ON c.photo_id = p.id'
+            "SELECT c.photo_id, p.id FROM api_photo_caption c "
+            "JOIN api_photo p ON c.photo_id = p.id"
         )
         rows = cur.fetchall()
         self.assertEqual(len(rows), 1)
@@ -382,8 +420,8 @@ class TestSQLiteMigration0099(TestCase):
     def test_photo_search_fk_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT s.photo_id, p.id FROM api_photo_search s '
-            'JOIN api_photo p ON s.photo_id = p.id'
+            "SELECT s.photo_id, p.id FROM api_photo_search s "
+            "JOIN api_photo p ON s.photo_id = p.id"
         )
         rows = cur.fetchall()
         self.assertEqual(len(rows), 1)
@@ -391,8 +429,8 @@ class TestSQLiteMigration0099(TestCase):
     def test_person_cover_photo_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT per.cover_photo_id, p.id FROM api_person per '
-            'JOIN api_photo p ON per.cover_photo_id = p.id'
+            "SELECT per.cover_photo_id, p.id FROM api_person per "
+            "JOIN api_photo p ON per.cover_photo_id = p.id"
         )
         rows = cur.fetchall()
         self.assertEqual(len(rows), 1)
@@ -401,8 +439,8 @@ class TestSQLiteMigration0099(TestCase):
     def test_albumuser_cover_photo_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT a.cover_photo_id, p.id FROM api_albumuser a '
-            'JOIN api_photo p ON a.cover_photo_id = p.id'
+            "SELECT a.cover_photo_id, p.id FROM api_albumuser a "
+            "JOIN api_photo p ON a.cover_photo_id = p.id"
         )
         rows = cur.fetchall()
         self.assertEqual(len(rows), 1)
@@ -410,64 +448,64 @@ class TestSQLiteMigration0099(TestCase):
     def test_m2m_shared_to_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT s.photo_id, p.id FROM api_photo_shared_to s '
-            'JOIN api_photo p ON s.photo_id = p.id'
+            "SELECT s.photo_id, p.id FROM api_photo_shared_to s "
+            "JOIN api_photo p ON s.photo_id = p.id"
         )
         self.assertEqual(len(cur.fetchall()), 1)
 
     def test_m2m_albumuser_photos_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT a.photo_id, p.id FROM api_albumuser_photos a '
-            'JOIN api_photo p ON a.photo_id = p.id'
+            "SELECT a.photo_id, p.id FROM api_albumuser_photos a "
+            "JOIN api_photo p ON a.photo_id = p.id"
         )
         self.assertEqual(len(cur.fetchall()), 1)
 
     def test_m2m_albumthing_photos_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT a.photo_id, p.id FROM api_albumthing_photos a '
-            'JOIN api_photo p ON a.photo_id = p.id'
+            "SELECT a.photo_id, p.id FROM api_albumthing_photos a "
+            "JOIN api_photo p ON a.photo_id = p.id"
         )
         self.assertEqual(len(cur.fetchall()), 1)
 
     def test_m2m_albumplace_photos_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT a.photo_id, p.id FROM api_albumplace_photos a '
-            'JOIN api_photo p ON a.photo_id = p.id'
+            "SELECT a.photo_id, p.id FROM api_albumplace_photos a "
+            "JOIN api_photo p ON a.photo_id = p.id"
         )
         self.assertEqual(len(cur.fetchall()), 1)
 
     def test_m2m_albumdate_photos_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT a.photo_id, p.id FROM api_albumdate_photos a '
-            'JOIN api_photo p ON a.photo_id = p.id'
+            "SELECT a.photo_id, p.id FROM api_albumdate_photos a "
+            "JOIN api_photo p ON a.photo_id = p.id"
         )
         self.assertEqual(len(cur.fetchall()), 1)
 
     def test_m2m_albumauto_photos_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT a.photo_id, p.id FROM api_albumauto_photos a '
-            'JOIN api_photo p ON a.photo_id = p.id'
+            "SELECT a.photo_id, p.id FROM api_albumauto_photos a "
+            "JOIN api_photo p ON a.photo_id = p.id"
         )
         self.assertEqual(len(cur.fetchall()), 1)
 
     def test_albumthing_cover_photos_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT a.photo_id, p.id FROM api_albumthing_cover_photos a '
-            'JOIN api_photo p ON a.photo_id = p.id'
+            "SELECT a.photo_id, p.id FROM api_albumthing_cover_photos a "
+            "JOIN api_photo p ON a.photo_id = p.id"
         )
         self.assertEqual(len(cur.fetchall()), 1)
 
     def test_photostack_primary_photo_translated(self):
         cur = self._cursor()
         cur.execute(
-            'SELECT s.primary_photo_id, p.id FROM api_photostack s '
-            'JOIN api_photo p ON s.primary_photo_id = p.id'
+            "SELECT s.primary_photo_id, p.id FROM api_photostack s "
+            "JOIN api_photo p ON s.primary_photo_id = p.id"
         )
         rows = cur.fetchall()
         self.assertEqual(len(rows), 1)
@@ -477,6 +515,7 @@ class TestSQLiteMigration0099(TestCase):
 # ============================================================================
 # Test: Post-migration schema on the live Django test database
 # ============================================================================
+
 
 class TestPostMigrationSchema(TestCase):
     """
@@ -504,6 +543,7 @@ class TestPostMigrationSchema(TestCase):
     def test_photo_pk_is_uuid_field(self):
         """Verify Django's ORM sees the PK as a UUID field named 'id'."""
         from api.models import Photo
+
         pk_field = Photo._meta.pk
         self.assertEqual(pk_field.name, "id")
         self.assertIsInstance(pk_field, __import__("django").db.models.UUIDField)
@@ -512,6 +552,7 @@ class TestPostMigrationSchema(TestCase):
 # ============================================================================
 # Test: Dispatch and reverse logic
 # ============================================================================
+
 
 class TestMigrationDispatch(TestCase):
     """Test migrate_forward dispatch and migrate_reverse error."""
@@ -544,6 +585,7 @@ class TestMigrationDispatch(TestCase):
 # ============================================================================
 # Test: SQLite helper functions in isolation
 # ============================================================================
+
 
 class TestSQLiteHelpers(TestCase):
     """Unit tests for the individual SQLite helper functions."""
@@ -581,7 +623,9 @@ class TestSQLiteHelpers(TestCase):
             cur.execute("INSERT INTO _t_rec VALUES ('h2', 'u2', 'b')")
 
             _mod._sqlite_recreate_table(
-                cur, "_t_rec", pk_column="new_pk",
+                cur,
+                "_t_rec",
+                pk_column="new_pk",
                 column_overrides={
                     "new_pk": '"new_pk" TEXT NOT NULL',
                     "old_pk": '"old_pk" TEXT NOT NULL UNIQUE',

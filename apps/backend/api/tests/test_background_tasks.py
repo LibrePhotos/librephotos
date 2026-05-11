@@ -37,7 +37,9 @@ class GeolocateLoggingTests(unittest.TestCase):
         fake_tqdm_module = ModuleType("tqdm")
         fake_tqdm_module.tqdm = MagicMock()
 
-        module_path = pathlib.Path(__file__).resolve().parents[1] / "background_tasks.py"
+        module_path = (
+            pathlib.Path(__file__).resolve().parents[1] / "background_tasks.py"
+        )
 
         exception_mock = None
 
@@ -78,4 +80,3 @@ class GeolocateLoggingTests(unittest.TestCase):
         exception_mock.assert_called_once()
         self.assertEqual(logged_args[0], "could not geolocate photo: %s")
         self.assertIs(logged_args[1], photo)
-

@@ -307,7 +307,9 @@ urlpatterns = [
     ),
     re_path(
         r"^api/photos/(?P<photo_id>[0-9a-f-]+|[a-f0-9]{64})/metadata",
-        photo_metadata.PhotoMetadataViewSet.as_view({"get": "retrieve", "patch": "partial_update"}),
+        photo_metadata.PhotoMetadataViewSet.as_view(
+            {"get": "retrieve", "patch": "partial_update"}
+        ),
     ),
     re_path(r"^api/photos/metadata/bulk", photo_metadata.BulkMetadataView.as_view()),
     # File Variants - Download specific file variants (RAW, JPEG, video, etc.)

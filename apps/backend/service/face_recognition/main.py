@@ -90,7 +90,9 @@ def _find_best_face_match(face_locations, detected_faces):
         best_index = None
         best_score = -1.0
         for detected_index in remaining_indices:
-            score = _iou(face_location, _to_face_location(detected_faces[detected_index].bbox))
+            score = _iou(
+                face_location, _to_face_location(detected_faces[detected_index].bbox)
+            )
             if score > best_score:
                 best_score = score
                 best_index = detected_index
@@ -148,7 +150,9 @@ def create_face_locations():
     try:
         image = np.array(Image.open(source).convert("RGB"))
         face_analysis = _get_face_analysis(model_name)
-        face_locations = [_to_face_location(face.bbox) for face in face_analysis.get(image)]
+        face_locations = [
+            _to_face_location(face.bbox) for face in face_analysis.get(image)
+        ]
     except Exception as exc:
         log(f"error creating face_locations for {source}: {exc}")
         return {"error": str(exc)}, 500

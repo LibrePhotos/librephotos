@@ -333,9 +333,7 @@ class PhotoCaption(models.Model):
 
             if commit:
                 self.save()
-            util.logger.info(
-                f"generated {tagging_model} tags for image {image_path}."
-            )
+            util.logger.info(f"generated {tagging_model} tags for image {image_path}.")
         except Exception as e:
             util.logger.exception(
                 f"could not generate tags for image "
@@ -348,10 +346,7 @@ class PhotoCaption(models.Model):
         # Remove old album associations for this photo
         for album_thing in api.models.album_thing.AlbumThing.objects.filter(
             Q(photos__in=[self.photo])
-            & (
-                Q(thing_type="places365_attribute")
-                | Q(thing_type="places365_category")
-            )
+            & (Q(thing_type="places365_attribute") | Q(thing_type="places365_category"))
             & Q(owner=self.photo.owner)
         ).all():
             album_thing.photos.remove(self.photo)

@@ -7,7 +7,7 @@ and manual stacks.
 NOTE: RAW+JPEG pairs and Live Photos are NO LONGER stacks. They use
 the Photo.files field for file variants (PhotoPrism-like model).
 
-NOTE: Duplicates (exact copies and visual duplicates) are handled 
+NOTE: Duplicates (exact copies and visual duplicates) are handled
 separately by the duplicates API in api/views/duplicates.py.
 Stacks are for organization, duplicates are for storage cleanup.
 """
@@ -52,13 +52,13 @@ class PhotoStackListView(APIView):
     )
     def get(self, request):
         stack_type_filter = request.query_params.get("stack_type", None)
-        
+
         # Safely parse pagination parameters with defaults for invalid input
         try:
             page = max(1, int(request.query_params.get("page", 1)))
         except (ValueError, TypeError):
             page = 1
-        
+
         try:
             page_size = max(1, min(int(request.query_params.get("page_size", 20)), 100))
         except (ValueError, TypeError):
@@ -67,14 +67,14 @@ class PhotoStackListView(APIView):
         # Use model-defined valid stack types (excludes deprecated RAW_JPEG_PAIR, LIVE_PHOTO)
         valid_stack_types = PhotoStack.VALID_STACK_TYPES
 
-        stacks = PhotoStack.objects.filter(
-            owner=request.user,
-            stack_type__in=valid_stack_types
-        ).prefetch_related(
-            "photos__thumbnail", "primary_photo__thumbnail"
-        ).annotate(
-            photos_count=Count("photos")
-        ).order_by("-created_at")
+        stacks = (
+            PhotoStack.objects.filter(
+                owner=request.user, stack_type__in=valid_stack_types
+            )
+            .prefetch_related("photos__thumbnail", "primary_photo__thumbnail")
+            .annotate(photos_count=Count("photos"))
+            .order_by("-created_at")
+        )
 
         if stack_type_filter:
             # Validate that the filter is a valid organizational stack type
@@ -93,36 +93,48 @@ class PhotoStackListView(APIView):
         results = []
         for stack in page_obj.object_list:
             photos = stack.photos.all()[:4]  # Preview first 4 photos
-            results.append({
-                "id": str(stack.id),
-                "stack_type": stack.stack_type,
-                "stack_type_display": stack.get_stack_type_display(),
-                "photo_count": stack.photos_count,
-                "sequence_start": stack.sequence_start,
-                "sequence_end": stack.sequence_end,
-                "created_at": stack.created_at,
-                "primary_photo": {
-                    "image_hash": stack.primary_photo.image_hash,
-                    "thumbnail_url": f"/media/square_thumbnails_small/{stack.primary_photo.image_hash}" if hasattr(stack.primary_photo, 'thumbnail') and stack.primary_photo.thumbnail.square_thumbnail_small else None,
-                } if stack.primary_photo else None,
-                "preview_photos": [
-                    {
-                        "image_hash": p.image_hash,
-                        "thumbnail_url": f"/media/square_thumbnails_small/{p.image_hash}" if hasattr(p, 'thumbnail') and p.thumbnail.square_thumbnail_small else None,
+            results.append(
+                {
+                    "id": str(stack.id),
+                    "stack_type": stack.stack_type,
+                    "stack_type_display": stack.get_stack_type_display(),
+                    "photo_count": stack.photos_count,
+                    "sequence_start": stack.sequence_start,
+                    "sequence_end": stack.sequence_end,
+                    "created_at": stack.created_at,
+                    "primary_photo": {
+                        "image_hash": stack.primary_photo.image_hash,
+                        "thumbnail_url": f"/media/square_thumbnails_small/{stack.primary_photo.image_hash}"
+                        if hasattr(stack.primary_photo, "thumbnail")
+                        and stack.primary_photo.thumbnail.square_thumbnail_small
+                        else None,
                     }
-                    for p in photos
-                ],
-            })
+                    if stack.primary_photo
+                    else None,
+                    "preview_photos": [
+                        {
+                            "image_hash": p.image_hash,
+                            "thumbnail_url": f"/media/square_thumbnails_small/{p.image_hash}"
+                            if hasattr(p, "thumbnail")
+                            and p.thumbnail.square_thumbnail_small
+                            else None,
+                        }
+                        for p in photos
+                    ],
+                }
+            )
 
-        return Response({
-            "results": results,
-            "count": paginator.count,
-            "num_pages": paginator.num_pages,
-            "page": page,
-            "page_size": page_size,
-            "has_next": page_obj.has_next(),
-            "has_previous": page_obj.has_previous(),
-        })
+        return Response(
+            {
+                "results": results,
+                "count": paginator.count,
+                "num_pages": paginator.num_pages,
+                "page": page,
+                "page_size": page_size,
+                "has_next": page_obj.has_next(),
+                "has_previous": page_obj.has_previous(),
+            }
+        )
 
 
 class PhotoStackDetailView(APIView):
@@ -137,17 +149,21 @@ class PhotoStackDetailView(APIView):
             PhotoStack.StackType.RAW_JPEG_PAIR,
             PhotoStack.StackType.LIVE_PHOTO,
         ]
-        
+
         try:
-            stack = PhotoStack.objects.annotate(
-                photos_count=Count("photos")
-            ).get(id=stack_id, owner=request.user, stack_type__in=all_stack_types)
+            stack = PhotoStack.objects.annotate(photos_count=Count("photos")).get(
+                id=stack_id, owner=request.user, stack_type__in=all_stack_types
+            )
         except PhotoStack.DoesNotExist:
             return Response(
                 {"error": "Photo stack not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        photos = stack.photos.select_related('thumbnail', 'main_file', 'metadata').prefetch_related('files').all()
+        photos = (
+            stack.photos.select_related("thumbnail", "main_file", "metadata")
+            .prefetch_related("files")
+            .all()
+        )
 
         photo_data = []
         for p in photos:
@@ -155,7 +171,7 @@ class PhotoStackDetailView(APIView):
             width = None
             height = None
             camera = None
-            if hasattr(p, 'metadata') and p.metadata:
+            if hasattr(p, "metadata") and p.metadata:
                 width = p.metadata.width
                 height = p.metadata.height
                 camera = p.metadata.camera_model
@@ -163,13 +179,15 @@ class PhotoStackDetailView(APIView):
             # Get all file variants for this photo
             file_variants = []
             for f in p.files.all():
-                file_variants.append({
-                    "hash": f.hash,
-                    "path": f.path,
-                    "type": f.get_type_display().lower(),
-                    "is_main": p.main_file and f.hash == p.main_file.hash,
-                    "filename": f.path.split("/")[-1] if f.path else None,
-                })
+                file_variants.append(
+                    {
+                        "hash": f.hash,
+                        "path": f.path,
+                        "type": f.get_type_display().lower(),
+                        "is_main": p.main_file and f.hash == p.main_file.hash,
+                        "filename": f.path.split("/")[-1] if f.path else None,
+                    }
+                )
 
             data = {
                 "id": str(p.id),
@@ -179,27 +197,38 @@ class PhotoStackDetailView(APIView):
                 "size": p.size,
                 "camera": camera,
                 "exif_timestamp": p.exif_timestamp,
-                "is_primary": stack.primary_photo and p.image_hash == stack.primary_photo.image_hash,
+                "is_primary": stack.primary_photo
+                and p.image_hash == stack.primary_photo.image_hash,
                 "file_path": p.main_file.path if p.main_file else None,
-                "file_type": p.main_file.get_type_display().lower() if p.main_file else None,
+                "file_type": p.main_file.get_type_display().lower()
+                if p.main_file
+                else None,
                 "file_variants": file_variants if file_variants else None,
-                "thumbnail_url": f"/media/square_thumbnails_small/{p.image_hash}" if hasattr(p, 'thumbnail') and p.thumbnail.square_thumbnail_small else None,
-                "thumbnail_big_url": f"/media/thumbnails_big/{p.image_hash}" if hasattr(p, 'thumbnail') and p.thumbnail.thumbnail_big else None,
+                "thumbnail_url": f"/media/square_thumbnails_small/{p.image_hash}"
+                if hasattr(p, "thumbnail") and p.thumbnail.square_thumbnail_small
+                else None,
+                "thumbnail_big_url": f"/media/thumbnails_big/{p.image_hash}"
+                if hasattr(p, "thumbnail") and p.thumbnail.thumbnail_big
+                else None,
             }
             photo_data.append(data)
 
-        return Response({
-            "id": str(stack.id),
-            "stack_type": stack.stack_type,
-            "stack_type_display": stack.get_stack_type_display(),
-            "photo_count": stack.photos_count,
-            "sequence_start": stack.sequence_start,
-            "sequence_end": stack.sequence_end,
-            "created_at": stack.created_at,
-            "updated_at": stack.updated_at,
-            "primary_photo_hash": stack.primary_photo.image_hash if stack.primary_photo else None,
-            "photos": photo_data,
-        })
+        return Response(
+            {
+                "id": str(stack.id),
+                "stack_type": stack.stack_type,
+                "stack_type_display": stack.get_stack_type_display(),
+                "photo_count": stack.photos_count,
+                "sequence_start": stack.sequence_start,
+                "sequence_end": stack.sequence_end,
+                "created_at": stack.created_at,
+                "updated_at": stack.updated_at,
+                "primary_photo_hash": stack.primary_photo.image_hash
+                if stack.primary_photo
+                else None,
+                "photos": photo_data,
+            }
+        )
 
     def delete(self, request, stack_id):
         """Delete a stack (unlinks photos but doesn't delete them)."""
@@ -220,10 +249,7 @@ class PhotoStackDetailView(APIView):
         stack.delete()
 
         logger.info(f"Deleted stack {stack_id_str}: unlinked {photo_count} photos")
-        return Response({
-            "status": "deleted",
-            "unlinked_count": photo_count
-        })
+        return Response({"status": "deleted", "unlinked_count": photo_count})
 
 
 class PhotoStackDeleteView(APIView):
@@ -249,10 +275,7 @@ class PhotoStackDeleteView(APIView):
         stack.delete()
 
         logger.info(f"Deleted stack {stack_id_str}: unlinked {photo_count} photos")
-        return Response({
-            "status": "deleted",
-            "unlinked_count": photo_count
-        })
+        return Response({"status": "deleted", "unlinked_count": photo_count})
 
 
 class PhotoStackSetPrimaryView(APIView):
@@ -271,8 +294,7 @@ class PhotoStackSetPrimaryView(APIView):
         photo_hash = request.data.get("photo_hash")
         if not photo_hash:
             return Response(
-                {"error": "photo_hash is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "photo_hash is required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
@@ -280,25 +302,22 @@ class PhotoStackSetPrimaryView(APIView):
         except Photo.DoesNotExist:
             return Response(
                 {"error": "Photo not found in this stack"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         stack.primary_photo = photo
-        stack.save(update_fields=['primary_photo', 'updated_at'])
+        stack.save(update_fields=["primary_photo", "updated_at"])
 
         logger.info(f"Set primary photo for stack {stack.id} to {photo_hash}")
-        return Response({
-            "status": "updated",
-            "primary_photo_hash": photo_hash
-        })
+        return Response({"status": "updated", "primary_photo_hash": photo_hash})
 
 
 class DetectStacksView(APIView):
     """Trigger stack detection for the current user (bursts, brackets).
-    
+
     NOTE: RAW+JPEG pairs and Live Photos are now handled as file variants
     during scan (PhotoPrism-like model), not as stacks.
-    
+
     Burst detection uses the user's configured burst_detection_rules from their profile.
     """
 
@@ -315,17 +334,19 @@ class DetectStacksView(APIView):
     )
     def post(self, request):
         from api.stack_detection import batch_detect_stacks
-        
+
         # RAW+JPEG and Live Photos are now file variants, not stacks
         # Only burst/bracket detection is done here
         options = {
-            'detect_bursts': request.data.get('detect_bursts', True),
+            "detect_bursts": request.data.get("detect_bursts", True),
         }
 
         # Queue background job
         async_task(batch_detect_stacks, request.user, options)
-        
-        logger.info(f"Stack detection queued for user {request.user.username} with options: {options}")
+
+        logger.info(
+            f"Stack detection queued for user {request.user.username} with options: {options}"
+        )
         return Response(
             {
                 "status": "queued",
@@ -347,33 +368,37 @@ class PhotoStackStatsView(APIView):
             PhotoStack.StackType.RAW_JPEG_PAIR,
             PhotoStack.StackType.LIVE_PHOTO,
         ]
-        
+
         stacks = PhotoStack.objects.filter(
-            owner=request.user,
-            stack_type__in=all_stack_types
+            owner=request.user, stack_type__in=all_stack_types
         )
-        
+
         # Count by type (includes deprecated types so users can see migration progress)
         by_type = {}
         for stack_type in all_stack_types:
             by_type[stack_type] = stacks.filter(stack_type=stack_type).count()
-        
+
         # Count photos in stacks (ManyToMany - photos with at least one valid organizational stack)
-        photos_in_stacks = Photo.objects.filter(
-            owner=request.user,
-            stacks__stack_type__in=all_stack_types
-        ).distinct().count()
-        
+        photos_in_stacks = (
+            Photo.objects.filter(
+                owner=request.user, stacks__stack_type__in=all_stack_types
+            )
+            .distinct()
+            .count()
+        )
+
         total_photos = Photo.objects.filter(
             owner=request.user, hidden=False, in_trashcan=False
         ).count()
 
-        return Response({
-            "total_stacks": stacks.count(),
-            "by_type": by_type,
-            "photos_in_stacks": photos_in_stacks,
-            "total_photos": total_photos,
-        })
+        return Response(
+            {
+                "total_stacks": stacks.count(),
+                "by_type": by_type,
+                "photos_in_stacks": photos_in_stacks,
+                "total_photos": total_photos,
+            }
+        )
 
 
 class CreateManualStackView(APIView):
@@ -383,36 +408,34 @@ class CreateManualStackView(APIView):
 
     def post(self, request):
         photo_hashes = request.data.get("photo_hashes", [])
-        
+
         # De-duplicate the input to handle repeated hashes
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
-        
+
         if len(unique_hashes) < 2:
             return Response(
                 {"error": "At least 2 unique photos required to create a stack"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Verify all photos exist and belong to user
-        photos = Photo.objects.filter(
-            owner=request.user,
-            image_hash__in=unique_hashes
-        )
-        
+        photos = Photo.objects.filter(owner=request.user, image_hash__in=unique_hashes)
+
         if photos.count() != len(unique_hashes):
             return Response(
-                {"error": "Some photos not found"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Some photos not found"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # Check if any photo is already in a manual stack
         existing_stack = None
         for photo in photos:
-            manual_stack = photo.stacks.filter(stack_type=PhotoStack.StackType.MANUAL).first()
+            manual_stack = photo.stacks.filter(
+                stack_type=PhotoStack.StackType.MANUAL
+            ).first()
             if manual_stack:
                 existing_stack = manual_stack
                 break
-        
+
         if existing_stack:
             # Add to existing stack (ManyToMany)
             stack = existing_stack
@@ -427,15 +450,20 @@ class CreateManualStackView(APIView):
             )
             for photo in photos:
                 photo.stacks.add(stack)
-        
+
         stack.auto_select_primary()
-        
-        logger.info(f"Created/updated MANUAL stack {stack.id} with {photos.count()} photos")
-        return Response({
-            "status": "created",
-            "stack_id": str(stack.id),
-            "photo_count": photos.count(),
-        }, status=status.HTTP_201_CREATED)
+
+        logger.info(
+            f"Created/updated MANUAL stack {stack.id} with {photos.count()} photos"
+        )
+        return Response(
+            {
+                "status": "created",
+                "stack_id": str(stack.id),
+                "photo_count": photos.count(),
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class AddToStackView(APIView):
@@ -455,14 +483,11 @@ class AddToStackView(APIView):
         if not photo_hashes:
             return Response(
                 {"error": "photo_hashes is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        photos = Photo.objects.filter(
-            owner=request.user,
-            image_hash__in=photo_hashes
-        )
-        
+        photos = Photo.objects.filter(owner=request.user, image_hash__in=photo_hashes)
+
         added_count = 0
         for photo in photos:
             if not photo.stacks.filter(pk=stack.pk).exists():
@@ -470,11 +495,13 @@ class AddToStackView(APIView):
                 added_count += 1
 
         logger.info(f"Added {added_count} photos to stack {stack.id}")
-        return Response({
-            "status": "updated",
-            "added_count": added_count,
-            "total_count": stack.photos.count(),
-        })
+        return Response(
+            {
+                "status": "updated",
+                "added_count": added_count,
+                "total_count": stack.photos.count(),
+            }
+        )
 
 
 class RemoveFromStackView(APIView):
@@ -494,14 +521,11 @@ class RemoveFromStackView(APIView):
         if not photo_hashes:
             return Response(
                 {"error": "photo_hashes is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        photos = Photo.objects.filter(
-            owner=request.user,
-            image_hash__in=photo_hashes
-        )
-        
+        photos = Photo.objects.filter(owner=request.user, image_hash__in=photo_hashes)
+
         removed_count = 0
         for photo in photos:
             if photo.stacks.filter(pk=stack.pk).exists():
@@ -512,23 +536,29 @@ class RemoveFromStackView(APIView):
         remaining_count = stack.photos.count()
         if remaining_count < 2:
             stack.delete()
-            logger.info(f"Deleted stack {stack_id} after removing photos (only {remaining_count} left)")
-            return Response({
-                "status": "deleted",
-                "removed_count": removed_count,
-                "message": "Stack deleted because fewer than 2 photos remain",
-            })
+            logger.info(
+                f"Deleted stack {stack_id} after removing photos (only {remaining_count} left)"
+            )
+            return Response(
+                {
+                    "status": "deleted",
+                    "removed_count": removed_count,
+                    "message": "Stack deleted because fewer than 2 photos remain",
+                }
+            )
 
         # Update primary if it was removed
         if stack.primary_photo and stack.primary_photo.image_hash in photo_hashes:
             stack.auto_select_primary()
 
         logger.info(f"Removed {removed_count} photos from stack {stack.id}")
-        return Response({
-            "status": "updated",
-            "removed_count": removed_count,
-            "total_count": remaining_count,
-        })
+        return Response(
+            {
+                "status": "updated",
+                "removed_count": removed_count,
+                "total_count": remaining_count,
+            }
+        )
 
 
 class MergeStacksView(APIView):
@@ -538,57 +568,57 @@ class MergeStacksView(APIView):
 
     def post(self, request):
         photo_hashes = request.data.get("photo_hashes", [])
-        
+
         if not photo_hashes:
             return Response(
                 {"error": "photo_hashes is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # De-duplicate the input to handle repeated hashes
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
 
         # Verify all photos exist and belong to user
-        photos = Photo.objects.filter(
-            owner=request.user,
-            image_hash__in=unique_hashes
-        )
-        
+        photos = Photo.objects.filter(owner=request.user, image_hash__in=unique_hashes)
+
         if photos.count() != len(unique_hashes):
             return Response(
-                {"error": "Some photos not found"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Some photos not found"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # Find all manual stacks that contain any of the selected photos
         # Convert to list immediately to avoid multiple query evaluations with
         # potentially inconsistent ordering
-        manual_stacks = list(PhotoStack.objects.filter(
-            owner=request.user,
-            stack_type=PhotoStack.StackType.MANUAL,
-            photos__in=photos
-        ).distinct())
+        manual_stacks = list(
+            PhotoStack.objects.filter(
+                owner=request.user,
+                stack_type=PhotoStack.StackType.MANUAL,
+                photos__in=photos,
+            ).distinct()
+        )
 
         if not manual_stacks:
             return Response(
                 {"error": "No manual stacks found containing selected photos"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if len(manual_stacks) == 1:
             # Only one stack found, nothing to merge
             stack = manual_stacks[0]
-            return Response({
-                "status": "no_merge_needed",
-                "stack_id": str(stack.id),
-                "photo_count": stack.photos.count(),
-                "message": "Only one stack found, nothing to merge",
-            })
+            return Response(
+                {
+                    "status": "no_merge_needed",
+                    "stack_id": str(stack.id),
+                    "photo_count": stack.photos.count(),
+                    "message": "Only one stack found, nothing to merge",
+                }
+            )
 
         # Merge all stacks into the first one
         target_stack = manual_stacks[0]
         stacks_to_merge = manual_stacks[1:]
-        
+
         for stack in stacks_to_merge:
             target_stack.merge_with(stack)
 
@@ -596,10 +626,15 @@ class MergeStacksView(APIView):
         if not target_stack.primary_photo:
             target_stack.auto_select_primary()
 
-        logger.info(f"Merged {len(stacks_to_merge)} manual stacks into {target_stack.id}")
-        return Response({
-            "status": "merged",
-            "stack_id": str(target_stack.id),
-            "photo_count": target_stack.photos.count(),
-            "merged_count": len(stacks_to_merge),
-        }, status=status.HTTP_200_OK)
+        logger.info(
+            f"Merged {len(stacks_to_merge)} manual stacks into {target_stack.id}"
+        )
+        return Response(
+            {
+                "status": "merged",
+                "stack_id": str(target_stack.id),
+                "photo_count": target_stack.photos.count(),
+                "merged_count": len(stacks_to_merge),
+            },
+            status=status.HTTP_200_OK,
+        )

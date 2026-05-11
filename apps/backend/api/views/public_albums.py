@@ -22,10 +22,10 @@ class SetUserAlbumPublic(APIView):
         album_id = data.get("album_id")
         slug = data.get("slug")
         expires_at = data.get("expires_at")  # ISO string or None
-        
+
         # Sharing options - None means use user default, True/False overrides
         sharing_options = data.get("sharing_options", {})
-        
+
         if album_id is None or val_public is None:
             return Response(
                 {"status": False, "message": "Missing parameters"}, status=400
@@ -52,7 +52,7 @@ class SetUserAlbumPublic(APIView):
                 share.expires_at = dt
             except Exception:
                 pass
-        
+
         # Update sharing options if provided
         if sharing_options:
             # Each option can be True, False, or None (use default)
@@ -91,26 +91,30 @@ class PublicAlbumBySlug(APIView):
         )
         if not album:
             return Response(status=404)
-        
+
         # Include effective sharing settings in response
         sharing_settings = album.share.get_effective_sharing_settings()
-        
+
         serializer = AlbumUserPublicSerializer(album, context={"request": request})
-        return Response({
-            "results": serializer.data,
-            "sharing_settings": sharing_settings,
-        })
+        return Response(
+            {
+                "results": serializer.data,
+                "sharing_settings": sharing_settings,
+            }
+        )
 
 
 class PublicPhotoDetailBySlug(APIView):
     """Get photo details for a photo in a publicly shared album."""
-    
+
     permission_classes = [AllowAny]
 
     @extend_schema(
         parameters=[
             OpenApiParameter("slug", OpenApiTypes.STR, description="Album share slug"),
-            OpenApiParameter("photo_id", OpenApiTypes.STR, description="Photo ID or image hash"),
+            OpenApiParameter(
+                "photo_id", OpenApiTypes.STR, description="Photo ID or image hash"
+            ),
         ],
         description="Returns photo details for a photo in a public album, filtered by sharing settings",
     )
@@ -127,11 +131,11 @@ class PublicPhotoDetailBySlug(APIView):
         )
         if not album:
             return Response({"error": "Album not found or not public"}, status=404)
-        
+
         # Find the photo - support both UUID and image_hash lookups
         # UUID format is 36 chars with hyphens, image_hash is 32 hex chars
         is_uuid_format = len(photo_id) == 36 and photo_id.count("-") == 4
-        
+
         if is_uuid_format:
             photo = album.photos.filter(
                 pk=photo_id,
@@ -144,20 +148,21 @@ class PublicPhotoDetailBySlug(APIView):
                 hidden=False,
                 in_trashcan=False,
             ).first()
-        
+
         if not photo:
             return Response({"error": "Photo not found in album"}, status=404)
-        
+
         # Get effective sharing settings
         sharing_settings = album.share.get_effective_sharing_settings()
-        
+
         # Serialize with sharing settings in context
         serializer = PublicPhotoDetailSerializer(
-            photo,
-            context={"request": request, "sharing_settings": sharing_settings}
+            photo, context={"request": request, "sharing_settings": sharing_settings}
         )
-        
-        return Response({
-            "results": serializer.data,
-            "sharing_settings": sharing_settings,
-        })
+
+        return Response(
+            {
+                "results": serializer.data,
+                "sharing_settings": sharing_settings,
+            }
+        )

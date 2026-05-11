@@ -43,7 +43,12 @@ class LocateGoogleEmbeddedVideoTestCase(TestCase):
     def test_finds_ftypmp42_signature(self):
         """Should find MP4 with ftypmp42 signature."""
         # Build data: JPEG content + 4 padding bytes + ftyp signature
-        data = b"JPEG_CONTENT\xff\xd9" + b"\x00\x00\x00\x00" + b"ftypmp42" + b"more_video_data"
+        data = (
+            b"JPEG_CONTENT\xff\xd9"
+            + b"\x00\x00\x00\x00"
+            + b"ftypmp42"
+            + b"more_video_data"
+        )
         position = _locate_google_embedded_video(data)
         expected = data.find(b"ftypmp42") - 4
         self.assertEqual(position, expected)
@@ -113,6 +118,7 @@ class HasEmbeddedMotionVideoTestCase(TestCase):
     def tearDown(self):
         """Clean up temporary files."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     @patch("api.stacks.live_photo.magic.Magic")
@@ -128,7 +134,9 @@ class HasEmbeddedMotionVideoTestCase(TestCase):
     @patch("api.stacks.live_photo.magic.Magic")
     @patch("builtins.open")
     @patch("api.stacks.live_photo.mmap")
-    def test_returns_true_for_google_motion_photo(self, mock_mmap, mock_open, mock_magic_class):
+    def test_returns_true_for_google_motion_photo(
+        self, mock_mmap, mock_open, mock_magic_class
+    ):
         """Should return True for Google Motion Photo."""
         mock_magic = MagicMock()
         mock_magic.from_file.return_value = "image/jpeg"
@@ -146,7 +154,9 @@ class HasEmbeddedMotionVideoTestCase(TestCase):
         mock_file.__exit__ = Mock(return_value=False)
         mock_open.return_value = mock_file
 
-        with patch("api.stacks.live_photo._locate_google_embedded_video", return_value=4):
+        with patch(
+            "api.stacks.live_photo._locate_google_embedded_video", return_value=4
+        ):
             result = has_embedded_motion_video("/some/path.jpg")
             self.assertTrue(result)
 
@@ -171,6 +181,7 @@ class FindAppleLivePhotoVideoTestCase(TestCase):
     def tearDown(self):
         """Clean up temporary files."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_finds_lowercase_mov_companion(self):
@@ -241,6 +252,7 @@ class ExtractEmbeddedMotionVideoTestCase(TestCase):
     def tearDown(self):
         """Clean up temporary files."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     @override_settings(MEDIA_ROOT=None)
@@ -251,10 +263,10 @@ class ExtractEmbeddedMotionVideoTestCase(TestCase):
             # Create a fake motion photo file
             fake_video_data = b"fake_mp4_video_content"
             file_content = (
-                b"JPEG_IMAGE_DATA\xff\xd9" +  # JPEG with EOI marker
-                b"\x00\x00\x00\x00" +  # 4 padding bytes
-                b"ftypmp42" +  # ftyp signature
-                fake_video_data
+                b"JPEG_IMAGE_DATA\xff\xd9"  # JPEG with EOI marker
+                + b"\x00\x00\x00\x00"  # 4 padding bytes
+                + b"ftypmp42"  # ftyp signature
+                + fake_video_data
             )
 
             input_path = os.path.join(self.temp_dir, "motion_photo.jpg")
@@ -302,6 +314,7 @@ class DetectLivePhotoTestCase(TestCase):
     def tearDown(self):
         """Clean up."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_returns_none_for_photo_without_main_file(self):
@@ -371,6 +384,7 @@ class CreateEmbeddedLivePhotoStackTestCase(TestCase):
     def tearDown(self):
         """Clean up."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     @override_settings(FEATURE_PROCESS_EMBEDDED_MEDIA=False)
@@ -449,6 +463,7 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
     def tearDown(self):
         """Clean up."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_creates_new_stack_for_apple_live_photo(self):
@@ -468,7 +483,9 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
                 # Simulate video file not existing yet
                 mock_filter.return_value.first.return_value = None
 
-                result = _create_apple_live_photo_stack(self.photo, video_path, self.user)
+                result = _create_apple_live_photo_stack(
+                    self.photo, video_path, self.user
+                )
 
                 self.assertIsNotNone(result)
                 self.assertEqual(result.stack_type, PhotoStack.StackType.LIVE_PHOTO)
@@ -499,7 +516,9 @@ class CreateAppleLivePhotoStackTestCase(TestCase):
             with patch("api.stacks.live_photo.File.objects.filter") as mock_filter:
                 mock_filter.return_value.first.return_value = None
 
-                result = _create_apple_live_photo_stack(self.photo, video_path, self.user)
+                result = _create_apple_live_photo_stack(
+                    self.photo, video_path, self.user
+                )
 
                 self.assertEqual(result, existing_stack)
 
@@ -602,6 +621,7 @@ class EdgeCasesTestCase(TestCase):
     def tearDown(self):
         """Clean up."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_unicode_filename_apple_live_photo(self):
@@ -633,8 +653,10 @@ class EdgeCasesTestCase(TestCase):
     def test_multiple_samsung_markers(self):
         """Should find first Samsung marker if multiple present."""
         data = (
-            SAMSUNG_MOTION_MARKER + b"first_video" +
-            SAMSUNG_MOTION_MARKER + b"second_video"
+            SAMSUNG_MOTION_MARKER
+            + b"first_video"
+            + SAMSUNG_MOTION_MARKER
+            + b"second_video"
         )
         position = _locate_samsung_embedded_video(data)
         self.assertEqual(position, len(SAMSUNG_MOTION_MARKER))

@@ -53,7 +53,7 @@ else:
 def walk_directory(directory, callback):
     """
     Recursively walk a directory and collect file paths.
-    
+
     Args:
         directory: Directory to scan
         callback: List to append file paths to
@@ -70,7 +70,7 @@ def walk_directory(directory, callback):
 def walk_files(scan_files, callback):
     """
     Walk a list of specific files.
-    
+
     Args:
         scan_files: List of file paths to check
         callback: List to append valid file paths to
@@ -100,10 +100,10 @@ def is_job_cancelled(job_id) -> bool:
 def update_scan_counter(job_id, failed=False, error=None):
     """
     Update the progress counter for a long-running job.
-    
+
     Increments progress_current and marks job as finished when complete.
     Also tracks errors for failed items.
-    
+
     Args:
         job_id: The job ID to update
         failed: Whether this item failed processing
@@ -113,7 +113,7 @@ def update_scan_counter(job_id, failed=False, error=None):
     LongRunningJob.objects.filter(job_id=job_id).update(
         progress_current=F("progress_current") + 1
     )
-    
+
     # Refetch the job to get the updated progress_current value
     job = LongRunningJob.objects.filter(job_id=job_id).first()
     if not job:
@@ -162,12 +162,16 @@ def update_scan_counter(job_id, failed=False, error=None):
                     if error_str not in result["errors"]:
                         result["errors"].append(error_str)
                         if len(result["errors"]) > 100:
-                            result["errors"] = result["errors"][-100:]  # Keep last 100 errors
+                            result["errors"] = result["errors"][
+                                -100:
+                            ]  # Keep last 100 errors
                 # Set main error field for backward compatibility
                 if "error" not in result and error:
                     result["error"] = str(error)
                 elif "error" not in result and result.get("errors"):
-                    result["error"] = result["errors"][0]  # Use first error as main error
+                    result["error"] = result["errors"][
+                        0
+                    ]  # Use first error as main error
                 job.result = result
                 job.failed = failed or job.failed
                 job.save(update_fields=["failed", "result"])

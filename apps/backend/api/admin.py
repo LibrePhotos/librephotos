@@ -26,7 +26,7 @@ def deduplicate_faces_function(queryset):
         for i, face_a in enumerate(faces):
             if face_a.id in to_delete:
                 continue
-            for face_b in faces[i + 1:]:
+            for face_b in faces[i + 1 :]:
                 if face_b.id in to_delete:
                     continue
                 iou = calculate_iou(

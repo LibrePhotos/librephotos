@@ -9,7 +9,6 @@ Tests edge cases where photos belong to both stacks and duplicate groups:
 - Multi-user isolation
 """
 
-
 from django.test import TestCase
 from django.utils import timezone
 
@@ -330,7 +329,7 @@ class MultiUserIsolationTestCase(TestCase):
     def test_duplicate_detection_scoped_to_user(self):
         """Duplicate groups should be scoped to owner."""
         photo1 = self._create_photo_for_user(self.user1, "3")
-        
+
         dup1 = Duplicate.objects.create(
             owner=self.user1,
             duplicate_type=Duplicate.DuplicateType.EXACT_COPY,
@@ -701,7 +700,7 @@ class EdgeCasesTestCase(TestCase):
         # Duplicate should be unaffected
         self.assertTrue(Duplicate.objects.filter(id=duplicate.id).exists())
         self.assertEqual(duplicate.photos.count(), 2)
-        
+
         # Photos should still be in duplicate
         photo1.refresh_from_db()
         photo2.refresh_from_db()

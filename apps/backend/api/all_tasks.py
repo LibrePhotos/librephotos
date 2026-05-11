@@ -17,7 +17,11 @@ def create_download_job(job_type, user, photos, filename):
     )
     if job_type == LongRunningJob.JOB_DOWNLOAD_PHOTOS:
         AsyncTask(
-            zip_photos_task, job_id=lrj.job_id, user=user, photos=photos, filename=filename
+            zip_photos_task,
+            job_id=lrj.job_id,
+            user=user,
+            photos=photos,
+            filename=filename,
         ).run()
 
     return lrj.job_id
@@ -69,23 +73,23 @@ def zip_photos_task(job_id, user, photos, filename):
                         all_files.extend(list(file_obj.embedded_media.all()))
                 except Exception:
                     continue
-            
+
             # Add each file to the zip
             for file_obj in all_files:
                 if not file_obj or not file_obj.path:
                     continue
-                    
+
                 # Skip if file doesn't exist on disk
                 if not os.path.exists(file_obj.path):
                     util.logger.warning(f"File not found, skipping: {file_obj.path}")
                     continue
-                
+
                 # Skip if already added (avoid duplicates)
                 if file_obj.path in files_added:
                     continue
-                
+
                 file_name = os.path.basename(file_obj.path)
-                
+
                 # Handle duplicate filenames in the zip
                 if file_name in files_added.values():
                     # Find a unique name by prepending a counter
@@ -94,14 +98,16 @@ def zip_photos_task(job_id, user, photos, filename):
                     while f"{base_name}_{counter}{ext}" in files_added.values():
                         counter += 1
                     file_name = f"{base_name}_{counter}{ext}"
-                
+
                 files_added[file_obj.path] = file_name
-                
-                with zipfile.ZipFile(mf, mode="a", compression=zipfile.ZIP_DEFLATED) as zf:
+
+                with zipfile.ZipFile(
+                    mf, mode="a", compression=zipfile.ZIP_DEFLATED
+                ) as zf:
                     zf.write(file_obj.path, arcname=file_name)
-            
+
             lrj.update_progress(current=done_count, target=count)
-        
+
         with open(os.path.join(output_directory, zip_file_name), "wb") as output_file:
             output_file.write(mf.getvalue())
 

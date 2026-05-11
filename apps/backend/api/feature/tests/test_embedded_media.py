@@ -66,9 +66,7 @@ class EmbeddedMediaTest(APITestCase):
             content = JPEG + MP4_PREFIX + signature + MP4_DATA
             file = create_test_file(self.test_image_path, self.user, content)
             path = extract_embedded_motion_video(file.path, file.hash)
-            expected = (
-                f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_motion.mp4"
-            )
+            expected = f"{settings.MEDIA_ROOT}/embedded_media/{file.hash}_motion.mp4"
             self.assertEqual(path, expected)
             with open(path, "rb") as f:
                 contents = f.read()

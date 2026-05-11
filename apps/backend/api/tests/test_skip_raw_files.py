@@ -2,6 +2,7 @@
 Test to verify the behavior of the stack_raw_jpeg feature during scans.
 Note: skip_raw_files is deprecated - RAW files are always imported, but can be stacked or not.
 """
+
 from unittest.mock import patch
 
 from django.test import TestCase

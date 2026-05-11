@@ -35,7 +35,9 @@ def reconfigure_logging():
     try:
         from constance import config as constance_config
 
-        max_bytes = int(getattr(constance_config, "LOG_MAX_BYTES", DEFAULT_LOG_MAX_BYTES))
+        max_bytes = int(
+            getattr(constance_config, "LOG_MAX_BYTES", DEFAULT_LOG_MAX_BYTES)
+        )
         backup_count = int(
             getattr(constance_config, "LOG_BACKUP_COUNT", DEFAULT_LOG_BACKUP_COUNT)
         )
@@ -100,8 +102,16 @@ weekdays = {
 }
 
 
-def calculate_iou(box1_top, box1_right, box1_bottom, box1_left,
-                  box2_top, box2_right, box2_bottom, box2_left):
+def calculate_iou(
+    box1_top,
+    box1_right,
+    box1_bottom,
+    box1_left,
+    box2_top,
+    box2_right,
+    box2_bottom,
+    box2_left,
+):
     """Calculate Intersection over Union (IoU) of two bounding boxes.
 
     Each box is defined by (top, right, bottom, left) pixel coordinates,
@@ -176,6 +186,7 @@ def compose_orientation(
     n_a, m_a = _ORIENTATION_TO_PARAMS.get(current_orientation, (0, 0))
     if current_orientation not in _ORIENTATION_TO_PARAMS:
         import logging
+
         logging.getLogger("ownphotos").warning(
             "compose_orientation: invalid orientation value %r, treating as 1",
             current_orientation,

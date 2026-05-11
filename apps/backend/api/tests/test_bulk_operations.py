@@ -390,10 +390,7 @@ class BulkSharePhotosTest(TestCase):
         # First share the photos (use photo.id, not image_hash, since pk is now UUID)
         through_model = Photo.shared_to.through
         through_model.objects.bulk_create(
-            [
-                through_model(user_id=self.user2.id, photo_id=p.id)
-                for p in photos
-            ]
+            [through_model(user_id=self.user2.id, photo_id=p.id) for p in photos]
         )
 
         payload = {
@@ -440,4 +437,3 @@ class BulkSharePhotosTest(TestCase):
             user_id=self.user2.id, photo_id=photos[0].id
         ).exists()
         self.assertFalse(excluded_shared)
-

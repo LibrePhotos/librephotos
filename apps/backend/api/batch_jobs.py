@@ -22,7 +22,7 @@ def batch_calculate_clip_embedding(user):
         Q(owner=user) & Q(clip_embeddings__isnull=True)
     ).count()
     lrj.update_progress(current=0, target=count)
-    
+
     if not torch.cuda.is_available():
         num_threads = 1
         torch.set_num_threads(num_threads)

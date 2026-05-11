@@ -28,7 +28,7 @@ from api.serializers.photo_metadata import (
 class PhotoMetadataViewSet(ViewSet):
     """
     ViewSet for photo metadata operations.
-    
+
     Provides:
     - GET /api/photos/{photo_id}/metadata/ - Get full metadata
     - PATCH /api/photos/{photo_id}/metadata/ - Update metadata (creates history)
@@ -44,17 +44,20 @@ class PhotoMetadataViewSet(ViewSet):
         # MD5 hashes are 32 hex chars without hyphens
         # Python's uuid.UUID() accepts both, so we need to check format explicitly
         is_uuid_format = len(photo_id) == 36 and photo_id.count("-") == 4
-        
+
         if is_uuid_format:
             photo = get_object_or_404(Photo, pk=photo_id)
         else:
             photo = get_object_or_404(Photo, image_hash=photo_id)
-        
+
         # Check ownership
         if photo.owner != request.user and not request.user.is_staff:
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("You don't have permission to access this photo's metadata.")
-        
+
+            raise PermissionDenied(
+                "You don't have permission to access this photo's metadata."
+            )
+
         return photo
 
     def _get_or_create_metadata(self, photo: Photo) -> PhotoMetadata:
@@ -68,7 +71,7 @@ class PhotoMetadataViewSet(ViewSet):
                 "gps_longitude": photo.exif_gps_lon,
                 "rating": photo.rating,
                 "source": PhotoMetadata.Source.EMBEDDED,
-            }
+            },
         )
         return metadata
 
@@ -92,16 +95,13 @@ class PhotoMetadataViewSet(ViewSet):
         """Update metadata with change tracking."""
         photo = self._get_photo(request, photo_id)
         metadata = self._get_or_create_metadata(photo)
-        
+
         serializer = PhotoMetadataUpdateSerializer(
-            metadata,
-            data=request.data,
-            partial=True,
-            context={"request": request}
+            metadata, data=request.data, partial=True, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        
+
         # Return full metadata
         return Response(PhotoMetadataSerializer(metadata).data)
 
@@ -114,20 +114,22 @@ class PhotoMetadataViewSet(ViewSet):
         """Get edit history for a photo."""
         photo = self._get_photo(request, photo_id)
         edits = MetadataEdit.objects.filter(photo=photo).order_by("-created_at")
-        
+
         # Pagination
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 20))
         start = (page - 1) * page_size
         end = start + page_size
-        
+
         serializer = MetadataEditSerializer(edits[start:end], many=True)
-        return Response({
-            "results": serializer.data,
-            "count": edits.count(),
-            "page": page,
-            "page_size": page_size,
-        })
+        return Response(
+            {
+                "results": serializer.data,
+                "count": edits.count(),
+                "page": page,
+                "page_size": page_size,
+            }
+        )
 
     @extend_schema(
         description="Revert a specific metadata edit.",
@@ -138,15 +140,15 @@ class PhotoMetadataViewSet(ViewSet):
         """Revert a specific metadata edit."""
         photo = self._get_photo(request, photo_id)
         edit = get_object_or_404(MetadataEdit, pk=edit_id, photo=photo)
-        
+
         # Get or create metadata
         metadata = self._get_or_create_metadata(photo)
-        
+
         # Restore the old value
         field_name = edit.field_name
         old_value = edit.old_value
         current_value = getattr(metadata, field_name, None)
-        
+
         # Create a new edit record for the revert
         MetadataEdit.objects.create(
             photo=photo,
@@ -155,12 +157,12 @@ class PhotoMetadataViewSet(ViewSet):
             old_value=current_value,
             new_value=old_value,
         )
-        
+
         # Apply the revert
         setattr(metadata, field_name, old_value)
         metadata.version += 1
         metadata.save()
-        
+
         return Response(PhotoMetadataSerializer(metadata).data)
 
     @extend_schema(
@@ -171,7 +173,7 @@ class PhotoMetadataViewSet(ViewSet):
     def revert_all(self, request, photo_id: str):
         """Revert all edits and restore original metadata from file by re-extracting EXIF."""
         photo = self._get_photo(request, photo_id)
-        
+
         try:
             metadata = photo.metadata
             # Record the revert
@@ -182,21 +184,21 @@ class PhotoMetadataViewSet(ViewSet):
                 old_value={"action": "revert_all"},
                 new_value={"source": "embedded"},
             )
-            
+
             # Re-extract EXIF data from the file to restore original values
             # This will update PhotoMetadata with fresh data from the image file
             PhotoMetadata.extract_exif_data(photo, commit=True)
-            
+
             # Refresh metadata from database
             metadata.refresh_from_db()
             metadata.source = PhotoMetadata.Source.EMBEDDED
             metadata.version += 1
             metadata.save()
-            
+
         except PhotoMetadata.DoesNotExist:
             # If no metadata exists, extract it fresh
             metadata = PhotoMetadata.extract_exif_data(photo, commit=True)
-        
+
         return Response(PhotoMetadataSerializer(metadata).data)
 
 
@@ -210,24 +212,28 @@ class BulkMetadataView(APIView):
     @extend_schema(
         description="Get metadata summary for multiple photos.",
         parameters=[
-            OpenApiParameter("photo_ids", str, description="Comma-separated photo IDs or image hashes"),
+            OpenApiParameter(
+                "photo_ids",
+                str,
+                description="Comma-separated photo IDs or image hashes",
+            ),
         ],
     )
     def get(self, request):
         """Get metadata summary for multiple photos."""
         photo_ids = request.query_params.get("photo_ids", "").split(",")
         photo_ids = [pid.strip() for pid in photo_ids if pid.strip()]
-        
+
         if not photo_ids:
             return Response({"error": "No photo_ids provided"}, status=400)
-        
+
         if len(photo_ids) > 100:
             return Response({"error": "Maximum 100 photos per request"}, status=400)
-        
+
         # Get photos (by UUID or image_hash)
         from django.db.models import Q
         import uuid
-        
+
         uuid_ids = []
         hash_ids = []
         for pid in photo_ids:
@@ -243,12 +249,12 @@ class BulkMetadataView(APIView):
                     hash_ids.append(pid)
             else:
                 hash_ids.append(pid)
-        
+
         photos = Photo.objects.filter(
             Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids),
             owner=request.user,
         ).select_related("metadata")
-        
+
         results = {}
         for photo in photos:
             try:
@@ -269,7 +275,7 @@ class BulkMetadataView(APIView):
                     "has_location": photo.exif_gps_lat is not None,
                     "rating": photo.rating,
                 }
-        
+
         return Response(results)
 
     @extend_schema(
@@ -279,29 +285,38 @@ class BulkMetadataView(APIView):
         """Bulk update metadata for multiple photos."""
         photo_ids = request.data.get("photo_ids", [])
         updates = request.data.get("updates", {})
-        
+
         if not photo_ids:
             return Response({"error": "No photo_ids provided"}, status=400)
-        
+
         if not updates:
             return Response({"error": "No updates provided"}, status=400)
-        
+
         if len(photo_ids) > 100:
             return Response({"error": "Maximum 100 photos per request"}, status=400)
-        
+
         # Validate allowed fields
-        allowed_fields = {"title", "caption", "keywords", "rating", "copyright", "creator"}
+        allowed_fields = {
+            "title",
+            "caption",
+            "keywords",
+            "rating",
+            "copyright",
+            "creator",
+        }
         invalid_fields = set(updates.keys()) - allowed_fields
         if invalid_fields:
             return Response(
-                {"error": f"Invalid fields: {invalid_fields}. Allowed: {allowed_fields}"},
-                status=400
+                {
+                    "error": f"Invalid fields: {invalid_fields}. Allowed: {allowed_fields}"
+                },
+                status=400,
             )
-        
+
         # Get photos
         from django.db.models import Q
         import uuid
-        
+
         uuid_ids = []
         hash_ids = []
         for pid in photo_ids:
@@ -316,16 +331,16 @@ class BulkMetadataView(APIView):
                     hash_ids.append(pid)
             else:
                 hash_ids.append(pid)
-        
+
         photos = Photo.objects.filter(
             Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids),
             owner=request.user,
         )
-        
+
         updated_count = 0
         for photo in photos:
             metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
-            
+
             for field_name, new_value in updates.items():
                 old_value = getattr(metadata, field_name, None)
                 if old_value != new_value:
@@ -337,13 +352,15 @@ class BulkMetadataView(APIView):
                         new_value=new_value,
                     )
                     setattr(metadata, field_name, new_value)
-            
+
             metadata.source = PhotoMetadata.Source.USER_EDIT
             metadata.version += 1
             metadata.save()
             updated_count += 1
-        
-        return Response({
-            "updated_count": updated_count,
-            "message": f"Updated metadata for {updated_count} photos",
-        })
+
+        return Response(
+            {
+                "updated_count": updated_count,
+                "message": f"Updated metadata for {updated_count} photos",
+            }
+        )

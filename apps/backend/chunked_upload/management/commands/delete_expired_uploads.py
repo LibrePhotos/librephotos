@@ -10,7 +10,6 @@ prompt_msg = _("Do you want to delete {obj}?")
 
 
 class Command(BaseCommand):
-
     # Has to be a ChunkedUpload subclass
     model = ChunkedUpload
 

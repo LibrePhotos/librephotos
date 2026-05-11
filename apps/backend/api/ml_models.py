@@ -189,9 +189,7 @@ def _model_target_exists(model_folder, model):
     if not target_dir.exists():
         return False
 
-    if model["type"] == MlTypes.FACE_RECOGNITION and not any(
-        target_dir.glob("*.onnx")
-    ):
+    if model["type"] == MlTypes.FACE_RECOGNITION and not any(target_dir.glob("*.onnx")):
         return False
 
     if model.get("additional_files"):

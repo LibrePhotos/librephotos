@@ -122,7 +122,11 @@ class Thumbnail(models.Model):
         photo_hash = self.photo.image_hash
 
         # Remove static (image) thumbnails
-        for output_dir in ("thumbnails_big", "square_thumbnails", "square_thumbnails_small"):
+        for output_dir in (
+            "thumbnails_big",
+            "square_thumbnails",
+            "square_thumbnails_small",
+        ):
             path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".webp")
             if os.path.exists(path):
                 os.remove(path)

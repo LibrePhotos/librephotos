@@ -109,7 +109,9 @@ def build_face_region_exiftool_args(face_regions, image_width=None, image_height
 
     # Include AppliedToDimensions if image dimensions are available
     if image_width and image_height:
-        applied_to = f"AppliedToDimensions={{W={image_width},H={image_height},Unit=pixel}},"
+        applied_to = (
+            f"AppliedToDimensions={{W={image_width},H={image_height},Unit=pixel}},"
+        )
     else:
         applied_to = ""
 

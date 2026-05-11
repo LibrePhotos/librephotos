@@ -14,4 +14,3 @@ class GeocodeSearchView(APIView):
         limit = int(request.query_params.get("limit", 5))
         results = search_location(query, limit=limit)
         return Response(results)
-

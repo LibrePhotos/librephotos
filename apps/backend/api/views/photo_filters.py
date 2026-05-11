@@ -82,10 +82,6 @@ def build_photo_queryset(user, params: dict):
     # This applies stacking behavior for ALL stack types (manual, burst, etc.)
     # Non-primary photos are hidden in the timeline but accessible via stack expansion
     if not params.get("show_all_stack_photos"):
-        filters.append(
-            Q(stacks__isnull=True) |
-            Q(primary_in_stack__isnull=False)
-        )
+        filters.append(Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False))
 
     return Photo.objects.filter(*filters).distinct()
-
