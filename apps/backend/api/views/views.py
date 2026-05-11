@@ -454,7 +454,7 @@ class DeleteMissingPhotosView(APIView):
     def _delete_missing_photos(self, request, format=None):
         try:
             job_id = uuid.uuid4()
-            delete_missing_photos(request.user, job_id)
+            AsyncTask(delete_missing_photos, request.user, job_id).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")
