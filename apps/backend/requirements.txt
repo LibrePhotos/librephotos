@@ -1,4 +1,4 @@
-Django==5.2.13
+Django==5.2.14
 django-constance==4.3.5
 django-cors-headers==4.9.0
 django-cryptography-5==2.0.3
@@ -21,33 +21,33 @@ markupsafe==3.0.3
 Pillow==12.2.0
 ImageHash==4.3.2
 insightface==0.7.3
-psycopg==3.3.3
+psycopg==3.3.4
 https://github.com/owncloud/pyocclient/archive/master.zip
-pytz==2026.1
-tzdata==2026.1
-PyExifTool==0.4.9
+pytz==2026.2
+tzdata==2026.2
+PyExifTool==0.5.6
 pyvips==3.1.1
-scikit-learn==1.7.2
-sentence_transformers==5.3.0
-timezonefinder==8.2.0
+scikit-learn==1.8.0
+sentence_transformers==5.4.1
+timezonefinder==8.2.4
 tqdm==4.67.3
 gevent==25.9.1
 python-magic==0.4.27
 Wand==0.7.0
-django-q2==1.9.0
+django-q2==1.10.0
 safetensors==0.7.0
 py-cpuinfo==9.0.0
 psutil==7.2.2
 concurrent-log-handler==0.9.29
 
 # Dependencies for blip
-timm==1.0.26
+timm==1.0.27
 # Dependencies for Moondream chat handler (llama-cpp-python multimodal)
 transformers==4.56.2
 # Dependencies for mistral quantized and multimodal models like Moondream
-llama-cpp-python==0.3.20
+llama-cpp-python==0.3.23
 argon2-cffi==25.1.0
 # Dependencies for SigLIP 2 ONNX inference
-onnxruntime==1.23.2
+onnxruntime==1.26.0
 # SentencePiece tokenizer for SigLIP 2
 sentencepiece==0.2.1
