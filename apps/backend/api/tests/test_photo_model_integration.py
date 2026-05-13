@@ -340,3 +340,52 @@ class PhotoModelIntegrationTest(TestCase):
         photos = list(photo_qs)
         self.assertEqual(len(photos), 1)
         self.assertEqual(photos[0].search_instance.search_location, "New York")
+
+
+class AddLocationToAlbumDatesTest(TestCase):
+    """Regression tests for Photo._add_location_to_album_dates (issue #1268).
+
+    The function reaches into geolocation_json["places"][-2] to pick a city name.
+    Real-world data is messy: photos may have no geolocation, a partial geocode
+    result, only a country-level place, or stale-format JSON missing the
+    "places" key entirely. None of those should crash the rescan job.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.photo = create_test_photo(owner=self.user, exif_timestamp=timezone.now())
+
+    def test_does_not_crash_when_geolocation_json_is_none(self):
+        self.photo.geolocation_json = None
+        self.photo._add_location_to_album_dates()
+
+    def test_does_not_crash_when_geolocation_json_is_empty_dict(self):
+        self.photo.geolocation_json = {}
+        self.photo._add_location_to_album_dates()
+
+    def test_does_not_crash_when_places_key_is_missing(self):
+        # Legacy-format records seen in long-lived databases (the schema
+        # carried a top-level "city" before commit 134e8847 in 2023).
+        self.photo.geolocation_json = {"city": "Berlin", "_v": "1"}
+        self.photo._add_location_to_album_dates()
+
+    def test_does_not_crash_when_places_is_empty(self):
+        self.photo.geolocation_json = {"places": []}
+        self.photo._add_location_to_album_dates()
+
+    def test_does_not_crash_when_places_has_one_entry(self):
+        # Remote locations where the geocoder only resolves the country.
+        self.photo.geolocation_json = {"places": ["Antarctica"]}
+        self.photo._add_location_to_album_dates()
+
+    def test_writes_city_to_album_date_location(self):
+        album_date = AlbumDate.objects.create(
+            date=self.photo.exif_timestamp.date(), owner=self.user
+        )
+        album_date.photos.add(self.photo)
+
+        self.photo.geolocation_json = {"places": ["Berlin", "Germany"]}
+        self.photo._add_location_to_album_dates()
+
+        album_date.refresh_from_db()
+        self.assertEqual(album_date.location, {"places": ["Berlin"]})

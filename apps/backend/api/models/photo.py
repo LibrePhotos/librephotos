@@ -371,14 +371,12 @@ class Photo(models.Model):
             self.save()
 
     def _add_location_to_album_dates(self):
-        if not self.geolocation_json:
-            return
-        if len(self.geolocation_json["places"]) < 2:
-            logger.info(self.geolocation_json)
+        places = (self.geolocation_json or {}).get("places") or []
+        if len(places) < 2:
             return
 
         album_date = self._find_album_date()
-        city_name = self.geolocation_json["places"][-2]
+        city_name = places[-2]
         if album_date.location and len(album_date.location) > 0:
             prev_value = album_date.location
             new_value = prev_value
