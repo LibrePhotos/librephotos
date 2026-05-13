@@ -162,9 +162,11 @@ def delete_missing_photos(user, job_id):
     )
     try:
         missing_photos = Photo.objects.filter(
-            Q(owner=user) & Q(files=None) | Q(main_file=None)
+            Q(owner=user) & (Q(files=None) | Q(main_file=None))
         )
-        for missing_photo in missing_photos:
+        target = missing_photos.count()
+        lrj.update_progress(current=0, target=target)
+        for idx, missing_photo in enumerate(missing_photos):
             album_dates = AlbumDate.objects.filter(photos=missing_photo)
             for album_date in album_dates:
                 album_date.photos.remove(missing_photo)
@@ -180,10 +182,15 @@ def delete_missing_photos(user, job_id):
             faces = Face.objects.filter(photo=missing_photo)
             faces.delete()
             # To-Do: Remove thumbnails
+            lrj.update_progress(current=idx + 1, target=target)
 
         missing_photos.delete()
 
-        missing_files = File.objects.filter(Q(hash__endswith=user) & Q(missing=True))
+        # File.hash is composed as `md5 + str(user.id)` (see api/models/file.py),
+        # so the user-owned subset of missing files is identified by that suffix.
+        missing_files = File.objects.filter(
+            Q(hash__endswith=str(user.id)) & Q(missing=True)
+        )
         missing_files.delete()
 
         lrj.complete()
