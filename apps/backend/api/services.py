@@ -51,7 +51,9 @@ def check_services():
 def is_healthy(service):
     port = SERVICES.get(service)
     try:
-        res = requests.get(f"http://localhost:{port}/health")
+        from api.http_timeouts import HEALTH_CHECK
+
+        res = requests.get(f"http://localhost:{port}/health", timeout=HEALTH_CHECK)
         # If response has timestamp, check if it needs to be restarted
         if res.json().get("last_request_time") is not None:
             if res.json()["last_request_time"] < time.time() - 120:

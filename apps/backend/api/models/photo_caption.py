@@ -289,6 +289,8 @@ class PhotoCaption(models.Model):
         try:
             import requests
 
+            from api.http_timeouts import TAGS
+
             image_path = self.photo.thumbnail.thumbnail_big.path
             confidence = self.photo.owner.confidence
             json_data = {
@@ -297,7 +299,7 @@ class PhotoCaption(models.Model):
                 "tagging_model": tagging_model,
             }
             response = requests.post(
-                "http://localhost:8011/generate-tags", json=json_data
+                "http://localhost:8011/generate-tags", json=json_data, timeout=TAGS
             )
 
             if not response.ok:
