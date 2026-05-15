@@ -15,6 +15,23 @@ from api.models import LongRunningJob
 # Lower values are more responsive but increase DB load.
 CANCELLATION_CHECK_INTERVAL = 100
 
+# Threshold for marking the LongRunningJob row's ``failed`` flag (which
+# surfaces as the red "Failed" banner in the admin UI). A scan that
+# errored on a tiny minority of photos — e.g. 4 out of 152520 — is
+# overwhelmingly a success and shouldn't carry the failed flag. Per-photo
+# errors are still accumulated in ``result['errors']`` regardless; the
+# threshold only governs the sticky boolean.
+FAILURE_ERROR_FLOOR = 10  # absolute floor — below this, never sticky
+FAILURE_ERROR_RATE = 0.05  # otherwise: failed if errors exceed 5% of target
+
+
+def _exceeds_failure_threshold(error_count: int, target: int) -> bool:
+    """Return True when aggregate errors should mark ``job.failed`` as True."""
+    if target <= 0:
+        return error_count > 0
+    threshold = max(FAILURE_ERROR_FLOOR, FAILURE_ERROR_RATE * target)
+    return error_count > threshold
+
 
 def should_skip(path):
     """Check if a path should be skipped based on configured patterns."""
@@ -123,55 +140,43 @@ def update_scan_counter(job_id, failed=False, error=None):
     if job.cancelled:
         return
 
-    # Mark the job as finished if the current progress equals the target
-    if job.progress_current >= job.progress_target:
-        # Job is finishing, update result with errors if any
-        result = job.result or {}
-        if failed or error:
-            result["status"] = "failed"
-            if "errors" not in result:
-                result["errors"] = []
-            if error:
-                error_str = str(error)
-                # Avoid duplicate errors
-                if error_str not in result["errors"]:
-                    result["errors"].append(error_str)
-            # Set main error field for backward compatibility
-            if "error" not in result and error:
-                result["error"] = str(error)
-            elif "error" not in result and result.get("errors"):
-                result["error"] = result["errors"][0]  # Use first error as main error
+    is_finishing = job.progress_current >= job.progress_target
+    result = job.result or {}
+
+    # Accumulate this item's error, if any. ``error_count`` tracks the
+    # aggregate (uncapped) — the ``errors`` list itself is capped at 100
+    # to prevent unbounded growth, so its length under-reports.
+    if failed or error:
+        result["error_count"] = result.get("error_count", 0) + 1
+        if "errors" not in result:
+            result["errors"] = []
+        if error:
+            error_str = str(error)
+            # Avoid duplicate errors (limit to last 100 to prevent unbounded growth)
+            if error_str not in result["errors"]:
+                result["errors"].append(error_str)
+                if len(result["errors"]) > 100:
+                    result["errors"] = result["errors"][-100:]
+        # Set main error field for backward compatibility
+        if "error" not in result and error:
+            result["error"] = str(error)
+        elif "error" not in result and result.get("errors"):
+            result["error"] = result["errors"][0]  # Use first error as main error
+
+    job_failed = _exceeds_failure_threshold(
+        result.get("error_count", 0), job.progress_target
+    )
+
+    if is_finishing:
+        if result.get("error_count", 0) > 0:
+            result["status"] = "failed" if job_failed else "partial_failure"
         job.finished = True
         job.finished_at = timezone.now()
-        if failed:
-            job.failed = True
+        job.failed = job_failed
         job.result = result
         job.save(update_fields=["finished", "finished_at", "failed", "result"])
-    else:
-        # Job is still running, accumulate errors in result
-        if failed or error:
-            job = LongRunningJob.objects.filter(job_id=job_id).first()
-            if job:
-                result = job.result or {}
-                result["status"] = "partial_failure" if not job.finished else "failed"
-                if "errors" not in result:
-                    result["errors"] = []
-                if error:
-                    error_str = str(error)
-                    # Avoid duplicate errors (limit to last 100 to prevent unbounded growth)
-                    if error_str not in result["errors"]:
-                        result["errors"].append(error_str)
-                        if len(result["errors"]) > 100:
-                            result["errors"] = result["errors"][
-                                -100:
-                            ]  # Keep last 100 errors
-                # Set main error field for backward compatibility
-                if "error" not in result and error:
-                    result["error"] = str(error)
-                elif "error" not in result and result.get("errors"):
-                    result["error"] = result["errors"][
-                        0
-                    ]  # Use first error as main error
-                job.result = result
-                job.failed = failed or job.failed
-                job.save(update_fields=["failed", "result"])
+    elif failed or error:
+        result["status"] = "partial_failure"
+        job.result = result
+        job.failed = job_failed
+        job.save(update_fields=["failed", "result"])
