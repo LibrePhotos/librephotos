@@ -6,6 +6,7 @@ from constance import config as site_config
 from api import util
 
 from .config import get_provider_config, get_provider_parser
+from .rate_limit import get_limiter
 
 
 class Geocode:
@@ -53,8 +54,10 @@ class Geocode:
 
 
 def reverse_geocode(lat: float, lon: float) -> dict:
+    provider = site_config.MAP_API_PROVIDER
+    get_limiter(provider).wait()
     try:
-        return Geocode(site_config.MAP_API_PROVIDER).reverse(lat, lon)
+        return Geocode(provider).reverse(lat, lon)
     except Exception as e:
         util.logger.warning(f"Error while reverse geocoding: {e}")
         return {}
@@ -62,8 +65,10 @@ def reverse_geocode(lat: float, lon: float) -> dict:
 
 def search_location(query: str, limit: int = 5) -> List[dict]:
     """Search for locations by name/address using the configured map provider."""
+    provider = site_config.MAP_API_PROVIDER
+    get_limiter(provider).wait()
     try:
-        return Geocode(site_config.MAP_API_PROVIDER).search(query, limit)
+        return Geocode(provider).search(query, limit)
     except Exception as e:
         util.logger.warning(f"Error while searching location: {e}")
         return []
