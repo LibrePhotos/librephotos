@@ -102,7 +102,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
                 ("maptiler", "MapTiler"),
                 ("nominatim", "Nominatim (OpenStreetMap)"),
                 ("opencage", "OpenCage"),
-                ("photon", "Photon"),
                 ("tomtom", "TomTom"),
             ),
         },
