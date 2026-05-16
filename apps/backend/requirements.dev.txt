@@ -9,5 +9,5 @@ coverage==7.14.0
 Faker==40.15.0
 setuptools==82.0.1
 pyfakefs==6.2.0
-pytest==9.0.2
+pytest==9.0.3
 ruff==0.15.12
