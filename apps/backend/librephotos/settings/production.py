@@ -25,14 +25,6 @@ AUTH_USER_MODEL = "api.User"
 ROOT_URLCONF = "librephotos.urls"
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 DEBUG = False
-
-
-def _get_non_negative_float_env(name: str, default: str) -> float:
-    try:
-        return max(0.0, float(os.environ.get(name, default)))
-    except ValueError:
-        return float(default)
-
 SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 

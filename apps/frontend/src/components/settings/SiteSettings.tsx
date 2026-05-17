@@ -102,6 +102,11 @@ export function SiteSettings() {
     }));
   };
 
+  const buildUpdatedGeocodeThrottleProfiles = (provider: string, profile: GeocodeThrottleProfile) => ({
+    ...geocodeThrottleProfiles,
+    [provider]: profile,
+  });
+
   useEffect(() => {
     if (!isLoading && settings) {
       setSkipPatterns(settings.skip_patterns);
@@ -268,10 +273,6 @@ export function SiteSettings() {
             {MAP_API_PROVIDERS.map(provider => {
               const profile =
                 geocodeThrottleProfiles[provider.value] ?? DEFAULT_GEOCODE_THROTTLE_PROFILES[provider.value];
-              const nextProfiles = {
-                ...geocodeThrottleProfiles,
-                [provider.value]: profile,
-              };
               return (
                 <React.Fragment key={provider.value}>
                   <Grid.Col span={4}>
@@ -286,11 +287,8 @@ export function SiteSettings() {
                           ...profile,
                           enabled: event.currentTarget.checked,
                         };
-                        const updatedProfiles = {
-                          ...geocodeThrottleProfiles,
-                          [provider.value]: updatedProfile,
-                        };
-                        updateGeocodeThrottleProfile(provider.value, updatedProfile);
+                        const updatedProfiles = buildUpdatedGeocodeThrottleProfiles(provider.value, updatedProfile);
+                        setGeocodeThrottleProfiles(updatedProfiles);
                         saveSettings({ geocode_throttle_profiles: updatedProfiles });
                       }}
                     />
@@ -310,7 +308,11 @@ export function SiteSettings() {
                           requests_per_second: value,
                         });
                       }}
-                      onBlur={() => saveSettings({ geocode_throttle_profiles: nextProfiles })}
+                      onBlur={() =>
+                        saveSettings({
+                          geocode_throttle_profiles: buildUpdatedGeocodeThrottleProfiles(provider.value, profile),
+                        })
+                      }
                     />
                   </Grid.Col>
                   <Grid.Col span={3}>
@@ -328,7 +330,11 @@ export function SiteSettings() {
                           burst_size: value,
                         });
                       }}
-                      onBlur={() => saveSettings({ geocode_throttle_profiles: nextProfiles })}
+                      onBlur={() =>
+                        saveSettings({
+                          geocode_throttle_profiles: buildUpdatedGeocodeThrottleProfiles(provider.value, profile),
+                        })
+                      }
                     />
                   </Grid.Col>
                 </React.Fragment>

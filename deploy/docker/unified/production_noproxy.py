@@ -82,14 +82,6 @@ SIMPLE_JWT = {
         days=int(os.environ.get("REFRESH_TOKEN_DAYS", "7"))
     ),
 }
-
-
-def _get_non_negative_float_env(name: str, default: str) -> float:
-    try:
-        return max(0.0, float(os.environ.get(name, default)))
-    except ValueError:
-        return float(default)
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
