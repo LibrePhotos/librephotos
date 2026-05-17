@@ -443,6 +443,14 @@ class OrmQ(models.Model):
         verbose_name=_("Available at"),
         help_text=_("Prevent dequeue until this time"),
     )
+    throttle_key = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name=_("Throttle key"),
+        help_text=_("Runtime throttle bucket identifier."),
+    )
 
     @cached_property
     def task(self):
@@ -485,3 +493,44 @@ class OrmQ(models.Model):
         app_label = "django_q"
         verbose_name = _("Queued task")
         verbose_name_plural = _("Queued tasks")
+
+
+class OrmQThrottleState(models.Model):
+    queue_key = models.CharField(
+        max_length=100,
+        verbose_name=_("Queue key"),
+        help_text=_("Name of the queue using this throttle state."),
+    )
+    throttle_key = models.CharField(
+        max_length=100,
+        verbose_name=_("Throttle key"),
+        help_text=_("Runtime throttle bucket identifier."),
+    )
+    available_tokens = models.FloatField(
+        default=1.0,
+        verbose_name=_("Available tokens"),
+    )
+    last_refilled_at = models.DateTimeField(
+        default=timezone.now,
+        verbose_name=_("Last refilled at"),
+    )
+    next_available_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+        verbose_name=_("Next available at"),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_("Updated at"),
+    )
+
+    class Meta:
+        app_label = "django_q"
+        verbose_name = _("Queue throttle state")
+        verbose_name_plural = _("Queue throttle states")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("queue_key", "throttle_key"),
+                name="django_q_unique_queue_throttle_state",
+            )
+        ]

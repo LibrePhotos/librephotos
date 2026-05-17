@@ -1,8 +1,9 @@
-import { Button, Card, Grid, Group, Modal, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import { Button, Card, Grid, Group, Modal, NumberInput, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
+import type { GeocodeThrottleProfile } from "../../api_client/settings/types";
 
 const MAP_API_PROVIDERS = [
   {
@@ -42,6 +43,17 @@ const FACE_RECOGNITION_MODELS = [
   { value: "antelopev2", label: "antelopev2" },
 ];
 
+const DEFAULT_GEOCODE_THROTTLE_PROFILES: Record<string, GeocodeThrottleProfile> = Object.fromEntries(
+  MAP_API_PROVIDERS.map(provider => [
+    provider.value,
+    {
+      enabled: true,
+      requests_per_second: 1,
+      burst_size: 1,
+    },
+  ])
+);
+
 export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
@@ -52,6 +64,8 @@ export function SiteSettings() {
   const [llmModel, setLlmModel] = useState("none");
   const [taggingModel, setTaggingModel] = useState("places365");
   const [faceRecognitionModel, setFaceRecognitionModel] = useState("buffalo_sc");
+  const [geocodeThrottleProfiles, setGeocodeThrottleProfiles] =
+    useState<Record<string, GeocodeThrottleProfile>>(DEFAULT_GEOCODE_THROTTLE_PROFILES);
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
@@ -67,6 +81,13 @@ export function SiteSettings() {
     saveSettings(input);
   };
 
+  const updateGeocodeThrottleProfile = (provider: string, profile: GeocodeThrottleProfile) => {
+    setGeocodeThrottleProfiles(current => ({
+      ...current,
+      [provider]: profile,
+    }));
+  };
+
   useEffect(() => {
     if (!isLoading && settings) {
       setSkipPatterns(settings.skip_patterns);
@@ -78,6 +99,10 @@ export function SiteSettings() {
       setLlmModel(settings.llm_model);
       setTaggingModel(settings.tagging_model);
       setFaceRecognitionModel(settings.face_recognition_model);
+      setGeocodeThrottleProfiles({
+        ...DEFAULT_GEOCODE_THROTTLE_PROFILES,
+        ...settings.geocode_throttle_profiles,
+      });
     }
   }, [settings, isLoading]);
 
@@ -209,6 +234,91 @@ export function SiteSettings() {
                 </Grid.Col>
               </>
             )}
+            <Grid.Col span={12}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.geocode_throttle_header", "Geocode Throttle Profiles")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t(
+                    "sitesettings.geocode_throttle_description",
+                    "Queued geocode jobs snapshot their provider and use that provider's runtime throttle profile without restarting workers."
+                  )}
+                </Text>
+                <Text fz="sm" c="dimmed">
+                  {t("sitesettings.geocode_throttle_active_provider", {
+                    defaultValue: "Active provider: {{provider}}",
+                    provider: mapApiProvider,
+                  })}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            {MAP_API_PROVIDERS.map(provider => {
+              const profile = geocodeThrottleProfiles[provider.value] ?? DEFAULT_GEOCODE_THROTTLE_PROFILES[provider.value];
+              const nextProfiles = {
+                ...geocodeThrottleProfiles,
+                [provider.value]: profile,
+              };
+              return (
+                <React.Fragment key={provider.value}>
+                  <Grid.Col span={4}>
+                    <Text fw={500}>{provider.label}</Text>
+                  </Grid.Col>
+                  <Grid.Col span={2}>
+                    <Switch
+                      label={t("sitesettings.geocode_throttle_enabled", "Enabled")}
+                      checked={profile.enabled}
+                      onChange={event => {
+                        const updatedProfile = {
+                          ...profile,
+                          enabled: event.currentTarget.checked,
+                        };
+                        const updatedProfiles = {
+                          ...geocodeThrottleProfiles,
+                          [provider.value]: updatedProfile,
+                        };
+                        updateGeocodeThrottleProfile(provider.value, updatedProfile);
+                        saveSettings({ geocode_throttle_profiles: updatedProfiles });
+                      }}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={3}>
+                    <NumberInput
+                      label={t("sitesettings.geocode_throttle_rps", "Requests / second")}
+                      min={0}
+                      step={0.1}
+                      decimalScale={2}
+                      disabled={!profile.enabled}
+                      value={profile.requests_per_second}
+                      onChange={value => {
+                        if (typeof value !== "number" || Number.isNaN(value)) return;
+                        updateGeocodeThrottleProfile(provider.value, {
+                          ...profile,
+                          requests_per_second: value,
+                        });
+                      }}
+                      onBlur={() => saveSettings({ geocode_throttle_profiles: nextProfiles })}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={3}>
+                    <NumberInput
+                      label={t("sitesettings.geocode_throttle_burst", "Burst size")}
+                      min={1}
+                      step={1}
+                      allowDecimal={false}
+                      disabled={!profile.enabled}
+                      value={profile.burst_size}
+                      onChange={value => {
+                        if (typeof value !== "number" || Number.isNaN(value)) return;
+                        updateGeocodeThrottleProfile(provider.value, {
+                          ...profile,
+                          burst_size: value,
+                        });
+                      }}
+                      onBlur={() => saveSettings({ geocode_throttle_profiles: nextProfiles })}
+                    />
+                  </Grid.Col>
+                </React.Fragment>
+              );
+            })}
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.captioning_model_header")}</Text>

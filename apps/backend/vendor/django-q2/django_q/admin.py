@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from django_q.conf import Conf, croniter
-from django_q.models import Failure, OrmQ, Schedule, Success, Task
+from django_q.models import Failure, OrmQ, OrmQThrottleState, Schedule, Success, Task
 from django_q.tasks import async_task
 
 
@@ -157,9 +157,20 @@ class ScheduleAdmin(admin.ModelAdmin):
 class QueueAdmin(admin.ModelAdmin):
     """queue admin for ORM broker"""
 
-    list_display = ("id", "key", "name", "group", "func", "available_at", "lock", "task_id")
+    list_display = (
+        "id",
+        "key",
+        "throttle_key",
+        "name",
+        "group",
+        "func",
+        "available_at",
+        "lock",
+        "task_id",
+    )
     fields = (
         "key",
+        "throttle_key",
         "available_at",
         "lock",
         "task_id",
@@ -188,9 +199,37 @@ class QueueAdmin(admin.ModelAdmin):
     list_filter = ("key",)
 
 
+class QueueThrottleStateAdmin(admin.ModelAdmin):
+    list_display = (
+        "queue_key",
+        "throttle_key",
+        "available_tokens",
+        "next_available_at",
+        "updated_at",
+        "queued_tasks",
+    )
+    readonly_fields = list_display
+    list_filter = ("queue_key", "throttle_key")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).using(Conf.ORM)
+
+    @admin.display(description=_("Queued tasks"))
+    def queued_tasks(self, obj):
+        return (
+            OrmQ.objects.using(Conf.ORM)
+            .filter(key=obj.queue_key, throttle_key=obj.throttle_key)
+            .count()
+        )
+
+    def has_add_permission(self, request):
+        return False
+
+
 admin.site.register(Schedule, ScheduleAdmin)
 admin.site.register(Success, TaskAdmin)
 admin.site.register(Failure, FailAdmin)
 
 if Conf.ORM or Conf.TESTING:
     admin.site.register(OrmQ, QueueAdmin)
+    admin.site.register(OrmQThrottleState, QueueThrottleStateAdmin)

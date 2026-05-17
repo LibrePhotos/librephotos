@@ -52,9 +52,10 @@ class Geocode:
         ]
 
 
-def reverse_geocode(lat: float, lon: float) -> dict:
+def reverse_geocode(lat: float, lon: float, provider: str | None = None) -> dict:
+    provider_name = provider or site_config.MAP_API_PROVIDER
     try:
-        return Geocode(site_config.MAP_API_PROVIDER).reverse(lat, lon)
+        return Geocode(provider_name).reverse(lat, lon)
     except Exception as e:
         util.logger.warning(f"Error while reverse geocoding: {e}")
         return {}

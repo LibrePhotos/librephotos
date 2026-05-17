@@ -1,6 +1,8 @@
 import datetime
 import os
 
+from api.geocode.throttle import serialize_geocode_throttle_profiles
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 BASE_DATA = os.environ.get("BASE_DATA", "/")
@@ -88,9 +90,6 @@ INSTALLED_APPS = [
 ]
 
 GEOCODE_Q_CLUSTER_NAME = os.environ.get("GEOCODE_Q_CLUSTER_NAME", "geocode")
-GEOCODE_Q_CLUSTER_THROTTLE = _get_non_negative_float_env(
-    "GEOCODE_Q_CLUSTER_THROTTLE", "1.0"
-)
 
 Q_CLUSTER = {
     "name": "DjangORM",
@@ -102,9 +101,7 @@ Q_CLUSTER = {
     "max_rss": 300000,
     "poll": 1,
     "ALT_CLUSTERS": {
-        GEOCODE_Q_CLUSTER_NAME: {
-            "throttle": GEOCODE_Q_CLUSTER_THROTTLE,
-        }
+        GEOCODE_Q_CLUSTER_NAME: {}
     },
 }
 
@@ -175,6 +172,11 @@ CONSTANCE_CONFIG = {
         "map_api_provider",
     ),
     "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
+    "GEOCODE_THROTTLE_PROFILES": (
+        serialize_geocode_throttle_profiles({}),
+        "JSON throttle profiles for geocode providers",
+        str,
+    ),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),

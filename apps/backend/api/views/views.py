@@ -32,6 +32,12 @@ from api.all_tasks import create_download_job, delete_zip_file
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
+from api.geocode.throttle import (
+    clear_geocode_throttle_profiles_cache,
+    get_geocode_throttle_profile,
+    get_geocode_throttle_profiles,
+    serialize_geocode_throttle_profiles,
+)
 from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
@@ -120,6 +126,10 @@ class SiteSettingsView(APIView):
         out["heavyweight_process"] = 0
         out["map_api_provider"] = site_config.MAP_API_PROVIDER
         out["map_api_key"] = site_config.MAP_API_KEY
+        out["geocode_throttle_profiles"] = get_geocode_throttle_profiles()
+        out["geocode_active_throttle_profile"] = get_geocode_throttle_profile(
+            site_config.MAP_API_PROVIDER
+        )
         out["captioning_model"] = site_config.CAPTIONING_MODEL
         out["llm_model"] = site_config.LLM_MODEL
         out["tagging_model"] = site_config.TAGGING_MODEL
@@ -135,9 +145,25 @@ class SiteSettingsView(APIView):
         if "skip_patterns" in request.data.keys():
             site_config.SKIP_PATTERNS = request.data["skip_patterns"]
         if "map_api_provider" in request.data.keys():
+            previous_provider = site_config.MAP_API_PROVIDER
             site_config.MAP_API_PROVIDER = request.data["map_api_provider"]
+            if previous_provider != site_config.MAP_API_PROVIDER:
+                logger.info(
+                    "Map provider changed from %s to %s",
+                    previous_provider,
+                    site_config.MAP_API_PROVIDER,
+                )
         if "map_api_key" in request.data.keys():
             site_config.MAP_API_KEY = request.data["map_api_key"]
+        if "geocode_throttle_profiles" in request.data.keys():
+            previous_profiles = get_geocode_throttle_profiles()
+            site_config.GEOCODE_THROTTLE_PROFILES = serialize_geocode_throttle_profiles(
+                request.data["geocode_throttle_profiles"]
+            )
+            clear_geocode_throttle_profiles_cache()
+            new_profiles = get_geocode_throttle_profiles()
+            if previous_profiles != new_profiles:
+                logger.info("Updated geocode throttle profiles: %s", new_profiles)
         if "captioning_model" in request.data.keys():
             site_config.CAPTIONING_MODEL = request.data["captioning_model"]
         if "llm_model" in request.data.keys():
