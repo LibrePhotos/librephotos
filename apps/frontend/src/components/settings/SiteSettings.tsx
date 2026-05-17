@@ -1,4 +1,17 @@
-import { Button, Card, Grid, Group, Modal, NumberInput, Select, Stack, Switch, Text, TextInput, Title } from "@mantine/core";
+import {
+  Button,
+  Card,
+  Grid,
+  Group,
+  Modal,
+  NumberInput,
+  Select,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -64,8 +77,9 @@ export function SiteSettings() {
   const [llmModel, setLlmModel] = useState("none");
   const [taggingModel, setTaggingModel] = useState("places365");
   const [faceRecognitionModel, setFaceRecognitionModel] = useState("buffalo_sc");
-  const [geocodeThrottleProfiles, setGeocodeThrottleProfiles] =
-    useState<Record<string, GeocodeThrottleProfile>>(DEFAULT_GEOCODE_THROTTLE_PROFILES);
+  const [geocodeThrottleProfiles, setGeocodeThrottleProfiles] = useState<Record<string, GeocodeThrottleProfile>>(
+    DEFAULT_GEOCODE_THROTTLE_PROFILES
+  );
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
   const { data: settings, isLoading } = useGetSettingsQuery();
@@ -252,7 +266,8 @@ export function SiteSettings() {
               </Stack>
             </Grid.Col>
             {MAP_API_PROVIDERS.map(provider => {
-              const profile = geocodeThrottleProfiles[provider.value] ?? DEFAULT_GEOCODE_THROTTLE_PROFILES[provider.value];
+              const profile =
+                geocodeThrottleProfiles[provider.value] ?? DEFAULT_GEOCODE_THROTTLE_PROFILES[provider.value];
               const nextProfiles = {
                 ...geocodeThrottleProfiles,
                 [provider.value]: profile,
