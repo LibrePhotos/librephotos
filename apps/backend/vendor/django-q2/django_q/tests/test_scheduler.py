@@ -476,7 +476,7 @@ def test_scheduler_atomic_must_specify_the_database_based_on_router_redirection(
 @pytest.mark.django_db
 def test_schedule_save_sets_next_run_for_cron():
     """Ensure Schedule.save() sets next_run correctly for CRON schedules."""
-    cron_expression = "0 12 * * *"  # Executes dialy at 12pm
+    cron_expression = "0 12 * * *"  # Executes daily at 12pm
     schedule = Schedule(
         func="math.sqrt",
         schedule_type=Schedule.CRON,
@@ -496,7 +496,7 @@ def test_schedule_save_sets_next_run_for_cron():
 @pytest.mark.django_db
 def test_schedule_save_direct_db(broker):
     """Ensure Schedule.save() updates next_run correctly when created directly in DB."""
-    cron_expression = "0 12 * * *"  # Executes dialy at 12pm
+    cron_expression = "0 12 * * *"  # Executes daily at 12pm
 
     # Creating schedule directly in database
     schedule = Schedule.objects.create(

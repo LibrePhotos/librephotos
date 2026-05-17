@@ -98,7 +98,7 @@ def worker(
         timeout_error = False
         try:
             if f is None:
-                # raise a meaningfull error if task["func"] is not a valid function
+                # raise a meaningful error if task["func"] is not a valid function
                 raise ValueError(f"Function {task['func']} is not defined")
             with TimeoutHandler(timer_value):
                 res = f(*task["args"], **task["kwargs"])
