@@ -72,7 +72,9 @@ def _get_error_detail(response):
 
 def _post_to_face_service(url, payload):
     """POST to the face service and raise errors with response details."""
-    response = requests.post(url, json=payload)
+    from api.http_timeouts import FACE
+
+    response = requests.post(url, json=payload, timeout=FACE)
 
     try:
         response.raise_for_status()

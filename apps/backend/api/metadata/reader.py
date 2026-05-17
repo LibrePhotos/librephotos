@@ -49,7 +49,11 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
         "files_by_reverse_priority": files_by_reverse_priority,
         "struct": struct,
     }
-    response = requests.post("http://localhost:8010/get-tags", json=json).json()
+    from api.http_timeouts import EXIF
+
+    response = requests.post(
+        "http://localhost:8010/get-tags", json=json, timeout=EXIF
+    ).json()
     values = response["values"]
     # The exif service can return fewer values than requested if exiftool
     # errors mid-loop. Callers unpack the result positionally, so pad with
