@@ -166,13 +166,18 @@ def delete_missing_photos(user, job_id):
         )
         target = missing_photos.count()
         lrj.update_progress(current=0, target=target)
+        # Snapshot affected AlbumThing ids: cascade does not fire m2m_changed,
+        # so we refresh photo_count / cover_photos once each after the bulk
+        # delete instead of N times per membership inside the loop.
+        affected_album_thing_ids = set(
+            AlbumThing.objects.filter(photos__in=missing_photos).values_list(
+                "id", flat=True
+            )
+        )
         for idx, missing_photo in enumerate(missing_photos):
             album_dates = AlbumDate.objects.filter(photos=missing_photo)
             for album_date in album_dates:
                 album_date.photos.remove(missing_photo)
-            album_things = AlbumThing.objects.filter(photos=missing_photo)
-            for album_thing in album_things:
-                album_thing.photos.remove(missing_photo)
             album_places = AlbumPlace.objects.filter(photos=missing_photo)
             for album_place in album_places:
                 album_place.photos.remove(missing_photo)
@@ -185,6 +190,11 @@ def delete_missing_photos(user, job_id):
             lrj.update_progress(current=idx + 1, target=target)
 
         missing_photos.delete()
+
+        for album_thing in AlbumThing.objects.filter(id__in=affected_album_thing_ids):
+            album_thing.photo_count = album_thing.photos.filter(hidden=False).count()
+            album_thing.save(update_fields=["photo_count"])
+            album_thing.update_default_cover_photo()
 
         # File.hash is composed as `md5 + str(user.id)` (see api/models/file.py),
         # so the user-owned subset of missing files is identified by that suffix.

@@ -1,11 +1,14 @@
 import uuid
 from unittest.mock import patch
 
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from api.autoalbum import delete_missing_photos
 from api.models import File, LongRunningJob, Photo
+from api.models.album_thing import AlbumThing
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -118,3 +121,96 @@ class DeleteMissingPhotosCorrectnessTest(TestCase):
         lrj = LongRunningJob.objects.get(job_id=job_id)
         self.assertEqual(lrj.progress_target, 3)
         self.assertEqual(lrj.progress_current, 3)
+
+
+class DeleteMissingPhotosAlbumThingTest(TestCase):
+    """Guards the AlbumThing photo_count refresh path.
+
+    The original loop removed each missing photo from every AlbumThing it
+    belonged to one at a time, and the ``update_photo_count`` ``m2m_changed``
+    receiver fired a fresh ``COUNT(*)`` join on every removal. A library with
+    hundreds of thousands of missing photos took hours under that pattern.
+    The fix snapshots the affected AlbumThing ids before deletion, lets the
+    through-rows cascade away with the photos, and refreshes
+    ``photo_count`` / ``cover_photos`` once per AlbumThing afterwards.
+    """
+
+    def _make_album_thing(self, owner, photos):
+        thing = AlbumThing.objects.create(title="x", thing_type="thing", owner=owner)
+        thing.photos.add(*photos)
+        return thing
+
+    def test_photo_count_reflects_remaining_photos_after_deletion(self):
+        """After missing photos are removed, ``photo_count`` must equal the
+        number of remaining ``hidden=False`` photos in the AlbumThing.
+        """
+        user = create_test_user()
+        kept = create_test_photo(owner=user)
+        # Survival of `kept` requires populated `files` and a `main_file`.
+        kept.files.add(kept.main_file)
+        missing = [create_test_photo(owner=user) for _ in range(3)]
+
+        thing = self._make_album_thing(user, [kept, *missing])
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        thing.refresh_from_db()
+        self.assertEqual(thing.photo_count, 1)
+        self.assertEqual(list(thing.photos.values_list("pk", flat=True)), [kept.pk])
+
+    def test_cover_photos_refilled_after_deletion(self):
+        """If the deleted photos were in ``cover_photos``, the refresh sweep
+        must repopulate the cover from remaining photos.
+
+        Seeding the cover with only-missing photos avoids tripping a
+        pre-existing quirk in ``update_default_cover_photo`` where its top-up
+        slice does not exclude photos already in ``cover_photos``; that quirk
+        predates this fix and applies equally to the original receiver path.
+        """
+        user = create_test_user()
+        survivors = []
+        for _ in range(4):
+            photo = create_test_photo(owner=user)
+            photo.files.add(photo.main_file)
+            survivors.append(photo)
+        missing = [create_test_photo(owner=user) for _ in range(2)]
+
+        thing = self._make_album_thing(user, [*survivors, *missing])
+        thing.cover_photos.add(*missing)
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        thing.refresh_from_db()
+        cover_ids = set(thing.cover_photos.values_list("pk", flat=True))
+        survivor_ids = {p.pk for p in survivors}
+        self.assertTrue(cover_ids)
+        self.assertTrue(cover_ids.issubset(survivor_ids))
+
+    def test_album_thing_updated_once_per_album_not_once_per_photo(self):
+        """The load-bearing performance guard: regardless of how many photos
+        the AlbumThing contained, the fix must issue a single
+        ``UPDATE api_albumthing`` for ``photo_count`` (plus the cover-photo
+        repopulation), not one update per removed photo. This is what the
+        plan in #1405 calls the "COUNT-storm" pathology.
+        """
+        user = create_test_user()
+        missing = [create_test_photo(owner=user) for _ in range(10)]
+        thing = self._make_album_thing(user, missing)
+
+        with CaptureQueriesContext(connection) as ctx:
+            delete_missing_photos(user, str(uuid.uuid4()))
+
+        album_thing_updates = [
+            q
+            for q in ctx.captured_queries
+            if 'update "api_albumthing"' in q["sql"].lower()
+            and "photo_count" in q["sql"].lower()
+        ]
+        self.assertEqual(
+            len(album_thing_updates),
+            1,
+            f"expected one photo_count UPDATE, got {len(album_thing_updates)}; "
+            f"queries:\n{[q['sql'] for q in album_thing_updates]}",
+        )
+        thing.refresh_from_db()
+        self.assertEqual(thing.photo_count, 0)
