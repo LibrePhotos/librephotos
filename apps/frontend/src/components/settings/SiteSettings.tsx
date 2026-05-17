@@ -296,7 +296,7 @@ export function SiteSettings() {
                   <Grid.Col span={3}>
                     <NumberInput
                       label={t("sitesettings.geocode_throttle_rps", "Requests / second")}
-                      min={0}
+                      min={0.1}
                       step={0.1}
                       decimalScale={2}
                       disabled={!profile.enabled}
