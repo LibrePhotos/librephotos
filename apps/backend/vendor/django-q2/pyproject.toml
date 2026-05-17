@@ -1,0 +1,90 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "django-q2"
+version = "1.10.0"
+packages = [
+    { include = "django_q" },
+]
+description = "A multiprocessing distributed task queue for Django"
+authors = ["Stan Triepels <django-q2@stantriepels.com>", "Ilan Steemers <koed00@gmail.com>"]
+maintainers = ["Stan Triepels <django-q2@stantriepels.com>"]
+license = "MIT"
+readme = 'README.rst'
+
+repository = "https://github.com/GDay/django-q2"
+homepage = "https://django-q2.readthedocs.org"
+documentation = "https://django-q2.readthedocs.org"
+
+keywords = ["django", "distributed", "multiprocessing", "queue", "scheduler"]
+
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Web Environment',
+    'Framework :: Django',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: POSIX',
+    'Operating System :: MacOS',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Topic :: Internet :: WWW/HTTP',
+    'Topic :: System :: Distributed Computing',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+]
+
+include = [
+ { path = "CHANGELOG.md", format = "sdist" },
+]
+
+[tool.poetry.plugins] # Optional super table
+
+[tool.poetry.plugins."djangoq.errorreporters"]
+"rollbar" = "django_q_rollbar:Rollbar"
+"sentry" = "django_q_sentry:Sentry"
+
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4"
+django = ">=4.2"
+django-picklefield = "^3.1"
+
+blessed = { version = "^1.19.1", optional = true }
+hiredis = { version = "^2.0.0", optional = true }
+psutil = { version = "^5.9.2", optional = true }
+django-redis = { version = "^5.2.0", optional = true }
+iron-mq = { version = "^0.9", optional = true }
+boto3 = { version = "^1.24.92", optional = true }
+pymongo = { version = "^4.2.0", optional = true }
+croniter = { version = "^2.0.1", optional = true }
+django-q-rollbar = {version = ">=0.1", optional = true}
+django-q-sentry = {version = ">=0.1", optional = true}
+redis = {version = "^4.3.4", optional = true}
+setproctitle = {version = "^1.3.2", optional = true}
+importlib-metadata = {version = ">=3.6", python = "<3.10"}
+
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.3"
+pytest-django = "^4.5.2"
+Sphinx = "^4.0.2"
+pytest-cov = "^4.0.0"
+ruff = "^0.4.4"
+
+[tool.poetry.extras]
+requires = ["poetry_core"]
+build-backend = ["poetry.core.masonry.api"]
+testing = ["django-redis", "croniter", "hiredis", "psutil", "iron-mq", "boto3", "pymongo", "blessed", "redis", "setproctitle"]
+rollbar = ["django-q-rollbar"]
+sentry = ["django-q-sentry"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3

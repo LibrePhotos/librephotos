@@ -1,0 +1,676 @@
+# Russian translation for django-q.
+# Copyright (C) Django Q authors
+# This file is distributed under the same license as the django-q package.
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: django-q\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-17 21:07+0000\n"
+"PO-Revision-Date: 2026-04-04 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Russian\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+#: django_q/admin.py:30
+msgid "Resubmit selected tasks to queue"
+msgstr "Повторно отправить выбранные задачи в очередь"
+
+#: django_q/admin.py:64
+msgid "Time Taken"
+msgstr "Время выполнения"
+
+#: django_q/admin.py:95
+msgid "Short result"
+msgstr "Краткий результат"
+
+#: django_q/admin.py:142 django_q/models.py:412
+msgid "success"
+msgstr "успех"
+
+#: django_q/admin.py:154 django_q/models.py:414
+msgid "last_run"
+msgstr "последний запуск"
+
+#: django_q/cluster.py:75
+#, python-format
+msgid "Q Cluster %(name)s starting."
+msgstr "Запуск кластера Q %(name)s."
+
+#: django_q/cluster.py:83
+#, python-format
+msgid "Q Cluster %(name)s stopping."
+msgstr "Остановка кластера Q %(name)s."
+
+#: django_q/cluster.py:86
+#, python-format
+msgid "Q Cluster %(name)s has stopped."
+msgstr "Кластер Q %(name)s остановлен."
+
+#: django_q/cluster.py:93
+#, python-format
+msgid "%(name)s got signal %(signal)s"
+msgstr "%(name)s получил сигнал %(signal)s"
+
+#: django_q/cluster.py:224
+#, python-format
+msgid "reincarnated monitor %(name)s after sudden death"
+msgstr "монитор %(name)s перезапущен после аварийного завершения"
+
+#: django_q/cluster.py:230
+#, python-format
+msgid "reincarnated pusher %(name)s after sudden death"
+msgstr "пушер %(name)s перезапущен после аварийного завершения"
+
+#: django_q/cluster.py:262
+#, python-format
+msgid ""
+"reincarnated worker %(name)s after timeout while processing task "
+"%(task_name)s"
+msgstr ""
+"воркер %(name)s перезапущен по таймауту при выполнении задачи %(task_name)s"
+
+#: django_q/cluster.py:265
+#, python-format
+msgid "reincarnated worker %(name)s after timeout"
+msgstr "воркер %(name)s перезапущен по таймауту"
+
+#: django_q/cluster.py:270
+#, python-format
+msgid "recycled worker %(name)s"
+msgstr "воркер %(name)s перезапущен (recycle)"
+
+#: django_q/cluster.py:273
+#, python-format
+msgid "reincarnated worker %(name)s after death"
+msgstr "воркер %(name)s перезапущен после сбоя"
+
+#: django_q/cluster.py:297
+#, python-format
+msgid "%(name)s guarding cluster %(cluster_name)s"
+msgstr "%(name)s обслуживает кластер %(cluster_name)s"
+
+#: django_q/cluster.py:307
+#, python-format
+msgid "Q Cluster %(cluster_name)s running."
+msgstr "Кластер Q %(cluster_name)s работает."
+
+#: django_q/cluster.py:346
+#, python-format
+msgid "%(name)s stopping cluster processes"
+msgstr "%(name)s останавливает процессы кластера"
+
+#: django_q/cluster.py:371
+#, python-format
+msgid "%(name)s waiting for the monitor."
+msgstr "%(name)s ожидает монитор."
+
+#: django_q/cluster.py:394
+msgid "Skipping cpu affinity because psutil was not found."
+msgstr "Привязка к CPU пропущена: не найден psutil."
+
+#: django_q/cluster.py:399
+msgid "Faking cpu affinity because it is not supported on this platform"
+msgstr "Имитация привязки к CPU: на этой платформе не поддерживается"
+
+#: django_q/cluster.py:421
+#, python-format
+msgid "%(pid)s will use cpu %(affinity)s"
+msgstr "%(pid)s будет использовать CPU %(affinity)s"
+
+#: django_q/conf.py:122
+#, python-format
+msgid ""
+"SAVE_LIMIT_PER (%(option)s) is not a valid option. Options are: 'group', "
+"'name', 'func' and None. Default is None."
+msgstr ""
+"SAVE_LIMIT_PER (%(option)s) — недопустимое значение. Допустимо: «group», "
+"«name», «func» и None. По умолчанию None."
+
+#. Translators: Cluster status descriptions
+#: django_q/conf.py:239
+msgid "Starting"
+msgstr "Запуск"
+
+#: django_q/conf.py:240
+msgid "Working"
+msgstr "Работает"
+
+#: django_q/conf.py:241
+msgid "Idle"
+msgstr "Простой"
+
+#: django_q/conf.py:242
+msgid "Stopped"
+msgstr "Остановлен"
+
+#: django_q/conf.py:243
+msgid "Stopping"
+msgstr "Останавливается"
+
+#. Translators: help text for qcluster management command
+#: django_q/management/commands/qcluster.py:11
+msgid "Starts a Django Q Cluster."
+msgstr "Запускает кластер Django Q."
+
+#. Translators: help text for qinfo management command
+#: django_q/management/commands/qinfo.py:11
+msgid "General information over all clusters."
+msgstr "Общая информация по всем кластерам."
+
+#. Translators: help text for qmemory management command
+#: django_q/management/commands/qmemory.py:9
+msgid "Monitors Q Cluster memory usage"
+msgstr "Мониторинг использования памяти кластером Q"
+
+#. Translators: help text for qmonitor management command
+#: django_q/management/commands/qmonitor.py:9
+msgid "Monitors Q Cluster activity"
+msgstr "Мониторинг активности кластера Q"
+
+#: django_q/models.py:30 django_q/models.py:469
+msgid "Task id"
+msgstr "Идентификатор задачи"
+
+#: django_q/models.py:31
+msgid "32-character task identifier."
+msgstr "32-символьный идентификатор задачи."
+
+#: django_q/models.py:36 django_q/models.py:235 django_q/models.py:470
+msgid "Name"
+msgstr "Имя"
+
+#: django_q/models.py:37
+msgid "Optional human-readable name for lookup and display."
+msgstr "Необязательное имя для поиска и отображения."
+
+#: django_q/models.py:41 django_q/models.py:240 django_q/models.py:468
+msgid "Function"
+msgstr "Функция"
+
+#: django_q/models.py:42
+msgid "Dotted import path to the callable, e.g. myapp.tasks.job."
+msgstr "Путь импорта к вызываемому объекту, напр. myapp.tasks.job."
+
+#: django_q/models.py:47 django_q/models.py:247
+msgid "Hook"
+msgstr "Обработчик"
+
+#: django_q/models.py:48
+msgid "Optional dotted path to a callback that receives the task result."
+msgstr "Необязательный путь к функции, получающей результат задачи."
+
+#: django_q/models.py:53 django_q/models.py:253 django_q/models.py:472
+msgid "Arguments"
+msgstr "Аргументы"
+
+#: django_q/models.py:54
+msgid "Pickled positional arguments (tuple)."
+msgstr "Сериализованные позиционные аргументы (tuple)."
+
+#: django_q/models.py:59 django_q/models.py:259 django_q/models.py:473
+msgid "Keyword arguments"
+msgstr "Именованные аргументы"
+
+#: django_q/models.py:60
+msgid "Pickled keyword arguments (dict)."
+msgstr "Сериализованные именованные аргументы (dict)."
+
+#: django_q/models.py:65
+msgid "Result"
+msgstr "Результат"
+
+#: django_q/models.py:66
+msgid "Pickled return value or error payload."
+msgstr "Сериализованный результат или данные об ошибке."
+
+#: django_q/models.py:72 django_q/models.py:471
+msgid "Group"
+msgstr "Группа"
+
+#: django_q/models.py:73
+msgid "Optional group id to aggregate related tasks."
+msgstr "Необязательный идентификатор группы связанных задач."
+
+#: django_q/models.py:80 django_q/models.py:328
+msgid "Cluster"
+msgstr "Кластер"
+
+#: django_q/models.py:81
+msgid "Name of the cluster that executed this task."
+msgstr "Имя кластера, выполнившего эту задачу."
+
+#: django_q/models.py:85
+msgid "Started at"
+msgstr "Начало выполнения"
+
+#: django_q/models.py:86
+msgid "When the worker started executing the task."
+msgstr "Когда воркер начал выполнение задачи."
+
+#: django_q/models.py:90
+msgid "Stopped at"
+msgstr "Окончание выполнения"
+
+#: django_q/models.py:91
+msgid "When the worker finished (success or failure)."
+msgstr "Когда воркер завершил выполнение (успех или ошибка)."
+
+#: django_q/models.py:96 django_q/monitor_terminal.py:180
+msgid "Success"
+msgstr "Успех"
+
+#: django_q/models.py:97
+msgid "False if the task raised an exception or timed out."
+msgstr "Ложь, если задача завершилась исключением или таймаутом."
+
+#: django_q/models.py:101
+msgid "Attempt count"
+msgstr "Число попыток"
+
+#: django_q/models.py:102
+msgid "How many times execution was attempted."
+msgstr "Сколько раз выполнялась попытка запуска."
+
+#: django_q/models.py:172
+msgid "Task"
+msgstr "Задача"
+
+#: django_q/models.py:173
+msgid "Tasks"
+msgstr "Задачи"
+
+#: django_q/models.py:194
+msgid "Successful task"
+msgstr "Успешная задача"
+
+#: django_q/models.py:195
+msgid "Successful tasks"
+msgstr "Успешные задачи"
+
+#: django_q/models.py:210
+msgid "Failed task"
+msgstr "Неудачная задача"
+
+#: django_q/models.py:211
+msgid "Failed tasks"
+msgstr "Неудачные задачи"
+
+#: django_q/models.py:219 django_q/models.py:347
+msgid "Please install croniter to enable cron expressions"
+msgstr "Установите croniter для поддержки cron-выражений"
+
+#: django_q/models.py:236
+msgid "Optional label to identify this schedule in the admin."
+msgstr "Необязательная подпись для расписания в админке."
+
+#: django_q/models.py:241
+msgid "e.g. module.tasks.function"
+msgstr "например: module.tasks.function"
+
+#: django_q/models.py:248
+msgid "e.g. module.tasks.result_function"
+msgstr "например: module.tasks.result_function "
+
+#: django_q/models.py:254
+msgid "e.g. 1, 2, 'John'"
+msgstr "например: 1, 2, 'Алимхан'"
+
+#: django_q/models.py:260
+msgid "e.g. x=1, y=2, name='John'"
+msgstr "например: x=1, y=2, name='Алимхан'"
+
+#: django_q/models.py:274
+msgid "Once"
+msgstr "Один раз"
+
+#: django_q/models.py:275 django_q/models.py:296
+msgid "Minutes"
+msgstr "Минуты"
+
+#: django_q/models.py:276
+msgid "Hourly"
+msgstr "Ежечасно"
+
+#: django_q/models.py:277
+msgid "Daily"
+msgstr "Ежедневно"
+
+#: django_q/models.py:278
+msgid "Weekly"
+msgstr "Еженедельно"
+
+#: django_q/models.py:279
+msgid "Biweekly"
+msgstr "Раз в две недели"
+
+#: django_q/models.py:280
+msgid "Monthly"
+msgstr "Ежемесячно"
+
+#: django_q/models.py:281
+msgid "Bimonthly"
+msgstr "Раз в два месяца"
+
+#: django_q/models.py:282
+msgid "Quarterly"
+msgstr "Ежеквартально"
+
+#: django_q/models.py:283
+msgid "Yearly"
+msgstr "Ежегодно"
+
+#: django_q/models.py:284 django_q/models.py:313
+msgid "Cron"
+msgstr "Cron"
+
+#: django_q/models.py:290
+msgid "Schedule Type"
+msgstr "Тип расписания"
+
+#: django_q/models.py:291
+msgid "How often this task should be enqueued."
+msgstr "Как часто ставить эту задачу в очередь."
+
+#: django_q/models.py:297
+msgid "Number of minutes for the Minutes type"
+msgstr "Число минут для типа «Минуты»"
+
+#: django_q/models.py:300
+msgid "Repeats"
+msgstr "Повторы"
+
+#: django_q/models.py:300
+msgid "n = n times, -1 = forever"
+msgstr "n — число повторов, -1 — бесконечно"
+
+#: django_q/models.py:303
+msgid "Next Run"
+msgstr "Следующий запуск"
+
+#: django_q/models.py:304
+msgid "When this schedule runs next (stored in UTC)."
+msgstr "Когда следующий запуск по расписанию (в UTC)."
+
+#: django_q/models.py:314
+msgid "Cron expression"
+msgstr "Cron-выражение"
+
+#: django_q/models.py:320
+msgid "Last task id"
+msgstr "ID последней задачи"
+
+#: django_q/models.py:321
+msgid "Id of the last task spawned from this schedule (read-only)."
+msgstr "Идентификатор последней задачи по этому расписанию (read-only)."
+
+#: django_q/models.py:329 django_q/models.py:427
+msgid "Name of the target cluster"
+msgstr "Имя целевого кластера"
+
+#: django_q/models.py:336
+msgid "Intended date kwarg"
+msgstr "Имя аргумента для даты запуска"
+
+#: django_q/models.py:337
+msgid "Name of kwarg to pass intended schedule date"
+msgstr "Имя kwargs для передачи запланированной даты"
+
+#: django_q/models.py:418
+msgid "Scheduled task"
+msgstr "Запланированная задача"
+
+#: django_q/models.py:419
+msgid "Scheduled tasks"
+msgstr "Запланированные задачи"
+
+#: django_q/models.py:426
+msgid "Cluster key"
+msgstr "Ключ кластера"
+
+#: django_q/models.py:430
+msgid "Payload"
+msgstr "Данные задачи"
+
+#: django_q/models.py:431
+msgid "Signed serialized task package (do not edit manually)."
+msgstr "Подписанный сериализованный пакет задачи (не редактировать вручную)."
+
+#: django_q/models.py:435
+msgid "Lock until"
+msgstr "Блокировка до"
+
+#: django_q/models.py:436
+msgid "Prevent any cluster from pulling until"
+msgstr "Не забирать задачи кластерами до"
+
+#: django_q/models.py:474
+msgid "Queue options"
+msgstr "Дополнительные параметры очереди"
+
+#: django_q/models.py:478
+msgid "Queued task"
+msgstr "Задача в очереди"
+
+#: django_q/models.py:479
+msgid "Queued tasks"
+msgstr "Задачи в очереди"
+
+#: django_q/monitor.py:41
+#, python-format
+msgid "%(name)s monitoring at %(id)s"
+msgstr "%(name)s мониторинг на %(id)s"
+
+#: django_q/monitor.py:61
+#, python-format
+msgid "Processed '%(info_name)s' (%(task_name)s)"
+msgstr "Обработано «%(info_name)s» (%(task_name)s)"
+
+#: django_q/monitor.py:67
+#, python-format
+msgid "Failed '%(info_name)s' (%(task_name)s) - %(task_result)s"
+msgstr "Ошибка «%(info_name)s» (%(task_name)s) — %(task_result)s"
+
+#: django_q/monitor.py:74
+#, python-format
+msgid "%(name)s stopped monitoring results"
+msgstr "%(name)s прекратил отслеживание результатов"
+
+#: django_q/monitor_terminal.py:64 django_q/monitor_terminal.py:348
+msgid "Host"
+msgstr "Хост"
+
+#: django_q/monitor_terminal.py:68 django_q/monitor_terminal.py:352
+#: django_q/monitor_terminal.py:457
+msgid "Id"
+msgstr "Id"
+
+#: django_q/monitor_terminal.py:72
+msgid "State"
+msgstr "Состояние"
+
+#: django_q/monitor_terminal.py:76
+msgid "Pool"
+msgstr "Пул"
+
+#: django_q/monitor_terminal.py:80
+msgid "TQ"
+msgstr "TQ"
+
+#: django_q/monitor_terminal.py:84
+msgid "RQ"
+msgstr "RQ"
+
+#: django_q/monitor_terminal.py:88
+msgid "RC"
+msgstr "RC"
+
+#: django_q/monitor_terminal.py:92
+msgid "Up"
+msgstr "Аптайм"
+
+#: django_q/monitor_terminal.py:172 django_q/monitor_terminal.py:286
+msgid "Queued"
+msgstr "В очереди"
+
+#: django_q/monitor_terminal.py:190 django_q/monitor_terminal.py:294
+msgid "Failures"
+msgstr "Сбои"
+
+#: django_q/monitor_terminal.py:201 django_q/monitor_terminal.py:496
+msgid "[Press q to quit]"
+msgstr "[Нажмите q для выхода]"
+
+#: django_q/monitor_terminal.py:227
+msgid "day"
+msgstr "день"
+
+#: django_q/monitor_terminal.py:248
+msgid "second"
+msgstr "секунда"
+
+#: django_q/monitor_terminal.py:251
+msgid "minute"
+msgstr "минута"
+
+#: django_q/monitor_terminal.py:254
+msgid "hour"
+msgstr "час"
+
+#: django_q/monitor_terminal.py:263
+#, python-format
+msgid "-- %(prefix)s %(version)s on %(info)s --"
+msgstr "-- %(prefix)s %(version)s на %(info)s --"
+
+#: django_q/monitor_terminal.py:273
+msgid "Clusters"
+msgstr "Кластеры"
+
+#: django_q/monitor_terminal.py:277
+msgid "Workers"
+msgstr "Воркеры"
+
+#: django_q/monitor_terminal.py:281
+msgid "Restarts"
+msgstr "Перезапуски"
+
+#: django_q/monitor_terminal.py:290
+msgid "Successes"
+msgstr "Успехи"
+
+#: django_q/monitor_terminal.py:299
+msgid "Schedules"
+msgstr "Расписания"
+
+#: django_q/monitor_terminal.py:303
+#, python-format
+msgid "Tasks/%(per)s"
+msgstr "Задач/%(per)s"
+
+#: django_q/monitor_terminal.py:307
+msgid "Avg time"
+msgstr "Среднее время"
+
+#: django_q/monitor_terminal.py:357
+msgid "Available (%)"
+msgstr "Доступно (%)"
+
+#: django_q/monitor_terminal.py:363
+msgid "Available (MB)"
+msgstr "Доступно (МБ)"
+
+#: django_q/monitor_terminal.py:368
+msgid "Total (MB)"
+msgstr "Всего (МБ)"
+
+#: django_q/monitor_terminal.py:373
+msgid "Sentinel (MB)"
+msgstr "Sentinel (МБ)"
+
+#: django_q/monitor_terminal.py:379
+msgid "Monitor (MB)"
+msgstr "Монитор (МБ)"
+
+#: django_q/monitor_terminal.py:385
+msgid "Workers (MB)"
+msgstr "Воркеры (МБ)"
+
+#: django_q/monitor_terminal.py:485
+#, python-format
+msgid "Available lowest (): %(memory_percent)s ((at)s)"
+msgstr "Минимум доступно (): %(memory_percent)s ((at)s)"
+
+#: django_q/monitor_terminal.py:507
+msgid "No clusters appear to be running."
+msgstr "Похоже, ни один кластер не запущен."
+
+#: django_q/pusher.py:40
+#, python-format
+msgid "%(name)s pushing tasks at %(id)s"
+msgstr "%(name)s отправляет задачи на %(id)s"
+
+#: django_q/pusher.py:67
+#, python-format
+msgid "queueing from %(list_key)s"
+msgstr "очередь из %(list_key)s"
+
+#: django_q/pusher.py:71
+#, python-format
+msgid "%(name)s stopped pushing tasks"
+msgstr "%(name)s прекратил отправку задач"
+
+#: django_q/scheduler.py:110
+#, python-format
+msgid "%(process_name)s failed to create a task from schedule [%(schedule)s]"
+msgstr ""
+"%(process_name)s не удалось создать задачу по расписанию [%(schedule)s]"
+
+#: django_q/scheduler.py:121
+#, python-format
+msgid ""
+"%(process_name)s created task %(task_name)s from schedule [%(schedule)s]"
+msgstr ""
+"%(process_name)s создал задачу %(task_name)s по расписанию [%(schedule)s]"
+
+#: django_q/signals.py:22
+#, python-format
+msgid "malformed return hook '%(hook)s' for [%(name)s]"
+msgstr "некорректный return hook «%(hook)s» для [%(name)s]"
+
+#: django_q/signals.py:30
+#, python-format
+msgid "return hook %(hook)s failed on [%(name)s] because %(error)s"
+msgstr "return hook %(hook)s для [%(name)s] завершился ошибкой: %(error)s"
+
+#: django_q/timeout.py:30 django_q/timeout.py:43
+msgid "SIGALARM is not available on your platform"
+msgstr "SIGALRM недоступен на вашей платформе"
+
+#: django_q/worker.py:49
+#, python-format
+msgid "%(proc_name)s ready for work at %(id)s"
+msgstr "%(proc_name)s готов к работе на %(id)s"
+
+#: django_q/worker.py:69
+#, python-format
+msgid "%(proc_name)s processing %(task_name)s '%(func_name)s'"
+msgstr "%(proc_name)s выполняет %(task_name)s «%(func_name)s»"
+
+#: django_q/worker.py:135
+#, python-format
+msgid "%(proc_name)s stopped doing work"
+msgstr "%(proc_name)s прекратил работу"
+
+#, python-format
+#~ msgid ""
+#~ "Could not process '%(func_name)s'. Check the location of the function and "
+#~ "the args/kwargs."
+#~ msgstr ""
+#~ "Не удалось обработать «%(func_name)s». Проверьте путь к функции и args/"
+#~ "kwargs."

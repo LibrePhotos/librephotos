@@ -1,0 +1,697 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-17 21:10+0000\n"
+"PO-Revision-Date: 2018-08-05 18:28+0200\n"
+"Last-Translator: Thierry BOULOGNE <contact@tng-concepts.com>\n"
+"Language-Team: \n"
+"Language: fr-FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.1.1\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: admin.py:30
+msgid "Resubmit selected tasks to queue"
+msgstr "Resoumettre les tâches sélectionnées à la file d'attente"
+
+#: admin.py:64
+msgid "Time Taken"
+msgstr ""
+
+#: admin.py:95
+msgid "Short result"
+msgstr ""
+
+#: admin.py:142 models.py:412
+#, fuzzy
+#| msgid "Success"
+msgid "success"
+msgstr "succès"
+
+#: admin.py:154 models.py:414
+msgid "last_run"
+msgstr ""
+
+#: cluster.py:75
+#, python-format
+msgid "Q Cluster %(name)s starting."
+msgstr "Démarrage de Q Cluster-%(name)s."
+
+#: cluster.py:83
+#, python-format
+msgid "Q Cluster %(name)s stopping."
+msgstr "Arrêt de Q Cluster-%(name)s."
+
+#: cluster.py:86
+#, python-format
+msgid "Q Cluster %(name)s has stopped."
+msgstr "Q Cluster-%(name)s a été arrêté."
+
+#: cluster.py:93
+#, python-format
+msgid "%(name)s got signal %(signal)s"
+msgstr "%(name)s à reçu le signal %(signal)s"
+
+#: cluster.py:224
+#, python-format
+msgid "reincarnated monitor %(name)s after sudden death"
+msgstr "surveillant %(name)s réincarné après un arrêt intempestif"
+
+#: cluster.py:230
+#, python-format
+msgid "reincarnated pusher %(name)s after sudden death"
+msgstr "répartiteur %(name)s réincarné après un arrêt intempestif"
+
+#: cluster.py:262
+#, python-format
+msgid ""
+"reincarnated worker %(name)s after timeout while processing task "
+"%(task_name)s"
+msgstr ""
+"processus %(name)s réincarné, délai de traitement dépassé pour la tâche "
+"%(task_name)s"
+
+#: cluster.py:265
+#, python-format
+msgid "reincarnated worker %(name)s after timeout"
+msgstr "processus %(name)s réincarné, délai de traitement dépassé"
+
+#: cluster.py:270
+#, python-format
+msgid "recycled worker %(name)s"
+msgstr "processus recyclé %(name)s"
+
+#: cluster.py:273
+#, python-format
+msgid "reincarnated worker %(name)s after death"
+msgstr "processus réintégré %(name)s après arrêt"
+
+#: cluster.py:297
+#, python-format
+msgid "%(name)s guarding cluster %(cluster_name)s"
+msgstr "%(name)s surveillance du cluster à %(cluster_name)s"
+
+#: cluster.py:307
+#, python-format
+msgid "Q Cluster %(cluster_name)s running."
+msgstr "Démarrage de Q Cluster-%(cluster_name)s."
+
+#: cluster.py:346
+#, python-format
+msgid "%(name)s stopping cluster processes"
+msgstr "%(name)s arrêt des processus du cluster"
+
+#: cluster.py:371
+#, python-format
+msgid "%(name)s waiting for the monitor."
+msgstr "%(name)s en attente du surveillant."
+
+#: cluster.py:394
+msgid "Skipping cpu affinity because psutil was not found."
+msgstr "L'affinité cpu ne sera pas définie car psutil n'a pas été trouvé."
+
+#: cluster.py:399
+msgid "Faking cpu affinity because it is not supported on this platform"
+msgstr ""
+"Simulation de l'affinité cpu parce qu'elle n'est pas supportée sur cette "
+"plateforme."
+
+#: cluster.py:421
+#, python-format
+msgid "%(pid)s will use cpu %(affinity)s"
+msgstr "%(pid)s utilisera le CPU %(affinity)s"
+
+#: conf.py:122
+#, python-format
+msgid ""
+"SAVE_LIMIT_PER (%(option)s) is not a valid option. Options are: 'group', "
+"'name', 'func' and None. Default is None."
+msgstr ""
+"SAVE_LIMIT_PER (%(option)s) n'est pas une option valide. Les options sont : "
+"'group', 'name', 'func' et None. La valeur par défaut est None."
+
+#. Translators: Cluster status descriptions
+#: conf.py:239
+msgid "Starting"
+msgstr "Démarrage"
+
+#: conf.py:240
+msgid "Working"
+msgstr "Actif"
+
+#: conf.py:241
+msgid "Idle"
+msgstr "En attente"
+
+#: conf.py:242
+msgid "Stopped"
+msgstr "Arrêté"
+
+#: conf.py:243
+msgid "Stopping"
+msgstr "En cours d’arrêt"
+
+#. Translators: help text for qcluster management command
+#: management/commands/qcluster.py:11
+msgid "Starts a Django Q Cluster."
+msgstr "Démarre un cluster Django Q."
+
+#. Translators: help text for qinfo management command
+#: management/commands/qinfo.py:11
+msgid "General information over all clusters."
+msgstr "Informations générales sur tous les clusters."
+
+#. Translators: help text for qmemory management command
+#: management/commands/qmemory.py:9
+#, fuzzy
+#| msgid "Monitors Q Cluster activity"
+msgid "Monitors Q Cluster memory usage"
+msgstr "Surveille l'utilisation mémoire du Q cluster"
+
+#. Translators: help text for qmonitor management command
+#: management/commands/qmonitor.py:9
+msgid "Monitors Q Cluster activity"
+msgstr "Surveille l'activité de Q cluster"
+
+#: models.py:30 models.py:469
+msgid "Task id"
+msgstr ""
+
+#: models.py:31
+msgid "32-character task identifier."
+msgstr ""
+
+#: models.py:36 models.py:235 models.py:470
+msgid "Name"
+msgstr ""
+
+#: models.py:37
+msgid "Optional human-readable name for lookup and display."
+msgstr ""
+
+#: models.py:41 models.py:240 models.py:468
+msgid "Function"
+msgstr ""
+
+#: models.py:42
+msgid "Dotted import path to the callable, e.g. myapp.tasks.job."
+msgstr ""
+
+#: models.py:47 models.py:247
+msgid "Hook"
+msgstr ""
+
+#: models.py:48
+msgid "Optional dotted path to a callback that receives the task result."
+msgstr ""
+
+#: models.py:53 models.py:253 models.py:472
+msgid "Arguments"
+msgstr ""
+
+#: models.py:54
+msgid "Pickled positional arguments (tuple)."
+msgstr ""
+
+#: models.py:59 models.py:259 models.py:473
+msgid "Keyword arguments"
+msgstr ""
+
+#: models.py:60
+msgid "Pickled keyword arguments (dict)."
+msgstr ""
+
+#: models.py:65
+msgid "Result"
+msgstr ""
+
+#: models.py:66
+msgid "Pickled return value or error payload."
+msgstr ""
+
+#: models.py:72 models.py:471
+msgid "Group"
+msgstr ""
+
+#: models.py:73
+msgid "Optional group id to aggregate related tasks."
+msgstr ""
+
+#: models.py:80 models.py:328
+#, fuzzy
+#| msgid "Clusters"
+msgid "Cluster"
+msgstr "Grappes"
+
+#: models.py:81
+msgid "Name of the cluster that executed this task."
+msgstr ""
+
+#: models.py:85
+msgid "Started at"
+msgstr ""
+
+#: models.py:86
+msgid "When the worker started executing the task."
+msgstr ""
+
+#: models.py:90
+#, fuzzy
+#| msgid "Stopped"
+msgid "Stopped at"
+msgstr "Arrêté"
+
+#: models.py:91
+msgid "When the worker finished (success or failure)."
+msgstr ""
+
+#: models.py:96 monitor_terminal.py:180
+msgid "Success"
+msgstr "Succès"
+
+#: models.py:97
+msgid "False if the task raised an exception or timed out."
+msgstr ""
+
+#: models.py:101
+msgid "Attempt count"
+msgstr ""
+
+#: models.py:102
+msgid "How many times execution was attempted."
+msgstr ""
+
+#: models.py:172
+msgid "Task"
+msgstr ""
+
+#: models.py:173
+msgid "Tasks"
+msgstr ""
+
+#: models.py:194
+msgid "Successful task"
+msgstr "Tâche réussie"
+
+#: models.py:195
+msgid "Successful tasks"
+msgstr "Tâches réussies"
+
+#: models.py:210
+msgid "Failed task"
+msgstr "Tâche échoué"
+
+#: models.py:211
+msgid "Failed tasks"
+msgstr "Tâches échouées"
+
+#: models.py:219 models.py:347
+msgid "Please install croniter to enable cron expressions"
+msgstr "Veuillez installer croniter pour activer les expressions cron."
+
+#: models.py:236
+msgid "Optional label to identify this schedule in the admin."
+msgstr ""
+
+#: models.py:241
+msgid "e.g. module.tasks.function"
+msgstr ""
+
+#: models.py:248
+msgid "e.g. module.tasks.result_function"
+msgstr ""
+
+#: models.py:254
+msgid "e.g. 1, 2, 'John'"
+msgstr "ex. 1, 2, ‘Jean’"
+
+#: models.py:260
+msgid "e.g. x=1, y=2, name='John'"
+msgstr "p. ex. x = 1, y = 2, Nom = ‘Jean’"
+
+#: models.py:274
+msgid "Once"
+msgstr "Une fois"
+
+#: models.py:275 models.py:296
+msgid "Minutes"
+msgstr "Minutes"
+
+#: models.py:276
+msgid "Hourly"
+msgstr "Toutes les heures"
+
+#: models.py:277
+msgid "Daily"
+msgstr "Quotidien"
+
+#: models.py:278
+msgid "Weekly"
+msgstr "Hebdomadaire"
+
+#: models.py:279
+#, fuzzy
+#| msgid "Weekly"
+msgid "Biweekly"
+msgstr "Bihebdomadaire"
+
+#: models.py:280
+msgid "Monthly"
+msgstr "Mensuel"
+
+#: models.py:281
+#, fuzzy
+#| msgid "Monthly"
+msgid "Bimonthly"
+msgstr "Bimestriel"
+
+#: models.py:282
+msgid "Quarterly"
+msgstr "Trimestriel"
+
+#: models.py:283
+msgid "Yearly"
+msgstr "Annuel"
+
+#: models.py:284 models.py:313
+msgid "Cron"
+msgstr "Cron"
+
+#: models.py:290
+msgid "Schedule Type"
+msgstr "Type de plannification"
+
+#: models.py:291
+msgid "How often this task should be enqueued."
+msgstr ""
+
+#: models.py:297
+msgid "Number of minutes for the Minutes type"
+msgstr "Nombre de minutes pour le type de minutes"
+
+#: models.py:300
+msgid "Repeats"
+msgstr "Répéter"
+
+#: models.py:300
+msgid "n = n times, -1 = forever"
+msgstr "n = n fois,-1 = Toujours"
+
+#: models.py:303
+msgid "Next Run"
+msgstr "Prochaine exécution"
+
+#: models.py:304
+msgid "When this schedule runs next (stored in UTC)."
+msgstr ""
+
+#: models.py:314
+msgid "Cron expression"
+msgstr "Expression Cron"
+
+#: models.py:320
+msgid "Last task id"
+msgstr ""
+
+#: models.py:321
+msgid "Id of the last task spawned from this schedule (read-only)."
+msgstr ""
+
+#: models.py:329 models.py:427
+msgid "Name of the target cluster"
+msgstr ""
+
+#: models.py:336
+msgid "Intended date kwarg"
+msgstr ""
+
+#: models.py:337
+msgid "Name of kwarg to pass intended schedule date"
+msgstr "Nom du kwarg à passer Date prévue de l'horaire"
+
+#: models.py:418
+msgid "Scheduled task"
+msgstr "Tâche planifiée"
+
+#: models.py:419
+msgid "Scheduled tasks"
+msgstr "Tâches planifiées"
+
+#: models.py:426
+#, fuzzy
+#| msgid "Clusters"
+msgid "Cluster key"
+msgstr "Grappes"
+
+#: models.py:430
+msgid "Payload"
+msgstr ""
+
+#: models.py:431
+msgid "Signed serialized task package (do not edit manually)."
+msgstr ""
+
+#: models.py:435
+msgid "Lock until"
+msgstr ""
+
+#: models.py:436
+msgid "Prevent any cluster from pulling until"
+msgstr ""
+
+#: models.py:474
+#, fuzzy
+#| msgid "Queued task"
+msgid "Queue options"
+msgstr "Tâche en file d'attente"
+
+#: models.py:478
+msgid "Queued task"
+msgstr "Tâche en file d'attente"
+
+#: models.py:479
+msgid "Queued tasks"
+msgstr "Tâches en file d'attente"
+
+#: monitor.py:41
+#, python-format
+msgid "%(name)s monitoring at %(id)s"
+msgstr "%(name)s surveille les résultats %(id)s"
+
+#: monitor.py:61
+#, python-format
+msgid "Processed '%(info_name)s' (%(task_name)s)"
+msgstr "traité '%(info_name)s' (%(task_name)s)"
+
+#: monitor.py:67
+#, python-format
+msgid "Failed '%(info_name)s' (%(task_name)s) - %(task_result)s"
+msgstr "Manqué '%(info_name)s' (%(task_name)s) - %(task_result)s"
+
+#: monitor.py:74
+#, python-format
+msgid "%(name)s stopped monitoring results"
+msgstr "%(name)s a cessé de de surveiller les résultats"
+
+#: monitor_terminal.py:64 monitor_terminal.py:348
+msgid "Host"
+msgstr "Hôte"
+
+#: monitor_terminal.py:68 monitor_terminal.py:352 monitor_terminal.py:457
+msgid "Id"
+msgstr "Id"
+
+#: monitor_terminal.py:72
+msgid "State"
+msgstr "Statut"
+
+#: monitor_terminal.py:76
+msgid "Pool"
+msgstr "Piscine"
+
+#: monitor_terminal.py:80
+msgid "TQ"
+msgstr "TQ"
+
+#: monitor_terminal.py:84
+msgid "RQ"
+msgstr "RQ"
+
+#: monitor_terminal.py:88
+msgid "RC"
+msgstr "RC"
+
+#: monitor_terminal.py:92
+msgid "Up"
+msgstr "Haut"
+
+#: monitor_terminal.py:172 monitor_terminal.py:286
+msgid "Queued"
+msgstr "En file d'attente"
+
+#: monitor_terminal.py:190 monitor_terminal.py:294
+msgid "Failures"
+msgstr "Défaillances"
+
+#: monitor_terminal.py:201 monitor_terminal.py:496
+msgid "[Press q to quit]"
+msgstr "[appuyez sur q pour quitter]"
+
+#: monitor_terminal.py:227
+msgid "day"
+msgstr "jour"
+
+#: monitor_terminal.py:248
+msgid "second"
+msgstr "seconde"
+
+#: monitor_terminal.py:251
+msgid "minute"
+msgstr "minute"
+
+#: monitor_terminal.py:254
+msgid "hour"
+msgstr "heure"
+
+#: monitor_terminal.py:263
+#, python-format
+msgid "-- %(prefix)s %(version)s on %(info)s --"
+msgstr "--%(prefix)s %(version)s sur %(info)s --"
+
+#: monitor_terminal.py:273
+msgid "Clusters"
+msgstr "Grappes"
+
+#: monitor_terminal.py:277
+msgid "Workers"
+msgstr "Processus"
+
+#: monitor_terminal.py:281
+msgid "Restarts"
+msgstr "Redémarrages"
+
+#: monitor_terminal.py:290
+msgid "Successes"
+msgstr "Succès"
+
+#: monitor_terminal.py:299
+msgid "Schedules"
+msgstr "Planifications"
+
+#: monitor_terminal.py:303
+#, python-format
+msgid "Tasks/%(per)s"
+msgstr "Tâches/%(per)s"
+
+#: monitor_terminal.py:307
+msgid "Avg time"
+msgstr "Temps Moyen"
+
+#: monitor_terminal.py:357
+msgid "Available (%)"
+msgstr ""
+
+#: monitor_terminal.py:363
+msgid "Available (MB)"
+msgstr "Disponible sur (MB)"
+
+#: monitor_terminal.py:368
+msgid "Total (MB)"
+msgstr "Total (MB)"
+
+#: monitor_terminal.py:373
+msgid "Sentinel (MB)"
+msgstr "Sentinel (MB)"
+
+#: monitor_terminal.py:379
+msgid "Monitor (MB)"
+msgstr "Monitor (MB)"
+
+#: monitor_terminal.py:385
+#, fuzzy
+#| msgid "Workers"
+msgid "Workers (MB)"
+msgstr "Processus (MB)"
+
+#: monitor_terminal.py:485
+#, python-format
+msgid "Available lowest (): %(memory_percent)s ((at)s)"
+msgstr "Disponible le plus bas () : %(memory_percent)s ((at)s)"
+
+#: monitor_terminal.py:507
+msgid "No clusters appear to be running."
+msgstr "Aucun cluster ne semble être en cours d'exécution."
+
+#: pusher.py:40
+#, python-format
+msgid "%(name)s pushing tasks at %(id)s"
+msgstr "%(name)s répartit les tâches %(id)s"
+
+#: pusher.py:67
+#, python-format
+msgid "queueing from %(list_key)s"
+msgstr "mise en file d'attente de %(list_key)s"
+
+#: pusher.py:71
+#, python-format
+msgid "%(name)s stopped pushing tasks"
+msgstr "%(name)s a cessé de répartir les tâches"
+
+#: scheduler.py:110
+#, python-format
+msgid "%(process_name)s failed to create a task from schedule [%(schedule)s]"
+msgstr ""
+"%(process_name)s Echec de la création d'une tâche à partir de Schedule "
+"[%(schedule)s]"
+
+#: scheduler.py:121
+#, python-format
+msgid ""
+"%(process_name)s created task %(task_name)s from schedule [%(schedule)s]"
+msgstr ""
+"%(process_name)s a créé la tâche %(task_name)s à partir de Schedule "
+"[%(schedule)s]"
+
+#: signals.py:22
+#, python-format
+msgid "malformed return hook '%(hook)s' for [%(name)s]"
+msgstr "hook de retour '%(hook)s' mal formé pour [%(name)s]"
+
+#: signals.py:30
+#, python-format
+msgid "return hook %(hook)s failed on [%(name)s] because %(error)s"
+msgstr "hook de retour %(hook)s a échoué sur [%(name)s] à cause de %(error)s"
+
+#: timeout.py:30 timeout.py:43
+msgid "SIGALARM is not available on your platform"
+msgstr ""
+
+#: worker.py:49
+#, python-format
+msgid "%(proc_name)s ready for work at %(id)s"
+msgstr "%(proc_name)s prêt pour le travail à %(id)s"
+
+#: worker.py:69
+#, fuzzy, python-format
+msgid "%(proc_name)s processing %(task_name)s '%(func_name)s'"
+msgstr "%(proc_name)s exécute %(task_name)s '%(func_name)s'"
+
+#: worker.py:135
+#, python-format
+msgid "%(proc_name)s stopped doing work"
+msgstr "%(proc_name)s a cessé de travailler"
+
+#, python-format
+#~ msgid ""
+#~ "Could not process '%(func_name)s'. Check the location of the function and "
+#~ "the args/kwargs."
+#~ msgstr ""
+#~ "Impossible de traiter '%(func_name)s'. Vérifiez l'emplacement de la "
+#~ "fonction et les args/kwargs."

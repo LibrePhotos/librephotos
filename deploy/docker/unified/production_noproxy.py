@@ -81,6 +81,13 @@ SIMPLE_JWT = {
     ),
 }
 
+
+def _get_non_negative_float_env(name: str, default: str) -> float:
+    try:
+        return max(0.0, float(os.environ.get(name, default)))
+    except ValueError:
+        return float(default)
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -104,6 +111,11 @@ INSTALLED_APPS = [
 if db_backend == "postgresql":
     INSTALLED_APPS.append("django.contrib.postgres")
 
+GEOCODE_Q_CLUSTER_NAME = os.environ.get("GEOCODE_Q_CLUSTER_NAME", "geocode")
+GEOCODE_Q_CLUSTER_THROTTLE = _get_non_negative_float_env(
+    "GEOCODE_Q_CLUSTER_THROTTLE", "1.0"
+)
+
 Q_CLUSTER = {
     "name": "DjangORM",
     "queue_limit": 50,
@@ -113,6 +125,11 @@ Q_CLUSTER = {
     "orm": "default",
     "max_rss": 300000,
     "poll": 1,
+    "ALT_CLUSTERS": {
+        GEOCODE_Q_CLUSTER_NAME: {
+            "throttle": GEOCODE_Q_CLUSTER_THROTTLE,
+        }
+    },
 }
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"

@@ -34,7 +34,7 @@ tqdm==4.67.3
 gevent==25.9.1
 python-magic==0.4.27
 Wand==0.7.0
-django-q2==1.10.0
+-e ./vendor/django-q2
 safetensors==0.7.0
 py-cpuinfo==9.0.0
 psutil==7.2.2

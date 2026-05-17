@@ -10,6 +10,7 @@ import uuid
 from uuid import UUID
 
 from django import db
+from django.conf import settings
 from django.db.models import Q
 from django_q.tasks import AsyncTask
 
@@ -194,7 +195,12 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
             if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
                 util.logger.info("Add geolocation job cancelled")
                 return
-            AsyncTask(geolocation_job, photo, job_id).run()
+            AsyncTask(
+                geolocation_job,
+                photo,
+                job_id,
+                cluster=settings.GEOCODE_Q_CLUSTER_NAME,
+            ).run()
 
     except Exception as err:
         util.logger.exception("An error occurred: ")

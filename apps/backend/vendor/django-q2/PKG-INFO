@@ -1,0 +1,308 @@
+Metadata-Version: 2.4
+Name: django-q2
+Version: 1.10.0
+Summary: A multiprocessing distributed task queue for Django
+License: MIT
+License-File: LICENSE
+Keywords: django,distributed,multiprocessing,queue,scheduler
+Author: Stan Triepels
+Author-email: django-q2@stantriepels.com
+Maintainer: Stan Triepels
+Maintainer-email: django-q2@stantriepels.com
+Requires-Python: >=3.9,<4
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Django
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Distributed Computing
+Provides-Extra: build-backend
+Provides-Extra: requires
+Provides-Extra: rollbar
+Provides-Extra: sentry
+Provides-Extra: testing
+Requires-Dist: blessed (>=1.19.1,<2.0.0) ; extra == "testing"
+Requires-Dist: boto3 (>=1.24.92,<2.0.0) ; extra == "testing"
+Requires-Dist: croniter (>=2.0.1,<3.0.0) ; extra == "testing"
+Requires-Dist: django (>=4.2)
+Requires-Dist: django-picklefield (>=3.1,<4.0)
+Requires-Dist: django-q-rollbar (>=0.1) ; extra == "rollbar"
+Requires-Dist: django-q-sentry (>=0.1) ; extra == "sentry"
+Requires-Dist: django-redis (>=5.2.0,<6.0.0) ; extra == "testing"
+Requires-Dist: hiredis (>=2.0.0,<3.0.0) ; extra == "testing"
+Requires-Dist: importlib-metadata (>=3.6) ; python_version < "3.10"
+Requires-Dist: iron-mq (>=0.9,<0.10) ; extra == "testing"
+Requires-Dist: psutil (>=5.9.2,<6.0.0) ; extra == "testing"
+Requires-Dist: pymongo (>=4.2.0,<5.0.0) ; extra == "testing"
+Requires-Dist: redis (>=4.3.4,<5.0.0) ; extra == "testing"
+Requires-Dist: setproctitle (>=1.3.2,<2.0.0) ; extra == "testing"
+Project-URL: Documentation, https://django-q2.readthedocs.org
+Project-URL: Homepage, https://django-q2.readthedocs.org
+Project-URL: Repository, https://github.com/GDay/django-q2
+Description-Content-Type: text/x-rst
+
+A multiprocessing distributed task queue for Django
+---------------------------------------------------
+
+|image0| |image1| |downloads|
+
+Django Q2 is a fork of Django Q. Big thanks to Ilan Steemers for starting this project. Unfortunately, development has stalled since June 2021. Django Q2 is the new updated version of Django Q, with dependencies updates, docs updates and several bug fixes. Original repository: https://github.com/Koed00/django-q
+
+Features
+~~~~~~~~
+
+-  Multiprocessing worker pool
+-  Asynchronous tasks
+-  Scheduled, cron and repeated tasks
+-  Signed and compressed packages
+-  Failure and success database or cache
+-  Result hooks, groups and chains
+-  Django Admin integration
+-  PaaS compatible with multiple instances
+-  Multi cluster monitor
+-  Redis, IronMQ, SQS, MongoDB or ORM
+-  Rollbar and Sentry support
+
+Changes compared to the original Django-Q:
+
+- Dropped support for Disque (hasn't been updated in a long time)
+- Dropped Redis, Arrow and Blessed dependencies
+- Updated all current dependencies
+- Added tests for Django 4.x and 5.x
+- Added Turkish language
+- Improved admin area
+- Fixed a lot of issues
+
+See the `changelog <https://github.com/GDay/django-q2/blob/master/CHANGELOG.md>`__ for all changes.
+
+Requirements
+~~~~~~~~~~~~
+
+-  `Django <https://www.djangoproject.com>`__ > = 4.2
+-  `Django-picklefield <https://github.com/gintas/django-picklefield>`__
+
+Tested with:
+
+* Python 3.9 to 3.13.
+* Django 4.2 to 6.0.
+
+Brokers
+~~~~~~~
+- `Redis <https://django-q2.readthedocs.org/en/latest/brokers.html#redis>`__
+- `IronMQ <https://django-q2.readthedocs.org/en/latest/brokers.html#ironmq>`__
+- `Amazon SQS <https://django-q2.readthedocs.org/en/latest/brokers.html#amazon-sqs>`__
+- `MongoDB <https://django-q2.readthedocs.org/en/latest/brokers.html#mongodb>`__
+- `Django ORM <https://django-q2.readthedocs.org/en/latest/brokers.html#django-orm>`__
+
+Installation
+~~~~~~~~~~~~
+
+-  Install the latest version with pip::
+
+    $ pip install django-q2
+
+
+-  Add `django_q` to your `INSTALLED_APPS` in your projects `settings.py`::
+
+       INSTALLED_APPS = (
+           # other apps
+           'django_q',
+       )
+
+-  Run Django migrations to create the database tables::
+
+    $ python manage.py migrate
+
+-  Choose a message `broker <https://django-q2.readthedocs.org/en/latest/brokers.html>`__, configure and install the appropriate client library.
+
+Read the full documentation at `https://django-q2.readthedocs.org <https://django-q2.readthedocs.org>`__
+
+Configuration
+~~~~~~~~~~~~~
+
+All configuration settings are optional. e.g:
+
+.. code:: python
+
+    # settings.py example
+    Q_CLUSTER = {
+        'name': 'myproject',
+        'workers': 8,
+        'recycle': 500,
+        'timeout': 60,
+        'compress': True,
+        'cpu_affinity': 1,
+        'save_limit': 250,
+        'queue_limit': 500,
+        'label': 'Django Q',
+        'redis': {
+            'host': '127.0.0.1',
+            'port': 6379,
+            'db': 0,
+        }
+    }
+
+For full configuration options, see the `configuration documentation <https://django-q2.readthedocs.org/en/latest/configure.html>`__.
+
+Management Commands
+~~~~~~~~~~~~~~~~~~~
+
+For the management commands to work, you will need to install Blessed: <https://github.com/jquast/blessed>
+
+Start a cluster with::
+
+    $ python manage.py qcluster
+
+Monitor your clusters with::
+
+    $ python manage.py qmonitor
+
+Monitor your clusters' memory usage with::
+
+    $ python manage.py qmemory
+
+Check overall statistics with::
+
+    $ python manage.py qinfo
+
+Creating Tasks
+~~~~~~~~~~~~~~
+
+Use `async_task` from your code to quickly offload tasks:
+
+.. code:: python
+
+    from django_q.tasks import async_task, result
+
+    # create the task
+    async_task('math.copysign', 2, -2)
+
+    # or with a reference
+    import math.copysign
+
+    task_id = async_task(copysign, 2, -2)
+
+    # get the result
+    task_result = result(task_id)
+
+    # result returns None if the task has not been executed yet
+    # you can wait for it
+    task_result = result(task_id, 200)
+
+    # but in most cases you will want to use a hook:
+
+    async_task('math.modf', 2.5, hook='hooks.print_result')
+
+    # hooks.py
+    def print_result(task):
+        print(task.result)
+
+For more info see `Tasks <https://django-q2.readthedocs.org/en/latest/tasks.html>`__
+
+Schedule
+~~~~~~~~
+
+Schedules are regular Django models. You can manage them through the
+Admin page or directly from your code:
+
+.. code:: python
+
+    # Use the schedule function
+    from django_q.tasks import schedule
+
+    schedule('math.copysign',
+             2, -2,
+             hook='hooks.print_result',
+             schedule_type=Schedule.DAILY)
+
+    # Or create the object directly
+    from django_q.models import Schedule
+
+    Schedule.objects.create(func='math.copysign',
+                            hook='hooks.print_result',
+                            args='2,-2',
+                            schedule_type=Schedule.DAILY
+                            )
+
+    # Run a task every 5 minutes, starting at 6 today
+    # for 2 hours
+    from datetime import datetime
+
+    schedule('math.hypot',
+             3, 4,
+             schedule_type=Schedule.MINUTES,
+             minutes=5,
+             repeats=24,
+             next_run=datetime.utcnow().replace(hour=18, minute=0))
+
+    # Use a cron expression
+    schedule('math.hypot',
+             3, 4,
+             schedule_type=Schedule.CRON,
+             cron = '0 22 * * 1-5')
+
+For more info check the `Schedules <https://django-q2.readthedocs.org/en/latest/schedules.html>`__ documentation.
+
+Development
+~~~~~~~~~~~
+
+There is an example project that you can use to develop with. Docker (compose) is being used to set everything up.
+Please note that you will have to restart the django-q container when changes have been made to tasks or django-q.
+You can start the example project with:
+
+.. code:: bash
+
+    make dev
+
+Create a superuser with:
+
+.. code:: bash
+
+    make createsuperuser
+
+Testing
+~~~~~~~
+
+Running tests is easy with docker compose, it will also start the necessary databases. Just run:
+
+.. code:: bash
+
+    make test
+
+Locale
+~~~~~~
+
+Currently available in English, German, Turkish, and French.
+Translation pull requests are always welcome.
+
+Acknowledgements
+~~~~~~~~~~~~~~~~
+
+-  Django Q was inspired by working with
+   `Django-RQ <https://github.com/ui/django-rq>`__ and
+   `RQ <https://github.com/ui/django-rq>`__
+-  Human readable hashes by
+   `HumanHash <https://github.com/zacharyvoase/humanhash>`__
+-  Redditors feedback at `r/django <https://www.reddit.com/r/django/>`__
+
+-  JetBrains for their `Open Source Support Program <https://www.jetbrains.com/community/opensource>`__
+
+.. |image0| image:: https://github.com/GDay/django-q2/actions/workflows/test.yml/badge.svg?branche=master
+   :target: https://github.com/GDay/django-q2/actions?query=workflow%3Atests
+.. |image1| image:: https://coveralls.io/repos/github/GDay/django-q2/badge.svg?branch=master
+   :target: https://coveralls.io/github/GDay/django-q2?branch=master
+.. |downloads| image:: https://img.shields.io/pypi/dm/django-q2
+   :target: https://img.shields.io/pypi/dm/django-q2
+

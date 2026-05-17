@@ -74,6 +74,7 @@ python manage.py start_cleaning_service
 python manage.py clear_cache 
 python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
+Q_CLUSTER_NAME="${GEOCODE_Q_CLUSTER_NAME:-geocode}" python manage.py qcluster 2>&1 | tee /logs/qcluster-geocode.log &
 
 # Start the Django server
 if [ "$DEBUG" = "1" ]; then
