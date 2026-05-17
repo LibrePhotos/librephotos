@@ -9,12 +9,9 @@ from api.models.user import User, get_deleted_user
 def update_default_cover_photo(instance):
     current = instance.cover_photos.count()
     if current < 4:
-        photos_to_add = (
-            instance.photos.filter(hidden=False)
-            .exclude(pk__in=instance.cover_photos.values_list("pk", flat=True))[
-                : 4 - current
-            ]
-        )
+        photos_to_add = instance.photos.filter(hidden=False).exclude(
+            pk__in=instance.cover_photos.values_list("pk", flat=True)
+        )[: 4 - current]
         instance.cover_photos.add(*photos_to_add)
 
 
