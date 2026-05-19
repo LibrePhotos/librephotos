@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { notification } from "../../../service/notifications";
 import { fetchClient } from "../../api";
 import { serverAddress } from "../../apiClient";
+import type { BulkPhotoQuery } from "../../photos/types";
 
 type StatusResponse = { status: string };
 
@@ -10,10 +11,20 @@ type DownloadResponse = {
   job_id: string;
 };
 
-type DownloadOptions = {
+type IndividualDownloadOptions = {
+  select_all?: false;
   image_hashes: string[];
   include_stacked_photos?: boolean;
 };
+
+type SelectAllDownloadOptions = {
+  select_all: true;
+  query: BulkPhotoQuery;
+  excluded_hashes?: string[];
+  include_stacked_photos?: boolean;
+};
+
+type DownloadOptions = IndividualDownloadOptions | SelectAllDownloadOptions;
 
 async function startDownloadProcess(options: DownloadOptions) {
   const response = await fetchClient.post("/photos/download", options);
@@ -44,19 +55,29 @@ async function downloadFile(filename: string) {
   window.URL.revokeObjectURL(downloadUrl);
 }
 
+type IndividualMutationArgs = {
+  select_all?: false;
+  image_hashes: string[];
+  userId: number | null;
+  includeStackedPhotos?: boolean;
+};
+
+type SelectAllMutationArgs = {
+  select_all: true;
+  query: BulkPhotoQuery;
+  excluded_hashes?: string[];
+  userId: number | null;
+  includeStackedPhotos?: boolean;
+};
+
+type DownloadMutationArgs = IndividualMutationArgs | SelectAllMutationArgs;
+
 // Download photos
 export const useDownloadPhotosMutation = () =>
   useMutation({
-    mutationFn: async ({
-      image_hashes,
-      userId,
-      includeStackedPhotos = false,
-    }: {
-      image_hashes: string[];
-      userId: number | null;
-      includeStackedPhotos?: boolean;
-    }) => {
-      console.log("[Download] Starting download process", { image_hashes, userId, includeStackedPhotos });
+    mutationFn: async (args: DownloadMutationArgs) => {
+      const { userId, includeStackedPhotos = false } = args;
+      console.log("[Download] Starting download process", { args });
       notification.downloadStarting();
 
       if (!userId) {
@@ -65,10 +86,18 @@ export const useDownloadPhotosMutation = () =>
         throw new Error("User ID is required for download");
       }
 
-      const { job_id: jobId, url: filename } = await startDownloadProcess({
-        image_hashes,
-        include_stacked_photos: includeStackedPhotos,
-      });
+      const downloadRequest: DownloadOptions = args.select_all
+        ? {
+            select_all: true,
+            query: args.query,
+            excluded_hashes: args.excluded_hashes,
+            include_stacked_photos: includeStackedPhotos,
+          }
+        : {
+            image_hashes: args.image_hashes,
+            include_stacked_photos: includeStackedPhotos,
+          };
+      const { job_id: jobId, url: filename } = await startDownloadProcess(downloadRequest);
       console.log("[Download] Job started", { jobId, filename });
 
       const statusInterval = setInterval(async () => {
