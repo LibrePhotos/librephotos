@@ -1002,20 +1002,10 @@ class ZipListPhotosView_V2(APIView):
     def post(self, request):
         import shutil
 
+        from api.views.photo_filters import build_photo_queryset
+
         free_storage = shutil.disk_usage("/").free
         data = request.data
-        image_hashes = data.get("image_hashes")
-        if not image_hashes:
-            return Response(data={"error": "image_hashes required"}, status=400)
-
-        # DRF may provide list values (QueryDict) or a single string
-        if isinstance(image_hashes, str):
-            image_hashes = [image_hashes]
-        elif isinstance(image_hashes, (list, tuple)):
-            # QueryDict -> dict() would produce list values, request.data keeps list too
-            pass
-        else:
-            image_hashes = list(image_hashes)
 
         include_stacked = data.get("include_stacked_photos", False)
         if isinstance(include_stacked, (list, tuple)):
@@ -1030,8 +1020,39 @@ class ZipListPhotosView_V2(APIView):
         include_stacked = bool(include_stacked)
 
         photo_query = Photo.objects.filter(owner=self.request.user)
-        # Filter photos based on image hashes
-        photos = photo_query.filter(image_hash__in=image_hashes)
+
+        # Two payload shapes are accepted, mirroring the other bulk mutations
+        # (SetPhotosDeleted, SetFavoritePhotos, SetPhotosHidden, SetPhotosPublic):
+        # an explicit `image_hashes` list, or `select_all=True` plus a `query`
+        # describing the photoset the user is looking at, with optional
+        # `excluded_hashes` for items they unchecked.
+        if data.get("select_all"):
+            query_params = data.get("query") or {}
+            if isinstance(query_params, (list, tuple)):
+                query_params = query_params[0] if query_params else {}
+            excluded_hashes = data.get("excluded_hashes") or []
+            if isinstance(excluded_hashes, str):
+                excluded_hashes = [excluded_hashes]
+
+            photos = build_photo_queryset(self.request.user, query_params)
+            if excluded_hashes:
+                photos = photos.exclude(image_hash__in=excluded_hashes)
+        else:
+            image_hashes = data.get("image_hashes")
+            if not image_hashes:
+                return Response(data={"error": "image_hashes required"}, status=400)
+
+            # DRF may provide list values (QueryDict) or a single string
+            if isinstance(image_hashes, str):
+                image_hashes = [image_hashes]
+            elif isinstance(image_hashes, (list, tuple)):
+                # QueryDict -> dict() would produce list values, request.data keeps list too
+                pass
+            else:
+                image_hashes = list(image_hashes)
+
+            photos = photo_query.filter(image_hash__in=image_hashes)
+
         if not photos.exists():
             return Response(data={"error": "No photos found"}, status=404)
 

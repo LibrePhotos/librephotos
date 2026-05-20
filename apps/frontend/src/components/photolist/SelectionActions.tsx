@@ -45,6 +45,7 @@ type Props = {
   selectedItems: UserAlbum[];
   selectAllMode?: boolean;
   selectAllQuery?: BulkPhotoQuery;
+  totalCount?: number;
   updateSelectionState: (state: Partial<SelectionState>) => void;
   onSharePhotos: () => void;
   setAlbumCover: (actionType: string, photoId?: string) => void;
@@ -73,6 +74,7 @@ export function SelectionActions(props: Readonly<Props>) {
     selectedItems,
     selectAllMode = false,
     selectAllQuery,
+    totalCount,
     updateSelectionState,
     onSharePhotos,
     onShareAlbum,
@@ -129,12 +131,30 @@ export function SelectionActions(props: Readonly<Props>) {
   // Download modal state
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
+  // In select-all mode the modal can only show an upper bound, because the
+  // server-side query is the source of truth and the excluded set may contain
+  // hashes that aren't currently in `selectedItems` (e.g. items scrolled out of
+  // virtualised view). Subtracting still gives a reasonable estimate for the UI.
+  const downloadPhotoCount = selectAllMode
+    ? Math.max(0, (totalCount ?? 0) - getExcludedHashes().length)
+    : getImageHashes().length;
+
   const handleDownloadConfirm = (options: { includeStackedPhotos: boolean }) => {
-    downloadPhotoArchive.mutate({
-      image_hashes: getImageHashes(),
-      userId,
-      includeStackedPhotos: options.includeStackedPhotos,
-    });
+    if (selectAllMode) {
+      downloadPhotoArchive.mutate({
+        select_all: true,
+        query: selectAllQuery ?? {},
+        excluded_hashes: getExcludedHashes(),
+        userId,
+        includeStackedPhotos: options.includeStackedPhotos,
+      });
+    } else {
+      downloadPhotoArchive.mutate({
+        image_hashes: getImageHashes(),
+        userId,
+        includeStackedPhotos: options.includeStackedPhotos,
+      });
+    }
     resetSelection();
   };
 
@@ -142,7 +162,7 @@ export function SelectionActions(props: Readonly<Props>) {
     <Group>
       <ModalDownloadOptions
         isOpen={isDownloadModalOpen}
-        photoCount={getImageHashes().length}
+        photoCount={downloadPhotoCount}
         onRequestClose={() => setIsDownloadModalOpen(false)}
         onConfirm={handleDownloadConfirm}
       />
@@ -331,16 +351,7 @@ export function SelectionActions(props: Readonly<Props>) {
 
           <Menu.Divider />
 
-          <Menu.Item
-            leftSection={<Download />}
-            disabled={!hasSelection || selectAllMode}
-            onClick={() => {
-              // Download doesn't support selectAll mode yet
-              if (!selectAllMode) {
-                setIsDownloadModalOpen(true);
-              }
-            }}
-          >
+          <Menu.Item leftSection={<Download />} disabled={!hasSelection} onClick={() => setIsDownloadModalOpen(true)}>
             {`  ${t("selectionactions.download")}`}
           </Menu.Item>
 
