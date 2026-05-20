@@ -54,4 +54,10 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
     response = requests.post(
         "http://localhost:8010/get-tags", json=json, timeout=EXIF
     ).json()
-    return response["values"]
+    values = response["values"]
+    # The exif service can return fewer values than requested if exiftool
+    # errors mid-loop. Callers unpack the result positionally, so pad with
+    # None to honor the documented one-value-per-tag contract.
+    if len(values) < len(tags):
+        values = list(values) + [None] * (len(tags) - len(values))
+    return values
