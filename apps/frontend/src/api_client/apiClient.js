@@ -1,3 +1,3 @@
-export const serverAddress = "";
-// // This is a dirty hack. Grabs current host for when sharing. URL handling needs cleaned up. DW 12-13-20
-export const shareAddress = window.location.host;
+export const serverAddress = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
+// This is used for sharing. URL handling needs to account for subdirectory.
+export const shareAddress = window.location.host + (import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "");
