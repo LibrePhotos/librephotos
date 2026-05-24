@@ -3,7 +3,8 @@ import { jwtDecode } from "jwt-decode";
 import { Cookies } from "react-cookie";
 import { notification } from "../service/notifications";
 
-const API_BASE_URL = "/api";
+const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
+const API_BASE_URL = PUBLIC_URL + "/api";
 
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
@@ -95,7 +96,7 @@ class FetchClient {
           cookies.remove("access");
           cookies.remove("refresh");
           cookies.remove("jwt");
-          window.location.href = "/login";
+          window.location.href = PUBLIC_URL + "/login";
         }
 
         // Always show notifications for login attempts (wrong credentials),
