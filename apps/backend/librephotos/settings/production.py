@@ -1,6 +1,8 @@
 import datetime
 import os
 
+from api.geocode.throttle import serialize_geocode_throttle_profiles
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 BASE_DATA = os.environ.get("BASE_DATA", "/")
@@ -23,7 +25,6 @@ AUTH_USER_MODEL = "api.User"
 ROOT_URLCONF = "librephotos.urls"
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 DEBUG = False
-
 SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 
@@ -80,6 +81,8 @@ INSTALLED_APPS = [
     "django_q",
 ]
 
+GEOCODE_Q_CLUSTER_NAME = os.environ.get("GEOCODE_Q_CLUSTER_NAME", "geocode")
+
 Q_CLUSTER = {
     "name": "DjangORM",
     "queue_limit": 50,
@@ -89,6 +92,9 @@ Q_CLUSTER = {
     "orm": "default",
     "max_rss": 300000,
     "poll": 1,
+    "ALT_CLUSTERS": {
+        GEOCODE_Q_CLUSTER_NAME: {}
+    },
 }
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
@@ -158,6 +164,11 @@ CONSTANCE_CONFIG = {
         "map_api_provider",
     ),
     "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
+    "GEOCODE_THROTTLE_PROFILES": (
+        serialize_geocode_throttle_profiles({}),
+        "JSON throttle profiles for geocode providers",
+        str,
+    ),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),

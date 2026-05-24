@@ -26,6 +26,7 @@ fi
 echo "Running backend server..."
 
 python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
+Q_CLUSTER_NAME="${GEOCODE_Q_CLUSTER_NAME:-geocode}" python manage.py qcluster 2>&1 | tee /logs/qcluster-geocode.log &
 
 if [[ "$DEBUG" = 1 ]]; then
     echo "development backend starting"

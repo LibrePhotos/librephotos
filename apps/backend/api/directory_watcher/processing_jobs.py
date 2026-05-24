@@ -9,7 +9,9 @@ import traceback
 import uuid
 from uuid import UUID
 
+from constance import config as site_config
 from django import db
+from django.conf import settings
 from django.db.models import Q
 from django_q.tasks import AsyncTask
 
@@ -194,7 +196,15 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
             if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
                 util.logger.info("Add geolocation job cancelled")
                 return
-            AsyncTask(geolocation_job, photo, job_id).run()
+            provider = site_config.MAP_API_PROVIDER
+            AsyncTask(
+                geolocation_job,
+                photo,
+                job_id,
+                provider=provider,
+                cluster=settings.GEOCODE_Q_CLUSTER_NAME,
+                throttle_key=provider,
+            ).run()
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
@@ -202,7 +212,7 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
         lrj.fail(error=err)
 
 
-def geolocation_job(photo: Photo, job_id: UUID):
+def geolocation_job(photo: Photo, job_id: UUID, provider: str | None = None):
     """
     Worker task to add geolocation for a single photo.
 
@@ -214,7 +224,7 @@ def geolocation_job(photo: Photo, job_id: UUID):
     error = None
     try:
         photo.refresh_from_db()
-        photo._geolocate()
+        photo._geolocate(provider=provider)
         photo._add_location_to_album_dates()
     except Exception as err:
         util.logger.exception("An error occurred: ")

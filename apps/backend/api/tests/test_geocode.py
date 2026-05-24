@@ -114,3 +114,13 @@ class TestGeocoder(TestCase):
     def test_reverse_geocode_no_api_key(self):
         result = reverse_geocode(0, 0)
         self.assertEqual(result, {})
+
+    @override_config(MAP_API_PROVIDER="nominatim")
+    @patch("geopy.get_geocoder_for_service", autospec=True)
+    def test_reverse_geocode_respects_explicit_provider(self, get_geocoder_for_service):
+        get_geocoder_for_service.return_value = fake_geocoder(mapbox_responses[1])
+
+        result = reverse_geocode(0, 0, provider="mapbox")
+
+        get_geocoder_for_service.assert_called_once_with("mapbox")
+        self.assertEqual(result, mapbox_expectations[1])

@@ -304,7 +304,7 @@ class Photo(models.Model):
             self.save()
         album_date.save()
 
-    def _geolocate(self, commit=True):
+    def _geolocate(self, commit=True, provider: str | None = None):
         old_gps_lat = self.exif_gps_lat
         old_gps_lon = self.exif_gps_lon
         new_gps_lat, new_gps_lon = get_metadata(
@@ -330,7 +330,7 @@ class Photo(models.Model):
         if commit:
             self.save()
         try:
-            res = reverse_geocode(new_gps_lat, new_gps_lon)
+            res = reverse_geocode(new_gps_lat, new_gps_lon, provider=provider)
             if not res:
                 return
         except Exception as e:
