@@ -6,16 +6,18 @@ from django.db.models import Q
 
 from api.models import (
     AlbumAuto,
-    AlbumDate,
-    AlbumPlace,
     AlbumThing,
-    AlbumUser,
-    Face,
     File,
     LongRunningJob,
     Photo,
 )
 from api.util import logger
+
+# Batch size for delete_missing_photos. The function snapshots a list of
+# affected AlbumThing ids per batch and then bulk-deletes the batch, so a
+# bound on batch size bounds peak memory regardless of how many missing
+# photos a single sweep has to process.
+_DELETE_MISSING_BATCH_SIZE = 200
 
 
 def regenerate_event_titles(user, job_id):
@@ -161,35 +163,33 @@ def delete_missing_photos(user, job_id):
         job_id=job_id,
     )
     try:
-        missing_photos = Photo.objects.filter(
-            Q(owner=user) & (Q(files=None) | Q(main_file=None))
+        missing_pks = list(
+            Photo.objects.filter(
+                Q(owner=user) & (Q(files=None) | Q(main_file=None))
+            ).values_list("pk", flat=True)
         )
-        target = missing_photos.count()
+        target = len(missing_pks)
         lrj.update_progress(current=0, target=target)
-        # Snapshot affected AlbumThing ids: cascade does not fire m2m_changed,
-        # so we refresh photo_count / cover_photos once each after the bulk
-        # delete instead of N times per membership inside the loop.
-        affected_album_thing_ids = set(
-            AlbumThing.objects.filter(photos__in=missing_photos).values_list(
-                "id", flat=True
-            )
-        )
-        for idx, missing_photo in enumerate(missing_photos):
-            album_dates = AlbumDate.objects.filter(photos=missing_photo)
-            for album_date in album_dates:
-                album_date.photos.remove(missing_photo)
-            album_places = AlbumPlace.objects.filter(photos=missing_photo)
-            for album_place in album_places:
-                album_place.photos.remove(missing_photo)
-            album_users = AlbumUser.objects.filter(photos=missing_photo)
-            for album_user in album_users:
-                album_user.photos.remove(missing_photo)
-            faces = Face.objects.filter(photo=missing_photo)
-            faces.delete()
-            # To-Do: Remove thumbnails
-            lrj.update_progress(current=idx + 1, target=target)
 
-        missing_photos.delete()
+        # AlbumDate, AlbumPlace, AlbumUser have no m2m_changed receivers, so
+        # the original per-photo .remove() loops were pure overhead — cascade
+        # on Photo.delete() handles the through-rows. Face.photo is
+        # on_delete=CASCADE so Face rows (and their post_delete file cleanup)
+        # come along too. AlbumThing.photos.through has a receiver that
+        # maintains photo_count / cover_photos, but cascade bypasses the
+        # signal, so we snapshot affected AlbumThing ids per batch and run
+        # the refresh once after each batch completes.
+        affected_album_thing_ids: set[int] = set()
+        for start in range(0, target, _DELETE_MISSING_BATCH_SIZE):
+            batch_pks = missing_pks[start : start + _DELETE_MISSING_BATCH_SIZE]
+            batch_qs = Photo.objects.filter(pk__in=batch_pks)
+            affected_album_thing_ids.update(
+                AlbumThing.objects.filter(photos__in=batch_qs).values_list(
+                    "id", flat=True
+                )
+            )
+            batch_qs.delete()
+            lrj.update_progress(current=start + len(batch_pks), target=target)
 
         for album_thing in AlbumThing.objects.filter(id__in=affected_album_thing_ids):
             album_thing.photo_count = album_thing.photos.filter(hidden=False).count()

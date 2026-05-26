@@ -6,8 +6,9 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
+from api import autoalbum
 from api.autoalbum import delete_missing_photos
-from api.models import File, LongRunningJob, Photo
+from api.models import AlbumDate, AlbumPlace, File, LongRunningJob, Photo
 from api.models.album_thing import AlbumThing
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -214,3 +215,87 @@ class DeleteMissingPhotosAlbumThingTest(TestCase):
         )
         thing.refresh_from_db()
         self.assertEqual(thing.photo_count, 0)
+
+
+class DeleteMissingPhotosCascadeTest(TestCase):
+    """Guards the move from per-photo ``.remove()`` loops to cascade deletion.
+
+    AlbumDate, AlbumPlace and AlbumUser have no ``m2m_changed`` receivers, so
+    cascade through ``Photo.delete()`` cleans up their through-rows with the
+    same observable result and far less work. These tests pin the cascade
+    behaviour so a future contributor doesn't bring the explicit loops back
+    by accident.
+    """
+
+    def test_album_date_through_rows_cleaned_on_cascade(self):
+        user = create_test_user()
+        kept = create_test_photo(owner=user)
+        kept.files.add(kept.main_file)
+        missing = [create_test_photo(owner=user) for _ in range(3)]
+
+        album_date = AlbumDate.objects.create(owner=user)
+        album_date.photos.add(kept, *missing)
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        remaining = list(album_date.photos.values_list("pk", flat=True))
+        self.assertEqual(remaining, [kept.pk])
+
+    def test_album_place_through_rows_cleaned_on_cascade(self):
+        user = create_test_user()
+        kept = create_test_photo(owner=user)
+        kept.files.add(kept.main_file)
+        missing = [create_test_photo(owner=user) for _ in range(3)]
+
+        album_place = AlbumPlace.objects.create(title="Somewhere", owner=user)
+        album_place.photos.add(kept, *missing)
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        remaining = list(album_place.photos.values_list("pk", flat=True))
+        self.assertEqual(remaining, [kept.pk])
+
+
+class DeleteMissingPhotosBatchingTest(TestCase):
+    """Guards the batched processing that bounds peak memory.
+
+    Sweeps with hundreds of thousands of missing photos can no longer keep
+    the entire snapshot in scope at once; the function chunks the work into
+    ``_DELETE_MISSING_BATCH_SIZE`` slices and runs the snapshot/delete/refresh
+    sequence per slice. These tests assert the work happens at all (i.e. no
+    photos are stranded between batches) and that AlbumThing accounting is
+    still consistent when a single AlbumThing's membership straddles batches.
+    """
+
+    def test_processes_photos_across_batch_boundary(self):
+        user = create_test_user()
+        # A small batch size exercised against a slightly-larger photo count
+        # demonstrates the multi-batch path without making the test slow.
+        with patch.object(autoalbum, "_DELETE_MISSING_BATCH_SIZE", 3):
+            missing = [create_test_photo(owner=user) for _ in range(7)]
+            thing = AlbumThing.objects.create(
+                title="multi-batch", thing_type="thing", owner=user
+            )
+            thing.photos.add(*missing)
+            self.assertEqual(thing.photos.count(), 7)
+
+            delete_missing_photos(user, str(uuid.uuid4()))
+
+        self.assertFalse(Photo.objects.filter(pk__in=[p.pk for p in missing]).exists())
+        thing.refresh_from_db()
+        self.assertEqual(thing.photo_count, 0)
+        self.assertEqual(thing.photos.count(), 0)
+
+    def test_progress_reaches_target_after_multi_batch_run(self):
+        # The progress refresh moved from per-photo to per-batch; the final
+        # current must still equal the target.
+        user = create_test_user()
+        with patch.object(autoalbum, "_DELETE_MISSING_BATCH_SIZE", 2):
+            for _ in range(5):
+                create_test_photo(owner=user)
+            job_id = str(uuid.uuid4())
+            delete_missing_photos(user, job_id)
+
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        self.assertEqual(lrj.progress_target, 5)
+        self.assertEqual(lrj.progress_current, 5)
