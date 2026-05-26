@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 
+from api.http_timeouts import SIMILARITY
 from api.models import Photo
 from api.util import logger
 
@@ -24,7 +25,11 @@ def search_similar_embedding(user, emb, result_count=100, threshold=27):
         "n": result_count,
         "threshold": threshold,
     }
-    res = requests.post(settings.IMAGE_SIMILARITY_SERVER + "/search/", json=post_data)
+    res = requests.post(
+        settings.IMAGE_SIMILARITY_SERVER + "/search/",
+        json=post_data,
+        timeout=SIMILARITY,
+    )
     if res.status_code == 200:
         return res.json()["result"]
     else:
@@ -49,7 +54,11 @@ def search_similar_image(user, photo, threshold=27):
         "image_embedding": image_embedding.tolist(),
         "threshold": threshold,
     }
-    res = requests.post(settings.IMAGE_SIMILARITY_SERVER + "/search/", json=post_data)
+    res = requests.post(
+        settings.IMAGE_SIMILARITY_SERVER + "/search/",
+        json=post_data,
+        timeout=SIMILARITY,
+    )
     if res.status_code == 200:
         return res.json()
     else:
@@ -64,6 +73,7 @@ def build_image_similarity_index(user):
     requests.delete(
         settings.IMAGE_SIMILARITY_SERVER + "/build/",
         json={"user_id": user.id},
+        timeout=SIMILARITY,
     )
     start = datetime.now()
     photos = (
@@ -90,6 +100,10 @@ def build_image_similarity_index(user):
             "image_hashes": image_hashes,
             "image_embeddings": image_embeddings,
         }
-        requests.post(settings.IMAGE_SIMILARITY_SERVER + "/build/", json=post_data)
+        requests.post(
+            settings.IMAGE_SIMILARITY_SERVER + "/build/",
+            json=post_data,
+            timeout=SIMILARITY,
+        )
     elapsed = (datetime.now() - start).total_seconds()
     logger.info("building similarity index took %.2f seconds" % elapsed)

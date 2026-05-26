@@ -613,6 +613,7 @@ function PhotoListViewComponent({
                     selectedItems={selectionState.selectedItems}
                     selectAllMode={selectionState.selectAllMode}
                     selectAllQuery={selectionState.selectAllQuery}
+                    totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
                     // @ts-ignore
                     albumID={params ? params.albumID : undefined}
                     ownerUsername={ownerUsername}

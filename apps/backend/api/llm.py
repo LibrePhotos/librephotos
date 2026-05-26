@@ -4,6 +4,8 @@ import io
 from PIL import Image
 from constance import config as site_config
 
+from api.http_timeouts import LLM_GEN
+
 
 def image_to_base64_data_uri(image_path):
     """Convert image file to base64 data URI, converting to JPEG for compatibility"""
@@ -57,7 +59,9 @@ def generate_prompt(prompt, image_path=None):
             return None
 
     try:
-        response = requests.post("http://localhost:8008/generate", json=json_data)
+        response = requests.post(
+            "http://localhost:8008/generate", json=json_data, timeout=LLM_GEN
+        )
 
         if response.status_code != 201:
             print(

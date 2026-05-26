@@ -25,7 +25,13 @@ function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
           {t("topmenu.running")} {workerRunningJob.job_type_str} ...
         </Text>
         {!workerRunningJob.finished && !workerRunningJob.cancelled && (
-          <Button onClick={() => cancelJob(workerRunningJob.id)} color="red" variant="outline" size="xs" loading={isPending}>
+          <Button
+            onClick={() => cancelJob(workerRunningJob.id)}
+            color="red"
+            variant="outline"
+            size="xs"
+            loading={isPending}
+          >
             {t("joblist.cancel")}
           </Button>
         )}

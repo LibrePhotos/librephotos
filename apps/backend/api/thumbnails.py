@@ -68,7 +68,11 @@ def create_thumbnail(
                     "destination": complete_path,
                     "height": output_height,
                 }
-                response = requests.post("http://localhost:8003/", json=json).json()
+                from api.http_timeouts import THUMBNAIL
+
+                response = requests.post(
+                    "http://localhost:8003/", json=json, timeout=THUMBNAIL
+                ).json()
                 # The RAW service applies auto-orientation internally.  Apply
                 # any user-specified rotation on top.
                 if local_orientation and local_orientation != 1:
