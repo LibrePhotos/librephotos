@@ -1,27 +1,27 @@
 """Per-provider request rate limiting for reverse geocoding.
 
 Nominatim's public terms of use require at most one request per second per
-client. LibrePhotos currently fires reverse-geocode calls as fast as the
+client. LibrePhotos fires reverse-geocode calls as fast as the
 geolocation_job loop hands out photos, which is faster than nominatim
 tolerates — they respond with slow or empty replies that then time out,
 which the loop interprets as "move on" and pounds the server harder.
 
-This module sleeps just enough between successive calls within a single
-worker process to honor a configurable minimum delay per provider.
+This module enforces a per-provider minimum delay between successive calls.
+State is stored in a ``diskcache.Cache`` so multiple django-q2 worker
+processes coordinate through it — without that, an N-worker deployment
+would scale the request rate by N and re-create the original abuse pattern.
 
-Limitations:
-- The state is module-level (per-process). With multiple django-q2 worker
-  processes geocoding in parallel, each worker independently respects the
-  delay, so aggregate request rate scales with worker count. For
-  LibrePhotos's typical 1-2 workers this stays inside nominatim's actual
-  enforcement window (hundreds of req/min).
-- Only matters when calls are issued in tight succession from the same
-  worker; once the limiter's last-call timestamp has expired naturally,
-  the next call goes through without delay.
+The coordination loop reads the last-call timestamp, computes how long is
+left in the delay window, sleeps that long outside the cache transaction,
+then loops and re-checks: if another worker claimed the slot during the
+sleep, we wait again until the next window opens.
 """
 
-import threading
+import os
 import time
+
+import diskcache
+from django.conf import settings
 
 # Minimum seconds between successive calls to each provider. Nominatim's
 # public terms of use call for >=1 req/sec; commercial providers tolerate
@@ -36,40 +36,66 @@ _MIN_DELAY_PER_PROVIDER = {
 }
 _DEFAULT_MIN_DELAY = 0.05
 
+_CACHE_SUBDIR = "geocode_rate_limit"
+_LAST_CALL_KEY = "last_call:{provider}"
 
-class _MinDelayLimiter:
-    def __init__(self, min_delay_seconds: float):
-        self._min_delay = min_delay_seconds
-        self._lock = threading.Lock()
-        self._last_call = 0.0
-
-    def wait(self) -> None:
-        """Block until at least ``min_delay_seconds`` have passed since the last call."""
-        if self._min_delay <= 0:
-            return
-        with self._lock:
-            elapsed = time.monotonic() - self._last_call
-            remaining = self._min_delay - elapsed
-            if remaining > 0:
-                time.sleep(remaining)
-            self._last_call = time.monotonic()
+_cache: diskcache.Cache | None = None
 
 
-_limiters: dict[str, _MinDelayLimiter] = {}
-_limiters_lock = threading.Lock()
+def _now() -> float:
+    """Wall-clock indirection so tests can patch without touching
+    ``diskcache``'s own ``time.time`` usage during cache init and bookkeeping.
+    """
+    return time.time()
 
 
-def get_limiter(provider: str) -> _MinDelayLimiter:
-    with _limiters_lock:
-        limiter = _limiters.get(provider)
-        if limiter is None:
-            delay = _MIN_DELAY_PER_PROVIDER.get(provider, _DEFAULT_MIN_DELAY)
-            limiter = _MinDelayLimiter(delay)
-            _limiters[provider] = limiter
-        return limiter
+def _sleep(seconds: float) -> None:
+    """Sleep indirection — patched alongside :func:`_now` in tests."""
+    time.sleep(seconds)
+
+
+def _get_cache() -> diskcache.Cache:
+    global _cache
+    if _cache is None:
+        cache_dir = os.path.join(settings.BASE_DATA, _CACHE_SUBDIR)
+        _cache = diskcache.Cache(cache_dir)
+    return _cache
+
+
+def _delay_for(provider: str) -> float:
+    return _MIN_DELAY_PER_PROVIDER.get(provider, _DEFAULT_MIN_DELAY)
+
+
+def wait(provider: str) -> None:
+    """Block until ``_delay_for(provider)`` seconds have passed since the
+    last call recorded against ``provider`` in the shared cache.
+
+    Safe to call concurrently from multiple worker processes; the cache
+    transaction serialises the read-modify-write of the timestamp, and
+    losers in the race re-check after sleeping.
+    """
+    delay = _delay_for(provider)
+    if delay <= 0:
+        return
+    cache = _get_cache()
+    key = _LAST_CALL_KEY.format(provider=provider)
+    while True:
+        with cache.transact():
+            now = _now()
+            last = cache.get(key, default=0.0)
+            elapsed = now - last
+            if elapsed >= delay:
+                cache.set(key, now)
+                return
+            remaining = delay - elapsed
+        # Sleep outside the transaction so we don't hold the lock.
+        _sleep(remaining)
 
 
 def reset_for_tests() -> None:
-    """Clear the limiter cache. Use only from test setUp/tearDown."""
-    with _limiters_lock:
-        _limiters.clear()
+    """Clear the shared timestamps. Use only from test setUp/tearDown."""
+    global _cache
+    if _cache is not None:
+        _cache.clear()
+        _cache.close()
+        _cache = None
