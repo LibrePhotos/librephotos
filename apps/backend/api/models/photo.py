@@ -313,8 +313,14 @@ class Photo(models.Model):
             try_sidecar=True,
         )
         old_album_places = self._find_album_place()
-        # Skip if it hasn't changed or is null
-        if not new_gps_lat or not new_gps_lon:
+        # Skip if coordinates are missing or the (0, 0) "null island" default
+        # that cameras write when there is no fix. A single zero axis (the
+        # equator or the prime meridian) is a valid location and must be kept.
+        if (
+            new_gps_lat is None
+            or new_gps_lon is None
+            or (float(new_gps_lat) == 0.0 and float(new_gps_lon) == 0.0)
+        ):
             return
         if (
             old_gps_lat == float(new_gps_lat)
