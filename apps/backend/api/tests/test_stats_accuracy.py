@@ -332,6 +332,35 @@ class UtilityFunctionsTestCase(TestCase):
         result = median_value(qs, "size")
         self.assertIsNone(result)
 
+    def test_median_value_odd_count(self):
+        """Median of an odd number of values is the middle element."""
+        user = create_test_user()
+        for size in (10, 20, 30):
+            create_test_photo(owner=user, size=size)
+        qs = Photo.objects.filter(owner=user)
+        self.assertEqual(median_value(qs, "size"), 20)
+
+    def test_median_value_even_count(self):
+        """Median of an even number of values averages the two middle ones.
+
+        Regression test: ``count / 2`` is a float in Python 3, so the old
+        slice ``values[count / 2 - 1 : count / 2 + 1]`` raised TypeError for
+        every even-sized queryset, breaking the whole server-stats endpoint.
+        """
+        user = create_test_user()
+        for size in (10, 20, 30, 40):
+            create_test_photo(owner=user, size=size)
+        qs = Photo.objects.filter(owner=user)
+        self.assertEqual(median_value(qs, "size"), 25)
+
+    def test_median_value_two_values(self):
+        """Smallest even case: average of the two values."""
+        user = create_test_user()
+        for size in (10, 30):
+            create_test_photo(owner=user, size=size)
+        qs = Photo.objects.filter(owner=user)
+        self.assertEqual(median_value(qs, "size"), 20)
+
 
 class CountStatsTestCase(TestCase):
     """Test get_count_stats function."""
