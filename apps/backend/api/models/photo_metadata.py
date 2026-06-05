@@ -353,14 +353,14 @@ class PhotoMetadata(models.Model):
             photo.size = size
         if video_length and isinstance(video_length, numbers.Number):
             photo.video_length = video_length
-        if rating and isinstance(rating, numbers.Number):
+        if rating is not None and isinstance(rating, numbers.Number):
             photo.rating = rating
 
         # Burst/sequence detection fields
         if subsec_time_original:
             # SubSecTimeOriginal is typically a string like "123" representing milliseconds
             photo.exif_timestamp_subsec = str(subsec_time_original)[:10]
-        if image_number and isinstance(image_number, numbers.Number):
+        if image_number is not None and isinstance(image_number, numbers.Number):
             photo.image_sequence_number = int(image_number)
 
         if commit:
@@ -393,7 +393,7 @@ class PhotoMetadata(models.Model):
             focalLength35Equivalent, numbers.Number
         ):
             metadata.focal_length_35mm = focalLength35Equivalent
-        if rating and isinstance(rating, numbers.Number):
+        if rating is not None and isinstance(rating, numbers.Number):
             metadata.rating = rating
         if subsec_time_original:
             metadata.date_taken_subsec = str(subsec_time_original)[:10]
