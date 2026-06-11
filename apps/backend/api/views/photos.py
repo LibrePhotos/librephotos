@@ -887,16 +887,26 @@ class DeletePhotos(APIView):
 
             # Need to call manual_delete on each photo for proper cleanup
             deleted_count = 0
+            failed_count = 0
             for photo in photos_qs:
                 if photo.owner == request.user:
-                    photo.manual_delete()
-                    deleted_count += 1
+                    try:
+                        photo.manual_delete()
+                    except Exception:
+                        logger.exception(
+                            f"Could not delete photo {photo.image_hash}, skipping it."
+                        )
+                        failed_count += 1
+                    else:
+                        deleted_count += 1
 
             logger.info(
                 f"{deleted_count} photos were permanently deleted via select_all for user {request.user.id}."
             )
 
-            return Response({"status": True, "count": deleted_count})
+            return Response(
+                {"status": True, "count": deleted_count, "failed_count": failed_count}
+            )
 
         # Existing logic for individual hashes
         # Use filter since image_hash may not be unique after UUID migration
@@ -911,8 +921,15 @@ class DeletePhotos(APIView):
             if photo is None:
                 continue  # Photo not found
             if photo.owner == request.user and photo.in_trashcan:
-                deleted.append(photo.image_hash)
-                photo.manual_delete()
+                try:
+                    photo.manual_delete()
+                except Exception:
+                    logger.exception(
+                        f"Could not delete photo {image_hash}, skipping it."
+                    )
+                    not_deleted.append(photo.image_hash)
+                else:
+                    deleted.append(photo.image_hash)
             else:
                 not_deleted.append(photo.image_hash)
 

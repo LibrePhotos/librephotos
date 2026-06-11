@@ -580,7 +580,6 @@ class Photo(models.Model):
                     remaining_photo.duplicates.remove(duplicate)
                 duplicate.delete()
 
-        # To-Do: Handle wrong file permissions
         return result
 
     def rotate(self, angle: int = 0, flip_horizontal: bool = False) -> None:

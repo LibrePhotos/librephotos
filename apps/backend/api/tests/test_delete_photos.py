@@ -1,3 +1,4 @@
+import os
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -118,3 +119,76 @@ class DeletePhotosTest(TestCase):
         self.assertEqual(0, len(data["results"]))
         self.assertEqual(0, len(data["deleted"]))
         self.assertEqual(5, len(data["not_deleted"]))
+
+    def test_delete_continues_past_photo_whose_file_cannot_be_removed(self):
+        """A photo whose file can't be deleted (e.g. permissions, #873) must not
+        abort the whole request: the remaining photos still get deleted and the
+        failed one is reported in not_deleted."""
+        photos = create_test_photos(
+            number_of_photos=3, owner=self.user1, in_trashcan=True
+        )
+        for photo in photos:
+            photo.files.add(photo.main_file)
+        image_hashes = [p.image_hash for p in photos]
+        failing_path = photos[1].main_file.path
+
+        real_remove = os.remove
+
+        def remove_unless_protected(path, *args, **kwargs):
+            if path == failing_path:
+                raise PermissionError(13, "Permission denied", path)
+            return real_remove(path, *args, **kwargs)
+
+        payload = {"image_hashes": image_hashes}
+        headers = {"Content-Type": "application/json"}
+        with patch("api.models.photo.os.remove", side_effect=remove_unless_protected):
+            response = self.client.delete(
+                "/api/photosedit/delete/", format="json", data=payload, headers=headers
+            )
+        data = response.json()
+
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(data["status"])
+        self.assertEqual([photos[0].image_hash, photos[2].image_hash], data["deleted"])
+        self.assertEqual([photos[1].image_hash], data["not_deleted"])
+
+        for photo in photos:
+            photo.refresh_from_db()
+        self.assertTrue(photos[0].removed)
+        self.assertFalse(photos[1].removed)
+        self.assertTrue(photos[2].removed)
+        # The failed photo stays in the trashcan so the user can retry
+        self.assertTrue(photos[1].in_trashcan)
+
+    def test_delete_select_all_continues_past_photo_whose_file_cannot_be_removed(self):
+        photos = create_test_photos(
+            number_of_photos=3, owner=self.user1, in_trashcan=True
+        )
+        for photo in photos:
+            photo.files.add(photo.main_file)
+        failing_path = photos[1].main_file.path
+
+        real_remove = os.remove
+
+        def remove_unless_protected(path, *args, **kwargs):
+            if path == failing_path:
+                raise PermissionError(13, "Permission denied", path)
+            return real_remove(path, *args, **kwargs)
+
+        payload = {"select_all": True, "query": {}}
+        headers = {"Content-Type": "application/json"}
+        with patch("api.models.photo.os.remove", side_effect=remove_unless_protected):
+            response = self.client.delete(
+                "/api/photosedit/delete/", format="json", data=payload, headers=headers
+            )
+        data = response.json()
+
+        self.assertEqual(200, response.status_code)
+        self.assertTrue(data["status"])
+        self.assertEqual(2, data["count"])
+        self.assertEqual(1, data["failed_count"])
+
+        for photo in photos:
+            photo.refresh_from_db()
+        self.assertEqual(2, sum(p.removed for p in photos))
+        self.assertFalse(photos[1].removed)
