@@ -12,6 +12,15 @@ from api.semantic_search import calculate_query_embeddings
 
 class SemanticSearchFilter(filters.SearchFilter):
     def filter_queryset(self, request, queryset, view):
+        # Narrow by media type independent of the search term, mirroring the
+        # video/photo params already used by the album-date endpoints. This is
+        # applied before the no-search-term early return so the filter works
+        # whether or not a query is supplied.
+        if request.query_params.get("video"):
+            queryset = queryset.filter(video=True)
+        elif request.query_params.get("photo"):
+            queryset = queryset.filter(video=False)
+
         search_fields = self.get_search_fields(view, request)
         search_terms = self.get_search_terms(request)
 
