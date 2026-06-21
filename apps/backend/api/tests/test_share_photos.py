@@ -1,5 +1,4 @@
 import logging
-from unittest import skip
 
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -70,10 +69,12 @@ class SharePhotosTest(TestCase):
         )
         self.assertEqual(0, len(shared_photos))
 
-    @skip("BUG!!! scenario not implemented")
     def test_share_other_user_photos(self):
+        # IDOR guard (#1860): user1 (authenticated) must NOT be able to share
+        # user2's photos -- to themselves or anyone -- since they don't own them.
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
         image_hashes = [p.image_hash for p in photos]
+        photo_ids = [p.id for p in photos]
 
         payload = {
             "image_hashes": image_hashes,
@@ -90,7 +91,43 @@ class SharePhotosTest(TestCase):
         self.assertEqual(0, data["count"])
         shared_photos = list(
             Photo.shared_to.through.objects.filter(
-                user_id=self.user1.id, photo_id__in=image_hashes
+                user_id=self.user1.id, photo_id__in=photo_ids
             )
         )
         self.assertEqual(0, len(shared_photos))
+
+    def test_unshare_other_user_photos(self):
+        # The unshare branch is the same defect in reverse: user1 must not be able
+        # to strip a legitimate share on a photo owned by user2 (#1860).
+        photos = create_test_photos(number_of_photos=2, owner=self.user2)
+        image_hashes = [p.image_hash for p in photos]
+        photo_ids = [p.id for p in photos]
+        # user2 legitimately shares their photos to user1.
+        share_test_photos(image_hashes, self.user1)
+        self.assertEqual(
+            2,
+            Photo.shared_to.through.objects.filter(
+                user_id=self.user1.id, photo_id__in=photo_ids
+            ).count(),
+        )
+
+        payload = {
+            "image_hashes": image_hashes,
+            "val_shared": False,
+            "target_user_id": self.user1.id,
+        }
+        headers = {"Content-Type": "application/json"}
+        response = self.client.post(
+            "/api/photosedit/share/", format="json", data=payload, headers=headers
+        )
+        data = response.json()
+
+        self.assertTrue(data["status"])
+        self.assertEqual(0, data["count"])
+        # The existing legitimate shares must be untouched.
+        self.assertEqual(
+            2,
+            Photo.shared_to.through.objects.filter(
+                user_id=self.user1.id, photo_id__in=photo_ids
+            ).count(),
+        )
