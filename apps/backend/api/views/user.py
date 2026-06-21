@@ -127,8 +127,28 @@ class UserViewSet(viewsets.ModelViewSet):
             if self.request.user.is_authenticated and self.request.user.is_superuser:
                 return UserSerializer
             return SignupUserSerializer
-        if not self.request.user.is_authenticated:
+
+        user = self.request.user
+        # list / retrieve are the enumeration surface. The full UserSerializer
+        # exposes sensitive fields (email, scan_directory, Nextcloud server/
+        # username, is_superuser, ...), so restrict it to admins and to a user
+        # viewing their OWN record; every other reader (anonymous or another
+        # authenticated user) gets the public-safe serializer. A user's own
+        # settings come from /api/manage/user and the JWT token claims.
+        # See issue #1861.
+        if self.action in ("list", "retrieve"):
+            if user.is_authenticated and (user.is_staff or user.is_superuser):
+                return UserSerializer
+            if (
+                self.action == "retrieve"
+                and user.is_authenticated
+                and str(self.kwargs.get("pk")) == str(user.id)
+            ):
+                return UserSerializer
             return PublicUserSerializer
+
+        # update / partial_update / destroy are already restricted to self-or-admin
+        # by get_permissions (IsAdminOrSelf) and need the full serializer.
         return UserSerializer
 
     def get_permissions(self):

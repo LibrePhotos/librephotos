@@ -694,10 +694,14 @@ class SetPhotosShared(APIView):
         ])
         """
 
-        # Look up photo UUIDs from image_hashes (image_hash is no longer the primary key)
-        photos = Photo.objects.filter(image_hash__in=image_hashes).only(
-            "id", "image_hash"
-        )
+        # Look up photo UUIDs from image_hashes (image_hash is no longer the primary key).
+        # Scope to owner=request.user so a user can only (un)share photos they actually
+        # own, matching the sibling SetPhotos* endpoints. Without this, an authenticated
+        # user could add an arbitrary target_user_id to the shared_to of someone else's
+        # private photos (cross-user IDOR). See issue #1860.
+        photos = Photo.objects.filter(
+            image_hash__in=image_hashes, owner=request.user
+        ).only("id", "image_hash")
         photo_ids = [photo.id for photo in photos]
 
         if shared:

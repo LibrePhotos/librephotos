@@ -282,8 +282,14 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     def get_queryset(self):
-        # Support public access when explicitly requested
-        if self.request.query_params.get("public"):
+        # Support public access when explicitly requested. Public access is
+        # READ-ONLY: only honor ?public for the safe list/retrieve actions, so a
+        # public album id can't be mutated or deleted through this unscoped
+        # queryset. See issue #1861.
+        if self.request.query_params.get("public") and self.action in (
+            "list",
+            "retrieve",
+        ):
             # Anyone can view a public album if the album itself is marked public and active (not expired)
             username = self.request.query_params.get("username")
             from django.utils import timezone
@@ -311,14 +317,23 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
         )
 
     def get_permissions(self):
-        if self.request.query_params.get("public"):
+        # Anonymous public access is allowed only for read actions. Write actions
+        # (create/update/partial_update/destroy) always require authentication,
+        # even when ?public is present. See issue #1861.
+        if self.request.query_params.get("public") and self.action in (
+            "list",
+            "retrieve",
+        ):
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
-        if self.request.query_params.get("public"):
+        if self.request.query_params.get("public") and self.action in (
+            "list",
+            "retrieve",
+        ):
             return AlbumUserPublicSerializer
         return super().get_serializer_class()
 

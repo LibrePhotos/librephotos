@@ -10,18 +10,27 @@ from api.views.pagination import TinyResultsSetPagination
 
 
 class LongRunningJobViewSet(viewsets.ModelViewSet):
-    queryset = (
-        LongRunningJob.objects.prefetch_related(
+    # Declared for router basename inference only; real access is scoped per-user
+    # in get_queryset() below.
+    queryset = LongRunningJob.objects.all()
+    serializer_class = LongRunningJobSerializer
+    pagination_class = TinyResultsSetPagination
+
+    def get_queryset(self):
+        # Scope jobs to the requesting user so one user cannot list, retrieve,
+        # update, delete or cancel another user's jobs. Staff/superusers retain
+        # the global view. See issue #1861. Object-level actions (cancel/destroy)
+        # inherit this via get_object().
+        qs = LongRunningJob.objects.prefetch_related(
             Prefetch(
                 "started_by",
                 queryset=User.objects.only("id", "username", "first_name", "last_name"),
             ),
-        )
-        .all()
-        .order_by("-started_at")
-    )
-    serializer_class = LongRunningJobSerializer
-    pagination_class = TinyResultsSetPagination
+        ).order_by("-started_at")
+        user = self.request.user
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            return qs
+        return qs.filter(started_by=user)
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):

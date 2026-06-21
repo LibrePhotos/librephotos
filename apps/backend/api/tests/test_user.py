@@ -102,10 +102,25 @@ class UserTest(TestCase):
         self.assertEqual(len(User.objects.all()), len(data["results"]))
 
     def test_authenticated_user_list_properties(self):
+        # Security (#1861): a regular authenticated user must NOT be able to
+        # enumerate other users' private profile fields (email, scan_directory,
+        # Nextcloud creds, is_superuser, ...). The list exposes only the
+        # public-safe properties for everyone except admins.
         self.client.force_authenticate(user=self.user1)
         response = self.client.get("/api/user/")
         data = response.json()
         logger.debug(data)
+
+        for user in data["results"]:
+            self.assertEqual(len(self.public_user_properties), len(user.keys()))
+            for key in self.public_user_properties:
+                self.assertTrue(key in user, f"user does not have key: {key}")
+
+    def test_admin_user_list_properties(self):
+        # Admins retain the full view of every user.
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/user/")
+        data = response.json()
 
         for user in data["results"]:
             for key in self.private_user_properties:
@@ -115,7 +130,6 @@ class UserTest(TestCase):
                     key in self.private_user_properties,
                     f"user has superfluous key: {key}",
                 )
-
             self.assertEqual(len(self.private_user_properties), len(user.keys()))
 
     def test_user_update_self(self):
