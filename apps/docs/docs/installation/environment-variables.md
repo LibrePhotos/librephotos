@@ -56,6 +56,25 @@ To leverage GPU acceleration for neural networks and face detection, follow thes
 The GPU image is only available for x86 architecture. ARM is not supported for the GPU image.
 :::
 
+### Hosting under a sub-path (subdirectory)
+
+By default LibrePhotos is served from the root of a domain (e.g. `https://photos.example.com/`). If you need to host it under a sub-path instead (e.g. `https://example.com/photos/`), the frontend has to know that base path.
+
+The frontend reads it from the `PUBLIC_URL` build-time variable (the alias `VITE_PUBLIC_URL` also works). It sets the base path used for the app's assets and routes and defaults to `/`.
+
+Because it is applied when the frontend is **built**, the prebuilt images are served from `/`. To use a sub-path you need to build the frontend yourself with the variable set, for example:
+
+```bash
+# building the frontend directly
+PUBLIC_URL=/photos/ yarn build
+```
+
+or by passing `PUBLIC_URL` into the frontend image build. Make sure your reverse proxy forwards the same sub-path (`/photos/`) to the frontend container.
+
+:::note
+Always include the trailing slash, e.g. `/photos/`, not `/photos`.
+:::
+
 ### Changing the container names
 
 Follow the normal instructions as per your chosen build, but after updating the .env file to choose your container names, run

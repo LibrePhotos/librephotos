@@ -30,6 +30,9 @@ Manually download the necessary models from their respective URLs. Below is a li
     - Vision model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx`
     - Text model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/text_model.onnx`
     - Tokenizer: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/tokenizer.model`
+10. **buffalo_sc** (Face recognition — default model)
+    - URL: `https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip`
+    - Only download the model selected in **Site Settings → Face Recognition Model**. The other options use the same release, e.g. `buffalo_s.zip`, `buffalo_m.zip`, `buffalo_l.zip`, `antelopev2.zip`.
 
 ### Step 2: Place the Models in the Correct Location
 
@@ -52,6 +55,7 @@ For example, if your `MEDIA_ROOT` is set to `/var/lib/librephotos`, then the mod
 - **siglip2 vision_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/vision_model.onnx`
 - **siglip2 text_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/text_model.onnx`
 - **siglip2 tokenizer.model** -> Place as `<MEDIA_ROOT>/data_models/siglip2/tokenizer.model`
+- **buffalo_sc.zip** -> Unpack into `<MEDIA_ROOT>/data_models/face_recognition/models/buffalo_sc/` (the folder should contain the `.onnx` files)
 
 ### Step 3: Verify Model Placement
 
@@ -67,10 +71,13 @@ data_models/
     ├── blip/
     ├── mistral-7b-v0.1.Q5_K_M.gguf
     ├── mistral-7b-instruct-v0.2.Q5_K_M.gguf
-    └── siglip2/
-        ├── vision_model.onnx
-        ├── text_model.onnx
-        └── tokenizer.model
+    ├── siglip2/
+    │   ├── vision_model.onnx
+    │   ├── text_model.onnx
+    │   └── tokenizer.model
+    └── face_recognition/
+        └── models/
+            └── buffalo_sc/
 ```
 
 ### Step 4: Run LibrePhotos

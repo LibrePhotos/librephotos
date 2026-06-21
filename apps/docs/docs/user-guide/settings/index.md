@@ -86,6 +86,12 @@ These are settings that apply to the whole instance.
   - **SigLIP 2** — Google's vision-language model using zero-shot classification against a curated vocabulary of 900+ real-world photo tags. Returns the top 10 most relevant tags.
   
   Switching models does not delete previously generated tags. Each model's tags are stored independently, so you can switch back and forth without rescanning.
+- `Face Recognition Model` Select which [InsightFace](https://github.com/deepinsight/insightface) model is used to detect and recognise faces. Options:
+  - **buffalo_sc** — Lightweight model (default). Fastest and smallest, a good fit for most setups.
+  - **buffalo_s** / **buffalo_m** / **buffalo_l** — Progressively larger and more accurate, at the cost of more memory and compute.
+  - **antelopev2** — High-accuracy model for the best recognition quality.
+
+  Changing the model downloads the corresponding model files on the next run. After switching, run **Train faces** so all faces are re-encoded with the selected model. See [Face recognition](../face-recognition.md).
 
 ## Users
 
