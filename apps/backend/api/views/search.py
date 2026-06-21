@@ -1,4 +1,5 @@
 from django.db.models import Prefetch, Q
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.response import Response
 
 from api.filters import SemanticSearchFilter
@@ -25,6 +26,17 @@ class SearchListViewSet(ListViewSet):
             "-exif_timestamp"
         )
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("search", OpenApiTypes.STR),
+            OpenApiParameter("video", OpenApiTypes.BOOL),
+            OpenApiParameter("photo", OpenApiTypes.BOOL),
+        ],
+        description=(
+            "Search photos and videos. Pass video=true to return only videos "
+            "or photo=true to return only photos."
+        ),
+    )
     def list(self, request):
         if request.user.semantic_search_topk == 0:
             queryset = self.filter_queryset(
