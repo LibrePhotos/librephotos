@@ -4,7 +4,7 @@ export default async serverName => {
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 500)
-    const response = await fetch(serverName + '/api/auth/token/obtain/', {
+    await fetch(serverName + '/api/auth/token/obtain/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: 'test', password: 'test' }),

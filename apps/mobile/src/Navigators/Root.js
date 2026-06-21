@@ -6,7 +6,6 @@
  */
 import * as React from 'react'
 import { CommonActions } from '@react-navigation/native'
-import { convertAbsoluteToRem } from 'native-base/lib/typescript/theme/tools'
 
 export const navigationRef = React.createRef()
 

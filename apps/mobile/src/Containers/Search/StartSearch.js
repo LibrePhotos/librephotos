@@ -4,7 +4,7 @@ import { Icon, Text } from 'native-base'
 import FeatherIcon from 'react-native-vector-icons/Feather'
 import { useTheme } from '@/Theme'
 
-const StartSearch = ({ height, width, mode }) => {
+const StartSearch = () => {
   const { Common, Colors, Layout, Gutters } = useTheme()
 
   return (
