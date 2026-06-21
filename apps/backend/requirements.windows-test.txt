@@ -1,0 +1,47 @@
+# LIGHTWEIGHT / no-compiler Windows test path (the FALLBACK).
+#
+# Prefer requirements.windows.txt + scripts/setup_windows.ps1, which installs the
+# FULL pinned dependency set natively. Use THIS curated subset only when you can't
+# or don't want to install the native/ML stack (e.g. no MSVC C++ compiler for
+# insightface, or you only need quick pure-Python logic iteration).
+#
+# Heavy / native-only packages (faiss, hdbscan, insightface, llama-cpp-python,
+# pyvips, Wand, python-magic, torch/transformers/sentence_transformers, onnxruntime,
+# owncloud, exiftool binary) are NOT installed here. They are replaced at runtime by
+# lightweight stub modules (librephotos/settings/_win_stubs.py) so the Django app and
+# the test suite can be imported and run against in-memory SQLite. Activate the stubs
+# by running with DJANGO_SETTINGS_MODULE=librephotos.settings.test_windows.
+#
+# Tests that exercise REAL native behaviour will fail under the stubs — that's the
+# signal to use the native path instead. CI uses the full requirements.txt in Linux.
+
+Django==5.2.14
+# binary wheel so django.contrib.postgres can import the driver at app load
+# (the test DB itself is in-memory SQLite)
+psycopg[binary]==3.3.4
+django-constance==4.3.5
+django-cors-headers==4.9.0
+django-cryptography-5==2.0.3
+django-extensions==4.1
+django-filter==25.2
+django-bulk-update
+django-silk==5.5.0
+djangorestframework==3.17.1
+djangorestframework-simplejwt==5.5.1
+drf-spectacular==0.29.0
+Pillow==12.2.0
+ImageHash==4.3.2
+pytz==2026.2
+tzdata==2026.2
+geopy==2.4.1
+nltk==3.9.4
+markupsafe==3.0.3
+tqdm==4.67.3
+diskcache==5.6.3
+py-cpuinfo==9.0.0
+psutil==7.2.2
+concurrent-log-handler==0.9.29
+argon2-cffi==25.1.0
+safetensors==0.7.0
+Faker==40.15.0
+pyfakefs==6.2.0

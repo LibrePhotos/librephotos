@@ -1,0 +1,44 @@
+# Windows-native install of the FULL backend dependency set (Python 3.11+).
+#
+# This reuses every pin from requirements.txt and only adds the Windows-specific
+# adjustments needed to install the "hostile" native/ML packages from prebuilt
+# wheels instead of building them from source. Verified on Windows 11 /
+# CPython 3.11.9 (win_amd64) — every package installs and imports.
+#
+#   py -3.11 -m venv apps/backend/.venv-win
+#   apps/backend/.venv-win/Scripts/python -m pip install -U pip wheel
+#   apps/backend/.venv-win/Scripts/python -m pip install -r apps/backend/requirements.windows.txt
+#
+# Two dependencies also need an external (non-pip) binary; install them with
+# scripts/setup_windows.ps1 (winget), which also wires up the libmagic DLL shim:
+#   - Wand        -> ImageMagick  (winget id ImageMagick.ImageMagick  — the inno DLL build)
+#   - PyExifTool  -> exiftool.exe (winget id OliverBetz.ExifTool, runtime only)
+#
+# llama-cpp-python ships only an sdist on PyPI (CMake/C++ source build); the
+# --extra-index-url below pulls the maintainer's prebuilt CPU wheel instead.
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+
+# All canonical pins (Django, DRF, torch stack, faiss, onnxruntime, hdbscan,
+# insightface, gevent, pyocclient, py-cpuinfo, ...) come straight from here so
+# this file never drifts out of sync with the source of truth.
+-r requirements.txt
+
+# Dev/test tooling (Faker, pyfakefs, coverage, pytest, ruff, ...) — needed to run
+# the test suite. All pure-Python, installs cleanly on Windows.
+-r requirements.dev.txt
+
+# --- Windows-specific additions / overrides ------------------------------------
+# psycopg: requirements.txt pins the pure `psycopg` (it relies on the system
+# libpq present in the Linux container). Windows has no system libpq, so pull the
+# self-contained binary build. (The test suite uses SQLite, but django.contrib.
+# postgres still imports the driver at app load.)
+psycopg[binary]==3.3.4
+
+# pyvips: pull the bundled-libvips wheel (pyvips-binary) so no system libvips is
+# needed. Unions with the pyvips==3.1.1 pin from requirements.txt.
+pyvips[binary]==3.1.1
+
+# python-magic: ship the native 64-bit libmagic.dll + magic.mgc. NOTE: import
+# still needs the bundled DLL dir ahead of Git-for-Windows' MSYS libmagic on
+# PATH — setup_windows.ps1 installs a sitecustomize shim that handles this.
+python-magic-bin==0.4.14
