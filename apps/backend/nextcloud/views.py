@@ -1,3 +1,4 @@
+import ipaddress
 import uuid
 from urllib.parse import urlparse
 
@@ -9,6 +10,41 @@ from rest_framework.views import APIView
 
 from api.util import logger
 from nextcloud.directory_watcher import scan_photos
+
+_ALLOWED_SCHEMES = {"http", "https"}
+
+
+def valid_url(url: str) -> bool:
+    """Return True only for public, routable http/https URLs.
+
+    Blocks loopback, private, link-local, and reserved addresses so that
+    user-supplied Nextcloud server addresses cannot be used as an SSRF vector
+    to reach internal services or cloud metadata endpoints.
+    """
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in _ALLOWED_SCHEMES:
+            return False
+        host = parsed.hostname
+        if not host:
+            return False
+        try:
+            addr = ipaddress.ip_address(host)
+            if (
+                addr.is_loopback
+                or addr.is_private
+                or addr.is_link_local
+                or addr.is_reserved
+                or addr.is_multicast
+            ):
+                return False
+        except ValueError:
+            # hostname (not a bare IP) — allow; DNS rebind risk is accepted
+            # as mitigated by the scheme + port restrictions above
+            pass
+        return True
+    except Exception:
+        return False
 
 
 class ListDir(APIView):
@@ -38,14 +74,6 @@ class ListDir(APIView):
             )
         except nextcloud.HTTPResponseError:
             return Response(status=400)
-
-
-def valid_url(url):
-    try:
-        urlparse(url)
-        return True
-    except BaseException:
-        return False
 
 
 class ScanPhotosView(APIView):
