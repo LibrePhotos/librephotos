@@ -68,6 +68,12 @@ class File(models.Model):
         # Check if a File with this path already exists
         existing = File.objects.filter(path=path).first()
         if existing:
+            # The file was flagged missing at some point but is back on disk
+            # (e.g. a network share or removable drive that was temporarily
+            # unmounted during a scan), so it is not missing anymore.
+            if existing.missing and os.path.exists(path):
+                existing.missing = False
+                existing.save(update_fields=["missing"])
             return existing
 
         # Create new File

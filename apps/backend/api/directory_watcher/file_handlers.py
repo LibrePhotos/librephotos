@@ -104,8 +104,14 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     if not main_file:
         return None
 
-    # Check if a Photo already exists with any of these files
-    existing_photo = Photo.objects.filter(owner=user, files__in=files).first()
+    # Check if a Photo already exists with any of these files. Matching on
+    # main_file as well as the files m2m re-adopts photos whose file went
+    # missing and reappeared: _check_files detaches a missing file from the
+    # m2m but keeps main_file pointing at it, so without that match a
+    # reappearing file would spawn a duplicate Photo with the same image_hash.
+    existing_photo = Photo.objects.filter(
+        Q(owner=user) & (Q(files__in=files) | Q(main_file__in=files))
+    ).first()
 
     if existing_photo:
         # Add any missing files to the existing photo
