@@ -81,7 +81,7 @@ im2txt is an image captioning package which allows us to generate captions on de
 
 #### Face Recognition
 
-We use dlib and face_recognition to detect faces. A very cool feature would be the automatic clustering of unknown faces, which we have not implemented yet.
+We use [InsightFace](https://github.com/deepinsight/insightface) to detect and recognise faces, running on ONNX Runtime: an SCRFD detector finds the faces and an ArcFace model turns each one into a 512-dimension embedding. This replaced the previous dlib / `face_recognition` pipeline (which produced 128-dimension encodings). The model is selectable via the `Face Recognition Model` site setting (`buffalo_sc` by default). Unknown faces are grouped with automatic clustering, and a separate classification step matches faces against already-labelled people.
 
 #### Tagging Models
 

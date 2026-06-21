@@ -32,7 +32,7 @@ After the first scan finished, go to the face dashboard. Label a couple of faces
 
 ### Face Detection
 
-We have two methods on how to extract faces from images. `hog` is fast even on CPUs and does not take up significant RAM, which `cnn` is accurate, but uses a lot of resources.
+Faces are detected with [InsightFace](https://github.com/deepinsight/insightface). Its detector (SCRFD) finds the faces in each photo and returns a bounding box for every face it sees. This replaced the older dlib detectors, so there is no longer a separate `hog` / `cnn` choice — a single detector is used for everyone.
 
 ### Face Quality
 
@@ -40,7 +40,11 @@ At the moment no matter, which detection methods we use, there will be face dete
 
 ### Face Recognition
 
-Creates a 512 dimension embedding for a given face. It makes them comparable with each other. Right now we only have the one method and should be good enough.
+Creates a 512-dimension [ArcFace](https://github.com/deepinsight/insightface) embedding for each detected face, which is what makes faces comparable to one another. You can choose which model is used in **Admin Area → Site Settings → Face Recognition Model**: smaller packs (like the default `buffalo_sc`) are faster and lighter, while larger packs (`buffalo_l`, `antelopev2`) are more accurate but use more memory.
+
+:::note Upgrading from an older version
+Older versions of LibrePhotos used dlib with 128-dimension encodings. When you upgrade to the ArcFace engine, those old encodings and the existing face clusters are cleared automatically because they are not compatible with the new 512-dimension embeddings. Just run **Train faces** / **Re-scan faces** once and your faces will be re-encoded with the new model.
+:::
 
 ### Face Clustering
 
