@@ -18,7 +18,7 @@ export const useThemeStore = create<ThemeState & ThemeActions>()(
       theme: null,
       darkMode: null,
       changeTheme: ({ darkMode, theme }) =>
-        set(state => ({
+        set(() => ({
           ...(typeof theme !== 'undefined' ? { theme } : {}),
           ...(typeof darkMode !== 'undefined' ? { darkMode } : {}),
         })),
