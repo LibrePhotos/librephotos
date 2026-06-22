@@ -1,10 +1,18 @@
 import html
 import re
+import time
 from html.parser import HTMLParser
 
 import numpy as np
 import requests
 from constance import config as site_config
+
+# The face-recognition sidecar can transiently drop the connection while a scan
+# saturates the box (RemoteDisconnected → requests.ConnectionError), or time out.
+# Retry a few times with a short backoff so one blip doesn't fail a face and,
+# accumulated, mark a whole Scan Faces / Generate Face Embeddings job failed.
+FACE_MAX_ATTEMPTS = 3
+FACE_RETRY_BACKOFF = 0.5
 
 
 class _HTMLTextExtractor(HTMLParser):
@@ -71,10 +79,26 @@ def _get_error_detail(response):
 
 
 def _post_to_face_service(url, payload):
-    """POST to the face service and raise errors with response details."""
+    """POST to the face service and raise errors with response details.
+
+    Transient transport failures (the service dropping the connection under
+    load, or a timeout) are retried with a short backoff before giving up.
+    Status (HTTP) and body (JSON) errors are not retried — they would fail the
+    same way — and are raised with response details as before.
+    """
     from api.http_timeouts import FACE
 
-    response = requests.post(url, json=payload, timeout=FACE)
+    last_error = None
+    for attempt in range(FACE_MAX_ATTEMPTS):
+        try:
+            response = requests.post(url, json=payload, timeout=FACE)
+            break
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            last_error = exc
+            if attempt + 1 < FACE_MAX_ATTEMPTS:
+                time.sleep(FACE_RETRY_BACKOFF * (attempt + 1))
+    else:
+        raise last_error
 
     try:
         response.raise_for_status()
