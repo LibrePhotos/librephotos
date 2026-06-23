@@ -50,6 +50,30 @@ def _file_was_modified_after(filepath, time):
     return datetime.datetime.fromtimestamp(modified).replace(tzinfo=pytz.utc) > time
 
 
+def _group_needs_processing(paths, existing_paths, full_scan, last_scan):
+    """Return True if any file in a (directory, basename) group must be processed.
+
+    This mirrors the original per-file decision exactly, but takes a prebuilt
+    set of already-known file paths so the "do we have this file?" test is an
+    in-memory lookup instead of one ``Photo.objects.filter(files__path=path)
+    .exists()`` query per file (a round-trip per file — 100k+ on a large
+    library, the dominant cost of scan start-up).
+
+    The modified-time check (and the sidecar paths it stats) is only reached for
+    a file we already have, on an incremental scan with a baseline — i.e. the
+    only case where "did it change since last scan?" is the deciding question.
+    """
+    for path in paths:
+        if path not in existing_paths or full_scan or not last_scan:
+            return True
+        files_to_check = [path, *get_sidecar_files_in_priority_order(path)]
+        if any(
+            _file_was_modified_after(p, last_scan.finished_at) for p in files_to_check
+        ):
+            return True
+    return False
+
+
 def wait_for_group_and_process_metadata(
     group_id: str,
     metadata_paths: list[str],
@@ -240,32 +264,19 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
                 group_key = get_file_grouping_key(path)
                 file_groups[group_key].append(path)
 
-        # Determine which groups need processing
+        # Determine which groups need processing.
+        # Load every known file path in ONE query so the per-file existence
+        # check below is an in-memory set lookup rather than a
+        # Photo...exists() round-trip per file (100k+ on a large library).
+        existing_paths = set(
+            Photo.objects.filter(files__path__isnull=False).values_list(
+                "files__path", flat=True
+            )
+        )
+
         groups_to_process: list[tuple[tuple[str, str], list[str]]] = []
-
         for group_key, paths in file_groups.items():
-            # Check if any file in this group needs processing
-            needs_processing = False
-
-            for path in paths:
-                files_to_check = [path]
-                files_to_check.extend(get_sidecar_files_in_priority_order(path))
-
-                if (
-                    not Photo.objects.filter(files__path=path).exists()
-                    or full_scan
-                    or not last_scan
-                    or any(
-                        [
-                            _file_was_modified_after(p, last_scan.finished_at)
-                            for p in files_to_check
-                        ]
-                    )
-                ):
-                    needs_processing = True
-                    break
-
-            if needs_processing:
+            if _group_needs_processing(paths, existing_paths, full_scan, last_scan):
                 groups_to_process.append((group_key, paths))
 
         # Progress target is number of groups (not individual files)
