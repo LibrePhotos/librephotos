@@ -225,14 +225,51 @@ class LongRunningJob(models.Model):
     @classmethod
     def cleanup_old_jobs(cls, days=30):
         """
-        Delete completed/failed jobs older than specified days.
+        Delete completed/failed jobs older than specified days, but always keep
+        the most recent finished job of each (user, job_type).
+
+        The latest finished job per type is preserved regardless of age because
+        the incremental scan uses it as the "last scan" baseline: it is queried
+        in ``api/directory_watcher/scan_jobs.py`` and ``processing_jobs.py`` to
+        decide which photos can be skipped. Deleting it leaves no baseline, so
+        the next scan reprocesses (and re-enriches) the entire library. Older
+        finished jobs of the same type are still pruned as litter.
 
         Args:
-            days: Number of days after which completed jobs should be deleted
+            days: Number of days after which surplus completed jobs are deleted
 
         Returns:
             Number of jobs deleted
         """
         cutoff = timezone.now() - timedelta(days=days)
-        deleted, _ = cls.objects.filter(finished=True, finished_at__lt=cutoff).delete()
+
+        # Preserve the most recent finished job of each (user, job_type) — the
+        # incremental-scan baseline — at any age. The number of groups is
+        # bounded by users x job types, so this loop is cheap.
+        keep_ids = set()
+        groups = (
+            cls.objects.filter(finished=True, finished_at__isnull=False)
+            .values_list("started_by_id", "job_type")
+            .distinct()
+        )
+        for started_by_id, job_type in groups:
+            latest_id = (
+                cls.objects.filter(
+                    finished=True,
+                    finished_at__isnull=False,
+                    started_by_id=started_by_id,
+                    job_type=job_type,
+                )
+                .order_by("-finished_at", "-id")
+                .values_list("id", flat=True)
+                .first()
+            )
+            if latest_id is not None:
+                keep_ids.add(latest_id)
+
+        deleted, _ = (
+            cls.objects.filter(finished=True, finished_at__lt=cutoff)
+            .exclude(id__in=keep_ids)
+            .delete()
+        )
         return deleted
