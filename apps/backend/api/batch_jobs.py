@@ -2,7 +2,7 @@ import os
 
 from django.db.models import Q
 
-from api import util
+from api import marengo, util
 from api.image_similarity import build_image_similarity_index
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
@@ -52,11 +52,23 @@ def batch_calculate_clip_embedding(user):
                     obj.thumbnail.thumbnail_big.path
                 ):
                     valid_objs.append(obj)
-            imgs = list(map(lambda obj: obj.thumbnail.thumbnail_big.path, valid_objs))
             if len(valid_objs) == 0:
                 continue
 
-            imgs_emb, magnitudes = create_clip_embeddings(imgs)
+            # The Marengo provider can embed whole video clips, so feed it the
+            # original video file for video Photos; every other path (local
+            # model, or still images) keeps using the thumbnail as before.
+            use_video = marengo.is_enabled()
+            paths = []
+            video_flags = []
+            for obj in valid_objs:
+                is_video = bool(use_video and obj.video and obj.main_file is not None)
+                video_flags.append(is_video)
+                paths.append(
+                    obj.main_file.path if is_video else obj.thumbnail.thumbnail_big.path
+                )
+
+            imgs_emb, magnitudes = create_clip_embeddings(paths, video_flags)
 
             for obj, img_emb, magnitude in zip(valid_objs, imgs_emb, magnitudes):
                 obj.clip_embeddings = img_emb.tolist()

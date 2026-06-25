@@ -98,6 +98,19 @@ You need to have the **CLIP embedding** calculation job completed for semantic s
 3. Photos whose embeddings are closest to your query embedding are returned as results
 4. Results are ranked by similarity rather than grouped by date
 
+### Embedding provider (advanced, optional)
+
+By default LibrePhotos computes embeddings with the bundled local **CLIP** model, which runs entirely on your own hardware and embeds a single still thumbnail for each photo — including video items.
+
+If you would rather offload embeddings to a cloud service that understands whole video clips, you can opt in to **TwelveLabs Marengo**. An admin can switch this in the **Admin Area** under the `EMBEDDING_PROVIDER` config setting:
+
+- `local` — bundled CLIP model (default, fully offline)
+- `twelvelabs_marengo` — embed images, **full videos**, and search queries via the TwelveLabs Marengo API
+
+When `twelvelabs_marengo` is selected you must also set `TWELVELABS_API_KEY`. Marengo produces 512-dimensional embeddings — the same dimensionality as the local CLIP model — so no re-indexing or schema change is required; only newly scanned photos are embedded with the new provider. For video photos, Marengo embeds the entire clip instead of a single thumbnail, giving more accurate semantic matches for videos.
+
+You can grab a free API key at [twelvelabs.io](https://twelvelabs.io) (generous free tier). This provider sends image and video data to TwelveLabs' servers, so it trades the fully-offline guarantee of the local model for video-aware embeddings.
+
 ## Similar Photos
 
 When viewing a photo in the lightbox, the **Similar Photos** section in the sidebar shows visually similar photos from your library. These are found using the same CLIP embedding technology as semantic search.

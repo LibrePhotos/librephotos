@@ -139,6 +139,16 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "embedding_provider": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("local", "Local CLIP model (default)"),
+                ("twelvelabs_marengo", "TwelveLabs Marengo (cloud, video-aware)"),
+            ),
+        },
+    ],
 }
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
@@ -162,6 +172,19 @@ CONSTANCE_CONFIG = {
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
     "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
+    "EMBEDDING_PROVIDER": (
+        os.environ.get("EMBEDDING_PROVIDER", "local"),
+        "Embedding provider for semantic search. 'local' uses the bundled CLIP "
+        "model; 'twelvelabs_marengo' embeds images, full videos and queries via "
+        "the TwelveLabs Marengo API (requires TWELVELABS_API_KEY). Free key at "
+        "https://twelvelabs.io",
+        "embedding_provider",
+    ),
+    "TWELVELABS_API_KEY": (
+        os.environ.get("TWELVELABS_API_KEY", ""),
+        "TwelveLabs API key, used when EMBEDDING_PROVIDER is 'twelvelabs_marengo'",
+        str,
+    ),
     "FACE_RECOGNITION_MODEL": (
         "buffalo_sc",
         "Face recognition model",

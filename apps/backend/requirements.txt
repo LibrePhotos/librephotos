@@ -59,3 +59,5 @@ onnxruntime==1.26.0; python_version >= "3.11"
 onnxruntime==1.23.2; python_version < "3.11"
 # SentencePiece tokenizer for SigLIP 2
 sentencepiece==0.2.1
+# Optional TwelveLabs Marengo embedding provider (EMBEDDING_PROVIDER=twelvelabs_marengo)
+twelvelabs==1.2.8
