@@ -27,8 +27,12 @@ pytz==2026.2
 tzdata==2026.2
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
 pyvips==3.1.1
+# scikit-learn: the backend-gpu image runs Python 3.10 (CUDA/ubuntu22.04), but
+# scikit-learn 1.8.0+ require Python >= 3.11. Keep the python_version < "3.11"
+# pin at <= 1.7.2 or the GPU build fails. Renovate is disabled for this package
+# (see renovate.json) so it can't re-collapse the split; bump it manually.
 scikit-learn==1.9.0; python_version >= "3.11"
-scikit-learn==1.9.0; python_version < "3.11"
+scikit-learn==1.7.2; python_version < "3.11"
 sentence_transformers==5.6.0
 timezonefinder==8.2.4; python_version >= "3.11"
 timezonefinder==8.2.4; python_version < "3.11"
