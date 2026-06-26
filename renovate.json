@@ -12,8 +12,8 @@
       "enabled": false
     },
     {
-      "description": "Never auto-bump scikit-learn. The backend-gpu image runs Python 3.10, where scikit-learn 1.8.0+ are unavailable, so requirements.txt carries a python_version split (1.9.0 on >=3.11, 1.7.2 on <3.11). Renovate bumps every matching line to one version and collapses the split, breaking the GPU build. Bump manually and keep the <3.11 pin at <=1.7.2.",
-      "matchPackageNames": ["scikit-learn", "scikit_learn"],
+      "description": "Never auto-bump these. The backend-gpu image runs Python 3.10, but newer releases of these packages drop py3.10, so apps/backend/requirements.txt carries a python_version split (newest on >=3.11, last py3.10-compatible on <3.11). Renovate applies one version to every matching line and collapses the split, breaking the GPU build. Bump manually and keep the <3.11 pin on a py3.10-compatible version: scikit-learn<=1.7.2, timezonefinder<=8.2.0, onnxruntime<=1.23.2.",
+      "matchPackageNames": ["scikit-learn", "scikit_learn", "timezonefinder", "onnxruntime", "onnxruntime-gpu"],
       "enabled": false
     },
     {
