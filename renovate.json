@@ -7,6 +7,11 @@
       "automerge": true
     },
     {
+      "description": "Never bump PyExifTool. Pinned to 0.4.9; 0.5.x breaks metadata extraction.",
+      "matchPackageNames": ["PyExifTool", "pyexiftool"],
+      "enabled": false
+    },
+    {
       "matchFileNames": ["apps/backend/**"],
       "groupName": "backend dependencies",
       "addLabels": ["backend"]
