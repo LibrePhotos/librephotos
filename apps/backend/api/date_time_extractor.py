@@ -62,7 +62,10 @@ REGEXP_GROUP_MAPPINGS = {
 
 
 def _extract_no_tz_datetime_from_str(x, regexp=REGEXP_NO_TZ, group_mapping=None):
-    match = re.search(regexp, x)
+    # exiftool can hand back non-string tag values (e.g. a numeric Rating or
+    # ISO), so coerce before matching - otherwise re.search raises TypeError,
+    # which is not the ValueError handled below.
+    match = re.search(regexp, str(x))
     if not match:
         return None
     g = match.groups()
@@ -274,7 +277,8 @@ class TimeExtractionRule:
             tag_value = exif_tags.get(tag)
             if not tag_value:
                 return False
-            return re.search(pattern, tag_value) is not None
+            # tag_value may be numeric (see _extract_no_tz_datetime_from_str).
+            return re.search(pattern, str(tag_value)) is not None
         else:
             return True
 
