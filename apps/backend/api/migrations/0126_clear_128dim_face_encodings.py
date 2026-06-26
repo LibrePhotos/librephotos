@@ -7,6 +7,7 @@ face classification run.
 """
 
 from django.db import migrations
+from django.db.models.functions import Length
 
 
 # 128 floats * 8 bytes/float * 2 hex chars/byte = 2048 hex chars
@@ -18,17 +19,19 @@ def clear_128dim_face_encodings(apps, schema_editor):
     Face = apps.get_model("api", "Face")
     Cluster = apps.get_model("api", "Cluster")
 
-    faces_to_clear = [
-        face
-        for face in Face.objects.exclude(encoding="").only("id", "encoding")
-        if len(face.encoding) == ENCODING_128DIM_HEX_LENGTH
-    ]
-    for face in faces_to_clear:
-        face.encoding = ""
-    Face.objects.bulk_update(faces_to_clear, ["encoding"])
+    # Clear in a single set-based UPDATE. The previous implementation loaded every
+    # matching Face into memory and handed them all to bulk_update() with no
+    # batch_size, which emits one
+    #     UPDATE api_face SET encoding = CASE WHEN id=.. THEN '' ... END
+    # with one branch per row. On large libraries (100k+ faces) evaluating that
+    # CASE is roughly O(n^2) and pins a CPU core for hours; the equivalent
+    # set-based UPDATE below runs in seconds.
+    Face.objects.annotate(encoding_length=Length("encoding")).filter(
+        encoding_length=ENCODING_128DIM_HEX_LENGTH
+    ).update(encoding="")
 
     # Delete all clusters; they will be rebuilt on next face classification run
-    deleted, _ = Cluster.objects.all().delete()
+    Cluster.objects.all().delete()
 
 
 def reverse_migration(apps, schema_editor):
