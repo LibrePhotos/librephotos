@@ -2,7 +2,10 @@ from rest_framework import serializers
 
 from api.models import AlbumUser, Photo
 from api.serializers.photos import GroupedPhotosSerializer
-from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.serializers.PhotosGroupedByDate import (
+    filter_photos_by_media_type,
+    get_photos_ordered_by_date,
+)
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
 from api.util import logger
 
@@ -40,9 +43,11 @@ class AlbumUserSerializer(serializers.ModelSerializer):
         return str(obj.id)
 
     def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
-        grouped_photos = get_photos_ordered_by_date(
-            obj.photos.all().order_by("-exif_timestamp")
+        photos = filter_photos_by_media_type(
+            obj.photos.all().order_by("-exif_timestamp"),
+            self.context.get("request"),
         )
+        grouped_photos = get_photos_ordered_by_date(photos)
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
 
@@ -263,7 +268,10 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
         )
 
     def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
-        grouped_photos = get_photos_ordered_by_date(self._filtered_photos(obj))
+        photos = filter_photos_by_media_type(
+            self._filtered_photos(obj), self.context.get("request")
+        )
+        grouped_photos = get_photos_ordered_by_date(photos)
         return GroupedPhotosSerializer(grouped_photos, many=True).data
 
     def get_location(self, obj) -> str:

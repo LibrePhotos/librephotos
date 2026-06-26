@@ -226,7 +226,14 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
                 Prefetch(
                     "photos",
                     queryset=Photo.objects.filter(hidden=False)
-                    .only("image_hash", "public", "rating", "hidden", "exif_timestamp")
+                    .only(
+                        "image_hash",
+                        "public",
+                        "rating",
+                        "hidden",
+                        "exif_timestamp",
+                        "video",
+                    )
                     .order_by("-exif_timestamp"),
                 )
             )
