@@ -148,14 +148,22 @@ class Thumbnail(models.Model):
                 tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
                 try_sidecar=False,
             )
+            if not height or not width:
+                # Dimensions unavailable (e.g. the exif sidecar was unreachable).
+                # Skip rather than abort the whole photo pipeline — a missing
+                # aspect ratio is backfilled by a later scan.
+                logger.warning(
+                    f"missing dimensions for image {self.thumbnail_big.path}; "
+                    "skipping aspect ratio"
+                )
+                return
             self.aspect_ratio = round(width / height, 2)
 
             self.save()
-        except Exception as e:
+        except Exception:
             logger.exception(
                 f"could not calculate aspect ratio for image {self.thumbnail_big.path}"
             )
-            raise e
 
     def _get_dominant_color(self, palette_size=16):
         # Skip if it's already calculated
