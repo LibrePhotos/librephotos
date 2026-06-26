@@ -34,8 +34,11 @@ pyvips==3.1.1
 scikit-learn==1.9.0; python_version >= "3.11"
 scikit-learn==1.7.2; python_version < "3.11"
 sentence_transformers==5.6.0
+# timezonefinder: same py3.10 split as scikit-learn. 8.2.1+ require Python >= 3.11,
+# so the python_version < "3.11" pin must stay at 8.2.0 (last release supporting
+# py3.10) or the GPU build fails. Renovate is disabled for it (see renovate.json).
 timezonefinder==8.2.4; python_version >= "3.11"
-timezonefinder==8.2.4; python_version < "3.11"
+timezonefinder==8.2.0; python_version < "3.11"
 tqdm==4.68.3
 gevent==25.9.1
 python-magic==0.4.27
@@ -56,10 +59,11 @@ llama-cpp-python==0.3.31
 argon2-cffi==25.1.0
 # Dependencies for SigLIP 2 ONNX inference
 # On the GPU image (Python 3.10) the Dockerfile swaps this for
-# onnxruntime-gpu==<same version>. 1.26.0 has no Python 3.10 wheel; 1.23.2 is the
+# onnxruntime-gpu==<same version>. 1.26.0+ has no Python 3.10 wheel; 1.23.2 is the
 # last release with a cp310 wheel for both onnxruntime and onnxruntime-gpu, and is
-# the version the GPU image last built green with (before #1818).
+# the version the GPU image last built green with (before #1818). Keep the
+# python_version < "3.11" pin at 1.23.2. Renovate is disabled for it (see renovate.json).
 onnxruntime==1.27.0; python_version >= "3.11"
-onnxruntime==1.27.0; python_version < "3.11"
+onnxruntime==1.23.2; python_version < "3.11"
 # SentencePiece tokenizer for SigLIP 2
 sentencepiece==0.2.1
