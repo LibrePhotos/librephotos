@@ -28,6 +28,7 @@ from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.tests.utils import create_test_user
+from service.exif.main import _value_for_tag
 
 FIXTURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
 IPTC_TEST_IMAGE = os.path.join(FIXTURES_DIR, "iptc_test.jpg")
@@ -44,8 +45,9 @@ def _read_tags_with_exiftool(file_path, tags):
     Returns a list of values, one per tag (``None`` when not found).
     Uses a context manager so the exiftool process is always cleaned up.
     """
-    with exiftool.ExifTool() as et:
-        return [et.get_tag(tag, file_path) for tag in tags]
+    with exiftool.ExifToolHelper() as et:
+        result = (et.get_tags([file_path], tags) or [{}])[0]
+    return [_value_for_tag(tag, result) for tag in tags]
 
 
 def _exiftool_get_metadata(media_file, tags, try_sidecar=True, struct=False):
@@ -58,15 +60,18 @@ def _exiftool_get_metadata(media_file, tags, try_sidecar=True, struct=False):
 
     files = _get_existing_metadata_files_reversed(media_file, try_sidecar)
 
-    with exiftool.ExifTool() as et:
-        values = []
-        for tag in tags:
-            value = None
-            for f in files:
-                retrieved = et.get_tag(tag, f)
-                if retrieved is not None:
-                    value = retrieved
-            values.append(value)
+    helper_args = {"common_args": ["-struct"]} if struct else {}
+    with exiftool.ExifToolHelper(**helper_args) as et:
+        results = {f: (et.get_tags([f], tags) or [{}])[0] for f in files}
+
+    values = []
+    for tag in tags:
+        value = None
+        for f in files:
+            retrieved = _value_for_tag(tag, results[f])
+            if retrieved is not None:
+                value = retrieved
+        values.append(value)
 
     return values
 
