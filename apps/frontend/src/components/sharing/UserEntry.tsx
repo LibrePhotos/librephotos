@@ -38,10 +38,12 @@ export function UserEntry(props: UserEntryProps) {
         <Avatar radius="xl" size={50} src={getAvatar(user)} />
         <div>
           <Title order={4}>{getDisplayName(user)}</Title>
-          <Text size="sm" c="dimmed">
-            {t("modalphotosshare.joined")}{" "}
-            {DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
-          </Text>
+          {user.date_joined && (
+            <Text size="sm" c="dimmed">
+              {t("modalphotosshare.joined")}{" "}
+              {DateTime.fromISO(user.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
+            </Text>
+          )}
         </div>
       </Group>
       <Group>
