@@ -114,7 +114,7 @@
       "./jest.setup.js"
     ],
     "timers": "fake",
-    "testEnvironment": "jsdom",
+    "testEnvironment": "node",
     "transformIgnorePatterns": [
       "/node_modules/(?!@react-native|react-native)"
     ]
