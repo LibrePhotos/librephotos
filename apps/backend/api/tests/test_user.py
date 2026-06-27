@@ -27,6 +27,7 @@ class UserTest(TestCase):
         "last_name",
         "public_photo_count",
         "public_photo_samples",
+        "public_sharing",
     ]
 
     private_user_properties = [

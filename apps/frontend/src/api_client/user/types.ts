@@ -103,6 +103,28 @@ export type ManageUser = z.infer<typeof ManageUser>;
 export const UserList = User.array();
 export type UserList = z.infer<typeof UserList>;
 
+// Row shape returned by the GET /api/user/ list (and a /user/<id>/ retrieve of
+// someone else's record). Since the #1861 authorization fix the backend only
+// serializes the full UserSerializer for admins and for a user viewing their own
+// record; every other reader receives the public-safe PublicUserSerializer
+// (id, avatar_url, username, first/last name, public_photo_count,
+// public_photo_samples, public_sharing). Validating those rows against the full
+// `User` schema spammed non-admins with "Required at results.N.<field>" popups
+// (issue #1888), so here the private/admin-only fields are optional while the
+// public-safe fields stay required.
+export const ListUser = User.partial().required({
+  id: true,
+  username: true,
+  first_name: true,
+  last_name: true,
+  public_photo_count: true,
+  public_photo_samples: true,
+});
+export type ListUser = z.infer<typeof ListUser>;
+
+export const ListUserList = ListUser.array();
+export type ListUserList = z.infer<typeof ListUserList>;
+
 export type UserState = {
   userSelfDetails: User;
   error: Error | string | null | undefined;

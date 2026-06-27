@@ -315,6 +315,11 @@ class PublicUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
+        # Public-safe fields only -- never expose private profile data here
+        # (email, scan_directory, Nextcloud creds, is_superuser, ...). See #1861.
+        # public_sharing is included because it is not private (it is the basis
+        # of the public-user discovery page) and the frontend needs it to list
+        # users who opted into public sharing.
         fields = (
             "id",
             "avatar_url",
@@ -323,6 +328,7 @@ class PublicUserSerializer(serializers.ModelSerializer):
             "last_name",
             "public_photo_count",
             "public_photo_samples",
+            "public_sharing",
         )
 
     def get_public_photo_count(self, obj) -> int:

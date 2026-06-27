@@ -116,10 +116,12 @@ export function ModalPhotosShare(props: Props) {
                       <Avatar radius="xl" size={50} src={avatar} />
                       <div>
                         <Title order={4}>{displayName}</Title>
-                        <Text size="sm" c="dimmed">
-                          {t("modalphotosshare.joined")}{" "}
-                          {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
-                        </Text>
+                        {item.date_joined && (
+                          <Text size="sm" c="dimmed">
+                            {t("modalphotosshare.joined")}{" "}
+                            {DateTime.fromISO(item.date_joined).setLocale(i18nResolvedLanguage()).toRelative()}
+                          </Text>
+                        )}
                       </div>
                     </Group>
                     <Group>
