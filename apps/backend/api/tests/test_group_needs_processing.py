@@ -11,7 +11,10 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from api.directory_watcher.scan_jobs import _group_needs_processing
+from api.directory_watcher.scan_jobs import (
+    _group_needs_processing,
+    _select_groups_to_process,
+)
 
 
 class _FakeScan:
@@ -66,3 +69,74 @@ class GroupNeedsProcessingTest(SimpleTestCase):
         # stats — they must not run.
         _group_needs_processing(["/p/new.jpg"], set(), False, _FakeScan())
         mod.assert_not_called()
+
+
+class SelectGroupsToProcessTest(SimpleTestCase):
+    """``_select_groups_to_process`` resolves known paths in batches (one query
+    per batch of groups) instead of loading every known path at once, bounding
+    memory on large libraries. These tests pin the batching behavior with an
+    injected lookup so no DB is needed."""
+
+    @patch(MOD, return_value=False)
+    def test_new_groups_kept_known_unchanged_dropped(self, _mod):
+        groups = [
+            (("d", "a"), ["/d/a.jpg"]),  # known + unchanged -> skip
+            (("d", "b"), ["/d/b.jpg"]),  # unknown -> process
+        ]
+        result = _select_groups_to_process(
+            groups, lambda paths: {"/d/a.jpg"}, False, _FakeScan()
+        )
+        self.assertEqual(result, [(("d", "b"), ["/d/b.jpg"])])
+
+    @patch(MOD, return_value=False)
+    def test_batching_matches_single_pass_across_boundary(self, _mod):
+        # 5 groups, batch_size=2 -> 3 batches; the result must be identical to
+        # deciding them all at once. Every odd group is unknown (processed).
+        groups = [((f"d{i}", "x"), [f"/d/{i}.jpg"]) for i in range(5)]
+        known = {"/d/0.jpg", "/d/2.jpg", "/d/4.jpg"}  # evens known+unchanged
+
+        calls = []
+
+        def lookup(batch_paths):
+            calls.append(len(batch_paths))
+            return known & set(batch_paths)
+
+        result = _select_groups_to_process(
+            groups, lookup, False, _FakeScan(), batch_size=2
+        )
+        # odds (1, 3) are unknown -> processed; evens skipped
+        self.assertEqual(
+            result,
+            [(("d1", "x"), ["/d/1.jpg"]), (("d3", "x"), ["/d/3.jpg"])],
+        )
+        # one lookup per batch: ceil(5/2) = 3
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls, [2, 2, 1])
+
+    @patch(MOD, return_value=False)
+    def test_empty_input_makes_no_queries(self, _mod):
+        calls = []
+        result = _select_groups_to_process(
+            [], lambda paths: calls.append(1) or set(), False, _FakeScan()
+        )
+        self.assertEqual(result, [])
+        self.assertEqual(calls, [])
+
+    def test_full_scan_processes_all_without_querying(self):
+        # On a full scan every group is processed, so no known-path lookup runs.
+        groups = [(("d", "a"), ["/d/a.jpg"]), (("d", "b"), ["/d/b.jpg"])]
+        calls = []
+        result = _select_groups_to_process(
+            groups, lambda paths: calls.append(1) or set(), True, _FakeScan()
+        )
+        self.assertEqual(result, groups)
+        self.assertEqual(calls, [])
+
+    def test_no_baseline_processes_all_without_querying(self):
+        groups = [(("d", "a"), ["/d/a.jpg"])]
+        calls = []
+        result = _select_groups_to_process(
+            groups, lambda paths: calls.append(1) or set(), False, None
+        )
+        self.assertEqual(result, groups)
+        self.assertEqual(calls, [])
