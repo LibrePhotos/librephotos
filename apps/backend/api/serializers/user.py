@@ -37,6 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
             "favorite_min_rating": {"required": False},
             "save_metadata_to_disk": {"required": False},
             "save_face_tags_to_disk": {"required": False},
+            "scrub_face_region_tags_on_delete": {"required": False},
             "text_alignment": {"required": False},
             "header_size": {"required": False},
             "skip_raw_files": {"required": False},
@@ -74,6 +75,7 @@ class UserSerializer(serializers.ModelSerializer):
             "header_size",
             "save_metadata_to_disk",
             "save_face_tags_to_disk",
+            "scrub_face_region_tags_on_delete",
             "datetime_rules",
             "burst_detection_rules",
             "llm_settings",
@@ -205,6 +207,14 @@ class UserSerializer(serializers.ModelSerializer):
             instance.save()
             logger.info(
                 f"Updated save_face_tags_to_disk to {instance.save_face_tags_to_disk} for user {instance.username}"
+            )
+        if "scrub_face_region_tags_on_delete" in validated_data:
+            instance.scrub_face_region_tags_on_delete = validated_data.pop(
+                "scrub_face_region_tags_on_delete"
+            )
+            instance.save()
+            logger.info(
+                f"Updated scrub_face_region_tags_on_delete to {instance.scrub_face_region_tags_on_delete} for user {instance.username}"
             )
         if "image_scale" in validated_data:
             new_image_scale = validated_data.pop("image_scale")

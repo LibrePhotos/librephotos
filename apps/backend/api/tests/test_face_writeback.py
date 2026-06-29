@@ -1,11 +1,14 @@
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
+from rest_framework.test import APIClient
 
 from api.metadata.face_regions import (
+    REGION_TAGS_TO_SCRUB,
     build_face_region_exiftool_args,
     get_face_region_tags,
     reverse_orientation_transform,
+    scrub_face_region_tags,
     thumbnail_coords_to_normalized,
 )
 from api.models.person import Person
@@ -571,3 +574,83 @@ class TestSaveMetadataIntegration(TestCase):
         self.assertEqual(tags["Rating"], 5)
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         self.assertIn("Alice", tags["XMP-mwg-rs:RegionInfo"])
+
+
+class TestScrubFaceRegionTags(TestCase):
+    def setUp(self):
+        self.user = create_test_user()
+
+    @patch("api.metadata.writer.write_metadata")
+    def test_scrub_face_region_tags_clears_known_region_containers(
+        self, mock_write_metadata
+    ):
+        photo = create_test_photo(owner=self.user)
+
+        scrub_face_region_tags(photo, use_sidecar=False)
+
+        mock_write_metadata.assert_called_once_with(
+            photo.main_file.path,
+            {tag: "" for tag in REGION_TAGS_TO_SCRUB},
+            use_sidecar=False,
+        )
+
+
+class TestDeleteFacesScrub(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_test_user()
+        self.client.force_authenticate(user=self.user)
+        self.photo = create_test_photo(owner=self.user)
+        self.face = create_test_face(photo=self.photo)
+
+    @patch("api.views.faces.scrub_face_region_tags")
+    def test_delete_faces_scrubs_region_tags_when_enabled(self, mock_scrub):
+        self.user.scrub_face_region_tags_on_delete = True
+        self.user.save()
+
+        response = self.client.post(
+            "/api/deletefaces",
+            {"face_ids": [self.face.id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.face.refresh_from_db()
+        self.assertTrue(self.face.deleted)
+        mock_scrub.assert_called_once_with(self.photo, use_sidecar=False)
+
+    @patch("api.views.faces.scrub_face_region_tags")
+    def test_delete_faces_does_not_scrub_region_tags_by_default(self, mock_scrub):
+        response = self.client.post(
+            "/api/deletefaces",
+            {"face_ids": [self.face.id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.face.refresh_from_db()
+        self.assertTrue(self.face.deleted)
+        mock_scrub.assert_not_called()
+
+    @patch("api.models.photo.Photo._save_metadata")
+    @patch("api.views.faces.scrub_face_region_tags")
+    def test_delete_faces_rewrites_remaining_face_tags_when_enabled(
+        self, mock_scrub, mock_save_metadata
+    ):
+        self.user.scrub_face_region_tags_on_delete = True
+        self.user.save_face_tags_to_disk = True
+        self.user.save_metadata_to_disk = "SIDECAR_FILE"
+        self.user.save()
+
+        response = self.client.post(
+            "/api/deletefaces",
+            {"face_ids": [self.face.id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_scrub.assert_called_once_with(self.photo, use_sidecar=True)
+        mock_save_metadata.assert_called_once_with(
+            use_sidecar=True,
+            metadata_types=["face_tags"],
+        )

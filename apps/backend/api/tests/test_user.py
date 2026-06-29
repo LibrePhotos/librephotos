@@ -71,6 +71,7 @@ class UserTest(TestCase):
         "text_alignment",
         "header_size",
         "save_face_tags_to_disk",
+        "scrub_face_region_tags_on_delete",
         "public_sharing_defaults",
     ]
 

@@ -44,6 +44,7 @@ export const User = z.object({
   image_scale: z.number(),
   save_metadata_to_disk: z.string(),
   save_face_tags_to_disk: z.boolean().default(false),
+  scrub_face_region_tags_on_delete: z.boolean().default(false),
   datetime_rules: z.string(),
   burst_detection_rules: z.any().optional(), // JSON array of burst detection rules
   default_timezone: z.string(),

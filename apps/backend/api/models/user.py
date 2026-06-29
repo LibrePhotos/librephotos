@@ -78,6 +78,7 @@ class User(AbstractUser):
         choices=SaveMetadata.choices, default=SaveMetadata.OFF
     )
     save_face_tags_to_disk = models.BooleanField(default=False)
+    scrub_face_region_tags_on_delete = models.BooleanField(default=False)
     llm_settings = models.JSONField(default=get_default_llm_settings)
     datetime_rules = models.JSONField(default=get_default_config_datetime_rules)
     burst_detection_rules = models.JSONField(

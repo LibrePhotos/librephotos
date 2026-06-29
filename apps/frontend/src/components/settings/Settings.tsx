@@ -258,6 +258,17 @@ export function Settings() {
               });
             }}
           />
+          <Switch
+            label={t("settings.scrub_face_region_tags_on_delete")}
+            description={t("settings.scrub_face_region_tags_on_delete_help")}
+            checked={editedUserDetails.scrub_face_region_tags_on_delete || false}
+            onChange={event => {
+              setEditedUserDetails({
+                ...editedUserDetails,
+                scrub_face_region_tags_on_delete: event.currentTarget.checked,
+              });
+            }}
+          />
         </Card>
         <Card shadow="md">
           <ConfigDateTime

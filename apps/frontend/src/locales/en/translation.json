@@ -220,6 +220,8 @@
     "cluster_selection_epsilon_help": "Determines which clusters get merged. A higher value means more clusters will be merged.",
     "save_face_tags_to_disk": "Write face tags to image files",
     "save_face_tags_to_disk_help": "When enabled, face labels are written as XMP MWG-RS region tags to your image files (or sidecar files) whenever you label a face. This makes face data portable across photo management software like Lightroom, Digikam, and XnView.",
+    "scrub_face_region_tags_on_delete": "Scrub face regions when deleting faces",
+    "scrub_face_region_tags_on_delete_help": "When enabled, deleting a face also removes existing XMP face region metadata from the image file or sidecar. This can clear incorrect regions imported from tools like Digikam.",
     "llm": "Large Language Model Settings",
     "enablellm": "Enable Large Language Model For Captions",
     "addperson": "Add Persons to the Captions",

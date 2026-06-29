@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.face_classify import cluster_all_faces
 from api.ml_models import do_all_models_exist, download_models
+from api.metadata.face_regions import scrub_face_region_tags
 from api.models import Face, User
 from api.models.person import Person, get_or_create_person
 from api.models.photo_search import PhotoSearch
@@ -315,13 +316,32 @@ class DeleteFaces(APIView):
 
         deleted = []
         not_deleted = []
+        updated_photos = set()
         for face in faces.values():
             if face.photo.owner == request.user:
                 deleted.append(face.image.url)
                 face.deleted = True
                 face.save()
+                updated_photos.add(face.photo)
             else:
                 not_deleted.append(face.image.url)
+
+        if request.user.scrub_face_region_tags_on_delete:
+            use_sidecar = (
+                request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+            )
+            for photo in updated_photos:
+                try:
+                    scrub_face_region_tags(photo, use_sidecar=use_sidecar)
+                    if request.user.save_face_tags_to_disk:
+                        photo._save_metadata(
+                            use_sidecar=use_sidecar,
+                            metadata_types=["face_tags"],
+                        )
+                except Exception:
+                    logger.exception(
+                        f"Failed to scrub face region tags for photo {photo.image_hash}"
+                    )
 
         return Response(
             {

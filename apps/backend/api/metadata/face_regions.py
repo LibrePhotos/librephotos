@@ -7,6 +7,30 @@ from api.models.person import Person
 from api.util import logger
 
 
+REGION_TAGS_TO_SCRUB = (
+    Tags.REGION_INFO,
+    Tags.REGION_INFO_WRITE,
+    "XMP-MP:RegionInfo",
+    "XMP-MPRI:Regions",
+)
+
+
+def scrub_face_region_tags(photo, use_sidecar=True):
+    """Remove existing XMP face region containers from a photo file or sidecar.
+
+    ExifTool deletes a tag when it receives an empty assignment. These region
+    containers are used by LibrePhotos, Digikam, Microsoft Photo, and other
+    managers to store face rectangles and names.
+    """
+    from api.metadata.writer import write_metadata
+
+    write_metadata(
+        photo.main_file.path,
+        {tag: "" for tag in REGION_TAGS_TO_SCRUB},
+        use_sidecar=use_sidecar,
+    )
+
+
 def thumbnail_coords_to_normalized(top, right, bottom, left, thumb_width, thumb_height):
     """Convert Face model pixel coords (in big thumbnail space) to MWG-RS
     normalized center-based coords."""
@@ -63,7 +87,7 @@ def reverse_orientation_transform(x, y, w, h, orientation):
         new_y = x
         w, h = h, w
         return new_x, new_y, w, h
-    # Normal orientation or unknown — no transform
+    # Normal orientation or unknown Ã¢â‚¬â€ no transform
     return x, y, w, h
 
 
