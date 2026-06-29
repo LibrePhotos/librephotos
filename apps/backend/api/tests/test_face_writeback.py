@@ -8,6 +8,7 @@ from api.metadata.face_regions import (
     reverse_orientation_transform,
     thumbnail_coords_to_normalized,
 )
+from api.metadata.tags import Tags
 from api.models.person import Person
 from api.tests.utils import (
     create_test_face,
@@ -534,6 +535,20 @@ class TestSaveMetadataIntegration(TestCase):
         if mock_write_metadata.called:
             tags = mock_write_metadata.call_args[0][1]
             self.assertNotIn("XMP-mwg-rs:RegionInfo", tags)
+
+    @patch("api.models.photo.write_metadata")
+    def test_save_metadata_writes_timestamp_edits_to_date_time_original(
+        self, mock_write_metadata
+    ):
+        photo = create_test_photo(owner=self.user)
+        photo.timestamp = "2019-08-15T07:45:00Z"
+
+        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=True)
+
+        mock_write_metadata.assert_called_once()
+        tags = mock_write_metadata.call_args[0][1]
+        self.assertEqual(tags[Tags.DATE_TIME_ORIGINAL], photo.timestamp)
+        self.assertNotIn(Tags.DATE_TIME, tags)
 
     @patch("api.models.photo.write_metadata")
     @patch("api.metadata.face_regions.get_metadata")

@@ -3,11 +3,13 @@ import datetime
 from django.test import TestCase
 
 from api.date_time_extractor import (
+    DEFAULT_RULES_PARAMS,
     TimeExtractionRule,
     _extract_no_tz_datetime_from_str,
     as_rules,
     extract_local_date_time,
 )
+from api.metadata.tags import Tags
 
 
 class NumericTagValueTest(TestCase):
@@ -56,6 +58,31 @@ class NumericTagValueTest(TestCase):
             }
         )
         self.assertFalse(rule._check_condition_exif({"EXIF:Rating": 5}))
+
+    def test_default_rules_prefer_original_capture_time_over_file_edit_time(self):
+        rules = as_rules(DEFAULT_RULES_PARAMS)
+        values = {
+            Tags.DATE_TIME: "2024:05:01 10:30:00",
+            Tags.DATE_TIME_ORIGINAL: "2019:08:15 07:45:00",
+        }
+
+        def exif_getter(tags):
+            return [values.get(tag) for tag in tags]
+
+        result = extract_local_date_time(
+            path="/photos/edited-vacation.jpg",
+            rules=rules,
+            exif_getter=exif_getter,
+            gps_lat=None,
+            gps_lon=None,
+            user_default_tz="UTC",
+            user_defined_timestamp=None,
+        )
+
+        self.assertEqual(
+            result,
+            datetime.datetime(2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc),
+        )
 
     def test_extract_local_date_time_numeric_exif_does_not_crash(self):
         # Full path: an EXIF rule whose tag resolves to a number must not crash

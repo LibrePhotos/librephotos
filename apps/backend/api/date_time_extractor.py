@@ -405,16 +405,16 @@ DEFAULT_RULES_PARAMS = [
         "rule_type": RuleTypes.USER_DEFINED,
     },
     {
-        "id": 15,
-        "name": f"Local time from {Tags.DATE_TIME} exif tag",
-        "rule_type": RuleTypes.EXIF,
-        "exif_tag": Tags.DATE_TIME,
-    },
-    {
         "id": 1,
         "name": f"Local time from {Tags.DATE_TIME_ORIGINAL} exif tag",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.DATE_TIME_ORIGINAL,
+    },
+    {
+        "id": 15,
+        "name": f"Local time from {Tags.DATE_TIME} exif tag",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.DATE_TIME,
     },
     {
         "id": 2,

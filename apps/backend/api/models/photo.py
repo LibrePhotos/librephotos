@@ -223,7 +223,7 @@ class Photo(models.Model):
                 tags_to_write[Tags.RATING] = self.rating
             if modified_fields is not None and "timestamp" in modified_fields:
                 # To-Do: Only works for files and not for the sidecar file
-                tags_to_write[Tags.DATE_TIME] = self.timestamp
+                tags_to_write[Tags.DATE_TIME_ORIGINAL] = self.timestamp
 
         if write_face_tags:
             from api.metadata.face_regions import get_face_region_tags
