@@ -425,6 +425,7 @@ export function FolderDetail() {
       photoset={photosGroupedByDate ?? []}
       updateGroups={getAlbums}
       idx2hash={photosFlat}
+      photosetQuery={{ folder: folderPath }}
       selectable
     />
   );

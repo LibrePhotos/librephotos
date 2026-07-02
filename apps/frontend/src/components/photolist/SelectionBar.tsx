@@ -44,30 +44,34 @@ export function SelectionBar(props: Readonly<Props>) {
             onMouseLeave={() => setOpenedAll(false)}
             variant="light"
             onClick={() => {
-              if (selectAllMode) {
-                // Deselect all - exit select all mode
+              if (selectAllMode || (idx2hash.length > 0 && selectedItems.length === idx2hash.length)) {
+                // Already fully selected (server-side or every loaded item) - deselect
                 updateSelectionState({
                   selectMode: false,
                   selectAllMode: false,
                   selectedItems: [],
                   selectAllQuery: undefined,
                 });
-              } else if (selectedItems.length === idx2hash.length) {
-                // All currently loaded items selected - deselect
-                updateSelectionState({
-                  selectMode: false,
-                  selectAllMode: false,
-                  selectedItems: [],
-                  selectAllQuery: undefined,
-                });
-              } else {
-                // Select all - use server-side mode
+              } else if (photosetQuery) {
+                // Surface supplies a server-side query (it may lazily page in items
+                // beyond those loaded, e.g. the timeline / person albums). Select all
+                // via the query; selectedItems here tracks exclusions.
                 updateSelectionState({
                   selectMode: true,
                   selectAllMode: true,
-                  selectedItems: [], // Empty - server handles it, items here are exclusions
+                  selectedItems: [],
                   selectAllQuery: photosetQuery,
                   totalCount,
+                });
+              } else {
+                // No server-side query (thing/place/user albums, search): the full set
+                // is already loaded, so select every loaded item client-side. Avoids the
+                // empty-query fallback that would otherwise match the whole library.
+                updateSelectionState({
+                  selectMode: true,
+                  selectAllMode: false,
+                  selectedItems: idx2hash.filter(item => !item.isTemp),
+                  selectAllQuery: undefined,
                 });
               }
             }}
