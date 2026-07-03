@@ -2,7 +2,10 @@ from rest_framework import serializers
 
 from api.models import AlbumPlace
 from api.serializers.photos import GroupedPhotosSerializer, PhotoHashListSerializer
-from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
+from api.serializers.PhotosGroupedByDate import (
+    filter_photos_by_media_type,
+    get_photos_ordered_by_date,
+)
 from api.serializers.simple import PhotoSuperSimpleSerializer
 
 
@@ -23,7 +26,10 @@ class GroupedPlacePhotosSerializer(serializers.ModelSerializer):
         return str(obj.id)
 
     def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
-        grouped_photos = get_photos_ordered_by_date(obj.photos.all())
+        photos = filter_photos_by_media_type(
+            obj.photos.all(), self.context.get("request")
+        )
+        grouped_photos = get_photos_ordered_by_date(photos)
         res = GroupedPhotosSerializer(grouped_photos, many=True).data
         return res
 
