@@ -530,13 +530,6 @@ export function SelectionActions(props: Readonly<Props>) {
           )}
         </Menu.Dropdown>
       </Menu>
-
-      <ModalDownloadOptions
-        isOpen={isDownloadModalOpen}
-        photoCount={getImageHashes().length}
-        onRequestClose={() => setIsDownloadModalOpen(false)}
-        onConfirm={handleDownloadConfirm}
-      />
     </Group>
   );
 }

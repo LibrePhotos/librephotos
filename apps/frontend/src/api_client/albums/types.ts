@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { BulkPhotoQuery } from "../photos/types";
 import { DatePhotosGroup, IncompleteDatePhotosGroup, PhotoHash, SimpleUser } from "../photos/types";
 
 const UserAlbumResponse = z.object({
@@ -32,7 +33,17 @@ export type RenameUserAlbumParams = {
   newTitle: string;
 };
 
-export type CreateUserAlbumParams = {
+// Server-side "Select All": instead of listing every photo id, send the query
+// describing the photoset plus exclusions, mirroring the other bulk mutations.
+// `photoCount` is display-only (the notification), since `photos` is empty then.
+export type SelectAllAlbumFields = {
+  select_all?: boolean;
+  query?: BulkPhotoQuery;
+  excluded_hashes?: string[];
+  photoCount?: number;
+};
+
+export type CreateUserAlbumParams = SelectAllAlbumFields & {
   title: string;
   photos: string[];
 };
@@ -43,7 +54,7 @@ export type RemovePhotoFromUserAlbumParams = {
   photos: string[];
 };
 
-export type AddPhotoFromUserAlbumParams = {
+export type AddPhotoFromUserAlbumParams = SelectAllAlbumFields & {
   id: string;
   title: string;
   photos: string[];
