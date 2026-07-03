@@ -437,3 +437,131 @@ class BulkSharePhotosTest(TestCase):
             user_id=self.user2.id, photo_id=photos[0].id
         ).exists()
         self.assertFalse(excluded_shared)
+
+
+class UserAlbumSelectAllTest(TestCase):
+    """Tests for creating / adding to user albums with select_all mode."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user1 = create_test_user()
+        self.user2 = create_test_user()
+        self.client.force_authenticate(user=self.user1)
+
+    def _album_photo_ids(self, album_id):
+        from api.models import AlbumUser
+
+        return set(
+            AlbumUser.objects.get(id=album_id).photos.values_list("id", flat=True)
+        )
+
+    def test_create_album_select_all(self):
+        """Creating an album with select_all adds every photo matching the query."""
+        photos = create_test_photos(number_of_photos=5, owner=self.user1)
+
+        payload = {
+            "title": "everything",
+            "photos": [],
+            "select_all": True,
+            "query": {},
+        }
+        response = self.client.post(
+            "/api/albums/user/edit/", format="json", data=payload
+        )
+        self.assertEqual(response.status_code, 201)
+
+        album_id = response.json()["id"]
+        self.assertEqual(
+            self._album_photo_ids(album_id), {photo.id for photo in photos}
+        )
+
+    def test_create_album_select_all_respects_media_type(self):
+        """The media-type filter (photo/video) in the query limits the selection."""
+        stills = create_test_photos(number_of_photos=2, owner=self.user1, video=False)
+        videos = create_test_photos(number_of_photos=3, owner=self.user1, video=True)
+
+        payload = {
+            "title": "only videos",
+            "photos": [],
+            "select_all": True,
+            "query": {"video": True},
+        }
+        response = self.client.post(
+            "/api/albums/user/edit/", format="json", data=payload
+        )
+        self.assertEqual(response.status_code, 201)
+        album_id = response.json()["id"]
+        self.assertEqual(
+            self._album_photo_ids(album_id), {video.id for video in videos}
+        )
+
+        payload = {
+            "title": "only photos",
+            "photos": [],
+            "select_all": True,
+            "query": {"photo": True},
+        }
+        response = self.client.post(
+            "/api/albums/user/edit/", format="json", data=payload
+        )
+        self.assertEqual(response.status_code, 201)
+        album_id = response.json()["id"]
+        self.assertEqual(
+            self._album_photo_ids(album_id), {still.id for still in stills}
+        )
+
+    def test_add_to_album_select_all_with_exclusions(self):
+        """PATCHing an album with select_all adds the query result minus exclusions."""
+        from api.models import AlbumUser
+
+        photos = create_test_photos(number_of_photos=5, owner=self.user1)
+        album = AlbumUser.objects.create(title="existing", owner=self.user1)
+        album.photos.add(photos[0])
+
+        payload = {
+            "title": "existing",
+            "photos": [],
+            "select_all": True,
+            "query": {},
+            "excluded_hashes": [photos[4].image_hash],
+        }
+        response = self.client.patch(
+            f"/api/albums/user/edit/{album.id}/", format="json", data=payload
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self._album_photo_ids(album.id), {photo.id for photo in photos[:4]}
+        )
+
+    def test_select_all_scoped_to_owner(self):
+        """select_all with an empty query only picks up the requesting user's photos."""
+        mine = create_test_photos(number_of_photos=2, owner=self.user1)
+        create_test_photos(number_of_photos=3, owner=self.user2)
+
+        payload = {
+            "title": "mine only",
+            "photos": [],
+            "select_all": True,
+            "query": {},
+        }
+        response = self.client.post(
+            "/api/albums/user/edit/", format="json", data=payload
+        )
+        self.assertEqual(response.status_code, 201)
+        album_id = response.json()["id"]
+        self.assertEqual(self._album_photo_ids(album_id), {photo.id for photo in mine})
+
+    def test_explicit_photo_list_still_works(self):
+        """The pre-existing explicit `photos` payload keeps working unchanged."""
+        photos = create_test_photos(number_of_photos=3, owner=self.user1)
+
+        payload = {
+            "title": "explicit",
+            "photos": [str(photos[0].id), str(photos[1].id)],
+        }
+        response = self.client.post(
+            "/api/albums/user/edit/", format="json", data=payload
+        )
+        self.assertEqual(response.status_code, 201)
+        album_id = response.json()["id"]
+        self.assertEqual(self._album_photo_ids(album_id), {photos[0].id, photos[1].id})

@@ -5,6 +5,7 @@ from api.serializers.photos import GroupedPhotosSerializer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
 from api.util import logger
+from api.views.photo_filters import build_photo_queryset
 
 
 class AlbumUserSerializer(serializers.ModelSerializer):
@@ -95,6 +96,19 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False,
     )
+    # Server-side "Select All" payload, mirroring the other bulk endpoints
+    # (SetPhotosDeleted, ZipListPhotosView_V2, ...): instead of an explicit
+    # `photos` list, `select_all=True` plus a `query` describing the photoset
+    # the user is looking at, with optional `excluded_hashes` for unchecked items.
+    select_all = serializers.BooleanField(
+        write_only=True, required=False, default=False
+    )
+    query = serializers.DictField(write_only=True, required=False)
+    excluded_hashes = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        write_only=True,
+        required=False,
+    )
 
     class Meta:
         model = AlbumUser
@@ -106,11 +120,26 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             "favorited",
             "removedPhotos",
             "cover_photo",
+            "select_all",
+            "query",
+            "excluded_hashes",
         )
+
+    def _resolve_new_photo_pks(self, validated_data):
+        """Resolve the photos to add: the explicit list, or the select-all query."""
+        if validated_data.get("select_all"):
+            request = self.context.get("request")
+            photos = build_photo_queryset(
+                request.user, validated_data.get("query") or {}
+            )
+            excluded_hashes = validated_data.get("excluded_hashes") or []
+            if excluded_hashes:
+                photos = photos.exclude(image_hash__in=excluded_hashes)
+            return list(photos.values_list("id", flat=True))
+        return [photo.id for photo in validated_data.get("photos", [])]
 
     def create(self, validated_data):
         title = validated_data["title"]
-        photos = validated_data["photos"]
 
         user = None
         request = self.context.get("request")
@@ -122,10 +151,11 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         if not created:
             return self.update(instance, validated_data)
 
-        for photo in photos:
-            instance.photos.add(photo)
+        photo_pks = self._resolve_new_photo_pks(validated_data)
+        if photo_pks:
+            instance.photos.add(*photo_pks)
         instance.save()
-        logger.info(f"Created user album {instance.id} with {len(photos)} photos")
+        logger.info(f"Created user album {instance.id} with {len(photo_pks)} photos")
         return instance
 
     def update(self, instance, validated_data):
@@ -150,16 +180,14 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
             instance.cover_photo = cover_photo
             logger.info(f"Changed cover photo to {cover_photo}")
 
-        if "photos" in validated_data.keys():
-            photos = validated_data["photos"]
-            photos_already_in_album = instance.photos.all()
-            cnt = 0
-            for photo in photos:
-                if photo not in photos_already_in_album:
-                    cnt += 1
-                    instance.photos.add(photo)
+        if "photos" in validated_data.keys() or validated_data.get("select_all"):
+            photo_pks = self._resolve_new_photo_pks(validated_data)
+            already_in_album = set(instance.photos.values_list("id", flat=True))
+            new_pks = [pk for pk in photo_pks if pk not in already_in_album]
+            if new_pks:
+                instance.photos.add(*new_pks)
 
-            logger.info(f"Added {cnt} photos to user album {instance.id}")
+            logger.info(f"Added {len(new_pks)} photos to user album {instance.id}")
 
         instance.save()
         return instance

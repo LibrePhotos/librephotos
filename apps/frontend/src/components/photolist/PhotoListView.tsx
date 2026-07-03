@@ -753,9 +753,17 @@ function PhotoListViewComponent({
           isOpen={modalAddToAlbumOpen}
           onRequestClose={() => {
             setModalAddToAlbumOpen(false);
-            updateSelectionState({ selectedItems: [], selectMode: false });
+            updateSelectionState({
+              selectedItems: [],
+              selectMode: false,
+              selectAllMode: false,
+              selectAllQuery: undefined,
+            });
           }}
           selectedImages={selectionState.selectedItems}
+          selectAllMode={selectionState.selectAllMode}
+          selectAllQuery={selectionState.selectAllQuery}
+          totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
         />
       )}
       {!isPublic && (
