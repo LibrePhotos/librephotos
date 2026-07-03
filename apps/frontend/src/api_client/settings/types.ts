@@ -6,6 +6,7 @@ export const SiteSettings = z.object({
   skip_patterns: z.string(),
   map_api_key: z.string(),
   map_api_provider: z.string(),
+  map_tile_provider: z.string(),
   captioning_model: z.string(),
   llm_model: z.string(),
   tagging_model: z.string(),

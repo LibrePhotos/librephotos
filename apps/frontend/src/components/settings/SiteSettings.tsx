@@ -16,6 +16,12 @@ const MAP_API_PROVIDERS = [
   { value: "tomtom", label: "TomTom", data: { use_api_key: true, url: "https://www.tomtom.com/" } },
 ];
 
+const MAP_TILE_PROVIDERS = [
+  { value: "photoprism", label: "PhotoPrism (default)" },
+  { value: "osm", label: "OpenStreetMap" },
+  { value: "none", label: "None (hide map)" },
+];
+
 const CAPTIONING_MODELS = [
   { value: "im2txt", label: "im2txt PyTorch" },
   { value: "blip_base_capfilt_large", label: "BLIP Base Capfilt Large" },
@@ -46,6 +52,7 @@ export function SiteSettings() {
   const [skipPatterns, setSkipPatterns] = useState("");
   const [mapApiKey, setMapApiKey] = useState("");
   const [mapApiProvider, setMapApiProvider] = useState<string>("nominatim");
+  const [mapTileProvider, setMapTileProvider] = useState<string>("photoprism");
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
@@ -72,6 +79,7 @@ export function SiteSettings() {
       setSkipPatterns(settings.skip_patterns);
       setMapApiKey(settings.map_api_key);
       setMapApiProvider(settings.map_api_provider);
+      setMapTileProvider(settings.map_tile_provider);
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
       setCaptioningModel(settings.captioning_model);
@@ -209,6 +217,25 @@ export function SiteSettings() {
                 </Grid.Col>
               </>
             )}
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.map_tile_provider_header")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t("sitesettings.map_tile_provider_description")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                data={MAP_TILE_PROVIDERS}
+                value={mapTileProvider}
+                onChange={provider => {
+                  const value = provider || "photoprism";
+                  setMapTileProvider(value);
+                  saveSettings({ map_tile_provider: value });
+                }}
+              />
+            </Grid.Col>
             <Grid.Col span={8}>
               <Stack gap={0}>
                 <Text>{t("sitesettings.captioning_model_header")}</Text>
