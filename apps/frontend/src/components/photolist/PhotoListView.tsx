@@ -44,6 +44,8 @@ import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import { ModalAlbumShare } from "../sharing/ModalAlbumShare";
 import { ModalPhotosShare } from "../sharing/ModalPhotosShare";
 import { DefaultHeader } from "./DefaultHeader";
+import type { MediaType } from "./mediaTypeFilter";
+import { MediaTypeSelector } from "./MediaTypeSelector";
 import { SelectionActions } from "./SelectionActions";
 import { SelectionBar } from "./SelectionBar";
 import { StackOverlay } from "./StackOverlay";
@@ -94,6 +96,10 @@ type Props = Readonly<{
   emptyStateConfig?: EmptyStateConfig;
   // Query params for server-side select all
   photosetQuery?: BulkPhotoQuery;
+  // When set, an All/Photos/Videos filter is shown in the header. The value is
+  // the current selection (from the route's `?media` param) — passing it keeps
+  // the memoized grid re-rendering when the filter changes.
+  mediaType?: MediaType;
 }>;
 
 // SelectionState is now imported from api_client/photos/types
@@ -119,6 +125,7 @@ function PhotoListViewComponent({
   ownerUsername,
   emptyStateConfig,
   photosetQuery,
+  mediaType,
 }: Props) {
   const { t } = useTranslation();
   const { height } = useViewportSize();
@@ -228,7 +235,6 @@ function PhotoListViewComponent({
               });
             }
           } catch (error) {
-            // eslint-disable-next-line no-console
             console.error("Error scrolling to image:", error);
           }
         }, 100);
@@ -310,6 +316,21 @@ function PhotoListViewComponent({
     selectionStateRef.current = updatedState;
     setSelectionState(updatedState);
   };
+
+  // Clear any active selection when the media-type filter changes: the set of
+  // photos on screen changes, so a carried-over selection (and its "N selected"
+  // count or server-side select-all query) would be stale and misleading.
+  useEffect(() => {
+    const cleared: SelectionState = {
+      selectedItems: [],
+      selectMode: false,
+      selectAllMode: false,
+      selectAllQuery: undefined,
+      totalCount: undefined,
+    };
+    selectionStateRef.current = cleared;
+    setSelectionState(cleared);
+  }, [mediaType]);
 
   const handleSelection = (item: any) => {
     const currentState = selectionStateRef.current;
@@ -465,7 +486,7 @@ function PhotoListViewComponent({
               hasEmptyState={!!emptyStateConfig && !isFirstTimeSetup}
               isPublic={isPublic}
             />
-            {!isLoading && !isPublic && getNumPhotos() > 0 && (
+            {!isLoading && !isPublic && (getNumPhotos() > 0 || mediaType !== undefined) && (
               <Box
                 style={{
                   position: "absolute",
@@ -475,7 +496,10 @@ function PhotoListViewComponent({
                 }}
               >
                 <Group gap="xs">
-                  {isAlbumPubliclyShared && isUserAlbum && (
+                  {/* The media-type filter stays visible even when the current
+                      filter yields no photos, so the user is never trapped. */}
+                  {mediaType !== undefined && <MediaTypeSelector />}
+                  {getNumPhotos() > 0 && isAlbumPubliclyShared && isUserAlbum && (
                     <Tooltip label={t("sidemenu.sharing")} position="bottom">
                       <ActionIcon
                         variant="subtle"
@@ -492,91 +516,95 @@ function PhotoListViewComponent({
                       </ActionIcon>
                     </Tooltip>
                   )}
-                  <Menu shadow="md" width={200} position="bottom-end">
-                    <Menu.Target>
-                      <Tooltip label={t("photodisplay.settings")} position="bottom">
-                        <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          size="lg"
-                          aria-label={t("photodisplay.settings")}
-                          style={{
-                            backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-                            borderRadius: theme.radius.sm,
-                          }}
-                        >
-                          <IconSettings size={20} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
-                      <Box p="xs">
-                        <Stack gap={6}>
-                          <Slider
-                            mb={20}
-                            value={localImageScale}
-                            onChange={handleThumbnailSizeChange}
-                            min={0.25}
-                            max={3}
-                            step={0.05}
-                            marks={[
-                              { value: 0.5, label: "0.5" },
-                              { value: 1, label: "1" },
-                              { value: 2, label: "2" },
-                            ]}
+                  {getNumPhotos() > 0 && (
+                    <Menu shadow="md" width={200} position="bottom-end">
+                      <Menu.Target>
+                        <Tooltip label={t("photodisplay.settings")} position="bottom">
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="lg"
+                            aria-label={t("photodisplay.settings")}
+                            style={{
+                              backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+                              borderRadius: theme.radius.sm,
+                            }}
+                          >
+                            <IconSettings size={20} />
+                          </ActionIcon>
+                        </Tooltip>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Label>{t("photodisplay.photoSize")}</Menu.Label>
+                        <Box p="xs">
+                          <Stack gap={6}>
+                            <Slider
+                              mb={20}
+                              value={localImageScale}
+                              onChange={handleThumbnailSizeChange}
+                              min={0.25}
+                              max={3}
+                              step={0.05}
+                              marks={[
+                                { value: 0.5, label: "0.5" },
+                                { value: 1, label: "1" },
+                                { value: 2, label: "2" },
+                              ]}
+                            />
+                            <Text size="xs" c="dimmed">
+                              {t("photodisplay.lowerBigger")}
+                            </Text>
+                            <Text size="xs" fw={500}>
+                              {t("photodisplay.current", { value: localImageScale.toFixed(2) })}
+                            </Text>
+                          </Stack>
+                        </Box>
+
+                        <Menu.Divider />
+
+                        <Menu.Label>{t("photodisplay.textAlignment")}</Menu.Label>
+                        <Box p="xs">
+                          <Switch
+                            label={t("photodisplay.leftAlign")}
+                            checked={localTextAlignment === "left"}
+                            onChange={event =>
+                              handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")
+                            }
+                            size="sm"
                           />
-                          <Text size="xs" c="dimmed">
-                            {t("photodisplay.lowerBigger")}
-                          </Text>
-                          <Text size="xs" fw={500}>
-                            {t("photodisplay.current", { value: localImageScale.toFixed(2) })}
-                          </Text>
-                        </Stack>
-                      </Box>
+                        </Box>
 
-                      <Menu.Divider />
+                        <Menu.Divider />
 
-                      <Menu.Label>{t("photodisplay.textAlignment")}</Menu.Label>
-                      <Box p="xs">
-                        <Switch
-                          label={t("photodisplay.leftAlign")}
-                          checked={localTextAlignment === "left"}
-                          onChange={event => handleTextAlignmentChange(event.currentTarget.checked ? "left" : "right")}
-                          size="sm"
-                        />
-                      </Box>
-
-                      <Menu.Divider />
-
-                      <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
-                      <Box p="xs">
-                        <Group>
-                          <Button
-                            size="xs"
-                            variant={localHeaderSize === "large" ? "filled" : "outline"}
-                            onClick={() => handleHeaderSizeChange("large")}
-                          >
-                            {t("photodisplay.large")}
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant={localHeaderSize === "normal" ? "filled" : "outline"}
-                            onClick={() => handleHeaderSizeChange("normal")}
-                          >
-                            {t("photodisplay.normal")}
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant={localHeaderSize === "small" ? "filled" : "outline"}
-                            onClick={() => handleHeaderSizeChange("small")}
-                          >
-                            {t("photodisplay.small")}
-                          </Button>
-                        </Group>
-                      </Box>
-                    </Menu.Dropdown>
-                  </Menu>
+                        <Menu.Label>{t("photodisplay.headerSize")}</Menu.Label>
+                        <Box p="xs">
+                          <Group>
+                            <Button
+                              size="xs"
+                              variant={localHeaderSize === "large" ? "filled" : "outline"}
+                              onClick={() => handleHeaderSizeChange("large")}
+                            >
+                              {t("photodisplay.large")}
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant={localHeaderSize === "normal" ? "filled" : "outline"}
+                              onClick={() => handleHeaderSizeChange("normal")}
+                            >
+                              {t("photodisplay.normal")}
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant={localHeaderSize === "small" ? "filled" : "outline"}
+                              onClick={() => handleHeaderSizeChange("small")}
+                            >
+                              {t("photodisplay.small")}
+                            </Button>
+                          </Group>
+                        </Box>
+                      </Menu.Dropdown>
+                    </Menu>
+                  )}
                 </Group>
               </Box>
             )}
@@ -809,5 +837,5 @@ function PhotoListViewComponent({
 
 export const PhotoListView = React.memo(
   PhotoListViewComponent,
-  (prev, next) => prev.loading === next.loading && prev.idx2hash === next.idx2hash
+  (prev, next) => prev.loading === next.loading && prev.idx2hash === next.idx2hash && prev.mediaType === next.mediaType
 );

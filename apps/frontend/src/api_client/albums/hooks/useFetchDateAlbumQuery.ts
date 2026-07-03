@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
@@ -12,6 +13,7 @@ type AlbumDateOption = {
   username?: string;
   person_id?: number;
   folder?: string;
+  mediaType?: MediaType;
 };
 
 export const DateAlbumQueryKeys = ["dateAlbum"];
@@ -27,6 +29,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
       options.person_id,
       options.username,
       options.folder,
+      options.mediaType ?? "all",
     ],
     queryFn: async () => {
       const params = {
@@ -34,8 +37,8 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
         public: Photoset.PUBLIC === options.photosetType ? "true" : undefined,
         hidden: Photoset.HIDDEN === options.photosetType ? "true" : undefined,
         in_trashcan: Photoset.IN_TRASHCAN === options.photosetType ? "true" : undefined,
-        photo: Photoset.PHOTOS === options.photosetType ? "true" : undefined,
-        video: Photoset.VIDEOS === options.photosetType ? "true" : undefined,
+        photo: Photoset.PHOTOS === options.photosetType || options.mediaType === "photos" ? "true" : undefined,
+        video: Photoset.VIDEOS === options.photosetType || options.mediaType === "videos" ? "true" : undefined,
         page: options.page.toString(),
         person: options.person_id?.toString(),
         username: options.username?.toLowerCase(),
@@ -58,6 +61,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
         options.person_id,
         options.username,
         options.folder,
+        options.mediaType ?? "all",
       ];
       const oldData = queryClient.getQueryData(dateAlbumsQueryKey) as IncompleteDatePhotosGroup[] | undefined;
 

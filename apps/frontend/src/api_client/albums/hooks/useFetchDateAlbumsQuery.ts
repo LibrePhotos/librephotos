@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { type MediaType } from "../../../components/photolist/mediaTypeFilter";
 import { addTempElementsToGroups } from "../../../util/util";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
@@ -13,20 +14,30 @@ type AlbumDateListOptions = {
   person_id?: number;
   username?: string;
   folder?: string;
+  // Optional media-type filter, independent of photosetType (e.g. a person
+  // album filtered to videos). Combines with photosetType for photo/video.
+  mediaType?: MediaType;
 };
 
 // Fetch date albums
 export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) =>
   useQuery({
-    queryKey: [...DateAlbumsQueryKeys, options.photosetType, options.person_id, options.username, options.folder],
+    queryKey: [
+      ...DateAlbumsQueryKeys,
+      options.photosetType,
+      options.person_id,
+      options.username,
+      options.folder,
+      options.mediaType ?? "all",
+    ],
     queryFn: async () => {
       const params = {
         favorite: Photoset.FAVORITES === options.photosetType ? "true" : undefined,
         public: Photoset.PUBLIC === options.photosetType ? "true" : undefined,
         hidden: Photoset.HIDDEN === options.photosetType ? "true" : undefined,
         in_trashcan: Photoset.IN_TRASHCAN === options.photosetType ? "true" : undefined,
-        photo: Photoset.PHOTOS === options.photosetType ? "true" : undefined,
-        video: Photoset.VIDEOS === options.photosetType ? "true" : undefined,
+        photo: Photoset.PHOTOS === options.photosetType || options.mediaType === "photos" ? "true" : undefined,
+        video: Photoset.VIDEOS === options.photosetType || options.mediaType === "videos" ? "true" : undefined,
         person: options.person_id,
         username: options.username?.toLowerCase(),
         folder: options.folder,
