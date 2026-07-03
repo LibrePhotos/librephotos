@@ -9,14 +9,19 @@ import {
   useFetchPeopleAlbumsQuery,
 } from "../../../api_client/albums/hooks";
 import { Photoset, PigPhoto } from "../../../api_client/photos/types";
+import { mediaTypeToBulkQuery, validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoListView";
+import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
-export const Route = createFileRoute("/_protected/album/persons/$id")();
+export const Route = createFileRoute("/_protected/album/persons/$id")({
+  validateSearch: validateMediaSearch,
+});
 
 export function AlbumPersonGallery(): JSX.Element {
   const { id } = Route.useParams();
   const { t } = useTranslation();
+  const mediaType = useMediaTypeFilter();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { data: people } = useFetchPeopleAlbumsQuery();
 
@@ -26,6 +31,7 @@ export function AlbumPersonGallery(): JSX.Element {
   const { data: photosGroupedByDate, isLoading } = useFetchDateAlbumsQuery({
     photosetType: Photoset.PERSON,
     person_id: id ? +id : undefined,
+    mediaType,
   });
 
   useEffect(() => {
@@ -39,6 +45,7 @@ export function AlbumPersonGallery(): JSX.Element {
       page: group.page,
       photosetType: Photoset.PERSON,
       person_id: id ? +id : undefined,
+      mediaType,
     },
     { skip: !group.id }
   );
@@ -64,7 +71,8 @@ export function AlbumPersonGallery(): JSX.Element {
       idx2hash={photosFlat}
       updateGroups={getAlbums}
       selectable
-      photosetQuery={{ person: id ? +id : undefined }}
+      mediaType={mediaType}
+      photosetQuery={{ person: id ? +id : undefined, ...mediaTypeToBulkQuery(mediaType) }}
     />
   );
 }

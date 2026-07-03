@@ -3,14 +3,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchThingsAlbumQuery } from "../../../api_client/albums/hooks";
+import { validateMediaSearch } from "../../../components/photolist/mediaTypeFilter";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
+import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 
-export const Route = createFileRoute("/_protected/album/things/$id")();
+export const Route = createFileRoute("/_protected/album/things/$id")({
+  validateSearch: validateMediaSearch,
+});
 
 export function AlbumThingGallery() {
   const { t } = useTranslation();
   const { id: albumID } = Route.useParams();
-  const { data: groupedPhotos, isLoading: fetchingAlbumsThing } = useFetchThingsAlbumQuery(albumID || "");
+  const mediaType = useMediaTypeFilter();
+  const { data: groupedPhotos, isLoading: fetchingAlbumsThing } = useFetchThingsAlbumQuery(albumID || "", mediaType);
 
   return (
     <PhotoListView
@@ -19,6 +24,7 @@ export function AlbumThingGallery() {
       icon={<Tags size={50} />}
       photoset={groupedPhotos ? groupedPhotos.grouped_photos : []}
       idx2hash={groupedPhotos ? groupedPhotos.grouped_photos.flatMap(el => el.items) : []}
+      mediaType={mediaType}
       selectable
     />
   );

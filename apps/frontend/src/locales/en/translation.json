@@ -1183,5 +1183,10 @@
     "scanPhotos": "Scan Photos"
   },
   "skip": "Skip",
-  "continue": "Continue"
+  "continue": "Continue",
+  "mediafilter": {
+    "all": "All",
+    "photos": "Photos only",
+    "videos": "Videos only"
+  }
 }
