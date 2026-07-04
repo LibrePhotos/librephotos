@@ -6,9 +6,9 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MapGL, { Layer, Source } from "react-map-gl/maplibre";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../api_client/albums/hooks";
+import { useMapStyle } from "../../util/mapStyle";
+import { MapDisabledPlaceholder } from "../map/MapDisabledPlaceholder";
 import classes from "./PlacesMapCard.module.css";
-
-const MAP_STYLE = "https://cdn.photoprism.app/maps/default.json";
 
 // Simplified layer for the mini map
 const pointLayer: CircleLayer = {
@@ -25,6 +25,7 @@ const pointLayer: CircleLayer = {
 
 export function PlacesMapCard() {
   const { t } = useTranslation();
+  const { mapStyle, mapsDisabled } = useMapStyle();
   const { data: albums, isLoading: isLoadingAlbums } = useFetchPlacesAlbumsQuery();
   const { data: locationClusters, isLoading: isLoadingClusters } = useFetchLocationClustersQuery();
 
@@ -64,21 +65,25 @@ export function PlacesMapCard() {
   return (
     <Link to="/album/places" className={classes.card}>
       <div className={classes.mapContainer}>
-        <MapGL
-          initialViewState={{
-            longitude: 0,
-            latitude: 30,
-            zoom: 0.8,
-          }}
-          style={{ width: "100%", height: "100%" }}
-          mapStyle={MAP_STYLE}
-          interactive={false}
-          attributionControl={false}
-        >
-          <Source id="locations" type="geojson" data={geojsonData}>
-            <Layer {...pointLayer} />
-          </Source>
-        </MapGL>
+        {mapsDisabled ? (
+          <MapDisabledPlaceholder height="100%" />
+        ) : (
+          <MapGL
+            initialViewState={{
+              longitude: 0,
+              latitude: 30,
+              zoom: 0.8,
+            }}
+            style={{ width: "100%", height: "100%" }}
+            mapStyle={mapStyle!}
+            interactive={false}
+            attributionControl={false}
+          >
+            <Source id="locations" type="geojson" data={geojsonData}>
+              <Layer {...pointLayer} />
+            </Source>
+          </MapGL>
+        )}
       </div>
       <div className={classes.body}>
         <div className={classes.title}>

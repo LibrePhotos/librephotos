@@ -120,6 +120,7 @@ class SiteSettingsView(APIView):
         out["heavyweight_process"] = 0
         out["map_api_provider"] = site_config.MAP_API_PROVIDER
         out["map_api_key"] = site_config.MAP_API_KEY
+        out["map_tile_provider"] = site_config.MAP_TILE_PROVIDER
         out["captioning_model"] = site_config.CAPTIONING_MODEL
         out["llm_model"] = site_config.LLM_MODEL
         out["tagging_model"] = site_config.TAGGING_MODEL
@@ -138,6 +139,8 @@ class SiteSettingsView(APIView):
             site_config.MAP_API_PROVIDER = request.data["map_api_provider"]
         if "map_api_key" in request.data.keys():
             site_config.MAP_API_KEY = request.data["map_api_key"]
+        if "map_tile_provider" in request.data.keys():
+            site_config.MAP_TILE_PROVIDER = request.data["map_tile_provider"]
         if "captioning_model" in request.data.keys():
             site_config.CAPTIONING_MODEL = request.data["captioning_model"]
         if "llm_model" in request.data.keys():

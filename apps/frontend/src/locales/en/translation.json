@@ -798,6 +798,8 @@
     "map_api_provider_description": "For getting location names from image GPS metadata.",
     "map_api_key_header": "API key for Map Provider",
     "map_api_key_description": "Get your API key at {{url}}",
+    "map_tile_provider_header": "Map Tiles",
+    "map_tile_provider_description": "Where the map background is loaded from. Opening a map reveals your photos' approximate location to this provider. Choose \"None\" to disable maps entirely.",
     "headerheavyweight": "Heavyweight Processes",
     "heavyweight": "Increase the number of picture-scanning workers beyond 1, but be prepared to use 800 MB memory for each additional one.",
     "captioning_model_header": "Captioning Model",

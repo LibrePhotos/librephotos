@@ -106,6 +106,17 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "map_tile_provider": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                ("photoprism", "PhotoPrism (default)"),
+                ("osm", "OpenStreetMap"),
+                ("none", "None (disable map display)"),
+            ),
+        },
+    ],
     "captioning_model": [
         "django.forms.fields.ChoiceField",
         {
@@ -158,6 +169,11 @@ CONSTANCE_CONFIG = {
         "map_api_provider",
     ),
     "MAP_API_KEY": (os.environ.get("MAPBOX_API_KEY", ""), "Map Box API Key", str),
+    "MAP_TILE_PROVIDER": (
+        os.environ.get("MAP_TILE_PROVIDER", "photoprism"),
+        "Map tile provider (map background shown behind photo pins)",
+        "map_tile_provider",
+    ),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),

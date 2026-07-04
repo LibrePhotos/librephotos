@@ -1,9 +1,9 @@
 import { Box, Image, Loader } from "@mantine/core";
 import React, { useMemo, useState } from "react";
 import MapGL, { AttributionControl, Marker, NavigationControl, Popup } from "react-map-gl/maplibre";
+import { useMapStyle } from "../util/mapStyle";
 import { getAveragedCoordinates } from "../util/util";
-
-const MAP_STYLE = "https://cdn.photoprism.app/maps/default.json";
+import { MapDisabledPlaceholder } from "./map/MapDisabledPlaceholder";
 
 type Props = Readonly<{
   photos: any[];
@@ -12,6 +12,7 @@ type Props = Readonly<{
 export function LocationMap({ photos }: Props) {
   const height = "200px";
   const [popupInfo, setPopupInfo] = useState<any>(null);
+  const { mapStyle, mapsDisabled } = useMapStyle();
 
   const photosWithGPS = useMemo(
     () => photos.filter(photo => photo.exif_gps_lon !== null && photo.exif_gps_lon),
@@ -36,6 +37,10 @@ export function LocationMap({ photos }: Props) {
     [photosWithGPS]
   );
 
+  if (photosWithGPS.length > 0 && mapsDisabled) {
+    return <MapDisabledPlaceholder height={height} />;
+  }
+
   if (photosWithGPS.length > 0) {
     return (
       <Box style={{ zIndex: 2, height, padding: 0 }}>
@@ -46,7 +51,7 @@ export function LocationMap({ photos }: Props) {
             zoom: 16,
           }}
           style={{ width: "100%", height }}
-          mapStyle={MAP_STYLE}
+          mapStyle={mapStyle!}
           attributionControl={false}
         >
           <NavigationControl position="top-right" />

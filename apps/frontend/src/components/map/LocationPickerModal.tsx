@@ -25,8 +25,7 @@ import MapGL, {
 } from "react-map-gl/maplibre";
 import { useGeocodeSearchQuery } from "../../api_client/geocode";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks/useUpdatePhotoMutation";
-
-const MAP_STYLE = "https://cdn.photoprism.app/maps/default.json";
+import { useMapStyle } from "../../util/mapStyle";
 
 type Props = Readonly<{
   imageHash: string;
@@ -38,6 +37,7 @@ type Props = Readonly<{
 export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon }: Props) {
   const { t } = useTranslation();
   const mapRef = useRef<MapRef>(null);
+  const { mapStyle, mapsDisabled } = useMapStyle();
 
   const [position, setPosition] = useState<[number, number] | null>(
     initialLat !== undefined && initialLon !== undefined ? [initialLat, initialLon] : null
@@ -214,35 +214,42 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
       )}
 
       <Text size="sm" c="dimmed">
-        {t("locationpicker.instructions", "Click on the map to set the location, or search above.")}
+        {mapsDisabled
+          ? t(
+              "locationpicker.instructions_no_map",
+              "Search above or use your current location to set the location. The map is turned off in site settings."
+            )
+          : t("locationpicker.instructions", "Click on the map to set the location, or search above.")}
       </Text>
 
-      <Box style={{ height: 350 }}>
-        <MapGL
-          ref={mapRef}
-          initialViewState={{
-            longitude: initialCenter[1],
-            latitude: initialCenter[0],
-            zoom: initialZoom,
-          }}
-          style={{ width: "100%", height: 350 }}
-          mapStyle={MAP_STYLE}
-          onClick={handleMapClick}
-          attributionControl={false}
-        >
-          <NavigationControl position="top-right" />
-          <AttributionControl compact={true} />
-          {position && (
-            <Marker
-              longitude={position[1]}
-              latitude={position[0]}
-              anchor="bottom"
-              draggable
-              onDragEnd={handleMarkerDragEnd}
-            />
-          )}
-        </MapGL>
-      </Box>
+      {!mapsDisabled && (
+        <Box style={{ height: 350 }}>
+          <MapGL
+            ref={mapRef}
+            initialViewState={{
+              longitude: initialCenter[1],
+              latitude: initialCenter[0],
+              zoom: initialZoom,
+            }}
+            style={{ width: "100%", height: 350 }}
+            mapStyle={mapStyle!}
+            onClick={handleMapClick}
+            attributionControl={false}
+          >
+            <NavigationControl position="top-right" />
+            <AttributionControl compact={true} />
+            {position && (
+              <Marker
+                longitude={position[1]}
+                latitude={position[0]}
+                anchor="bottom"
+                draggable
+                onDragEnd={handleMarkerDragEnd}
+              />
+            )}
+          </MapGL>
+        </Box>
+      )}
 
       {position && (
         <Text size="xs" c="dimmed">

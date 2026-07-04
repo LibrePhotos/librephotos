@@ -13,9 +13,9 @@ import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../
 import { serverAddress } from "../../../api_client/apiClient";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
+import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
-
-const MAP_STYLE = "https://cdn.photoprism.app/maps/default.json";
+import { useMapStyle } from "../../../util/mapStyle";
 
 export const Route = createFileRoute("/_protected/album/places/")();
 
@@ -70,6 +70,7 @@ function AlbumPlace({ height }: Props) {
   const [visibleAlbums, setVisibleAlbums] = useState<PlaceAlbumList>([]);
   const { data: albums, isFetching: isFetchingAlbums } = useFetchPlacesAlbumsQuery();
   const { data: locationClusters, isFetching: isFetchingLocationClusters } = useFetchLocationClustersQuery();
+  const { mapStyle, mapsDisabled } = useMapStyle();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
 
   // Convert locationClusters to GeoJSON FeatureCollection
@@ -220,36 +221,40 @@ function AlbumPlace({ height }: Props) {
       ) : (
         <>
           <div style={{ marginLeft: -5 }}>
-            <MapGL
-              ref={mapRef}
-              initialViewState={{
-                longitude: 0,
-                latitude: 40,
-                zoom: 2,
-              }}
-              style={{ width: "100%", height: 240 }}
-              mapStyle={MAP_STYLE}
-              onMoveEnd={onMoveEnd}
-              onLoad={onMapLoad}
-              onClick={onClick}
-              interactiveLayerIds={["clusters"]}
-              attributionControl={false}
-            >
-              <NavigationControl position="top-right" />
-              <AttributionControl compact={true} />
-              <Source
-                id="locations"
-                type="geojson"
-                data={geojsonData}
-                cluster={true}
-                clusterMaxZoom={14}
-                clusterRadius={50}
+            {mapsDisabled ? (
+              <MapDisabledPlaceholder height={240} />
+            ) : (
+              <MapGL
+                ref={mapRef}
+                initialViewState={{
+                  longitude: 0,
+                  latitude: 40,
+                  zoom: 2,
+                }}
+                style={{ width: "100%", height: 240 }}
+                mapStyle={mapStyle!}
+                onMoveEnd={onMoveEnd}
+                onLoad={onMapLoad}
+                onClick={onClick}
+                interactiveLayerIds={["clusters"]}
+                attributionControl={false}
               >
-                <Layer {...clusterLayer} />
-                <Layer {...clusterCountLayer} />
-                <Layer {...unclusteredPointLayer} />
-              </Source>
-            </MapGL>
+                <NavigationControl position="top-right" />
+                <AttributionControl compact={true} />
+                <Source
+                  id="locations"
+                  type="geojson"
+                  data={geojsonData}
+                  cluster={true}
+                  clusterMaxZoom={14}
+                  clusterRadius={50}
+                >
+                  <Layer {...clusterLayer} />
+                  <Layer {...clusterCountLayer} />
+                  <Layer {...unclusteredPointLayer} />
+                </Source>
+              </MapGL>
+            )}
           </div>
           <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
             {({ width: gridWidth }) => (
