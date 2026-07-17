@@ -3,8 +3,10 @@ from api.models.album_date import AlbumDate
 from api.models.album_place import AlbumPlace
 from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
+from api.models.album_user_share import AlbumUserShare
 from api.models.cluster import Cluster
 from api.models.duplicate import Duplicate
+from api.models.email_config import EmailConfig
 from api.models.face import Face
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
@@ -24,8 +26,10 @@ __all__ = [
     "AlbumPlace",
     "AlbumThing",
     "AlbumUser",
+    "AlbumUserShare",
     "Cluster",
     "Duplicate",
+    "EmailConfig",
     "Face",
     "LongRunningJob",
     "MetadataEdit",

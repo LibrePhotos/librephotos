@@ -3,6 +3,7 @@ import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetSettingsQuery, useUpdateSettingsMutation } from "../../api_client/settings/hooks";
+import { EmailSettings } from "./EmailSettings";
 
 const MAP_API_PROVIDERS = [
   {
@@ -325,6 +326,8 @@ export function SiteSettings() {
           </Grid>
         </Stack>
       </Card>
+
+      <EmailSettings />
     </div>
   );
 }
