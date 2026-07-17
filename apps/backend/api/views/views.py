@@ -7,6 +7,8 @@ import jsonschema
 import magic
 from constance import config as site_config
 from django.conf import settings
+
+from api.mail import email_is_configured
 from django.db.models import Q, Sum
 from django.http import (
     FileResponse,
@@ -125,6 +127,7 @@ class SiteSettingsView(APIView):
         out["llm_model"] = site_config.LLM_MODEL
         out["tagging_model"] = site_config.TAGGING_MODEL
         out["face_recognition_model"] = site_config.FACE_RECOGNITION_MODEL
+        out["email_configured"] = email_is_configured()
         return Response(out)
 
     def post(self, request, format=None):

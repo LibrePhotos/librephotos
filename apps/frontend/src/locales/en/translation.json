@@ -639,6 +639,25 @@
     "firsttimesetup": "First time setup",
     "setupdatadirectory": "Choose your scan directory"
   },
+  "emailsettings": {
+    "header": "Email (SMTP)",
+    "description": "Configure outgoing email so the server can send account and notification emails. The credential is encrypted before it is stored.",
+    "provider": "Provider",
+    "from_email": "From address",
+    "host": "SMTP host",
+    "port": "Port",
+    "use_tls": "Use STARTTLS",
+    "use_ssl": "Use implicit SSL",
+    "username": "Username",
+    "sendgrid_username": "Leave blank; SendGrid uses the literal username \"apikey\".",
+    "secret": "Password / API key",
+    "secret_set": "•••••• (unchanged)",
+    "clear_secret": "Remove the stored credential",
+    "presethost": "Sends via {{host}} over TLS.",
+    "getkey": "Where do I get the key?",
+    "sendtest": "Send test email",
+    "testfailed": "Test email failed to send."
+  },
   "search": {
     "search": "Search",
     "default": "Search...",

@@ -328,3 +328,18 @@ CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
 IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
+
+# Email / SMTP configuration.
+#
+# Outgoing mail is configured at runtime from the database (the admin Site
+# Settings UI), not the environment. `DynamicEmailBackend` reads the stored
+# `EmailConfig` at send time and delegates to Django's SMTP backend; when email
+# is unconfigured it is a safe no-op (or the console backend under DEBUG, so
+# reset links still appear in dev logs). This keeps the SMTP credential
+# encrypted at rest and editable without a redeploy. See api/mail.py.
+EMAIL_BACKEND = "api.mail.DynamicEmailBackend"
+# Fallback from-address when the admin has not set one; the stored config value
+# takes precedence (see EmailConfig.effective_from_email).
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", "LibrePhotos <no-reply@localhost>"
+)

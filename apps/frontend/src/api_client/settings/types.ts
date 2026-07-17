@@ -11,9 +11,25 @@ export const SiteSettings = z.object({
   llm_model: z.string(),
   tagging_model: z.string(),
   face_recognition_model: z.string(),
+  email_configured: z.boolean().optional(),
 });
 
 export type SiteSettings = z.infer<typeof SiteSettings>;
+
+export const EmailConfig = z.object({
+  provider: z.string(),
+  from_email: z.string(),
+  host: z.string(),
+  port: z.number(),
+  use_tls: z.boolean(),
+  use_ssl: z.boolean(),
+  username: z.string(),
+  has_secret: z.boolean(),
+  is_configured: z.boolean(),
+  presets: z.record(z.string(), z.record(z.string(), z.any())),
+});
+
+export type EmailConfig = z.infer<typeof EmailConfig>;
 
 export type PredefinedRules = string[];
 
