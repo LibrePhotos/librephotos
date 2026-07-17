@@ -639,9 +639,26 @@
     "firsttimesetup": "First time setup",
     "setupdatadirectory": "Choose your scan directory"
   },
+  "passwordreset": {
+    "forgotpassword": "Forgot your password?",
+    "title": "Reset your password",
+    "instructions": "Enter the email address for your account and we'll send you a link to reset your password.",
+    "emailplaceholder": "Email address",
+    "sendlink": "Send reset link",
+    "checkemail": "If an account exists for that email, a password reset link is on its way. Check your inbox.",
+    "backtologin": "Back to login",
+    "erroremail": "Enter a valid email address.",
+    "choosetitle": "Choose a new password",
+    "newpasswordplaceholder": "New password",
+    "confirmpasswordplaceholder": "Confirm new password",
+    "setpassword": "Set new password",
+    "errormustmatch": "Passwords must match.",
+    "success": "Your password has been reset. You can now log in.",
+    "errorinvalidlink": "This password reset link is invalid or has expired. Please request a new one."
+  },
   "emailsettings": {
     "header": "Email (SMTP)",
-    "description": "Configure outgoing email so the server can send account and notification emails. The credential is encrypted before it is stored.",
+    "description": "Configure outgoing email so the server can send password-reset links and other notifications. The credential is encrypted before it is stored.",
     "provider": "Provider",
     "from_email": "From address",
     "host": "SMTP host",

@@ -43,6 +43,7 @@ from api.views import (
     faces,
     geocode,
     jobs,
+    password_reset,
     photo_metadata,
     photos,
     public_albums,
@@ -346,6 +347,14 @@ urlpatterns = [
     re_path(r"^api/auth/token/obtain/$", CustomTokenObtainPairView.as_view()),
     re_path(r"^api/auth/token/refresh/$", CustomTokenRefreshView.as_view()),
     re_path(r"^api/auth/token/blacklist/", TokenBlacklistView.as_view()),
+    re_path(
+        r"^api/auth/password/reset/$",
+        password_reset.PasswordResetView.as_view(),
+    ),
+    re_path(
+        r"^api/auth/password/reset/confirm/$",
+        password_reset.PasswordResetConfirmView.as_view(),
+    ),
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
         views.UnifiedMediaAccessView.as_view(),
