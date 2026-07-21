@@ -226,6 +226,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "EXCEPTION_HANDLER": "api.views.views.custom_exception_handler",
     "PAGE_SIZE": 20000,
+    "DEFAULT_THROTTLE_RATES": {
+        "password_reset": os.environ.get("PASSWORD_RESET_THROTTLE_RATE", "5/hour"),
+    },
 }
 
 MIDDLEWARE = [
@@ -343,3 +346,7 @@ EMAIL_BACKEND = "api.mail.DynamicEmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL", "LibrePhotos <no-reply@localhost>"
 )
+
+# Base URL of the frontend, used to build the link in the password-reset email.
+# Falls back to the request's own origin when not set (see PasswordResetView).
+FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "")

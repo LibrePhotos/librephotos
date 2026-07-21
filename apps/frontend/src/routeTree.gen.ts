@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PublicRouteRouteImport } from './routes/public/route'
 import { Route as ProtectedRouteRouteImport } from './routes/_protected/route'
+import { Route as PasswordResetIndexRouteImport } from './routes/password-reset.index'
 import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
 import { Route as PublicUsersRouteImport } from './routes/public/$users'
 import { Route as ProtectedVideosRouteImport } from './routes/_protected/videos'
@@ -49,6 +50,7 @@ import { Route as ProtectedAlbumPlacesIndexRouteImport } from './routes/_protect
 import { Route as ProtectedAlbumPersonsIndexRouteImport } from './routes/_protected/album/persons.index'
 import { Route as ProtectedAlbumFolderIndexRouteImport } from './routes/_protected/album/folder.index'
 import { Route as ProtectedAlbumEventsIndexRouteImport } from './routes/_protected/album/events.index'
+import { Route as PasswordResetConfirmUidTokenRouteImport } from './routes/password-reset.confirm.$uid.$token'
 import { Route as ProtectedSharingWithmeTabRouteImport } from './routes/_protected/sharing/withme.$tab'
 import { Route as ProtectedSharingBymeTabRouteImport } from './routes/_protected/sharing/byme.$tab'
 import { Route as ProtectedAlbumUserIdRouteImport } from './routes/_protected/album/user.$id'
@@ -76,6 +78,11 @@ const PublicRouteRoute = PublicRouteRouteImport.update({
 } as any)
 const ProtectedRouteRoute = ProtectedRouteRouteImport.update({
   id: '/_protected',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PasswordResetIndexRoute = PasswordResetIndexRouteImport.update({
+  id: '/password-reset/',
+  path: '/password-reset/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
@@ -269,6 +276,12 @@ const ProtectedAlbumEventsIndexRoute =
     path: '/album/events/',
     getParentRoute: () => ProtectedRouteRoute,
   } as any)
+const PasswordResetConfirmUidTokenRoute =
+  PasswordResetConfirmUidTokenRouteImport.update({
+    id: '/password-reset/confirm/$uid/$token',
+    path: '/password-reset/confirm/$uid/$token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProtectedSharingWithmeTabRoute =
   ProtectedSharingWithmeTabRouteImport.update({
     id: '/sharing/withme/$tab',
@@ -335,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/stacks': typeof ProtectedStacksRoute
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
+  '/password-reset/': typeof PasswordResetIndexRoute
   '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
@@ -359,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/album/user/$id': typeof ProtectedAlbumUserIdRoute
   '/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
   '/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
+  '/password-reset/confirm/$uid/$token': typeof PasswordResetConfirmUidTokenRoute
   '/album/events/': typeof ProtectedAlbumEventsIndexRoute
   '/album/folder/': typeof ProtectedAlbumFolderIndexRoute
   '/album/persons/': typeof ProtectedAlbumPersonsIndexRoute
@@ -384,6 +399,7 @@ export interface FileRoutesByTo {
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
+  '/password-reset': typeof PasswordResetIndexRoute
   '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
@@ -408,6 +424,7 @@ export interface FileRoutesByTo {
   '/album/user/$id': typeof ProtectedAlbumUserIdRoute
   '/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
   '/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
+  '/password-reset/confirm/$uid/$token': typeof PasswordResetConfirmUidTokenRoute
   '/album/events': typeof ProtectedAlbumEventsIndexRoute
   '/album/folder': typeof ProtectedAlbumFolderIndexRoute
   '/album/persons': typeof ProtectedAlbumPersonsIndexRoute
@@ -436,6 +453,7 @@ export interface FileRoutesById {
   '/_protected/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/_protected/': typeof ProtectedIndexRoute
+  '/password-reset/': typeof PasswordResetIndexRoute
   '/_protected/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
@@ -460,6 +478,7 @@ export interface FileRoutesById {
   '/_protected/album/user/$id': typeof ProtectedAlbumUserIdRoute
   '/_protected/sharing/byme/$tab': typeof ProtectedSharingBymeTabRoute
   '/_protected/sharing/withme/$tab': typeof ProtectedSharingWithmeTabRoute
+  '/password-reset/confirm/$uid/$token': typeof PasswordResetConfirmUidTokenRoute
   '/_protected/album/events/': typeof ProtectedAlbumEventsIndexRoute
   '/_protected/album/folder/': typeof ProtectedAlbumFolderIndexRoute
   '/_protected/album/persons/': typeof ProtectedAlbumPersonsIndexRoute
@@ -488,6 +507,7 @@ export interface FileRouteTypes {
     | '/stacks'
     | '/videos'
     | '/public/$users'
+    | '/password-reset/'
     | '/organizing/$tab'
     | '/photo/$id'
     | '/search/$query'
@@ -512,6 +532,7 @@ export interface FileRouteTypes {
     | '/album/user/$id'
     | '/sharing/byme/$tab'
     | '/sharing/withme/$tab'
+    | '/password-reset/confirm/$uid/$token'
     | '/album/events/'
     | '/album/folder/'
     | '/album/persons/'
@@ -537,6 +558,7 @@ export interface FileRouteTypes {
     | '/videos'
     | '/public/$users'
     | '/'
+    | '/password-reset'
     | '/organizing/$tab'
     | '/photo/$id'
     | '/search/$query'
@@ -561,6 +583,7 @@ export interface FileRouteTypes {
     | '/album/user/$id'
     | '/sharing/byme/$tab'
     | '/sharing/withme/$tab'
+    | '/password-reset/confirm/$uid/$token'
     | '/album/events'
     | '/album/folder'
     | '/album/persons'
@@ -588,6 +611,7 @@ export interface FileRouteTypes {
     | '/_protected/videos'
     | '/public/$users'
     | '/_protected/'
+    | '/password-reset/'
     | '/_protected/organizing/$tab'
     | '/_protected/photo/$id'
     | '/_protected/search/$query'
@@ -612,6 +636,7 @@ export interface FileRouteTypes {
     | '/_protected/album/user/$id'
     | '/_protected/sharing/byme/$tab'
     | '/_protected/sharing/withme/$tab'
+    | '/password-reset/confirm/$uid/$token'
     | '/_protected/album/events/'
     | '/_protected/album/folder/'
     | '/_protected/album/persons/'
@@ -625,6 +650,8 @@ export interface RootRouteChildren {
   PublicRouteRoute: typeof PublicRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  PasswordResetIndexRoute: typeof PasswordResetIndexRoute
+  PasswordResetConfirmUidTokenRoute: typeof PasswordResetConfirmUidTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -655,6 +682,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ProtectedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/password-reset/': {
+      id: '/password-reset/'
+      path: '/password-reset'
+      fullPath: '/password-reset/'
+      preLoaderRoute: typeof PasswordResetIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/': {
@@ -909,6 +943,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAlbumEventsIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/password-reset/confirm/$uid/$token': {
+      id: '/password-reset/confirm/$uid/$token'
+      path: '/password-reset/confirm/$uid/$token'
+      fullPath: '/password-reset/confirm/$uid/$token'
+      preLoaderRoute: typeof PasswordResetConfirmUidTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_protected/sharing/withme/$tab': {
       id: '/_protected/sharing/withme/$tab'
       path: '/sharing/withme/$tab'
@@ -1100,6 +1141,8 @@ const rootRouteChildren: RootRouteChildren = {
   PublicRouteRoute: PublicRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  PasswordResetIndexRoute: PasswordResetIndexRoute,
+  PasswordResetConfirmUidTokenRoute: PasswordResetConfirmUidTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

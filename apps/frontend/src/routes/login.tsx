@@ -1,4 +1,5 @@
 import {
+  Anchor,
   Button,
   Card,
   Center,
@@ -103,6 +104,11 @@ export function LoginPage(): JSX.Element {
                 <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
                   {t("login.login")}
                 </Button>
+                {siteSettings?.email_configured && (
+                  <Anchor href="/password-reset" size="sm" ta="center">
+                    {t("passwordreset.forgotpassword")}
+                  </Anchor>
+                )}
                 {siteSettings && siteSettings.allow_registration && (
                   <Button
                     disabled={!siteSettings.allow_registration || isLoading}

@@ -68,6 +68,7 @@ services:
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
+      - FRONTEND_BASE_URL=${frontendBaseUrl:-}
       - DEBUG=0
     depends_on:
       db:

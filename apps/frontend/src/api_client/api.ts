@@ -70,11 +70,14 @@ class FetchClient {
     if (response.status === 401) {
       // Check if we're on a public page or auth pages - don't handle 401 as an error there
       const isPublicPage = window.location.pathname.startsWith("/public");
+      // The password-reset request/confirm pages are reached while logged out, so
+      // background 401s there must not clear cookies or bounce to login.
+      const isPasswordResetPage = window.location.pathname.includes("/password-reset");
       const isLoginPage = window.location.pathname.includes("/login");
       const isSignupPage = window.location.pathname.includes("/signup");
-      const suppressAuthNotifications = isPublicPage || isLoginPage || isSignupPage;
+      const suppressAuthNotifications = isPublicPage || isPasswordResetPage || isLoginPage || isSignupPage;
 
-      if (!isPublicPage) {
+      if (!isPublicPage && !isPasswordResetPage) {
         // Logout the user by blacklisting the refresh token
         const cookies = new Cookies();
         const refreshToken = cookies.get("refresh");
