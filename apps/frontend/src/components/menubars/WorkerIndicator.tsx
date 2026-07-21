@@ -43,7 +43,7 @@ function WorkerRunningJob({ workerRunningJob }: IWorkerIndicator) {
 
 export function WorkerIndicator() {
   const { t } = useTranslation();
-  const [opened, { open, close }] = useDisclosure(false);
+  const [opened, { toggle, close }] = useDisclosure(false);
   const [workerColor, setWorkerColor] = useState("red");
   const { workerRunningJob, currentData } = useWorkerStatus();
 
@@ -52,9 +52,11 @@ export function WorkerIndicator() {
   }, [currentData?.queue_can_accept_job]);
 
   return (
-    <Popover opened={opened} width={260} position="bottom" withArrow>
+    // Toggle on click (not hover) so the popover stays open long enough to reach the
+    // Cancel button; click-outside and Escape close it via onChange.
+    <Popover opened={opened} onChange={value => !value && close()} width={260} position="bottom" withArrow>
       <Popover.Target>
-        <Indicator onMouseEnter={open} onMouseLeave={close} color={workerColor}>
+        <Indicator onClick={toggle} style={{ cursor: "pointer" }} color={workerColor}>
           <div />
         </Indicator>
       </Popover.Target>
