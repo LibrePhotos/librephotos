@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytz
+from django.db import transaction
 from django.db.models import Q
 
 from api.models import (
@@ -56,7 +57,7 @@ def generate_event_albums(user, job_id):
         photos = (
             Photo.objects.filter(Q(owner=user))
             .exclude(Q(exif_timestamp=None))
-            .only("exif_timestamp")
+            .only("exif_timestamp", "exif_gps_lat", "exif_gps_lon")
         )
 
         def group(photos, dt=timedelta(hours=6)):
@@ -98,24 +99,94 @@ def generate_event_albums(user, job_id):
             )
             items = group
             if len(group) >= 2:
-                qs = AlbumAuto.objects.filter(owner=user).filter(
-                    timestamp__range=(key, lastKey)
+                # An auto album is identified by the photos it holds, not by its
+                # timestamp. The timestamp is only an anchor on the first photo
+                # of the group as it was when the album got created, and that
+                # photo may well be gone by the next run. Every photo taken
+                # between the first and the last photo of a group belongs to
+                # that group, so an album holding one of them is the album of
+                # this event (#462). An album that is anchored on this group but
+                # lost all of its photos is claimed as well, both to reuse it
+                # and because (timestamp, owner) is unique.
+                # The two excludes keep albums that reach outside this event out
+                # of the running. Photos are only ever added to an auto album,
+                # never removed, so correcting the date of a single photo leaves
+                # its old album listing a photo that now belongs to a different
+                # event. Such an album overlaps this group by that one stale
+                # entry only, and treating it as this group's album would move -
+                # and, once it looked like a duplicate, delete - an album of
+                # unrelated photos.
+                albums = list(
+                    AlbumAuto.objects.filter(owner=user)
+                    .filter(
+                        Q(
+                            photos__exif_timestamp__range=(
+                                group[0].exif_timestamp,
+                                group[-1].exif_timestamp,
+                            )
+                        )
+                        | Q(timestamp=key)
+                    )
+                    .exclude(photos__exif_timestamp__lt=group[0].exif_timestamp)
+                    .exclude(photos__exif_timestamp__gt=group[-1].exif_timestamp)
+                    .distinct()
+                    .order_by("created_on", "id")
                 )
-                if qs.count() == 0:
+                changed = False
+                if albums:
+                    album = albums[0]
+                    logger.info(f"job {job_id}: update auto album {album.id}")
+                    # Newly imported photos can bridge the gap between two
+                    # events, which turns them into a single group. Fold the
+                    # albums of the former events into the oldest one instead of
+                    # leaving duplicates behind.
+                    for duplicate in albums[1:]:
+                        logger.info(
+                            f"job {job_id}: merging auto album {duplicate.id} "
+                            f"into {album.id}"
+                        )
+                        with transaction.atomic():
+                            album.photos.add(
+                                *duplicate.photos.values_list("pk", flat=True)
+                            )
+                            # The merged album carries user state that only
+                            # exists on it, so move it over before it is gone.
+                            album.favorited = album.favorited or duplicate.favorited
+                            album.shared_to.add(*duplicate.shared_to.all())
+                            album.save()
+                            duplicate.delete()
+                        changed = True
+                else:
                     album = AlbumAuto(
                         created_on=datetime.utcnow().replace(tzinfo=pytz.utc),
                         owner=user,
+                        timestamp=key,
                     )
-                    album.timestamp = key
                     album.save()
-
                     logger.info(f"job {job_id}: generate auto album {album.id}")
-                    locs = []
-                    for item in items:
-                        album.photos.add(item)
-                        item.save()
-                        if item.exif_gps_lat and item.exif_gps_lon:
-                            locs.append([item.exif_gps_lat, item.exif_gps_lon])
+                    changed = True
+
+                # Read the membership once instead of once per photo, otherwise
+                # re-running generation is quadratic in the album size (#836).
+                known_photos = set(album.photos.values_list("pk", flat=True))
+                new_items = [item for item in items if item.pk not in known_photos]
+                if new_items:
+                    album.photos.add(*new_items)
+                    changed = True
+
+                # Keep the anchor on the earliest photo the album actually
+                # holds, so that the album is still recognized as the album of
+                # this event after its first photo has been removed.
+                if album.timestamp != key:
+                    album.timestamp = key
+                    changed = True
+
+                if changed:
+                    locs = [
+                        [item.exif_gps_lat, item.exif_gps_lon]
+                        for item in items
+                        if item.exif_gps_lat and item.exif_gps_lon
+                    ]
                     if len(locs) > 0:
                         album_location = np.mean(np.array(locs), 0)
                         album_locations.append(album_location)
@@ -123,26 +194,12 @@ def generate_event_albums(user, job_id):
                         album.gps_lon = album_location[1]
                     else:
                         album_locations.append([])
-                    album._generate_title()
-                    album.save()
-                    continue
-                if qs.count() == 1:
-                    album = qs.first()
-                    logger.info(f"job {job_id}: update auto album {album.id}")
-                    for item in items:
-                        if item in album.photos.all():
-                            continue
-                        album.photos.add(item)
-                        item.save()
-                    album._generate_title()
-                    album.save()
-                    continue
-                if qs.count() > 1:
-                    # To-Do: Merge both auto albums
-                    logger.info(
-                        f"job {job_id}: found multiple auto albums for date {key.strftime(date_format)}"
-                    )
-                    continue
+
+                # Regenerate the title on every run, not just when the album
+                # changed: the people and places a title is built from are
+                # recognized long after the album itself was created.
+                album._generate_title()
+                album.save()
 
             lrj.update_progress(current=idx + 1, target=target_count)
 

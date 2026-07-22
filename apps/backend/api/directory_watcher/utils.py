@@ -9,6 +9,7 @@ from constance import config as site_config
 from django.db.models import F
 from django.utils import timezone
 
+from api import util
 from api.models import LongRunningJob
 
 # How often (in loop iterations) to check the DB for job cancellation.
@@ -71,17 +72,28 @@ def walk_directory(directory, callback):
     """
     Recursively walk a directory and collect file paths.
 
+    Symlinks are deliberately followed, since the scan directory may itself be
+    - or contain - a link to a mounted share. An entry that is neither a real
+    directory nor a real file (a dangling link, a socket, a fifo) is skipped:
+    handing it to the photo pipeline only produces an unopenable path that
+    fails the whole scan job.
+
     Args:
         directory: Directory to scan
         callback: List to append file paths to
     """
     for file in os.scandir(directory):
         fpath = os.path.join(directory, file)
-        if not is_hidden(fpath) and not should_skip(fpath):
-            if os.path.isdir(fpath):
-                walk_directory(fpath, callback)
-            else:
-                callback.append(fpath)
+        if is_hidden(fpath) or should_skip(fpath):
+            continue
+        if os.path.isdir(fpath):
+            walk_directory(fpath, callback)
+        elif os.path.isfile(fpath):
+            callback.append(fpath)
+        else:
+            util.logger.warning(
+                f"skipping {fpath}: neither a file nor a directory (broken symlink?)"
+            )
 
 
 def walk_files(scan_files, callback):

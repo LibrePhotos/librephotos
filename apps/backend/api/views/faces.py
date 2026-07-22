@@ -1,6 +1,16 @@
 import uuid
 
-from django.db.models import Case, CharField, Count, IntegerField, Q, Value, When
+from django.db.models import (
+    Case,
+    CharField,
+    Count,
+    IntegerField,
+    Prefetch,
+    Q,
+    Value,
+    When,
+)
+from django.utils import timezone
 from django_q.tasks import Chain
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -258,36 +268,71 @@ class SetFacePersonLabel(APIView):
                 name=data["person_name"], owner=self.request.user, kind=Person.KIND_USER
             )
 
-        faces = Face.objects.in_bulk(data["face_ids"])
+        # Everything the loop below touches is pulled in up front: the ownership
+        # check needs the photo and its owner, rebuilding the search captions
+        # needs the caption, metadata and file rows. Fetching them lazily costs
+        # several queries per face, which is what makes tagging a large
+        # selection of faces run into the gateway timeout.
+        faces = (
+            Face.objects.select_related(
+                "photo__owner",
+                "photo__main_file",
+                "photo__metadata",
+                "photo__caption_instance",
+            )
+            .prefetch_related(
+                "photo__files",
+                Prefetch(
+                    "photo__faces",
+                    queryset=Face.objects.select_related("person"),
+                ),
+            )
+            .in_bulk(data["face_ids"])
+        )
 
         updated = []
         not_updated = []
+        relabeled_faces = []
         for face in faces.values():
             if face.photo.owner == request.user:
                 face.person = person
                 if not person:
                     face.cluster_person = cluster_person
                     face.classification_person = classification_person
-                face.save()
+                relabeled_faces.append(face)
                 updated.append(FaceListSerializer(face).data)
             else:
                 not_updated.append(FaceListSerializer(face).data)
+        Face.objects.bulk_update(
+            relabeled_faces, ["person", "cluster_person", "classification_person"]
+        )
         if person:
             person._calculate_face_count()
             person._set_default_cover_photo()
-        search_instance, created = PhotoSearch.objects.get_or_create(photo=face.photo)
-        search_instance.recreate_search_captions()
-        search_instance.save()
+
+        # Every photo we relabeled needs its captions rebuilt, not just the one
+        # the loop happened to end on.
+        updated_photos = {face.photo.pk: face.photo for face in relabeled_faces}
+
+        # The faces behind `photo.faces` were prefetched before the relabel, so
+        # those cached rows still carry the old person. They are different
+        # instances from the ones we just updated, so copy the new person across
+        # before rebuilding the captions from them.
+        relabeled_by_pk = {face.pk: face for face in relabeled_faces}
+        for photo in updated_photos.values():
+            for cached_face in photo.faces.all():
+                relabeled = relabeled_by_pk.get(cached_face.pk)
+                if relabeled is not None:
+                    cached_face.person = relabeled.person
+
+        self._recreate_search_captions(list(updated_photos.values()))
 
         # Write face regions to image files if user preference is enabled
         if request.user.save_face_tags_to_disk:
             use_sidecar = (
                 request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
             )
-            updated_photos = {
-                f.photo for f in faces.values() if f.photo.owner == request.user
-            }
-            for photo in updated_photos:
+            for photo in updated_photos.values():
                 try:
                     photo._save_metadata(
                         use_sidecar=use_sidecar,
@@ -306,6 +351,39 @@ class SetFacePersonLabel(APIView):
                 "not_updated": not_updated,
             }
         )
+
+    @staticmethod
+    def _recreate_search_captions(photos):
+        """Rebuild the search captions of the given photos in one batch.
+
+        Doing a ``get_or_create()`` and a ``save()`` per photo would put the
+        query count of the request back into the thousands.
+        """
+        search_instances = PhotoSearch.objects.in_bulk([photo.pk for photo in photos])
+
+        to_create = []
+        to_update = []
+        for photo in photos:
+            search_instance = search_instances.get(photo.pk)
+            if search_instance:
+                # Reuse the photo we already have instead of selecting it again.
+                search_instance.photo = photo
+                search_instance.updated_at = timezone.now()
+                to_update.append(search_instance)
+            else:
+                search_instance = PhotoSearch(photo=photo)
+                to_create.append(search_instance)
+            search_instance.recreate_search_captions()
+
+        # Two clients labelling faces on the same photo can race to create its
+        # search row, so fall back to updating the row the other one won with.
+        PhotoSearch.objects.bulk_create(
+            to_create,
+            update_conflicts=True,
+            update_fields=["search_captions", "updated_at"],
+            unique_fields=["photo"],
+        )
+        PhotoSearch.objects.bulk_update(to_update, ["search_captions", "updated_at"])
 
 
 class DeleteFaces(APIView):
