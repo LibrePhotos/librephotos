@@ -8,11 +8,6 @@
 
 A self-hosted, open-source photo management service with automatic face recognition, object detection, and semantic search — powered by modern machine learning.
 
-- **Stable** demo is available here: https://demo1.librephotos.com/ . User is ```demo```, password is ```demo1234``` (with sample images).
-- Latest **development** demo is available here: https://demo2.librephotos.com/ (same user/password)
-- You can watch development videos on [Niaz Faridani-Rad's channel](https://www.youtube.com/channel/UCZJ2pk2BPKxwbuCV9LWDR0w)
-- You can join our [Discord][discord].
-
 ## Repository layout
 
 This is a monorepo that consolidates what was previously five separate repositories.
