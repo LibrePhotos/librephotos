@@ -598,6 +598,18 @@ class UnifiedMediaAccessView(APIView):
         except Exception:
             return HttpResponse(status=500)
 
+    def _transcoded_video_response(self, photo):
+        """Pipe the original through ffmpeg and hand out a plain mp4 stream.
+
+        Browsers cannot decode every container/codec we store, so the per-user
+        "Always transcode videos" setting exists to get them something they can
+        actually play.
+        """
+        return StreamingHttpResponse(
+            gen(VideoTranscoder(photo.main_file.path)),
+            content_type="video/mp4",
+        )
+
     def _generate_response_proxy(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
             response = HttpResponse()
@@ -640,14 +652,10 @@ class UnifiedMediaAccessView(APIView):
             return response
 
         if photo.video:
+            if transcode_videos:
+                return self._transcoded_video_response(photo)
             mime = magic.Magic(mime=True)
             filename = mime.from_file(photo.main_file.path)
-            if transcode_videos:
-                response = StreamingHttpResponse(
-                    gen(VideoTranscoder(photo.main_file.path)),
-                    content_type="video/mp4",
-                )
-                return response
             response = HttpResponse()
             response["Content-Type"] = filename
             response["X-Accel-Redirect"] = iri_to_uri(
@@ -685,10 +693,47 @@ class UnifiedMediaAccessView(APIView):
             return self._serve_file_direct(file_path, "image/jpg")
 
         if photo.video:
+            if transcode_videos:
+                return self._transcoded_video_response(photo)
             return self._serve_file_direct(photo.main_file.path)
 
         file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
         return self._serve_file_direct(file_path, "image/jpg")
+
+    def _generate_response_original(
+        self, photo, use_proxy, transcode_videos, inline=False
+    ):
+        """Serve the untouched original file (path == "photos").
+
+        Videos go through ffmpeg first when the requester enabled "Always
+        transcode videos", exactly like the thumbnail/video paths do.
+        """
+        if photo.video and transcode_videos:
+            return self._transcoded_video_response(photo)
+        try:
+            mime = magic.Magic(mime=True)
+            content_type = mime.from_file(photo.main_file.path)
+        except Exception:
+            content_type = "application/octet-stream"
+
+        if use_proxy:
+            response = HttpResponse()
+            response["Content-Type"] = content_type if photo.video else "image/webp"
+            if photo.main_file.path.startswith("/nextcloud_media/"):
+                internal_path = "/nextcloud_original" + photo.main_file.path[21:]
+            elif photo.main_file.path.startswith(settings.PHOTOS):
+                internal_path = (
+                    "/original" + photo.main_file.path[len(settings.PHOTOS) :]
+                )
+            else:
+                internal_path = quote(photo.main_file.path)
+            if inline:
+                response["Content-Disposition"] = 'inline; filename="{}"'.format(
+                    photo.main_file.path.split("/")[-1]
+                )
+            response["X-Accel-Redirect"] = iri_to_uri(internal_path)
+            return response
+        return self._serve_file_direct(photo.main_file.path, content_type)
 
     def _public_album_active_q(self):
         return Q(share__enabled=True) & (
@@ -916,30 +961,7 @@ class UnifiedMediaAccessView(APIView):
                 photo = photos.first()
 
         if photo.albumuser_set.filter(self._public_album_active_q()).exists():
-            if use_proxy:
-                try:
-                    mime = magic.Magic(mime=True)
-                    filename = mime.from_file(photo.main_file.path)
-                except Exception:
-                    filename = "application/octet-stream"
-                response = HttpResponse()
-                response["Content-Type"] = filename if photo.video else "image/webp"
-                if photo.main_file.path.startswith("/nextcloud_media/"):
-                    internal_path = "/nextcloud_original" + photo.main_file.path[21:]
-                elif photo.main_file.path.startswith(settings.PHOTOS):
-                    internal_path = (
-                        "/original" + photo.main_file.path[len(settings.PHOTOS) :]
-                    )
-                else:
-                    internal_path = quote(photo.main_file.path)
-                response["X-Accel-Redirect"] = iri_to_uri(internal_path)
-                return response
-            try:
-                mime = magic.Magic(mime=True)
-                content_type = mime.from_file(photo.main_file.path)
-            except Exception:
-                content_type = "application/octet-stream"
-            return self._serve_file_direct(photo.main_file.path, content_type)
+            return self._generate_response_original(photo, use_proxy, False)
 
         jwt = request.COOKIES.get("jwt")
         if jwt is not None:
@@ -950,57 +972,22 @@ class UnifiedMediaAccessView(APIView):
         else:
             return HttpResponseForbidden()
 
-        user = User.objects.filter(id=token["user_id"]).only("id").first()
+        user = (
+            User.objects.filter(id=token["user_id"])
+            .only("id", "transcode_videos")
+            .first()
+        )
+        transcode_videos = user is not None and user.transcode_videos
         if photo.owner == user or user in photo.shared_to.all():
-            if use_proxy:
-                response = HttpResponse()
-                try:
-                    mime = magic.Magic(mime=True)
-                    filename = mime.from_file(photo.main_file.path)
-                except Exception:
-                    filename = "application/octet-stream"
-                response["Content-Type"] = filename if photo.video else "image/webp"
-                if photo.main_file.path.startswith("/nextcloud_media/"):
-                    internal_path = "/nextcloud_original" + photo.main_file.path[21:]
-                elif photo.main_file.path.startswith(settings.PHOTOS):
-                    internal_path = (
-                        "/original" + photo.main_file.path[len(settings.PHOTOS) :]
-                    )
-                else:
-                    internal_path = quote(photo.main_file.path)
-                response["Content-Disposition"] = 'inline; filename="{}"'.format(
-                    photo.main_file.path.split("/")[-1]
-                )
-                response["X-Accel-Redirect"] = iri_to_uri(internal_path)
-                return response
-            return self._serve_file_direct(photo.main_file.path)
+            return self._generate_response_original(
+                photo, use_proxy, transcode_videos, inline=True
+            )
         else:
             for album in photo.albumuser_set.only("shared_to", "public"):
                 if getattr(album, "public", False) or user in album.shared_to.all():
-                    if use_proxy:
-                        response = HttpResponse()
-                        try:
-                            mime = magic.Magic(mime=True)
-                            filename = mime.from_file(photo.main_file.path)
-                        except Exception:
-                            filename = "application/octet-stream"
-                        response["Content-Type"] = (
-                            filename if photo.video else "image/webp"
-                        )
-                        if photo.main_file.path.startswith("/nextcloud_media/"):
-                            internal_path = (
-                                "/nextcloud_original" + photo.main_file.path[21:]
-                            )
-                        elif photo.main_file.path.startswith(settings.PHOTOS):
-                            internal_path = (
-                                "/original"
-                                + photo.main_file.path[len(settings.PHOTOS) :]
-                            )
-                        else:
-                            internal_path = quote(photo.main_file.path)
-                        response["X-Accel-Redirect"] = iri_to_uri(internal_path)
-                        return response
-                    return self._serve_file_direct(photo.main_file.path)
+                    return self._generate_response_original(
+                        photo, use_proxy, transcode_videos
+                    )
         return HttpResponse(status=404)
 
 
