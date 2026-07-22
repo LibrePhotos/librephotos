@@ -3,7 +3,13 @@ class Tags:
     IMAGE_HEIGHT = "ImageHeight"
     IMAGE_WIDTH = "ImageWidth"
     DATE_TIME_ORIGINAL = "EXIF:DateTimeOriginal"
-    DATE_TIME = "EXIF:DateTime"
+    # ExifTool names EXIF tag 0x0132 "ModifyDate" - "EXIF:DateTime" is not a
+    # valid ExifTool tag and silently reads/writes nothing.
+    DATE_TIME = "EXIF:ModifyDate"
+    # XMP-photoshop:DateCreated. Unlike the EXIF date tags this one can be
+    # written into an XMP sidecar, and writing it leaves the camera's
+    # EXIF:DateTimeOriginal untouched.
+    DATE_CREATED = "XMP:DateCreated"
     QUICKTIME_CREATE_DATE = "QuickTime:CreateDate"
     QUICKTIME_DURATION = "QuickTime:Duration"
     LATITUDE = "Composite:GPSLatitude"

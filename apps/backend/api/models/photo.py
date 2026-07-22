@@ -222,8 +222,18 @@ class Photo(models.Model):
             if modified_fields is None or "rating" in modified_fields:
                 tags_to_write[Tags.RATING] = self.rating
             if modified_fields is not None and "timestamp" in modified_fields:
-                # To-Do: Only works for files and not for the sidecar file
-                tags_to_write[Tags.DATE_TIME] = self.timestamp
+                # XMP:DateCreated is used rather than an EXIF date tag because
+                # EXIF tags cannot be written into an XMP sidecar (exiftool
+                # silently leaves the sidecar unchanged), and because writing it
+                # preserves the camera's original EXIF:DateTimeOriginal.
+                # Serialized in exiftool's canonical form; ``self.timestamp`` is
+                # local time carrying a UTC tzinfo, so the offset is dropped
+                # rather than written out as a misleading "+00:00".
+                tags_to_write[Tags.DATE_CREATED] = (
+                    self.timestamp.strftime("%Y:%m:%d %H:%M:%S")
+                    if self.timestamp
+                    else ""
+                )
 
         if write_face_tags:
             from api.metadata.face_regions import get_face_region_tags

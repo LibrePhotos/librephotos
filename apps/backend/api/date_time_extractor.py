@@ -405,16 +405,22 @@ DEFAULT_RULES_PARAMS = [
         "rule_type": RuleTypes.USER_DEFINED,
     },
     {
-        "id": 15,
-        "name": f"Local time from {Tags.DATE_TIME} exif tag",
+        "id": 16,
+        "name": f"Local time from {Tags.DATE_CREATED} tag (set by LibrePhotos or other photo managers)",
         "rule_type": RuleTypes.EXIF,
-        "exif_tag": Tags.DATE_TIME,
+        "exif_tag": Tags.DATE_CREATED,
     },
     {
         "id": 1,
         "name": f"Local time from {Tags.DATE_TIME_ORIGINAL} exif tag",
         "rule_type": RuleTypes.EXIF,
         "exif_tag": Tags.DATE_TIME_ORIGINAL,
+    },
+    {
+        "id": 15,
+        "name": f"Local time from {Tags.DATE_TIME} exif tag",
+        "rule_type": RuleTypes.EXIF,
+        "exif_tag": Tags.DATE_TIME,
     },
     {
         "id": 2,
