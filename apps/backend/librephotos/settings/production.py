@@ -18,6 +18,20 @@ CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
 DEMO_SITE = os.environ.get("DEMO_SITE", "False") != "False"
 
+# Matplotlib comes along with insightface, which the face recognition service
+# imports. Left to itself it keeps its font cache under $HOME, and when the home
+# directory is not writable - it resolves to `/` in plenty of container setups -
+# it falls back to a fresh /tmp/matplotlib-XXXXXXXX directory and rebuilds the
+# font cache on *every* process start. Give it a directory we own instead. The
+# ML services are spawned with subprocess.Popen (see api/services.py), so they
+# inherit this.
+MPLCONFIGDIR = os.environ.get("MPLCONFIGDIR") or os.path.join(MEDIA_ROOT, "matplotlib")
+try:
+    os.makedirs(MPLCONFIGDIR, exist_ok=True)
+except OSError as e:
+    print(f"could not create matplotlib cache directory {MPLCONFIGDIR}: {e}")
+os.environ["MPLCONFIGDIR"] = MPLCONFIGDIR
+
 WSGI_APPLICATION = "librephotos.wsgi.application"
 AUTH_USER_MODEL = "api.User"
 ROOT_URLCONF = "librephotos.urls"

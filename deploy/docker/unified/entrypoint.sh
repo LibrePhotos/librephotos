@@ -4,6 +4,15 @@ set -e
 
 echo "LibrePhotos starting..."
 
+# Matplotlib comes along with insightface, which the face recognition service
+# imports. Left to itself it keeps its font cache under $HOME, and when the home
+# directory is not writable it falls back to a fresh /tmp directory and re-parses
+# every font on each start. Keep it on our own volume instead; this is the same
+# path librephotos/settings/production.py derives.
+mpl_data_root="${BASE_DATA:-/}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-${mpl_data_root%/}/protected_media/matplotlib}"
+mkdir -p "$MPLCONFIGDIR" || echo "Could not create $MPLCONFIGDIR - matplotlib will rebuild its font cache on every start"
+
 # Check if we should serve frontend
 if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
     echo "Configuring for no-proxy deployment (serving frontend from Django)..."

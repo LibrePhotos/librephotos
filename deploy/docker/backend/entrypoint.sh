@@ -9,6 +9,15 @@ fi
 export OPENBLAS_NUM_THREADS=1
 export OPENBLAS_MAIN_FREE=1
 
+# Matplotlib comes along with insightface, which the face recognition service
+# imports. Left to itself it keeps its font cache under $HOME, and when the home
+# directory is not writable it falls back to a fresh /tmp directory and re-parses
+# every font on each start. Keep it on our own volume instead; this is the same
+# path librephotos/settings/production.py derives.
+mpl_data_root="${BASE_DATA:-/}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-${mpl_data_root%/}/protected_media/matplotlib}"
+mkdir -p "$MPLCONFIGDIR" || echo "Could not create $MPLCONFIGDIR - matplotlib will rebuild its font cache on every start"
+
 mkdir -p /logs
 python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py migrate | tee /logs/command_migrate.log
