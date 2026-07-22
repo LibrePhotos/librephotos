@@ -33,7 +33,7 @@ deploy/
 ### Frontend (apps/frontend/)
 - Install: `cd apps/frontend && yarn install --legacy-peer-deps`
 - Lint: `yarn lint:error` • Test: `yarn test` • Build: `yarn build`
-- Dev server: `yarn dev`
+- Dev server: `yarn start`
 
 ### Mobile (apps/mobile/)
 - Install: `cd apps/mobile && yarn install`

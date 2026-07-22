@@ -19,7 +19,7 @@ The full stack (backend + frontend + db + proxy) runs via Docker Compose from [`
 
 Each app can also be worked on standalone:
 - Backend: see [apps/backend/CONTRIBUTING.md](apps/backend/CONTRIBUTING.md)
-- Frontend: `cd apps/frontend && yarn install && yarn dev`
+- Frontend: `cd apps/frontend && yarn install && yarn start`
 - Mobile: `cd apps/mobile && yarn install && yarn android`
 - Docs: `cd apps/docs && yarn install && yarn start`
 
