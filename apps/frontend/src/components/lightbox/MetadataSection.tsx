@@ -297,9 +297,13 @@ export function MetadataSection({ photoDetail, isPublic = false }: MetadataSecti
   // Fetch full metadata (optional - enhances display if available)
   const { data: fullMetadata } = useFetchPhotoMetadataQuery(photoDetail.id, { enabled: !isPublic });
 
+  // The full metadata serializer has no `has_edits` flag (that lives on the
+  // summary); it ships the recent edits themselves, so derive it from those.
+  const fullMetadataHasEdits = (fullMetadata?.edit_history?.length ?? 0) > 0;
+
   // Fetch edit history (only if metadata exists and has edits)
   const { data: historyData } = useFetchMetadataHistoryQuery(photoDetail.id, 1, 10, {
-    enabled: !isPublic && !!fullMetadata?.has_edits,
+    enabled: !isPublic && fullMetadataHasEdits,
   });
 
   // Mutations for reverting edits
@@ -310,7 +314,7 @@ export function MetadataSection({ photoDetail, isPublic = false }: MetadataSecti
   const summaryMetadata = photoDetail.metadata;
 
   // Check if there are any user edits
-  const hasEdits = summaryMetadata?.has_edits || fullMetadata?.has_edits;
+  const hasEdits = summaryMetadata?.has_edits || fullMetadataHasEdits;
   const editCount = historyData?.count || 0;
 
   return (
