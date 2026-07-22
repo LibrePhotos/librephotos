@@ -438,7 +438,6 @@ export function useSpotlightActions(query: string = "") {
         onClick: () => {
           if (workerAvailable) {
             trainFaces.mutate();
-            notification.trainFaces();
           }
         },
         disabled: !workerAvailable,
@@ -451,8 +450,10 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconMoodSmile, iconProps),
         onClick: () => {
           if (workerAvailable) {
-            fetchClient.get("/scanfaces");
-            notification.rescanFaces();
+            fetchClient
+              .get("/scanfaces")
+              .then(() => notification.rescanFaces())
+              .catch(() => notification.rescanFacesFailed());
           }
         },
         disabled: !workerAvailable,

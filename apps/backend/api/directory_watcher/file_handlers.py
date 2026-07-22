@@ -154,6 +154,7 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     if (
         has_embedded_motion_video(main_file.path)
         and settings.FEATURE_PROCESS_EMBEDDED_MEDIA
+        and settings.FEATURE_VIDEO
     ):
         em_path = extract_embedded_motion_video(main_file.path, main_file.hash)
         if em_path:
@@ -258,7 +259,11 @@ def create_new_image(user, path) -> Photo | None:
     file = File.create(path, user)
 
     # Live Photo detection - extracts embedded motion video if present (Google/Samsung)
-    if has_embedded_motion_video(file.path) and settings.FEATURE_PROCESS_EMBEDDED_MEDIA:
+    if (
+        has_embedded_motion_video(file.path)
+        and settings.FEATURE_PROCESS_EMBEDDED_MEDIA
+        and settings.FEATURE_VIDEO
+    ):
         em_path = extract_embedded_motion_video(file.path, file.hash)
         if em_path:
             em_file = File.create(em_path, user)

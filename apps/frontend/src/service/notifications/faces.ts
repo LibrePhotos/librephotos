@@ -9,11 +9,27 @@ function trainFaces() {
   });
 }
 
+function trainFacesFailed() {
+  showNotification({
+    message: i18n.t("toasts.trainingfailed"),
+    title: i18n.t("toasts.trainingstartedtitle"),
+    color: "red",
+  });
+}
+
 function rescanFaces() {
   showNotification({
     message: i18n.t("toasts.rescanfaces"),
     title: i18n.t("toasts.rescanfacestitle"),
     color: "teal",
+  });
+}
+
+function rescanFacesFailed() {
+  showNotification({
+    message: i18n.t("toasts.rescanfacesfailed"),
+    title: i18n.t("toasts.rescanfacestitle"),
+    color: "red",
   });
 }
 
@@ -46,5 +62,7 @@ export const faces = {
   deleteFaces,
   removeFacesFromPerson,
   rescanFaces,
+  rescanFacesFailed,
   trainFaces,
+  trainFacesFailed,
 };

@@ -140,11 +140,11 @@ Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anyth
 
 | Variable | `.env` key | What turning it off stops |
 | --- | --- | --- |
-| `FEATURE_VIDEO` | `featureVideo` | Video files are no longer imported. A scan skips them the same way it skips a file it cannot read, so no `Photo` is created and no video thumbnail is generated. |
-| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos. The face scan is left out of the scan pipeline and **Scan faces** in the UI answers with an error instead of starting a job. |
-| `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** answers with an error. |
+| `FEATURE_VIDEO` | `featureVideo` | Video files are no longer imported. A scan skips them the same way it skips a file it cannot read, so no `Photo` is created and no video thumbnail is generated. The motion video inside a "live photo" is not extracted either, so those stay ordinary still images. |
+| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. |
+| `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** reports an error. |
 | `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. |
-| `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no requests go to your map provider. Photos keep their coordinates and still show up on the map; they just have no location text and cannot be searched by place. Searching for a place in the search bar still works. |
+| `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no requests go to your map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
 | `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. |
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
@@ -169,7 +169,7 @@ services:
 ```
 
 :::note
-There is one more switch of the same kind: `FEATURE_PROCESS_EMBEDDED_MEDIA` controls whether the motion video embedded in a "live photo" is extracted. It is listed in [Feature Toggles](../user-guide/feature-toggles.md) and only accepts the exact value `True`.
+There is one more switch of the same kind: `FEATURE_PROCESS_EMBEDDED_MEDIA` controls whether the motion video embedded in a "live photo" is extracted (`FEATURE_VIDEO` has to be on as well). It is listed in [Feature Toggles](../user-guide/feature-toggles.md) and only accepts the exact value `True`.
 :::
 
 ### Hosting under a sub-path (subdirectory)

@@ -477,10 +477,7 @@ export function Library() {
             <Grid.Col span={{ base: 12, sm: "content" }}>
               <Button
                 disabled={!workerAvailability}
-                onClick={() => {
-                  trainFaces.mutate();
-                  notification.trainFaces();
-                }}
+                onClick={() => trainFaces.mutate()}
                 leftSection={<FaceId />}
                 variant="outline"
                 fullWidth
@@ -502,9 +499,10 @@ export function Library() {
               <Button
                 disabled={!workerAvailability}
                 onClick={() => {
-                  fetchClient.get("/scanfaces");
-
-                  notification.rescanFaces();
+                  fetchClient
+                    .get("/scanfaces")
+                    .then(() => notification.rescanFaces())
+                    .catch(() => notification.rescanFacesFailed());
                 }}
                 leftSection={<FaceId />}
                 variant="outline"

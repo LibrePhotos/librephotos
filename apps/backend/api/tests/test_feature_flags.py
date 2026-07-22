@@ -1,4 +1,6 @@
 import os
+import shutil
+import tempfile
 import uuid
 from unittest.mock import MagicMock, patch
 
@@ -6,12 +8,25 @@ from django.conf import settings
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
+from api.directory_watcher.file_handlers import group_files_into_photo
+from api.directory_watcher.scan_jobs import (
+    add_geolocation,
+    batch_calculate_clip_embedding,
+    generate_tags,
+    scan_faces,
+    scan_photos,
+)
 from api.face_classify import cluster_all_faces
 from api.geocode.geocode import reverse_geocode, search_location
-from api.models import LongRunningJob
+from api.models import Face, LongRunningJob
 from api.models.file import is_valid_media
 from api.models.photo_caption import PhotoCaption
-from api.tests.utils import create_test_photo, create_test_user
+from api.tests.utils import (
+    ONE_PIXEL_PNG,
+    create_test_file,
+    create_test_photo,
+    create_test_user,
+)
 from librephotos.settings.production import _env_flag
 
 FEATURE_FLAGS = (
@@ -66,6 +81,39 @@ class VideoFeatureFlagTest(TestCase):
     def test_images_are_still_admitted_when_video_is_disabled(self):
         with patch("api.models.file.is_video", return_value=False):
             self.assertTrue(is_valid_media(path="/data/sidecar.xmp", user=self.user))
+
+
+class EmbeddedMotionVideoFeatureFlagTest(TestCase):
+    """The video extracted from a live photo never passes through is_valid_media."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.directory, ignore_errors=True)
+        self.file = create_test_file(
+            os.path.join(self.directory, "motion.png"), self.user, ONE_PIXEL_PNG
+        )
+
+    def _group_files_into_photo(self):
+        with (
+            patch(
+                "api.directory_watcher.file_handlers.has_embedded_motion_video",
+                return_value=True,
+            ),
+            patch(
+                "api.directory_watcher.file_handlers.extract_embedded_motion_video",
+                return_value=None,
+            ) as extract_mock,
+        ):
+            group_files_into_photo(self.user, [self.file], job_id="test-job")
+        return extract_mock
+
+    def test_embedded_video_is_extracted_by_default(self):
+        self._group_files_into_photo().assert_called_once()
+
+    @override_settings(FEATURE_VIDEO=False)
+    def test_embedded_video_is_not_extracted_when_video_is_disabled(self):
+        self._group_files_into_photo().assert_not_called()
 
 
 class ReverseGeocodingFeatureFlagTest(TestCase):
@@ -156,6 +204,27 @@ class FaceDetectionFeatureFlagTest(TestCase):
         self.client = APIClient()
         self.user = create_test_user()
         self.client.force_authenticate(user=self.user)
+        self.photo = create_test_photo(owner=self.user)
+
+    @patch("api.models.photo.PIL.Image.open")
+    @patch("api.models.photo.face_extractor")
+    def test_faces_are_extracted_by_default(self, face_extractor_mock, image_open_mock):
+        face_extractor_mock.extract.return_value = []
+
+        self.photo._extract_faces()
+        face_extractor_mock.extract.assert_called_once()
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    @patch("api.models.photo.PIL.Image.open")
+    @patch("api.models.photo.face_extractor")
+    def test_faces_are_not_extracted_when_disabled(
+        self, face_extractor_mock, image_open_mock
+    ):
+        """The upload pipeline calls this directly, bypassing the scan gates."""
+        self.photo._extract_faces()
+
+        face_extractor_mock.extract.assert_not_called()
+        self.assertEqual(0, Face.objects.filter(photo=self.photo).count())
 
     @patch("api.views.faces.do_all_models_exist", return_value=True)
     @patch("api.views.faces.Chain")
@@ -211,3 +280,55 @@ class FaceClusterFeatureFlagTest(TestCase):
         self.assertEqual(403, response.status_code)
         self.assertFalse(response.json()["status"])
         chain_mock.assert_not_called()
+
+
+class ScanPipelineFeatureFlagTest(TestCase):
+    """The jobs a scan queues once every file has been read."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.user.scan_directory = tempfile.mkdtemp()
+        self.user.save(update_fields=["scan_directory"])
+        self.addCleanup(shutil.rmtree, self.user.scan_directory, ignore_errors=True)
+
+    def _scan(self):
+        with (
+            patch("api.directory_watcher.scan_jobs.AsyncTask") as task_mock,
+            patch("api.directory_watcher.scan_jobs.Chain") as chain_mock,
+            patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
+        ):
+            scan_photos(self.user, False, str(uuid.uuid4()))
+
+        queued = [call.args[0] for call in task_mock.call_args_list]
+        chained = [
+            call.args[0] for call in chain_mock.return_value.append.call_args_list
+        ]
+        return queued, chained
+
+    def test_every_job_is_queued_by_default(self):
+        queued, chained = self._scan()
+
+        self.assertIn(generate_tags, queued)
+        self.assertIn(add_geolocation, queued)
+        self.assertIn(scan_faces, chained)
+
+    @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
+    def test_tagging_job_is_skipped_when_disabled(self):
+        queued, _ = self._scan()
+
+        self.assertNotIn(generate_tags, queued)
+        self.assertIn(add_geolocation, queued)
+
+    @override_settings(FEATURE_REVERSE_GEOCODING=False)
+    def test_geolocation_job_is_skipped_when_disabled(self):
+        queued, _ = self._scan()
+
+        self.assertNotIn(add_geolocation, queued)
+        self.assertIn(generate_tags, queued)
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    def test_face_scan_is_skipped_when_disabled(self):
+        _, chained = self._scan()
+
+        self.assertNotIn(scan_faces, chained)
+        self.assertIn(batch_calculate_clip_embedding, chained)

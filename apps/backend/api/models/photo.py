@@ -5,6 +5,7 @@ from io import BytesIO
 
 import numpy as np
 import PIL
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
@@ -406,6 +407,10 @@ class Photo(models.Model):
         album_date.save()
 
     def _extract_faces(self, second_try=False):
+        if not settings.FEATURE_FACE_DETECTION:
+            logger.info("Face detection is disabled")
+            return
+
         unknown_cluster: api.models.cluster.Cluster = (
             api.models.cluster.get_unknown_cluster(user=self.owner)
         )
