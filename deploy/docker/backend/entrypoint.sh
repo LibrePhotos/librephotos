@@ -27,10 +27,16 @@ echo "Running backend server..."
 
 python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
 
+# A request that outruns this is killed with SIGKILL and gunicorn's generic
+# "Perhaps out of memory?" message, which is misleading: on a CPU-capped host
+# the worker is usually just starved, not out of memory. Raise it if you limit
+# the container's CPU. Gunicorn's own default is 30.
+GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-30}"
+
 if [[ "$DEBUG" = 1 ]]; then
     echo "development backend starting"
-    gunicorn --worker-class=gevent --max-requests 50 --reload --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
+    gunicorn --worker-class=gevent --max-requests 50 --timeout "$GUNICORN_TIMEOUT" --reload --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
 else
     echo "production backend starting"
-    gunicorn --worker-class=gevent --max-requests 50 --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
+    gunicorn --worker-class=gevent --max-requests 50 --timeout "$GUNICORN_TIMEOUT" --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee /logs/gunicorn_django.log
 fi

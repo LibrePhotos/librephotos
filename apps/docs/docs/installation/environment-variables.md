@@ -56,6 +56,82 @@ To leverage GPU acceleration for neural networks and face detection, follow thes
 The GPU image is only available for x86 architecture. ARM is not supported for the GPU image.
 :::
 
+### Limiting CPU and memory usage
+
+The backend container runs two things: **gunicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers, and by default there is **one worker per CPU core**.
+
+#### Start with the worker count, not a CPU limit
+
+The instinct is to cap the container in `docker-compose.yml`:
+
+```yaml
+services:
+  backend:
+    cpus: 0.8
+```
+
+On its own this usually backfires. A `cpus:` limit throttles the container, but it does not change how many workers LibrePhotos starts — the worker pool is sized from the number of cores the *host* reports, which a `cpus:` limit does not change. You end up with just as many workers competing for a fraction of the CPU, and the first thing to break is the API: a request that takes longer than gunicorn's timeout gets its worker killed, and the backend log fills with
+
+```
+[ERROR] Worker (pid:113) was sent SIGKILL! Perhaps out of memory?
+```
+
+That message is gunicorn's generic text for a killed worker. On a CPU-capped host it almost always means the request was too slow, **not** that the machine ran out of memory.
+
+So set the worker count instead. In your `.env`:
+
+```bash
+# One background worker instead of one per core
+workerConcurrency=1
+```
+
+This is the setting that actually gives resources back to the rest of the machine. Scanning takes longer, but the API stays responsive and nothing gets killed. Each worker is recycled once it passes roughly 300 MB of resident memory, so the worker count is also the main lever on the backend's memory footprint.
+
+#### If you also want a hard cap
+
+Once the worker count is sensible, a container limit is a reasonable backstop. Raise the API timeout at the same time so throttled requests are not killed mid-flight:
+
+```bash
+workerConcurrency=1
+# Seconds before gunicorn kills a request (default 30)
+gunicornTimeout=120
+```
+
+```yaml
+services:
+  backend:
+    cpus: 2.0
+    mem_limit: 4g
+```
+
+`cpuset` works too, if you would rather pin LibrePhotos to specific cores than give it a fraction of all of them:
+
+```yaml
+services:
+  backend:
+    cpuset: "0-2"
+```
+
+Under Docker Swarm the equivalent is a `deploy.resources` block:
+
+```yaml
+services:
+  backend:
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+```
+
+:::note
+`cpu_shares` only sets a *relative* priority between containers and has no visible effect when nothing else is competing for the CPU, which is why it often looks like it does nothing.
+:::
+
+:::warning
+Do not cap the container so hard that the first scan cannot finish. Face detection and captioning load sizeable models; below roughly 2 GB of memory the backend will be killed by the kernel — and *that* really is an out-of-memory kill.
+:::
+
 ### Hosting under a sub-path (subdirectory)
 
 By default LibrePhotos is served from the root of a domain (e.g. `https://photos.example.com/`). If you need to host it under a sub-path instead (e.g. `https://example.com/photos/`), the frontend has to know that base path.
