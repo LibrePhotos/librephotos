@@ -11,6 +11,7 @@ site_settings_schema = {
         {"required": ["llm_model"]},
         {"required": ["tagging_model"]},
         {"required": ["face_recognition_model"]},
+        {"required": ["nextcloud_enabled"]},
     ],
     "properties": {
         "allow_registration": {"type": "boolean"},
@@ -23,5 +24,6 @@ site_settings_schema = {
         "llm_model": {"type": "string"},
         "tagging_model": {"type": "string"},
         "face_recognition_model": {"type": "string"},
+        "nextcloud_enabled": {"type": "boolean"},
     },
 }

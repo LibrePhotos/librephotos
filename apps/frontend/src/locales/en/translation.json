@@ -826,6 +826,7 @@
     "allow": "Allow",
     "noallow": "Do not allow",
     "headerupload": "Allow uploads",
+    "headernextcloud": "Enable Nextcloud integration",
     "skip_raw_files": "Skip RAW files",
     "stack_raw_jpeg": "Stack RAW+JPEG pairs",
     "headerskippatterns": "Skip patterns",

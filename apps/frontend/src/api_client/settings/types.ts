@@ -11,6 +11,7 @@ export const SiteSettings = z.object({
   llm_model: z.string(),
   tagging_model: z.string(),
   face_recognition_model: z.string(),
+  nextcloud_enabled: z.boolean().default(false),
   email_configured: z.boolean().optional(),
 });
 

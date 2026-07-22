@@ -39,6 +39,7 @@ from unittest import mock
 
 import owncloud
 import requests
+from constance.test import override_config
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -47,6 +48,7 @@ from api.tests.utils import create_test_user
 LISTDIR_URL = "/api/nextcloud/listdir/?fpath=/"
 
 
+@override_config(NEXTCLOUD_ENABLED=True)
 class NextcloudListDirErrorHandlingTest(TestCase):
     def setUp(self):
         self.user = create_test_user(

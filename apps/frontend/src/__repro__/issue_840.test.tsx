@@ -45,6 +45,7 @@ const stubs = vi.hoisted(() => ({
   worker: { queue_can_accept_job: true },
   auth: { access: { is_admin: true } },
   nextcloudDirs: { isFetching: false, isSuccess: true, isError: false, data: [] },
+  siteSettings: { data: { nextcloud_enabled: true } },
   userList: { data: [] },
   countStats: { data: undefined },
 }));
@@ -67,6 +68,7 @@ vi.mock("../api_client/jobs/hooks", () => ({
   useWorkerQuery: () => ({ data: stubs.worker }),
 }));
 vi.mock("../api_client/photos/hooks", () => ({ useDeleteMissingPhotosMutation: () => stubs.noopMutation }));
+vi.mock("../api_client/settings/hooks", () => ({ useGetSettingsQuery: () => stubs.siteSettings }));
 vi.mock("../api_client/stats/hooks", () => ({ useFetchCountStatsQuery: () => stubs.countStats }));
 vi.mock("../api_client/user/hooks", () => ({
   useFetchUserListQuery: () => stubs.userList,

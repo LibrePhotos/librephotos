@@ -69,6 +69,7 @@ services:
       - GUNICORN_TIMEOUT=${gunicornTimeout:-30}
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
+      - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
       - FRONTEND_BASE_URL=${frontendBaseUrl:-}
       - DEBUG=0
