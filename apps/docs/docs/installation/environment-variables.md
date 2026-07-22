@@ -77,13 +77,21 @@ Always include the trailing slash, e.g. `/photos/`, not `/photos`.
 
 ### Changing the container names
 
-Follow the normal instructions as per your chosen build, but after updating the .env file to choose your container names, run
+Container names are set directly in `docker-compose.yml` through the `container_name` keys (`proxy`, `db`, `frontend` and `backend`). Edit those values if you want different names, for example when running more than one LibrePhotos stack on the same host:
 
-```bash
-make rename
+```yaml
+services:
+  backend:
+    container_name: myphotos-backend
 ```
 
-Then you can resume following the normal instructions.
+These are the names you pass to `docker exec`, `docker logs` and similar commands.
+
+They are separate from the **service** names — the `proxy:`, `db:`, `frontend:` and `backend:` keys themselves — which the containers use to reach each other over the Compose network. The bundled proxy resolves `frontend` and `backend` by service name, so leave those keys as they are.
+
+:::note
+Older guides mention a `make rename` helper that rewrote these names from your `.env` file. It was removed together with `deploy/Makefile`; edit `docker-compose.yml` directly instead.
+:::
 
 ### Old environment variables
 
