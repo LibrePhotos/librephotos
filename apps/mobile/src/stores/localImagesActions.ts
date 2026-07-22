@@ -45,6 +45,36 @@ export const camerarollPhotoMapper = async (
   }
 }
 
+/**
+ * Maps one page of camera roll entries, settling every asset on its own.
+ * Building the id hashes the file, so a single unreadable asset -- a broken
+ * file, or a MediaStore `content://` uri that cannot be opened under scoped
+ * storage -- must not take the rest of the camera roll down with it.
+ */
+async function mapPageIgnoringUnreadable(
+  items: PhotoIdentifier[],
+): Promise<LocalImages> {
+  const results = await Promise.allSettled(
+    items.map(item => camerarollPhotoMapper(item)),
+  )
+  const mapped: LocalImages = []
+
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      mapped.push(result.value)
+      return
+    }
+    console.log(
+      'Skipping unreadable local image ' +
+        items[index].node.image.uri +
+        ': ' +
+        result.reason,
+    )
+  })
+
+  return mapped
+}
+
 async function hasReadAndroidPermission(): Promise<boolean> {
   const permission =
     (Platform.Version as number) >= 33
@@ -89,21 +119,15 @@ export async function loadLocalImages(): Promise<void> {
         after: page_info.end_cursor,
         assetType: 'Photos',
       }).then(async r => {
-        const currentPage = await Promise.all(
-          r.edges.map(item => {
-            if (!lastFetch || item.node.timestamp > lastFetch) {
-              return camerarollPhotoMapper(item)
-            }
-          }),
-        ).catch(err => {
-          console.log(err)
-        })
-        const newPhotos = (currentPage || []).filter(
-          (item): item is LocalImage => item !== undefined,
+        const newItems = r.edges.filter(
+          item => !lastFetch || item.node.timestamp > lastFetch,
         )
+        const newPhotos = await mapPageIgnoringUnreadable(newItems)
         console.log('Number of new items: ', newPhotos.length)
         photos = [...photos, ...newPhotos]
-        return { ...r.page_info, no_valid_photos: newPhotos.length === 0 }
+        // Stop paging once we have caught up with the last fetch -- not
+        // because some assets on this page turned out to be unreadable.
+        return { ...r.page_info, no_valid_photos: newItems.length === 0 }
       })
     }
     addImages(photos)
