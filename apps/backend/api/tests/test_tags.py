@@ -2,12 +2,19 @@
 
 from importlib import import_module
 
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from api.models import Photo, Tag
-from api.models.photo_metadata import PhotoMetadata
-from api.models.tag import link_tags_from_keywords
+from api.models.photo_metadata import MetadataEdit, PhotoMetadata
+from api.models.tag import (
+    NAME_MAX_LENGTH,
+    link_tags_from_keywords,
+    sync_tags_from_keywords,
+)
 from api.tests.utils import create_test_photo, create_test_photos, create_test_user
 from api.views.photo_filters import build_photo_queryset
 
@@ -56,6 +63,17 @@ class TagModelTest(TestCase):
         hidden = create_test_photo(owner=self.user, hidden=True)
 
         tag.photos.add(visible, hidden)
+
+        tag.refresh_from_db()
+        self.assertEqual(tag.photo_count, 1)
+
+    def test_photo_count_ignores_trashed_and_removed_photos(self):
+        tag = Tag.objects.create(name="beach", owner=self.user)
+        visible = create_test_photo(owner=self.user)
+        trashed = create_test_photo(owner=self.user, in_trashcan=True)
+        removed = create_test_photo(owner=self.user, removed=True)
+
+        tag.photos.add(visible, trashed, removed)
 
         tag.refresh_from_db()
         self.assertEqual(tag.photo_count, 1)
@@ -127,6 +145,55 @@ class LinkTagsFromKeywordsTest(TestCase):
         self.assertEqual(Tag.objects.filter(name="beach").count(), 2)
         self.assertEqual(Tag.objects.get(name="beach", owner=self.user).photo_count, 1)
 
+    def test_clips_keywords_longer_than_a_tag_name(self):
+        photo = create_test_photo(owner=self.user)
+
+        link_tags_from_keywords(photo, ["x" * (NAME_MAX_LENGTH + 100)])
+
+        self.assertEqual(
+            list(Tag.objects.values_list("name", flat=True)), ["x" * NAME_MAX_LENGTH]
+        )
+
+
+class SyncTagsFromKeywordsTest(TestCase):
+    """A deliberate keyword edit is authoritative for the tags it created."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.photo = create_test_photo(owner=self.user)
+
+    def test_removed_keyword_detaches_its_tag(self):
+        link_tags_from_keywords(self.photo, ["beach", "sunset"])
+
+        sync_tags_from_keywords(self.photo, ["beach"], ["beach", "sunset"])
+
+        self.assertEqual(
+            list(self.photo.tags.values_list("name", flat=True)), ["beach"]
+        )
+        self.assertEqual(Tag.objects.get(name="sunset").photo_count, 0)
+
+    def test_hand_made_tags_are_not_touched(self):
+        link_tags_from_keywords(self.photo, ["beach"])
+        manual = Tag.objects.create(name="favourite", owner=self.user)
+        manual.photos.add(self.photo)
+
+        sync_tags_from_keywords(self.photo, [], ["beach"])
+
+        self.assertEqual(
+            list(self.photo.tags.values_list("name", flat=True)), ["favourite"]
+        )
+
+    def test_other_photos_keep_the_tag(self):
+        other = create_test_photo(owner=self.user)
+        link_tags_from_keywords(self.photo, ["beach"])
+        link_tags_from_keywords(other, ["beach"])
+
+        sync_tags_from_keywords(self.photo, [], ["beach"])
+
+        tag = Tag.objects.get(name="beach")
+        self.assertEqual(list(tag.photos.all()), [other])
+        self.assertEqual(tag.photo_count, 1)
+
 
 class TagFromMetadataUpdateTest(TestCase):
     """Editing keywords through the metadata endpoint projects them into tags."""
@@ -138,11 +205,53 @@ class TagFromMetadataUpdateTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
         PhotoMetadata.objects.filter(photo=self.photo).delete()
 
-    def test_saving_keywords_creates_tags(self):
-        response = self.client.patch(
+    def _patch_keywords(self, keywords):
+        return self.client.patch(
             f"/api/photos/{self.photo.id}/metadata",
-            {"keywords": ["beach", "sunset"]},
+            {"keywords": keywords},
             format="json",
+        )
+
+    def test_saving_keywords_creates_tags(self):
+        response = self._patch_keywords(["beach", "sunset"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            sorted(self.photo.tags.values_list("name", flat=True)),
+            ["beach", "sunset"],
+        )
+
+    def test_removing_a_keyword_detaches_its_tag(self):
+        self._patch_keywords(["beach", "sunset"])
+
+        response = self._patch_keywords(["beach"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            list(self.photo.tags.values_list("name", flat=True)), ["beach"]
+        )
+        self.assertEqual(Tag.objects.get(name="sunset").photo_count, 0)
+
+    def test_a_tag_added_by_hand_survives_a_keyword_edit(self):
+        tag = Tag.objects.create(name="favourite", owner=self.user)
+        tag.photos.add(self.photo)
+
+        self._patch_keywords(["beach"])
+
+        self.assertEqual(
+            sorted(self.photo.tags.values_list("name", flat=True)),
+            ["beach", "favourite"],
+        )
+
+    def test_reverting_a_keyword_edit_reverts_the_tags(self):
+        self._patch_keywords(["beach", "sunset"])
+        self._patch_keywords(["beach"])
+        edit = MetadataEdit.objects.filter(
+            photo=self.photo, field_name="keywords"
+        ).latest("created_at")
+
+        response = self.client.post(
+            f"/api/photos/{self.photo.id}/metadata/revert/{edit.id}"
         )
 
         self.assertEqual(response.status_code, 200)
@@ -150,6 +259,21 @@ class TagFromMetadataUpdateTest(TestCase):
             sorted(self.photo.tags.values_list("name", flat=True)),
             ["beach", "sunset"],
         )
+
+    def test_bulk_keyword_edits_reach_the_tags(self):
+        other = create_test_photo(owner=self.user)
+
+        response = self.client.patch(
+            "/api/photos/metadata/bulk",
+            {
+                "photo_ids": [str(self.photo.id), str(other.id)],
+                "updates": {"keywords": ["beach"]},
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Tag.objects.get(name="beach", owner=self.user).photo_count, 2)
 
 
 class TagApiTest(TestCase):
@@ -172,13 +296,22 @@ class TagApiTest(TestCase):
 
         self.assertTrue(Tag.objects.filter(name="beach", owner=self.user).exists())
 
-    def test_create_duplicate_tag_is_rejected(self):
-        Tag.objects.create(name="beach", owner=self.user)
+    def test_create_duplicate_tag_returns_the_existing_one(self):
+        existing = Tag.objects.create(name="beach", owner=self.user)
 
         response = self.client.post("/api/tags/", {"name": "beach"}, format="json")
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["id"], existing.id)
         self.assertEqual(Tag.objects.filter(name="beach").count(), 1)
+
+    def test_create_does_not_hand_out_another_users_tag(self):
+        Tag.objects.create(name="beach", owner=self.other_user)
+
+        response = self.client.post("/api/tags/", {"name": "beach"}, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Tag.objects.get(id=response.json()["id"]).owner, self.user)
 
     def test_list_only_returns_own_tags(self):
         mine = Tag.objects.create(name="beach", owner=self.user)
@@ -216,6 +349,20 @@ class TagApiTest(TestCase):
 
         self.assertEqual(row["photo_count"], 2)
         self.assertEqual(len(row["cover_photos"]), 2)
+
+    def test_list_ignores_trashed_photos(self):
+        tag = Tag.objects.create(name="beach", owner=self.user)
+        trashed = create_test_photo(owner=self.user, in_trashcan=True)
+        tag.photos.add(self.photos[0], trashed)
+
+        row = _results(self.client.get("/api/tags/"))[0]
+
+        # The tile has to promise what the album behind it delivers.
+        self.assertEqual(row["photo_count"], 1)
+        self.assertEqual(
+            [cover["image_hash"] for cover in row["cover_photos"]],
+            [self.photos[0].image_hash],
+        )
 
     def test_rename_tag(self):
         tag = Tag.objects.create(name="beach", owner=self.user)
@@ -281,6 +428,18 @@ class TagApiTest(TestCase):
         response = self.client.post(f"/api/tags/{tag.id}/add/", {}, format="json")
 
         self.assertEqual(response.status_code, 400)
+
+    def test_add_an_unknown_photo_is_rejected(self):
+        tag = Tag.objects.create(name="beach", owner=self.user)
+
+        response = self.client.post(
+            f"/api/tags/{tag.id}/add/",
+            {"photos": [str(self.photos[0].id), "does-not-exist"]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(tag.photos.count(), 0)
 
     def test_remove_photos(self):
         tag = Tag.objects.create(name="beach", owner=self.user)
@@ -360,6 +519,63 @@ class TagApiTest(TestCase):
         self.assertIn(response.status_code, (401, 403))
 
 
+class TagDetailQueryCountTest(TestCase):
+    """The tag album renders through ``PhotoSummarySerializer`` like the thing
+    album, so it needs the same prefetches or it pays the issue #619 N+1."""
+
+    SMALL = 2
+    LARGE = 12
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.now = timezone.now()
+
+    def _tag(self, number_of_photos):
+        tag = Tag.objects.create(name=f"beach-{number_of_photos}", owner=self.user)
+        tag.photos.add(
+            *[
+                create_test_photo(owner=self.user, video=False, exif_timestamp=self.now)
+                for _ in range(number_of_photos)
+            ]
+        )
+        return tag
+
+    def _count_queries(self, url):
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            # Force full rendering of the lazily-serialized payload.
+            groups = response.json()["results"]["grouped_photos"]
+        photos = sum(len(group["items"]) for group in groups)
+        return len(ctx.captured_queries), photos
+
+    def test_query_count_is_constant_in_the_tag_size(self):
+        small = self._tag(self.SMALL)
+        large = self._tag(self.LARGE)
+        # Warm the endpoint: the first request of a fresh database also
+        # materialises the django-constance defaults.
+        self._count_queries(f"/api/tags/{small.id}/")
+
+        small_queries, small_photos = self._count_queries(f"/api/tags/{small.id}/")
+        large_queries, large_photos = self._count_queries(f"/api/tags/{large.id}/")
+
+        # Sanity: the two responses really did render their photos, so the
+        # query counts below compare like with like.
+        self.assertEqual(small_photos, self.SMALL)
+        self.assertEqual(large_photos, self.LARGE)
+
+        per_photo = (large_queries - small_queries) / (self.LARGE - self.SMALL)
+        self.assertEqual(
+            large_queries,
+            small_queries,
+            f"/api/tags/ detail issues per-photo queries (N+1): {small_queries} "
+            f"queries for {self.SMALL} photos vs {large_queries} for {self.LARGE} "
+            f"(~{per_photo:.1f} extra queries per photo).",
+        )
+
+
 class TagIsolationTest(TestCase):
     """Cross-user isolation. This repo has had authz regressions before."""
 
@@ -411,7 +627,9 @@ class TagIsolationTest(TestCase):
             format="json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        # 404 rather than an empty 200: a success the caller cannot act on is
+        # worse than an error.
+        self.assertEqual(response.status_code, 404)
         self.assertEqual(own_tag.photos.count(), 0)
 
     def test_cannot_merge_another_users_tag_into_own_tag(self):
@@ -553,6 +771,28 @@ class Migration0129BackfillTest(TestCase):
         tag = Tag.objects.get(name="beach", owner=self.user)
         self.assertEqual(tag.photos.count(), 2)
         self.assertEqual(tag.photo_count, 1)
+
+    def test_photo_count_ignores_trashed_photos(self):
+        visible = create_test_photo(owner=self.user)
+        trashed = create_test_photo(owner=self.user, in_trashcan=True)
+        self._set_keywords(visible, ["beach"])
+        self._set_keywords(trashed, ["beach"])
+        Tag.objects.all().delete()
+
+        self._run_forward()
+
+        self.assertEqual(Tag.objects.get(name="beach", owner=self.user).photo_count, 1)
+
+    def test_clips_keywords_longer_than_a_tag_name(self):
+        photo = create_test_photo(owner=self.user)
+        self._set_keywords(photo, ["x" * (NAME_MAX_LENGTH + 100)])
+        Tag.objects.all().delete()
+
+        self._run_forward()
+
+        self.assertEqual(
+            list(Tag.objects.values_list("name", flat=True)), ["x" * NAME_MAX_LENGTH]
+        )
 
     def test_ignores_empty_and_malformed_keywords(self):
         photo = create_test_photo(owner=self.user)

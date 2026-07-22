@@ -477,6 +477,7 @@
       "editTags": "Edit tags",
       "addTag": "Add tag…",
       "noTags": "No tags",
+      "tagsSaveFailed": "The tags could not be saved. Please try again.",
       "save": "Save"
     },
     "controls": {

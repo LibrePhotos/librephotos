@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
-from api.models.tag import link_tags_from_keywords
+from api.models.tag import sync_tags_from_keywords
 
 
 class MetadataFileSerializer(serializers.ModelSerializer):
@@ -194,6 +194,7 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """Update metadata and create edit history records."""
         user = self.context.get("request").user if self.context.get("request") else None
+        previous_keywords = instance.keywords
 
         for field_name, new_value in validated_data.items():
             old_value = getattr(instance, field_name)
@@ -218,7 +219,9 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
         instance.save()
 
         if "keywords" in validated_data:
-            link_tags_from_keywords(instance.photo, instance.keywords)
+            sync_tags_from_keywords(
+                instance.photo, instance.keywords, previous_keywords
+            )
 
         return instance
 

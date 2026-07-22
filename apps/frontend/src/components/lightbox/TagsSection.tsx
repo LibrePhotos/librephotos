@@ -11,6 +11,7 @@ import {
   useFetchTagsQuery,
   useRemovePhotosFromTagMutation,
 } from "../../api_client/tags/hooks";
+import { notification } from "../../service/notifications";
 
 interface TagsSectionProps {
   photoDetail: PhotoType;
@@ -50,15 +51,18 @@ export function TagsSection({ photoDetail }: TagsSectionProps) {
       await Promise.all(removed.map(tag => removePhotos({ id: tag.id, name: tag.name, photos: [photoDetail.id] })));
       await Promise.all(
         added.map(async name => {
-          // The account may already own the tag through another photo; only
-          // create it when it does not exist yet.
+          // The account may already own the tag through another photo, but
+          // allTags only holds the first page - this is a shortcut past a
+          // request, not the check. Creating a tag that exists returns it.
           const existing = allTags?.find(tag => tag.name === name);
           const tag = existing ?? (await createTag({ name }));
           await addPhotos({ id: tag.id, name, photos: [photoDetail.id] });
         })
       );
     } catch {
-      // Keep the editor open so the edit is not silently lost.
+      // Keep the editor open so the edit is not silently lost, and say so:
+      // a spinner that just stops looks exactly like a successful save.
+      notification.requestFailed(t("lightbox.sidebar.editTags"), t("lightbox.sidebar.tagsSaveFailed"));
       return;
     }
 

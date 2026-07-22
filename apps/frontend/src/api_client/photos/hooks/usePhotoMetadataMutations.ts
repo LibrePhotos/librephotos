@@ -4,6 +4,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchClient } from "../../api";
+import { TagsQueryKeys } from "../../tags/hooks/useFetchTagsQuery";
 import type { PhotoMetadata } from "../types";
 
 type MetadataUpdateFields = {
@@ -32,6 +33,8 @@ export function useUpdatePhotoMetadataMutation() {
       queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
       // Also invalidate photo details since it includes metadata summary
       queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
+      // Keyword edits are projected into tags server-side
+      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
     },
   });
 }
@@ -51,6 +54,7 @@ export function useRevertMetadataEditMutation() {
       queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
       queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
       queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
+      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
     },
   });
 }
@@ -70,6 +74,7 @@ export function useRevertAllMetadataEditsMutation() {
       queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
       queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
       queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
+      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
     },
   });
 }
@@ -95,6 +100,7 @@ export function useBulkUpdateMetadataMutation() {
         queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
       });
       queryClient.invalidateQueries({ queryKey: ["photoDetails"] });
+      queryClient.invalidateQueries({ queryKey: [...TagsQueryKeys] });
     },
   });
 }

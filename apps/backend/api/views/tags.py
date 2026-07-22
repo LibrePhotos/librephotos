@@ -1,7 +1,10 @@
+import uuid
+
 from django.db.models import Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -11,6 +14,7 @@ from api.serializers.tag import (
     TagListSerializer,
     TagSerializer,
 )
+from api.views.albums import _with_photo_summary_relations
 from api.views.pagination import StandardResultsSetPagination
 from api.views.photos import _get_photo_filter_kwargs
 
@@ -44,9 +48,9 @@ class TagViewSet(viewsets.ModelViewSet):
             )
 
         if self.action == "list":
-            cover_photos = Photo.objects.filter(hidden=False).only(
-                "image_hash", "video"
-            )
+            # The same photos the detail action serves: a tile must not cover
+            # itself with a trashed photo whose file is already gone.
+            cover_photos = Photo.visible.only("image_hash", "video")
             queryset = queryset.prefetch_related(
                 Prefetch("photos", queryset=cover_photos[:4], to_attr="cover_photos")
             )
@@ -54,7 +58,9 @@ class TagViewSet(viewsets.ModelViewSet):
             queryset = queryset.prefetch_related(
                 Prefetch(
                     "photos",
-                    queryset=Photo.visible.order_by("-exif_timestamp"),
+                    queryset=_with_photo_summary_relations(
+                        Photo.visible.order_by("-exif_timestamp")
+                    ),
                 )
             )
 
@@ -67,27 +73,55 @@ class TagViewSet(viewsets.ModelViewSet):
             return GroupedTagPhotosSerializer
         return TagSerializer
 
+    @extend_schema(
+        description=(
+            "Create a tag. A name the account already uses answers with the "
+            "existing tag instead of failing, so a client that cannot see the "
+            "whole (paginated) tag list still ends up with one tag."
+        ),
+        responses={200: TagSerializer, 201: TagSerializer},
+    )
+    def create(self, request, *args, **kwargs):
+        name = str(request.data.get("name") or "").strip()
+        existing = Tag.objects.filter(name=name, owner=request.user).first()
+        if existing is not None:
+            return Response(TagSerializer(existing).data)
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
     def _resolve_photos(self, request):
-        """Resolve the request's photo ids/hashes to photos the user owns."""
+        """Resolve the request's photo ids/hashes to photos the user owns.
+
+        An id the requester does not own is a 404 rather than a silent no-op:
+        answering 200 for an empty queryset had the UI report a save that never
+        happened.
+        """
         identifiers = request.data.get("photos")
         if not isinstance(identifiers, list) or not identifiers:
             return None
 
-        ids = []
-        hashes = []
+        ids = set()
+        hashes = set()
         for identifier in identifiers:
             filter_kwargs = _get_photo_filter_kwargs(str(identifier))
             if "pk" in filter_kwargs:
-                ids.append(filter_kwargs["pk"])
+                ids.add(str(uuid.UUID(filter_kwargs["pk"])))
             else:
-                hashes.append(filter_kwargs["image_hash"])
+                hashes.add(filter_kwargs["image_hash"])
 
-        return Photo.objects.filter(
-            Q(pk__in=ids) | Q(image_hash__in=hashes), owner=request.user
+        photos = list(
+            Photo.objects.filter(
+                Q(pk__in=ids) | Q(image_hash__in=hashes), owner=request.user
+            )
         )
+        resolved = {str(photo.pk) for photo in photos}
+        resolved.update(photo.image_hash for photo in photos)
+        if not (ids | hashes) <= resolved:
+            raise NotFound("Unknown photo")
+
+        return photos
 
     @extend_schema(
         parameters=[OpenApiParameter("photo", OpenApiTypes.STR)],

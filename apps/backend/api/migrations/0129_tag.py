@@ -11,6 +11,8 @@ from django.conf import settings
 from django.db import migrations, models
 from django.db.models import Count
 
+NAME_MAX_LENGTH = 512
+
 
 def create_tags_from_keywords(apps, schema_editor):
     Tag = apps.get_model("api", "Tag")
@@ -33,7 +35,10 @@ def create_tags_from_keywords(apps, schema_editor):
         for keyword in keywords:
             if not isinstance(keyword, str) or not keyword.strip():
                 continue
-            photos_by_tag.setdefault((keyword.strip(), owner_id), set()).add(photo_id)
+            # keywords is an unbounded JSONField, name is a varchar(512): clip
+            # rather than abort the upgrade on a DataError.
+            name = keyword.strip()[:NAME_MAX_LENGTH]
+            photos_by_tag.setdefault((name, owner_id), set()).add(photo_id)
 
     if not photos_by_tag:
         return
@@ -58,7 +63,9 @@ def create_tags_from_keywords(apps, schema_editor):
 
     visible_counts = {
         row["tag_id"]: row["count"]
-        for row in TagPhotos.objects.filter(photo__hidden=False)
+        for row in TagPhotos.objects.filter(
+            photo__hidden=False, photo__in_trashcan=False, photo__removed=False
+        )
         .values("tag_id")
         .annotate(count=Count("photo_id"))
         .order_by()
