@@ -505,6 +505,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
         "search_instance__search_captions",
         "search_instance__search_location",
         "faces__person__name",
+        "tags__name",
         "exif_timestamp",
         "main_file__path",
     ]

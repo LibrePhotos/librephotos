@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
+from api.models.tag import link_tags_from_keywords
 
 
 class MetadataFileSerializer(serializers.ModelSerializer):
@@ -215,6 +216,9 @@ class PhotoMetadataUpdateSerializer(serializers.ModelSerializer):
         instance.source = PhotoMetadata.Source.USER_EDIT
         instance.version += 1
         instance.save()
+
+        if "keywords" in validated_data:
+            link_tags_from_keywords(instance.photo, instance.keywords)
 
         return instance
 

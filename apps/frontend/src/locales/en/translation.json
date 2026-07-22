@@ -473,6 +473,10 @@
       "editKeywords": "Edit keywords",
       "addKeyword": "Add keyword…",
       "noKeywords": "No keywords",
+      "tags": "Tags",
+      "editTags": "Edit tags",
+      "addTag": "Add tag…",
+      "noTags": "No tags",
       "save": "Save"
     },
     "controls": {
@@ -697,6 +701,7 @@
       "people": "Go to People",
       "places": "Go to Places",
       "things": "Go to Things",
+      "tags": "Go to Tags",
       "favorites": "Go to Favorites",
       "hidden": "Go to Hidden",
       "videos": "Go to Videos",
@@ -883,6 +888,16 @@
   "thingalbum": {
     "showingthings": "Showing top {{number}} things"
   },
+  "tagalbum": {
+    "showingtags": "Showing {{number}} tags",
+    "renametag": "Rename Tag",
+    "tagalreadyexists": "Tag {{name}} already exists.",
+    "tagplaceholder": "Tag name",
+    "merge": "Merge",
+    "mergetag": "Merge Tag",
+    "mergeexplanation": "Pick the tag to merge into {{name}}. Its photos move over and the merged tag is deleted.",
+    "deleteexplanation": "This action will permanently delete the tag. The photos themselves are not deleted."
+  },
   "useralbum": {
     "numberof": "Showing {{number}} user created albums",
     "renamealbum": "Rename Album",
@@ -981,6 +996,7 @@
   "numberofphotos": "{{number}} Photos",
   "myalbums": "My Albums",
   "things": "Things",
+  "tags": "Tags",
   "places": "Places",
   "loading": "Loading...",
   "deleteface": "Delete faces",
@@ -1012,6 +1028,18 @@
     "removefromalbumtitle": "Remove from album",
     "addtoalbum": "{{numberOfPhotos}} photo(s) were added to the existing {{title}} album",
     "addtoalbumtitle": "Add to album",
+    "createtag": "Tag {{name}} created.",
+    "createtagtitle": "Create tag",
+    "renametag": "{{oldName}} was successfully renamed to {{newName}}.",
+    "renametagtitle": "Rename tag",
+    "deletetag": "{{name}} deleted.",
+    "deletetagtitle": "Delete tag",
+    "mergetags": "{{sourceName}} was merged into {{name}}.",
+    "mergetagstitle": "Merge tags",
+    "addtotag": "{{numberOfPhotos}} photo(s) were added to the tag {{name}}",
+    "addtotagtitle": "Add to tag",
+    "removefromtag": "{{numberOfPhotos}} photo(s) were removed from the tag {{name}}",
+    "removefromtagtitle": "Remove from tag",
     "sharingalbum": "Album shared",
     "sharingalbumtitle": "Share album",
     "unsharingalbum": "Album unshared",
@@ -1188,6 +1216,10 @@
     "things": {
       "title": "No things detected",
       "description": "Objects and scenes are detected automatically during photo scanning."
+    },
+    "tags": {
+      "title": "No tags yet",
+      "description": "Tag photos from the details sidebar, or let a scan import the keywords already stored in your files."
     },
     "faces": {
       "title": "No faces found",

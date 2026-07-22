@@ -51,6 +51,7 @@ from api.views import (
     services,
     sharing,
     stacks,
+    tags,
     timezone,
     upload,
     user,
@@ -171,6 +172,8 @@ router.register(r"api/albums/place", albums.AlbumPlaceViewSet, basename="album_p
 router.register(r"api/albums/user", albums.AlbumUserViewSet, basename="album_user")
 
 router.register(r"api/persons", albums.PersonViewSet, basename="persons")
+
+router.register(r"api/tags", tags.TagViewSet, basename="tags")
 
 router.register(
     r"api/photos/shared/tome",

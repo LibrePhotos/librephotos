@@ -18,6 +18,7 @@ class SearchListViewSet(ListViewSet):
     search_fields = [
         "search_instance__search_captions",
         "search_instance__search_location",
+        "tags__name",
         "exif_timestamp",
     ]
 

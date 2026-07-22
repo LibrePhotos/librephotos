@@ -4,6 +4,7 @@ import { faces } from "./faces";
 import { people } from "./people";
 import { photos } from "./photos";
 import { services } from "./services";
+import { tags } from "./tags";
 import { user } from "./user";
 import { worker } from "./worker";
 
@@ -14,6 +15,7 @@ export const notification = {
   ...people,
   ...photos,
   ...services,
+  ...tags,
   ...user,
   ...worker,
 };
