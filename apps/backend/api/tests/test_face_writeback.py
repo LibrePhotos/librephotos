@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
@@ -8,6 +9,7 @@ from api.metadata.face_regions import (
     reverse_orientation_transform,
     thumbnail_coords_to_normalized,
 )
+from api.metadata.tags import Tags
 from api.models.person import Person
 from api.tests.utils import (
     create_test_face,
@@ -571,3 +573,40 @@ class TestSaveMetadataIntegration(TestCase):
         self.assertEqual(tags["Rating"], 5)
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         self.assertIn("Alice", tags["XMP-mwg-rs:RegionInfo"])
+
+    @patch("api.models.photo.write_metadata")
+    def test_save_metadata_timestamp_writes_date_created(self, mock_write_metadata):
+        """A timestamp edit is persisted as XMP:DateCreated, not an EXIF date.
+
+        ``Tags.DATE_TIME`` used to be written here. It was not a valid ExifTool
+        tag, and even the correct EXIF name cannot be written into a sidecar.
+        """
+        photo = create_test_photo(owner=self.user)
+        photo.timestamp = datetime.datetime(
+            2019, 8, 15, 7, 45, 0, tzinfo=datetime.timezone.utc
+        )
+
+        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=True)
+
+        mock_write_metadata.assert_called_once()
+        tags = mock_write_metadata.call_args[0][1]
+        self.assertEqual("XMP:DateCreated", Tags.DATE_CREATED)
+        self.assertIn(Tags.DATE_CREATED, tags)
+        # exiftool's canonical form, without the misleading "+00:00" that
+        # str(datetime) would append to what is really a local time.
+        self.assertEqual("2019:08:15 07:45:00", tags[Tags.DATE_CREATED])
+        self.assertNotIn(Tags.DATE_TIME, tags)
+        self.assertNotIn("EXIF:DateTime", tags)
+
+    @patch("api.models.photo.write_metadata")
+    def test_save_metadata_clears_date_created_when_timestamp_is_removed(
+        self, mock_write_metadata
+    ):
+        """An empty value tells exiftool to delete the tag, rather than crashing."""
+        photo = create_test_photo(owner=self.user)
+        photo.timestamp = None
+
+        photo._save_metadata(modified_fields=["timestamp"], use_sidecar=True)
+
+        tags = mock_write_metadata.call_args[0][1]
+        self.assertEqual("", tags[Tags.DATE_CREATED])

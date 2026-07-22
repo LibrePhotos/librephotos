@@ -22,7 +22,7 @@ class PredefinedRulesTest(TestCase):
         self.assertIsInstance(data, str)
         rules = json.loads(data)
         self.assertIsInstance(rules, list)
-        self.assertEqual(15, len(rules))
+        self.assertEqual(16, len(rules))
 
     def test_default_rules_on_predefined_rules_endpoint(self):
         response = self.client.get("/api/predefinedrules/")
@@ -40,3 +40,8 @@ class PredefinedRulesTest(TestCase):
         rules = json.loads(response.json())
         other_rules = list(filter(lambda x: not x["is_default"], rules))
         self.assertListEqual(OTHER_RULES_PARAMS, other_rules)
+
+    def test_rule_ids_are_unique(self):
+        """Rule ids identify a rule in the settings UI, so they must not collide."""
+        ids = [rule["id"] for rule in DEFAULT_RULES_PARAMS + OTHER_RULES_PARAMS]
+        self.assertEqual(len(ids), len(set(ids)), f"duplicate rule ids in {ids}")
