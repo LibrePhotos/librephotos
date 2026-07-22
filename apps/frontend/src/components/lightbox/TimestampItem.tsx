@@ -18,6 +18,7 @@ import "react-virtualized/styles.css";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
 import { Photo } from "../../api_client/photos/types";
 import { i18nResolvedLanguage } from "../../i18n";
+import { parsePhotoTimestamp, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "../../util/dateUtils";
 
 const isValidDate = (date: Date | null): date is Date => date instanceof Date && !Number.isNaN(date.getTime());
 
@@ -27,13 +28,9 @@ type Props = Readonly<{
 }>;
 
 export function TimestampItem({ photoDetail, isPublic }: Props) {
-  const [timestamp, setTimestamp] = useState(() => {
-    if (!photoDetail.exif_timestamp) {
-      return null;
-    }
-    const date = new Date(photoDetail.exif_timestamp);
-    return Number.isNaN(date.getTime()) ? null : date;
-  });
+  const [timestamp, setTimestamp] = useState(() =>
+    photoDetail.exif_timestamp ? photoTimestampToPickerDate(photoDetail.exif_timestamp) : null
+  );
 
   // savedTimestamp is used to cancel timestamp modification
   const [savedTimestamp, setSavedTimestamp] = useState(timestamp);
@@ -73,7 +70,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
 
   const onSaveDateTime = () => {
     const differentJson = {
-      exif_timestamp: isValidDate(timestamp) ? timestamp.toISOString() : null,
+      exif_timestamp: isValidDate(timestamp) ? pickerDateToPhotoTimestamp(timestamp) : null,
     };
     updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
     setEditMode(false);
@@ -88,11 +85,11 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
   const getDateTimeLabel = () => {
     if (!photoDetail.exif_timestamp) return t("lightbox.sidebar.withouttimestamp");
 
-    const photoDateTime = DateTime.fromISO(photoDetail.exif_timestamp);
+    const photoDateTime = parsePhotoTimestamp(photoDetail.exif_timestamp).setLocale(lang);
     if (photoDateTime.isValid) {
-      const date = DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.DATE_MED);
-      const dayOfWeek = DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toFormat("cccc");
-      const time = DateTime.fromISO(photoDetail.exif_timestamp).setLocale(lang).toLocaleString(DateTime.TIME_SIMPLE);
+      const date = photoDateTime.toLocaleString(DateTime.DATE_MED);
+      const dayOfWeek = photoDateTime.toFormat("cccc");
+      const time = photoDateTime.toLocaleString(DateTime.TIME_SIMPLE);
       return (
         <div>
           {date}{" "}
@@ -113,7 +110,7 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
 
   const onUndoChangedTimestamp = () => {
     const differentJson = {
-      exif_timestamp: isValidDate(savedTimestamp) ? savedTimestamp.toISOString() : null,
+      exif_timestamp: isValidDate(savedTimestamp) ? pickerDateToPhotoTimestamp(savedTimestamp) : null,
     };
     updatePhoto({ id: photoDetail.image_hash!, data: differentJson });
     setTimestamp(savedTimestamp);

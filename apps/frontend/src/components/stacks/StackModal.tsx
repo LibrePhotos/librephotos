@@ -29,11 +29,13 @@ import {
   IconSun,
   IconVideo,
 } from "@tabler/icons-react";
+import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
 import { useSetCoverPhotoMutation, useStackQuery } from "../../api_client/stacks";
 import type { StackType } from "../../api_client/stacks/types";
+import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { StackLightbox } from "./StackLightbox";
 
 // File variant type
@@ -231,7 +233,7 @@ function StackPhotoCard({
 
         {photo.exif_timestamp && (
           <Text size="xs" c="dimmed">
-            📅 {new Date(photo.exif_timestamp).toLocaleDateString()}
+            📅 {parsePhotoTimestamp(photo.exif_timestamp).toLocaleString(DateTime.DATE_SHORT)}
           </Text>
         )}
 

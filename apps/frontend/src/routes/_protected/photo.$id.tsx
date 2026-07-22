@@ -30,6 +30,7 @@ import { LocationSection } from "../../components/lightbox/LocationSection";
 import { PeopleSection } from "../../components/lightbox/PeopleSection";
 import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSection";
 import { TimestampItem } from "../../components/lightbox/TimestampItem";
+import { parsePhotoTimestamp } from "../../util/dateUtils";
 
 export const Route = createFileRoute("/_protected/photo/$id")();
 
@@ -68,7 +69,7 @@ export function SinglePhotoView() {
       ? photoDetail.image_path[0].substring(photoDetail.image_path[0].lastIndexOf("/") + 1)
       : "Unknown filename";
   const timestamp = photoDetail.exif_timestamp
-    ? DateTime.fromISO(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)
+    ? parsePhotoTimestamp(photoDetail.exif_timestamp).toLocaleString(DateTime.DATETIME_MED)
     : "Unknown timestamp";
 
   return (
