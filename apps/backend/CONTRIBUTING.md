@@ -354,7 +354,9 @@ Press `Ctrl+P` followed by `Ctrl+Q` to detach without stopping the container.
 
 - Use React DevTools browser extension
 - Use Redux DevTools for state debugging
-- Enable WDYR by setting `WDYR=True` in your `.env`
+- Enable [WDYR](https://github.com/welldone-software/why-did-you-render), which logs why each
+  component re-rendered, by setting `VITE_APP_WDYR=true` in `deploy/compose/.env` and restarting
+  the frontend container. The value must be the lowercase string `true`.
 
 **API Documentation:**
 

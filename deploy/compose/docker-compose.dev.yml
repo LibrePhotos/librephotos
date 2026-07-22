@@ -24,6 +24,9 @@ services:
     environment:
       - DEBUG=1
       - WDS_SOCKET_PORT=0 # needed for Vite HMR behind the proxy
+      # Why Did You Render. Vite only forwards VITE_-prefixed variables to
+      # client code, so the name has to survive intact all the way through.
+      - VITE_APP_WDYR=${VITE_APP_WDYR:-false}
     build:
       context: ../..
       dockerfile: deploy/docker/frontend/Dockerfile.dev
