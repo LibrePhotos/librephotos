@@ -72,3 +72,10 @@ class IsRegistrationAllowed(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return bool(site_config.ALLOW_REGISTRATION)
+
+
+class IsNextcloudEnabled(permissions.BasePermission):
+    """Custom permission to only allow if the Nextcloud integration is enabled."""
+
+    def has_permission(self, request, view):
+        return bool(site_config.NEXTCLOUD_ENABLED)

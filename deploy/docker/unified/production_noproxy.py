@@ -172,6 +172,12 @@ CONSTANCE_CONFIG = {
         "Allow uploading files",
         bool,
     ),
+    "NEXTCLOUD_ENABLED": (
+        os.environ.get("NEXTCLOUD_ENABLED", "False")
+        not in ("false", "False", "0", "f"),
+        "Enable the Nextcloud integration",
+        bool,
+    ),
     "SKIP_PATTERNS": (
         os.environ.get("SKIP_PATTERNS", ""),
         "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",

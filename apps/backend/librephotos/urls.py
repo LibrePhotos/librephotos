@@ -16,6 +16,7 @@ Including another URLconf
 
 """
 
+from constance import config as site_config
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -72,8 +73,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["scan_directory"] = user.scan_directory
         token["confidence"] = user.confidence
         token["semantic_search_topk"] = user.semantic_search_topk
-        token["nextcloud_server_address"] = user.nextcloud_server_address
-        token["nextcloud_username"] = user.nextcloud_username
+        if site_config.NEXTCLOUD_ENABLED:
+            token["nextcloud_server_address"] = user.nextcloud_server_address
+            token["nextcloud_username"] = user.nextcloud_username
 
         return token
 
