@@ -131,6 +131,64 @@ class PersonViewSet(viewsets.ModelViewSet):
         return qs
 
 
+def _with_photo_summary_relations(queryset):
+    """Load everything ``PhotoSummarySerializer`` reads in a constant number of queries.
+
+    The summary serializer touches the thumbnail, the search instance, the main
+    file's embedded media, the photo's stacks and its files for every photo it
+    renders. Without these joins an album detail response costs a handful of
+    extra round trips *per photo*, which is why large albums took seconds before
+    showing their first thumbnail (issue #619).
+    """
+    # Filter the stacks to valid types and annotate photo_count so that
+    # get_stacks() never has to fall back to a query of its own.
+    valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
+        PhotoStack.StackType.RAW_JPEG_PAIR,
+        PhotoStack.StackType.LIVE_PHOTO,
+    ]
+    stacks_prefetch = Prefetch(
+        "stacks",
+        queryset=PhotoStack.objects.filter(stack_type__in=valid_stack_types).annotate(
+            photo_count_annotation=Count("photos")
+        ),
+    )
+
+    return (
+        queryset.prefetch_related(
+            Prefetch(
+                "owner",
+                queryset=User.objects.only("id", "username", "first_name", "last_name"),
+            ),
+            Prefetch(
+                "main_file__embedded_media",
+                queryset=File.objects.only("hash"),
+            ),
+            stacks_prefetch,
+            "files",  # Prefetch files for get_has_raw_variant()
+        )
+        .select_related("thumbnail", "search_instance", "main_file")
+        .only(
+            "image_hash",
+            "thumbnail__aspect_ratio",
+            "thumbnail__dominant_color",
+            "video",
+            "main_file",
+            "search_instance__search_location",
+            "public",
+            "rating",
+            "hidden",
+            "exif_timestamp",
+            "owner",
+            "video_length",
+            "exif_gps_lat",
+            "exif_gps_lon",
+            "removed",
+            "in_trashcan",
+            "local_orientation",
+        )
+    )
+
+
 def _get_active_tag_thing_types():
     """Return the AlbumThing thing_type values for the active tagging model."""
     from constance import config as site_config
@@ -145,35 +203,38 @@ class AlbumThingViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumThingSerializer
     pagination_class = StandardResultsSetPagination
 
-    def get_queryset(self):
+    def _album_queryset(self):
+        """The requesting user's non-empty thing albums, ready to serialize."""
         if self.request.user.is_anonymous:
             return AlbumThing.objects.none()
-        active_types = _get_active_tag_thing_types()
         return (
             AlbumThing.objects.filter(Q(owner=self.request.user))
             .filter(Q(photo_count__gt=0))
-            .filter(Q(thing_type__in=active_types) | Q(thing_type="hashtag_attribute"))
             .prefetch_related(
                 Prefetch(
                     "photos",
-                    queryset=Photo.visible.order_by("-exif_timestamp"),
-                ),
-                Prefetch(
-                    "photos__owner",
-                    queryset=User.objects.only(
-                        "id", "username", "first_name", "last_name"
+                    queryset=_with_photo_summary_relations(
+                        Photo.visible.order_by("-exif_timestamp")
                     ),
                 ),
             )
             .order_by("title")
         )
 
+    def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumThing.objects.none()
+        active_types = _get_active_tag_thing_types()
+        return self._album_queryset().filter(
+            Q(thing_type__in=active_types) | Q(thing_type="hashtag_attribute")
+        )
+
     def retrieve(self, *args, **kwargs):
-        queryset = self.get_queryset()
         logger.warning(args[0].__str__())
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
         serializer = GroupedThingPhotosSerializer(
-            queryset.filter(id=albumid).first(), context={"request": self.request}
+            self.get_queryset().filter(id=albumid).first(),
+            context={"request": self.request},
         )
         return Response({"results": serializer.data})
 
@@ -212,9 +273,30 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumPlaceSerializer
     pagination_class = StandardResultsSetPagination
 
-    def get_queryset(self):
+    def _album_queryset(self, with_photo_summary=False):
+        """The requesting user's non-empty place albums.
+
+        The list action renders photos through ``PhotoSuperSimpleSerializer``,
+        which reads a handful of columns, while the detail action renders the
+        much wider photo summary. Only load the summary relations for the
+        detail action, otherwise listing places drags in a thumbnail, a search
+        instance, a main file, its embedded media, the stacks and the files of
+        every photo of every album on the page for nothing.
+        """
         if self.request.user.is_anonymous:
             return AlbumPlace.objects.none()
+        photos = Photo.objects.filter(hidden=False).order_by("-exif_timestamp")
+        if with_photo_summary:
+            photos = _with_photo_summary_relations(photos)
+        else:
+            photos = photos.only(
+                "image_hash",
+                "public",
+                "rating",
+                "hidden",
+                "exif_timestamp",
+                "video",
+            )
         return (
             AlbumPlace.objects.annotate(
                 photo_count=Count(
@@ -222,30 +304,19 @@ class AlbumPlaceViewSet(viewsets.ModelViewSet):
                 )
             )
             .filter(Q(photo_count__gt=0) & Q(owner=self.request.user))
-            .prefetch_related(
-                Prefetch(
-                    "photos",
-                    queryset=Photo.objects.filter(hidden=False)
-                    .only(
-                        "image_hash",
-                        "public",
-                        "rating",
-                        "hidden",
-                        "exif_timestamp",
-                        "video",
-                    )
-                    .order_by("-exif_timestamp"),
-                )
-            )
+            .prefetch_related(Prefetch("photos", queryset=photos))
             .order_by("title")
         )
 
+    def get_queryset(self):
+        return self._album_queryset()
+
     def retrieve(self, *args, **kwargs):
-        queryset = self.get_queryset()
         logger.warning(args[0].__str__())
         albumid = re.findall(r"\'(.+?)\'", args[0].__str__())[0].split("/")[-2]
         serializer = GroupedPlacePhotosSerializer(
-            queryset.filter(id=albumid).first(), context={"request": self.request}
+            self._album_queryset(with_photo_summary=True).filter(id=albumid).first(),
+            context={"request": self.request},
         )
         return Response({"results": serializer.data})
 
@@ -434,56 +505,10 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
 
         album_date = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
 
-        # Build a prefetch for stacks that filters to valid types and annotates
-        # photo_count, avoiding N+1 queries in the serializer
-        valid_stack_types = PhotoStack.VALID_STACK_TYPES + [
-            PhotoStack.StackType.RAW_JPEG_PAIR,
-            PhotoStack.StackType.LIVE_PHOTO,
-        ]
-        stacks_prefetch = Prefetch(
-            "stacks",
-            queryset=PhotoStack.objects.filter(
-                stack_type__in=valid_stack_types
-            ).annotate(photo_count_annotation=Count("photos")),
-        )
-
-        photo_qs = (
+        photo_qs = _with_photo_summary_relations(
             album_date.photos.filter(*photo_filter)
-            .prefetch_related(
-                Prefetch(
-                    "owner",
-                    queryset=User.objects.only(
-                        "id", "username", "first_name", "last_name"
-                    ),
-                ),
-                Prefetch(
-                    "main_file__embedded_media",
-                    queryset=File.objects.only("hash"),
-                ),
-                stacks_prefetch,
-                "files",  # Prefetch files for get_has_raw_variant()
-            )
-            .select_related("thumbnail", "search_instance", "main_file")
             .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
             .order_by("-exif_timestamp")
-            .only(
-                "image_hash",
-                "thumbnail__aspect_ratio",
-                "thumbnail__dominant_color",
-                "video",
-                "main_file",
-                "search_instance__search_location",
-                "public",
-                "rating",
-                "hidden",
-                "exif_timestamp",
-                "owner",
-                "video_length",
-                "exif_gps_lat",
-                "exif_gps_lon",
-                "removed",
-                "in_trashcan",
-            )
         )
 
         # Paginate photo queryset

@@ -28,7 +28,9 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
         return (
             AlbumAuto.objects.prefetch_related(
                 Prefetch("owner"),
-                Prefetch("photos", queryset=Photo.visible.all()),
+                # PhotoSimpleSerializer renders the square thumbnail of every
+                # photo, which costs a query each without this join (issue #619).
+                Prefetch("photos", queryset=Photo.visible.select_related("thumbnail")),
                 Prefetch("photos__faces"),
                 Prefetch(
                     "photos__faces__person",
