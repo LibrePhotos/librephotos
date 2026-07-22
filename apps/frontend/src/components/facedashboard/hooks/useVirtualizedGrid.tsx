@@ -43,7 +43,8 @@ export function useVirtualizedGrid(
   selectedFaces: FaceSelection[],
   setSelectedFaces: (faces: FaceSelection[]) => void,
   analysisMethod: FaceAnalysisMethod,
-  width: number
+  width: number,
+  collapsedPersons: Record<FacesTab, ReadonlySet<number>>
 ) {
   const gridRef = useRef<any>(null);
   const [gridHeight, setGridHeight] = useState(0);
@@ -56,10 +57,14 @@ export function useVirtualizedGrid(
       const { entrySquareSize: size } = calculateFaceGridCellSize(width);
       setEntrySquareSize(size);
       setNumEntrySquaresPerRow(Math.floor(width / size));
-      const { cellContents } = calculateFaceGridCells(lists[activeTab], numEntrySquaresPerRow);
+      const { cellContents } = calculateFaceGridCells(
+        lists[activeTab],
+        numEntrySquaresPerRow,
+        collapsedPersons[activeTab]
+      );
       setGridHeight(cellContents.length * size);
     }
-  }, [width, lists, activeTab, numEntrySquaresPerRow]);
+  }, [width, lists, activeTab, numEntrySquaresPerRow, collapsedPersons]);
 
   // Handle scroll from scrubber
   const handleScrubberScroll = useCallback(
@@ -75,11 +80,23 @@ export function useVirtualizedGrid(
   // Calculate cell contents for each tab - MEMOIZED to prevent recalculation on every render
   const cellContents = useMemo(
     () => ({
-      [FacesTab.enum.labeled]: calculateFaceGridCells(lists.labeled, numEntrySquaresPerRow).cellContents,
-      [FacesTab.enum.inferred]: calculateFaceGridCells(lists.inferred, numEntrySquaresPerRow).cellContents,
-      [FacesTab.enum.unknown]: calculateFaceGridCells(lists.unknown, numEntrySquaresPerRow).cellContents,
+      [FacesTab.enum.labeled]: calculateFaceGridCells(
+        lists.labeled,
+        numEntrySquaresPerRow,
+        collapsedPersons[FacesTab.enum.labeled]
+      ).cellContents,
+      [FacesTab.enum.inferred]: calculateFaceGridCells(
+        lists.inferred,
+        numEntrySquaresPerRow,
+        collapsedPersons[FacesTab.enum.inferred]
+      ).cellContents,
+      [FacesTab.enum.unknown]: calculateFaceGridCells(
+        lists.unknown,
+        numEntrySquaresPerRow,
+        collapsedPersons[FacesTab.enum.unknown]
+      ).cellContents,
     }),
-    [lists.labeled, lists.inferred, lists.unknown, numEntrySquaresPerRow]
+    [lists.labeled, lists.inferred, lists.unknown, numEntrySquaresPerRow, collapsedPersons]
   );
 
   // Get cell contents for the active tab - stable reference due to memoized cellContents

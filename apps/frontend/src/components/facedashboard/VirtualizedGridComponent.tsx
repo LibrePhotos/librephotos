@@ -35,6 +35,8 @@ interface VirtualizedGridComponentProps {
   setSelectedFaces: (faces: FaceSelection[]) => void;
   width: number;
   activeTab: FacesTab;
+  collapsedPersons: ReadonlySet<number>;
+  onToggleCollapse: (personId: number) => void;
 }
 
 export function VirtualizedGridComponent({
@@ -56,6 +58,8 @@ export function VirtualizedGridComponent({
   setSelectedFaces,
   width,
   activeTab,
+  collapsedPersons,
+  onToggleCollapse,
 }: VirtualizedGridComponentProps) {
   // Cell renderer for the virtualized grid
   const cellRenderer = useCallback(
@@ -71,6 +75,8 @@ export function VirtualizedGridComponent({
             cell={cell}
             selectedFaces={selectedFaces}
             setSelectedFaces={setSelectedFaces}
+            isCollapsed={collapsedPersons.has(cell.id)}
+            onToggleCollapse={() => onToggleCollapse(cell.id)}
           />
         );
       }
@@ -103,6 +109,8 @@ export function VirtualizedGridComponent({
       selectMode,
       getCellContentsForTab,
       setSelectedFaces,
+      collapsedPersons,
+      onToggleCollapse,
     ]
   );
 

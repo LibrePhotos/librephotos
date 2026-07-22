@@ -1,6 +1,8 @@
 import { ActionIcon, Button, Chip, Divider, Group, Menu, Modal, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconChevronDown as ChevronDown,
+  IconChevronRight as ChevronRight,
   IconDotsVertical as DotsVertical,
   IconEdit as Edit,
   IconTrash as Trash,
@@ -22,11 +24,20 @@ type Props = {
   style: any;
   setSelectedFaces: any;
   selectedFaces: any;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 };
 
 const routeApi = getRouteApi("/_protected/faces");
 
-export function HeaderComponent({ cell, style, setSelectedFaces, selectedFaces }: Readonly<Props>) {
+export function HeaderComponent({
+  cell,
+  style,
+  setSelectedFaces,
+  selectedFaces,
+  isCollapsed,
+  onToggleCollapse,
+}: Readonly<Props>) {
   const { tab: activeTab } = routeApi.useSearch();
   const { t } = useTranslation();
   const [checked, setChecked] = useState(false);
@@ -80,6 +91,19 @@ export function HeaderComponent({ cell, style, setSelectedFaces, selectedFaces }
   return (
     <Stack w="100%" justify="end" pb="xl" style={style}>
       <Group>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          onClick={onToggleCollapse}
+          aria-expanded={!isCollapsed}
+          aria-label={
+            isCollapsed
+              ? t("facesdashboard.expandperson", { name: cell.name })
+              : t("facesdashboard.collapseperson", { name: cell.name })
+          }
+        >
+          {isCollapsed ? <ChevronRight /> : <ChevronDown />}
+        </ActionIcon>
         <Chip variant="filled" radius="xs" size="lg" checked={checked} onChange={handleClick}>
           {cell.name}
         </Chip>
