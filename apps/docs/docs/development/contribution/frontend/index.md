@@ -32,10 +32,24 @@ React provides a debug tool, which you can download
 ### WDYR
 
 [WDYR](https://github.com/welldone-software/why-did-you-render) explains to you why a component
-re-rendered. To activate it, set `VITE_APP_WDYR=true` in your `.env.development` — it has to be the
-literal string `true`. It is wired up in
+re-rendered, by logging the changed props and hooks to the browser console. It is wired up in
 [src/wdyr.ts](https://github.com/LibrePhotos/librephotos/blob/dev/apps/frontend/src/wdyr.ts) and only
 runs in development builds.
+
+Set `VITE_APP_WDYR` to the literal string `true` — any other value (`True`, `1`, unset) leaves it
+off. Where you set it depends on how you run the frontend:
+
+- **Local dev server** (`yarn start`) — add `VITE_APP_WDYR=true` to `apps/frontend/.env.development`.
+- **Docker dev stack** — add `VITE_APP_WDYR=true` to `deploy/compose/.env`, then recreate the
+  container so it picks up the new environment:
+
+  ```bash
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d frontend
+  ```
+
+Either way the dev server has to be restarted. WDYR needs its own JSX transform, which
+`vite.config.ts` only selects when the variable is set at startup, so flipping it mid-session has no
+effect.
 
 ### REST API
 

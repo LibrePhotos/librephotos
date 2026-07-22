@@ -235,7 +235,13 @@ In development mode, access `/api/silk` for request profiling and SQL query anal
 
 - **React DevTools**: Install the [browser extension](https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi)
 - **Redux DevTools**: Install the [browser extension](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd)
-- **WDYR (Why Did You Render)**: Set `WDYR=True` in your `.env` to see component re-render reasons
+- **WDYR (Why Did You Render)**: Set `VITE_APP_WDYR=true` in `deploy/compose/.env` to log component
+  re-render reasons to the browser console. The value must be the lowercase string `true`; anything
+  else leaves WDYR off. Recreate the frontend container to pick up the change:
+
+  ```bash
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d frontend
+  ```
 
 ## Troubleshooting
 
