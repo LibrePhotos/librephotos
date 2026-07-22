@@ -1,6 +1,11 @@
 import { Settings } from "luxon";
 import { afterEach, describe, expect, test } from "vitest";
-import { parsePhotoTimestamp, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "./dateUtils";
+import {
+  parsePhotoTimestamp,
+  parsePickerDate,
+  photoTimestampToPickerDate,
+  pickerDateToPhotoTimestamp,
+} from "./dateUtils";
 
 const originalZone = Settings.defaultZone;
 
@@ -50,6 +55,28 @@ describe("photoTimestampToPickerDate", () => {
 
   test("returns null for an unparseable timestamp", () => {
     expect(photoTimestampToPickerDate("nope")).toBeNull();
+  });
+});
+
+describe("parsePickerDate", () => {
+  test("keeps the calendar day the user clicked", () => {
+    // `new Date("2023-09-21")` resolves to UTC midnight, which is still the
+    // 20th anywhere west of UTC.
+    const parsed = parsePickerDate("2023-09-21");
+    expect(parsed).not.toBeNull();
+    expect(parsed!.getFullYear()).toBe(2023);
+    expect(parsed!.getMonth()).toBe(8);
+    expect(parsed!.getDate()).toBe(21);
+  });
+
+  test("passes a Date through unchanged", () => {
+    const date = new Date(2023, 8, 21, 14, 30);
+    expect(parsePickerDate(date)!.getTime()).toBe(date.getTime());
+  });
+
+  test("returns null for unusable input", () => {
+    expect(parsePickerDate("not a date")).toBeNull();
+    expect(parsePickerDate(new Date(Number.NaN))).toBeNull();
   });
 });
 

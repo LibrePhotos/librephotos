@@ -18,7 +18,12 @@ import "react-virtualized/styles.css";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
 import { Photo } from "../../api_client/photos/types";
 import { i18nResolvedLanguage } from "../../i18n";
-import { parsePhotoTimestamp, photoTimestampToPickerDate, pickerDateToPhotoTimestamp } from "../../util/dateUtils";
+import {
+  parsePhotoTimestamp,
+  parsePickerDate,
+  photoTimestampToPickerDate,
+  pickerDateToPhotoTimestamp,
+} from "../../util/dateUtils";
 
 const isValidDate = (date: Date | null): date is Date => date instanceof Date && !Number.isNaN(date.getTime());
 
@@ -48,13 +53,17 @@ export function TimestampItem({ photoDetail, isPublic }: Props) {
       return;
     }
 
-    const newDate = new Date(date);
+    const newDate = parsePickerDate(date);
+    if (!newDate) {
+      setTimestamp(null);
+      return;
+    }
     if (timestamp) {
       newDate.setHours(timestamp.getHours());
       newDate.setMinutes(timestamp.getMinutes());
       newDate.setSeconds(timestamp.getSeconds());
     }
-    setTimestamp(Number.isNaN(newDate.getTime()) ? null : newDate);
+    setTimestamp(newDate);
   };
 
   const onChangeTime = (event: React.ChangeEvent<HTMLInputElement>) => {

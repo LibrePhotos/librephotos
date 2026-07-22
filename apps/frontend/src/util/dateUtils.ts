@@ -45,6 +45,19 @@ export function photoTimestampToPickerDate(timestamp: string): Date | null {
 }
 
 /**
+ * Read a value out of a date picker as a calendar day.
+ *
+ * Mantine hands back either a `Date` or a date-only string like `"2023-09-21"`,
+ * and `new Date("2023-09-21")` resolves that string to UTC midnight — which is
+ * still the *previous* day for anyone west of UTC. Parsing it as a local
+ * calendar day keeps the day the user actually clicked.
+ */
+export function parsePickerDate(value: Date | string): Date | null {
+  const parsed = value instanceof Date ? DateTime.fromJSDate(value) : DateTime.fromISO(value);
+  return parsed.isValid ? parsed.toJSDate() : null;
+}
+
+/**
  * Inverse of {@link photoTimestampToPickerDate}: turn a picker `Date` back into
  * an `exif_timestamp`, keeping the wall clock the user typed rather than
  * converting it to a real UTC instant.
