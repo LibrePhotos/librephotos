@@ -91,6 +91,14 @@ Q_CLUSTER = {
     "poll": 1,
 }
 
+# Number of background workers doing the heavy lifting (thumbnails, face
+# detection, captioning). Left unset, django-q falls back to cpu_count(), which
+# reports the *host's* cores even when the container is capped with a compose
+# `cpus:` limit - so the pool stays just as wide and the limit only starves it.
+# Setting this is the way to actually reduce LibrePhotos' CPU and RAM appetite.
+if os.environ.get("WORKER_CONCURRENCY"):
+    Q_CLUSTER["workers"] = int(os.environ["WORKER_CONCURRENCY"])
+
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_ADDITIONAL_FIELDS = {
     "map_api_provider": [

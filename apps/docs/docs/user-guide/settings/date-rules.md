@@ -38,6 +38,16 @@ should be one of the following:
 
 If either "source_tz" or "report_tz" could not be obtained, the rule is considered to be not applicable.
 
+### What gets stored, and why times are not converted for you
+
+Once a rule succeeds, LibrePhotos stores the **local time the camera recorded** — the time you would have read off the camera when you took the shot.
+
+This is deliberate. A photo taken at 14:00 in Tokyo and one taken at 14:00 in Berlin are both shown as 14:00, because that is the time each one was actually taken. LibrePhotos does **not** re-cast your library into the timezone you happen to be browsing from; if it did, every photo would shift whenever you travelled, and photos from a holiday abroad would no longer line up with the day you remember them on.
+
+:::note
+Under the hood the local time is tagged as UTC before it is saved. That is an internal storage detail, not a claim that the photo was taken in UTC — it is what keeps the wall-clock time stable for every viewer. If you query the database directly, read the timestamps as-is and do not convert them.
+:::
+
 ### The different rule types
 
 Currently, supported rule types:
@@ -60,4 +70,16 @@ The top rules will be applied first, and the bottom rules be applied last. To ch
 
 ### Applying the rules
 
-The date rules are applied on each scan. If you changed the rules to your liking, click on "Rescan all Photos" and then the new rules will be applied
+The date rules are applied on each scan. If you changed the rules to your liking, click on "Rescan all Photos" and then the new rules will be applied.
+
+Use **"Rescan all Photos"** specifically. An ordinary scan only looks at files that are new or whose contents changed since the last scan, so it will walk straight past a library that is already indexed and nothing will appear to happen. "Rescan all Photos" re-reads every file and re-runs the rules over all of them.
+
+### Troubleshooting
+
+**Every photo is off by the same number of hours.**
+
+If your whole library is shifted by a constant amount — and that amount happens to match your own UTC offset — no date rule will fix it, because the rules are not what is wrong. This was a display bug: the times were stored correctly, but the web interface converted them into the timezone of the browser you were viewing from, so a viewer at UTC+3 saw every photo three hours late. It is fixed in current versions; update and reload the page, and the stored times will show as they always were. No rescan is needed.
+
+**A rule change had no effect at all.**
+
+Check that you used "Rescan all Photos" rather than a normal scan (see above), and that the rule you expect to win is above the one currently matching — the first rule that can produce a time is the one that is used. A rule that names an EXIF tag your files do not carry is silently skipped, so it is worth confirming the tag actually exists in your photos.

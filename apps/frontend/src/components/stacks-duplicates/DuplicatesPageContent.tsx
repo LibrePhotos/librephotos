@@ -41,6 +41,7 @@ import {
   IconTrash,
   IconX,
 } from "@tabler/icons-react";
+import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverAddress } from "../../api_client/apiClient";
@@ -58,6 +59,7 @@ import {
 import type { Duplicate, DuplicatePhoto, DuplicateType, ReviewStatus } from "../../api_client/duplicates/types";
 import { duplicateTypeLabels } from "../../api_client/duplicates/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { Lightbox } from "../lightbox";
 
 function formatFileSize(bytes: number): string {
@@ -190,7 +192,7 @@ function DuplicatePhotoCard({
 
         {photo.exif_timestamp && (
           <Text size="xs" c="dimmed">
-            📅 {new Date(photo.exif_timestamp).toLocaleDateString()}
+            📅 {parsePhotoTimestamp(photo.exif_timestamp).toLocaleString(DateTime.DATE_SHORT)}
           </Text>
         )}
 
