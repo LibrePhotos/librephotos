@@ -17,8 +17,10 @@ import { useMediaQuery } from "@mantine/hooks";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchPeopleAlbumsQuery } from "../../api_client/albums/hooks";
+import type { Person } from "../../api_client/albums/hooks/useFetchPeopleAlbumsQuery";
 import { serverAddress } from "../../api_client/apiClient";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
+import { useRecentlyTaggedPeople } from "../../hooks/useRecentlyTaggedPeople";
 import { fuzzyMatch } from "../../util/util";
 
 type Props = Readonly<{
@@ -28,13 +30,51 @@ type Props = Readonly<{
   selectedFaces: any[];
 }>;
 
+type PersonRowProps = Readonly<{
+  person: Person;
+  onSelect: (person: Person) => void;
+}>;
+
+function PersonRow({ person, onSelect }: PersonRowProps) {
+  const theme = useMantineTheme();
+  const colorScheme = useComputedColorScheme();
+  const { t } = useTranslation();
+
+  return (
+    <UnstyledButton
+      style={{
+        display: "block",
+        borderRadius: theme.radius.xl,
+        backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
+      }}
+      onClick={() => onSelect(person)}
+    >
+      <Group>
+        <Avatar radius="xl" size={60} src={serverAddress + person.face_url} />
+        <div>
+          <Title
+            style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
+            order={4}
+          >
+            {person.name}
+          </Title>
+          <Text size="sm" c="dimmed">
+            {t("numberofphotos", {
+              number: person.face_count,
+            })}
+          </Text>
+        </div>
+      </Group>
+    </UnstyledButton>
+  );
+}
+
 export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGroups = () => {} }: Props) {
   const [newPersonName, setNewPersonName] = useState("");
   const matches = useMediaQuery("(min-width: 700px)");
-  const theme = useMantineTheme();
-  const colorScheme = useComputedColorScheme();
   const { data: people } = useFetchPeopleAlbumsQuery();
   const { mutate: setFacesPersonLabel } = useSetFacesPersonLabelMutation();
+  const recentlyTaggedPeople = useRecentlyTaggedPeople(people);
 
   const { t } = useTranslation();
 
@@ -44,11 +84,20 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
     filteredPeopleList = people?.filter(el => fuzzyMatch(newPersonName, el.name));
   }
 
+  // Once the user is searching, a fixed shortcut list is only noise.
+  const showRecentlyTagged = newPersonName.length === 0 && recentlyTaggedPeople.length > 0;
+
   const selectedImageIDs = selectedFaces.map(face => face.face_url);
   const selectedFaceIDs = selectedFaces.map(face => face.face_id);
 
   function personExist(name: string) {
     return people?.map(person => person.name.toLowerCase().trim()).includes(name.toLowerCase().trim());
+  }
+
+  function labelSelectedFacesAs(person: Person) {
+    setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: person.name });
+    onRequestClose();
+    setNewPersonName("");
   }
 
   return (
@@ -82,6 +131,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
             error={
               personExist(newPersonName) ? t("personalbum.personalreadyexists", { name: newPersonName.trim() }) : ""
             }
+            value={newPersonName}
             onChange={v => {
               setNewPersonName(v.currentTarget.value);
             }}
@@ -109,39 +159,20 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
             overflowY: "scroll",
           }}
         >
+          {showRecentlyTagged && (
+            <>
+              <Title order={5}>{t("personedit.recentlytagged")}</Title>
+              <Stack>
+                {recentlyTaggedPeople.map(item => (
+                  <PersonRow key={item.id} person={item} onSelect={labelSelectedFacesAs} />
+                ))}
+              </Stack>
+              <Divider />
+            </>
+          )}
           {filteredPeopleList &&
             filteredPeopleList.length > 0 &&
-            filteredPeopleList?.map(item => (
-              <UnstyledButton
-                key={item.id}
-                style={{
-                  display: "block",
-                  borderRadius: theme.radius.xl,
-                  backgroundColor: colorScheme === "dark" ? theme.colors.dark[6] : theme.colors.gray[0],
-                }}
-                onClick={() => {
-                  setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: item.name });
-                  onRequestClose();
-                }}
-              >
-                <Group key={item.id}>
-                  <Avatar radius="xl" size={60} src={serverAddress + item.face_url} />
-                  <div>
-                    <Title
-                      style={{ width: "250px", textOverflow: "ellipsis", whiteSpace: "nowrap", overflow: "hidden" }}
-                      order={4}
-                    >
-                      {item.name}
-                    </Title>
-                    <Text size="sm" c="dimmed">
-                      {t("numberofphotos", {
-                        number: item.face_count,
-                      })}
-                    </Text>
-                  </div>
-                </Group>
-              </UnstyledButton>
-            ))}
+            filteredPeopleList?.map(item => <PersonRow key={item.id} person={item} onSelect={labelSelectedFacesAs} />)}
         </Stack>
       </Stack>
     </Modal>

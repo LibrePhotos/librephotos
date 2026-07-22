@@ -897,7 +897,8 @@
     "numberselected": "Label selected {{number}} face(s) as…",
     "newperson": "New person",
     "personname": "Person Name",
-    "addperson": "Add Person"
+    "addperson": "Add Person",
+    "recentlytagged": "Recently tagged"
   },
   "facesdashboard": {
     "numberoffaces": "{{number}} Faces",
