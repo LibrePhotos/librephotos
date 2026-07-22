@@ -3,6 +3,7 @@ import uuid
 from urllib.parse import urlparse
 
 import owncloud as nextcloud
+import requests
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -58,9 +59,14 @@ class ListDir(APIView):
         ):
             return Response([])
 
-        nc = nextcloud.Client(request.user.nextcloud_server_address)
-        nc.login(request.user.nextcloud_username, request.user.nextcloud_app_password)
+        # Logging in has to happen inside the try as well: it is the call
+        # nextcloud answers with an HTTP error when the app password is wrong,
+        # and it is the first one to fail when the server is unreachable.
         try:
+            nc = nextcloud.Client(request.user.nextcloud_server_address)
+            nc.login(
+                request.user.nextcloud_username, request.user.nextcloud_app_password
+            )
             return Response(
                 [
                     {
@@ -72,8 +78,19 @@ class ListDir(APIView):
                     if p.is_dir()
                 ]
             )
-        except nextcloud.HTTPResponseError:
-            return Response(status=400)
+        except nextcloud.ResponseError as e:
+            logger.warning(f"Nextcloud responded with an error: {e}")
+            return Response({"status": False, "message": str(e)}, status=400)
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Could not reach the nextcloud server: {e}")
+            return Response(
+                {
+                    "status": False,
+                    "message": "Could not reach the nextcloud server. Check the "
+                    "server address.",
+                },
+                status=400,
+            )
 
 
 class ScanPhotosView(APIView):
