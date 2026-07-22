@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db.models import Count, Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
@@ -825,6 +826,12 @@ class GeneratePhotoCaption(APIView):
     permission_classes = (IsOwnerOrReadOnly,)
 
     def post(self, request, format=None):
+        if not settings.FEATURE_IMAGE_CAPTIONING:
+            return Response(
+                {"status": False, "message": "Image captioning is disabled"},
+                status=403,
+            )
+
         data = dict(request.data)
         image_hash = data["image_hash"]
 

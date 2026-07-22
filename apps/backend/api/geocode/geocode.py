@@ -2,6 +2,7 @@ from typing import List
 
 import geopy
 from constance import config as site_config
+from django.conf import settings
 
 from api import util
 
@@ -54,6 +55,9 @@ class Geocode:
 
 
 def reverse_geocode(lat: float, lon: float) -> dict:
+    if not settings.FEATURE_REVERSE_GEOCODING:
+        util.logger.debug("Reverse geocoding is disabled")
+        return {}
     provider = site_config.MAP_API_PROVIDER
     wait_for_provider(provider)
     try:
