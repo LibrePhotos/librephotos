@@ -29,6 +29,48 @@ spec:
         ports:
         - name: backend
           containerPort: 8001
+        # kubelet sends the pod IP as the Host header, which is not in the
+        # backend's ALLOWED_HOSTS and would be answered with a 400.
+        #
+        # The entrypoint runs migrations, collectstatic and the service startup
+        # before gunicorn binds, which on a first install or a CPU-limited host
+        # takes minutes. kubelet holds the other two probes off until this one
+        # succeeds, so a slow boot cannot be mistaken for a wedged process and
+        # restarted into a loop.
+        startupProbe:
+          httpGet:
+            path: /api/healthz
+            port: backend
+            httpHeaders:
+            - name: Host
+              value: localhost
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 60
+        livenessProbe:
+          httpGet:
+            path: /api/healthz
+            port: backend
+            httpHeaders:
+            - name: Host
+              value: localhost
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # Deliberately slow to give up: the proxy container that serves the
+        # frontend shares this pod, so a NotReady backend also empties the
+        # endpoints of the proxy Service and takes the whole site down instead
+        # of only the API. Ride out a short database outage rather than that.
+        readinessProbe:
+          httpGet:
+            path: /api/healthz/ready
+            port: backend
+            httpHeaders:
+            - name: Host
+              value: localhost
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
         volumeMounts:
         - name: photos
           mountPath: /data

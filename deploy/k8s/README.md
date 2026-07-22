@@ -26,6 +26,26 @@ kubectl -nlibrephotos port-forward svc/proxy 55555:80
 ```
 Then open `http://localhost:55555` in your browser and log in as `admin`.
 
+# Health probes
+
+The backend exposes four unauthenticated endpoints. They live under `/api/` because the proxy only forwards
+`/api/` and `/media/` to the backend.
+
+| Endpoint | Meaning |
+| --- | --- |
+| `/api/healthz` | The process is up. Never touches the database, so a database outage does not get the pod killed. Used as the startup and liveness probes. |
+| `/api/healthz/postgresql` | PostgreSQL answers a trivial query. |
+| `/api/healthz/queue` | The django-q2 broker is reachable. |
+| `/api/healthz/ready` | Both of the above are healthy. Used as the readiness probe. |
+
+Unhealthy checks answer `503`. Note that the probes in `backend.yaml` override the `Host` header, because kubelet
+otherwise sends the Pod IP, which is not in the backend's `ALLOWED_HOSTS`.
+
+The backend runs migrations and starts its services before it serves anything, so the startup probe allows ten
+minutes for the first request to succeed; raise its `failureThreshold` if your host is slower than that. The
+readiness probe is deliberately slow to give up, because the proxy container that serves the frontend shares the
+backend's Pod: marking the backend NotReady also removes the frontend from the `proxy` Service.
+
 # Upgrading
 
 Change the values in `kustomization.yaml`, in the `images` section, to point to the latest versions. Then just rerun
