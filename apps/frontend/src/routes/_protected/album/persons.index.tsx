@@ -111,7 +111,7 @@ export function AlbumPeople() {
             </Menu>
           </div>
         </div>
-        <Group justify="apart">
+        <Group justify="space-between">
           <Flex gap={0} justify="left" direction="column" px={8}>
             <Text size="sm" fw={500} lineClamp={1} title={album.name}>
               {album.name}

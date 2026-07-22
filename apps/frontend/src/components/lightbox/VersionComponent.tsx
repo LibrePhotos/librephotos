@@ -40,7 +40,7 @@ function PhotoInfoSection({
 
   return (
     <Stack gap="xs">
-      <Group justify="apart">
+      <Group justify="space-between">
         <Group justify="left">
           <Photo />
           <div>
@@ -112,7 +112,7 @@ export function CameraInfoSection({ photoDetail }: { photoDetail: Partial<PhotoT
   if (!photoDetail.camera) return null;
 
   return (
-    <Group justify="apart">
+    <Group justify="space-between">
       <Group justify="left">
         <Camera />
         <div>

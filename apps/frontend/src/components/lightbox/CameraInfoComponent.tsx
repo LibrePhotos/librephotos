@@ -11,7 +11,7 @@ export function CameraInfoComponent({ photoDetail }: { photoDetail: PhotoType })
   if (!photoDetail.camera) return null;
 
   return (
-    <Group justify="apart">
+    <Group justify="space-between">
       <Group justify="left">
         <Camera />
         <div>

@@ -162,7 +162,7 @@ export function DefaultHeader(props: Props) {
 
   return (
     <div>
-      <Group justify="apart">
+      <Group justify="space-between">
         <Group justify="left">
           {icon}
           <div>
