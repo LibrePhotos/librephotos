@@ -11,8 +11,8 @@ export function CameraInfoComponent({ photoDetail }: { photoDetail: PhotoType })
   if (!photoDetail.camera) return null;
 
   return (
-    <Group justify="apart">
-      <Group justify="left">
+    <Group justify="space-between">
+      <Group justify="flex-start">
         <Camera />
         <div>
           <Text fw={800}>{photoDetail.camera?.toString()}</Text>

@@ -40,8 +40,8 @@ function PhotoInfoSection({
 
   return (
     <Stack gap="xs">
-      <Group justify="apart">
-        <Group justify="left">
+      <Group justify="space-between">
+        <Group justify="flex-start">
           <Photo />
           <div>
             <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
@@ -112,8 +112,8 @@ export function CameraInfoSection({ photoDetail }: { photoDetail: Partial<PhotoT
   if (!photoDetail.camera) return null;
 
   return (
-    <Group justify="apart">
-      <Group justify="left">
+    <Group justify="space-between">
+      <Group justify="flex-start">
         <Camera />
         <div>
           <Text fw={800}>{photoDetail.camera?.toString()}</Text>
@@ -214,7 +214,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
 
   return (
     <div>
-      <Stack align="left">
+      <Stack align="flex-start">
         {/* Basic photo information with file variants toggle */}
         <PhotoInfoSection photoDetail={photoDetail} t={t} />
 

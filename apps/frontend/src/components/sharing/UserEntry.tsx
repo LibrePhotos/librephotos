@@ -33,7 +33,7 @@ export function UserEntry(props: UserEntryProps) {
   const { mutate: shareAlbum } = useShareUserAlbumMutation();
 
   return (
-    <Group justify="apart" key={user.id}>
+    <Group justify="space-between" key={user.id}>
       <Group>
         <Avatar radius="xl" size={50} src={getAvatar(user)} />
         <div>

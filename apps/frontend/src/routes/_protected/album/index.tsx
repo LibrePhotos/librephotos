@@ -117,7 +117,7 @@ export function AlbumExplore() {
 
   return (
     <Box p={10}>
-      <Group justify="left" mb="md">
+      <Group justify="flex-start" mb="md">
         <IconAlbum size={40} stroke={1.5} />
         <div>
           <Title order={2}>{t("explore.title")}</Title>

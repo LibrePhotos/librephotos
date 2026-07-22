@@ -80,7 +80,7 @@ export function SharingExplore() {
 
   return (
     <Box p={10}>
-      <Group justify="left" mb="md">
+      <Group justify="flex-start" mb="md">
         <IconUsers size={40} stroke={1.5} />
         <div>
           <Title order={2}>{t("sidemenu.sharing")}</Title>
