@@ -63,26 +63,32 @@ export function HeaderComponent({
     showRenameDialog();
   }
 
+  // Faces that have not been paged in yet carry their index as id, so acting on them would hit
+  // whatever real faces happen to have those ids
+  const loadedFaces = cell.faces.filter(face => !face.isTemp);
+
   const handleClick = () => {
     if (!checked) {
-      const facesToAdd = cell.faces.map(i => ({ face_id: i.id, face_url: i.face_url }));
+      const facesToAdd = loadedFaces.map(i => ({ face_id: i.id, face_url: i.face_url }));
       const merged = _.uniqBy([...selectedFaces, ...facesToAdd], el => el.face_id);
       setSelectedFaces(merged);
     } else {
-      const remainingFaces = selectedFaces.filter(i => cell.faces.filter(j => j.id === i.face_id).length === 0);
+      const remainingFaces = selectedFaces.filter(i => loadedFaces.filter(j => j.id === i.face_id).length === 0);
       setSelectedFaces(remainingFaces);
     }
     setChecked(!checked);
   };
 
   const confirmFacesAssociation = () => {
-    const facesToAddIDs = cell.faces.map(i => i.id);
+    const facesToAddIDs = loadedFaces.map(i => i.id);
     setFacesPersonLabel({ faceIds: facesToAddIDs, personName: cell.name });
   };
 
   useEffect(() => {
     // deselect when no faces of the current group are selected
-    const selectedFacesOfGroup = selectedFaces.filter(i => cell.faces.filter(j => j.id === i.face_id).length > 0);
+    const selectedFacesOfGroup = selectedFaces.filter(
+      i => cell.faces.filter(j => !j.isTemp && j.id === i.face_id).length > 0
+    );
     if (selectedFacesOfGroup.length === 0) {
       setChecked(false);
     }

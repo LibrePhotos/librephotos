@@ -13,13 +13,20 @@
  * `1 + ceil(faces / itemsPerRow)`, and its placeholder faces must disappear from the
  * flattened array - otherwise `onSectionRendered` keeps requesting pages of faces that
  * nobody can see.
+ *
+ * The Grid memoizes `onSectionRendered` on its overscan index range, so a fold - which moves
+ * cells behind a range that does not itself move - has to re-request the newly revealed pages
+ * on its own, or the faces it uncovers stay blank until the next scroll.
  */
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { FaceAnalysisMethod, FacesTab } from "../api_client/faces/types";
 import { HeaderComponent } from "../components/facedashboard/HeaderComponent";
+import { useCollapsedPersons } from "../components/facedashboard/hooks/useCollapsedPersons";
+import { useVirtualizedGrid } from "../components/facedashboard/hooks/useVirtualizedGrid";
 import i18n from "../i18n";
 import { calculateFaceGridCells } from "../util/gridUtils";
 
@@ -76,9 +83,22 @@ function person(id: number, name: string, faceCount: number) {
 }
 
 const ITEMS_PER_ROW = 4;
+// calculateFaceGridCellSize puts ITEMS_PER_ROW faces in a row at this width
+const GRID_WIDTH = 700;
 const PEOPLE = [person(1, "Alice", 9), person(2, "Bob", 5)];
+const LISTS = { labeled: PEOPLE, inferred: [], unknown: [] };
+const NOTHING_COLLAPSED: Record<FacesTab, ReadonlySet<number>> = {
+  labeled: new Set<number>(),
+  inferred: new Set<number>(),
+  unknown: new Set<number>(),
+};
 
-async function renderHeader(cell: any, isCollapsed: boolean, onToggleCollapse: () => void) {
+async function renderHeader(
+  cell: any,
+  isCollapsed: boolean,
+  onToggleCollapse: () => void,
+  setSelectedFaces: (faces: any[]) => void = () => {}
+) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -89,7 +109,7 @@ async function renderHeader(cell: any, isCollapsed: boolean, onToggleCollapse: (
           cell={cell}
           style={{}}
           selectedFaces={[]}
-          setSelectedFaces={() => {}}
+          setSelectedFaces={setSelectedFaces}
           isCollapsed={isCollapsed}
           onToggleCollapse={onToggleCollapse}
         />
@@ -99,6 +119,7 @@ async function renderHeader(cell: any, isCollapsed: boolean, onToggleCollapse: (
   const toggle = container.querySelector<HTMLButtonElement>("button[aria-expanded]");
   return {
     toggle,
+    selectAll: container.querySelector<HTMLInputElement>("input[type='checkbox']"),
     text: container.textContent ?? "",
     cleanup: async () => {
       await act(async () => {
@@ -109,7 +130,96 @@ async function renderHeader(cell: any, isCollapsed: boolean, onToggleCollapse: (
   };
 }
 
+type SectionRequest = { page: number; person: number };
+
+function GridHost({
+  collapsedPersons,
+  onSectionChange,
+  onRender,
+}: Readonly<{
+  collapsedPersons: Record<FacesTab, ReadonlySet<number>>;
+  onSectionChange: (requests: SectionRequest[]) => void;
+  onRender: (grid: ReturnType<typeof useVirtualizedGrid>) => void;
+}>) {
+  onRender(
+    useVirtualizedGrid(
+      FacesTab.enum.labeled,
+      LISTS,
+      () => {},
+      () => {},
+      onSectionChange as any,
+      undefined,
+      () => {},
+      false,
+      [],
+      () => {},
+      FaceAnalysisMethod.enum.clustering,
+      GRID_WIDTH,
+      collapsedPersons
+    )
+  );
+  return null;
+}
+
+async function renderGrid(onSectionChange: (requests: SectionRequest[]) => void) {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  let grid: any;
+  const render = (collapsedPersons: Record<FacesTab, ReadonlySet<number>>) =>
+    act(async () => {
+      root.render(
+        <GridHost
+          collapsedPersons={collapsedPersons}
+          onSectionChange={onSectionChange}
+          onRender={value => {
+            grid = value;
+          }}
+        />
+      );
+    });
+
+  await render(NOTHING_COLLAPSED);
+  return {
+    get grid() {
+      return grid;
+    },
+    render,
+    cleanup: async () => {
+      await act(async () => {
+        root.unmount();
+      });
+    },
+  };
+}
+
+async function renderCollapsedPersons() {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  let hook: any;
+  function Host() {
+    hook = useCollapsedPersons();
+    return null;
+  }
+  await act(async () => {
+    root.render(<Host />);
+  });
+  return {
+    get hook() {
+      return hook;
+    },
+    cleanup: async () => {
+      await act(async () => {
+        root.unmount();
+      });
+    },
+  };
+}
+
 describe("issue #405 - fold/unfold person groups on the faces page", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("gives an expanded person a header row plus a row per face batch", () => {
     const { cellContents } = calculateFaceGridCells(PEOPLE, ITEMS_PER_ROW);
 
@@ -165,5 +275,89 @@ describe("issue #405 - fold/unfold person groups on the faces page", () => {
     expect(toggle?.getAttribute("aria-label")).toBe("Collapse Alice");
 
     await cleanup();
+  });
+
+  it("selects only the faces of a group that have been paged in", async () => {
+    // A group whose first face arrived, while the rest are still placeholders carrying their
+    // index as id - selecting those would act on whatever real faces own ids 1 and 2
+    const alice = person(1, "Alice", 3);
+    alice.faces[0] = { ...alice.faces[0], id: 4711, face_url: "/media/faces/4711.jpg", isTemp: false } as any;
+    const selections: any[][] = [];
+    const { selectAll, cleanup } = await renderHeader(
+      alice,
+      false,
+      () => {},
+      faces => selections.push(faces)
+    );
+
+    await act(async () => {
+      selectAll?.click();
+    });
+
+    expect(selections).toEqual([[{ face_id: 4711, face_url: "/media/faces/4711.jpg" }]]);
+
+    await cleanup();
+  });
+
+  it("shrinks the grid and re-requests the pages a fold reveals", async () => {
+    const requests: SectionRequest[][] = [];
+    const view = await renderGrid(infos => requests.push(infos));
+
+    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(
+      1 + Math.ceil(9 / ITEMS_PER_ROW) + 1 + Math.ceil(5 / ITEMS_PER_ROW)
+    );
+
+    // The viewport covers the first three rows, all of them Alice's
+    await act(async () => {
+      view.grid.onSectionRendered({
+        rowOverscanStartIndex: 0,
+        columnOverscanStartIndex: 0,
+        rowOverscanStopIndex: 2,
+        columnOverscanStopIndex: ITEMS_PER_ROW - 1,
+      });
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0].map(request => request.person)).toEqual([1]);
+
+    // Folding Alice pulls Bob's faces into those same rows without moving the row range
+    await view.render({ ...NOTHING_COLLAPSED, labeled: new Set([1]) });
+
+    expect(view.grid.getCellContentsForTab(FacesTab.enum.labeled)).toHaveLength(1 + 1 + Math.ceil(5 / ITEMS_PER_ROW));
+    expect(view.grid.gridHeight).toBe(4 * (GRID_WIDTH / ITEMS_PER_ROW));
+    expect(requests).toHaveLength(2);
+    expect(requests[1].map(request => request.person)).toEqual([2]);
+
+    await view.cleanup();
+  });
+
+  it("restores folded groups from localStorage and writes toggles back", async () => {
+    localStorage.setItem("faceCollapsedPersons", JSON.stringify({ labeled: [7], inferred: [], unknown: [] }));
+    const view = await renderCollapsedPersons();
+
+    expect(view.hook.collapsedPersons.labeled).toEqual(new Set([7]));
+
+    await act(async () => {
+      view.hook.toggleCollapsed(FacesTab.enum.labeled, 9);
+    });
+
+    expect(view.hook.collapsedPersons.labeled).toEqual(new Set([7, 9]));
+    expect(JSON.parse(localStorage.getItem("faceCollapsedPersons") ?? "{}")).toEqual({
+      labeled: [7, 9],
+      inferred: [],
+      unknown: [],
+    });
+
+    await view.cleanup();
+  });
+
+  it("falls back to nothing folded when the stored value is not a list of person ids", async () => {
+    localStorage.setItem("faceCollapsedPersons", JSON.stringify({ labeled: 5 }));
+    const view = await renderCollapsedPersons();
+
+    expect(view.hook.collapsedPersons.labeled).toEqual(new Set());
+    expect(view.hook.collapsedPersons.unknown).toEqual(new Set());
+
+    await view.cleanup();
   });
 });

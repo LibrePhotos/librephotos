@@ -19,6 +19,13 @@ export type FaceSelection = {
   face_url: string;
 };
 
+type RenderedSection = {
+  rowOverscanStartIndex: number;
+  columnOverscanStartIndex: number;
+  rowOverscanStopIndex: number;
+  columnOverscanStopIndex: number;
+};
+
 // Custom hook to manage grid functionality
 export function useVirtualizedGrid(
   activeTab: FacesTab,
@@ -104,6 +111,9 @@ export function useVirtualizedGrid(
 
   // Get endpoint cell for section rendering
   const getEndpointCell = useCallback((cells: any[][], rowStopIndex: number, columnStopIndex: number) => {
+    if (columnStopIndex < 0) {
+      return undefined;
+    }
     if (cells[rowStopIndex]?.[columnStopIndex]) {
       return cells[rowStopIndex][columnStopIndex];
     }
@@ -121,9 +131,14 @@ export function useVirtualizedGrid(
     }, [] as ScrollerData[]);
   }, [activeTab, getCellContentsForTab, entrySquareSize]);
 
-  // Handle section rendering and detect visible cells
-  const onSectionRendered = useCallback(
-    ({ rowOverscanStartIndex, columnOverscanStartIndex, rowOverscanStopIndex, columnOverscanStopIndex }) => {
+  // Request the pages backing the placeholder cells of a rendered section
+  const requestPagesForSection = useCallback(
+    ({
+      rowOverscanStartIndex,
+      columnOverscanStartIndex,
+      rowOverscanStopIndex,
+      columnOverscanStopIndex,
+    }: RenderedSection) => {
       const cells = getCellContentsForTab(activeTab);
       const startPoint = cells[rowOverscanStartIndex]?.[columnOverscanStartIndex];
       const endPoint = getEndpointCell(cells, rowOverscanStopIndex, columnOverscanStopIndex);
@@ -148,6 +163,33 @@ export function useVirtualizedGrid(
     },
     [activeTab, analysisMethod, getCellContentsForTab, getEndpointCell, onSectionChange]
   );
+
+  // Handle section rendering and detect visible cells
+  const lastRenderedSection = useRef<RenderedSection | null>(null);
+  const onSectionRendered = useCallback(
+    (section: RenderedSection) => {
+      lastRenderedSection.current = section;
+      requestPagesForSection(section);
+    },
+    [requestPagesForSection]
+  );
+
+  // The Grid memoizes onSectionRendered on the overscan index range, and folding a group moves
+  // other people's cells into that unchanged range instead of moving the range. Replay the last
+  // section ourselves so the faces a fold reveals are still paged in.
+  useEffect(() => {
+    const section = lastRenderedSection.current;
+    const rowCount = getCellContentsForTab(activeTab).length;
+    if (!section || rowCount === 0) return;
+
+    requestPagesForSection({
+      ...section,
+      rowOverscanStartIndex: Math.min(section.rowOverscanStartIndex, rowCount - 1),
+      rowOverscanStopIndex: Math.min(section.rowOverscanStopIndex, rowCount - 1),
+    });
+    // Only a fold changes the cells behind a fixed range - a scroll moves the range and the Grid
+    // reports it, and reacting to data arriving here would re-request the pages that just landed
+  }, [collapsedPersons]);
 
   // Get flattened cell contents for cell range selection
   const getFlattenedCells = useCallback(

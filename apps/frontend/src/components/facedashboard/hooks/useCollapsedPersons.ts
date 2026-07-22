@@ -3,13 +3,6 @@ import { FacesTab } from "../../../api_client/faces/types";
 
 const STORAGE_KEY = "faceCollapsedPersons";
 
-// Default collapsed person ids per tab
-const DEFAULT_COLLAPSED_PERSONS: Record<FacesTab, number[]> = {
-  [FacesTab.enum.labeled]: [],
-  [FacesTab.enum.inferred]: [],
-  [FacesTab.enum.unknown]: [],
-};
-
 function save(collapsed: Record<FacesTab, number[]>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(collapsed));
@@ -20,18 +13,28 @@ function save(collapsed: Record<FacesTab, number[]>) {
   return collapsed;
 }
 
+// The stored value ends up in `new Set(...)`, so a tab that is not an id array has to be
+// dropped here rather than throwing out of a render
+function load(): Record<FacesTab, number[]> {
+  let parsed: any = null;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    parsed = saved ? JSON.parse(saved) : null;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("Error loading collapsed persons from localStorage:", e);
+  }
+  return Object.fromEntries(
+    FacesTab.options.map(tab => [
+      tab,
+      Array.isArray(parsed?.[tab]) ? parsed[tab].filter((id: unknown) => typeof id === "number") : [],
+    ])
+  ) as Record<FacesTab, number[]>;
+}
+
 // Custom hook to manage which person groups are folded, per tab, in localStorage
 export function useCollapsedPersons() {
-  const [collapsedIds, setCollapsedIds] = useState<Record<FacesTab, number[]>>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? { ...DEFAULT_COLLAPSED_PERSONS, ...JSON.parse(saved) } : { ...DEFAULT_COLLAPSED_PERSONS };
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error("Error loading collapsed persons from localStorage:", e);
-      return { ...DEFAULT_COLLAPSED_PERSONS };
-    }
-  });
+  const [collapsedIds, setCollapsedIds] = useState<Record<FacesTab, number[]>>(load);
 
   // Sets are what the grid calculation wants, and their identity only changes on a toggle
   const collapsedPersons = useMemo(
