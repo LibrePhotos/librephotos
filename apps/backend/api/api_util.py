@@ -37,14 +37,24 @@ def has_hidden_attribute(filepath):
         return False
 
 
+def list_subdirectories(path):
+    try:
+        with os.scandir(path) as entries:
+            children = [os.path.join(path, x) for x in entries]
+    except OSError as e:
+        # Directories the server is not allowed to read (e.g. folders owned by
+        # another user on a network mount) are listed without children instead
+        # of breaking the whole directory tree.
+        logger.warning("Could not list directory %s: %s", path, e)
+        return []
+    return [x for x in children if os.path.isdir(x) and not is_hidden(x)]
+
+
 def path_to_dict(path, recurse=2):
     d = {"title": os.path.basename(path), "absolute_path": path}
     if recurse > 0:
         d["children"] = [
-            path_to_dict(os.path.join(path, x), recurse - 1)
-            for x in os.scandir(path)
-            if os.path.isdir(os.path.join(path, x))
-            and not is_hidden(os.path.join(path, x))
+            path_to_dict(x, recurse - 1) for x in list_subdirectories(path)
         ]
     else:
         d["children"] = []
