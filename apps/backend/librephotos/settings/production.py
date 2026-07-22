@@ -181,8 +181,8 @@ CONSTANCE_CONFIG = {
         bool,
     ),
     "NEXTCLOUD_ENABLED": (
-        os.environ.get("NEXTCLOUD_ENABLED", "False")
-        not in ("false", "False", "0", "f"),
+        os.environ.get("NEXTCLOUD_ENABLED", "").strip().lower()
+        in ("true", "1", "t", "yes", "on"),
         "Enable the Nextcloud integration",
         bool,
     ),

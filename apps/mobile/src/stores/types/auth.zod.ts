@@ -24,8 +24,8 @@ export const TokenSchema = z.object({
   scan_directory: z.string().nullable(),
   confidence: z.number(),
   semantic_search_topk: z.number(),
-  nextcloud_server_address: z.string().nullable(),
-  nextcloud_username: z.string().nullable(),
+  nextcloud_server_address: z.string().nullable().optional(),
+  nextcloud_username: z.string().nullable().optional(),
 })
 
 export const AuthStateSchema = z.object({

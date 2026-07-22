@@ -46,6 +46,7 @@ services:
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
+      - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
       - SERVE_FRONTEND=true
       - DEBUG=0
