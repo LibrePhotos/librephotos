@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
+import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
@@ -43,7 +44,12 @@ const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
 export const useSetFacesPersonLabelMutation = () =>
   useMutation({
     mutationFn: setFacesPersonLabel,
-    onSuccess: () => {
+    onSuccess: data => {
+      // Every tagging path funnels through this mutation, so this is the one
+      // place that sees all of them. `person` is null when faces are pushed back
+      // to "Unknown - Other", which is not a pick worth remembering.
+      recordRecentlyTaggedPerson(data.results[0]?.person);
+
       // Add a small delay to ensure backend processing is complete
       setTimeout(() => {
         // Invalidate all face-related queries
