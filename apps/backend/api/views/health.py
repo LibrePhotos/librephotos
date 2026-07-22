@@ -22,13 +22,15 @@ def _check_postgresql():
 
 def _check_queue():
     """Count the queued tasks. django-q2 keeps its queue in the database (ORM broker),
-    so this covers both the broker configuration and the django_q tables."""
+    so this covers both the broker configuration and the django_q tables. The count
+    itself stays out of the response: these endpoints are unauthenticated, and a
+    backlog rising and falling tells a bystander when a scan is running."""
     try:
-        queued = get_broker().queue_size()
+        get_broker().queue_size()
     except Exception as e:
         logger.warning("Healthcheck: queue broker unreachable: %s", e)
         return {"status": "error", "error": "queue broker unreachable"}
-    return {"status": "ok", "queued": queued}
+    return {"status": "ok"}
 
 
 def _http_status(*results):

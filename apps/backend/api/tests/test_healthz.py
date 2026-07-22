@@ -27,10 +27,13 @@ class HealthzTest(TestCase):
         self.assertEqual(200, response.status_code)
 
     def test_liveness_should_stay_up_when_the_database_is_down(self):
-        with patch("api.views.health.connections") as connections:
-            connections.__getitem__.return_value.cursor.side_effect = OperationalError(
-                "connection refused"
-            )
+        # Patched on the backend rather than on the view's own import of
+        # connections, so that every route to the database raises, the ORM
+        # included.
+        with patch(
+            "django.db.backends.base.base.BaseDatabaseWrapper.ensure_connection",
+            side_effect=OperationalError("connection refused"),
+        ):
             response = self.client.get("/api/healthz")
         self.assertEqual(200, response.status_code)
 
@@ -61,7 +64,10 @@ class HealthzTest(TestCase):
         data = response.json()
         self.assertEqual(200, response.status_code)
         self.assertEqual("ok", data["status"])
-        self.assertEqual(0, data["queued"])
+
+    def test_queue_should_not_report_the_backlog_depth(self):
+        response = self.client.get("/api/healthz/queue")
+        self.assertNotIn("queued", response.json())
 
     def test_queue_should_fail_when_the_broker_is_unreachable(self):
         with patch(
