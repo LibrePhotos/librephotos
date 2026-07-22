@@ -113,7 +113,9 @@ class PhotoMetadataViewSet(ViewSet):
     def history(self, request, photo_id: str):
         """Get edit history for a photo."""
         photo = self._get_photo(request, photo_id)
-        edits = MetadataEdit.objects.filter(photo=photo).order_by("-created_at")
+        # -id tiebreaks edits sharing a created_at so paging is stable; see
+        # MetadataEdit.Meta.
+        edits = MetadataEdit.objects.filter(photo=photo).order_by("-created_at", "-id")
 
         # Pagination
         page = int(request.query_params.get("page", 1))
