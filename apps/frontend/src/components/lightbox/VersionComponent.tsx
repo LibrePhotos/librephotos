@@ -41,7 +41,7 @@ function PhotoInfoSection({
   return (
     <Stack gap="xs">
       <Group justify="space-between">
-        <Group justify="left">
+        <Group justify="flex-start">
           <Photo />
           <div>
             <Anchor href={`${serverAddress}/media/photos/${photoDetail.image_hash}`} target="_blank">
@@ -113,7 +113,7 @@ export function CameraInfoSection({ photoDetail }: { photoDetail: Partial<PhotoT
 
   return (
     <Group justify="space-between">
-      <Group justify="left">
+      <Group justify="flex-start">
         <Camera />
         <div>
           <Text fw={800}>{photoDetail.camera?.toString()}</Text>

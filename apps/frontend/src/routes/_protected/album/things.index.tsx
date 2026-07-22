@@ -42,7 +42,7 @@ export function AlbumThing() {
           ))}
         </div>
         <Group justify="space-between">
-          <Flex gap={0} justify="left" direction="column" px={8}>
+          <Flex gap={0} justify="flex-start" direction="column" px={8}>
             <Text size="sm" fw={500} lineClamp={1} title={album.title}>
               {album.title}
             </Text>

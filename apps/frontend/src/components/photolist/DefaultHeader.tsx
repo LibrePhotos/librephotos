@@ -163,7 +163,7 @@ export function DefaultHeader(props: Props) {
   return (
     <div>
       <Group justify="space-between">
-        <Group justify="left">
+        <Group justify="flex-start">
           {icon}
           <div>
             {auth?.access && isMenuView() ? (
@@ -231,7 +231,7 @@ export function DefaultHeader(props: Props) {
           </div>
         </Group>
         {(!hasEmptyState || numPhotosetItems > 0) && (dayHeaderPrefix || date) && (
-          <Group justify="right" wrap="nowrap">
+          <Group justify="flex-end" wrap="nowrap">
             <Text style={{ whiteSpace: "nowrap" }}>
               <b>
                 {dayHeaderPrefix}

@@ -23,7 +23,7 @@ export function CountStats() {
       {/* Photos & Days combined */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <Card withBorder p="xs">
-          <Group justify="left" gap="xs">
+          <Group justify="flex-start" gap="xs">
             <Photo size={40} strokeWidth={1} />
             <div>
               <Text c="dimmed" size="xs">
@@ -47,7 +47,7 @@ export function CountStats() {
         <HoverCard width={200} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
             <Card withBorder p="xs">
-              <Group justify="left" gap="xs">
+              <Group justify="flex-start" gap="xs">
                 <Users size={40} strokeWidth={1} />
                 <div>
                   <Text c="dimmed" size="xs">
@@ -102,7 +102,7 @@ export function CountStats() {
       {/* Events */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <Card withBorder p="xs">
-          <Group justify="left" gap="xs">
+          <Group justify="flex-start" gap="xs">
             <SettingsAutomation size={40} strokeWidth={1} />
             <div>
               <Text c="dimmed" size="xs">
