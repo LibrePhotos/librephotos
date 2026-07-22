@@ -48,6 +48,12 @@ services:
       - ALLOW_UPLOAD=${allowUpload:-false}
       - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
+      - FEATURE_VIDEO=${featureVideo:-true}
+      - FEATURE_FACE_DETECTION=${featureFaceDetection:-true}
+      - FEATURE_FACE_CLUSTER=${featureFaceCluster:-true}
+      - FEATURE_IMAGE_CAPTIONING=${featureImageCaptioning:-true}
+      - FEATURE_REVERSE_GEOCODING=${featureReverseGeocoding:-true}
+      - FEATURE_SCENE_CLASSIFICATION=${featureSceneClassification:-true}
       - SERVE_FRONTEND=true
       - DEBUG=0
     depends_on:

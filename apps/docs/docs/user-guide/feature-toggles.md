@@ -27,7 +27,69 @@ Feature toggles are implemented as environment variables you would have to confi
       FEATURE_PROCESS_EMBEDDED_MEDIA=True
     </td>
   </tr>
+  <tr>
+    <td>Video</td>
+    <td>
+      Import video files during a scan
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_VIDEO=true
+    </td>
+  </tr>
+  <tr>
+    <td>Face detection</td>
+    <td>
+      Find faces in your photos
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_FACE_DETECTION=true
+    </td>
+  </tr>
+  <tr>
+    <td>Face clustering</td>
+    <td>
+      Group the faces that were found into people you can label
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_FACE_CLUSTER=true
+    </td>
+  </tr>
+  <tr>
+    <td>Image captioning</td>
+    <td>
+      Describe photos with an automatically generated caption
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_IMAGE_CAPTIONING=true
+    </td>
+  </tr>
+  <tr>
+    <td>Reverse geocoding</td>
+    <td>
+      Turn GPS coordinates into place names
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_REVERSE_GEOCODING=true
+    </td>
+  </tr>
+  <tr>
+    <td>Scene classification</td>
+    <td>
+      Tag photos by what is in them (beach, kitchen, sunset, ...)
+    </td>
+    <td>🟢</td>
+    <td>
+      FEATURE_SCENE_CLASSIFICATION=true
+    </td>
+  </tr>
 </table>
+
+All of these default to on. See [Advanced docker-compose usage](../installation/environment-variables.md) for what turning each one off actually stops, and for the matching `.env` keys of the bundled Compose setup.
 
 #### Legend
 

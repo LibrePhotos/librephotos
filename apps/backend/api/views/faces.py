@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db.models import (
     Case,
     CharField,
@@ -46,6 +47,11 @@ class ScanFacesView(APIView):
         return self._scan_faces(request)
 
     def _scan_faces(self, request, format=None):
+        if not settings.FEATURE_FACE_DETECTION:
+            return Response(
+                {"status": False, "message": "Face detection is disabled"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         chain = Chain()
         if not do_all_models_exist():
             chain.append(download_models, request.user)
@@ -62,6 +68,11 @@ class ScanFacesView(APIView):
 class TrainFaceView(APIView):
     @staticmethod
     def _train_faces(request):
+        if not settings.FEATURE_FACE_CLUSTER:
+            return Response(
+                {"status": False, "message": "Face clustering is disabled"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         chain = Chain()
         if not do_all_models_exist():
             chain.append(download_models, request.user)

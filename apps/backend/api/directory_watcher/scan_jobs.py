@@ -416,13 +416,16 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         # This handles race conditions from previous scans and incremental adds
         AsyncTask(repair_ungrouped_file_variants, user, uuid.uuid4()).run()
 
-        AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
-        AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
+        if settings.FEATURE_SCENE_CLASSIFICATION:
+            AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
+        if settings.FEATURE_REVERSE_GEOCODING:
+            AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
 
         # The scan faces job will have issues if the embeddings haven't been generated before it runs
         chain = Chain()
         chain.append(batch_calculate_clip_embedding, user)
-        chain.append(scan_faces, user, uuid.uuid4(), full_scan)
+        if settings.FEATURE_FACE_DETECTION:
+            chain.append(scan_faces, user, uuid.uuid4(), full_scan)
         chain.run()
 
     except Exception as e:

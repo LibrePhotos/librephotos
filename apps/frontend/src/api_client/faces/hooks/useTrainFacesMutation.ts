@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
+import { notification } from "../../../service/notifications";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
@@ -19,6 +20,7 @@ export const useTrainFacesMutation = () =>
   useMutation({
     mutationFn: () => trainFaces(),
     onSuccess: () => {
+      notification.trainFaces();
       // Faces clustering/training may change counts and labels
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: IncompleteFacesQueryKeys });
@@ -26,5 +28,8 @@ export const useTrainFacesMutation = () =>
         queryClient.invalidateQueries({ queryKey: PeopleAlbumsQueryKeys });
         queryClient.invalidateQueries({ queryKey: CountStatsQueryKeys });
       }, 100);
+    },
+    onError: () => {
+      notification.trainFacesFailed();
     },
   });

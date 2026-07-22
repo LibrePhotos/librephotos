@@ -48,10 +48,28 @@ DEBUG = False
 SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 
+
+def _env_flag(name, default=True):
+    """Read an on/off switch from the environment (true/1/yes/on, any case)."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("true", "1", "yes", "on")
+
+
 # analyze files to detect embedded media (e.g. in motion photos)
 FEATURE_PROCESS_EMBEDDED_MEDIA = (
     os.getenv("FEATURE_PROCESS_EMBEDDED_MEDIA", "True") == "True"
 )
+
+# Deploy-time feature switches. They all default to on, so an upgrade changes
+# nothing; set one to false/0/no/off to stop that work from being done at all.
+FEATURE_VIDEO = _env_flag("FEATURE_VIDEO")
+FEATURE_FACE_DETECTION = _env_flag("FEATURE_FACE_DETECTION")
+FEATURE_FACE_CLUSTER = _env_flag("FEATURE_FACE_CLUSTER")
+FEATURE_IMAGE_CAPTIONING = _env_flag("FEATURE_IMAGE_CAPTIONING")
+FEATURE_REVERSE_GEOCODING = _env_flag("FEATURE_REVERSE_GEOCODING")
+FEATURE_SCENE_CLASSIFICATION = _env_flag("FEATURE_SCENE_CLASSIFICATION")
 
 if os.environ.get("SECRET_KEY"):
     SECRET_KEY = os.environ["SECRET_KEY"]

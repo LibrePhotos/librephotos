@@ -13,7 +13,6 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FaceAnalysisMethod, FacesOrderOption, useTrainFacesMutation } from "../../api_client/faces";
-import { notification } from "../../service/notifications";
 
 type Props = Readonly<{
   selectMode: boolean;
@@ -181,10 +180,7 @@ export function HeaderButtons({
               loading={jobType === "Train Faces"}
               color="blue"
               variant="light"
-              onClick={() => {
-                trainFacesMutation.mutate();
-                notification.trainFaces();
-              }}
+              onClick={() => trainFacesMutation.mutate()}
             >
               <Barbell />
             </ActionIcon>
