@@ -214,7 +214,7 @@ export function VersionComponent(props: Readonly<{ photoDetail: PhotoType; isPub
 
   return (
     <div>
-      <Stack align="left">
+      <Stack align="flex-start">
         {/* Basic photo information with file variants toggle */}
         <PhotoInfoSection photoDetail={photoDetail} t={t} />
 
