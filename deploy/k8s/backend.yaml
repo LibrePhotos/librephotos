@@ -29,6 +29,30 @@ spec:
         ports:
         - name: backend
           containerPort: 8001
+        # kubelet sends the pod IP as the Host header, which is not in the
+        # backend's ALLOWED_HOSTS and would be answered with a 400.
+        livenessProbe:
+          httpGet:
+            path: /api/healthz
+            port: backend
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/healthz/ready
+            port: backend
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         volumeMounts:
         - name: photos
           mountPath: /data

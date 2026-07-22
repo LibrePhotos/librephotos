@@ -42,6 +42,7 @@ from api.views import (
     email_config,
     faces,
     geocode,
+    health,
     jobs,
     password_reset,
     photo_metadata,
@@ -216,6 +217,13 @@ router.register(r"api/services", services.ServiceViewSet, basename="service")
 
 urlpatterns = [
     re_path(r"^", include(router.urls)),
+    # Health probes - unauthenticated, and under /api/ because the proxy only
+    # forwards ^/(api|media)/ to the backend. Must stay ahead of the
+    # SERVE_FRONTEND catch-all at the bottom of this file.
+    re_path(r"^api/healthz/postgresql/?$", health.HealthzPostgresqlView.as_view()),
+    re_path(r"^api/healthz/queue/?$", health.HealthzQueueView.as_view()),
+    re_path(r"^api/healthz/ready/?$", health.HealthzReadyView.as_view()),
+    re_path(r"^api/healthz/?$", health.HealthzView.as_view()),
     re_path(r"^api/django-admin/", admin.site.urls),
     re_path(r"^api/sitesettings", views.SiteSettingsView.as_view()),
     re_path(r"^api/email-config/test/?$", email_config.EmailTestView.as_view()),
