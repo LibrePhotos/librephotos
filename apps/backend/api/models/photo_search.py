@@ -1,6 +1,5 @@
 from django.db import models
 
-import api.models
 from api import util
 
 
@@ -64,8 +63,10 @@ class PhotoSearch(models.Model):
                 if im2txt_caption:
                     search_captions += im2txt_caption + " "
 
-        # Add face/person names
-        for face in api.models.face.Face.objects.filter(photo=self.photo).all():
+        # Add face/person names. Go through the related manager so a caller that
+        # already prefetched the faces (and their people) does not pay a query
+        # per photo and per face here.
+        for face in self.photo.faces.all():
             if face.person:
                 search_captions += face.person.name + " "
 
