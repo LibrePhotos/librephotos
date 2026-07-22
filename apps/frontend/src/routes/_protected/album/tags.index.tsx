@@ -96,7 +96,7 @@ export function AlbumTag() {
             </Link>
           )}
         </div>
-        <Group justify="apart" wrap="nowrap">
+        <Group justify="space-between" wrap="nowrap">
           <Flex gap={0} justify="left" direction="column" px={8}>
             <Text size="sm" fw={500} lineClamp={1} title={tag.name}>
               {tag.name}
