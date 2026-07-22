@@ -2,6 +2,8 @@ import { ActionIcon, Button, Divider, Group, Modal, NumberInput, Select, Stack, 
 import {
   IconBarbell as Barbell,
   IconCheck as Check,
+  IconChevronsDown as ChevronsDown,
+  IconChevronsUp as ChevronsUp,
   IconFilter as Filter,
   IconWand,
   IconPlus as Plus,
@@ -21,6 +23,9 @@ type Props = Readonly<{
   addFaces: () => void;
   deleteFaces: () => void;
   notThisPerson: () => void;
+  allCollapsed: boolean;
+  toggleAllCollapsed: () => void;
+  canCollapse: boolean;
 }>;
 
 const routeApi = getRouteApi("/_protected/faces");
@@ -32,6 +37,9 @@ export function HeaderButtons({
   addFaces,
   deleteFaces,
   notThisPerson,
+  allCollapsed,
+  toggleAllCollapsed,
+  canCollapse,
 }: Props) {
   const [jobType, setJobType] = useState("");
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -149,6 +157,18 @@ export function HeaderButtons({
           )}
         </Group>
         <Group h={36}>
+          <Tooltip label={allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall")}>
+            <ActionIcon
+              variant="light"
+              color="gray"
+              disabled={!canCollapse}
+              aria-label={allCollapsed ? t("facesdashboard.expandall") : t("facesdashboard.collapseall")}
+              onClick={toggleAllCollapsed}
+            >
+              {allCollapsed ? <ChevronsDown /> : <ChevronsUp />}
+            </ActionIcon>
+          </Tooltip>
+          <Divider orientation="vertical" />
           <Tooltip label={t("facesdashboard.explanationadding")}>
             <ActionIcon variant="light" color="green" disabled={selectedFaces.length === 0} onClick={addFaces}>
               <Plus />
