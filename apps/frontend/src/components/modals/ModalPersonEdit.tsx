@@ -97,6 +97,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
   function labelSelectedFacesAs(person: Person) {
     setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: person.name });
     onRequestClose();
+    setNewPersonName("");
   }
 
   return (
@@ -130,6 +131,7 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
             error={
               personExist(newPersonName) ? t("personalbum.personalreadyexists", { name: newPersonName.trim() }) : ""
             }
+            value={newPersonName}
             onChange={v => {
               setNewPersonName(v.currentTarget.value);
             }}
@@ -151,23 +153,23 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
           </Button>
         </Group>
         <Divider />
-        {showRecentlyTagged && (
-          <>
-            <Title order={5}>{t("personedit.recentlytagged")}</Title>
-            <Stack>
-              {recentlyTaggedPeople.map(item => (
-                <PersonRow key={item.id} person={item} onSelect={labelSelectedFacesAs} />
-              ))}
-            </Stack>
-            <Divider />
-          </>
-        )}
         <Stack
           style={{
             height: matches ? "50vh" : "25vh",
             overflowY: "scroll",
           }}
         >
+          {showRecentlyTagged && (
+            <>
+              <Title order={5}>{t("personedit.recentlytagged")}</Title>
+              <Stack>
+                {recentlyTaggedPeople.map(item => (
+                  <PersonRow key={item.id} person={item} onSelect={labelSelectedFacesAs} />
+                ))}
+              </Stack>
+              <Divider />
+            </>
+          )}
           {filteredPeopleList &&
             filteredPeopleList.length > 0 &&
             filteredPeopleList?.map(item => <PersonRow key={item.id} person={item} onSelect={labelSelectedFacesAs} />)}

@@ -22,7 +22,7 @@
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React, { act } from "react";
+import React, { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSetFacesPersonLabelMutation } from "../api_client/faces/hooks/useSetFacesPersonLabelMutation";
@@ -101,6 +101,16 @@ function namesOf(root: ParentNode | null): string[] {
   return Array.from(root?.querySelectorAll("h4") ?? []).map(title => title.textContent ?? "");
 }
 
+function personRow(name: string): HTMLButtonElement {
+  return Array.from(document.querySelectorAll("button")).find(
+    button => button.querySelector("h4")?.textContent === name
+  ) as HTMLButtonElement;
+}
+
+function filterInput(): HTMLInputElement {
+  return document.querySelector("input") as HTMLInputElement;
+}
+
 /** React tracks the previous value on the node itself, so plain assignment is swallowed. */
 function setInputValue(input: HTMLInputElement, value: string) {
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
@@ -115,18 +125,36 @@ async function renderModal(seededIds: string[]) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
+  // The dashboard and the lightbox both render the modal unconditionally and only
+  // flip `isOpen`, so whatever the user typed outlives a close.
+  let setOpen: (open: boolean) => void = () => {};
+  function Harness() {
+    const [isOpen, setIsOpen] = useState(true);
+    setOpen = setIsOpen;
+    return (
+      <ModalPersonEdit
+        isOpen={isOpen}
+        onRequestClose={() => setIsOpen(false)}
+        selectedFaces={[{ face_id: 42, face_url: "/face42" }]}
+      />
+    );
+  }
   await act(async () => {
     root.render(
       <MantineProvider>
-        <ModalPersonEdit isOpen onRequestClose={() => {}} selectedFaces={[{ face_id: 42, face_url: "/face42" }]} />
+        <Harness />
       </MantineProvider>
     );
   });
   return {
     async type(filter: string) {
-      const input = document.querySelector("input") as HTMLInputElement;
       await act(async () => {
-        setInputValue(input, filter);
+        setInputValue(filterInput(), filter);
+      });
+    },
+    async reopen() {
+      await act(async () => {
+        setOpen(true);
       });
     },
     async unmount() {
@@ -235,6 +263,21 @@ describe("issue 644 - recently tagged people in the face tagging popup", () => {
 
       expect(recentlyTaggedSection()).toBeNull();
       expect(namesOf(document.body)).toEqual(["Alice"]);
+
+      await modal.unmount();
+    });
+
+    it("comes back on the next face after a pick made while filtering", async () => {
+      const modal = await renderModal(["3", "1"]);
+      await modal.type("cha");
+
+      await act(async () => {
+        personRow("Charlie").click();
+      });
+      await modal.reopen();
+
+      expect(namesOf(recentlyTaggedSection())).toEqual(["Charlie", "Alice"]);
+      expect(filterInput().value).toBe("");
 
       await modal.unmount();
     });
