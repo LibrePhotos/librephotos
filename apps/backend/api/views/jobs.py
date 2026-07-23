@@ -1,4 +1,7 @@
-from django.db.models import Prefetch
+from datetime import timedelta
+
+from django.db.models import Prefetch, Q
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -77,8 +80,18 @@ class QueueAvailabilityView(APIView):
     def get(self, request, format=None):
         job_detail = None
 
+        # Ignore unfinished rows past the stuck-job threshold so orphaned jobs
+        # (OOM, restart, uncaught exception) do not block the queue forever
+        # while waiting for the hourly cleanup schedule to fire. See #1919.
+        cutoff = timezone.now() - timedelta(hours=LongRunningJob.STUCK_JOB_HOURS)
         running_job = (
-            LongRunningJob.objects.filter(finished=False).order_by("-started_at").last()
+            LongRunningJob.objects.filter(finished=False)
+            .filter(
+                Q(started_at__gte=cutoff)
+                | Q(started_at__isnull=True, queued_at__gte=cutoff)
+            )
+            .order_by("-started_at")
+            .last()
         )
         if running_job:
             job_detail = LongRunningJobSerializer(running_job).data

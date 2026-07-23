@@ -26,6 +26,7 @@ python manage.py showmigrations | tee /logs/show_migrate.log
 python manage.py collectstatic --no-input
 python manage.py start_service all
 python manage.py start_cleaning_service
+python manage.py start_job_cleanup_service
 python manage.py clear_cache 
 python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 

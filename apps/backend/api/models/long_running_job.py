@@ -8,6 +8,8 @@ from api.models.user import User, get_deleted_user
 
 
 class LongRunningJob(models.Model):
+    STUCK_JOB_HOURS = 24
+
     JOB_SCAN_PHOTOS = 1
     JOB_GENERATE_AUTO_ALBUMS = 2
     JOB_GENERATE_AUTO_ALBUM_TITLES = 3
@@ -196,22 +198,28 @@ class LongRunningJob(models.Model):
         )
 
     @classmethod
-    def cleanup_stuck_jobs(cls, hours=24):
+    def cleanup_stuck_jobs(cls, hours=None):
         """
-        Mark jobs as failed if they've been running for too long.
+        Mark jobs as failed if they've been running (or queued) for too long.
 
-        Jobs that have started_at set but finished=False for longer than
-        the specified hours are considered stuck and will be marked as failed.
+        Jobs with finished=False are considered stuck when:
+        - started_at is set and older than the threshold, or
+        - started_at is null and queued_at is older than the threshold
+          (never-started orphans from crashed workers).
 
         Args:
-            hours: Number of hours after which a running job is considered stuck
+            hours: Hours after which a job is considered stuck.
+                Defaults to STUCK_JOB_HOURS.
 
         Returns:
             Number of jobs marked as failed
         """
+        if hours is None:
+            hours = cls.STUCK_JOB_HOURS
         cutoff = timezone.now() - timedelta(hours=hours)
-        stuck_jobs = cls.objects.filter(
-            finished=False, started_at__isnull=False, started_at__lt=cutoff
+        stuck_jobs = cls.objects.filter(finished=False).filter(
+            models.Q(started_at__isnull=False, started_at__lt=cutoff)
+            | models.Q(started_at__isnull=True, queued_at__lt=cutoff)
         )
         count = stuck_jobs.count()
         stuck_jobs.update(
