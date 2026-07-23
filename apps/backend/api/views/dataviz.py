@@ -1,6 +1,7 @@
 import collections
 import os
 
+from django.conf import settings
 from django.http import FileResponse, HttpResponseForbidden
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -19,6 +20,7 @@ from api.stats import (
 from api.face_classify import cluster_faces
 from api.social_graph import build_social_graph
 from api.util import logger
+from librephotos.logging_bootstrap import LOG_FILENAME
 
 
 class ClusterFaceView(APIView):
@@ -52,12 +54,11 @@ class ServerLogsView(APIView):
         if not (request.user and request.user.is_staff):
             return HttpResponseForbidden()
 
-        BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
-        log_file = os.path.join(BASE_LOGS, "ownphotos.log")
+        log_file = os.path.join(settings.LOGS_ROOT, LOG_FILENAME)
 
         if os.path.exists(log_file):
             return FileResponse(
-                open(log_file, "rb"), as_attachment=True, filename="ownphotos.log"
+                open(log_file, "rb"), as_attachment=True, filename=LOG_FILENAME
             )
         else:
             return Response({"error": "Log file not found"}, status=404)
@@ -74,11 +75,16 @@ class ServerLogsViewerView(APIView):
             num_lines = 100
         num_lines = max(1, min(num_lines, 1000))
 
-        BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
-        log_file = os.path.join(BASE_LOGS, "ownphotos.log")
+        log_file = os.path.join(settings.LOGS_ROOT, LOG_FILENAME)
 
         if not os.path.exists(log_file):
-            return Response({"logs": "", "count": 0, "error": "Log file not found"})
+            # 404 rather than a 200 with an empty "logs" string: the admin UI
+            # falls back to a placeholder on a failed request, but an empty
+            # string is a perfectly valid log body to it, so a 200 renders a
+            # blank panel with nothing saying why.
+            return Response(
+                {"logs": "", "count": 0, "error": "Log file not found"}, status=404
+            )
 
         try:
             with open(log_file, "rb") as f:

@@ -82,8 +82,8 @@ class TrainFaceView(APIView):
             chain.append(cluster_all_faces, request.user, job_id)
             chain.run()
             return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception()
+        except Exception:
+            logger.exception("Failed to queue face training")
             return Response({"status": False})
 
     def post(self, request, format=None):

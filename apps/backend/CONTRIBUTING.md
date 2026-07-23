@@ -8,6 +8,7 @@ Thank you for your interest in contributing to LibrePhotos! This guide will help
 - [Docker & Docker Compose](#docker--docker-compose)
 - [IDE Recommendations](#ide-recommendations)
 - [Code Quality Standards](#code-quality-standards)
+- [Logging](#logging)
 - [How to Open a Pull Request](#how-to-open-a-pull-request)
 - [Getting Help](#getting-help)
 
@@ -205,12 +206,15 @@ Any IDE with Python and TypeScript support will work. Key requirements:
 
 **Linting and Formatting:**
 
-We use `ruff` for linting and formatting (configured in `pyproject.toml`):
+We use `ruff` for linting and formatting (configured in `pyproject.toml`). The
+version is pinned in `pyproject.toml` (`required-version`) so that everyone gets
+the same findings — install the version from `requirements.dev.txt`, any other
+one refuses to run:
 
 ```bash
 # Inside the backend container
 cd /code
-pip install ruff
+pip install "$(grep ^ruff== requirements.dev.txt)"
 ruff check .
 ruff format .
 ```
@@ -257,6 +261,51 @@ Before submitting a PR, ensure:
 - [ ] Documentation is updated (if needed)
 - [ ] Commit messages are clear and descriptive
 - [ ] The PR addresses a single concern/feature
+
+---
+
+## Logging
+
+`ownphotos.log` is what users attach to a bug report, so it is a shared resource: everything you log competes for space with the line that would have explained someone else's crash.
+
+### Getting a logger
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+```
+
+Use this in new code and in code you are already touching. `from api.util import logger` still works and is what most modules do today; it is not deprecated. The module-scoped logger just tells you where a line came from and lets one noisy module be silenced on its own.
+
+### Levels
+
+The rule a reviewer actually applies: **`INFO` volume must be O(number of jobs/requests), never O(number of photos).** Per-photo, per-file and per-request detail is `DEBUG`.
+
+| Level | Use it for |
+| --- | --- |
+| `DEBUG` | The per-item detail: this file, this photo, this request. Off by default, so this is the one level where volume may scale with the library. |
+| `INFO` | A job or request started, finished, or took a decision an admin would want to see afterwards. One line per job, not per item. |
+| `WARNING` | Something was skipped, retried or fell back, and the work carried on. A single unreadable photo is a `WARNING`. |
+| `ERROR` | The job or request failed and the user will notice. |
+| `CRITICAL` | The process cannot run at all - an unwritable log directory, an unreachable database. Rare. |
+
+`logger.exception()` (an `ERROR` plus the traceback) belongs where the job actually died. One failed item inside a loop that keeps going is a `WARNING` - otherwise a folder of corrupt files produces a traceback per photo and buries the real failure.
+
+### Writing the line
+
+- **Lazy `%` args, never f-strings.** The arguments are only formatted if the line is actually written, so a `DEBUG` call costs nothing when `LOG_LEVEL` is `INFO`. Ruff's `G` rules are on and already reject `.format()`, `+` concatenation and `exc_info=True`; the f-string rule `G004` is the one exception, muted in `pyproject.toml` because ~257 call sites predate it and get converted area by area. Do not add new ones.
+
+  ```python
+  logger.info("job %s: scan finished, %s photos added", job_id, count)   # yes
+  logger.info(f"job {job_id}: scan finished, {count} photos added")      # no
+  ```
+
+- **Always carry the identifier** somebody would need to follow the line: the job id, the `image_hash`, the user id. `api/api_util.py:88` and the `"job %s: ..."` lines in `api/autoalbum.py` are the shape to copy.
+
+- **No personal data above `DEBUG`.** Usernames, absolute media paths, captions, LLM prompts, addresses and search terms do not belong at `INFO` or above - log the user id and the `image_hash` instead. Plenty of existing code predates this rule; do not add more.
+
+Set `LOG_LEVEL=DEBUG` on the backend container to see the verbose stream.
 
 ---
 

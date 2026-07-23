@@ -38,14 +38,14 @@ class SemanticSearchFilter(filters.SearchFilter):
             emb, magnitude = calculate_query_embeddings(query)
             elapsed = (datetime.datetime.now() - start).total_seconds()
             util.logger.info(
-                "finished calculating query embedding - took %.2f seconds" % (elapsed)
+                "finished calculating query embedding - took %.2f seconds", elapsed
             )
             start = datetime.datetime.now()
             image_hashes = search_similar_embedding(
                 request.user.id, emb, request.user.semantic_search_topk, threshold=27
             )
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info("search similar embedding - took %.2f seconds" % (elapsed))
+            util.logger.info("search similar embedding - took %.2f seconds", elapsed)
         conditions = []
         for search_term in search_terms:
             queries = [Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups]

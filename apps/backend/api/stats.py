@@ -754,7 +754,7 @@ def get_location_clusters(user):
     # Order by location to mimic SQL ordering
     res = [results_by_location[key] for key in sorted(results_by_location.keys())]
     elapsed = (datetime.now() - start).total_seconds()
-    logger.info("location clustering computed in %.2f seconds" % elapsed)
+    logger.info("location clustering computed in %.2f seconds", elapsed)
     return res
 
 

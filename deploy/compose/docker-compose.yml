@@ -49,7 +49,7 @@ services:
     volumes:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
-      - ${data}/logs:/logs
+      - ${data}/logs:${baseLogs:-/logs}
       - ${data}/cache:/root/.cache
     environment:
       - SECRET_KEY=${shhhhKey:-}
@@ -67,6 +67,8 @@ services:
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - WORKER_CONCURRENCY=${workerConcurrency:-}
       - GUNICORN_TIMEOUT=${gunicornTimeout:-30}
+      - BASE_LOGS=${baseLogs:-/logs}
+      - LOG_LEVEL=${logLevel:-INFO}
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
       - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}

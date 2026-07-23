@@ -1,6 +1,12 @@
 import datetime
 import os
 
+from librephotos.logging_bootstrap import (
+    build_logging_config,
+    ensure_logs_root,
+    resolve_to_console,
+)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 BASE_DATA = os.environ.get("BASE_DATA", "/")
@@ -37,6 +43,9 @@ BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
 PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
+# secret.key is written into this directory a few lines down, so create it here
+# and fail with the path named rather than with a bare FileNotFoundError.
+ensure_logs_root(LOGS_ROOT)
 DEMO_SITE = os.environ.get("DEMO_SITE", "False") != "False"
 
 WSGI_APPLICATION = "librephotos.wsgi.application"
@@ -372,21 +381,13 @@ if os.environ.get("CSRF_TRUSTED_ORIGINS"):
     origins = os.environ.get("CSRF_TRUSTED_ORIGINS").split(",")
     CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in origins])
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-        },
-    },
-}
+# Same configuration as librephotos/settings/production.py; both build it from
+# librephotos/logging_bootstrap.py so this fork cannot drift on logging.
+LOGGING = build_logging_config(
+    logs_root=LOGS_ROOT,
+    level=os.environ.get("LOG_LEVEL"),
+    to_console=resolve_to_console(),
+)
 
 CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")

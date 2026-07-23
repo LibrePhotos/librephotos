@@ -106,4 +106,4 @@ def build_image_similarity_index(user):
             timeout=SIMILARITY,
         )
     elapsed = (datetime.now() - start).total_seconds()
-    logger.info("building similarity index took %.2f seconds" % elapsed)
+    logger.info("building similarity index took %.2f seconds", elapsed)

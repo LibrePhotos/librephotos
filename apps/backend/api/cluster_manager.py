@@ -33,9 +33,9 @@ class ClusterManager:
         if cluster_id == UNKNOWN_CLUSTER_ID:
             logger.info("Adding unknown cluster")
             logger.info(
-                "Adding unknown %d faces to unknown cluster" % len(unknown_faces)
+                "Adding unknown %d faces to unknown cluster", len(unknown_faces)
             )
-            logger.info("Adding known %d faces to unknown cluster" % len(known_faces))
+            logger.info("Adding known %d faces to unknown cluster", len(known_faces))
             for face in unknown_faces:
                 face.cluster = unknown_cluster
                 face.cluster_person = None

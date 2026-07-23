@@ -3,7 +3,7 @@ default_language_version:
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.4 # Check latest version
+    rev: v0.15.22 # Must match required-version in pyproject.toml
     hooks:
       - id: ruff
         args: ["--fix"] # Fix lint & format

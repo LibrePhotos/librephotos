@@ -47,7 +47,7 @@ class Cluster(models.Model):
             return Cluster.objects.get_or_create(owner=user, cluster_id=cluster_id)[0]
         except MultipleObjectsReturned:
             logger.error(
-                "Multiple clusters found with id %d. Choosing first one" % cluster_id
+                "Multiple clusters found with id %d. Choosing first one", cluster_id
             )
             return Cluster.objects.filter(owner=user, cluster_id=cluster_id).first()
 

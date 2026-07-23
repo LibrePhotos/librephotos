@@ -84,7 +84,22 @@ def _ensure_stub_modules():
         util_module = types.ModuleType("api.util")
 
         class Logger:
+            # api/models/file.py logs at info() as well as error(); a stub with
+            # only error() turns a log line into an AttributeError on the paths
+            # that skip a file.
             def error(self, *args, **kwargs):
+                pass
+
+            def warning(self, *args, **kwargs):
+                pass
+
+            def info(self, *args, **kwargs):
+                pass
+
+            def debug(self, *args, **kwargs):
+                pass
+
+            def exception(self, *args, **kwargs):
                 pass
 
         util_module.logger = Logger()

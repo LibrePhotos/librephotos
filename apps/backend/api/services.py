@@ -1,14 +1,17 @@
+import os
 import platform
 import subprocess
 import time
 from datetime import timedelta
 
 import requests
+from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
 from api.models import Photo
 from api.util import logger
+from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 
 # Track services that should not be restarted due to system incompatibility
 INCOMPATIBLE_SERVICES = set()
@@ -65,6 +68,25 @@ def is_healthy(service):
         return False
 
 
+def _service_environment():
+    """Environment for the spawned service processes.
+
+    They never load Django, so they configure their logging from BASE_LOGS and
+    LOG_LEVEL (see librephotos.logging_bootstrap). Popen without ``env`` would
+    pass on only the ambient environment, which does not carry a log location
+    set through a settings override rather than an environment variable.
+
+    Their stdout is deliberately left alone. Handing a child an fd on the log
+    file would pin it to that inode, so after the first rotation it would keep
+    writing to the rotated-away file and the space would never be reclaimed.
+    """
+    return {
+        **os.environ,
+        "BASE_LOGS": settings.LOGS_ROOT,
+        "LOG_LEVEL": settings.LOGGING.get("root", {}).get("level", DEFAULT_LOG_LEVEL),
+    }
+
+
 def start_service(service):
     # Check system compatibility before attempting to start the service
     if not is_service_compatible(service):
@@ -73,22 +95,14 @@ def start_service(service):
 
     if service == "image_similarity":
         subprocess.Popen(
-            [
-                "python",
-                "image_similarity/main.py",
-                "2>&1 | tee /logs/image_similarity.log",
-            ]
+            ["python", "image_similarity/main.py"], env=_service_environment()
         )
     elif service in SERVICES.keys():
         subprocess.Popen(
-            [
-                "python",
-                f"service/{service}/main.py",
-                "2>&1 | tee /logs/{service}.log",
-            ]
+            ["python", f"service/{service}/main.py"], env=_service_environment()
         )
     else:
-        logger.warning("Unknown service:", service)
+        logger.warning("Unknown service: %s", service)
         return False
 
     logger.info(f"Service '{service}' started successfully")

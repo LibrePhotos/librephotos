@@ -172,6 +172,33 @@ services:
 There is one more switch of the same kind: `FEATURE_PROCESS_EMBEDDED_MEDIA` controls whether the motion video embedded in a "live photo" is extracted (`FEATURE_VIDEO` has to be on as well). It is listed in [Feature Toggles](../user-guide/feature-toggles.md) and only accepts the exact value `True`.
 :::
 
+### Logging
+
+The backend writes its log files into the directory named by `BASE_LOGS`. `ownphotos.log` is the one to look at first; it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `BASE_LOGS` | `/logs/` | Directory the log files are written to. It is created on startup if it is missing; if it cannot be created the backend stops with an error naming the path it tried, rather than starting up with no log at all. With the bundled Compose setup you do not need to set this - the path inside the container is fixed at `/logs`, and the host directory behind it follows `data` from your `.env` (`${data}/logs:/logs`). Set it when you run the backend outside that setup, for example directly on the host. |
+| `LOG_LEVEL` | `INFO` | Lowest level that gets written. One of `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`. An unrecognised value falls back to `INFO` and says so in the log. |
+| `LOG_TO_CONSOLE` | `1` | Also send the log to the container's standard output, where `docker logs backend` (or `kubectl logs`) can read it. Set it to `0` to write only the file. Accepted "on" values are the same as for the feature switches above. |
+
+`LOG_LEVEL=DEBUG` adds per-photo and per-request detail. That is what you want while reproducing a bug, but on a large library the file grows quickly - put it back afterwards.
+
+Keep `LOG_TO_CONSOLE` on if the log directory does not survive a restart. On Kubernetes `/logs` is often an `emptyDir`, and then standard output is the only copy of the log that outlives the pod.
+
+None of the three is in the bundled `.env` file; pass them to the backend container directly:
+
+```yaml
+services:
+  backend:
+    environment:
+      - LOG_LEVEL=DEBUG
+```
+
+:::warning
+`secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either - it logs every user out and the passwords have to be reset.
+:::
+
 ### Hosting under a sub-path (subdirectory)
 
 By default LibrePhotos is served from the root of a domain (e.g. `https://photos.example.com/`). If you need to host it under a sub-path instead (e.g. `https://example.com/photos/`), the frontend has to know that base path.

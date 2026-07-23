@@ -86,13 +86,13 @@ def scan_photos(user, job_id):
 
             if not os.path.exists(local_path):
                 nc.get_file(photo, local_path)
-            util.logger.info("Downloaded photo from nextcloud to " + local_path)
+            util.logger.info("Downloaded photo from nextcloud to %s", local_path)
 
         paths.sort()
 
         to_add_count = len(paths)
         for idx, image_path in enumerate(paths):
-            util.logger.info("begin handling of photo %d/%d" % (idx + 1, to_add_count))
+            util.logger.info("begin handling of photo %d/%d", idx + 1, to_add_count)
             handle_new_image(user, image_path, job_id)
             lrj.update_progress(current=idx + 1, target=to_add_count)
 
