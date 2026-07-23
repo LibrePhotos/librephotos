@@ -3,21 +3,9 @@ import random
 import stat
 
 from api.models import (
-    LongRunningJob,
     Photo,
 )
-from api.serializers.job import LongRunningJobSerializer
 from api.util import logger
-
-
-def get_current_job():
-    job_detail = None
-    running_job = (
-        LongRunningJob.objects.filter(finished=False).order_by("-started_at").first()
-    )
-    if running_job:
-        job_detail = LongRunningJobSerializer(running_job).data
-    return job_detail
 
 
 def shuffle(list):

@@ -80,6 +80,7 @@ echo "Starting Django server..."
 
 python manage.py start_service all
 python manage.py start_cleaning_service
+python manage.py start_job_cleanup_service
 python manage.py clear_cache 
 python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
 python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
