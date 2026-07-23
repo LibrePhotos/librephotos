@@ -1,0 +1,52 @@
+name: test-backend
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/test-backend.yml'
+  pull_request:
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/test-backend.yml'
+
+jobs:
+  django:
+    runs-on: ubuntu-latest
+    # Measured on ubuntu-latest: ~5.5 min to install, ~2 min for the suite.
+    # 30 leaves room for a slow runner without letting a hang burn an hour.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # 3.11 here, but 3.14 in lint-backend.yml: ruff only parses the code
+          # while the tests import and execute it, so this must be a version the
+          # dependencies actually support. pyproject sets target-version = "py311".
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: apps/backend
+        # The virtualenv is required, not tidiness. scripts/setup_test_env.sh
+        # falls back to `pip install --user` when VIRTUAL_ENV is unset, which
+        # puts the packages under $HOME. api/tests/test_repro_issue_907.py spawns
+        # a probe subprocess with HOME repointed at a sandbox (that is the whole
+        # point of the test: proving the matplotlib cache does not follow it),
+        # so a --user install is invisible to the probe and it dies with
+        # "ModuleNotFoundError: No module named 'django'".
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          bash scripts/setup_test_env.sh
+
+      - name: Run tests
+        working-directory: apps/backend
+        env:
+          BASE_LOGS: /tmp/librephotos/logs
+          BASE_DATA: /tmp/librephotos
+          SECRET_KEY: test-secret-key
+          DJANGO_SETTINGS_MODULE: librephotos.settings.test_sqlite
+        run: |
+          . .venv/bin/activate
+          python manage.py test api.tests
