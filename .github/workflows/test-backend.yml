@@ -14,7 +14,9 @@ on:
 jobs:
   django:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Observed: ~5.5 min to install, ~2 min to run. The headroom is for a cold
+    # wheel cache, not for a hang.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,12 +25,21 @@ jobs:
           # a newer interpreter because ruff does not import the code, the tests
           # do.
           python-version: "3.11"
-      # Installs the system libraries (libvips, exiftool, libmagic, ...) and the
-      # Python requirements. Same script contributors use locally, so CI and a
-      # local run cannot drift apart.
+      # setup_test_env.sh installs the system libraries (libvips, exiftool,
+      # libmagic, ...) and the Python requirements. Reusing it here keeps CI and
+      # the documented local flow from drifting apart.
+      #
+      # It runs inside a virtualenv rather than against the runner's Python
+      # because without VIRTUAL_ENV it falls back to `pip install --user`, which
+      # puts the packages under $HOME. api/tests/test_repro_issue_907.py spawns
+      # a probe process with HOME pointed at a sandbox, and that process would
+      # then be unable to import Django at all.
       - name: Install dependencies
         working-directory: apps/backend
-        run: bash scripts/setup_test_env.sh
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          bash scripts/setup_test_env.sh
       - name: Run tests
         working-directory: apps/backend
         env:
@@ -36,4 +47,6 @@ jobs:
           BASE_DATA: /tmp/librephotos
           SECRET_KEY: test-secret-key
           DJANGO_SETTINGS_MODULE: librephotos.settings.test_sqlite
-        run: python manage.py test api.tests
+        run: |
+          . .venv/bin/activate
+          python manage.py test api.tests
