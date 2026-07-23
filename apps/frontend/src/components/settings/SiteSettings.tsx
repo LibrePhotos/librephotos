@@ -56,6 +56,7 @@ export function SiteSettings() {
   const [mapTileProvider, setMapTileProvider] = useState<string>("photoprism");
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
+  const [nextcloudEnabled, setNextcloudEnabled] = useState(false);
   const [captioningModel, setCaptioningModel] = useState("im2txt");
   const [llmModel, setLlmModel] = useState("none");
   const [taggingModel, setTaggingModel] = useState("places365");
@@ -83,6 +84,7 @@ export function SiteSettings() {
       setMapTileProvider(settings.map_tile_provider);
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
+      setNextcloudEnabled(settings.nextcloud_enabled);
       setCaptioningModel(settings.captioning_model);
       setLlmModel(settings.llm_model);
       setTaggingModel(settings.tagging_model);
@@ -147,6 +149,11 @@ export function SiteSettings() {
             label={t("sitesettings.headerupload")}
             onChange={() => saveSettings({ allow_upload: !allowUpload })}
             checked={allowUpload}
+          />
+          <Switch
+            label={t("sitesettings.headernextcloud")}
+            onChange={() => saveSettings({ nextcloud_enabled: !nextcloudEnabled })}
+            checked={nextcloudEnabled}
           />
 
           <Grid justify="flex-end">

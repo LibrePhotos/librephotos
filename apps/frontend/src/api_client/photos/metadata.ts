@@ -70,9 +70,9 @@ export async function fetchMetadataHistory(photoId: string, page = 1, pageSize =
 /**
  * Revert a specific metadata edit
  * @param photoId Photo UUID or image_hash
- * @param editId The ID of the edit to revert
+ * @param editId The UUID of the edit to revert
  */
-export async function revertMetadataEdit(photoId: string, editId: number): Promise<PhotoMetadata> {
+export async function revertMetadataEdit(photoId: string, editId: string): Promise<PhotoMetadata> {
   const response = await fetchClient.post(`/photos/${photoId}/metadata/revert/${editId}`);
   return parseWithNotification(PhotoMetadata, response, "Failed to parse reverted photo metadata");
 }

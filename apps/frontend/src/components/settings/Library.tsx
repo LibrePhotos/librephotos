@@ -52,6 +52,7 @@ import {
   useWorkerQuery,
 } from "../../api_client/jobs/hooks";
 import { useDeleteMissingPhotosMutation } from "../../api_client/photos/hooks";
+import { useGetSettingsQuery } from "../../api_client/settings/hooks";
 import { useFetchCountStatsQuery } from "../../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../../api_client/stats/types";
 import { useFetchUserListQuery, useUpdateUserMutation } from "../../api_client/user/hooks";
@@ -90,11 +91,13 @@ export function Library() {
   const { data: worker } = useWorkerQuery();
   const [workerAvailability, setWorkerAvailability] = useState(false);
   const { t } = useTranslation();
+  const { data: siteSettings } = useGetSettingsQuery();
+  const isNextcloudEnabled = siteSettings?.nextcloud_enabled ?? false;
   const {
     isFetching: isNextcloudFetching,
     isSuccess: isNextcloudSuccess,
     isError: isNextcloudError,
-  } = useFetchNextcloudDirsQuery();
+  } = useFetchNextcloudDirsQuery(!isNextcloudEnabled);
   const [nextcloudStatusColor, setNextcloudStatusColor] = useState("gray");
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
@@ -150,6 +153,9 @@ export function Library() {
   }, [worker]);
 
   useEffect(() => {
+    if (!isNextcloudEnabled) {
+      return;
+    }
     if (isNextcloudFetching === true) {
       setNextcloudStatusColor("blue");
     } else if (isNextcloudSuccess === true && userSelfDetails?.nextcloud_server_address) {
@@ -157,7 +163,7 @@ export function Library() {
     } else if (isNextcloudError === true) {
       setNextcloudStatusColor("red");
     }
-  }, [isNextcloudFetching, isNextcloudSuccess, isNextcloudError, userSelfDetails]);
+  }, [isNextcloudEnabled, isNextcloudFetching, isNextcloudSuccess, isNextcloudError, userSelfDetails]);
 
   if (avatarImgSrc === "/unknown_user.jpg") {
     if (userSelfDetails?.avatar_url) {
@@ -477,10 +483,7 @@ export function Library() {
             <Grid.Col span={{ base: 12, sm: "content" }}>
               <Button
                 disabled={!workerAvailability}
-                onClick={() => {
-                  trainFaces.mutate();
-                  notification.trainFaces();
-                }}
+                onClick={() => trainFaces.mutate()}
                 leftSection={<FaceId />}
                 variant="outline"
                 fullWidth
@@ -502,9 +505,10 @@ export function Library() {
               <Button
                 disabled={!workerAvailability}
                 onClick={() => {
-                  fetchClient.get("/scanfaces");
-
-                  notification.rescanFaces();
+                  fetchClient
+                    .get("/scanfaces")
+                    .then(() => notification.rescanFaces())
+                    .catch(() => notification.rescanFacesFailed());
                 }}
                 leftSection={<FaceId />}
                 variant="outline"
@@ -514,134 +518,148 @@ export function Library() {
               </Button>
             </Grid.Col>
           </Grid>
-          <Divider labelPosition="left" label={<Text fw="bold">Nextcloud</Text>} mt={20} mb={10} />
-          {/*
-            One grid per row: a content sized column may not share a flex line with the fixed
-            width columns of the credentials rows below, otherwise those would move up into it.
-          */}
-          <Stack>
-            <Grid>
-              <Grid.Col span={{ base: 12, sm: "auto" }}>
-                <Stack gap={0}>
-                  <Text>Status</Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: "content" }}>
-                <Badge
-                  leftSection={BadgeIcon(userSelfDetails, isNextcloudSuccess, isNextcloudError, isNextcloudFetching)}
-                  variant="outline"
-                  color={nextcloudStatusColor}
-                  fullWidth
-                >
-                  {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
-                  {isNextcloudFetching && t("settings.nextcloudconnecting")}
-                  {isNextcloudSuccess &&
-                    userSelfDetails.nextcloud_server_address &&
-                    !isNextcloudFetching &&
-                    t("settings.nextcloudloggedin")}
-                  {isNextcloudError && t("settings.nextcloudnotloggedin")}
-                </Badge>
-              </Grid.Col>
-            </Grid>
-            <Grid>
-              <Grid.Col span={{ base: 12, sm: 7 }}>
-                <Stack gap={0}>
-                  <Trans i18nKey="settings.serveradress" />
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 5 }}>
-                <TextInput
-                  onChange={handleNextcloudServerAddressChange}
-                  value={userSelfDetails.nextcloud_server_address}
-                  placeholder={t("settings.serveradressplaceholder")}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 7 }}>
-                <Stack gap={0}>
-                  <Trans i18nKey="settings.nextcloudusername" />
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 5 }}>
-                <TextInput
-                  onChange={handleNextcloudUsernameChange}
-                  value={userSelfDetails.nextcloud_username}
-                  placeholder={t("settings.nextcloudusernameplaceholder")}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 7 }}>
-                <Stack gap={0}>
-                  <Trans i18nKey="settings.nextcloudpassword" />
-                  <Text size="sm" c="dimmed">
-                    {t("settings.credentialspopup")}
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 5 }}>
-                <TextInput
-                  onChange={handleNextcloudPasswordChange}
-                  type="password"
-                  placeholder={t("settings.nextcloudpasswordplaceholder")}
-                  value={editedUser?.nextcloud_app_password ?? ""}
-                />
-              </Grid.Col>
-            </Grid>
-            <Grid>
-              <Grid.Col span={{ base: 12, sm: "auto" }}>
-                <Stack gap={0}>
-                  <Trans i18nKey="settings.nextcloudscandirectory" />
-                  <Text size="sm" c="dimmed">
-                    {userSelfDetails.nextcloud_scan_directory
-                      ? userSelfDetails.nextcloud_scan_directory
-                      : "Choose the folder to process from the nextcloud instance"}
-                  </Text>
-                </Stack>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: "content" }}>
-                <Button
-                  leftSection={<Folder />}
-                  disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_server_address}
-                  onClick={() => {
-                    setModalNextcloudScanDirectoryOpen(true);
-                  }}
-                  variant="outline"
-                  fullWidth
-                >
-                  {t("modalnextcloud.browse")}
-                </Button>
-              </Grid.Col>
-            </Grid>
-            <Grid justify="flex-end">
-              <Grid.Col span={{ base: 12, sm: "content" }}>
-                <Button
-                  onClick={() => {
-                    scanNextcloudPhotos.mutate();
-                  }}
-                  disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
-                  variant="filled"
-                  leftSection={<BrandNextcloud />}
-                  fullWidth
-                >
-                  <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
-                </Button>
-              </Grid.Col>
-            </Grid>
-          </Stack>
+          {isNextcloudEnabled && (
+            <>
+              <Divider
+                labelPosition="left"
+                label={<Text fw="bold">{t("settings.nextcloudheader")}</Text>}
+                mt={20}
+                mb={10}
+              />
+              {/*
+                One grid per row: a content sized column may not share a flex line with the fixed
+                width columns of the credentials rows below, otherwise those would move up into it.
+              */}
+              <Stack>
+                <Grid>
+                  <Grid.Col span={{ base: 12, sm: "auto" }}>
+                    <Stack gap={0}>
+                      <Text>Status</Text>
+                    </Stack>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: "content" }}>
+                    <Badge
+                      leftSection={BadgeIcon(
+                        userSelfDetails,
+                        isNextcloudSuccess,
+                        isNextcloudError,
+                        isNextcloudFetching
+                      )}
+                      variant="outline"
+                      color={nextcloudStatusColor}
+                      fullWidth
+                    >
+                      {!userSelfDetails.nextcloud_server_address && t("settings.nextcloudsetup")}
+                      {isNextcloudFetching && t("settings.nextcloudconnecting")}
+                      {isNextcloudSuccess &&
+                        userSelfDetails.nextcloud_server_address &&
+                        !isNextcloudFetching &&
+                        t("settings.nextcloudloggedin")}
+                      {isNextcloudError && t("settings.nextcloudnotloggedin")}
+                    </Badge>
+                  </Grid.Col>
+                </Grid>
+                <Grid>
+                  <Grid.Col span={{ base: 12, sm: 7 }}>
+                    <Stack gap={0}>
+                      <Trans i18nKey="settings.serveradress" />
+                    </Stack>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 5 }}>
+                    <TextInput
+                      onChange={handleNextcloudServerAddressChange}
+                      value={userSelfDetails.nextcloud_server_address}
+                      placeholder={t("settings.serveradressplaceholder")}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 7 }}>
+                    <Stack gap={0}>
+                      <Trans i18nKey="settings.nextcloudusername" />
+                    </Stack>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 5 }}>
+                    <TextInput
+                      onChange={handleNextcloudUsernameChange}
+                      value={userSelfDetails.nextcloud_username}
+                      placeholder={t("settings.nextcloudusernameplaceholder")}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 7 }}>
+                    <Stack gap={0}>
+                      <Trans i18nKey="settings.nextcloudpassword" />
+                      <Text size="sm" c="dimmed">
+                        {t("settings.credentialspopup")}
+                      </Text>
+                    </Stack>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 5 }}>
+                    <TextInput
+                      onChange={handleNextcloudPasswordChange}
+                      type="password"
+                      placeholder={t("settings.nextcloudpasswordplaceholder")}
+                      value={editedUser?.nextcloud_app_password ?? ""}
+                    />
+                  </Grid.Col>
+                </Grid>
+                <Grid>
+                  <Grid.Col span={{ base: 12, sm: "auto" }}>
+                    <Stack gap={0}>
+                      <Trans i18nKey="settings.nextcloudscandirectory" />
+                      <Text size="sm" c="dimmed">
+                        {userSelfDetails.nextcloud_scan_directory
+                          ? userSelfDetails.nextcloud_scan_directory
+                          : "Choose the folder to process from the nextcloud instance"}
+                      </Text>
+                    </Stack>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: "content" }}>
+                    <Button
+                      leftSection={<Folder />}
+                      disabled={isNextcloudError || isNextcloudFetching || !userSelfDetails.nextcloud_server_address}
+                      onClick={() => {
+                        setModalNextcloudScanDirectoryOpen(true);
+                      }}
+                      variant="outline"
+                      fullWidth
+                    >
+                      {t("modalnextcloud.browse")}
+                    </Button>
+                  </Grid.Col>
+                </Grid>
+                <Grid justify="flex-end">
+                  <Grid.Col span={{ base: 12, sm: "content" }}>
+                    <Button
+                      onClick={() => {
+                        scanNextcloudPhotos.mutate();
+                      }}
+                      disabled={isNextcloudFetching || !workerAvailability || !userSelfDetails.nextcloud_server_address}
+                      variant="filled"
+                      leftSection={<BrandNextcloud />}
+                      fullWidth
+                    >
+                      <Trans i18nKey="settings.scannextcloudphotos">Scan photos (Nextcloud)</Trans>
+                    </Button>
+                  </Grid.Col>
+                </Grid>
+              </Stack>
+              <ModalNextcloudScanDirectoryEdit
+                path={userSelfDetails.nextcloud_scan_directory}
+                isOpen={modalNextcloudScanDirectoryOpen}
+                onChange={path =>
+                  setEditedUser({
+                    ...userSelfDetails,
+                    nextcloud_scan_directory: path,
+                  })
+                }
+                onClose={() => {
+                  setModalNextcloudScanDirectoryOpen(false);
+                }}
+              />
+            </>
+          )}
 
           <Group mt={20} />
           <Space h="xl" />
-          <ModalNextcloudScanDirectoryEdit
-            path={userSelfDetails.nextcloud_scan_directory}
-            isOpen={modalNextcloudScanDirectoryOpen}
-            onChange={path =>
-              setEditedUser({
-                ...userSelfDetails,
-                nextcloud_scan_directory: path,
-              })
-            }
-            onClose={() => {
-              setModalNextcloudScanDirectoryOpen(false);
-            }}
-          />
         </Card>
 
         <ModalUserEdit

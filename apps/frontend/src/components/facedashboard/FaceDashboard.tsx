@@ -17,6 +17,7 @@ import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { HeaderButtons } from "./HeaderButtons";
+import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
 import { useFaceSelection } from "./hooks/useFaceSelection";
 import { useTabScrollPositions } from "./hooks/useTabScrollPositions";
@@ -34,6 +35,9 @@ export function FaceDashboard() {
 
   // Tab scroll positions from localStorage
   const { tabPositions, updatePosition } = useTabScrollPositions();
+
+  // Folded person groups from localStorage
+  const { collapsedPersons, toggleCollapsed, setCollapsedForTab } = useCollapsedPersons();
 
   // State
   const [modalPersonEditOpen, setModalPersonEditOpen] = useState(false);
@@ -144,7 +148,13 @@ export function FaceDashboard() {
     selectedFaces,
     setSelectedFaces,
     analysisMethod,
-    width
+    width,
+    collapsedPersons
+  );
+
+  const handleToggleCollapse = useCallback(
+    (personId: number) => toggleCollapsed(activeTab, personId),
+    [activeTab, toggleCollapsed]
   );
 
   // Update the grid utilities with actual implementation after grid is initialized
@@ -201,6 +211,12 @@ export function FaceDashboard() {
         ? lists.inferred
         : lists.unknown;
   const hasFaces = currentTabList.length > 0;
+  const collapsedInActiveTab = collapsedPersons[activeTab];
+  const allCollapsed = hasFaces && currentTabList.every(person => collapsedInActiveTab.has(person.id));
+
+  const toggleAllCollapsed = useCallback(() => {
+    setCollapsedForTab(activeTab, allCollapsed ? [] : currentTabList.map(person => person.id));
+  }, [activeTab, allCollapsed, currentTabList, setCollapsedForTab]);
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
@@ -216,6 +232,9 @@ export function FaceDashboard() {
           addFaces={() => selectedFaces.length > 0 && setModalPersonEditOpen(true)}
           deleteFaces={deleteSelectedFaces}
           notThisPerson={notThisPersonFunc}
+          allCollapsed={allCollapsed}
+          toggleAllCollapsed={toggleAllCollapsed}
+          canCollapse={hasFaces}
         />
         {!isFetching && !hasFaces ? (
           <EmptyState
@@ -245,6 +264,8 @@ export function FaceDashboard() {
             setSelectedFaces={virtualGrid.setSelectedFaces}
             width={virtualGrid.width}
             activeTab={activeTab}
+            collapsedPersons={collapsedInActiveTab}
+            onToggleCollapse={handleToggleCollapse}
           />
         )}
         <ModalPersonEdit

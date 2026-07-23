@@ -3,7 +3,7 @@
  */
 
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { fetchClient } from "../../api";
+import { fetchMetadataHistory } from "../metadata";
 import type { MetadataHistoryResponse } from "../types";
 
 type FetchMetadataHistoryOptions = UseQueryOptions<MetadataHistoryResponse, Error>;
@@ -18,11 +18,10 @@ export function useFetchMetadataHistoryQuery(
   options?: Omit<FetchMetadataHistoryOptions, "queryKey" | "queryFn">
 ) {
   return useQuery({
+    // Goes through the api_client function so the response is validated against
+    // the MetadataHistoryResponse schema instead of being blind-cast.
     queryKey: ["metadataHistory", photoId, page, pageSize],
-    queryFn: async () => {
-      const response = await fetchClient.get(`/photos/${photoId}/metadata/history?page=${page}&page_size=${pageSize}`);
-      return response as MetadataHistoryResponse;
-    },
+    queryFn: () => fetchMetadataHistory(photoId!, page, pageSize),
     enabled: !!photoId,
     staleTime: 10 * 1000, // 10 seconds
     ...options,

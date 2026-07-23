@@ -104,13 +104,22 @@ export const calculateGridCellSize = (gridWidth: number) => {
   return { entrySquareSize, numEntrySquaresPerRow };
 };
 
-export const calculateFaceGridCells = (groupedByPersonList, itemsPerRow) => {
+export const calculateFaceGridCells = (
+  groupedByPersonList,
+  itemsPerRow,
+  collapsedPersonIds: ReadonlySet<number> = new Set()
+) => {
   const gridContents: any[] = [];
   let rowCursor: any[] = [];
   const hash2row = {};
 
   groupedByPersonList.forEach(person => {
     gridContents.push([person]);
+    // A collapsed person is reduced to its header row, so every consumer of the
+    // flattened cell array (row count, scrubber, lazy page loader) shrinks with it
+    if (collapsedPersonIds.has(person.id)) {
+      return;
+    }
     const currRowIdx = gridContents.length;
     person.faces.forEach((face, idx) => {
       if (idx === 0) {

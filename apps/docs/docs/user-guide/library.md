@@ -40,6 +40,10 @@ Scan progress is shown in the [Job System](./job-system.md). The scan is split i
 
 If you have a Nextcloud instance, you can scan photos directly from it without manually transferring files.
 
+### Enabling the integration
+
+The integration is off by default, and the **Nextcloud** section is hidden on the Library page until an admin turns it on. Click on your avatar (top right) → `Admin Area` → `Site Settings` and enable the `Enable Nextcloud integration` switch. On a fresh install you can also pre-enable it by setting `nextcloudEnabled=true` in `librephotos.env` before the first start.
+
 ### Setup
 
 1. On the Library page, find the **Nextcloud** section

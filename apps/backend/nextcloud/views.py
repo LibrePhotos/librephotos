@@ -6,9 +6,11 @@ import owncloud as nextcloud
 import requests
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.permissions import IsNextcloudEnabled
 from api.util import logger
 from nextcloud.directory_watcher import scan_photos
 
@@ -49,6 +51,8 @@ def valid_url(url: str) -> bool:
 
 
 class ListDir(APIView):
+    permission_classes = (IsAuthenticated, IsNextcloudEnabled)
+
     def get(self, request, format=None):
         if not request.query_params.get("fpath"):
             return Response([])
@@ -94,6 +98,8 @@ class ListDir(APIView):
 
 
 class ScanPhotosView(APIView):
+    permission_classes = (IsAuthenticated, IsNextcloudEnabled)
+
     def post(self, request, format=None):
         return self._scan_photos(request)
 

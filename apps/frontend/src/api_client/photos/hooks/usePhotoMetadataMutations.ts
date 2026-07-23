@@ -3,30 +3,27 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchClient } from "../../api";
 import { TagsQueryKeys } from "../../tags/hooks/useFetchTagsQuery";
-import type { PhotoMetadata } from "../types";
-
-type MetadataUpdateFields = {
-  title?: string;
-  caption?: string;
-  keywords?: string[];
-  rating?: number;
-  copyright?: string;
-  creator?: string;
-};
+import {
+  bulkUpdateMetadata,
+  revertAllMetadataEdits,
+  revertMetadataEdit,
+  updatePhotoMetadata,
+  type MetadataUpdateFields,
+} from "../metadata";
 
 /**
  * Update metadata for a photo (changes are tracked in history)
+ *
+ * These mutations delegate to the api_client functions so their responses are
+ * validated against the PhotoMetadata schema instead of being blind-cast.
  */
 export function useUpdatePhotoMetadataMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ photoId, updates }: { photoId: string; updates: MetadataUpdateFields }) => {
-      const response = await fetchClient.patch(`/photos/${photoId}/metadata`, updates);
-      return response as PhotoMetadata;
-    },
+    mutationFn: ({ photoId, updates }: { photoId: string; updates: MetadataUpdateFields }) =>
+      updatePhotoMetadata(photoId, updates),
     onSuccess: (data, { photoId }) => {
       // Invalidate metadata queries
       queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
@@ -46,10 +43,7 @@ export function useRevertMetadataEditMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ photoId, editId }: { photoId: string; editId: number }) => {
-      const response = await fetchClient.post(`/photos/${photoId}/metadata/revert/${editId}`);
-      return response as PhotoMetadata;
-    },
+    mutationFn: ({ photoId, editId }: { photoId: string; editId: string }) => revertMetadataEdit(photoId, editId),
     onSuccess: (data, { photoId }) => {
       queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
       queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
@@ -66,10 +60,7 @@ export function useRevertAllMetadataEditsMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (photoId: string) => {
-      const response = await fetchClient.post(`/photos/${photoId}/metadata/revert-all`);
-      return response as PhotoMetadata;
-    },
+    mutationFn: (photoId: string) => revertAllMetadataEdits(photoId),
     onSuccess: (data, photoId) => {
       queryClient.invalidateQueries({ queryKey: ["photoMetadata", photoId] });
       queryClient.invalidateQueries({ queryKey: ["metadataHistory", photoId] });
@@ -86,13 +77,8 @@ export function useBulkUpdateMetadataMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ photoIds, updates }: { photoIds: string[]; updates: MetadataUpdateFields }) => {
-      const response = await fetchClient.patch("/photos/metadata/bulk", {
-        photo_ids: photoIds,
-        updates,
-      });
-      return response as { updated_count: number; message: string };
-    },
+    mutationFn: ({ photoIds, updates }: { photoIds: string[]; updates: MetadataUpdateFields }) =>
+      bulkUpdateMetadata(photoIds, updates),
     onSuccess: (data, { photoIds }) => {
       // Invalidate all affected photo metadata queries
       photoIds.forEach(photoId => {

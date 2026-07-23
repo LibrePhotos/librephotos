@@ -3,6 +3,7 @@ import os
 
 import magic
 import pyvips
+from django.conf import settings
 from django.db import models
 
 from api import util
@@ -172,7 +173,12 @@ def is_metadata(path):
 
 
 def is_valid_media(path, user) -> bool:
-    if is_video(path=path) or is_metadata(path=path):
+    if is_video(path=path):
+        if not settings.FEATURE_VIDEO:
+            util.logger.info(f"Video support is disabled, skipping {path}")
+            return False
+        return True
+    if is_metadata(path=path):
         return True
     if is_raw(path=path):
         return True

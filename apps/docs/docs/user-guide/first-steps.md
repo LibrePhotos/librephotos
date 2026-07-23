@@ -70,4 +70,5 @@ Click on your avatar in the top right, and go to `Library`. Click the green `Sca
 ### How to Import Photos from an External Nextcloud Instance
 
 If you have a Nextcloud instance, you can also input login details for it in the `Dashboard` > `Library` page.
+The Nextcloud section is hidden until an admin enables it in `Admin Area` > `Site Settings` > `Enable Nextcloud integration` (see [Library Management](./library.md#enabling-the-integration)).
 Fill out the details for the Nextcloud section. Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. This will copy the contents of the specified Nextcloud directory ([excluding videos](https://github.com/LibrePhotos/librephotos/issues/278)) to the local filesystem.

@@ -85,7 +85,7 @@ def remove_tags_from_keywords(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0128_emailconfig"),
+        ("api", "0129_alter_metadataedit_options"),
     ]
 
     operations = [

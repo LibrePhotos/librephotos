@@ -3,6 +3,7 @@ import uuid
 
 import numpy as np
 from bulk_update.helper import bulk_update
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django_q.tasks import AsyncTask
@@ -87,6 +88,10 @@ def cluster_all_faces(user, job_id) -> bool:
     :param user: the current user running the training
     :param job_id: the background job ID
     """
+    if not settings.FEATURE_FACE_CLUSTER:
+        logger.info("Face clustering is disabled")
+        return False
+
     lrj = LongRunningJob.get_or_create_job(
         user=user,
         job_type=LongRunningJob.JOB_CLUSTER_ALL_FACES,

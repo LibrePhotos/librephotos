@@ -127,6 +127,7 @@ class SiteSettingsView(APIView):
         out["llm_model"] = site_config.LLM_MODEL
         out["tagging_model"] = site_config.TAGGING_MODEL
         out["face_recognition_model"] = site_config.FACE_RECOGNITION_MODEL
+        out["nextcloud_enabled"] = site_config.NEXTCLOUD_ENABLED
         out["email_configured"] = email_is_configured()
         return Response(out)
 
@@ -152,6 +153,8 @@ class SiteSettingsView(APIView):
             site_config.TAGGING_MODEL = request.data["tagging_model"]
         if "face_recognition_model" in request.data.keys():
             site_config.FACE_RECOGNITION_MODEL = request.data["face_recognition_model"]
+        if "nextcloud_enabled" in request.data.keys():
+            site_config.NEXTCLOUD_ENABLED = request.data["nextcloud_enabled"]
         if not do_all_models_exist():
             AsyncTask(download_models, User.objects.get(id=request.user.id)).run()
 

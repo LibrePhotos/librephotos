@@ -11,6 +11,8 @@ Tests the following:
 """
 
 import uuid
+from datetime import timedelta
+
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
@@ -234,19 +236,30 @@ class PhotoMetadataHistoryTestCase(APITestCase):
         metadata, _ = PhotoMetadata.objects.get_or_create(photo=self.photo)
 
         # Create edits with different times
-        _edit1 = MetadataEdit.objects.create(
+        edit1 = MetadataEdit.objects.create(
             photo=self.photo,
             user=self.user,
             field_name="title",
             old_value=None,
             new_value="First",
         )
-        _edit2 = MetadataEdit.objects.create(
+        edit2 = MetadataEdit.objects.create(
             photo=self.photo,
             user=self.user,
             field_name="title",
             old_value="First",
             new_value="Second",
+        )
+
+        # created_at is auto_now_add, so both rows land on the same timestamp
+        # whenever they are written inside one clock tick (~15ms on Windows).
+        # Pin distinct values so the ordering under test is unambiguous.
+        now = timezone.now()
+        MetadataEdit.objects.filter(pk=edit1.pk).update(
+            created_at=now - timedelta(seconds=2)
+        )
+        MetadataEdit.objects.filter(pk=edit2.pk).update(
+            created_at=now - timedelta(seconds=1)
         )
 
         response = self.client.get(f"/api/photos/{self.photo.pk}/metadata/history/")

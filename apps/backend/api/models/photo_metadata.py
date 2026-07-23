@@ -458,7 +458,12 @@ class MetadataEdit(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        # -id is a tiebreaker, not a second sort key: edits saved in the same
+        # clock tick share a created_at, and without it the database is free to
+        # return them in a different order per query, which lets a row repeat on
+        # one page of the history endpoint and vanish from the next. id is a
+        # random uuid4, so the order within a tick is arbitrary but stable.
+        ordering = ["-created_at", "-id"]
         verbose_name = "Metadata Edit"
         verbose_name_plural = "Metadata Edits"
         indexes = [

@@ -1,4 +1,4 @@
-"""Tests for the Tag entity: the API, the EXIF keyword import and migration 0129."""
+"""Tests for the Tag entity: the API, the EXIF keyword import and migration 0130."""
 
 from importlib import import_module
 
@@ -18,7 +18,7 @@ from api.models.tag import (
 from api.tests.utils import create_test_photo, create_test_photos, create_test_user
 from api.views.photo_filters import build_photo_queryset
 
-_migration = import_module("api.migrations.0129_tag")
+_migration = import_module("api.migrations.0130_tag")
 
 
 def _results(response):
@@ -696,8 +696,8 @@ class TagSearchTest(TestCase):
         self.assertNotIn(self.untagged.image_hash, hashes)
 
 
-class Migration0129BackfillTest(TestCase):
-    """Exercise the 0129 data migration functions against the live models."""
+class Migration0130BackfillTest(TestCase):
+    """Exercise the 0130 data migration functions against the live models."""
 
     def setUp(self):
         self.user = create_test_user()

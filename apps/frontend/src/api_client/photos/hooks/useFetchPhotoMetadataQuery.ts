@@ -3,7 +3,7 @@
  */
 
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { fetchClient } from "../../api";
+import { fetchPhotoMetadata } from "../metadata";
 import type { PhotoMetadata } from "../types";
 
 type FetchPhotoMetadataOptions = UseQueryOptions<PhotoMetadata, Error>;
@@ -16,11 +16,10 @@ export function useFetchPhotoMetadataQuery(
   options?: Omit<FetchPhotoMetadataOptions, "queryKey" | "queryFn">
 ) {
   return useQuery({
+    // Goes through the api_client function so the response is validated against
+    // the PhotoMetadata schema instead of being blind-cast.
     queryKey: ["photoMetadata", photoId],
-    queryFn: async () => {
-      const response = await fetchClient.get(`/photos/${photoId}/metadata`);
-      return response as PhotoMetadata;
-    },
+    queryFn: () => fetchPhotoMetadata(photoId!),
     enabled: !!photoId,
     staleTime: 30 * 1000, // 30 seconds - metadata changes rarely
     ...options,

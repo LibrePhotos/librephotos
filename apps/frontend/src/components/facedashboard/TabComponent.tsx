@@ -18,7 +18,7 @@ export function TabComponent({ fetchingLabeledFacesList, fetchingInferredFacesLi
   const { tab: activeTab } = routeApi.useSearch();
 
   return (
-    <Group justify="apart">
+    <Group justify="space-between">
       <Tabs
         defaultValue={activeTab}
         value={activeTab}

@@ -150,9 +150,11 @@ class PhotoMetadataSerializer(serializers.ModelSerializer):
 
     def get_edit_history(self, obj) -> list:
         """Get recent edit history for this photo."""
-        edits = MetadataEdit.objects.filter(photo=obj.photo).order_by("-created_at")[
-            :10
-        ]
+        # -id tiebreaks edits sharing a created_at so the slice is stable; see
+        # MetadataEdit.Meta.
+        edits = MetadataEdit.objects.filter(photo=obj.photo).order_by(
+            "-created_at", "-id"
+        )[:10]
         return MetadataEditSerializer(edits, many=True).data
 
     def get_sidecar_files(self, obj) -> list:
