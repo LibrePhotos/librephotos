@@ -48,7 +48,7 @@ services:
     volumes:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
-      - ${data}/logs:/logs
+      - ${data}/logs:${baseLogs:-/logs}
       - ${data}/cache:/root/.cache
       - ../../apps/backend:/code
       - ../vscode/server-extensions:/root/.vscode-server/extensions

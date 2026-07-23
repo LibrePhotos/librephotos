@@ -19,7 +19,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - run: pip install ruff
+      # Must match required-version in apps/backend/pyproject.toml, otherwise
+      # ruff refuses to run.
+      - run: pip install ruff==0.15.22
       - name: ruff check
         run: ruff check apps/backend
       - name: ruff format --check

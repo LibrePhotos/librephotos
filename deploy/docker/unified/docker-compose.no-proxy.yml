@@ -26,7 +26,7 @@ services:
     volumes:
       - ${scanDirectory}:/data
       - ${data}/protected_media:/protected_media
-      - ${data}/logs:/logs
+      - ${data}/logs:${baseLogs:-/logs}
       - ${data}/cache:/root/.cache
     ports:
       - ${httpPort:-3000}:8001
@@ -44,6 +44,8 @@ services:
       - DB_PORT=5432
       - MAPBOX_API_KEY=${mapApiKey:-}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
+      - BASE_LOGS=${baseLogs:-/logs}
+      - LOG_LEVEL=${logLevel:-INFO}
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
       - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}

@@ -93,9 +93,7 @@ def extract_from_face_service(image_path, big_thumbnail_path):
     try:
         face_locations = get_face_locations(big_thumbnail_path)
     except Exception:
-        logger.error(
-            f"Can't extract face information on photo: {image_path}", exc_info=True
-        )
+        logger.exception(f"Can't extract face information on photo: {image_path}")
         face_locations = []
 
     for i, face_location in enumerate(face_locations):

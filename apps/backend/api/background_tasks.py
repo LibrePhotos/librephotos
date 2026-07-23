@@ -15,9 +15,9 @@ def generate_captions(overwrite=False):
             models.Q(search_instance__isnull=True)
             | models.Q(search_instance__search_captions__isnull=True)
         )
-    logger.info("%d photos to be processed for caption generation" % photos.count())
+    logger.info("%d photos to be processed for caption generation", photos.count())
     for photo in photos:
-        logger.info("generating captions for %s" % photo.main_file.path)
+        logger.info("generating captions for %s", photo.main_file.path)
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.generate_tag_captions()
         photo.save()
@@ -28,10 +28,10 @@ def geolocate(overwrite=False):
         photos = Photo.objects.all()
     else:
         photos = Photo.objects.filter(geolocation_json={})
-    logger.info("%d photos to be geolocated" % photos.count())
+    logger.info("%d photos to be geolocated", photos.count())
     for photo in photos:
         try:
-            logger.info("geolocating %s" % photo.main_file.path)
+            logger.info("geolocating %s", photo.main_file.path)
             photo._geolocate()
             photo._add_location_to_album_dates()
         except Exception:

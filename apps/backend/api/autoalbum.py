@@ -90,12 +90,12 @@ def generate_event_albums(user, job_id):
         for idx, group in enumerate(groups):
             key = group[0].exif_timestamp - timedelta(hours=11, minutes=59)
             lastKey = group[-1].exif_timestamp + timedelta(hours=11, minutes=59)
-            logger.info(str(key.date) + " - " + str(lastKey.date))
+            logger.info("%s - %s", key.date, lastKey.date)
             logger.info(
-                f"job {job_id}: processing auto album with date: "
-                + key.strftime(date_format)
-                + " to "
-                + lastKey.strftime(date_format)
+                "job %s: processing auto album with date: %s to %s",
+                job_id,
+                key.strftime(date_format),
+                lastKey.strftime(date_format),
             )
             items = group
             if len(group) >= 2:

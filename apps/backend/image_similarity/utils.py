@@ -1,23 +1,15 @@
-import logging
 import os
-import os.path
+import sys
 
-from concurrent_log_handler import ConcurrentRotatingFileHandler
+# This is a standalone Flask process, started as `python image_similarity/main.py`
+# (see api/services.py), so sys.path[0] is this directory and the backend root -
+# where the librephotos package lives - is not importable yet. Django is never
+# loaded here; logging_bootstrap is deliberately Django-free so that the service
+# still writes records of exactly the shape the rest of the stack writes.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
+from librephotos.logging_bootstrap import configure_standalone  # noqa: E402
 
-logger = logging.getLogger("image_similarity")
-formatter = logging.Formatter(
-    "%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s"
-)
-FILE_MAX_BYTES = 200 * 1024 * 1024  # 200 MB
-
-fileHandler = ConcurrentRotatingFileHandler(
-    os.path.join(BASE_LOGS, "image_similarity.log"),
-    maxBytes=FILE_MAX_BYTES,
-    backupCount=10,
-)
-
-fileHandler.setFormatter(formatter)
-logger.addHandler(fileHandler)
-logger.setLevel(logging.INFO)
+# Still its own file for now; folding it into the shared log is a follow-up.
+# BASE_LOGS and LOG_LEVEL come from the environment the parent hands down.
+logger = configure_standalone("image_similarity", filename="image_similarity.log")

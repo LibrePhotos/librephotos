@@ -13,6 +13,24 @@ mpl_data_root="${BASE_DATA:-/}"
 export MPLCONFIGDIR="${MPLCONFIGDIR:-${mpl_data_root%/}/protected_media/matplotlib}"
 mkdir -p "$MPLCONFIGDIR" || echo "Could not create $MPLCONFIGDIR - matplotlib will rebuild its font cache on every start"
 
+# BASE_LOGS is what production.py / production_noproxy.py derive LOGS_ROOT and
+# secret.key from. Export it so the tee targets below and Django's own log
+# handlers cannot drift apart; pinning the default here leaves the container's
+# behaviour unchanged for anyone who never sets it. LOG_LEVEL is read by the
+# LOGGING dictConfig. The %/ handles a value written with the trailing slash
+# the Python default uses, so "$logs_dir/x" does not become "//x".
+export BASE_LOGS="${BASE_LOGS:-/logs}"
+export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+logs_dir="${BASE_LOGS%/}"
+
+# This image never created the directory at all, so a plain `docker run` with no
+# /logs volume died on the first secret.key write. Unlike the matplotlib cache
+# above the directory is not optional, so name the path instead of continuing.
+if ! mkdir -p "$logs_dir"; then
+    echo "Could not create $logs_dir - set BASE_LOGS to a writable directory" >&2
+    exit 1
+fi
+
 # Check if we should serve frontend
 if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
     echo "Configuring for no-proxy deployment (serving frontend from Django)..."
@@ -82,8 +100,8 @@ python manage.py start_service all
 python manage.py start_cleaning_service
 python manage.py start_job_cleanup_service
 python manage.py clear_cache 
-python manage.py build_similarity_index 2>&1 | tee /logs/command_build_similarity_index.log
-python manage.py qcluster 2>&1 | tee /logs/qcluster.log &
+python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log"
+python manage.py qcluster 2>&1 | tee "$logs_dir/qcluster.log" &
 
 # Start the Django server
 if [ "$DEBUG" = "1" ]; then

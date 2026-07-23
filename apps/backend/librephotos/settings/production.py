@@ -1,6 +1,12 @@
 import datetime
 import os
 
+from librephotos.logging_bootstrap import (
+    build_logging_config,
+    ensure_logs_root,
+    resolve_to_console,
+)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_LOGS = os.environ.get("BASE_LOGS", "/logs/")
 BASE_DATA = os.environ.get("BASE_DATA", "/")
@@ -16,6 +22,11 @@ BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
 PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
 LOGS_ROOT = BASE_LOGS
+# Create the directory before anything in this module writes to it. secret.key
+# lives in there too and is written some 40 lines further down, so an install
+# without a /logs volume used to die on that open() with a FileNotFoundError
+# that never mentioned logs. Fail here instead, naming the path.
+ensure_logs_root(LOGS_ROOT)
 DEMO_SITE = os.environ.get("DEMO_SITE", "False") != "False"
 
 # Matplotlib comes along with insightface, which the face recognition service
@@ -356,21 +367,17 @@ CSRF_TRUSTED_ORIGINS = [
 if os.environ.get("CSRF_TRUSTED_ORIGINS"):
     CSRF_TRUSTED_ORIGINS.append(os.environ.get("CSRF_TRUSTED_ORIGINS"))
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-        },
-    },
-}
+# The whole log configuration lives in librephotos/logging_bootstrap.py so the
+# non-Django processes can share it. LOG_LEVEL and LOG_TO_CONSOLE are read from
+# the environment rather than from constance: the qcluster workers and the ML
+# services need the same answer and several of them never touch the database.
+# Rotation size and backup count start at the defaults here and are refined from
+# constance once the database is up (see api.util.reconfigure_logging).
+LOGGING = build_logging_config(
+    logs_root=LOGS_ROOT,
+    level=os.environ.get("LOG_LEVEL"),
+    to_console=resolve_to_console(),
+)
 
 CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")

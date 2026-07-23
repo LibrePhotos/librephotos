@@ -1,20 +1,47 @@
 [tool.ruff]
+# Pin the linter: ruff's findings shift between releases, so an unpinned local
+# ruff quietly disagrees with CI. A mismatch fails loudly here instead of
+# producing a different set of errors on a contributor's machine. Keep this in
+# sync with requirements.dev.txt, .pre-commit-config.yaml and
+# .github/workflows/lint-backend.yml - all four must name the same version.
+required-version = "==0.15.22"
 line-length = 88
 target-version = "py311"
 extend-exclude = ["migrations", "im2txt", "blip", "places365"]
 
-[lint]
-select = [
-  "E",  # Pyflakes (errors)
-  "F",  # Pyflakes
-  "W",  # pycodestyle warnings
-  "I",  # isort (import sorting)
-  "N",  # PEP8 naming
-  "UP", # Pyupgrade (modern syntax)
-  "DJ", # pylint-django equivalent
-  "PL", # pylint rules
+[tool.ruff.lint]
+# NOTE: the select list below used to live in a top-level `[lint]` table, which
+# ruff does not read, so it never applied - only ruff's default rules (E4, E7,
+# E9, F) were ever enforced. Enabling it now surfaces ~968 pre-existing findings,
+# which is a cleanup of its own; it stays commented out so the intent is not lost
+# a second time.
+# select = [
+#   "E",  # pycodestyle errors
+#   "F",  # Pyflakes
+#   "W",  # pycodestyle warnings
+#   "I",  # isort (import sorting)
+#   "N",  # PEP8 naming
+#   "UP", # Pyupgrade (modern syntax)
+#   "DJ", # flake8-django
+#   "PL", # pylint rules
+# ]
+extend-select = [
+  "G",       # flake8-logging-format
+  "LOG",     # flake8-logging
+  "PLE1205", # too many arguments for the logging format string
+  "PLE1206", # too few arguments for the logging format string
 ]
-ignore = ["E501", "E203", "E231"]
+ignore = [
+  "E501",
+  "E203",
+  "E231",
+  # f-strings in logging calls (~257 sites). Converting them is done per area
+  # together with that area's log-level review, not in one sweeping commit.
+  "G004",
+]
+# Covers both `from api.util import logger` and `from api import util;
+# util.logger.info(...)`.
+logger-objects = ["api.util.logger"]
 
 [tool.ruff.format]
 quote-style = "double"

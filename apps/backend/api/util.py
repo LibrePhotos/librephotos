@@ -2,36 +2,58 @@ import logging
 import os
 import os.path
 
-from concurrent_log_handler import ConcurrentRotatingFileHandler
-from django.conf import settings
+from librephotos.logging_bootstrap import (
+    DEFAULT_LOG_BACKUP_COUNT,
+    DEFAULT_LOG_MAX_BYTES,
+    LOG_FILE_HANDLER_NAME,
+)
 
 logger = logging.getLogger("ownphotos")
-formatter = logging.Formatter(
-    "%(asctime)s : %(filename)s : %(funcName)s : %(lineno)s : %(levelname)s : %(message)s"
-)
 
-DEFAULT_LOG_MAX_BYTES = 200 * 1024 * 1024  # 200 MB
-DEFAULT_LOG_BACKUP_COUNT = 10
 
-# Use ConcurrentRotatingFileHandler instead of RotatingFileHandler to avoid
-# premature log rotation when multiple processes (gunicorn workers, django-q2
-# workers) write to the same log file simultaneously.
-FILE_HANDLER = ConcurrentRotatingFileHandler(
-    os.path.join(settings.LOGS_ROOT, "ownphotos.log"),
-    maxBytes=DEFAULT_LOG_MAX_BYTES,
-    backupCount=DEFAULT_LOG_BACKUP_COUNT,
-)
-FILE_HANDLER.setFormatter(formatter)
-logger.addHandler(FILE_HANDLER)
-logger.setLevel(logging.INFO)
+class LoggingNotConfiguredError(RuntimeError):
+    """Raised when the rotating file handler is missing from the root logger."""
+
+
+def get_file_handler():
+    """Return the live rotating file handler installed by the LOGGING config.
+
+    The handler is owned by the dictConfig in settings.LOGGING - this only looks
+    it up, by the name dictConfig gave it - so there is exactly one file handler
+    per process no matter how often this module is imported.
+    """
+    for handler in logging.getLogger().handlers:
+        if getattr(handler, "name", None) == LOG_FILE_HANDLER_NAME:
+            return handler
+    return None
+
+
+# Kept as a module-level name because tests and shell sessions reach for it
+# directly. It is the real handler object, so mutating it changes rotation for
+# the running process.
+FILE_HANDLER = get_file_handler()
 
 
 def reconfigure_logging():
-    """Reconfigure the log handler from CONSTANCE settings.
+    """Apply the constance log rotation settings to the live file handler.
 
-    Call this after Django is fully initialised and the database is available
-    so that ``constance.config`` can be read.
+    Called once per process from ``ApiConfig.ready()``, which is as early as
+    ``constance.config`` can be read. It is idempotent: applying the same values
+    again is a no-op.
+
+    When constance cannot be read - the first ``migrate`` runs before its table
+    exists - whatever is already applied is left alone. Resetting to the
+    defaults instead would silently undo an admin's setting on every management
+    command that runs before the database is ready.
     """
+    handler = get_file_handler()
+    if handler is None:
+        raise LoggingNotConfiguredError(
+            f"no {LOG_FILE_HANDLER_NAME!r} handler on the root logger; the "
+            "LOGGING configuration did not install one, so the log rotation "
+            "settings have nothing to apply to"
+        )
+
     try:
         from constance import config as constance_config
 
@@ -42,11 +64,11 @@ def reconfigure_logging():
             getattr(constance_config, "LOG_BACKUP_COUNT", DEFAULT_LOG_BACKUP_COUNT)
         )
     except Exception:
-        max_bytes = DEFAULT_LOG_MAX_BYTES
-        backup_count = DEFAULT_LOG_BACKUP_COUNT
+        # Constance is not readable yet; keep what the handler already has.
+        return
 
-    FILE_HANDLER.maxBytes = max_bytes
-    FILE_HANDLER.backupCount = backup_count
+    handler.maxBytes = max_bytes
+    handler.backupCount = backup_count
 
 
 def is_valid_path(path, root_path):
@@ -185,9 +207,7 @@ def compose_orientation(
     """
     n_a, m_a = _ORIENTATION_TO_PARAMS.get(current_orientation, (0, 0))
     if current_orientation not in _ORIENTATION_TO_PARAMS:
-        import logging
-
-        logging.getLogger("ownphotos").warning(
+        logger.warning(
             "compose_orientation: invalid orientation value %r, treating as 1",
             current_orientation,
         )
