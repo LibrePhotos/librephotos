@@ -29,7 +29,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
-tags
+# The ctags index at the project root, not src/api_client/tags/.
+/tags
 
 .eslintcache
 .env.development

@@ -6,6 +6,7 @@ import {
   IconChevronRight,
   IconFaceId,
   IconFolder,
+  IconTag,
   IconTags,
   IconUsers,
   IconWand,
@@ -22,6 +23,7 @@ import {
   useRenameUserAlbumMutation,
 } from "../../../api_client/albums/hooks";
 import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks/useFetchFolderAlbumsQuery";
+import { useFetchTagsQuery } from "../../../api_client/tags/hooks";
 import { AlbumSection } from "../../../components/album/AlbumSection";
 import classes from "../../../components/album/AlbumSection.module.css";
 import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
@@ -52,6 +54,7 @@ export function AlbumExplore() {
   const { data: userAlbums, isLoading: isLoadingUser } = useFetchUserAlbumsQuery();
   const { data: folderData, isLoading: isLoadingFolders } = useFetchFolderSubfoldersQuery();
   const { data: autoAlbums, isLoading: isLoadingAuto } = useFetchAutoAlbumsQuery();
+  const { data: tags, isLoading: isLoadingTags } = useFetchTagsQuery();
 
   const folders = folderData?.subfolders ?? [];
 
@@ -104,6 +107,15 @@ export function AlbumExplore() {
     coverUrl: undefined,
     linkTo: `/album/folder/${encodeURIComponent(folder.path)}`,
     icon: <IconFolder size={40} stroke={1.5} color="var(--mantine-color-gray-5)" />,
+  }));
+
+  const tagsPreview = (tags ?? []).map(tag => ({
+    id: tag.id,
+    title: tag.name,
+    photoCount: tag.photo_count,
+    coverUrl: tag.cover_photos[0]?.image_hash,
+    isVideo: tag.cover_photos[0]?.video,
+    linkTo: `/album/tags/${tag.id}`,
   }));
 
   const autoAlbumsPreview = (autoAlbums ?? []).map(album => ({
@@ -205,6 +217,15 @@ export function AlbumExplore() {
             viewAllLink="/album/things"
             isLoading={isLoadingThings}
             count={thingsAlbums?.length}
+            variant="card"
+          />
+          <AlbumSection
+            title={t("tags")}
+            icon={<IconTag size={20} stroke={1.5} />}
+            albums={tagsPreview}
+            viewAllLink="/album/tags"
+            isLoading={isLoadingTags}
+            count={tags?.length}
             variant="card"
           />
           <PlacesMapCard />

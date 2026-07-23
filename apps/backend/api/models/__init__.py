@@ -17,6 +17,7 @@ from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.models.photo_stack import PhotoStack
 from api.models.stack_review import StackReview
+from api.models.tag import Tag
 from api.models.thumbnail import Thumbnail
 from api.models.user import User
 
@@ -41,6 +42,7 @@ __all__ = [
     "PhotoSearch",
     "PhotoStack",
     "StackReview",
+    "Tag",
     "Thumbnail",
     "User",
     "File",

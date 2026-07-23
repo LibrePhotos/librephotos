@@ -18,6 +18,7 @@ from rest_framework.viewsets import ViewSet
 
 from api.models import Photo
 from api.models.photo_metadata import MetadataEdit, PhotoMetadata
+from api.models.tag import sync_tags_from_keywords
 from api.serializers.photo_metadata import (
     MetadataEditSerializer,
     PhotoMetadataSerializer,
@@ -164,6 +165,9 @@ class PhotoMetadataViewSet(ViewSet):
         setattr(metadata, field_name, old_value)
         metadata.version += 1
         metadata.save()
+
+        if field_name == "keywords":
+            sync_tags_from_keywords(photo, metadata.keywords, current_value)
 
         return Response(PhotoMetadataSerializer(metadata).data)
 
@@ -342,6 +346,7 @@ class BulkMetadataView(APIView):
         updated_count = 0
         for photo in photos:
             metadata, _ = PhotoMetadata.objects.get_or_create(photo=photo)
+            previous_keywords = metadata.keywords
 
             for field_name, new_value in updates.items():
                 old_value = getattr(metadata, field_name, None)
@@ -358,6 +363,10 @@ class BulkMetadataView(APIView):
             metadata.source = PhotoMetadata.Source.USER_EDIT
             metadata.version += 1
             metadata.save()
+
+            if "keywords" in updates:
+                sync_tags_from_keywords(photo, metadata.keywords, previous_keywords)
+
             updated_count += 1
 
         return Response(

@@ -26,6 +26,7 @@ def build_photo_queryset(user, params: dict):
             - video: bool - Filter by videos only
             - photo: bool - Filter by photos only (non-videos)
             - person: int - Filter by person ID (faces)
+            - tag: int - Filter by tag ID
             - folder: str - Filter by folder path prefix
             - username: str - Filter by owner username (for public photos)
             - show_all_stack_photos: bool - If True, show all photos in stacks (default: False)
@@ -71,6 +72,10 @@ def build_photo_queryset(user, params: dict):
     # Person/face filter
     if params.get("person"):
         filters.append(Q(faces__person__id=params["person"]))
+
+    # Tag filter
+    if params.get("tag"):
+        filters.append(Q(tags__id=params["tag"]))
 
     # Folder path filter
     if params.get("folder"):

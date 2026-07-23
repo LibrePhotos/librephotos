@@ -23,6 +23,7 @@ import { LocationSection } from "./LocationSection";
 import { PeopleSection } from "./PeopleSection";
 import { SimilarPhotosSection } from "./SimilarPhotosSection";
 import { StackSection } from "./StackSection";
+import { TagsSection } from "./TagsSection";
 import { TimestampItem } from "./TimestampItem";
 import { CameraInfoSection, VersionComponent } from "./VersionComponent";
 
@@ -262,6 +263,8 @@ export function Sidebar({
           notThisPerson={notThisPerson}
         />
         <Description photoDetail={photoDetail} isPublic={isPublic} />
+        {/* Tags and keywords stay owner-only: public shares have no flag for them. */}
+        {!isPublic && <TagsSection photoDetail={photoDetail} />}
         {!isPublic && <KeywordsSection photoDetail={photoDetail} />}
         {!isPublic && <AlbumsSection imageHash={photoDetail.image_hash} />}
         <SimilarPhotosSection photoDetail={photoDetail} maxItems={30} />

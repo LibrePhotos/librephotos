@@ -21,6 +21,7 @@ from django.db import models
 
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
+from api.models.tag import link_tags_from_keywords
 from api.models.user import User, get_deleted_user
 
 
@@ -415,6 +416,8 @@ class PhotoMetadata(models.Model):
 
         if commit:
             metadata.save()
+            # "Import tags from EXIF": the keywords read above also become Tag rows.
+            link_tags_from_keywords(photo, metadata.keywords)
 
         return metadata
 

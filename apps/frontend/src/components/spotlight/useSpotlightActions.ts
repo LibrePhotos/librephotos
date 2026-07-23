@@ -194,6 +194,13 @@ export function useSpotlightActions(query: string = "") {
         keywords: ["things", "objects", "tags"],
       },
       {
+        id: "nav-tags",
+        label: t("spotlight.nav.tags"),
+        leftSection: React.createElement(IconTag, iconProps),
+        onClick: () => navigate({ to: "/album/tags" }),
+        keywords: ["tags", "keywords", "labels"],
+      },
+      {
         id: "nav-favorites",
         label: t("spotlight.nav.favorites"),
         leftSection: React.createElement(IconHeart, iconProps),
