@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.test import TestCase
 from pyfakefs.fake_filesystem_unittest import Patcher
 from rest_framework.test import APIClient
@@ -20,8 +23,15 @@ class DirTreeTest(TestCase):
         self.assertEqual(200, response.status_code)
 
     def test_should_retrieve_dir_listing_by_path(self):
+        # The view only accepts paths inside settings.DATA_ROOT, and DATA_ROOT is
+        # os.path.join(BASE_DATA, "data") - "/data" only when BASE_DATA is unset
+        # or "/", i.e. inside the container. Ask for the real data root instead of
+        # the containerised spelling of it.
+        os.makedirs(settings.DATA_ROOT, exist_ok=True)
         self.client.force_authenticate(user=self.admin)
-        response = self.client.get("/api/dirtree/?path=/data")
+        # Pass the path as query data so the client url-encodes it: outside the
+        # container DATA_ROOT can contain characters that are not query-safe.
+        response = self.client.get("/api/dirtree/", {"path": settings.DATA_ROOT})
         self.assertEqual(200, response.status_code)
 
     def test_should_fail_when_listing_with_invalid_path(self):
@@ -34,12 +44,20 @@ class DirTreeTest(TestCase):
         )
 
     def test_children_list_should_be_alphabetical_case_insensitive(self):
+        # The view lists settings.DATA_ROOT, which is only "/data" inside the
+        # container, so the fixture directories have to be created under the
+        # configured data root. Read it before entering the Patcher: inside it
+        # every path lookup goes to the fake filesystem, and settings must not be
+        # resolved for the first time against a filesystem that has no real files.
+        data_root = settings.DATA_ROOT
+
         with Patcher() as patcher:
-            patcher.fs.create_dir("/data")
-            patcher.fs.create_dir("/data/Z")
-            patcher.fs.create_dir("/data/a")
-            patcher.fs.create_dir("/data/X")
-            patcher.fs.create_dir("/data/b")
+            # The fake filesystem starts out empty, so these have to be created
+            # through patcher.fs rather than on disk beforehand - anything the
+            # real filesystem holds is invisible in here.
+            patcher.fs.create_dir(data_root)
+            for name in ("Z", "a", "X", "b"):
+                patcher.fs.create_dir(os.path.join(data_root, name))
 
             self.client.force_authenticate(user=self.admin)
             response = self.client.get("/api/dirtree/")

@@ -59,6 +59,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
 
         mock_response = MagicMock()
         mock_response.status_code = 200
+        mock_response.headers = {"Content-Type": "text/html"}
         mock_response.text = "<html>service error</html>"
         mock_response.raise_for_status.return_value = None
         mock_response.json.side_effect = ValueError("invalid json")
@@ -69,4 +70,9 @@ class FaceRecognitionClientTest(SimpleTestCase):
 
         self.assertIn("http://localhost:8005/face-locations", str(context.exception))
         self.assertIn("status 200", str(context.exception))
-        self.assertIn("<html>service error</html>", str(context.exception))
+        # The body has to reach the message so an operator can see what the
+        # service actually replied with, but an HTML error page is reduced to
+        # its visible text first — dumping a whole Flask 500 page into the log
+        # line is what _get_response_preview exists to prevent.
+        self.assertIn("service error", str(context.exception))
+        self.assertNotIn("<html>", str(context.exception))

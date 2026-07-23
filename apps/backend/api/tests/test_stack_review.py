@@ -17,6 +17,7 @@ reviewable because:
 """
 
 import uuid
+from datetime import timedelta
 
 from django.test import TestCase
 from django.utils import timezone
@@ -121,6 +122,19 @@ class StackReviewModelTestCase(TestCase):
             stack=stack2,
             reviewer=self.user,
         )
+        # Space the two timestamps out by hand. created_at is auto_now_add, so
+        # back-to-back creates can land in the same clock tick, and the model
+        # orders on created_at alone - its pk is a random UUID, so it is no
+        # tiebreak - which left this test resolving a tie by coin flip. Use
+        # queryset.update() because auto_now_add ignores an assigned value.
+        now = timezone.now()
+        StackReview.objects.filter(pk=review1.pk).update(
+            created_at=now - timedelta(minutes=1)
+        )
+        StackReview.objects.filter(pk=review2.pk).update(created_at=now)
+        review1.refresh_from_db()
+        review2.refresh_from_db()
+
         reviews = list(StackReview.objects.all())
         # review2 was created later, should come first
         self.assertEqual(reviews[0], review2)

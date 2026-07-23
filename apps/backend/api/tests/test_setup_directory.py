@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -15,10 +18,15 @@ class SetupDirectoryTestCase(TestCase):
         )
 
     def test_setup_directory(self):
+        # UserSerializer.update accepts a scan directory only if it is inside
+        # settings.DATA_ROOT *and* exists on disk. DATA_ROOT is
+        # os.path.join(BASE_DATA, "data"), so "/data" is only correct inside the
+        # container; use the configured root and make sure it is really there.
+        os.makedirs(settings.DATA_ROOT, exist_ok=True)
         self.client.force_authenticate(user=self.admin)
         response = self.client.patch(
             f"/api/manage/user/{self.admin.id}/",
-            {"scan_directory": "/data"},
+            {"scan_directory": settings.DATA_ROOT},
         )
         self.assertEqual(response.status_code, 200)
 
