@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
-import { MetadataHistoryResponse, PhotoMetadata } from "./types";
+import { MetadataHistoryResponse, Photo, PhotoMetadata, Photoset } from "./types";
 
 /**
  * Regression coverage for the PhotoMetadata zod schema drifting from the
@@ -192,6 +192,22 @@ describe("PhotoMetadata schema vs. PhotoMetadataSerializer", () => {
     // If the backend ever sent it, zod would strip it rather than expose it.
     const parsed = PhotoMetadata.parse({ ...fullMetadata, has_edits: true });
     expect(parsed).not.toHaveProperty("has_edits");
+  });
+});
+
+describe("Screenshots media category", () => {
+  test("exposes the screenshots Photoset backed by the 'screenshots' string", () => {
+    expect(Photoset.SCREENSHOTS).toBe("screenshots");
+  });
+
+  test("Photo.is_screenshot defaults to false when the backend omits it", () => {
+    const schema = Photo.pick({ video: true, is_screenshot: true });
+    expect(schema.parse({ video: false })).toEqual({ video: false, is_screenshot: false });
+  });
+
+  test("Photo.is_screenshot round-trips a true value", () => {
+    const schema = Photo.pick({ video: true, is_screenshot: true });
+    expect(schema.parse({ video: false, is_screenshot: true }).is_screenshot).toBe(true);
   });
 });
 

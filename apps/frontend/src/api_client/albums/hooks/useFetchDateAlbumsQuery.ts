@@ -8,6 +8,35 @@ import { FetchDateAlbumsListResponse } from "../types";
 
 export const DateAlbumsQueryKeys = ["dateAlbums"] as const;
 
+// The backend's boolean date-album filter params: each is either the string
+// "true" or omitted (undefined).
+export type DateAlbumFilterParams = {
+  favorite?: "true";
+  public?: "true";
+  hidden?: "true";
+  in_trashcan?: "true";
+  photo?: "true";
+  video?: "true";
+  is_screenshot?: "true";
+};
+
+// Maps the active Photoset plus an optional, independent media-type filter onto
+// the backend's boolean query params. photosetType picks the surface (favorites,
+// videos, screenshots, ...); mediaType is the per-view All/Photos/Videos/
+// Screenshots toggle that layers on top (e.g. a person album filtered to
+// screenshots), so photo/video/is_screenshot react to either source.
+export function buildDateAlbumFilterParams(photosetType: Photoset, mediaType?: MediaType): DateAlbumFilterParams {
+  return {
+    favorite: Photoset.FAVORITES === photosetType ? "true" : undefined,
+    public: Photoset.PUBLIC === photosetType ? "true" : undefined,
+    hidden: Photoset.HIDDEN === photosetType ? "true" : undefined,
+    in_trashcan: Photoset.IN_TRASHCAN === photosetType ? "true" : undefined,
+    photo: Photoset.PHOTOS === photosetType || mediaType === "photos" ? "true" : undefined,
+    video: Photoset.VIDEOS === photosetType || mediaType === "videos" ? "true" : undefined,
+    is_screenshot: Photoset.SCREENSHOTS === photosetType || mediaType === "screenshots" ? "true" : undefined,
+  };
+}
+
 // Define the parameter types for the queries
 type AlbumDateListOptions = {
   photosetType: Photoset;
@@ -32,12 +61,7 @@ export const useFetchDateAlbumsQuery = (options: AlbumDateListOptions) =>
     ],
     queryFn: async () => {
       const params = {
-        favorite: Photoset.FAVORITES === options.photosetType ? "true" : undefined,
-        public: Photoset.PUBLIC === options.photosetType ? "true" : undefined,
-        hidden: Photoset.HIDDEN === options.photosetType ? "true" : undefined,
-        in_trashcan: Photoset.IN_TRASHCAN === options.photosetType ? "true" : undefined,
-        photo: Photoset.PHOTOS === options.photosetType || options.mediaType === "photos" ? "true" : undefined,
-        video: Photoset.VIDEOS === options.photosetType || options.mediaType === "videos" ? "true" : undefined,
+        ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
         person: options.person_id,
         username: options.username?.toLowerCase(),
         folder: options.folder,

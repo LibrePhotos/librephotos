@@ -24,6 +24,7 @@ import {
   IconRefresh,
   IconRefreshDot,
   IconRobot,
+  IconScreenshot,
   IconSearch,
   IconSettings,
   IconShare,
@@ -220,6 +221,13 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconVideo, iconProps),
         onClick: () => navigate({ to: "/videos" }),
         keywords: ["videos", "movies", "clips"],
+      },
+      {
+        id: "nav-screenshots",
+        label: t("spotlight.nav.screenshots"),
+        leftSection: React.createElement(IconScreenshot, iconProps),
+        onClick: () => navigate({ to: "/screenshots" }),
+        keywords: ["screenshots", "screen captures", "screengrabs"],
       },
       {
         id: "nav-trash",
