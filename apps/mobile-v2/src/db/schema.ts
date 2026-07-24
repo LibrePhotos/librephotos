@@ -278,13 +278,39 @@ export const thumbCache = sqliteTable(
   (t) => [index("idx_thumb_cache_last_used").on(t.lastUsed)]
 );
 
-/** Diagnostics ring for sync runs. */
-export const syncLog = sqliteTable("sync_log", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  ts: integer("ts").notNull(),
-  entity: text("entity"),
-  level: text("level").notNull().default("info"), // info | warn | error
-  message: text("message"),
+/**
+ * Diagnostics ring buffer for sync runs (doc 03 §8). One row per meaningful
+ * step (a pull page, a reseed, an integrity check). Capped in code
+ * (see queries/sync-log). `cursor` records the durable resume token at the time
+ * of the entry so a bug report can be reconstructed.
+ */
+export const syncLog = sqliteTable(
+  "sync_log",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    ts: integer("ts").notNull(),
+    op: text("op"), // 'pull' | 'seed' | 'reseed' | 'integrity' | 'run' | ...
+    entity: text("entity"),
+    level: text("level").notNull().default("info"), // info | warn | error
+    applied: integer("applied"), // rows upserted
+    deleted: integer("deleted"), // tombstones applied
+    durationMs: integer("duration_ms"),
+    cursor: text("cursor"),
+    message: text("message"),
+  },
+  (t) => [index("idx_sync_log_ts").on(t.ts)]
+);
+
+/**
+ * Small key/value store for app-level sync metadata that isn't per-entity —
+ * e.g. the last-seen `favorite_min_rating` (a change forces a reseed, doc 03
+ * §3) and the last integrity snapshot. Survives a mirror wipe; cleared only on
+ * logout.
+ */
+export const appMeta = sqliteTable("app_meta", {
+  key: text("key").primaryKey(),
+  value: text("value"),
+  updatedAt: integer("updated_at"),
 });
 
 export const schema = {
@@ -308,6 +334,7 @@ export const schema = {
   uploadQueue,
   thumbCache,
   syncLog,
+  appMeta,
 };
 
 export type Schema = typeof schema;

@@ -38,4 +38,11 @@ export const MIGRATION_STATEMENTS: string[] = [
   "CREATE TABLE `user_album` (\n\t`id` integer PRIMARY KEY NOT NULL,\n\t`title` text NOT NULL,\n\t`owner_id` integer,\n\t`shared` integer DEFAULT false NOT NULL,\n\t`favorited` integer DEFAULT false NOT NULL,\n\t`cover_hash` text,\n\t`photo_count` integer DEFAULT 0 NOT NULL,\n\t`created_on` integer,\n\t`last_modified` integer\n);",
   "CREATE TABLE `user_album_photo` (\n\t`album_id` integer NOT NULL,\n\t`photo_id` text NOT NULL,\n\t`ordering` integer DEFAULT 0 NOT NULL,\n\tPRIMARY KEY(`album_id`, `photo_id`)\n);",
   "CREATE INDEX `idx_user_album_photo_album` ON `user_album_photo` (`album_id`,`ordering`);",
+  "CREATE TABLE `app_meta` (\n\t`key` text PRIMARY KEY NOT NULL,\n\t`value` text,\n\t`updated_at` integer\n);",
+  "ALTER TABLE `sync_log` ADD `op` text;",
+  "ALTER TABLE `sync_log` ADD `applied` integer;",
+  "ALTER TABLE `sync_log` ADD `deleted` integer;",
+  "ALTER TABLE `sync_log` ADD `duration_ms` integer;",
+  "ALTER TABLE `sync_log` ADD `cursor` text;",
+  "CREATE INDEX `idx_sync_log_ts` ON `sync_log` (`ts`);",
 ];

@@ -109,32 +109,50 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 const b = (v: boolean) => (v ? 1 : 0);
 
+/**
+ * `tx`-level writers take an `AppDatabase` handle that may be a transaction
+ * scope (drizzle's transaction callback arg is itself a `BaseSQLiteDatabase`).
+ * The public `upsert*` functions batch + wrap them in their own transactions;
+ * the delta applier reuses the same writers inside ONE transaction per page.
+ */
+
+/** Write remote-photo rows (no transaction of its own). */
+export function writeRemotePhotos(tx: AppDatabase, rows: RemotePhotoInput[]): void {
+  for (const r of rows) {
+    tx.run(
+      sql`INSERT INTO remote_photo
+        (id, image_hash, owner_id, timestamp, added_on, last_modified, type, video_length_ms,
+         rating, is_favorite, hidden, in_trashcan, removed, is_public, aspect_ratio,
+         latitude, longitude, search_location, dominant_color, bucket_day, bucket_month)
+        VALUES (${r.id}, ${r.imageHash}, ${r.ownerId}, ${r.timestamp}, ${r.addedOn}, ${r.lastModified},
+         ${r.type}, ${r.videoLengthMs}, ${r.rating}, ${b(r.isFavorite)}, ${b(r.hidden)}, ${b(r.inTrashcan)},
+         ${b(r.removed)}, ${b(r.isPublic)}, ${r.aspectRatio}, ${r.latitude}, ${r.longitude},
+         ${r.searchLocation}, ${r.dominantColor}, ${r.bucketDay}, ${r.bucketMonth})
+        ON CONFLICT(id) DO UPDATE SET
+          image_hash = excluded.image_hash, owner_id = excluded.owner_id, timestamp = excluded.timestamp,
+          added_on = excluded.added_on, last_modified = excluded.last_modified, type = excluded.type,
+          video_length_ms = excluded.video_length_ms, rating = excluded.rating,
+          is_favorite = excluded.is_favorite, hidden = excluded.hidden, in_trashcan = excluded.in_trashcan,
+          removed = excluded.removed, is_public = excluded.is_public, aspect_ratio = excluded.aspect_ratio,
+          latitude = excluded.latitude, longitude = excluded.longitude,
+          search_location = excluded.search_location, dominant_color = excluded.dominant_color,
+          bucket_day = excluded.bucket_day, bucket_month = excluded.bucket_month`
+    );
+  }
+}
+
+/** Delete remote photos (and their detail cache) by id — tombstone application. */
+export function deleteRemotePhotos(tx: AppDatabase, ids: string[]): void {
+  for (const id of ids) {
+    tx.run(sql`DELETE FROM remote_photo WHERE id = ${id}`);
+    tx.run(sql`DELETE FROM remote_photo_detail WHERE photo_id = ${id}`);
+  }
+}
+
 /** Idempotent batched upsert of remote photos. Returns rows written. */
 export function upsertRemotePhotos(db: AppDatabase, rows: RemotePhotoInput[]): number {
   for (const batch of chunk(rows, BATCH_SIZE)) {
-    db.transaction((tx) => {
-      for (const r of batch) {
-        tx.run(
-          sql`INSERT INTO remote_photo
-            (id, image_hash, owner_id, timestamp, added_on, last_modified, type, video_length_ms,
-             rating, is_favorite, hidden, in_trashcan, removed, is_public, aspect_ratio,
-             latitude, longitude, search_location, dominant_color, bucket_day, bucket_month)
-            VALUES (${r.id}, ${r.imageHash}, ${r.ownerId}, ${r.timestamp}, ${r.addedOn}, ${r.lastModified},
-             ${r.type}, ${r.videoLengthMs}, ${r.rating}, ${b(r.isFavorite)}, ${b(r.hidden)}, ${b(r.inTrashcan)},
-             ${b(r.removed)}, ${b(r.isPublic)}, ${r.aspectRatio}, ${r.latitude}, ${r.longitude},
-             ${r.searchLocation}, ${r.dominantColor}, ${r.bucketDay}, ${r.bucketMonth})
-            ON CONFLICT(id) DO UPDATE SET
-              image_hash = excluded.image_hash, owner_id = excluded.owner_id, timestamp = excluded.timestamp,
-              added_on = excluded.added_on, last_modified = excluded.last_modified, type = excluded.type,
-              video_length_ms = excluded.video_length_ms, rating = excluded.rating,
-              is_favorite = excluded.is_favorite, hidden = excluded.hidden, in_trashcan = excluded.in_trashcan,
-              removed = excluded.removed, is_public = excluded.is_public, aspect_ratio = excluded.aspect_ratio,
-              latitude = excluded.latitude, longitude = excluded.longitude,
-              search_location = excluded.search_location, dominant_color = excluded.dominant_color,
-              bucket_day = excluded.bucket_day, bucket_month = excluded.bucket_month`
-        );
-      }
-    });
+    db.transaction((tx) => writeRemotePhotos(tx, batch));
   }
   return rows.length;
 }
@@ -148,20 +166,24 @@ export type PersonInput = {
   lastModified: number | null;
 };
 
-export function upsertPersons(db: AppDatabase, rows: PersonInput[]): number {
-  for (const batch of chunk(rows, BATCH_SIZE)) {
-    db.transaction((tx) => {
-      for (const r of batch) {
-        tx.run(
-          sql`INSERT INTO person (id, name, kind, face_count, cover_photo_hash, last_modified)
-              VALUES (${r.id}, ${r.name}, ${r.kind}, ${r.faceCount}, ${r.coverPhotoHash}, ${r.lastModified})
-              ON CONFLICT(id) DO UPDATE SET
-                name = excluded.name, kind = excluded.kind, face_count = excluded.face_count,
-                cover_photo_hash = excluded.cover_photo_hash, last_modified = excluded.last_modified`
-        );
-      }
-    });
+export function writePersons(tx: AppDatabase, rows: PersonInput[]): void {
+  for (const r of rows) {
+    tx.run(
+      sql`INSERT INTO person (id, name, kind, face_count, cover_photo_hash, last_modified)
+          VALUES (${r.id}, ${r.name}, ${r.kind}, ${r.faceCount}, ${r.coverPhotoHash}, ${r.lastModified})
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name, kind = excluded.kind, face_count = excluded.face_count,
+            cover_photo_hash = excluded.cover_photo_hash, last_modified = excluded.last_modified`
+    );
   }
+}
+
+export function deletePersons(tx: AppDatabase, ids: number[]): void {
+  for (const id of ids) tx.run(sql`DELETE FROM person WHERE id = ${id}`);
+}
+
+export function upsertPersons(db: AppDatabase, rows: PersonInput[]): number {
+  for (const batch of chunk(rows, BATCH_SIZE)) db.transaction((tx) => writePersons(tx, batch));
   return rows.length;
 }
 
@@ -179,25 +201,32 @@ export type UserAlbumInput = {
   photoIds?: string[];
 };
 
-export function upsertUserAlbums(db: AppDatabase, rows: UserAlbumInput[]): number {
-  for (const batch of chunk(rows, BATCH_SIZE)) {
-    db.transaction((tx) => {
-      for (const r of batch) {
-        tx.run(
-          sql`INSERT INTO user_album
-              (id, title, owner_id, shared, favorited, cover_hash, photo_count, created_on, last_modified)
-              VALUES (${r.id}, ${r.title}, ${r.ownerId}, ${b(r.shared)}, ${b(r.favorited)}, ${r.coverHash},
-                ${r.photoCount}, ${r.createdOn}, ${r.lastModified})
-              ON CONFLICT(id) DO UPDATE SET
-                title = excluded.title, owner_id = excluded.owner_id, shared = excluded.shared,
-                favorited = excluded.favorited, cover_hash = excluded.cover_hash,
-                photo_count = excluded.photo_count, created_on = excluded.created_on,
-                last_modified = excluded.last_modified`
-        );
-        if (r.photoIds) replaceUserAlbumMembership(tx, r.id, r.photoIds);
-      }
-    });
+export function writeUserAlbums(tx: AppDatabase, rows: UserAlbumInput[]): void {
+  for (const r of rows) {
+    tx.run(
+      sql`INSERT INTO user_album
+          (id, title, owner_id, shared, favorited, cover_hash, photo_count, created_on, last_modified)
+          VALUES (${r.id}, ${r.title}, ${r.ownerId}, ${b(r.shared)}, ${b(r.favorited)}, ${r.coverHash},
+            ${r.photoCount}, ${r.createdOn}, ${r.lastModified})
+          ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title, owner_id = excluded.owner_id, shared = excluded.shared,
+            favorited = excluded.favorited, cover_hash = excluded.cover_hash,
+            photo_count = excluded.photo_count, created_on = excluded.created_on,
+            last_modified = excluded.last_modified`
+    );
+    if (r.photoIds) replaceUserAlbumMembership(tx, r.id, r.photoIds);
   }
+}
+
+export function deleteUserAlbums(tx: AppDatabase, ids: number[]): void {
+  for (const id of ids) {
+    tx.run(sql`DELETE FROM user_album WHERE id = ${id}`);
+    tx.run(sql`DELETE FROM user_album_photo WHERE album_id = ${id}`);
+  }
+}
+
+export function upsertUserAlbums(db: AppDatabase, rows: UserAlbumInput[]): number {
+  for (const batch of chunk(rows, BATCH_SIZE)) db.transaction((tx) => writeUserAlbums(tx, batch));
   return rows.length;
 }
 
@@ -222,30 +251,37 @@ export type AutoAlbumInput = {
   photoIds?: string[];
 };
 
-export function upsertAutoAlbums(db: AppDatabase, rows: AutoAlbumInput[]): number {
-  for (const batch of chunk(rows, BATCH_SIZE)) {
-    db.transaction((tx) => {
-      for (const r of batch) {
+export function writeAutoAlbums(tx: AppDatabase, rows: AutoAlbumInput[]): void {
+  for (const r of rows) {
+    tx.run(
+      sql`INSERT INTO auto_album (id, title, timestamp, favorited, photo_count, cover_hash, last_modified)
+          VALUES (${r.id}, ${r.title}, ${r.timestamp}, ${b(r.favorited)}, ${r.photoCount}, ${r.coverHash}, ${r.lastModified})
+          ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title, timestamp = excluded.timestamp, favorited = excluded.favorited,
+            photo_count = excluded.photo_count, cover_hash = excluded.cover_hash,
+            last_modified = excluded.last_modified`
+    );
+    if (r.photoIds) {
+      tx.run(sql`DELETE FROM auto_album_photo WHERE album_id = ${r.id}`);
+      r.photoIds.forEach((photoId, ordering) => {
         tx.run(
-          sql`INSERT INTO auto_album (id, title, timestamp, favorited, photo_count, cover_hash, last_modified)
-              VALUES (${r.id}, ${r.title}, ${r.timestamp}, ${b(r.favorited)}, ${r.photoCount}, ${r.coverHash}, ${r.lastModified})
-              ON CONFLICT(id) DO UPDATE SET
-                title = excluded.title, timestamp = excluded.timestamp, favorited = excluded.favorited,
-                photo_count = excluded.photo_count, cover_hash = excluded.cover_hash,
-                last_modified = excluded.last_modified`
+          sql`INSERT INTO auto_album_photo (album_id, photo_id, ordering) VALUES (${r.id}, ${photoId}, ${ordering})
+              ON CONFLICT(album_id, photo_id) DO UPDATE SET ordering = excluded.ordering`
         );
-        if (r.photoIds) {
-          db.run(sql`DELETE FROM auto_album_photo WHERE album_id = ${r.id}`);
-          r.photoIds.forEach((photoId, ordering) => {
-            db.run(
-              sql`INSERT INTO auto_album_photo (album_id, photo_id, ordering) VALUES (${r.id}, ${photoId}, ${ordering})
-                  ON CONFLICT(album_id, photo_id) DO UPDATE SET ordering = excluded.ordering`
-            );
-          });
-        }
-      }
-    });
+      });
+    }
   }
+}
+
+export function deleteAutoAlbums(tx: AppDatabase, ids: number[]): void {
+  for (const id of ids) {
+    tx.run(sql`DELETE FROM auto_album WHERE id = ${id}`);
+    tx.run(sql`DELETE FROM auto_album_photo WHERE album_id = ${id}`);
+  }
+}
+
+export function upsertAutoAlbums(db: AppDatabase, rows: AutoAlbumInput[]): number {
+  for (const batch of chunk(rows, BATCH_SIZE)) db.transaction((tx) => writeAutoAlbums(tx, batch));
   return rows.length;
 }
 
@@ -258,51 +294,88 @@ export type NamedAlbumInput = {
   geolocationLevel?: number | null;
 };
 
-export function upsertThingAlbums(db: AppDatabase, rows: NamedAlbumInput[]): number {
-  return upsertNamedAlbums(db, "thing_album", rows);
-}
-
-export function upsertTagAlbums(db: AppDatabase, rows: NamedAlbumInput[]): number {
-  return upsertNamedAlbums(db, "tag_album", rows);
-}
-
-function upsertNamedAlbums(
-  db: AppDatabase,
+export function writeNamedAlbums(
+  tx: AppDatabase,
   table: "thing_album" | "tag_album",
   rows: NamedAlbumInput[]
-): number {
+): void {
   const tbl = sql.raw(table);
-  for (const batch of chunk(rows, BATCH_SIZE)) {
-    db.transaction((tx) => {
-      for (const r of batch) {
-        tx.run(
-          sql`INSERT INTO ${tbl} (id, title, photo_count, cover_hashes, last_modified)
-              VALUES (${r.id}, ${r.title}, ${r.photoCount}, ${r.coverHashes ? JSON.stringify(r.coverHashes) : null}, ${r.lastModified})
-              ON CONFLICT(id) DO UPDATE SET
-                title = excluded.title, photo_count = excluded.photo_count,
-                cover_hashes = excluded.cover_hashes, last_modified = excluded.last_modified`
-        );
-      }
-    });
+  for (const r of rows) {
+    tx.run(
+      sql`INSERT INTO ${tbl} (id, title, photo_count, cover_hashes, last_modified)
+          VALUES (${r.id}, ${r.title}, ${r.photoCount}, ${r.coverHashes ? JSON.stringify(r.coverHashes) : null}, ${r.lastModified})
+          ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title, photo_count = excluded.photo_count,
+            cover_hashes = excluded.cover_hashes, last_modified = excluded.last_modified`
+    );
   }
+}
+
+export function deleteNamedAlbums(
+  tx: AppDatabase,
+  table: "thing_album" | "tag_album" | "place_album",
+  ids: number[]
+): void {
+  const tbl = sql.raw(table);
+  for (const id of ids) tx.run(sql`DELETE FROM ${tbl} WHERE id = ${id}`);
+}
+
+export function upsertThingAlbums(db: AppDatabase, rows: NamedAlbumInput[]): number {
+  for (const batch of chunk(rows, BATCH_SIZE)) db.transaction((tx) => writeNamedAlbums(tx, "thing_album", batch));
   return rows.length;
 }
 
-export function upsertPlaceAlbums(db: AppDatabase, rows: NamedAlbumInput[]): number {
-  for (const batch of chunk(rows, BATCH_SIZE)) {
-    db.transaction((tx) => {
-      for (const r of batch) {
-        tx.run(
-          sql`INSERT INTO place_album (id, title, photo_count, geolocation_level, cover_hashes, last_modified)
-              VALUES (${r.id}, ${r.title}, ${r.photoCount}, ${r.geolocationLevel ?? null},
-                ${r.coverHashes ? JSON.stringify(r.coverHashes) : null}, ${r.lastModified})
-              ON CONFLICT(id) DO UPDATE SET
-                title = excluded.title, photo_count = excluded.photo_count,
-                geolocation_level = excluded.geolocation_level, cover_hashes = excluded.cover_hashes,
-                last_modified = excluded.last_modified`
-        );
-      }
-    });
+export function upsertTagAlbums(db: AppDatabase, rows: NamedAlbumInput[]): number {
+  for (const batch of chunk(rows, BATCH_SIZE)) db.transaction((tx) => writeNamedAlbums(tx, "tag_album", batch));
+  return rows.length;
+}
+
+export function writePlaceAlbums(tx: AppDatabase, rows: NamedAlbumInput[]): void {
+  for (const r of rows) {
+    tx.run(
+      sql`INSERT INTO place_album (id, title, photo_count, geolocation_level, cover_hashes, last_modified)
+          VALUES (${r.id}, ${r.title}, ${r.photoCount}, ${r.geolocationLevel ?? null},
+            ${r.coverHashes ? JSON.stringify(r.coverHashes) : null}, ${r.lastModified})
+          ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title, photo_count = excluded.photo_count,
+            geolocation_level = excluded.geolocation_level, cover_hashes = excluded.cover_hashes,
+            last_modified = excluded.last_modified`
+    );
   }
+}
+
+export function upsertPlaceAlbums(db: AppDatabase, rows: NamedAlbumInput[]): number {
+  for (const batch of chunk(rows, BATCH_SIZE)) db.transaction((tx) => writePlaceAlbums(tx, batch));
+  return rows.length;
+}
+
+/* ---- shared users (sharing surface) ------------------------------------ */
+
+export type SharedUserInput = {
+  id: number;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  avatarUrl: string | null;
+};
+
+export function writeSharedUsers(tx: AppDatabase, rows: SharedUserInput[]): void {
+  for (const r of rows) {
+    tx.run(
+      sql`INSERT INTO shared_user (id, username, first_name, last_name, avatar_url)
+          VALUES (${r.id}, ${r.username}, ${r.firstName}, ${r.lastName}, ${r.avatarUrl})
+          ON CONFLICT(id) DO UPDATE SET
+            username = excluded.username, first_name = excluded.first_name,
+            last_name = excluded.last_name, avatar_url = excluded.avatar_url`
+    );
+  }
+}
+
+export function deleteSharedUsers(tx: AppDatabase, ids: number[]): void {
+  for (const id of ids) tx.run(sql`DELETE FROM shared_user WHERE id = ${id}`);
+}
+
+export function upsertSharedUsers(db: AppDatabase, rows: SharedUserInput[]): number {
+  for (const batch of chunk(rows, BATCH_SIZE)) db.transaction((tx) => writeSharedUsers(tx, batch));
   return rows.length;
 }

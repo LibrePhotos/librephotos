@@ -12,7 +12,20 @@ export type SyncEntity =
   | "auto_album"
   | "thing_album"
   | "place_album"
-  | "tag_album";
+  | "tag_album"
+  | "sharing";
+
+/** Every synced entity, in the doc 03 §1 dependency order. */
+export const SYNC_ENTITIES: readonly SyncEntity[] = [
+  "photo",
+  "person",
+  "user_album",
+  "auto_album",
+  "thing_album",
+  "place_album",
+  "tag_album",
+  "sharing",
+] as const;
 
 export type SyncStateRow = {
   entity: string;
