@@ -41,6 +41,27 @@ const TAGGING_MODELS = [
   { value: "siglip2", label: "SigLIP 2 (Real-world photo tags)" },
 ];
 
+const OCR_MODELS = [
+  { value: "none", label: "None" },
+  { value: "ppocrv6_tiny", label: "PP-OCRv6 Tiny (fastest)" },
+  { value: "ppocrv6_small", label: "PP-OCRv6 Small" },
+  { value: "ppocrv6_medium", label: "PP-OCRv6 Medium (most accurate)" },
+];
+
+const OCR_DISABLED = "none";
+
+/**
+ * The backend ships "None" as the default and treats the value case insensitively, so map
+ * anything that means "off" onto the single lowercase value the Select knows about. Without
+ * this the Select would render empty for a server that never had OCR configured.
+ */
+function normalizeOcrModel(model: string | null | undefined) {
+  if (!model || model.trim().toLowerCase() === OCR_DISABLED) {
+    return OCR_DISABLED;
+  }
+  return model;
+}
+
 const FACE_RECOGNITION_MODELS = [
   { value: "buffalo_sc", label: "buffalo_sc (lightweight, default)" },
   { value: "buffalo_s", label: "buffalo_s" },
@@ -60,6 +81,9 @@ export function SiteSettings() {
   const [captioningModel, setCaptioningModel] = useState("im2txt");
   const [llmModel, setLlmModel] = useState("none");
   const [taggingModel, setTaggingModel] = useState("places365");
+  const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
+  // Restored when the user backs out of the OCR confirmation dialog.
+  const [previousOcrModel, setPreviousOcrModel] = useState(OCR_DISABLED);
   const [faceRecognitionModel, setFaceRecognitionModel] = useState("buffalo_sc");
   const [warning, setWarning] = useState("none");
   const { t } = useTranslation();
@@ -76,6 +100,28 @@ export function SiteSettings() {
     saveSettings(input);
   };
 
+  const dismissWarning = () => {
+    if (warning === "blip") {
+      setCaptioningModel("im2txt");
+      saveSettings({ captioning_model: "im2txt" });
+    }
+    if (warning === "ocr") {
+      setOcrModel(previousOcrModel);
+    }
+    close();
+  };
+
+  const confirmWarning = () => {
+    if (warning === "blip") {
+      saveSettings({ captioning_model: captioningModel });
+    }
+    if (warning === "ocr") {
+      saveSettings({ ocr_model: ocrModel });
+      setPreviousOcrModel(ocrModel);
+    }
+    close();
+  };
+
   useEffect(() => {
     if (!isLoading && settings) {
       setSkipPatterns(settings.skip_patterns);
@@ -88,6 +134,8 @@ export function SiteSettings() {
       setCaptioningModel(settings.captioning_model);
       setLlmModel(settings.llm_model);
       setTaggingModel(settings.tagging_model);
+      setOcrModel(normalizeOcrModel(settings.ocr_model));
+      setPreviousOcrModel(normalizeOcrModel(settings.ocr_model));
       setFaceRecognitionModel(settings.face_recognition_model);
     }
   }, [settings, isLoading]);
@@ -96,38 +144,18 @@ export function SiteSettings() {
     <div>
       <Modal
         opened={opened}
-        onClose={() => {
-          if (warning === "blip") {
-            setCaptioningModel("im2txt");
-            saveSettings({ captioning_model: "im2txt" });
-          }
-          close();
-        }}
-        title={<Title order={4}>{t("sitesettings.ram_warning_header")}</Title>}
+        onClose={dismissWarning}
+        title={
+          <Title order={4}>
+            {warning === "ocr" ? t("sitesettings.ocr_warning_header") : t("sitesettings.ram_warning_header")}
+          </Title>
+        }
       >
         <Stack>
-          <Text>{t("sitesettings.blip_warning")}</Text>
+          <Text>{warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.blip_warning")}</Text>
           <Group>
-            <Button
-              onClick={() => {
-                if (warning === "blip") {
-                  setCaptioningModel("im2txt");
-                  saveSettings({ captioning_model: "im2txt" });
-                }
-                close();
-              }}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              onClick={() => {
-                if (warning === "blip") {
-                  saveSettings({ captioning_model: captioningModel });
-                }
-                close();
-              }}
-              color="red"
-            >
+            <Button onClick={dismissWarning}>{t("cancel")}</Button>
+            <Button onClick={confirmWarning} color="red">
               {t("save")}
             </Button>
           </Group>
@@ -304,6 +332,36 @@ export function SiteSettings() {
                   const value = model ?? "places365";
                   saveSettings({ tagging_model: value });
                   setTaggingModel(value);
+                }}
+              />
+            </Grid.Col>
+            <Grid.Col span={8}>
+              <Stack gap={0}>
+                <Text>{t("sitesettings.ocr_model_header", "Text Recognition (OCR) Model")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {t(
+                    "sitesettings.ocr_model_description",
+                    'Extracts readable text from your photos into the database so that it becomes searchable. This includes text on documents, receipts and IDs. Choose "None" to keep OCR off.'
+                  )}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={4}>
+              <Select
+                searchable
+                data={OCR_MODELS}
+                value={ocrModel}
+                onChange={model => {
+                  const value = normalizeOcrModel(model);
+                  setOcrModel(value);
+                  if (value === OCR_DISABLED) {
+                    setPreviousOcrModel(value);
+                    saveSettings({ ocr_model: value });
+                    return;
+                  }
+                  // Turning OCR on has privacy consequences, so let the admin confirm first.
+                  setWarning("ocr");
+                  open();
                 }}
               />
             </Grid.Col>

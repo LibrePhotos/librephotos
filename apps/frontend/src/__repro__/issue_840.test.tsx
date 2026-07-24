@@ -45,7 +45,7 @@ const stubs = vi.hoisted(() => ({
   worker: { queue_can_accept_job: true },
   auth: { access: { is_admin: true } },
   nextcloudDirs: { isFetching: false, isSuccess: true, isError: false, data: [] },
-  siteSettings: { data: { nextcloud_enabled: true } },
+  siteSettings: { data: { nextcloud_enabled: true, ocr_model: "ppocrv6_small" } },
   userList: { data: [] },
   countStats: { data: undefined },
 }));
@@ -62,6 +62,7 @@ vi.mock("../api_client/folders/hooks/useFetchNextcloudDirsQuery", () => ({
 }));
 vi.mock("../api_client/jobs/hooks", () => ({
   useGenerateAutoAlbumsMutation: () => stubs.noopMutation,
+  useGenerateOcrMutation: () => stubs.noopMutation,
   useRescanPhotosMutation: () => stubs.noopMutation,
   useScanNextcloudPhotosMutation: () => stubs.noopMutation,
   useScanPhotosMutation: () => stubs.noopMutation,

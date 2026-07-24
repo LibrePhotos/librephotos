@@ -112,6 +112,22 @@ function startFullPhotoScan() {
   });
 }
 
+function startOcrScan() {
+  showNotification({
+    message: i18n.t("toasts.ocrscan"),
+    title: i18n.t("toasts.ocrscantitle"),
+    color: "teal",
+  });
+}
+
+function startFullOcrScan() {
+  showNotification({
+    message: i18n.t("toasts.fullocrscan"),
+    title: i18n.t("toasts.ocrscantitle"),
+    color: "teal",
+  });
+}
+
 function startNextcloudPhotoScan() {
   showNotification({
     message: i18n.t("toasts.scannextcloudphotos"),
@@ -169,8 +185,10 @@ export const photos = {
   rotatePhotos,
   savePhotoCaptions,
   scanDirectoryRequired,
+  startFullOcrScan,
   startFullPhotoScan,
   startNextcloudPhotoScan,
+  startOcrScan,
   startPhotoScan,
   startUploadedPhotoScan,
   togglePhotoDelete,

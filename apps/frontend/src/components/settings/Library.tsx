@@ -35,6 +35,7 @@ import {
   IconQuestionMark as QuestionMark,
   IconRefresh as Refresh,
   IconRefreshDot as RefreshDot,
+  IconTextRecognition as TextRecognition,
   IconX as X,
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
@@ -46,6 +47,7 @@ import { useTrainFacesMutation } from "../../api_client/faces";
 import { useFetchNextcloudDirsQuery } from "../../api_client/folders/hooks/useFetchNextcloudDirsQuery";
 import {
   useGenerateAutoAlbumsMutation,
+  useGenerateOcrMutation,
   useRescanPhotosMutation,
   useScanNextcloudPhotosMutation,
   useScanPhotosMutation,
@@ -93,6 +95,8 @@ export function Library() {
   const { t } = useTranslation();
   const { data: siteSettings } = useGetSettingsQuery();
   const isNextcloudEnabled = siteSettings?.nextcloud_enabled ?? false;
+  const ocrModel = siteSettings?.ocr_model ?? "none";
+  const isOcrEnabled = ocrModel.trim().toLowerCase() !== "none";
   const {
     isFetching: isNextcloudFetching,
     isSuccess: isNextcloudSuccess,
@@ -109,6 +113,7 @@ export function Library() {
   const scanNextcloudPhotos = useScanNextcloudPhotosMutation();
   const deleteMissingPhotos = useDeleteMissingPhotosMutation();
   const trainFaces = useTrainFacesMutation();
+  const generateOcr = useGenerateOcrMutation();
 
   const onGenerateEventAlbumsButtonClick = () => {
     generateAutoAlbums();
@@ -516,6 +521,57 @@ export function Library() {
               >
                 <Trans i18nKey="settings.rescanfaces">Rescan</Trans>
               </Button>
+            </Grid.Col>
+          </Grid>
+          <Divider
+            labelPosition="left"
+            label={<Text fw="bold">{t("settings.textrecognition")}</Text>}
+            mt={20}
+            mb={10}
+          />
+          <Grid>
+            <Grid.Col span={{ base: 12, sm: "auto" }}>
+              <Stack gap={0}>
+                <Text>{t("settings.ocrtitle")}</Text>
+                <Text fz="sm" c="dimmed">
+                  {isOcrEnabled ? t("settings.ocrdescription") : t("settings.ocrdisabled")}
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: "content" }}>
+              <Group wrap="nowrap" gap={0} justify="flex-end">
+                <Button
+                  disabled={!workerAvailability || !isOcrEnabled}
+                  onClick={() => generateOcr.mutate(false)}
+                  leftSection={<TextRecognition />}
+                  variant="outline"
+                  style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 0 }}
+                  fullWidth
+                >
+                  {t("settings.ocrbutton")}
+                </Button>
+                <Menu transitionProps={{ transition: "pop" }} position="bottom-end" withinPortal>
+                  <Menu.Target>
+                    <ActionIcon
+                      variant="outline"
+                      size={36}
+                      disabled={!workerAvailability || !isOcrEnabled}
+                      style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                    >
+                      <ChevronDown size="1rem" />
+                    </ActionIcon>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Menu.Item
+                      leftSection={<TextRecognition size="1rem" />}
+                      onClick={() => generateOcr.mutate(true)}
+                      disabled={!workerAvailability || !isOcrEnabled}
+                    >
+                      {t("settings.ocrfullbutton")}
+                    </Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
             </Grid.Col>
           </Grid>
           {isNextcloudEnabled && (
