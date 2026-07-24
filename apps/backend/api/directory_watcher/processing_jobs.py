@@ -396,6 +396,8 @@ def _run_ocr_for_photo(photo: Photo):
         defaults={
             "text": ocr_text,
             "blocks": data.get("blocks", []) or [],
+            "source_width": data.get("image_width"),
+            "source_height": data.get("image_height"),
             "engine": ocr_model,
             "mean_confidence": data.get("mean_confidence"),
             "text_area_fraction": text_area_fraction,

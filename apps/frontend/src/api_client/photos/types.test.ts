@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
-import { MetadataHistoryResponse, Photo, PhotoMetadata, Photoset } from "./types";
+import { MetadataHistoryResponse, Photo, PhotoMetadata, PhotoOcrData, Photoset } from "./types";
 
 /**
  * Regression coverage for the PhotoMetadata zod schema drifting from the
@@ -208,6 +208,47 @@ describe("Screenshots media category", () => {
   test("Photo.is_screenshot round-trips a true value", () => {
     const schema = Photo.pick({ video: true, is_screenshot: true });
     expect(schema.parse({ video: false, is_screenshot: true }).is_screenshot).toBe(true);
+  });
+});
+
+describe("Photo OCR (live text) schema", () => {
+  // What PhotoSerializer.get_ocr emits for a photo with stored geometry.
+  const ocrPayload = {
+    text: "TOTAL 12.34",
+    blocks: [
+      {
+        text: "TOTAL 12.34",
+        box: [
+          [0.1, 0.1],
+          [0.6, 0.1],
+          [0.6, 0.2],
+          [0.1, 0.2],
+        ],
+        confidence: 0.95,
+      },
+    ],
+  };
+
+  test("accepts the serializer payload", () => {
+    const parsed = PhotoOcrData.parse(ocrPayload);
+    expect(parsed.blocks[0].box).toHaveLength(4);
+    expect(parsed.blocks[0].box[1]).toEqual([0.6, 0.1]);
+  });
+
+  test("accepts a legacy row: text without blocks", () => {
+    expect(PhotoOcrData.parse({ text: "legacy", blocks: [] }).blocks).toEqual([]);
+  });
+
+  test("rejects a box that is not a four-corner quad", () => {
+    const flatBox = { text: "x", blocks: [{ text: "x", box: [0, 0, 10, 10], confidence: 0.9 }] };
+    expect(PhotoOcrData.safeParse(flatBox).success).toBe(false);
+  });
+
+  test("Photo.ocr is optional (older backend) and nullable (no OCR row)", () => {
+    const schema = Photo.pick({ video: true, ocr: true });
+    expect(schema.parse({ video: false })).toEqual({ video: false });
+    expect(schema.parse({ video: false, ocr: null }).ocr).toBeNull();
+    expect(schema.parse({ video: false, ocr: ocrPayload }).ocr?.text).toBe("TOTAL 12.34");
   });
 });
 

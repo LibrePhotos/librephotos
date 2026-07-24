@@ -4,5 +4,6 @@ export * from "./ImagePreloader";
 export * from "./Lightbox";
 export * from "./LightboxControls";
 export * from "./MediaDisplay";
+export * from "./OcrTextOverlay";
 export * from "./ThumbnailNavigation";
 export * from "./lightbox.types";

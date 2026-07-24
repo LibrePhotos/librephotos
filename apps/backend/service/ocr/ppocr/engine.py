@@ -167,6 +167,8 @@ class PPOCREngine:
             return {
                 "text_area_fraction": area_fraction,
                 "box_count": len(boxes),
+                "image_width": width,
+                "image_height": height,
             }
 
         crops = [get_rotate_crop_image(image, box) for box in boxes]
@@ -198,4 +200,8 @@ class PPOCREngine:
             "blocks": ordered,
             "text_area_fraction": area_fraction,
             "mean_confidence": mean_confidence,
+            # Dimensions of the image the boxes are expressed in, so callers can
+            # normalize block geometry without re-reading the file.
+            "image_width": width,
+            "image_height": height,
         }

@@ -40,6 +40,8 @@ export function ContentViewer({
   const [playing, setPlaying] = useState(true);
   const [rotationAngle, setRotationAngle] = useState(0);
   const [imageCacheKey, setImageCacheKey] = useState(0);
+  // "Live text": overlay selectable OCR text on the photo
+  const [showOcrText, setShowOcrText] = useState(false);
   // Tracks whether we should skip the rotation CSS transition on next render
   // (used to silently reset angle to 0 once the server-rotated image has loaded)
   const [suppressRotationTransition, setSuppressRotationTransition] = useState(false);
@@ -72,6 +74,7 @@ export function ContentViewer({
     setSlideshowProgress(0);
     setRotationAngle(0);
     setImageCacheKey(0);
+    setShowOcrText(false);
     pendingRotationReset.current = false;
     setSuppressRotationTransition(false);
   }, [mainSrc]);
@@ -121,6 +124,13 @@ export function ContentViewer({
   // Toggle slideshow function
   const toggleSlideshow = useCallback(() => {
     setIsSlideshowActive(prev => !prev);
+  }, []);
+
+  const ocrBlocks = photoDetails?.ocr?.blocks;
+  const hasOcrText = type === "photo" && !!ocrBlocks && ocrBlocks.length > 0;
+
+  const toggleOcrText = useCallback(() => {
+    setShowOcrText(prev => !prev);
   }, []);
 
   // Re-enable the CSS rotation transition after we have silently snapped back to 0.
@@ -255,6 +265,7 @@ export function ContentViewer({
     ],
     ["g", toggleFullscreen], // Toggle fullscreen mode
     ["s", toggleSlideshow], // Toggle slideshow mode
+    ["t", () => hasOcrText && toggleOcrText()], // Toggle live text selection
   ]);
 
   const bind = useGesture({
@@ -338,6 +349,9 @@ export function ContentViewer({
               slideshowInterval={slideshowInterval}
               setSlideshowInterval={setLocalSlideshowInterval}
               slideshowProgress={slideshowProgress}
+              hasOcrText={hasOcrText}
+              showOcrText={showOcrText}
+              toggleOcrText={toggleOcrText}
             />
 
             {/* Main photo/video with swipe navigation */}
@@ -411,6 +425,8 @@ export function ContentViewer({
                         imageCacheKey={imageCacheKey}
                         suppressRotationTransition={suppressRotationTransition}
                         onImageLoad={handleImageLoad}
+                        ocrBlocks={ocrBlocks ?? undefined}
+                        showOcrText={showOcrText}
                         {...(photoDetails ? { photoDetails } : {})}
                       />
                     </motion.div>

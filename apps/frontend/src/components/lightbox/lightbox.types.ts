@@ -78,6 +78,10 @@ export type LightboxControlsProps = {
   slideshowInterval: number;
   setSlideshowInterval: (interval: number) => void;
   slideshowProgress: number; // 0-100 percentage for progress ring
+  // Live text (selectable OCR text overlay)
+  hasOcrText: boolean;
+  showOcrText: boolean;
+  toggleOcrText: () => void;
 };
 
 export type ThumbnailNavigationProps = {
