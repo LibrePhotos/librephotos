@@ -59,6 +59,16 @@ export function ShareSheet({
     }
   };
 
+  const revokePublic = async () => {
+    onClose();
+    try {
+      await endpoints.setPhotosPublic(client, imageHashes, false);
+      pushToast({ level: "info", message: t("sharing.shareSuccess") });
+    } catch {
+      pushToast({ level: "error", message: t("sharing.shareError") });
+    }
+  };
+
   return (
     <>
       <Modal visible={visible && !pickingUser} transparent animationType="slide" onRequestClose={onClose}>
@@ -76,8 +86,11 @@ export function ShareSheet({
             >
               <Text style={{ color: theme.text }}>{t("sharing.shareWith")}</Text>
             </Pressable>
-            <Pressable testID="share-public-link" onPress={makePublicAndCopy} style={{ paddingVertical: 14 }}>
+            <Pressable testID="share-public-link" onPress={makePublicAndCopy} style={{ paddingVertical: 14, borderBottomColor: theme.border, borderBottomWidth: 1 }}>
               <Text style={{ color: theme.text }}>{t("sharing.makePublic")}</Text>
+            </Pressable>
+            <Pressable testID="share-revoke-link" onPress={revokePublic} style={{ paddingVertical: 14 }}>
+              <Text style={{ color: theme.text }}>{t("sharing.makePrivate")}</Text>
             </Pressable>
             <Text style={{ color: theme.muted, fontSize: 12, marginTop: 4 }}>{t("sharing.publicNote")}</Text>
             <Pressable testID="share-sheet-cancel" onPress={onClose} style={{ paddingVertical: 14, alignItems: "center" }}>
