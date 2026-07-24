@@ -33,7 +33,7 @@ pyvips==3.1.1
 # (see renovate.json) so it can't re-collapse the split; bump it manually.
 scikit-learn==1.9.0; python_version >= "3.11"
 scikit-learn==1.7.2; python_version < "3.11"
-sentence_transformers==5.6.0
+sentence_transformers==5.6.1
 # timezonefinder: same py3.10 split as scikit-learn. 8.2.1+ require Python >= 3.11,
 # so the python_version < "3.11" pin must stay at 8.2.0 (last release supporting
 # py3.10) or the GPU build fails. Renovate is disabled for it (see renovate.json).
