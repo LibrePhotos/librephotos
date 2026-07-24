@@ -241,37 +241,45 @@ def _model_target_exists(model_folder, model):
     return True
 
 
+def _unpack_archive(archive_path, model_folder, model):
+    unpack_command = model["unpack-command"]
+    if unpack_command == "tar -zxC":
+        with tarfile.open(archive_path, mode="r:gz") as tar:
+            tar.extractall(path=model_folder)
+    elif unpack_command == "tar -xvf":
+        with tarfile.open(archive_path, mode="r:") as tar:
+            tar.extractall(path=model_folder)
+    elif unpack_command == "zip":
+        target_dir = model_folder / model["target-dir"]
+        target_dir.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(archive_path) as archive:
+            archive.extractall(path=target_dir)
+
+
 def download_model(model):
     model = model.copy()
     if not _is_model_selected(model):
         util.logger.info(f"Skipping unselected model {model['name']}")
         return
 
-    util.logger.info(f"Downloading model {model['name']}")
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
 
     if _model_target_exists(model_folder, model):
         util.logger.info(f"Model {model['name']} already downloaded")
         return
 
+    util.logger.info(f"Downloading model {model['name']}")
     target_path = _get_download_target(model_folder, model)
 
     _download_file(model["url"], target_path, model["name"])
 
-    if model["unpack-command"] == "tar -zxC":
-        with tarfile.open(target_path, mode="r:gz") as tar:
-            tar.extractall(path=model_folder)
-        os.remove(target_path)
-    if model["unpack-command"] == "tar -xvf":
-        with tarfile.open(target_path, mode="r:") as tar:
-            tar.extractall(path=model_folder)
-        os.remove(target_path)
-    if model["unpack-command"] == "zip":
-        target_dir = model_folder / model["target-dir"]
-        target_dir.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(target_path) as archive:
-            archive.extractall(path=target_dir)
-        os.remove(target_path)
+    if model["unpack-command"]:
+        try:
+            _unpack_archive(target_path, model_folder, model)
+        finally:
+            # Drop the archive whether or not extraction worked: a corrupt one
+            # left behind is never useful and would only be re-read next run.
+            Path(target_path).unlink(missing_ok=True)
 
     if model.get("additional_files"):
         for additional_file in model["additional_files"]:
@@ -285,34 +293,68 @@ def download_model(model):
 
 
 def _download_file(url, target_path, model_name):
-    """Helper function to download a single file with progress tracking"""
+    """Download a single file with progress tracking.
+
+    The download is streamed to a temporary sibling and only moved into place
+    once it completed successfully. Nothing that is not a fully downloaded file
+    ever reaches ``target_path``, so a failed transfer cannot leave behind a
+    corrupt archive or - worse, for models that are stored unpacked - a file
+    that later checks happily accept as an installed model.
+    """
     target_path = Path(target_path)
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    response = requests.get(url, stream=True, allow_redirects=True)
-    total_size = int(response.headers.get("content-length", 0))
-    block_size = 1024
-    current_progress = 0
-    previous_percentage = -1
+    partial_path = target_path.with_name(target_path.name + ".part")
 
-    with open(target_path, "wb") as target_file:
-        for chunk in response.iter_content(chunk_size=block_size):
-            if chunk:
-                target_file.write(chunk)
-                current_progress += len(chunk)
+    try:
+        with requests.get(url, stream=True, allow_redirects=True) as response:
+            # Error responses have a body too. Without this check a "404: Entry
+            # not found" page gets written out as if it were the model.
+            response.raise_for_status()
 
-                if total_size > 0:
-                    percentage = math.floor((current_progress / total_size) * 100)
+            total_size = int(response.headers.get("content-length", 0))
+            block_size = 1024
+            current_progress = 0
+            previous_percentage = -1
 
-                    if percentage != previous_percentage:
-                        util.logger.info(
-                            f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
-                        )
-                        previous_percentage = percentage
+            with open(partial_path, "wb") as target_file:
+                for chunk in response.iter_content(chunk_size=block_size):
+                    if chunk:
+                        target_file.write(chunk)
+                        current_progress += len(chunk)
 
-    if total_size == 0:
-        util.logger.info(
-            f"Downloaded {model_name}: {current_progress} bytes (size unknown during transfer)"
-        )
+                        if total_size > 0:
+                            percentage = math.floor(
+                                (current_progress / total_size) * 100
+                            )
+
+                            if percentage != previous_percentage:
+                                util.logger.info(
+                                    f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
+                                )
+                                previous_percentage = percentage
+
+            # content-length describes the encoded body, so it only bounds the
+            # bytes we wrote when requests did not decompress on the fly.
+            content_encoding = response.headers.get(
+                "content-encoding", "identity"
+            ).lower()
+            is_decoded = content_encoding not in ("", "identity")
+
+        if total_size > 0 and not is_decoded and current_progress != total_size:
+            raise OSError(
+                f"Incomplete download for {model_name}: got {current_progress} of "
+                f"{total_size} bytes from {url}"
+            )
+
+        if total_size == 0:
+            util.logger.info(
+                f"Downloaded {model_name}: {current_progress} bytes (size unknown during transfer)"
+            )
+
+        os.replace(partial_path, target_path)
+    except Exception:
+        partial_path.unlink(missing_ok=True)
+        raise
 
 
 def download_models(user):
@@ -326,9 +368,21 @@ def download_models(user):
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
     model_folder.mkdir(parents=True, exist_ok=True)
 
+    failures = []
     for idx, model in enumerate(ML_MODELS):
-        download_model(model)
+        try:
+            download_model(model)
+        except Exception as error:
+            # download_models is chained ahead of scans and setup steps, so a
+            # single unavailable model must not take the rest of the chain -
+            # or the job status - down with it.
+            util.logger.exception(f"Failed to download model {model['name']}")
+            failures.append(f"{model['name']}: {error}")
         lrj.update_progress(current=idx + 1)
+
+    if failures:
+        lrj.fail("Failed to download " + ", ".join(failures))
+        return
 
     lrj.complete()
 
