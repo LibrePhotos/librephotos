@@ -214,6 +214,23 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "face_recognition_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            # The InsightFace model packs carried by api.ml_models.ML_MODELS
+            # under MlTypes.FACE_RECOGNITION, labelled as the frontend's
+            # selector labels them (SiteSettings.tsx). There is no "none" entry:
+            # face recognition cannot be turned off from here.
+            "choices": (
+                ("buffalo_sc", "buffalo_sc (lightweight, default)"),
+                ("buffalo_s", "buffalo_s"),
+                ("buffalo_m", "buffalo_m"),
+                ("buffalo_l", "buffalo_l (most accurate)"),
+                ("antelopev2", "antelopev2"),
+            ),
+        },
+    ],
 }
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
