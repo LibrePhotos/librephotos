@@ -16,6 +16,6 @@ export * from "./schemas";
 export * from "./transport";
 export * as endpoints from "./endpoints";
 // Endpoint parameter types that callers need at the top level.
-export type { DateAlbumFilter } from "./endpoints";
+export type { DateAlbumFilter, SyncPullParams } from "./endpoints";
 export * from "./hooks";
 export * from "./media";

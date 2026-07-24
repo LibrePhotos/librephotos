@@ -209,3 +209,62 @@ export async function existsByHash(client: ApiClient, hashes: string[]): Promise
   const res = await client.post<unknown>("/photosonsale/exists", { hashes } satisfies S.ExistsRequest);
   return parseResponse(S.ExistsResponse, res, "exists check");
 }
+
+/* ---- delta sync (mobile-v2, backend api/views/sync.py) ----------------- */
+
+/** Pull parameters for a keyset-paginated delta feed. */
+export type SyncPullParams = {
+  /** Loop-continuation cursor (server `next_cursor`); omit/null for a seed pull. */
+  cursor?: string | null;
+  /** Page size (server caps at 1000). */
+  pageSize?: number;
+};
+
+function syncQuery(params: SyncPullParams): string {
+  return buildQuery({ cursor: params.cursor ?? undefined, page_size: params.pageSize });
+}
+
+export async function syncPhotos(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncPhotosResponse> {
+  const res = await client.get<unknown>(`/sync/photos/${syncQuery(params)}`);
+  return parseResponse(S.SyncPhotosResponse, res, "sync photos");
+}
+
+export async function syncPersons(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncPersonsResponse> {
+  const res = await client.get<unknown>(`/sync/persons/${syncQuery(params)}`);
+  return parseResponse(S.SyncPersonsResponse, res, "sync persons");
+}
+
+export async function syncUserAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncUserAlbumsResponse> {
+  const res = await client.get<unknown>(`/sync/albums/user/${syncQuery(params)}`);
+  return parseResponse(S.SyncUserAlbumsResponse, res, "sync user albums");
+}
+
+export async function syncAutoAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncAutoAlbumsResponse> {
+  const res = await client.get<unknown>(`/sync/albums/auto/${syncQuery(params)}`);
+  return parseResponse(S.SyncAutoAlbumsResponse, res, "sync auto albums");
+}
+
+export async function syncThingAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncThingAlbumsResponse> {
+  const res = await client.get<unknown>(`/sync/albums/thing/${syncQuery(params)}`);
+  return parseResponse(S.SyncThingAlbumsResponse, res, "sync thing albums");
+}
+
+export async function syncPlaceAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncPlaceAlbumsResponse> {
+  const res = await client.get<unknown>(`/sync/albums/place/${syncQuery(params)}`);
+  return parseResponse(S.SyncPlaceAlbumsResponse, res, "sync place albums");
+}
+
+export async function syncTagAlbums(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncTagAlbumsResponse> {
+  const res = await client.get<unknown>(`/sync/albums/tag/${syncQuery(params)}`);
+  return parseResponse(S.SyncTagAlbumsResponse, res, "sync tag albums");
+}
+
+export async function syncSharing(client: ApiClient, params: SyncPullParams = {}): Promise<S.SyncSharingResponse> {
+  const res = await client.get<unknown>(`/sync/sharing/${syncQuery(params)}`);
+  return parseResponse(S.SyncSharingResponse, res, "sync sharing");
+}
+
+export async function syncCounts(client: ApiClient): Promise<S.SyncCounts> {
+  const res = await client.get<unknown>("/sync/counts/");
+  return parseResponse(S.SyncCounts, res, "sync counts");
+}
