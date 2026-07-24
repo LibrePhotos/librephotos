@@ -1,5 +1,5 @@
-import { StubScreen } from "@/components/StubScreen";
+import { FilterScreen } from "@/features/photos/FilterScreen";
 
 export default function NotimestampRoute() {
-  return <StubScreen title="Notimestamp photos" />;
+  return <FilterScreen filter="notimestamp" title="No timestamp" />;
 }

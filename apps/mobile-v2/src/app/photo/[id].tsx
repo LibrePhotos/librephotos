@@ -1,9 +1,7 @@
-import { useLocalSearchParams } from "expo-router";
-import { StubScreen } from "@/components/StubScreen";
+import { PhotoViewerScreen } from "@/features/viewer/PhotoViewerScreen";
 
-// Full-screen photo viewer (modal). Full renditions, swiping, and actions land
-// in the feature-parity phase; today it confirms the modal route + param.
+// Full-screen viewer (modal). Pages over the timeline context from the mirror;
+// the detail sheet fetches photo detail cache-then-network. `id` = image hash.
 export default function PhotoViewerRoute() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  return <StubScreen title="Photo viewer" note={`image_hash: ${id}`} />;
+  return <PhotoViewerScreen />;
 }

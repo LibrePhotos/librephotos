@@ -10,6 +10,8 @@ import {
 import { I18nextProvider } from "react-i18next";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import i18n from "@/i18n";
+import { DbProvider, type DbChangeSubscribe } from "@/db/provider";
+import type { AppDatabase } from "@/db/types";
 
 /** A token supplier backed by a plain object for tests. */
 export function fakeTokens(access: string | null = "test-access", refresh: string | null = "test-refresh"): TokenSupplier {
@@ -59,4 +61,38 @@ export function renderWithProviders(ui: ReactElement, client: ApiClient) {
 /** JSON Response helper. */
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+}
+
+/**
+ * Render UI over a real (better-sqlite3) test database inside the DbProvider,
+ * plus the app providers with a mocked ApiClient. Lets screens that read synced
+ * entities render against the actual SQL. `subscribe` is a no-op — test data is
+ * static, so no live-query re-fire is needed.
+ */
+export function renderWithDb(
+  ui: ReactElement,
+  db: AppDatabase,
+  client: ApiClient = makeMockClient(async () => jsonResponse({}, 404))
+) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const subscribe: DbChangeSubscribe = () => () => {};
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 47, left: 0, right: 0, bottom: 34 },
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <ApiClientProvider client={client}>
+          <I18nextProvider i18n={i18n}>
+            <DbProvider db={db} subscribe={subscribe}>
+              {children}
+            </DbProvider>
+          </I18nextProvider>
+        </ApiClientProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
+  );
+  return render(ui, { wrapper: Wrapper });
 }

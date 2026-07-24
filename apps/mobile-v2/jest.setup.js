@@ -42,3 +42,14 @@ jest.mock("expo-image", () => {
   const { View } = require("react-native");
   return { Image: props => React.createElement(View, props) };
 });
+
+// expo-router → capture navigation without a router provider.
+const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
+jest.mock("expo-router", () => ({
+  useRouter: () => mockRouter,
+  useLocalSearchParams: () => globalThis.__mockSearchParams ?? {},
+  Link: ({ children }) => children,
+  Stack: Object.assign(() => null, { Screen: () => null, Protected: () => null }),
+  Tabs: Object.assign(() => null, { Screen: () => null }),
+}));
+globalThis.__mockRouter = mockRouter;

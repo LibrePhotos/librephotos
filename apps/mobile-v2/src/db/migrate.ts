@@ -6,7 +6,6 @@
  * every table is dropped and rebuilt from the migration SQL, then the preserved
  * rows are restored. The caller re-triggers a full seed afterward.
  */
-import { sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/expo-sqlite/migrator";
 import type { SQLiteDatabase } from "expo-sqlite";
 import type { AppDatabase } from "./types";
@@ -61,23 +60,4 @@ function restoreRows(sqlite: SQLiteDatabase, table: string, rows: Record<string,
   }
 }
 
-/** Clear only the mirror tables (used when favorite_min_rating changes → re-seed). */
-export function clearMirror(db: AppDatabase): void {
-  for (const table of [
-    "remote_photo",
-    "remote_photo_detail",
-    "person",
-    "user_album",
-    "user_album_photo",
-    "auto_album",
-    "auto_album_photo",
-    "thing_album",
-    "place_album",
-    "tag_album",
-    "shared_from_me",
-    "shared_user",
-  ]) {
-    db.run(sql.raw(`DELETE FROM ${table}`));
-  }
-  db.run(sql`DELETE FROM sync_state`);
-}
+export { clearMirror } from "./reset";

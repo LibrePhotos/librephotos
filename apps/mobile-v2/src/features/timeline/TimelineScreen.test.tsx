@@ -1,36 +1,39 @@
 import { waitFor } from "@testing-library/react-native";
 import { TimelineScreen } from "./TimelineScreen";
 import { useSettingsStore } from "@/stores/settings";
-import { jsonResponse, makeMockClient, renderWithProviders } from "@/test/test-utils";
+import { renderWithDb } from "@/test/test-utils";
+import { createTestDb, type TestDb } from "@/db/test-db";
+import { remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
 
-const RECENTLY_ADDED = {
-  date: "2024-06-15",
-  results: [
-    { id: "11111111-1111-1111-1111-111111111111", image_hash: "hashA", aspectRatio: 1.5, type: "image", rating: 0 },
-    { id: "22222222-2222-2222-2222-222222222222", image_hash: "hashB", aspectRatio: 1, type: "video", rating: 0 },
-  ],
-};
+const D = (y: number, m: number, d: number) => Date.UTC(y, m - 1, d);
 
-describe("TimelineScreen", () => {
+describe("TimelineScreen (SQLite live query)", () => {
+  let t: TestDb;
   beforeEach(() => {
     useSettingsStore.setState({ serverUrl: "https://test.local" });
+    t = createTestDb();
   });
+  afterEach(() => t.close());
 
-  it("fetches the timeline via the api-client hook and renders a photo grid", async () => {
-    const client = makeMockClient(async (url) => {
-      if (url.includes("/photos/recentlyadded/")) return jsonResponse(RECENTLY_ADDED);
-      return jsonResponse({}, 404);
-    });
+  it("renders day headers + tiles from the seeded mirror", async () => {
+    seedRemotePhotos(t.db, [
+      remotePhoto({ id: "a", imageHash: "hashA", timestamp: D(2024, 1, 3), bucketDay: "2024-01-03" }),
+      remotePhoto({ id: "b", imageHash: "hashB", timestamp: D(2024, 1, 2), bucketDay: "2024-01-02", type: "video" }),
+    ]);
 
-    const { getByTestId } = renderWithProviders(<TimelineScreen />, client);
+    const { getByTestId } = renderWithDb(<TimelineScreen />, t.db);
 
     expect(getByTestId("timeline-title")).toBeTruthy();
-
-    // Grid items appear once the query resolves.
     await waitFor(() => {
-      expect(getByTestId("photo-hashA")).toBeTruthy();
-      expect(getByTestId("thumb-hashA")).toBeTruthy();
-      expect(getByTestId("photo-hashB")).toBeTruthy();
+      expect(getByTestId("section-2024-01-03")).toBeTruthy();
+      expect(getByTestId("tile-a")).toBeTruthy();
+      expect(getByTestId("tile-b")).toBeTruthy();
+      expect(getByTestId("video-badge-b")).toBeTruthy();
     });
+  });
+
+  it("shows the empty state when the mirror has no photos", async () => {
+    const { getByTestId } = renderWithDb(<TimelineScreen />, t.db);
+    await waitFor(() => expect(getByTestId("timeline-empty")).toBeTruthy());
   });
 });

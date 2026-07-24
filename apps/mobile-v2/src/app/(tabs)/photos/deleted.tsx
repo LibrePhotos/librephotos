@@ -1,5 +1,5 @@
-import { StubScreen } from "@/components/StubScreen";
+import { FilterScreen } from "@/features/photos/FilterScreen";
 
 export default function DeletedRoute() {
-  return <StubScreen title="Deleted photos" />;
+  return <FilterScreen filter="deleted" title="Trash" />;
 }

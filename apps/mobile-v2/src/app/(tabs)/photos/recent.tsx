@@ -1,5 +1,5 @@
-import { StubScreen } from "@/components/StubScreen";
+import { FilterScreen } from "@/features/photos/FilterScreen";
 
 export default function RecentRoute() {
-  return <StubScreen title="Recent photos" />;
+  return <FilterScreen filter="recent" title="Recently added" />;
 }

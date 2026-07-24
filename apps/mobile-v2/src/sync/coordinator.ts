@@ -8,7 +8,7 @@ import type { ApiClient } from "@librephotos/api-client";
 import { endpoints } from "@librephotos/api-client";
 import type { AppDatabase } from "@/db/types";
 import { getSyncState } from "@/db/queries/sync-state";
-import { clearMirror } from "@/db/migrate";
+import { clearMirror } from "@/db/reset";
 import { seedAll, type SeedProgress } from "./remote/seed";
 import { createApiSeedSource } from "./remote/seed-source";
 

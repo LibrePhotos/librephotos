@@ -1,5 +1,5 @@
-import { StubScreen } from "@/components/StubScreen";
+import { FilterScreen } from "@/features/photos/FilterScreen";
 
 export default function HiddenRoute() {
-  return <StubScreen title="Hidden photos" />;
+  return <FilterScreen filter="hidden" title="Hidden" />;
 }

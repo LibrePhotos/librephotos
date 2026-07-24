@@ -1,5 +1,5 @@
-import { StubScreen } from "@/components/StubScreen";
+import { FilterScreen } from "@/features/photos/FilterScreen";
 
 export default function VideosRoute() {
-  return <StubScreen title="Videos photos" />;
+  return <FilterScreen filter="videos" title="Videos" />;
 }
