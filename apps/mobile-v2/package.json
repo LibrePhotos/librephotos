@@ -72,6 +72,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "lint": "eslint .",
+    "check": "npm run typecheck && npm run lint && npm run test",
     "db:generate": "drizzle-kit generate && node scripts/inline-migrations.mjs"
   },
   "private": true

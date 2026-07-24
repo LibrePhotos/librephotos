@@ -1,5 +1,9 @@
 # Root-level .gitignore. Each app keeps its own .gitignore for app-specific rules.
 
+# Dependencies (npm workspaces install into the root node_modules; the
+# root package-lock.json is tracked for reproducible installs).
+node_modules/
+
 # OS
 .DS_Store
 Thumbs.db
