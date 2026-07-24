@@ -10,8 +10,9 @@ import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import type { Schema } from "./schema";
 
 // `any` for the run-result type param: expo-sqlite and better-sqlite3 return
-// different run-result shapes, and the query layer never reads it.
-export type AppDatabase = BaseSQLiteDatabase<"sync", unknown, Schema>;
+// different run-result shapes and the query layer never reads it, so this is the
+// one structural type both driver instances satisfy.
+export type AppDatabase = BaseSQLiteDatabase<"sync", any, Schema>;
 
 /** A row of the merged timeline (remote UNION local-only), doc 02 §4. */
 export type MergedTimelineRow = {

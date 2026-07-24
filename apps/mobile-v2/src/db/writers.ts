@@ -8,10 +8,20 @@
  * (doc 02 §5).
  */
 import { sql } from "drizzle-orm";
+// Type-only import: erased at runtime so this DB layer never pulls the
+// api-client's React/query surface (keeps the Node test path React-free).
 import type { PigPhoto } from "@librephotos/api-client";
-import { imageHashOf } from "@librephotos/api-client";
 import type { AppDatabase } from "./types";
 import { bucketDayFromMs, bucketMonthFromMs, parseServerTimestamp } from "./time";
+
+/** Extract the image hash from a pig photo (handles the `;`-delimited `url`). */
+function imageHashOf(photo: Pick<PigPhoto, "image_hash" | "url">): string {
+  if (photo.url) {
+    const first = photo.url.split(";")[0];
+    if (first) return first;
+  }
+  return photo.image_hash;
+}
 
 export const BATCH_SIZE = 1000;
 

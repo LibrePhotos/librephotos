@@ -14,8 +14,10 @@
  *    are precomputed, both inside the writers.
  */
 import { sql } from "drizzle-orm";
+// Type-only imports: erased at runtime, so the seed orchestration stays free of
+// the api-client's React surface and is unit-tested under Node with a fake
+// source. The real api-client-backed source lives in ./seed-source (app-only).
 import type {
-  ApiClient,
   AutoAlbum,
   AutoAlbumInfo,
   DateAlbumFilter,
@@ -28,7 +30,6 @@ import type {
   UserAlbum,
   UserAlbumInfo,
 } from "@librephotos/api-client";
-import * as apiEndpoints from "@librephotos/api-client";
 import type { AppDatabase } from "@/db/types";
 import { parseServerTimestamp } from "@/db/time";
 import {
@@ -43,7 +44,7 @@ import {
   type MapOptions,
   type RemotePhotoInput,
 } from "@/db/writers";
-import { upsertSyncState, type SyncEntity } from "@/db/queries/sync-state";
+import { getSyncState, upsertSyncState, type SyncEntity } from "@/db/queries/sync-state";
 
 /** The data the seeder pulls, abstracted for injection/testing. */
 export interface SeedSource {
@@ -58,23 +59,6 @@ export interface SeedSource {
   thingAlbumsList(): Promise<AlbumInfo[]>;
   placeAlbumsList(): Promise<PlaceAlbumInfo[]>;
   tagAlbumsList(): Promise<TagListResponse["results"]>;
-}
-
-/** Build a SeedSource backed by the real api-client endpoints. */
-export function createApiSeedSource(client: ApiClient): SeedSource {
-  return {
-    dateAlbumsList: (filter) => apiEndpoints.endpoints.fetchDateAlbumsList(client, filter),
-    dateAlbum: (id, page, filter) => apiEndpoints.endpoints.fetchDateAlbum(client, id, page, filter),
-    photosWithoutTimestamp: (page) => apiEndpoints.endpoints.fetchPhotosWithoutTimestamp(client, page),
-    people: () => apiEndpoints.endpoints.fetchPeopleAlbums(client),
-    userAlbumsList: () => apiEndpoints.endpoints.fetchUserAlbumsList(client),
-    userAlbum: (id) => apiEndpoints.endpoints.fetchUserAlbum(client, id),
-    autoAlbumsList: () => apiEndpoints.endpoints.fetchAutoAlbumsList(client),
-    autoAlbum: (id) => apiEndpoints.endpoints.fetchAutoAlbum(client, id),
-    thingAlbumsList: () => apiEndpoints.endpoints.fetchThingAlbumsList(client),
-    placeAlbumsList: () => apiEndpoints.endpoints.fetchPlaceAlbumsList(client),
-    tagAlbumsList: () => apiEndpoints.endpoints.fetchTagAlbumsList(client),
-  };
 }
 
 export type SeedProgress = {
@@ -143,6 +127,13 @@ export async function seedPhotos(
   const maxPages = opts.maxPagesPerBucket ?? 50;
   let written = 0;
 
+  // Resume only an INTERRUPTED seed (status still "running"). A fresh re-seed
+  // (pull-to-refresh, status "done"/"idle"/absent) starts clean so it re-fetches
+  // every bucket and picks up server-side changes.
+  const prev = getSyncState(db, "photo");
+  const resuming = prev?.status === "running";
+  const done = new Set(resuming ? loadDoneBuckets(db) : []);
+
   // Compute the total up front for a determinate progress bar.
   const buckets: { pass: PhotoPass; bucket: IncompleteDatePhotosGroup }[] = [];
   for (const pass of PHOTO_PASSES) {
@@ -150,10 +141,13 @@ export async function seedPhotos(
     for (const bucket of list) buckets.push({ pass, bucket });
   }
   const total = buckets.reduce((acc, b) => acc + b.bucket.numberOfItems, 0);
-  upsertSyncState(db, "photo", { status: "running", progress_current: 0, progress_total: total });
+  upsertSyncState(db, "photo", {
+    status: "running",
+    cursor_id: JSON.stringify([...done]),
+    progress_current: written,
+    progress_total: total,
+  });
   opts.onProgress?.({ entity: "photo", current: 0, total });
-
-  const done = new Set(loadDoneBuckets(db));
   for (const { pass, bucket } of buckets) {
     const key = `${pass.name}:${bucket.id}`;
     if (done.has(key)) continue;
