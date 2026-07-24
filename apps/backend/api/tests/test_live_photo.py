@@ -205,6 +205,24 @@ class FindAppleLivePhotoVideoTestCase(TestCase):
         result = find_apple_live_photo_video(image_path)
         self.assertEqual(result, video_path)
 
+    def test_returns_companion_spelled_as_stored_on_disk(self):
+        """Should return the directory entry, not the constructed spelling.
+
+        The extension list is probed in a fixed case, but a case-insensitive
+        filesystem (Windows, macOS, an SMB mount) matches a candidate against a
+        file stored under a different spelling. The scanner records paths as
+        os.scandir reports them and File.path is unique, so returning the
+        constructed spelling would create a second File row for the same file.
+        """
+        image_path = os.path.join(self.temp_dir, "IMG_005.HEIC")
+        Path(image_path).touch()
+        Path(os.path.join(self.temp_dir, "IMG_005.MOV")).touch()
+
+        result = find_apple_live_photo_video(image_path)
+
+        self.assertIsNotNone(result)
+        self.assertIn(os.path.basename(result), os.listdir(self.temp_dir))
+
     def test_returns_none_when_no_companion(self):
         """Should return None if no companion video exists."""
         image_path = os.path.join(self.temp_dir, "IMG_003.jpg")

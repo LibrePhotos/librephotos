@@ -22,13 +22,8 @@ class TrashAPITest(TestCase):
         photo_to_delete.removed = False
         photo_to_delete.save()
 
-        print(f"Created test photo with hash: {photo_to_delete.image_hash}")
-        print(f"Photo in trashcan: {photo_to_delete.in_trashcan}")
-
         # Test the trash API endpoint
         response = self.client.get("/api/albums/date/list/?in_trashcan=true")
-
-        print(f"API Response Status: {response.status_code}")
 
         # Check that the API responds successfully
         self.assertEqual(response.status_code, 200)
@@ -38,23 +33,14 @@ class TrashAPITest(TestCase):
         # Check that we get the expected response structure
         self.assertIn("results", data)
 
-        print(f"Number of results: {len(data['results'])}")
-
         # Verify that we can call the API successfully
         # (We might not have trashed albums with photos, but the API should work)
         if data["results"]:
-            print("✅ Got album results - trash API is working")
             # If we have results, check the structure
             album = data["results"][0]
             self.assertIn("id", album)
             self.assertIn("date", album)
             self.assertIn("photo_count", album)
-        else:
-            print(
-                "ℹ️ Got empty results (no trashed albums with photos) - but API structure is correct"
-            )
-
-        print("✅ Trash API test completed successfully")
 
     def test_trash_api_without_folder_parameter(self):
         """Test that the trash API works correctly when no folder parameter is provided"""
@@ -69,5 +55,3 @@ class TrashAPITest(TestCase):
 
         # Check that we get the expected response structure
         self.assertIn("results", data)
-
-        print("✅ Trash API without folder parameter works correctly")

@@ -10,6 +10,7 @@ This module moves embedded media extraction from directory_watcher to
 a dedicated stacks-aware component for better organization.
 """
 
+import os
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -126,6 +127,41 @@ def extract_embedded_motion_video(path: str, output_hash: str) -> str | None:
         return None
 
 
+def _path_as_stored(candidate: Path) -> Path:
+    """
+    Return a path spelled the way the filesystem actually stores it.
+
+    ``Path.exists()`` matches case-insensitively on Windows, on macOS and on
+    case-insensitive mounts (an SMB share is a common scan directory), so a
+    candidate we built from an extension list can resolve to a file that is
+    stored under a different spelling. The scanner records paths exactly as
+    ``os.scandir`` reports them and ``File.path`` is unique, so handing back
+    the constructed spelling would create a second File row for a file that is
+    already known.
+
+    Args:
+        candidate: Path that is known to exist
+
+    Returns:
+        The matching directory entry, or ``candidate`` unchanged if the real
+        spelling cannot be determined
+    """
+    try:
+        entries = os.listdir(candidate.parent)
+    except OSError:
+        return candidate
+
+    if candidate.name in entries:
+        return candidate
+
+    folded = candidate.name.casefold()
+    for entry in entries:
+        if entry.casefold() == folded:
+            return candidate.with_name(entry)
+
+    return candidate
+
+
 def find_apple_live_photo_video(image_path: str) -> str | None:
     """
     Find the companion .mov file for an Apple Live Photo.
@@ -137,7 +173,8 @@ def find_apple_live_photo_video(image_path: str) -> str | None:
         image_path: Path to the image file
 
     Returns:
-        Path to companion video file, or None if not found
+        Path to the companion video file as it is spelled on disk, or None if
+        not found
     """
     base_path = Path(image_path)
     stem = base_path.stem
@@ -146,7 +183,7 @@ def find_apple_live_photo_video(image_path: str) -> str | None:
     for ext in APPLE_LIVE_PHOTO_EXTENSIONS:
         video_path = parent / f"{stem}{ext}"
         if video_path.exists():
-            return str(video_path)
+            return str(_path_as_stored(video_path))
 
     return None
 
