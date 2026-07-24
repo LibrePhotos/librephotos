@@ -165,6 +165,25 @@ export const PhotoMetadataSummary = z.object({
 });
 export type PhotoMetadataSummary = z.infer<typeof PhotoMetadataSummary>;
 
+// One recognized OCR text block. `box` holds the four [x, y] quad corners in
+// clockwise order starting top-left, normalized to [0, 1] of the OCR source
+// image — multiply by the displayed media size to lay the block over any
+// rendition of the photo (they all share the same aspect ratio).
+export const PhotoOcrBlock = z.object({
+  text: z.string(),
+  box: z.number().array().length(2).array().length(4),
+  confidence: z.number().nullable().optional(),
+});
+export type PhotoOcrBlock = z.infer<typeof PhotoOcrBlock>;
+
+// OCR payload on the photo details response. `blocks` is empty when the row
+// predates geometry storage (text was extracted, but no overlay is possible).
+export const PhotoOcrData = z.object({
+  text: z.string(),
+  blocks: PhotoOcrBlock.array(),
+});
+export type PhotoOcrData = z.infer<typeof PhotoOcrData>;
+
 export const Photo = z.object({
   id: z.string().uuid(),
   camera: z.string().nullable(),
@@ -217,6 +236,9 @@ export const Photo = z.object({
     .lazy(() => PhotoMetadataSummary)
     .nullable()
     .optional(),
+  // OCR text + normalized block geometry; null when the photo has no OCR row,
+  // absent on older backends.
+  ocr: PhotoOcrData.nullable().optional(),
 });
 export type Photo = z.infer<typeof Photo>;
 

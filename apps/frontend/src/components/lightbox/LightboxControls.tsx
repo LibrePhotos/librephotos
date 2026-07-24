@@ -11,6 +11,7 @@ import {
   IconRotate2 as RotateCCW,
   IconRotateClockwise2 as RotateCW,
   IconStar as Star,
+  IconTextRecognition as TextRecognition,
   IconTrash as Trash,
   IconX as X,
   IconZoomIn as ZoomIn,
@@ -57,6 +58,9 @@ export function LightboxControls({
   slideshowInterval,
   setSlideshowInterval,
   slideshowProgress,
+  hasOcrText,
+  showOcrText,
+  toggleOcrText,
 }: LightboxControlsProps) {
   const { t } = useTranslation();
 
@@ -206,8 +210,19 @@ export function LightboxControls({
 
       <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
 
-      {/* Group 2: View controls - Zoom & Fullscreen */}
+      {/* Group 2: View controls - Live text, Zoom & Fullscreen */}
       <Group gap={4} align="center">
+        {hasOcrText && (
+          <Tooltip
+            label={showOcrText ? t("lightbox.controls.livetextoff") : t("lightbox.controls.livetext")}
+            position="bottom"
+            withArrow
+          >
+            <ActionIcon variant="subtle" color={showOcrText ? "blue" : "gray"} onClick={toggleOcrText} size={28}>
+              <TextRecognition size={18} />
+            </ActionIcon>
+          </Tooltip>
+        )}
         {enableZoom && type === "photo" && (
           <Tooltip label={t("lightbox.controls.zoom")} position="bottom" withArrow>
             <ActionIcon variant="subtle" color="gray" onClick={toggleZoom} size={28}>

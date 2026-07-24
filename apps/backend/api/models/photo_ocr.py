@@ -25,6 +25,11 @@ class PhotoOcr(models.Model):
     # exceeds ~2704 bytes. Full-text search over OCR text comes later via FTS.
     text = models.TextField(blank=True, null=True)
     blocks = models.JSONField(default=list, blank=True)
+    # Pixel dimensions of the image the block boxes are expressed in (the OCR
+    # source: original file or big thumbnail). Needed to normalize the geometry
+    # for display; null for rows stored before these fields existed.
+    source_width = models.PositiveIntegerField(null=True, blank=True)
+    source_height = models.PositiveIntegerField(null=True, blank=True)
     engine = models.CharField(max_length=64, blank=True, default="")
     mean_confidence = models.FloatField(null=True, blank=True)
     text_area_fraction = models.FloatField(null=True, blank=True)

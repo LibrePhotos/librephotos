@@ -1,4 +1,4 @@
-"""OCR text is searchable, owner-scoped, and never leaks through the API.
+"""OCR text is searchable, owner-scoped, and only the owner's detail view serves it.
 
 Work package B/4. These tests run on SQLite (the CI backend), so they exercise
 the ``ocr__text__icontains`` fallback path of the OCR search integration in
@@ -118,9 +118,20 @@ class OcrSearchTest(TestCase):
 
 
 class OcrPrivacyTest(TestCase):
-    """OCR text must never be serialized to any API surface."""
+    """OCR text reaches exactly one API surface: the owner's photo detail.
+
+    OCR text is privacy-sensitive (receipts, letters, IDs). The "live text"
+    overlay needs it on the detail endpoint, but only for the photo's owner —
+    the same endpoint also answers for shared and public photos (anonymously,
+    even), and those viewers must never receive the extracted text. Search and
+    every other serializer keep excluding it entirely.
+    """
 
     SENTINEL = "topsecret invoice total 42.99 acct 8891"
+
+    # The single serializer allowed to expose OCR; its get_ocr gates on the
+    # requesting user being the photo's owner.
+    ALLOWED_SERIALIZERS = {"PhotoSerializer"}
 
     def setUp(self):
         self.user = create_test_user()
@@ -138,15 +149,35 @@ class OcrPrivacyTest(TestCase):
         self.assertNotIn("topsecret", resp.content.decode())
         self.assertNotIn(self.SENTINEL, resp.content.decode())
 
-    def test_photo_detail_excludes_ocr_text(self):
+    def test_photo_detail_includes_ocr_text_for_owner(self):
         resp = self.client.get(f"/api/photos/{self.photo.image_hash}/")
         self.assertEqual(resp.status_code, 200)
-        self.assertNotIn("topsecret", resp.content.decode())
-        self.assertNotIn(self.SENTINEL, resp.content.decode())
+        self.assertEqual(resp.json()["ocr"]["text"], self.SENTINEL)
 
-    def test_no_serializer_declares_ocr_field(self):
+    def test_photo_detail_excludes_ocr_text_for_shared_viewer(self):
+        viewer = create_test_user()
+        self.photo.shared_to.add(viewer)
+        client = APIClient()
+        client.force_authenticate(user=viewer)
+
+        resp = client.get(f"/api/photos/{self.photo.image_hash}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.json()["ocr"])
+        self.assertNotIn("topsecret", resp.content.decode())
+
+    def test_photo_detail_excludes_ocr_text_for_anonymous_public_viewer(self):
+        self.photo.public = True
+        self.photo.save()
+
+        resp = APIClient().get(f"/api/photos/{self.photo.image_hash}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.json()["ocr"])
+        self.assertNotIn("topsecret", resp.content.decode())
+
+    def test_no_other_serializer_declares_ocr_field(self):
         # Statically walk every serializer class in api.serializers and assert
-        # none names an "ocr" field (guards against a future accidental add).
+        # none but the allowlisted owner-gated one names an "ocr" field (guards
+        # against a future accidental add).
         offenders = []
         for module_info in pkgutil.iter_modules(serializers_pkg.__path__):
             module = importlib.import_module(
@@ -157,6 +188,8 @@ class OcrPrivacyTest(TestCase):
                 if not isinstance(attr, type) or not issubclass(
                     attr, serializers.BaseSerializer
                 ):
+                    continue
+                if attr.__name__ in self.ALLOWED_SERIALIZERS:
                     continue
                 meta = getattr(attr, "Meta", None)
                 fields = getattr(meta, "fields", None)

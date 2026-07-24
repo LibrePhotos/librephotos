@@ -502,7 +502,9 @@
       "zoom": "Zoom (Z)",
       "close": "Close (Escape)",
       "slideshow": "Slideshow (S)",
-      "stopslideshow": "Stop Slideshow (S)"
+      "stopslideshow": "Stop Slideshow (S)",
+      "livetext": "Select text in photo (T)",
+      "livetextoff": "Stop selecting text (T)"
     },
     "toolbar": {
       "pauseVideo": "Pause video (Space)",

@@ -1,7 +1,9 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { serverAddress } from "../../api_client/apiClient";
+import type { PhotoOcrBlock } from "../../api_client/photos/types";
 import { FaceOverlay } from "./FaceOverlay";
 import type { FaceLocationType } from "./lightbox.types";
+import { OcrTextOverlay } from "./OcrTextOverlay";
 import { VideoPlayer } from "./VideoPlayer";
 
 export type MediaDisplayProps = {
@@ -23,6 +25,8 @@ export type MediaDisplayProps = {
   imageCacheKey?: number;
   suppressRotationTransition?: boolean;
   onImageLoad?: () => void;
+  ocrBlocks?: PhotoOcrBlock[];
+  showOcrText?: boolean;
 };
 
 export function MediaDisplay({
@@ -44,8 +48,18 @@ export function MediaDisplay({
   imageCacheKey = 0,
   suppressRotationTransition = false,
   onImageLoad,
+  ocrBlocks,
+  showOcrText = false,
 }: MediaDisplayProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
+  // Natural pixel size of the loaded image; drives the OCR overlay's aspect
+  // ratio and is reset while a different image is loading.
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+
+  const mediaKey = `${image_hash || id}-${imageCacheKey}`;
+  useEffect(() => {
+    setNaturalSize(null);
+  }, [mediaKey]);
 
   if (!id) return null;
 
@@ -99,6 +113,18 @@ export function MediaDisplay({
       ? `${serverAddress}/media/photos/${mediaHash}${cacheBustingParam}`
       : `${serverAddress}/media/thumbnails_big/${mediaHash}${cacheBustingParam}`;
 
+  const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = event.currentTarget;
+    setNaturalSize({ width: naturalWidth, height: naturalHeight });
+    if (isMainContent) onImageLoad?.();
+  };
+
+  // Shared by the image and the OCR overlay so the selectable text tracks
+  // zoom, pan and rotation exactly.
+  const mainTransition = isMainContent && !suppressRotationTransition ? "transform 0.3s ease-out" : "none";
+  const mainTransform = isMainContent
+    ? `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotationAngle}deg)`
+    : "none";
   return (
     <div
       {...(isMainContent && bind ? bind() : {})}
@@ -120,12 +146,13 @@ export function MediaDisplay({
           loading="eager"
           onDragStart={handleDragStart}
           onDoubleClick={isMainContent && toggleZoom ? toggleZoom : undefined}
-          onLoad={isMainContent ? onImageLoad : undefined}
+          onLoad={handleLoad}
           style={{
-            transition: isMainContent && !suppressRotationTransition ? "transform 0.3s ease-out" : "none",
-            transform: isMainContent
-              ? `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotationAngle}deg)`
-              : "none",
+            transition: mainTransition,
+            transform: mainTransform,
+            // Block display so the wrapper matches the image exactly — the
+            // inline baseline gap would offset the overlays a few pixels.
+            display: "block",
             maxHeight: "82vh",
             maxWidth: "100%",
             borderRadius: 8,
@@ -135,6 +162,19 @@ export function MediaDisplay({
             boxShadow: isMainContent ? "0 4px 16px rgba(0,0,0,0.1)" : "none",
           }}
         />
+        {isMainContent && showOcrText && ocrBlocks && ocrBlocks.length > 0 && naturalSize && naturalSize.width > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              transition: mainTransition,
+              transform: mainTransform,
+              willChange: "transform",
+            }}
+          >
+            <OcrTextOverlay blocks={ocrBlocks} aspectRatio={naturalSize.height / naturalSize.width} />
+          </div>
+        )}
         {isMainContent && faceLocation && <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />}
       </div>
     </div>

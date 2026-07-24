@@ -44,7 +44,9 @@ class _SyncAsyncTask:
         return self.func(*self.args, **self.kwargs)
 
 
-def _ok_response(text="hello world", blocks=None, mean_conf=0.91, area=0.12):
+def _ok_response(
+    text="hello world", blocks=None, mean_conf=0.91, area=0.12, width=200, height=100
+):
     response = MagicMock()
     response.ok = True
     response.status_code = 201
@@ -55,6 +57,8 @@ def _ok_response(text="hello world", blocks=None, mean_conf=0.91, area=0.12):
         else [{"text": "hello", "box": [0, 0, 10, 10], "confidence": 0.9}],
         "mean_confidence": mean_conf,
         "text_area_fraction": area,
+        "image_width": width,
+        "image_height": height,
     }
     return response
 
@@ -163,6 +167,8 @@ class GenerateOcrWorkerTest(TestCase):
         self.assertEqual(ocr.blocks[0]["text"], "hello")
         self.assertAlmostEqual(ocr.mean_confidence, 0.91)
         self.assertAlmostEqual(ocr.text_area_fraction, 0.12)
+        self.assertEqual(ocr.source_width, 200)
+        self.assertEqual(ocr.source_height, 100)
 
         job = LongRunningJob.objects.get(job_id=str(job_id))
         self.assertTrue(job.finished)
@@ -215,6 +221,141 @@ class GenerateOcrWorkerTest(TestCase):
         job = LongRunningJob.objects.get(job_id=str(job_id))
         self.assertEqual(job.result.get("error_count"), 1)
         self.assertTrue(job.finished)
+
+
+class PhotoSerializerOcrFieldTest(TestCase):
+    """The ``ocr`` field on PhotoSerializer: owner-gated, normalized geometry.
+
+    The owner/other-viewer gating at the API level is covered by
+    ``api.tests.test_ocr_search.OcrPrivacyTest``; here the serializer method is
+    exercised directly with a stub request in the context.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.photo = create_test_photo(owner=self.user)
+
+    def _serialize_ocr(self, user=None):
+        from types import SimpleNamespace
+
+        from api.serializers.photos import PhotoSerializer
+
+        request = SimpleNamespace(user=user if user is not None else self.user)
+        return PhotoSerializer(context={"request": request}).get_ocr(self.photo)
+
+    def test_no_ocr_row_serializes_as_none(self):
+        self.assertIsNone(self._serialize_ocr())
+
+    def test_without_request_context_serializes_as_none(self):
+        from api.serializers.photos import PhotoSerializer
+
+        PhotoOcr.objects.create(photo=self.photo, text="hi", engine=ACTIVE_MODEL)
+        self.assertIsNone(PhotoSerializer().get_ocr(self.photo))
+
+    def test_non_owner_gets_none(self):
+        PhotoOcr.objects.create(photo=self.photo, text="hi", engine=ACTIVE_MODEL)
+        other = create_test_user()
+        self.assertIsNone(self._serialize_ocr(user=other))
+
+    def test_blocks_normalized_to_unit_square(self):
+        PhotoOcr.objects.create(
+            photo=self.photo,
+            text="hello",
+            blocks=[
+                {
+                    "text": "hello",
+                    "box": [[0, 0], [100, 0], [100, 25], [0, 25]],
+                    "confidence": 0.9,
+                }
+            ],
+            source_width=200,
+            source_height=100,
+            engine=ACTIVE_MODEL,
+        )
+        data = self._serialize_ocr()
+        self.assertEqual(data["text"], "hello")
+        self.assertEqual(len(data["blocks"]), 1)
+        block = data["blocks"][0]
+        self.assertEqual(block["text"], "hello")
+        self.assertEqual(block["confidence"], 0.9)
+        self.assertEqual(
+            block["box"], [[0.0, 0.0], [0.5, 0.0], [0.5, 0.25], [0.0, 0.25]]
+        )
+
+    def test_out_of_bounds_coordinates_are_clamped(self):
+        PhotoOcr.objects.create(
+            photo=self.photo,
+            text="edge",
+            blocks=[
+                {
+                    "text": "edge",
+                    "box": [[-5, -5], [250, -5], [250, 110], [-5, 110]],
+                    "confidence": 0.8,
+                }
+            ],
+            source_width=200,
+            source_height=100,
+            engine=ACTIVE_MODEL,
+        )
+        block = self._serialize_ocr()["blocks"][0]
+        self.assertEqual(block["box"], [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]])
+
+    def test_legacy_row_without_dimensions_has_text_but_no_blocks(self):
+        PhotoOcr.objects.create(
+            photo=self.photo,
+            text="legacy text",
+            blocks=[
+                {
+                    "text": "legacy",
+                    "box": [[0, 0], [10, 0], [10, 5], [0, 5]],
+                    "confidence": 0.7,
+                }
+            ],
+            engine=ACTIVE_MODEL,
+        )
+        data = self._serialize_ocr()
+        self.assertEqual(data["text"], "legacy text")
+        self.assertEqual(data["blocks"], [])
+
+    def test_malformed_blocks_are_skipped(self):
+        PhotoOcr.objects.create(
+            photo=self.photo,
+            text="ok",
+            blocks=[
+                {"text": "no box", "confidence": 0.9},
+                {"text": "bad box", "box": [0, 0, 10, 10], "confidence": 0.9},
+                {"text": "", "box": [[0, 0], [1, 0], [1, 1], [0, 1]]},
+                "not even a dict",
+                {
+                    "text": "good",
+                    "box": [[0, 0], [20, 0], [20, 10], [0, 10]],
+                    "confidence": 0.95,
+                },
+            ],
+            source_width=200,
+            source_height=100,
+            engine=ACTIVE_MODEL,
+        )
+        blocks = self._serialize_ocr()["blocks"]
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0]["text"], "good")
+
+    def test_full_serializer_includes_ocr_field(self):
+        from types import SimpleNamespace
+
+        from api.serializers.photos import PhotoSerializer
+
+        PhotoOcr.objects.create(
+            photo=self.photo,
+            text="hello",
+            blocks=[],
+            source_width=200,
+            source_height=100,
+            engine=ACTIVE_MODEL,
+        )
+        context = {"request": SimpleNamespace(user=self.user)}
+        data = PhotoSerializer(self.photo, context=context).data
+        self.assertEqual(data["ocr"], {"text": "hello", "blocks": []})
 
 
 @override_config(OCR_MODEL=ACTIVE_MODEL)

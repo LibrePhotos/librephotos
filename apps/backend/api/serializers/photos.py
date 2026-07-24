@@ -10,6 +10,7 @@ from api.image_similarity import search_similar_image
 from api.models import AlbumDate, File, Photo
 from api.models.album_place import get_album_place
 from api.models.photo_metadata import PhotoMetadata
+from api.models.photo_ocr import PhotoOcr
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.simple import SimpleUserSerializer
 
@@ -352,6 +353,8 @@ class PhotoSerializer(serializers.ModelSerializer):
     stacks = serializers.SerializerMethodField()
     # Structured metadata with edit history support
     metadata = serializers.SerializerMethodField()
+    # OCR text and normalized block geometry for the "live text" overlay
+    ocr = serializers.SerializerMethodField()
 
     # Backwards-compatible fields from PhotoMetadata (for API compatibility)
     height = serializers.SerializerMethodField()
@@ -409,6 +412,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "file_variants",
             "stacks",
             "metadata",
+            "ocr",
             "local_orientation",
         )
 
@@ -460,6 +464,60 @@ class PhotoSerializer(serializers.ModelSerializer):
     def get_subjectDistance(self, obj) -> float | None:
         # Not stored in PhotoMetadata (rarely used field)
         return None
+
+    def get_ocr(self, obj) -> dict | None:
+        """OCR text plus block geometry normalized to [0, 1], owner-only.
+
+        OCR text is privacy-sensitive (receipts, letters, IDs), so it is served
+        exclusively to the photo's owner: the detail endpoint also answers for
+        shared and public photos (even anonymously), and those viewers must not
+        receive the extracted text. Without a request in the serializer context
+        the owner cannot be verified, so nothing is exposed.
+
+        The stored boxes are pixel coordinates in the OCR source image (the
+        original file or the big thumbnail, whichever was fed to the sidecar).
+        Both share the photo's aspect ratio, so dividing by the stored source
+        dimensions yields display-agnostic fractions the frontend can lay over
+        any rendition. Rows written before the dimensions were stored get their
+        text but no blocks (no overlay is possible without a reference frame).
+        """
+        request = self.context.get("request")
+        if request is None or request.user != obj.owner:
+            return None
+
+        try:
+            ocr = obj.ocr
+        except PhotoOcr.DoesNotExist:
+            return None
+
+        blocks = []
+        width = ocr.source_width or 0
+        height = ocr.source_height or 0
+        if width > 0 and height > 0 and isinstance(ocr.blocks, list):
+            for block in ocr.blocks:
+                box = block.get("box") if isinstance(block, dict) else None
+                text = block.get("text") if isinstance(block, dict) else None
+                if not text or not isinstance(box, list) or len(box) != 4:
+                    continue
+                try:
+                    normalized = [
+                        [
+                            min(1.0, max(0.0, float(x) / width)),
+                            min(1.0, max(0.0, float(y) / height)),
+                        ]
+                        for x, y in box
+                    ]
+                except (TypeError, ValueError):
+                    continue
+                blocks.append(
+                    {
+                        "text": text,
+                        "box": normalized,
+                        "confidence": block.get("confidence"),
+                    }
+                )
+
+        return {"text": ocr.text or "", "blocks": blocks}
 
     def get_similar_photos(self, obj) -> list:
         res = search_similar_image(obj.owner, obj, threshold=90)
