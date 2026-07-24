@@ -15,8 +15,10 @@ from django.db.models import Q
 from django_q.tasks import AsyncTask
 
 from api import util
+from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.models import Face, LongRunningJob, Photo
+from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
 from api.directory_watcher.utils import (
@@ -303,6 +305,55 @@ def generate_ocr_job(photo: Photo, job_id: str):
     update_scan_counter(job_id, failed, error)
 
 
+def _get_photo_ocr(photo: Photo):
+    """Return the photo's :class:`PhotoOcr`, or ``None`` if it has none.
+
+    The reverse one-to-one accessor raises when no row exists, so it is guarded.
+    When the caller has ``select_related("ocr")`` this touches no extra query.
+    """
+    try:
+        return photo.ocr
+    except PhotoOcr.DoesNotExist:
+        return None
+
+
+def _siglip_labels_for_photo(photo: Photo) -> set[str]:
+    """Return the lower-cased SigLIP 2 tag labels attached to ``photo``.
+
+    SigLIP tags are stored as :class:`~api.models.album_thing.AlbumThing` rows
+    (``thing_type="siglip2_tag"``) linked to the photo through the ``photos``
+    M2M. Only the labels the document detector cares about are relevant, but we
+    return them all lower-cased and let the detector intersect -- the set is
+    tiny (a handful of tags per photo).
+    """
+    titles = AlbumThing.objects.filter(
+        photos=photo, thing_type="siglip2_tag"
+    ).values_list("title", flat=True)
+    return {title.lower() for title in titles if title}
+
+
+def _derive_is_document(
+    photo: Photo, ocr_text: str | None, text_area_fraction: float | None
+) -> bool:
+    """Re-derive and persist ``photo.is_document`` from its current evidence.
+
+    Skips photos the user has manually corrected (``category_source == "user"``)
+    and only writes when the derived value actually changed, via a targeted
+    ``save(update_fields=["is_document"])``. Returns the value in force after the
+    call (unchanged for user-corrected photos).
+    """
+    if photo.category_source == "user":
+        return photo.is_document
+
+    new_value = classify_document(
+        ocr_text, text_area_fraction, _siglip_labels_for_photo(photo)
+    )
+    if new_value != photo.is_document:
+        photo.is_document = new_value
+        photo.save(update_fields=["is_document"])
+    return new_value
+
+
 def _run_ocr_for_photo(photo: Photo):
     """Call the OCR sidecar for ``photo`` and persist the result.
 
@@ -336,18 +387,27 @@ def _run_ocr_for_photo(photo: Photo):
         )
 
     data = response.json()
+    ocr_text = data.get("text", "") or ""
+    text_area_fraction = data.get("text_area_fraction")
 
     # update_or_create runs PhotoOcr.save(), which applies the text/blocks caps.
     PhotoOcr.objects.update_or_create(
         photo=photo,
         defaults={
-            "text": data.get("text", "") or "",
+            "text": ocr_text,
             "blocks": data.get("blocks", []) or [],
             "engine": ocr_model,
             "mean_confidence": data.get("mean_confidence"),
-            "text_area_fraction": data.get("text_area_fraction"),
+            "text_area_fraction": text_area_fraction,
         },
     )
+
+    # Derive the document category from the fresh OCR evidence + SigLIP labels
+    # (unless the user has pinned the category). The text cap (20k chars) never
+    # affects the decision -- the thresholds are tens of chars -- so the raw
+    # service text is safe to classify on.
+    _derive_is_document(photo, ocr_text, text_area_fraction)
+
     # Note: OCR text is not folded into PhotoSearch.recreate_search_captions yet
     # -- indexing OCR text for search is a separate work package.
     util.logger.info(
@@ -361,9 +421,13 @@ def classify_media(user, job_id: UUID):
     Backfill media-category flags (screenshot/document) for a user's photos.
 
     Unlike the tag/geolocation jobs the per-photo work is DB-only: it runs the
-    pure :func:`api.screenshot_detection.classify` heuristic and writes the
-    result back in batches. No service calls, thumbnails or file reads. Photos a
-    user has manually corrected (``category_source == "user"``) are left alone.
+    pure :func:`api.screenshot_detection.classify` heuristic (``is_screenshot``)
+    and, for photos that already carry an OCR row, the pure
+    :func:`api.document_detection.classify_document` heuristic (``is_document``),
+    then writes the results back in batches. No service calls, thumbnails or file
+    reads. Photos a user has manually corrected (``category_source == "user"``)
+    are left alone. Photos without an OCR row keep their existing ``is_document``
+    (screenshot logic is unchanged for them).
 
     Args:
         user: The user whose photos to classify
@@ -382,8 +446,12 @@ def classify_media(user, job_id: UUID):
     BATCH_SIZE = 200
 
     try:
-        existing_photos = Photo.objects.filter(owner=user.id).exclude(
-            category_source="user"
+        # select_related the OCR row so the per-photo is_document derivation does
+        # not issue an extra query just to discover whether OCR exists.
+        existing_photos = (
+            Photo.objects.filter(owner=user.id)
+            .exclude(category_source="user")
+            .select_related("ocr")
         )
 
         target = existing_photos.count()
@@ -395,7 +463,20 @@ def classify_media(user, job_id: UUID):
         lrj.update_progress(current=0, target=target)
         db.connections.close_all()
 
-        pending = []
+        # Two accumulators: is_document is only ever written for photos whose
+        # value actually changed (which implies they have OCR), so OCR-less
+        # photos' is_document column is never touched.
+        pending_screenshot = []
+        pending_document = []
+
+        def flush():
+            if pending_screenshot:
+                Photo.objects.bulk_update(pending_screenshot, ["is_screenshot"])
+                pending_screenshot.clear()
+            if pending_document:
+                Photo.objects.bulk_update(pending_document, ["is_document"])
+                pending_document.clear()
+
         for idx, photo in enumerate(existing_photos.iterator()):
             # Check for cancellation periodically
             if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
@@ -404,13 +485,24 @@ def classify_media(user, job_id: UUID):
             failed = False
             error = None
             try:
-                new_value = classify(photo)
-                if new_value != photo.is_screenshot:
-                    photo.is_screenshot = new_value
-                    pending.append(photo)
-                if len(pending) >= BATCH_SIZE:
-                    Photo.objects.bulk_update(pending, ["is_screenshot"])
-                    pending = []
+                new_screenshot = classify(photo)
+                if new_screenshot != photo.is_screenshot:
+                    photo.is_screenshot = new_screenshot
+                    pending_screenshot.append(photo)
+
+                ocr = _get_photo_ocr(photo)
+                if ocr is not None:
+                    new_document = classify_document(
+                        ocr.text,
+                        ocr.text_area_fraction,
+                        _siglip_labels_for_photo(photo),
+                    )
+                    if new_document != photo.is_document:
+                        photo.is_document = new_document
+                        pending_document.append(photo)
+
+                if len(pending_screenshot) + len(pending_document) >= BATCH_SIZE:
+                    flush()
             except Exception as err:
                 util.logger.exception("An error occurred: ")
                 print(f"[ERR]: {err}")
@@ -421,8 +513,7 @@ def classify_media(user, job_id: UUID):
                 error = error_msg
             update_scan_counter(job_id, failed, error)
 
-        if pending:
-            Photo.objects.bulk_update(pending, ["is_screenshot"])
+        flush()
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
