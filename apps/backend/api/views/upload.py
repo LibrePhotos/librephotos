@@ -19,9 +19,37 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api import util
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
+from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
 from api.models import Photo, User
 from api.models.file import calculate_hash, calculate_hash_b64
 from api.models.photo_caption import PhotoCaption
+
+
+def parse_device_timestamp(raw):
+    """Parse a client-supplied timestamp (doc 04 §5).
+
+    Accepts either epoch milliseconds (int/str) or an ISO-8601 string. Returns
+    a timezone-aware UTC ``datetime`` or ``None`` when absent/unparseable.
+    """
+    if raw in (None, ""):
+        return None
+    import datetime as _dt
+
+    from django.utils import timezone as _tz
+
+    # epoch milliseconds
+    try:
+        ms = int(raw)
+        return _dt.datetime.fromtimestamp(ms / 1000, tz=_dt.timezone.utc)
+    except (TypeError, ValueError):
+        pass
+    try:
+        parsed = _dt.datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = _tz.make_aware(parsed, _dt.timezone.utc)
+    return parsed
 
 
 def generate_captions_wrapper(photo, commit=True):
@@ -223,9 +251,24 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 status=http_status.HTTP_200_OK,
             )
 
+        # Optional client-supplied capture time, used as a timestamp fallback
+        # for photos that carry no EXIF date (doc 04 §5, issue #614).
+        device_created_at = parse_device_timestamp(
+            request.POST.get("device_created_at")
+        )
+        device_modified_at = parse_device_timestamp(
+            request.POST.get("device_modified_at")
+        )
+
         chain = Chain()
         photo = create_new_image(user, photo_path)
         chain.append(handle_new_image, user, photo_path, image_hash, photo)
+        chain.append(
+            apply_device_timestamp_fallback,
+            photo,
+            device_created_at,
+            device_modified_at,
+        )
         chain.append(generate_captions_wrapper, photo, True)
         chain.append(photo._geolocate)
         chain.append(photo._add_location_to_album_dates)

@@ -277,6 +277,34 @@ def create_new_image(user, path) -> Photo | None:
     return photo
 
 
+def apply_device_timestamp_fallback(photo, device_created_at, device_modified_at=None):
+    """Fallback timestamp for EXIF-less uploads (doc 04 §5, issue #614).
+
+    Mobile clients know when a photo was taken even when the file carries no
+    EXIF date (screenshots, images stripped by messengers, some formats). The
+    upload endpoint forwards the device's ``device_created_at``; if the normal
+    EXIF extraction found no date, adopt it as the photo's timestamp.
+
+    ``device_created_at`` is a timezone-aware ``datetime`` (already parsed by
+    the view). Runs after ``handle_new_image`` so it can see the extraction
+    result; feeding the value through ``timestamp`` lets the USER_DEFINED
+    datetime rule pick it up and build the date album, exactly as a manual
+    correction would.
+    """
+    if photo is None or device_created_at is None:
+        return photo
+    try:
+        photo.refresh_from_db()
+    except Photo.DoesNotExist:
+        return photo
+    # Only fill a gap; never override a date the file actually carried.
+    if photo.exif_timestamp is not None:
+        return photo
+    photo.timestamp = device_created_at
+    photo._extract_date_time_from_exif(commit=True)
+    return photo
+
+
 def handle_new_image(user, path, job_id, photo=None):
     """
     Handles the creation and all the processing of the photo needed for it to be displayed.
