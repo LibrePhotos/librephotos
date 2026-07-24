@@ -246,7 +246,7 @@ def is_service_compatible(service):
 
 def cleanup_deleted_photos():
     deleted_photos = Photo.objects.filter(
-        Q(removed=True) & Q(last_modified__gte=timezone.now() - timedelta(days=30))
+        Q(removed=True) & Q(last_modified__lte=timezone.now() - timedelta(days=30))
     )
     for photo in deleted_photos:
         photo.delete()

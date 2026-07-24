@@ -171,6 +171,15 @@
     "interface": "Interface",
     "slideshowinterval": "Default Slideshow Interval",
     "slideshowintervaldesc": "The default time to display each image before advancing in slideshow mode",
+    "duplicatesensitivity": "Duplicate detection sensitivity",
+    "duplicatesensitivityhelp": "Changes how similar two photos have to be to count as duplicates. Strict only matches near-identical photos, loose matches more photos but may report false positives.",
+    "sensitivity": {
+      "strict": "Strict",
+      "normal": "Normal",
+      "loose": "Loose"
+    },
+    "duplicateclearexisting": "Clear existing pending duplicates",
+    "duplicateclearexistinghelp": "When enabled, duplicates that are still pending review are removed before a new detection run starts.",
     "configdatetime": "Set date and time parsing rules",
     "password": {
       "errormustmatch": "Passwords must match",

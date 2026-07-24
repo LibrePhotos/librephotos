@@ -162,7 +162,11 @@ def _is_model_selected(model):
             model["name"] == site_config.LLM_MODEL
         )
     if model_type == MlTypes.MOONDREAM:
-        return site_config.LLM_MODEL == model["name"]
+        # Moondream can be picked as the captioning model, as the LLM, or both.
+        return model["name"] in (
+            site_config.CAPTIONING_MODEL,
+            site_config.LLM_MODEL,
+        )
     if model_type == MlTypes.FACE_RECOGNITION:
         return model["name"] == site_config.FACE_RECOGNITION_MODEL
     return True

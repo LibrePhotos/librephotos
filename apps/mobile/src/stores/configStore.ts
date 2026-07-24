@@ -27,10 +27,10 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
         if (typeof logging !== 'undefined') {
           set({ logging })
           if (logging === false) {
-            FileLogger.debug('Logging: Enabled')
-          } else {
             FileLogger.debug('Logging: Disabled')
             FileLogger.deleteLogFiles()
+          } else {
+            FileLogger.debug('Logging: Enabled')
           }
         }
       },

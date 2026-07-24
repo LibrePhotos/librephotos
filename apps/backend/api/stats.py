@@ -434,7 +434,7 @@ def get_server_stats():
 def get_count_stats(user):
     num_photos = Photo.visible.filter(Q(owner=user)).distinct().count()
     num_missing_photos = Photo.objects.filter(
-        Q(owner=user) & Q(files=None) | Q(main_file=None)
+        Q(owner=user) & (Q(files=None) | Q(main_file=None))
     ).count()
     num_faces = Face.objects.filter(photo__owner=user).count()
     num_unknown_faces = Face.objects.filter(

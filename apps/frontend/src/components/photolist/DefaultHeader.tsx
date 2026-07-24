@@ -216,7 +216,11 @@ export function DefaultHeader(props: Props) {
                   <Menu.Item
                     leftSection={<Globe color="green" size={14} />}
                     disabled={!auth?.access}
-                    onClick={() => navigate(auth?.access ? { to: `/user/${auth.access.name}` } : { to: "/" })}
+                    onClick={() =>
+                      navigate(
+                        auth?.access ? { to: "/public/$users", params: { users: auth.access.name } } : { to: "/" }
+                      )
+                    }
                   >
                     {t("sidemenu.mypublicphotos")}
                   </Menu.Item>

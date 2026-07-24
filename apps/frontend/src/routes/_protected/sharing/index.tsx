@@ -135,7 +135,12 @@ export function SharingExplore() {
                 const displayName =
                   user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username;
                 return (
-                  <Link key={user.id} to={`/user/${user.username}/`} className={classes.avatarItem}>
+                  <Link
+                    key={user.id}
+                    to="/public/$users"
+                    params={{ users: user.username }}
+                    className={classes.avatarItem}
+                  >
                     <div className={classes.avatar}>
                       <Avatar size={52} radius="xl" src="/unknown_user.jpg">
                         {displayName.charAt(0).toUpperCase()}

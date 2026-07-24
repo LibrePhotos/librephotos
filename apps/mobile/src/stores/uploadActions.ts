@@ -5,8 +5,16 @@ import { useAuthStore } from './authStore'
 import { useConfigStore } from './configStore'
 import { useUploadStore } from './uploadStore'
 import { useLocalImagesStore } from './localImagesStore'
+import { SyncStatus } from './types/localImages.zod'
 
 const chunkSize = 1000000 // < 1MB chunks
+
+const setSyncStatus = (file: any, syncStatus: SyncStatus) =>
+  useLocalImagesStore.setState(state => ({
+    images: state.images.map(i =>
+      i.id === file.id ? { ...i, syncStatus } : i,
+    ),
+  }))
 
 const uploadChunk = async (
   chunk: any,
@@ -97,67 +105,80 @@ export async function uploadImages(files: any[]): Promise<void> {
     const baseurl = useConfigStore.getState().baseurl
 
     for (const file of files) {
-      const fileStat = await FileSystem.stat(file.url)
-      const Blob = ReactNativeBlobUtil.polyfill.Blob
-      // @ts-ignore
-      const selectedFile = await Blob.build(ReactNativeBlobUtil.wrap(file.url))
-      const currentUploadedFileSizeStartValue = currentUploadedFileSize
-      console.log('Current File: ' + fileStat.filename)
-
-      // Check if the upload already exists
-      let isAlreadyUploaded = false
+      // A photo the server rejects -- e.g. the HTTP 400 raised when the user
+      // has no scan directory configured -- must record its own failure and
+      // leave the rest of the batch alone.
+      setSyncStatus(file, SyncStatus.SYNCING)
       try {
-        const result = await fetchClient.get<{ exists: boolean }>(
-          `/exists/${file.id}/`,
+        const fileStat = await FileSystem.stat(file.url)
+        const Blob = ReactNativeBlobUtil.polyfill.Blob
+        // @ts-ignore
+        const selectedFile = await Blob.build(
+          ReactNativeBlobUtil.wrap(file.url),
         )
-        isAlreadyUploaded = result.exists
-      } catch {
-        isAlreadyUploaded = false
-      }
+        const currentUploadedFileSizeStartValue = currentUploadedFileSize
+        console.log('Current File: ' + fileStat.filename)
 
-      let offset = 0
-      let uploadId = ''
-      if (!isAlreadyUploaded) {
-        const chunks = await calculateChunks(selectedFile)
-        for (let i = 0; i < chunks.length; i++) {
-          const response = await uploadChunk(
-            chunks[offset / chunkSize],
-            uploadId,
-            offset,
-            baseurl,
-            user_id ? user_id : 0,
-            fileStat.size,
+        // Check if the upload already exists
+        let isAlreadyUploaded = false
+        try {
+          const result = await fetchClient.get<{ exists: boolean }>(
+            `/exists/${file.id}/`,
           )
-          if (response && 'offset' in response) {
-            offset = response.offset
-            uploadId = response.upload_id
-          }
-          if (chunks[offset / chunkSize]) {
-            const chunkStat = await FileSystem.stat(
-              chunks[offset / chunkSize]._ref,
-            )
-            currentUploadedFileSize += chunkStat.size
-          } else {
-            const origStat = await FileSystem.stat(file.url)
-            currentUploadedFileSize +=
-              origStat.size -
-              (currentUploadedFileSize - currentUploadedFileSizeStartValue)
-          }
-          setCurrent(currentUploadedFileSize)
+          isAlreadyUploaded = result.exists
+        } catch {
+          isAlreadyUploaded = false
         }
-        await uploadFinished(
-          fileStat.filename,
-          file.id.slice(0, file.id.length - 1),
-          uploadId,
-          user_id ? user_id : 0,
-        )
-        markSynced(file)
-      } else {
-        console.log('File already uploaded')
-        const origStat = await FileSystem.stat(file.url)
-        currentUploadedFileSize += origStat.size
-        setCurrent(currentUploadedFileSize)
-        markSynced(file)
+
+        let offset = 0
+        let uploadId = ''
+        if (!isAlreadyUploaded) {
+          const chunks = await calculateChunks(selectedFile)
+          for (let i = 0; i < chunks.length; i++) {
+            const response = await uploadChunk(
+              chunks[offset / chunkSize],
+              uploadId,
+              offset,
+              baseurl,
+              user_id ? user_id : 0,
+              fileStat.size,
+            )
+            if (response && 'offset' in response) {
+              offset = response.offset
+              uploadId = response.upload_id
+            }
+            if (chunks[offset / chunkSize]) {
+              const chunkStat = await FileSystem.stat(
+                chunks[offset / chunkSize]._ref,
+              )
+              currentUploadedFileSize += chunkStat.size
+            } else {
+              const origStat = await FileSystem.stat(file.url)
+              currentUploadedFileSize +=
+                origStat.size -
+                (currentUploadedFileSize - currentUploadedFileSizeStartValue)
+            }
+            setCurrent(currentUploadedFileSize)
+          }
+          await uploadFinished(
+            fileStat.filename,
+            file.id.slice(0, file.id.length - 1),
+            uploadId,
+            user_id ? user_id : 0,
+          )
+          markSynced(file)
+        } else {
+          console.log('File already uploaded')
+          const origStat = await FileSystem.stat(file.url)
+          currentUploadedFileSize += origStat.size
+          setCurrent(currentUploadedFileSize)
+          markSynced(file)
+        }
+      } catch (err) {
+        // fetchClient rejects with a plain Error, which JSON.stringify()
+        // flattens to '{}' -- keep the message so the 400 is diagnosable.
+        console.log('Error uploading image ' + file.id + ': ' + String(err))
+        setSyncStatus(file, SyncStatus.FAILED)
       }
     }
   } catch (err) {

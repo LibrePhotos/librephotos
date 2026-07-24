@@ -41,7 +41,7 @@ export function PublicUserList() {
             style={{
               height: 42,
             }}
-            onClick={() => navigate({ to: `/user/${el.username}/` })}
+            onClick={() => navigate({ to: "/public/$users", params: { users: el.username } })}
             leftSection={<Avatar size={25} radius="xl" src="/unknown_user.jpg" />}
           >
             <div>
