@@ -1,56 +1,186 @@
-# Welcome to your Expo app 👋
+# LibrePhotos Mobile v2
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The official LibrePhotos mobile app, rebuilt on **Expo (SDK 57, New
+Architecture)** with an **offline-first, device-mirrored** data model. It
+replaces the legacy `apps/mobile` (bare React Native 0.72 + NativeBase), which
+is frozen and removed in a follow-up once v2 ships on all channels.
 
-## Get started
+The design goal: feature parity with the web frontend for everything that makes
+sense on a phone, plus mobile-only superpowers — camera-roll backup and fully
+offline browsing.
 
-1. Install dependencies
+## Architecture
 
-   ```bash
-   npm install
-   ```
+The full design lives in [`plans/mobile-v2/`](../../plans/mobile-v2/). Start
+with the [plan README](../../plans/mobile-v2/README.md); the docs below map each
+subsystem to its plan chapter.
 
-2. Start the app
+### Mirror-first reads
 
-   ```bash
-   npx expo start
-   ```
+Synced content (photos, albums, people, sharing) renders from a **local SQLite
+mirror** of the server database, via `expo-sqlite` + Drizzle ORM with
+`useLiveQuery` for reactive screens. The network is used only to *converge* the
+mirror and to fetch image bytes — never on the read path. The rule (enforced
+per screen): **synced entities render from SQLite; everything else renders
+through TanStack Query. A screen never mixes both for the same entity.** See
+[01-architecture.md](../../plans/mobile-v2/01-architecture.md) and the schema in
+[02-local-database.md](../../plans/mobile-v2/02-local-database.md).
 
-In the output, you'll find options to open the app in a
+### Sync engine
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Keyset-paginated pull endpoints (`updated_after` cursors) plus a server-side
+tombstone table (`DeletionLog`) converge the mirror. The client seeds from the
+existing paginated endpoints, then applies deltas; an integrity snapshot
+compares per-table row counts against a server counts endpoint and schedules a
+reseed on drift. The mirror is disposable — a reseed is always a safe recovery.
+See [03-sync-engine.md](../../plans/mobile-v2/03-sync-engine.md) and the backend
+contract in [04-backend-sync-api.md](../../plans/mobile-v2/04-backend-sync-api.md).
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Outbox (offline mutations)
 
-## Get a fresh project
+Mutations (favorite, hide, trash/restore, rating, album add/remove, caption,
+person rename) apply **optimistically to the mirror** inside a transaction that
+also inserts an `outbox` row, so live queries update the UI instantly. A FIFO
+replay drains the outbox when online. Success deletes the row; a 4xx drops it
+and lets the next delta restore server truth; a network error keeps it and
+backs off. Delta pulls never run while an entity has pending outbox rows —
+replay-first, last-write-wins with server authority, no merge logic.
 
-When you're ready, run:
+### Backup
+
+Camera-roll assets are enumerated with `expo-media-library`, hashed with native
+MD5 (`expo-file-system` `getInfoAsync(uri, { md5: true })`) to match
+LibrePhotos' `md5(bytes) + user.id` file-hash scheme with zero custom native
+code, and joined against the server mirror by content hash. The timeline is a
+SQL `UNION` of remote assets and not-yet-uploaded local assets. A serial,
+wifi/charging-aware upload queue (a table, so it survives restarts) checks
+`/api/exists/{hash}` then uploads via the chunked upload endpoints, sending
+device timestamps so the server can date EXIF-less photos correctly.
+
+### Local database
+
+Drizzle schema, checked-in SQL migrations, and query layer in `src/db/`.
+Migrations are generated with `drizzle-kit` and inlined into a TS module so the
+runtime has no filesystem dependency (see "Regenerating migrations" below).
+
+## Dev setup
+
+### Prerequisites
+
+- **Node 22** via [`fnm`](https://github.com/Schniz/fnm). All commands below
+  assume `fnm exec --using=22 -- <cmd>`.
+- On **Windows**, invoke the `.cmd` shims: `npm.cmd` / `npx.cmd` (bare `npm` /
+  `npx` may not resolve under some shells).
+- **Android**: Android Studio + an emulator or a device. **iOS**: a Mac with
+  Xcode (iOS dev builds go through EAS).
+
+### Install
+
+This app is an npm **workspace**. Install from the **repo root** so the root
+`package-lock.json` stays authoritative:
 
 ```bash
-npm run reset-project
+cd <repo-root>
+fnm exec --using=22 -- npm.cmd ci        # or: npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Run a dev build
 
-### Other setup steps
+The app uses native modules, so **Expo Go will not work** — you need a
+[dev build](https://docs.expo.dev/develop/development-builds/introduction/)
+(`expo-dev-client`):
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+cd apps/mobile-v2
+fnm exec --using=22 -- npx.cmd expo run:android   # builds + installs a dev build
+fnm exec --using=22 -- npx.cmd expo start --dev-client
+```
 
-## Learn more
+> **Note:** no `expo start` / Metro run happens in CI — CI only typechecks,
+> lints, and tests. Native project folders (`android/`, `ios/`) are **not** in
+> git; they are generated on demand by `expo prebuild` (Continuous Native
+> Generation). All native config lives in `app.json`.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Tests
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Jest runs **two projects** (configured in `jest.config.js`):
 
-## Join the community
+- **`rn`** — component/hook tests under `jest-expo` + React Native Testing
+  Library.
+- **`node`** — DB and sync-engine tests against **real SQLite**
+  (`better-sqlite3` under Node), so merged-timeline SQL and outbox replay are
+  tested for real, not mocked.
 
-Join our community of developers creating universal apps.
+```bash
+cd apps/mobile-v2
+fnm exec --using=22 -- npm.cmd run test        # both projects
+fnm exec --using=22 -- npm.cmd run typecheck   # tsc --noEmit
+fnm exec --using=22 -- npm.cmd run lint         # eslint (flat config)
+fnm exec --using=22 -- npm.cmd run check        # typecheck + lint + test
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The shared API package has its own suite:
+
+```bash
+cd packages/api-client
+fnm exec --using=22 -- npx.cmd vitest run       # zod schema + endpoint contract tests
+```
+
+## Regenerating migrations
+
+After changing the Drizzle schema in `src/db/`, regenerate the checked-in SQL
+migrations and the inlined runtime module:
+
+```bash
+cd apps/mobile-v2
+fnm exec --using=22 -- npm.cmd run db:generate
+```
+
+This runs `drizzle-kit generate` (writes `src/db/migrations/`) and then
+`scripts/inline-migrations.mjs`, which bundles the SQL into
+`src/db/migrations-sql.ts`. Commit both. The command is idempotent — if the
+schema already matches the migrations it is a no-op. A CI-style "schema matches
+migrations" check is just running this and confirming a clean `git status`.
+
+## Dependency constraints
+
+These are load-bearing — changing them breaks the build or tests:
+
+- **zod v3**, not v4. `packages/api-client` pins `zod@^3` and its peer range is
+  `^3.23.0`. The schemas rely on v3 semantics; do not bump to v4.
+- **Single `@types/react`**. React types must resolve to **one** copy across the
+  workspace (mobile-v2 and api-client both pin `~19.2.x`). A duplicate
+  `@types/react` produces spurious JSX type errors — dedupe if `tsc` starts
+  complaining about incompatible `ReactNode`s.
+- **Jest module mappers use `require.resolve`**. `jest.config.js` maps some
+  packages by absolute resolved path (via `require.resolve`) rather than by
+  name so both jest projects load the same physical copy. Keep new mappings in
+  that style.
+
+## F-Droid / FOSS
+
+The app must stay publishable on F-Droid:
+
+- **No OTA updates.** `expo-updates` is disabled for the FOSS flavor — F-Droid
+  forbids remote code loading. OTA is Play/App Store only.
+- **No push required.** Nothing in the app depends on Firebase/FCM or any push
+  service. Server-change notifications are a deferred P2 and would only ship on
+  the Google-services flavor.
+- **Local notifications only** (`expo-notifications` scheduled locally) power
+  the memories reminder — no server or push involvement.
+- `expo prebuild` output is a plain Gradle project, so a Google-services-free
+  foss flavor builds cleanly.
+
+## Known deferred items
+
+- **iOS share-extension** — the share *target* lands, but the native iOS share
+  extension is wired at prebuild time and is not yet configured.
+- **Multi-chunk resumable uploads** — uploads are chunked and the queue
+  survives restarts, but resume currently restarts the in-flight chunk rather
+  than resuming mid-chunk.
+- **Per-thing/place/tag membership mirroring** — thing/place/tag *albums* are
+  mirrored, but full per-photo membership for these auto-album types is not yet
+  mirrored offline.
+
+See [06-roadmap.md](../../plans/mobile-v2/06-roadmap.md) for the full phase and
+risk breakdown.
