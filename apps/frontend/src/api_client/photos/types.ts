@@ -86,6 +86,7 @@ export enum Photoset {
   SHARED_TO_ME = "sharedToMe",
   SHARED_BY_ME = "sharedByMe",
   VIDEOS = "videos",
+  SCREENSHOTS = "screenshots",
 }
 
 export const SharedFromMePhoto = z.object({
@@ -189,6 +190,9 @@ export const Photo = z.object({
   shared_to: z.number().nullable().array(), // TODO: There are sometimes items in the array with value null. Why?!?
   similar_photos: z.object({ image_hash: z.string(), type: z.nativeEnum(Media) }).array(),
   video: z.boolean(),
+  // Whether the photo was detected as a screenshot. Optional/defaulted so
+  // existing fixtures and older backend responses keep parsing.
+  is_screenshot: z.boolean().optional().default(false),
   owner: SimpleUser,
   shutter_speed: z.string().nullable(),
   height: z.number().nullable(),
@@ -352,6 +356,7 @@ export const BulkPhotoQuery = z.object({
   in_trashcan: z.boolean().optional(),
   video: z.boolean().optional(),
   photo: z.boolean().optional(),
+  is_screenshot: z.boolean().optional(),
   person: z.number().optional(),
   folder: z.string().optional(),
   username: z.string().optional(),

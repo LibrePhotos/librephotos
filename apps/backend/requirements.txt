@@ -67,3 +67,7 @@ onnxruntime==1.27.0; python_version >= "3.11"
 onnxruntime==1.23.2; python_version < "3.11"
 # SentencePiece tokenizer for SigLIP 2
 sentencepiece==0.2.2
+# pyclipper: polygon offsetting for the PP-OCRv6 detector's DBPostProcess
+# (unclip step). 1.4.0 ships cp310 AND cp311 wheels for manylinux2014_x86_64 and
+# win_amd64, so both the GPU image (Python 3.10) and the standard image build.
+pyclipper==1.4.0

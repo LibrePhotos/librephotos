@@ -1,5 +1,5 @@
 import { ActionIcon, Tooltip } from "@mantine/core";
-import { IconLayoutGrid, IconPhoto, IconVideo } from "@tabler/icons-react";
+import { IconLayoutGrid, IconPhoto, IconScreenshot, IconVideo } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ const OPTIONS: ReadonlyArray<{ value: MediaType; icon: typeof IconPhoto; labelKe
   { value: "all", icon: IconLayoutGrid, labelKey: "mediafilter.all" },
   { value: "photos", icon: IconPhoto, labelKey: "mediafilter.photos" },
   { value: "videos", icon: IconVideo, labelKey: "mediafilter.videos" },
+  { value: "screenshots", icon: IconScreenshot, labelKey: "mediafilter.screenshots" },
 ];
 
 // A compact All / Photos / Videos toggle. Self-contained: it reads the active

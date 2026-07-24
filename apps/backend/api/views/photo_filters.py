@@ -25,6 +25,8 @@ def build_photo_queryset(user, params: dict):
             - in_trashcan: bool - Filter by trashed photos
             - video: bool - Filter by videos only
             - photo: bool - Filter by photos only (non-videos)
+            - is_screenshot: bool - Filter by screenshots only
+            - is_document: bool - Filter by documents only
             - person: int - Filter by person ID (faces)
             - tag: int - Filter by tag ID
             - folder: str - Filter by folder path prefix
@@ -62,6 +64,12 @@ def build_photo_queryset(user, params: dict):
         filters.append(Q(video=True))
     elif params.get("photo"):
         filters.append(Q(video=False))
+
+    # Media-category filters (mirrors the video param convention)
+    if params.get("is_screenshot"):
+        filters.append(Q(is_screenshot=True))
+    if params.get("is_document"):
+        filters.append(Q(is_document=True))
 
     # Trashcan filter
     if params.get("in_trashcan"):

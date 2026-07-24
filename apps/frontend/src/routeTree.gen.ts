@@ -19,6 +19,7 @@ import { Route as PublicUsersRouteImport } from './routes/public/$users'
 import { Route as ProtectedVideosRouteImport } from './routes/_protected/videos'
 import { Route as ProtectedStacksRouteImport } from './routes/_protected/stacks'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
+import { Route as ProtectedScreenshotsRouteImport } from './routes/_protected/screenshots'
 import { Route as ProtectedRecentRouteImport } from './routes/_protected/recent'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
 import { Route as ProtectedPhotosRouteImport } from './routes/_protected/photos'
@@ -110,6 +111,11 @@ const ProtectedStacksRoute = ProtectedStacksRouteImport.update({
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedScreenshotsRoute = ProtectedScreenshotsRouteImport.update({
+  id: '/screenshots',
+  path: '/screenshots',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedRecentRoute = ProtectedRecentRouteImport.update({
@@ -356,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/photos': typeof ProtectedPhotosRoute
   '/profile': typeof ProtectedProfileRoute
   '/recent': typeof ProtectedRecentRoute
+  '/screenshots': typeof ProtectedScreenshotsRoute
   '/settings': typeof ProtectedSettingsRoute
   '/stacks': typeof ProtectedStacksRoute
   '/videos': typeof ProtectedVideosRoute
@@ -408,6 +415,7 @@ export interface FileRoutesByTo {
   '/photos': typeof ProtectedPhotosRoute
   '/profile': typeof ProtectedProfileRoute
   '/recent': typeof ProtectedRecentRoute
+  '/screenshots': typeof ProtectedScreenshotsRoute
   '/settings': typeof ProtectedSettingsRoute
   '/stacks': typeof ProtectedStacksRoute
   '/videos': typeof ProtectedVideosRoute
@@ -464,6 +472,7 @@ export interface FileRoutesById {
   '/_protected/photos': typeof ProtectedPhotosRoute
   '/_protected/profile': typeof ProtectedProfileRoute
   '/_protected/recent': typeof ProtectedRecentRoute
+  '/_protected/screenshots': typeof ProtectedScreenshotsRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
   '/_protected/stacks': typeof ProtectedStacksRoute
   '/_protected/videos': typeof ProtectedVideosRoute
@@ -521,6 +530,7 @@ export interface FileRouteTypes {
     | '/photos'
     | '/profile'
     | '/recent'
+    | '/screenshots'
     | '/settings'
     | '/stacks'
     | '/videos'
@@ -573,6 +583,7 @@ export interface FileRouteTypes {
     | '/photos'
     | '/profile'
     | '/recent'
+    | '/screenshots'
     | '/settings'
     | '/stacks'
     | '/videos'
@@ -628,6 +639,7 @@ export interface FileRouteTypes {
     | '/_protected/photos'
     | '/_protected/profile'
     | '/_protected/recent'
+    | '/_protected/screenshots'
     | '/_protected/settings'
     | '/_protected/stacks'
     | '/_protected/videos'
@@ -748,6 +760,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof ProtectedSettingsRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/screenshots': {
+      id: '/_protected/screenshots'
+      path: '/screenshots'
+      fullPath: '/screenshots'
+      preLoaderRoute: typeof ProtectedScreenshotsRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/recent': {
@@ -1079,6 +1098,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedPhotosRoute: typeof ProtectedPhotosRoute
   ProtectedProfileRoute: typeof ProtectedProfileRoute
   ProtectedRecentRoute: typeof ProtectedRecentRoute
+  ProtectedScreenshotsRoute: typeof ProtectedScreenshotsRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRoute
   ProtectedStacksRoute: typeof ProtectedStacksRoute
   ProtectedVideosRoute: typeof ProtectedVideosRoute
@@ -1125,6 +1145,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedPhotosRoute: ProtectedPhotosRoute,
   ProtectedProfileRoute: ProtectedProfileRoute,
   ProtectedRecentRoute: ProtectedRecentRoute,
+  ProtectedScreenshotsRoute: ProtectedScreenshotsRoute,
   ProtectedSettingsRoute: ProtectedSettingsRoute,
   ProtectedStacksRoute: ProtectedStacksRoute,
   ProtectedVideosRoute: ProtectedVideosRoute,

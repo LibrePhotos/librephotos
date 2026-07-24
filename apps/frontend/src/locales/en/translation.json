@@ -305,6 +305,7 @@
     "mypublicphotos": "My Public Photos",
     "photos": "Photos",
     "videos": "Videos",
+    "screenshots": "Screenshots",
     "albums": "Albums",
     "people": "People",
     "places": "Places",
@@ -620,6 +621,7 @@
     "hidden": "Hidden Photos",
     "favorite": "Favorite Photos",
     "videos": "Videos",
+    "screenshots": "Screenshots",
     "deleted": "Trash"
   },
   "trash": {
@@ -715,6 +717,7 @@
       "favorites": "Go to Favorites",
       "hidden": "Go to Hidden",
       "videos": "Go to Videos",
+      "screenshots": "Go to Screenshots",
       "trash": "Go to Trash",
       "recent": "Go to Recently Added",
       "noTimestamp": "Go to Photos Without Timestamps",
@@ -1211,6 +1214,10 @@
       "title": "No videos yet",
       "description": "Scan your library to see your videos here."
     },
+    "screenshots": {
+      "title": "No screenshots yet",
+      "description": "Scan your library to see your screenshots here."
+    },
     "recent": {
       "title": "No recently added photos",
       "description": "Recently scanned photos will appear here."
@@ -1275,6 +1282,7 @@
   "mediafilter": {
     "all": "All",
     "photos": "Photos only",
-    "videos": "Videos only"
+    "videos": "Videos only",
+    "screenshots": "Screenshots only"
   }
 }

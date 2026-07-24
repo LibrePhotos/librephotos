@@ -4,7 +4,7 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient, queryClient } from "../../api";
 import { IncompleteDatePhotosGroup, Photoset } from "../../photos/types";
 import { FetchDateAlbumResponse } from "../types";
-import { DateAlbumsQueryKeys } from "./useFetchDateAlbumsQuery";
+import { buildDateAlbumFilterParams, DateAlbumsQueryKeys } from "./useFetchDateAlbumsQuery";
 
 type AlbumDateOption = {
   photosetType: Photoset;
@@ -33,12 +33,7 @@ export const useFetchDateAlbumQuery = (options: AlbumDateOption, queryOptions?: 
     ],
     queryFn: async () => {
       const params = {
-        favorite: Photoset.FAVORITES === options.photosetType ? "true" : undefined,
-        public: Photoset.PUBLIC === options.photosetType ? "true" : undefined,
-        hidden: Photoset.HIDDEN === options.photosetType ? "true" : undefined,
-        in_trashcan: Photoset.IN_TRASHCAN === options.photosetType ? "true" : undefined,
-        photo: Photoset.PHOTOS === options.photosetType || options.mediaType === "photos" ? "true" : undefined,
-        video: Photoset.VIDEOS === options.photosetType || options.mediaType === "videos" ? "true" : undefined,
+        ...buildDateAlbumFilterParams(options.photosetType, options.mediaType),
         page: options.page.toString(),
         person: options.person_id?.toString(),
         username: options.username?.toLowerCase(),

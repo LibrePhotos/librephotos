@@ -476,6 +476,12 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         if self.request.query_params.get("photo"):
             photo_filter.append(Q(video=False))
 
+        if self.request.query_params.get("is_screenshot"):
+            photo_filter.append(Q(is_screenshot=True))
+
+        if self.request.query_params.get("is_document"):
+            photo_filter.append(Q(is_document=True))
+
         if self.request.query_params.get("in_trashcan"):
             photo_filter.append(Q(in_trashcan=True) & Q(removed=False))
         else:
@@ -539,6 +545,8 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
             OpenApiParameter("hidden", OpenApiTypes.BOOL),
             OpenApiParameter("video", OpenApiTypes.BOOL),
+            OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
+            OpenApiParameter("is_document", OpenApiTypes.BOOL),
             OpenApiParameter("username", OpenApiTypes.STR),
             OpenApiParameter("person", OpenApiTypes.INT),
             OpenApiParameter("last_modified", OpenApiTypes.DATE),
@@ -620,6 +628,12 @@ class AlbumDateListViewSet(ListViewSet):
         if self.request.query_params.get("photo"):
             filter.append(Q(photos__video=False))
 
+        if self.request.query_params.get("is_screenshot"):
+            filter.append(Q(photos__is_screenshot=True))
+
+        if self.request.query_params.get("is_document"):
+            filter.append(Q(photos__is_document=True))
+
         if self.request.query_params.get("person"):
             filter.append(
                 Q(photos__faces__person__id=self.request.query_params.get("person"))
@@ -659,6 +673,8 @@ class AlbumDateListViewSet(ListViewSet):
             OpenApiParameter("in_trashcan", OpenApiTypes.BOOL),
             OpenApiParameter("hidden", OpenApiTypes.BOOL),
             OpenApiParameter("video", OpenApiTypes.BOOL),
+            OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
+            OpenApiParameter("is_document", OpenApiTypes.BOOL),
             OpenApiParameter("username", OpenApiTypes.STR),
             OpenApiParameter("person", OpenApiTypes.INT),
             OpenApiParameter("last_modified", OpenApiTypes.DATE),

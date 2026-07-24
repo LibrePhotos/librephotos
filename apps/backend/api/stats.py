@@ -145,6 +145,12 @@ def get_server_stats():
         date_joined = user.date_joined
         number_of_photos = Photo.objects.filter(Q(owner=user)).count()
         number_of_videos = Photo.objects.filter(Q(owner=user) & Q(video=True)).count()
+        number_of_screenshots = Photo.objects.filter(
+            Q(owner=user) & Q(is_screenshot=True)
+        ).count()
+        number_of_documents = Photo.objects.filter(
+            Q(owner=user) & Q(is_document=True)
+        ).count()
         number_of_captions = Photo.objects.filter(
             Q(owner=user)
             & Q(caption_instance__captions_json__user_caption__isnull=False)
@@ -353,6 +359,8 @@ def get_server_stats():
                 ),
                 "number_of_photos": number_of_photos,
                 "number_of_videos": number_of_videos,
+                "number_of_screenshots": number_of_screenshots,
+                "number_of_documents": number_of_documents,
                 "number_of_captions": number_of_captions,
                 "number_of_generated_captions": number_of_generated_captions,
                 "album": {
@@ -433,6 +441,12 @@ def get_server_stats():
 
 def get_count_stats(user):
     num_photos = Photo.visible.filter(Q(owner=user)).distinct().count()
+    num_screenshots = (
+        Photo.visible.filter(Q(owner=user) & Q(is_screenshot=True)).distinct().count()
+    )
+    num_documents = (
+        Photo.visible.filter(Q(owner=user) & Q(is_document=True)).distinct().count()
+    )
     num_missing_photos = Photo.objects.filter(
         Q(owner=user) & (Q(files=None) | Q(main_file=None))
     ).count()
@@ -482,6 +496,8 @@ def get_count_stats(user):
 
     res = {
         "num_photos": num_photos,
+        "num_screenshots": num_screenshots,
+        "num_documents": num_documents,
         "num_missing_photos": num_missing_photos,
         "num_faces": num_faces,
         "num_people": num_people,

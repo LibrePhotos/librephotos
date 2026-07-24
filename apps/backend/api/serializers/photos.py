@@ -202,9 +202,30 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             # Allow updating GPS location
             "exif_gps_lat",
             "exif_gps_lon",
+            # Media-category manual override
+            "is_screenshot",
+            "is_document",
+            "category_source",
         )
+        # category_source is server-managed: it is set to "user" whenever a
+        # category flag is written through the API, and is never client-settable.
+        read_only_fields = ("category_source",)
 
     def update(self, instance, validated_data):
+        # Media-category manual override. Any explicit write to a category flag
+        # marks the photo as user-corrected so rescans and the classify_media
+        # backfill (which skip category_source == "user") never clobber it.
+        category_fields = [
+            field
+            for field in ("is_screenshot", "is_document")
+            if field in validated_data
+        ]
+        if category_fields:
+            for field in category_fields:
+                setattr(instance, field, validated_data.pop(field))
+            instance.category_source = "user"
+            instance.save(update_fields=[*category_fields, "category_source"])
+
         # photo can only update the following
         if "exif_timestamp" in validated_data:
             instance.timestamp = validated_data.pop("exif_timestamp")

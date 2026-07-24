@@ -408,6 +408,15 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
     elapsed = (datetime.datetime.now() - start).total_seconds()
     util.logger.info(f"job {job_id}: extract exif data: {path}, elapsed: {elapsed}")
 
+    # Categorise the photo (screenshot/document) from the freshly extracted
+    # metadata. A manual correction ("user") is never overwritten by a rescan.
+    # The value is persisted by the full ``photo.save()`` inside the
+    # ``_extract_date_time_from_exif`` call immediately below.
+    if photo.category_source != "user":
+        from api.screenshot_detection import classify
+
+        photo.is_screenshot = classify(photo)
+
     photo._extract_date_time_from_exif(True)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     util.logger.info(f"job {job_id}: extract date time: {path}, elapsed: {elapsed}")
