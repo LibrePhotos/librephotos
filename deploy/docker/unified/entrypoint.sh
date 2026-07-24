@@ -13,8 +13,8 @@ mpl_data_root="${BASE_DATA:-/}"
 export MPLCONFIGDIR="${MPLCONFIGDIR:-${mpl_data_root%/}/protected_media/matplotlib}"
 mkdir -p "$MPLCONFIGDIR" || echo "Could not create $MPLCONFIGDIR - matplotlib will rebuild its font cache on every start"
 
-# BASE_LOGS is what production.py / production_noproxy.py derive LOGS_ROOT and
-# secret.key from. Export it so the tee targets below and Django's own log
+# BASE_LOGS is what the settings module derives LOGS_ROOT and secret.key from.
+# Export it so the tee targets below and Django's own log
 # handlers cannot drift apart; pinning the default here leaves the container's
 # behaviour unchanged for anyone who never sets it. LOG_LEVEL is read by the
 # LOGGING dictConfig. The %/ handles a value written with the trailing slash
@@ -34,10 +34,16 @@ fi
 # Check if we should serve frontend
 if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
     echo "Configuring for no-proxy deployment (serving frontend from Django)..."
-    
-    # Copy the no-proxy settings and URLs
-    cp /code/production_noproxy.py /code/librephotos/settings/production.py
-    
+
+    # Select the no-proxy settings module. It imports librephotos.settings.
+    # production and overrides only what serving the frontend from Django
+    # changes; this used to be a `cp` of a second, hand-maintained copy of
+    # production.py over the real one, which drifted and broke /api/sitesettings.
+    # manage.py and wsgi.py both use os.environ.setdefault, so exporting here
+    # wins for every python invocation below, for gunicorn, and for the ML
+    # services those spawn.
+    export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-librephotos.settings.production_noproxy}"
+
     # Collect static files including frontend
     echo "Collecting static files..."
     python manage.py collectstatic --noinput

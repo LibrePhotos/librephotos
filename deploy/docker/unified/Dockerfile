@@ -42,8 +42,8 @@ RUN if [ "$MLVALIDATION" = 1 ] ; then \
 COPY --from=frontend-builder /frontend/dist /code/frontend_build/
 RUN mkdir -p /code/static
 
-# Copy no-proxy configuration files
-COPY deploy/docker/unified/production_noproxy.py /code/
+# The no-proxy settings module ships with the backend source above, as
+# librephotos/settings/production_noproxy.py.
 COPY deploy/docker/unified/entrypoint.sh /entrypoint.sh
 
 EXPOSE 8001
