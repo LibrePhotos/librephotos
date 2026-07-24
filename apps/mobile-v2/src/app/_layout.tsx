@@ -59,6 +59,7 @@ function RootNavigator() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="photo/[id]" options={{ presentation: "modal" }} />
           <Stack.Screen name="sharing" />
+          <Stack.Screen name="memories" />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthed}>
           <Stack.Screen name="(auth)/login" />

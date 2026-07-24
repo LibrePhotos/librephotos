@@ -1,5 +1,5 @@
-import { StubScreen } from "@/components/StubScreen";
+import { SearchScreen } from "@/features/search/SearchScreen";
 
 export default function SearchRoute() {
-  return <StubScreen title="Search" note="Text + semantic search lands in the feature-parity phase." />;
+  return <SearchScreen />;
 }

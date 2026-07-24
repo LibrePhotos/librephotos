@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 import { TimelineList } from "@/components/TimelineList";
 import type { GridItem } from "@/components/PhotoTile";
+import { MemoriesCard } from "@/features/memories/MemoriesCard";
 import { useMirrorTimeline } from "./useMirrorTimeline";
 import { useGridSelection } from "@/features/selection/useGridSelection";
 import { useAccessToken } from "@/hooks/use-access-token";
@@ -81,6 +82,7 @@ export function TimelineScreen() {
             selectionActive={selection.active}
             isSelected={selection.isSelected}
             onEndReached={loadMore}
+            ListHeaderComponent={selection.active ? undefined : <MemoriesCard />}
           />
         </View>
       )}
