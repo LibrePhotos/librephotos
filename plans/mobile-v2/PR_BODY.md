@@ -13,20 +13,20 @@ converges against.
 The legacy `apps/mobile` (bare RN 0.72 + NativeBase) is untouched here and is
 removed in a follow-up once v2 ships on all channels.
 
-Full design docs: [`plans/mobile-v2/`](../../plans/mobile-v2/README.md).
+Full design docs: [`plans/mobile-v2/`](https://github.com/LibrePhotos/librephotos/blob/feat/mobile-v2/plans/mobile-v2/README.md).
 
 ## Architecture
 
 - **Mirror-first reads** — photos, albums, people, and sharing live in on-device
   SQLite (`expo-sqlite` + Drizzle, `useLiveQuery`). Synced entities render from
   SQLite; everything else through TanStack Query; a screen never mixes both for
-  one entity. ([01-architecture.md](../../plans/mobile-v2/01-architecture.md),
-  [02-local-database.md](../../plans/mobile-v2/02-local-database.md))
+  one entity. ([01-architecture.md](https://github.com/LibrePhotos/librephotos/blob/feat/mobile-v2/plans/mobile-v2/01-architecture.md),
+  [02-local-database.md](https://github.com/LibrePhotos/librephotos/blob/feat/mobile-v2/plans/mobile-v2/02-local-database.md))
 - **Sync engine** — keyset-paginated `updated_after` pull endpoints + a
   server-side `DeletionLog` tombstone table. Seed → delta → integrity snapshot
   (per-table counts vs server); drift schedules a reseed. The mirror is
   disposable, so reseed is always a safe recovery.
-  ([03-sync-engine.md](../../plans/mobile-v2/03-sync-engine.md))
+  ([03-sync-engine.md](https://github.com/LibrePhotos/librephotos/blob/feat/mobile-v2/plans/mobile-v2/03-sync-engine.md))
 - **Outbox** — offline mutations apply optimistically to the mirror inside a
   transaction that also queues an outbox row; a FIFO replay drains it when
   online. Delta pulls hold off while an entity has pending rows —
@@ -39,8 +39,8 @@ Full design docs: [`plans/mobile-v2/`](../../plans/mobile-v2/README.md).
 - **Shared API client** — `packages/api-client` is RN- and React-DOM-free (zod
   + TanStack Query, injectable fetch/baseURL/token), consumed by mobile-v2 now
   and by the frontend in a later PR.
-  ([04-backend-sync-api.md](../../plans/mobile-v2/04-backend-sync-api.md),
-  [05-feature-parity.md](../../plans/mobile-v2/05-feature-parity.md))
+  ([04-backend-sync-api.md](https://github.com/LibrePhotos/librephotos/blob/feat/mobile-v2/plans/mobile-v2/04-backend-sync-api.md),
+  [05-feature-parity.md](https://github.com/LibrePhotos/librephotos/blob/feat/mobile-v2/plans/mobile-v2/05-feature-parity.md))
 
 ## Features by phase
 
@@ -133,7 +133,7 @@ Closes #784, Closes #761, Closes #614, Closes #783, Closes #760
 - **Per-thing/place/tag membership mirroring** — those albums are mirrored, but
   full per-photo membership for these auto-album types is not yet offline.
 
-See [06-roadmap.md](../../plans/mobile-v2/06-roadmap.md) for the full phasing,
+See [06-roadmap.md](https://github.com/LibrePhotos/librephotos/blob/feat/mobile-v2/plans/mobile-v2/06-roadmap.md) for the full phasing,
 risks, and issue-closure rationale.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
