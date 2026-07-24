@@ -28,7 +28,10 @@ const RN_MODULE_NAME_MAPPER = {
 /** Pure-TS Node tests never touch RN — only the api-client + app source aliases. */
 const NODE_MODULE_NAME_MAPPER = {
   "^@librephotos/api-client$": "<rootDir>/../../packages/api-client/src/index.ts",
-  "^zod$": "<rootDir>/node_modules/zod",
+  // Resolve the single zod copy by module resolution (it hoists to the repo
+  // root under npm workspaces, or the app's node_modules standalone) — same
+  // forced-singleton invariant as the RN mapper.
+  "^zod$": dir("zod"),
   "^@/(.*)$": "<rootDir>/src/$1",
 };
 
