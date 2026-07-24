@@ -183,6 +183,9 @@ media*
 protected_media
 report_dynamo_export.sarif
 
+# Extracted ML model bundles used by golden inference tests (never committed)
+.testtmp*
+
 # Vim
 *.swp
 *.swo

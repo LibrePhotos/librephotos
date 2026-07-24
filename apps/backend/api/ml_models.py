@@ -20,6 +20,7 @@ class MlTypes:
     LLM = "llm"
     MOONDREAM = "moondream"
     TAGGING = "tagging"
+    OCR = "ocr"
 
 
 ML_MODELS = [
@@ -130,6 +131,30 @@ ML_MODELS = [
         "target-dir": "face_recognition/models/antelopev2",
     },
     {
+        "id": 14,
+        "name": "ppocrv6_tiny",
+        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/ppocrv6_tiny.tar.gz?download=true",
+        "type": MlTypes.OCR,
+        "unpack-command": "tar -zxC",
+        "target-dir": "ocr/ppocrv6_tiny",
+    },
+    {
+        "id": 15,
+        "name": "ppocrv6_small",
+        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/ppocrv6_small.tar.gz?download=true",
+        "type": MlTypes.OCR,
+        "unpack-command": "tar -zxC",
+        "target-dir": "ocr/ppocrv6_small",
+    },
+    {
+        "id": 16,
+        "name": "ppocrv6_medium",
+        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/ppocrv6_medium.tar.gz?download=true",
+        "type": MlTypes.OCR,
+        "unpack-command": "tar -zxC",
+        "target-dir": "ocr/ppocrv6_medium",
+    },
+    {
         # Moondream 2 GGUF model for llama-cpp-python multimodal support
         "id": 9,
         "name": "moondream",
@@ -165,6 +190,10 @@ def _is_model_selected(model):
         return site_config.LLM_MODEL == model["name"]
     if model_type == MlTypes.FACE_RECOGNITION:
         return model["name"] == site_config.FACE_RECOGNITION_MODEL
+    if model_type == MlTypes.OCR:
+        return not _is_model_not_selected(site_config.OCR_MODEL) and (
+            model["name"] == site_config.OCR_MODEL
+        )
     return True
 
 
@@ -191,6 +220,14 @@ def _model_target_exists(model_folder, model):
 
     if model["type"] == MlTypes.FACE_RECOGNITION and not any(target_dir.glob("*.onnx")):
         return False
+
+    # A tar bundle is unpacked file-by-file, so a crash mid-extraction can leave
+    # target_dir present but incomplete. Require the four core OCR members so a
+    # half-extracted bundle is not mistaken for a finished install.
+    if model["type"] == MlTypes.OCR:
+        required_files = ("det.onnx", "rec.onnx", "charset.txt", "config.json")
+        if not all((target_dir / name).exists() for name in required_files):
+            return False
 
     if model.get("additional_files"):
         for additional_file in model["additional_files"]:

@@ -201,6 +201,21 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             ),
         },
     ],
+    "ocr_model": [
+        "django.forms.fields.ChoiceField",
+        {
+            "widget": "django.forms.Select",
+            "choices": (
+                # Lowercase "none" mirrors the llm_model sibling; the "None"
+                # default in CONSTANCE_CONFIG still reads as unselected because
+                # _is_model_not_selected() lowercases before comparing.
+                ("none", "None"),
+                ("ppocrv6_tiny", "PP-OCRv6 Tiny (fastest, smallest)"),
+                ("ppocrv6_small", "PP-OCRv6 Small (balanced)"),
+                ("ppocrv6_medium", "PP-OCRv6 Medium (most accurate)"),
+            ),
+        },
+    ],
 }
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
@@ -235,6 +250,13 @@ CONSTANCE_CONFIG = {
     "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
     "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
+    "OCR_MODEL": (
+        "None",
+        "OCR model. OCR extracts ALL readable text from photos into the database"
+        " as plaintext (including documents, receipts, IDs) — leave None if you do"
+        " not want that.",
+        "ocr_model",
+    ),
     "FACE_RECOGNITION_MODEL": (
         "buffalo_sc",
         "Face recognition model",
