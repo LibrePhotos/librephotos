@@ -1,3 +1,5 @@
+import hashlib
+import re
 import tarfile
 import tempfile
 from pathlib import Path
@@ -9,6 +11,7 @@ from django.test import TestCase, override_settings
 
 from api.ml_models import (
     ML_MODELS,
+    ModelChecksumError,
     MlTypes,
     _download_file,
     _is_model_selected,
@@ -229,7 +232,7 @@ class DownloadModelFailureTest(TestCase):
             model_folder = media_root / "data_models"
             archive = model_folder / (model["target-dir"] + ".tar.gz")
 
-            def fake_download(url, target_path, model_name):
+            def fake_download(url, target_path, model_name, expected_sha256=None):
                 target_path = Path(target_path)
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_bytes(b"Entry not found")
@@ -279,3 +282,150 @@ class DownloadModelsJobTest(TestCase):
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertFalse(job.failed)
         self.assertTrue(job.finished)
+
+
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{40,}$")
+
+
+class ModelChecksumPinTest(TestCase):
+    """Every model artifact must carry a plausible sha256 pin.
+
+    The guard is what keeps a future entry from being added unpinned and thus
+    silently skipping verification.
+    """
+
+    def _assert_pinned(self, sha256, where):
+        self.assertIsInstance(sha256, str, f"{where} sha256 must be a string")
+        self.assertTrue(sha256, f"{where} sha256 must not be empty")
+        self.assertRegex(
+            sha256,
+            _SHA256_RE,
+            f"{where} sha256 must be 40+ hex characters",
+        )
+
+    def test_every_entry_and_additional_file_is_pinned(self):
+        for model in ML_MODELS:
+            self._assert_pinned(model.get("sha256"), model["name"])
+            for additional_file in model.get("additional_files", []):
+                self._assert_pinned(
+                    additional_file.get("sha256"),
+                    f"{model['name']} -> {additional_file['target']}",
+                )
+
+
+class ModelSourceUrlTest(TestCase):
+    """The licensing / mirroring decisions are encoded as regression tests."""
+
+    def _model(self, name):
+        for model in ML_MODELS:
+            if model["name"] == name:
+                return model
+        raise AssertionError(f"model {name} not found in ML_MODELS")
+
+    def test_insightface_models_stay_on_upstream_github(self):
+        # buffalo_* and antelopev2 are NON-COMMERCIAL-RESEARCH licensed, so they
+        # must never be moved onto the LibrePhotos mirror. This test fails loudly
+        # if someone re-points them.
+        for name in ("buffalo_sc", "buffalo_s", "buffalo_m", "buffalo_l", "antelopev2"):
+            self.assertIn(
+                "github.com/deepinsight/insightface",
+                self._model(name)["url"],
+                f"{name} must stay on its upstream InsightFace release URL",
+            )
+
+    def test_mirrored_models_point_at_librephotos_mirror(self):
+        mirror = "huggingface.co/derneuere/librephotos_models"
+
+        siglip2 = self._model("siglip2")
+        moondream = self._model("moondream")
+
+        expected_mirrored = [
+            self._model("mistral-7b-instruct-v0.2.Q5_K_M")["url"],
+            siglip2["url"],
+            siglip2["additional_files"][0]["url"],
+            siglip2["additional_files"][1]["url"],
+            moondream["url"],
+            moondream["additional_files"][0]["url"],
+        ]
+
+        for url in expected_mirrored:
+            self.assertIn(mirror, url, f"{url} must be served from the mirror")
+
+
+class DownloadFileChecksumTest(TestCase):
+    """sha256 verification is wired into the post-#1950 download flow."""
+
+    def test_matching_checksum_is_accepted(self):
+        payload = b"a" * 2048
+        digest = hashlib.sha256(payload).hexdigest()
+        response = _FakeResponse(
+            chunks=[payload[:1024], payload[1024:]],
+            headers={"content-length": str(len(payload))},
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "nested" / "model.onnx"
+            with patch("api.ml_models.requests.get", return_value=response):
+                _download_file("https://example.invalid/x", target, "model", digest)
+
+            self.assertEqual(payload, target.read_bytes())
+            self.assertEqual([target], list(target.parent.iterdir()))
+
+    def test_mismatching_checksum_is_rejected_and_nothing_lands(self):
+        payload = b"a" * 2048
+        wrong_digest = hashlib.sha256(b"different").hexdigest()
+        response = _FakeResponse(
+            chunks=[payload],
+            headers={"content-length": str(len(payload))},
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "nested" / "model.onnx"
+            with patch("api.ml_models.requests.get", return_value=response):
+                with self.assertRaises(ModelChecksumError):
+                    _download_file(
+                        "https://example.invalid/x", target, "model", wrong_digest
+                    )
+
+            # Neither the final file nor the partial ".part" sibling survives.
+            self.assertFalse(target.exists())
+            self.assertEqual([], list(target.parent.iterdir()))
+
+    def test_no_pin_skips_verification(self):
+        # A future hashless entry must not crash the download path.
+        payload = b"unpinned payload"
+        response = _FakeResponse(
+            chunks=[payload],
+            headers={"content-length": str(len(payload))},
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "model.bin"
+            with patch("api.ml_models.requests.get", return_value=response):
+                _download_file("https://example.invalid/x", target, "model", None)
+
+            self.assertEqual(payload, target.read_bytes())
+
+
+@override_config(OCR_MODEL="ppocrv6_small")
+class DownloadModelChecksumTest(TestCase):
+    def test_bad_checksum_leaves_no_archive_or_target(self):
+        model = _ocr_model("small")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            model_folder = media_root / "data_models"
+            archive = model_folder / (model["target-dir"] + ".tar.gz")
+
+            # A well-formed response whose bytes do not match the pinned hash:
+            # the archive must be rejected before any unpack is attempted.
+            body = b"not the real bundle"
+            response = _FakeResponse(
+                chunks=[body],
+                headers={"content-length": str(len(body))},
+            )
+
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                with patch("api.ml_models.requests.get", return_value=response):
+                    with self.assertRaises(ModelChecksumError):
+                        download_model(model)
+
+            self.assertFalse(archive.exists())
+            self.assertFalse((model_folder / (archive.name + ".part")).exists())
+            self.assertFalse(_model_target_exists(model_folder, model))
