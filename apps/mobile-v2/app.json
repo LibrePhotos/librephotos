@@ -17,7 +17,19 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "SEND",
+          "category": ["DEFAULT"],
+          "data": [{ "mimeType": "image/*" }, { "mimeType": "video/*" }]
+        },
+        {
+          "action": "SEND_MULTIPLE",
+          "category": ["DEFAULT"],
+          "data": [{ "mimeType": "image/*" }, { "mimeType": "video/*" }]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -34,7 +46,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#208AEF"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

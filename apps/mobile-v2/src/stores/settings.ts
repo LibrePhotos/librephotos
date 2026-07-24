@@ -15,10 +15,13 @@ type SettingsState = {
   /** Bare server origin, no trailing slash, no `/api` (e.g. https://demo.librephotos.com). */
   serverUrl: string | null;
   theme: ThemePreference;
+  /** Active UI locale code (e.g. "en", "de", "zh_Hans"). */
+  locale: string;
   /** LRU cap for the on-device thumbnail cache (doc 01 / thumb_cache). */
   thumbCapBytes: number;
   setServerUrl: (url: string) => void;
   setTheme: (theme: ThemePreference) => void;
+  setLocale: (locale: string) => void;
   setThumbCapBytes: (bytes: number) => void;
 };
 
@@ -32,8 +35,10 @@ export function normalizeServerUrl(raw: string): string {
 export const useSettingsStore = create<SettingsState>(set => ({
   serverUrl: null,
   theme: "system",
+  locale: "en",
   thumbCapBytes: DEFAULT_THUMB_CAP_BYTES,
   setServerUrl: url => set({ serverUrl: normalizeServerUrl(url) }),
   setTheme: theme => set({ theme }),
+  setLocale: locale => set({ locale }),
   setThumbCapBytes: bytes => set({ thumbCapBytes: bytes }),
 }));

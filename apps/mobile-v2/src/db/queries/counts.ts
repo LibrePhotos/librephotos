@@ -33,3 +33,33 @@ export function localCounts(db: AppDatabase): LocalCounts {
     tags: count(db, "tag_album"),
   };
 }
+
+/** Human-facing library statistics for the profile stats card (doc 05 §Statistics). */
+export type LibraryStats = {
+  photos: number;
+  videos: number;
+  people: number;
+  albums: number;
+  places: number;
+  things: number;
+  favorites: number;
+};
+
+function scalar(db: AppDatabase, query: string): number {
+  const row = db.get(sql.raw(query)) as { c: number } | undefined;
+  return row?.c ?? 0;
+}
+
+/** Counts drawn from the mirror (offline-safe); the visible library only. */
+export function libraryStats(db: AppDatabase): LibraryStats {
+  const visible = "removed = 0 AND in_trashcan = 0";
+  return {
+    photos: scalar(db, `SELECT COUNT(*) AS c FROM remote_photo WHERE type != 'video' AND ${visible}`),
+    videos: scalar(db, `SELECT COUNT(*) AS c FROM remote_photo WHERE type = 'video' AND ${visible}`),
+    people: scalar(db, `SELECT COUNT(*) AS c FROM person WHERE COALESCE(face_count, 0) > 0`),
+    albums: count(db, "user_album"),
+    places: count(db, "place_album"),
+    things: count(db, "thing_album"),
+    favorites: scalar(db, `SELECT COUNT(*) AS c FROM remote_photo WHERE is_favorite = 1 AND hidden = 0 AND ${visible}`),
+  };
+}

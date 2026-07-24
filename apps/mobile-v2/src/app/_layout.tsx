@@ -9,6 +9,7 @@ import { AppProviders } from "@/providers/AppProviders";
 import { DatabaseGate } from "@/db/DatabaseGate";
 import { SeedOnLogin } from "@/sync/SeedOnLogin";
 import { AppChrome } from "@/components/AppChrome";
+import { NotificationRouter } from "@/features/memories/NotificationRouter";
 import { useAuthStore } from "@/stores/auth";
 import { useResolvedScheme, useTheme } from "@/theme";
 
@@ -60,12 +61,14 @@ function RootNavigator() {
           <Stack.Screen name="photo/[id]" options={{ presentation: "modal" }} />
           <Stack.Screen name="sharing" />
           <Stack.Screen name="memories" />
+          <Stack.Screen name="share" options={{ presentation: "modal" }} />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthed}>
           <Stack.Screen name="(auth)/login" />
         </Stack.Protected>
       </Stack>
       {isAuthed ? <AppChrome /> : null}
+      {isAuthed ? <NotificationRouter /> : null}
     </DatabaseGate>
   );
 }

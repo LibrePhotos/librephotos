@@ -1,6 +1,14 @@
 import { createTestDb, type TestDb } from "../test-db";
 import { seedRemotePhotos, remotePhoto } from "./fixtures";
-import { memoryYears, monthDayOf, onThisDay } from "../queries/memories";
+import {
+  formatTime,
+  getMemoriesNotifPrefs,
+  memoryYears,
+  monthDayOf,
+  onThisDay,
+  parseTime,
+  setMemoriesNotifPrefs,
+} from "../queries/memories";
 
 /** June 15th of the given year, at noon UTC. */
 function jun15(year: number): number {
@@ -50,5 +58,29 @@ describe("memories (on this day)", () => {
       remotePhoto({ id: "p3", imageHash: "c", timestamp: jun15(2021) }),
     ]);
     expect(memoryYears(t.db, { today })).toEqual([2023, 2021]);
+  });
+});
+
+describe("memories notification prefs", () => {
+  let t: TestDb;
+  beforeEach(() => {
+    t = createTestDb();
+  });
+  afterEach(() => t.close());
+
+  it("parses and formats HH:MM with defaults + clamping", () => {
+    expect(parseTime(null)).toEqual({ hour: 9, minute: 0 });
+    expect(parseTime("07:30")).toEqual({ hour: 7, minute: 30 });
+    expect(parseTime("99:99")).toEqual({ hour: 23, minute: 59 });
+    expect(parseTime("garbage")).toEqual({ hour: 9, minute: 0 });
+    expect(formatTime(7, 5)).toBe("07:05");
+  });
+
+  it("defaults to disabled at 09:00 and round-trips prefs", () => {
+    expect(getMemoriesNotifPrefs(t.db)).toEqual({ enabled: false, hour: 9, minute: 0 });
+    setMemoriesNotifPrefs(t.db, { enabled: true, hour: 20, minute: 15 });
+    expect(getMemoriesNotifPrefs(t.db)).toEqual({ enabled: true, hour: 20, minute: 15 });
+    setMemoriesNotifPrefs(t.db, { minute: 45 });
+    expect(getMemoriesNotifPrefs(t.db)).toEqual({ enabled: true, hour: 20, minute: 45 });
   });
 });

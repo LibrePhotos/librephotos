@@ -25,6 +25,19 @@ export function thumbCacheTotalBytes(db: AppDatabase): number {
   return row.total;
 }
 
+/**
+ * Wipe the whole thumb cache (the settings "Clear cache" action). Returns the
+ * file paths that were tracked so the caller (app-only) can delete the files
+ * from expo-file-system; the DB rows are removed here in one statement.
+ */
+export function clearThumbCache(db: AppDatabase): string[] {
+  const paths = (db.all(sql`SELECT file_path FROM thumb_cache`) as { file_path: string }[]).map(
+    (r) => r.file_path
+  );
+  db.run(sql`DELETE FROM thumb_cache`);
+  return paths;
+}
+
 export function getThumb(db: AppDatabase, photoId: string): ThumbRow | null {
   const row = db.get(
     sql`SELECT photo_id, file_path, size_bytes, last_used FROM thumb_cache WHERE photo_id = ${photoId}`

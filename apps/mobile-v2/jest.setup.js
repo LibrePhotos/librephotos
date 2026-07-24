@@ -59,6 +59,17 @@ jest.mock("expo-network", () => ({
   addNetworkStateListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
+// expo-notifications → in-memory scheduler stub (permissions granted).
+jest.mock("expo-notifications", () => ({
+  SchedulableTriggerInputTypes: { DAILY: "daily" },
+  getPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  scheduleNotificationAsync: jest.fn(async () => "memories-daily"),
+  cancelScheduledNotificationAsync: jest.fn(async () => {}),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+}));
+
 // expo-clipboard → capture copied strings in tests.
 jest.mock("expo-clipboard", () => ({
   setStringAsync: jest.fn(async () => true),
