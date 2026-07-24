@@ -24,7 +24,7 @@ Feature toggles are implemented as environment variables you would have to confi
     </td>
     <td>🟢</td>
     <td>
-      FEATURE_PROCESS_EMBEDDED_MEDIA=True
+      FEATURE_PROCESS_EMBEDDED_MEDIA=true
     </td>
   </tr>
   <tr>
@@ -92,9 +92,7 @@ Feature toggles are implemented as environment variables you would have to confi
 All of these default to on. See [Advanced docker-compose usage](../installation/environment-variables.md) for what turning each one off actually stops, and for the matching `.env` keys of the bundled Compose setup.
 
 :::note Embedded media
-The **Embedded media** switch behaves a little differently from the rest. It reacts only to the exact value `True` — which is why its row shows `True` and not `true` — so any other value, including lowercase `true`, turns it off.
-
-It is also checked only the first time a file is imported. Enabling it on a library that has already been scanned extracts nothing for the photos that are already there, not even with **Rescan All Photos**, which skips extraction for files it has already imported. Only files added afterwards are affected. Turning it off never removes clips that were already extracted; those stay on disk under `protected_media/embedded_media/`.
+The **Embedded media** switch is checked only the first time a file is imported. Enabling it on a library that has already been scanned extracts nothing for the photos that are already there, not even with **Rescan All Photos**, which skips extraction for files it has already imported. Only files added afterwards are affected. Turning it off never removes clips that were already extracted; those stay on disk under `protected_media/embedded_media/`.
 :::
 
 #### Legend

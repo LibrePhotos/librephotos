@@ -9,6 +9,7 @@ export enum SyncStatus {
   SYNCED = 'synced',
   LOCAL = 'local',
   SYNCING = 'syncing',
+  FAILED = 'failed',
 }
 
 export const LocalImage = z.object({

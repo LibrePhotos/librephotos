@@ -57,7 +57,7 @@ class PhotoCaption(models.Model):
         try:
             from constance import config as site_config
 
-            if site_config.CAPTIONING_MODEL == "None":
+            if str(site_config.CAPTIONING_MODEL).lower() == "none":
                 util.logger.info("Generating captions is disabled")
                 return False
 
@@ -73,7 +73,7 @@ class PhotoCaption(models.Model):
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             llm_settings = User.objects.get(username=self.photo.owner).llm_settings
-            if site_config.LLM_MODEL != "None" and llm_settings["enabled"]:
+            if str(site_config.LLM_MODEL).lower() != "none" and llm_settings["enabled"]:
                 face = api.models.Face.objects.filter(photo=self.photo).first()
                 person_name = ""
                 if face and llm_settings["add_person"]:
@@ -147,7 +147,7 @@ class PhotoCaption(models.Model):
             prompt = "Describe this image in a short, natural image caption."
 
             # Enhanced prompting if LLM is enabled
-            if site_config.LLM_MODEL != "None" and llm_settings["enabled"]:
+            if str(site_config.LLM_MODEL).lower() != "none" and llm_settings["enabled"]:
                 face = api.models.Face.objects.filter(photo=self.photo).first()
                 person_name = ""
                 if face and llm_settings["add_person"]:

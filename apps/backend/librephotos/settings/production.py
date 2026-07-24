@@ -62,9 +62,7 @@ def _env_flag(name, default=True):
 
 
 # analyze files to detect embedded media (e.g. in motion photos)
-FEATURE_PROCESS_EMBEDDED_MEDIA = (
-    os.getenv("FEATURE_PROCESS_EMBEDDED_MEDIA", "True") == "True"
-)
+FEATURE_PROCESS_EMBEDDED_MEDIA = _env_flag("FEATURE_PROCESS_EMBEDDED_MEDIA")
 
 # Deploy-time feature switches. They all default to on, so an upgrade changes
 # nothing; set one to false/0/no/off to stop that work from being done at all.

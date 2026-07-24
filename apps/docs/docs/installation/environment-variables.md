@@ -146,6 +146,7 @@ Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anyth
 | `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. |
 | `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no requests go to your map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
 | `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. |
+| `FEATURE_PROCESS_EMBEDDED_MEDIA` | `featureProcessEmbeddedMedia` | The short video stored inside a "live photo" or motion photo is no longer extracted, so those files stay ordinary stills. `FEATURE_VIDEO` has to be on as well for extraction to happen. See [Feature Toggles](../user-guide/feature-toggles.md) for the one way this switch differs from the others. |
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
 
@@ -169,7 +170,7 @@ services:
 ```
 
 :::note
-There is one more switch of the same kind: `FEATURE_PROCESS_EMBEDDED_MEDIA` controls whether the motion video embedded in a "live photo" is extracted (`FEATURE_VIDEO` has to be on as well). It is listed in [Feature Toggles](../user-guide/feature-toggles.md) and only accepts the exact value `True`.
+`FEATURE_PROCESS_EMBEDDED_MEDIA` is checked only at the moment a file is first imported. Turning it on for a library that has already been scanned extracts nothing for the photos already there — not even with **Rescan All Photos** — so only files added afterwards are affected.
 :::
 
 ### Logging

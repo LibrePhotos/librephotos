@@ -80,6 +80,7 @@ services:
       - FEATURE_IMAGE_CAPTIONING=${featureImageCaptioning:-true}
       - FEATURE_REVERSE_GEOCODING=${featureReverseGeocoding:-true}
       - FEATURE_SCENE_CLASSIFICATION=${featureSceneClassification:-true}
+      - FEATURE_PROCESS_EMBEDDED_MEDIA=${featureProcessEmbeddedMedia:-true}
       - DEBUG=0
     depends_on:
       db:

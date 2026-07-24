@@ -284,7 +284,9 @@ Returned in stats response as:
 ```
 
 :::note
-Unlike `delete_missing_photos`, this count still uses the **unparenthesised** filter. Because of Python's `&`-before-`|` precedence it evaluates as `(Q(owner=user) & Q(files=None)) | Q(main_file=None)`, so `num_missing_photos` over-counts by including other users' photos that have `main_file=None`. This is a known bug in `stats.py`; the parenthesised, owner-scoped form used by `delete_missing_photos` is the correct one.
+This count uses the same parenthesised, owner-scoped filter as `delete_missing_photos` — `Q(owner=user) & (Q(files=None) | Q(main_file=None))`. The parentheses matter: without them Python's `&`-before-`|` precedence would evaluate the expression as `(Q(owner=user) & Q(files=None)) | Q(main_file=None)`, leaving the second branch unscoped so that other users' photos with `main_file=None` were counted too. That was a real bug in `stats.py`, fixed along with a cross-user regression test.
+
+One caveat remains: the count has no `.distinct()`, and `files` is a reverse many-to-many, so a photo carrying several `File` rows is counted once per row. `delete_missing_photos` is unaffected because it deletes objects rather than counting rows.
 :::
 
 ## Hash-Based Relinking

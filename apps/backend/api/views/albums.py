@@ -610,7 +610,8 @@ class AlbumDateListViewSet(ListViewSet):
 
         if self.request.query_params.get("public"):
             username = self.request.query_params.get("username")
-            filter.append(Q(owner__username=username))
+            if username:
+                filter.append(Q(owner__username=username))
             filter.append(Q(photos__public=True))
 
         if self.request.query_params.get("video"):

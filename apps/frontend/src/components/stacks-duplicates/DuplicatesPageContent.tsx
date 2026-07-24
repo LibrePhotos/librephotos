@@ -852,7 +852,7 @@ export function DuplicatesPageContent() {
               </Menu.Dropdown>
             </Menu>
             <Button size="sm" leftSection={<IconRefresh size={16} />} onClick={handleDetect} loading={isDetecting}>
-              {t("duplicates.detect", "Find Duplicates")}
+              {t("duplicates.detect")}
             </Button>
           </ButtonGroup>
         </Group>
@@ -904,12 +904,7 @@ export function DuplicatesPageContent() {
               {t("duplicates.noDuplicates", "No duplicates found")}
             </Text>
             <Text size="sm" c="dimmed" ta="center">
-              {statusFilter === "pending"
-                ? t(
-                    "duplicates.noPending",
-                    "All duplicates have been reviewed. Click 'Find Duplicates' to scan for more."
-                  )
-                : t("duplicates.empty", "Click 'Find Duplicates' to search for duplicate photos in your library.")}
+              {statusFilter === "pending" ? t("duplicates.nopending") : t("duplicates.empty")}
             </Text>
           </Stack>
         </Paper>
