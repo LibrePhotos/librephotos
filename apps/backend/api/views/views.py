@@ -126,6 +126,7 @@ class SiteSettingsView(APIView):
         out["captioning_model"] = site_config.CAPTIONING_MODEL
         out["llm_model"] = site_config.LLM_MODEL
         out["tagging_model"] = site_config.TAGGING_MODEL
+        out["ocr_model"] = site_config.OCR_MODEL
         out["face_recognition_model"] = site_config.FACE_RECOGNITION_MODEL
         out["nextcloud_enabled"] = site_config.NEXTCLOUD_ENABLED
         out["email_configured"] = email_is_configured()
@@ -151,6 +152,8 @@ class SiteSettingsView(APIView):
             site_config.LLM_MODEL = request.data["llm_model"]
         if "tagging_model" in request.data.keys():
             site_config.TAGGING_MODEL = request.data["tagging_model"]
+        if "ocr_model" in request.data.keys():
+            site_config.OCR_MODEL = request.data["ocr_model"]
         if "face_recognition_model" in request.data.keys():
             site_config.FACE_RECOGNITION_MODEL = request.data["face_recognition_model"]
         if "nextcloud_enabled" in request.data.keys():
@@ -464,6 +467,33 @@ class DeleteMissingPhotosView(APIView):
         try:
             job_id = uuid.uuid4()
             AsyncTask(delete_missing_photos, request.user, job_id).run()
+            return Response({"status": True, "job_id": job_id})
+        except BaseException:
+            logger.exception("An Error occurred")
+            return Response({"status": False})
+
+
+class ClassifyMediaView(APIView):
+    def post(self, request, format=None):
+        from api.directory_watcher.processing_jobs import classify_media
+
+        try:
+            job_id = uuid.uuid4()
+            AsyncTask(classify_media, request.user, job_id).run()
+            return Response({"status": True, "job_id": job_id})
+        except BaseException:
+            logger.exception("An Error occurred")
+            return Response({"status": False})
+
+
+class GenerateOcrView(APIView):
+    def post(self, request, format=None):
+        from api.directory_watcher.processing_jobs import generate_ocr
+
+        try:
+            job_id = uuid.uuid4()
+            full_scan = bool(request.data.get("full_scan", False))
+            AsyncTask(generate_ocr, request.user, job_id, full_scan).run()
             return Response({"status": True, "job_id": job_id})
         except BaseException:
             logger.exception("An Error occurred")

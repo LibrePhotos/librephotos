@@ -43,6 +43,8 @@ from api.directory_watcher.file_grouping import (
 from api.directory_watcher.processing_jobs import (
     generate_tags,
     generate_tag_job,
+    generate_ocr,
+    generate_ocr_job,
     add_geolocation,
     geolocation_job,
     scan_faces,
@@ -88,6 +90,8 @@ __all__ = [
     # Processing jobs
     "generate_tags",
     "generate_tag_job",
+    "generate_ocr",
+    "generate_ocr_job",
     "add_geolocation",
     "geolocation_job",
     "scan_faces",

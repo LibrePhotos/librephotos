@@ -5,6 +5,7 @@ These jobs run after the main scan to enrich photos with additional
 metadata like location information, image tags, and face detection.
 """
 
+import os
 import traceback
 import uuid
 from uuid import UUID
@@ -17,6 +18,7 @@ from api import util
 from api.face_classify import cluster_all_faces
 from api.models import Face, LongRunningJob, Photo
 from api.models.photo_caption import PhotoCaption
+from api.models.photo_ocr import PhotoOcr
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
@@ -154,6 +156,204 @@ def generate_tag_job(photo: Photo, job_id: str):
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
     update_scan_counter(job_id, failed, error)
+
+
+# Extensions cv2 can decode directly from the original file. Anything else
+# (RAW: .cr2/.arw/.nef/.dng..., HEIC/HEIF) is not readable by cv2.imread, so we
+# OCR the pre-rendered big thumbnail instead. A dedicated higher-resolution OCR
+# render is a possible follow-up; we do not build render infrastructure here.
+CV2_DECODABLE_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".bmp",
+    ".tif",
+    ".tiff",
+}
+
+# Minimum per-block confidence handed to the OCR sidecar (its contract default).
+OCR_MIN_CONFIDENCE = 0.6
+
+
+def ocr_image_source(photo: Photo):
+    """Return the best local image path to feed the OCR sidecar for ``photo``.
+
+    Prefer the original file when its extension is directly cv2-decodable
+    (the sidecar reads with cv2.imread). RAW and HEIC/HEIF originals are not
+    cv2-decodable, so those fall back to the already-rendered big thumbnail.
+    Returns ``None`` when neither source is available.
+    """
+    main_file = photo.main_file
+    if main_file and main_file.path:
+        ext = os.path.splitext(main_file.path)[1].lower()
+        if ext in CV2_DECODABLE_EXTENSIONS:
+            return main_file.path
+    try:
+        return photo.thumbnail.thumbnail_big.path
+    except Exception:
+        return None
+
+
+def generate_ocr(user, job_id: UUID, full_scan=False):
+    """
+    Extract text (OCR) from photos via the OCR sidecar.
+
+    Mirrors :func:`generate_tags`: fans work out to per-photo AsyncTasks that
+    each bump the shared job counter. Idempotent per active model -- a photo
+    whose stored ``PhotoOcr.engine`` already equals the active ``OCR_MODEL`` is
+    skipped, so switching tier (engine mismatch) naturally reprocesses.
+
+    Args:
+        user: The user whose photos to process
+        job_id: Job ID for tracking progress
+        full_scan: If True, reprocess every (non-video) photo regardless of
+            what OCR data already exists
+    """
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_GENERATE_OCR,
+        job_id=job_id,
+    )
+
+    try:
+        from constance import config as site_config
+
+        from api.ml_models import _is_model_not_selected
+
+        ocr_model = site_config.OCR_MODEL
+
+        # OCR disabled: finish cleanly with nothing to do. Use the same
+        # semantics as ml_models (treats "", None and any-case "none" as
+        # disabled) so a value like "" or "none" cannot fan out and store rows
+        # with a bogus engine while ml_models refuses to download the model.
+        if _is_model_not_selected(ocr_model):
+            lrj.update_progress(current=0, target=0)
+            lrj.complete()
+            return
+
+        # Baseline for the incremental delta: the most recent finished OCR run
+        # that actually had work to do. Zero-target runs (a disabled no-op, or a
+        # pass over an empty/fully-done library) are excluded so they never
+        # establish a watermark -- otherwise enabling OCR later, then running
+        # incrementally, would skip every pre-existing photo because they all
+        # predate the placeholder job. A stale (older-than-ideal) baseline can
+        # only widen the candidate scan; the engine-exclude below still prevents
+        # any already-done photo from being reprocessed, so this is safe.
+        last_scan = (
+            LongRunningJob.objects.filter(finished=True)
+            .filter(job_type=LongRunningJob.JOB_GENERATE_OCR)
+            .filter(started_by=user)
+            .exclude(progress_target=0)
+            .order_by("-finished_at")
+            .first()
+        )
+
+        existing_photos = Photo.objects.filter(owner=user.id).filter(video=False)
+        if not full_scan:
+            # Skip photos already OCR'd with the active model (idempotency).
+            existing_photos = existing_photos.exclude(ocr__engine=ocr_model)
+            if last_scan:
+                # Incremental run: limit to photos added since the last run, but
+                # always keep photos carrying a stale engine so a tier switch
+                # reprocesses them even outside the new-photo window.
+                existing_photos = existing_photos.filter(
+                    Q(added_on__gt=last_scan.started_at) | Q(ocr__isnull=False)
+                )
+
+        if existing_photos.count() == 0:
+            lrj.update_progress(current=0, target=0)
+            lrj.complete()
+            return
+        lrj.update_progress(current=0, target=existing_photos.count())
+        db.connections.close_all()
+
+        for idx, photo in enumerate(existing_photos):
+            # Check for cancellation periodically
+            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+                util.logger.info("Generate OCR job cancelled")
+                return
+            AsyncTask(generate_ocr_job, photo, job_id).run()
+
+    except Exception as err:
+        util.logger.exception("An error occurred: ")
+        print(f"[ERR]: {err}")
+        lrj.fail(error=err)
+
+
+def generate_ocr_job(photo: Photo, job_id: str):
+    """
+    Worker task to run OCR for a single photo and store the result.
+
+    Args:
+        photo: The photo to process
+        job_id: Job ID for tracking progress
+    """
+    failed = False
+    error = None
+    try:
+        photo.refresh_from_db()
+        _run_ocr_for_photo(photo)
+    except Exception as err:
+        util.logger.exception("An error occurred: %s", photo.image_hash)
+        print(f"[ERR]: {err}")
+        failed = True
+        error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+        error = error_msg
+    update_scan_counter(job_id, failed, error)
+
+
+def _run_ocr_for_photo(photo: Photo):
+    """Call the OCR sidecar for ``photo`` and persist the result.
+
+    Raises on a non-OK service response so the caller records a per-photo
+    failure (the job continues with the remaining photos).
+    """
+    import requests
+
+    from constance import config as site_config
+
+    from api.http_timeouts import OCR
+    from api.ml_models import _is_model_not_selected
+
+    ocr_model = site_config.OCR_MODEL
+    if _is_model_not_selected(ocr_model):
+        return
+
+    image_path = ocr_image_source(photo)
+    if not image_path:
+        util.logger.warning(f"No OCR image source for photo {photo.image_hash}")
+        return
+
+    response = requests.post(
+        "http://localhost:8012/ocr",
+        json={"image_path": image_path, "min_confidence": OCR_MIN_CONFIDENCE},
+        timeout=OCR,
+    )
+    if not response.ok:
+        raise RuntimeError(
+            f"OCR service returned status {response.status_code} for {image_path}"
+        )
+
+    data = response.json()
+
+    # update_or_create runs PhotoOcr.save(), which applies the text/blocks caps.
+    PhotoOcr.objects.update_or_create(
+        photo=photo,
+        defaults={
+            "text": data.get("text", "") or "",
+            "blocks": data.get("blocks", []) or [],
+            "engine": ocr_model,
+            "mean_confidence": data.get("mean_confidence"),
+            "text_area_fraction": data.get("text_area_fraction"),
+        },
+    )
+    # Note: OCR text is not folded into PhotoSearch.recreate_search_captions yet
+    # -- indexing OCR text for search is a separate work package.
+    util.logger.info(
+        f"generated OCR ({ocr_model}) for image {image_path} "
+        f"({len(data.get('text', '') or '')} chars)."
+    )
 
 
 def classify_media(user, job_id: UUID):

@@ -34,6 +34,7 @@ SERVICES = {
     "image_captioning": 8007,
     "exif": 8010,
     "tags": 8011,
+    "ocr": 8012,
 }
 
 HTTP_OK = 200
