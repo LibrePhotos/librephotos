@@ -1,0 +1,63 @@
+name: mobile-v2
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/mobile-v2/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-v2.yml'
+  pull_request:
+    paths:
+      - 'apps/mobile-v2/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/mobile-v2.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile-v2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # npm workspaces: install once at the repo root against the root
+          # package-lock.json (apps/mobile-v2 + packages/* are workspaces).
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install (workspaces)
+        run: npm ci
+      - name: typecheck
+        run: npm run typecheck --workspace apps/mobile-v2
+      - name: lint
+        run: npm run lint --workspace apps/mobile-v2
+      - name: test (jest — rn + node projects)
+        run: npm run test --workspace apps/mobile-v2
+
+  api-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install (workspaces)
+        run: npm ci
+      - name: typecheck
+        run: npm run typecheck --workspace packages/api-client
+      - name: lint
+        run: npm run lint --workspace packages/api-client
+      - name: test (vitest)
+        run: npm run test --workspace packages/api-client
