@@ -121,6 +121,19 @@ export function usePlaceAlbumsQuery() {
   return useQuery({ queryKey: queryKeys.placeAlbums(), queryFn: () => endpoints.fetchPlaceAlbumsList(client) });
 }
 
+export function useTagAlbumsQuery() {
+  const client = useApiClient();
+  return useQuery({ queryKey: queryKeys.tagAlbums(), queryFn: () => endpoints.fetchTagAlbumsList(client) });
+}
+
+export function usePhotosWithoutTimestampQuery(page: number) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.photosWithoutTimestamp(page),
+    queryFn: () => endpoints.fetchPhotosWithoutTimestamp(client, page),
+  });
+}
+
 /* ---- persons ----------------------------------------------------------- */
 
 export function usePeopleAlbumsQuery() {

@@ -25,4 +25,8 @@ config.resolver.extraNodeModules = {
   "@librephotos/api-client": path.resolve(workspaceRoot, "packages/api-client"),
 };
 
+// Drizzle's expo-sqlite migrator imports the generated `.sql` migrations as
+// raw source modules; teach Metro to treat `.sql` as a source extension.
+config.resolver.sourceExts.push("sql");
+
 module.exports = withNativeWind(config, { input: "./src/global.css" });

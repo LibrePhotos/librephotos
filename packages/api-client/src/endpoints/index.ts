@@ -115,6 +115,15 @@ export async function fetchPhotoDetails(client: ApiClient, imageHash: string): P
   return parseResponse(S.Photo, res, "photo details");
 }
 
+/** One page of photos that have no EXIF timestamp (paginated). */
+export async function fetchPhotosWithoutTimestamp(
+  client: ApiClient,
+  page: number
+): Promise<S.PhotosWithoutTimestampResponse> {
+  const res = await client.get<unknown>(`/photos/notimestamp/${buildQuery({ page })}`);
+  return parseResponse(S.PhotosWithoutTimestampResponse, res, "photos without timestamp");
+}
+
 /* ---- albums (user / auto / thing / place) ----------------------------- */
 
 export async function fetchUserAlbumsList(client: ApiClient): Promise<S.FetchUserAlbumsListResponse["results"]> {
@@ -127,6 +136,18 @@ export async function fetchAutoAlbumsList(client: ApiClient): Promise<S.FetchAut
   return parseResponse(S.FetchAutoAlbumsListResponse, res, "auto albums").results;
 }
 
+/** Full user-album detail incl. grouped photos (drives membership mirroring). */
+export async function fetchUserAlbum(client: ApiClient, id: number | string): Promise<S.UserAlbum> {
+  const res = await client.get<unknown>(`/albums/user/${id}/`);
+  return parseResponse(S.UserAlbum, res, "user album detail");
+}
+
+/** Full auto-album detail incl. its photos (drives membership mirroring). */
+export async function fetchAutoAlbum(client: ApiClient, id: number | string): Promise<S.AutoAlbum> {
+  const res = await client.get<unknown>(`/albums/auto/${id}/`);
+  return parseResponse(S.AutoAlbum, res, "auto album detail");
+}
+
 export async function fetchThingAlbumsList(client: ApiClient): Promise<S.FetchThingAlbumsListResponse["results"]> {
   const res = await client.get<unknown>("/albums/thing/list/");
   return parseResponse(S.FetchThingAlbumsListResponse, res, "thing albums").results;
@@ -135,6 +156,11 @@ export async function fetchThingAlbumsList(client: ApiClient): Promise<S.FetchTh
 export async function fetchPlaceAlbumsList(client: ApiClient): Promise<S.FetchPlaceAlbumsListResponse["results"]> {
   const res = await client.get<unknown>("/albums/place/list/");
   return parseResponse(S.FetchPlaceAlbumsListResponse, res, "place albums").results;
+}
+
+export async function fetchTagAlbumsList(client: ApiClient): Promise<S.TagListResponse["results"]> {
+  const res = await client.get<unknown>("/tags/");
+  return parseResponse(S.TagListResponse, res, "tag albums").results;
 }
 
 /* ---- persons ----------------------------------------------------------- */
