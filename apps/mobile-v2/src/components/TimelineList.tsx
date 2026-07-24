@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Text, useWindowDimensions, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { mediaHeaders } from "@librephotos/api-client";
 import { PhotoTile, type GridItem } from "./PhotoTile";
@@ -11,12 +11,18 @@ const NUM_COLUMNS = 3;
 const GAP = 2;
 
 type ListRow =
-  | { kind: "header"; day: string; key: string }
+  | { kind: "header"; day: string; key: string; items: TimelineItem[] }
   | { kind: "row"; items: TimelineItem[]; key: string };
 
 /** Group day-ordered items into header rows + rows of up to 3 photos. */
 function toRows(items: TimelineItem[]): ListRow[] {
   const rows: ListRow[] = [];
+  const dayItems = new Map<string, TimelineItem[]>();
+  for (const item of items) {
+    const list = dayItems.get(item.day) ?? [];
+    list.push(item);
+    dayItems.set(item.day, list);
+  }
   let currentDay: string | null = null;
   let bucket: TimelineItem[] = [];
   const flush = () => {
@@ -30,7 +36,7 @@ function toRows(items: TimelineItem[]): ListRow[] {
     if (item.day !== currentDay) {
       flush();
       currentDay = item.day;
-      rows.push({ kind: "header", day: item.day, key: `h-${item.day}` });
+      rows.push({ kind: "header", day: item.day, key: `h-${item.day}`, items: dayItems.get(item.day) ?? [] });
     }
     bucket.push(item);
   }
@@ -49,6 +55,10 @@ export function TimelineList({
   serverAddress,
   accessToken,
   onPressItem,
+  onLongPressItem,
+  onToggleDay,
+  selectionActive = false,
+  isSelected,
   onEndReached,
   ListHeaderComponent,
   ListEmptyComponent,
@@ -58,6 +68,11 @@ export function TimelineList({
   serverAddress: string;
   accessToken: string | null;
   onPressItem?: (item: GridItem) => void;
+  onLongPressItem?: (item: GridItem) => void;
+  /** Select/deselect a whole day section (from its header). */
+  onToggleDay?: (items: GridItem[]) => void;
+  selectionActive?: boolean;
+  isSelected?: (key: string) => boolean;
   onEndReached?: () => void;
   ListHeaderComponent?: React.ComponentType | React.ReactElement | null;
   ListEmptyComponent?: React.ComponentType | React.ReactElement | null;
@@ -77,16 +92,23 @@ export function TimelineList({
       getItemType={(r) => r.kind}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
+      extraData={selectionActive}
       ListHeaderComponent={ListHeaderComponent}
       ListEmptyComponent={ListEmptyComponent}
       renderItem={({ item: row }) =>
         row.kind === "header" ? (
-          <Text
+          <Pressable
             testID={`section-${row.day}`}
-            style={{ color: theme.text, fontWeight: "600", fontSize: 15, paddingHorizontal: 12, paddingTop: 16, paddingBottom: 6 }}
+            onPress={selectionActive && onToggleDay ? () => onToggleDay(row.items) : undefined}
+            style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 16, paddingBottom: 6 }}
           >
-            {row.day}
-          </Text>
+            <Text style={{ color: theme.text, fontWeight: "600", fontSize: 15 }}>{row.day}</Text>
+            {selectionActive ? (
+              <Text testID={`section-select-${row.day}`} style={{ color: theme.brand, fontSize: 13, fontWeight: "600" }}>
+                ⊟
+              </Text>
+            ) : null}
+          </Pressable>
         ) : (
           <View style={{ flexDirection: "row", gap: GAP, paddingHorizontal: 0 }}>
             {row.items.map((item) => (
@@ -97,6 +119,9 @@ export function TimelineList({
                 serverAddress={serverAddress}
                 headers={headers}
                 onPress={onPressItem}
+                onLongPress={onLongPressItem}
+                selectionActive={selectionActive}
+                selected={isSelected ? isSelected(item.key) : false}
               />
             ))}
           </View>

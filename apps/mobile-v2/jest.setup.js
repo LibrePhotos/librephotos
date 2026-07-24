@@ -36,6 +36,27 @@ jest.mock("@shopify/flash-list", () => {
   return { FlashList, MasonryFlashList: FlashList };
 });
 
+// expo-network → connectivity flag (default connected; override via global).
+jest.mock("expo-network", () => ({
+  NetworkStateType: {
+    NONE: "NONE",
+    UNKNOWN: "UNKNOWN",
+    CELLULAR: "CELLULAR",
+    WIFI: "WIFI",
+    ETHERNET: "ETHERNET",
+    BLUETOOTH: "BLUETOOTH",
+    WIMAX: "WIMAX",
+    VPN: "VPN",
+    OTHER: "OTHER",
+  },
+  getNetworkStateAsync: jest.fn(async () => ({
+    type: "WIFI",
+    isConnected: globalThis.__mockNetworkConnected ?? true,
+    isInternetReachable: globalThis.__mockNetworkConnected ?? true,
+  })),
+  addNetworkStateListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
 // expo-image → a plain RN Image-like stub exposing testID/source.
 jest.mock("expo-image", () => {
   const React = require("react");

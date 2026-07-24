@@ -37,3 +37,21 @@ export function remotePhotoIdByHash(db: AppDatabase, imageHash: string): string 
   ) as { id: string } | undefined;
   return row?.id ?? null;
 }
+
+export type PhotoFlags = {
+  id: string;
+  image_hash: string;
+  is_favorite: number;
+  hidden: number;
+  in_trashcan: number;
+  rating: number;
+};
+
+/** The mutable flags of one mirror photo (drives the viewer action bar state). */
+export function photoFlagsByHash(db: AppDatabase, imageHash: string): PhotoFlags | null {
+  const row = db.get(
+    sql`SELECT id, image_hash, is_favorite, hidden, in_trashcan, rating
+        FROM remote_photo WHERE image_hash = ${imageHash} LIMIT 1`
+  ) as PhotoFlags | undefined;
+  return row ?? null;
+}

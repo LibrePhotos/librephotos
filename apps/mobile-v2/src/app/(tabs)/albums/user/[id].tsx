@@ -14,9 +14,16 @@ export default function UserAlbumRoute() {
           userAlbums(db).map((a) => ({ id: a.id, title: a.title, coverHash: a.cover_hash, photoCount: a.photo_count }))
         }
         hrefFor={(albumId) => `/albums/user/${albumId}`}
+        creatable
       />
     );
   }
   const albumId = Number(id);
-  return <AlbumDetailScreen title="Album" query={(db) => userAlbumPhotos(db, albumId)} />;
+  return (
+    <AlbumDetailScreen
+      title="Album"
+      query={(db) => userAlbumPhotos(db, albumId)}
+      album={{ id: albumId, kind: "user" }}
+    />
+  );
 }

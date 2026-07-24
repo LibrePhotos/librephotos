@@ -19,5 +19,11 @@ export default function EventsAlbumRoute() {
     );
   }
   const albumId = Number(id);
-  return <AlbumDetailScreen title="Event" query={(db) => autoAlbumPhotos(db, albumId)} />;
+  return (
+    <AlbumDetailScreen
+      title="Event"
+      query={(db) => autoAlbumPhotos(db, albumId)}
+      album={{ id: albumId, kind: "auto" }}
+    />
+  );
 }

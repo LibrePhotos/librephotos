@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { TimelineList } from "@/components/TimelineList";
 import type { GridItem } from "@/components/PhotoTile";
 import { useMirrorTimeline } from "./useMirrorTimeline";
+import { useGridSelection } from "@/features/selection/useGridSelection";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
 import { useDb } from "@/db/provider";
@@ -27,6 +28,7 @@ export function TimelineScreen() {
   const base = serverAddress();
   const userId = useAuthStore((s) => s.userId);
   const { items, loadMore } = useMirrorTimeline();
+  const selection = useGridSelection();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -41,9 +43,13 @@ export function TimelineScreen() {
 
   const openPhoto = useCallback(
     (item: GridItem) => {
+      if (selection.active) {
+        selection.toggle(item);
+        return;
+      }
       if (item.imageHash) router.push(`/photo/${item.imageHash}`);
     },
-    [router]
+    [router, selection]
   );
 
   return (
@@ -70,10 +76,15 @@ export function TimelineScreen() {
             serverAddress={base}
             accessToken={token}
             onPressItem={openPhoto}
+            onLongPressItem={selection.enter}
+            onToggleDay={(dayItems) => selection.toggleGroup(dayItems)}
+            selectionActive={selection.active}
+            isSelected={selection.isSelected}
             onEndReached={loadMore}
           />
         </View>
       )}
+      {selection.overlay}
     </SafeAreaView>
   );
 }

@@ -8,6 +8,7 @@ import { Stack } from "expo-router";
 import { AppProviders } from "@/providers/AppProviders";
 import { DatabaseGate } from "@/db/DatabaseGate";
 import { SeedOnLogin } from "@/sync/SeedOnLogin";
+import { AppChrome } from "@/components/AppChrome";
 import { useAuthStore } from "@/stores/auth";
 import { useResolvedScheme, useTheme } from "@/theme";
 
@@ -63,6 +64,7 @@ function RootNavigator() {
           <Stack.Screen name="(auth)/login" />
         </Stack.Protected>
       </Stack>
+      {isAuthed ? <AppChrome /> : null}
     </DatabaseGate>
   );
 }

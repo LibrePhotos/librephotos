@@ -18,6 +18,7 @@ import { useDb, useReactiveQuery } from "@/db/provider";
 import { allSyncState, type SyncStateRow } from "@/db/queries/sync-state";
 import { recentSyncLog, type SyncLogRow } from "@/db/queries/sync-log";
 import { localCounts, type LocalCounts } from "@/db/queries/counts";
+import { outboxSummary, type OutboxSummary } from "@/mutations/outbox";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
 import { useTheme } from "@/theme";
@@ -51,6 +52,7 @@ export function SyncStatusScreen() {
   const states = useReactiveQuery<SyncStateRow[]>((d) => allSyncState(d), []);
   const logs = useReactiveQuery<SyncLogRow[]>((d) => recentSyncLog(d, 100), []);
   const counts = useReactiveQuery<LocalCounts>((d) => localCounts(d), []);
+  const outbox = useReactiveQuery<OutboxSummary>((d) => outboxSummary(d), []);
 
   const running = useSyncStore((s) => s.running);
   const progress = useSyncStore((s) => s.progress);
@@ -124,6 +126,27 @@ export function SyncStatusScreen() {
               {lastError}
             </Text>
           ) : null}
+        </View>
+
+        {/* Offline outbox (pending mutations) */}
+        <View testID="sync-outbox" style={{ gap: 6 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={{ fontWeight: "600", color: theme.text }}>{t("sync.outbox")}</Text>
+            {outbox.total > 0 ? (
+              <View
+                testID="outbox-badge"
+                style={{ backgroundColor: theme.brand, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}
+              >
+                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>{outbox.total}</Text>
+              </View>
+            ) : null}
+          </View>
+          <Text testID="outbox-summary" style={{ color: theme.muted, fontSize: 12 }}>
+            {outbox.total === 0
+              ? t("sync.allSynced")
+              : t("sync.pendingCount", { count: outbox.total }) +
+                (outbox.failed > 0 ? ` · ${t("backup.stateFailed")}: ${outbox.failed}` : "")}
+          </Text>
         </View>
 
         {/* Per-entity table */}

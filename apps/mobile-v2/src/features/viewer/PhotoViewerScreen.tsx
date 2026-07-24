@@ -1,14 +1,20 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
+import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { bigThumbnailUrl, mediaHeaders } from "@librephotos/api-client";
-import { useReactiveQuery } from "@/db/provider";
+import { useDb, useReactiveQuery } from "@/db/provider";
 import { timelinePage } from "@/db/queries/timeline";
+import { photoFlagsByHash, remotePhotoIdByHash, type PhotoFlags } from "@/db/queries/detail";
+import { useMutations } from "@/mutations/useMutations";
+import { TextPromptModal } from "@/components/TextPromptModal";
+import { AlbumPickerSheet } from "@/components/AlbumPickerSheet";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
 import { usePhotoDetail } from "./usePhotoDetail";
+import { ViewerActionBar } from "./ViewerActionBar";
 import { useTheme } from "@/theme";
 
 type Slide = { hash: string; key: string };
@@ -21,12 +27,47 @@ type Slide = { hash: string; key: string };
  */
 export function PhotoViewerScreen() {
   const { id: imageHash } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
   const theme = useTheme();
+  const db = useDb();
   const token = useAccessToken();
   const base = serverAddress();
+  const mutations = useMutations();
   const { width, height } = useWindowDimensions();
   const headers = useMemo(() => mediaHeaders(token), [token]);
   const [showDetail, setShowDetail] = useState(false);
+  const [currentHash, setCurrentHash] = useState<string | undefined>(imageHash);
+  const [editingCaption, setEditingCaption] = useState(false);
+  const [pickingAlbum, setPickingAlbum] = useState(false);
+
+  const flags = useReactiveQuery<PhotoFlags | null>(
+    (d) => (currentHash ? photoFlagsByHash(d, currentHash) : null),
+    [currentHash]
+  );
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: { key?: string | number | null }[] }) => {
+      const first = viewableItems[0]?.key;
+      if (typeof first === "string") setCurrentHash(first);
+    }
+  ).current;
+
+  const hash = currentHash;
+  const toggleFavorite = useCallback(() => {
+    if (hash && flags) mutations.favorite([hash], flags.is_favorite === 0);
+  }, [hash, flags, mutations]);
+  const toggleHide = useCallback(() => {
+    if (hash && flags) mutations.hide([hash], flags.hidden === 0);
+  }, [hash, flags, mutations]);
+  const toggleTrash = useCallback(() => {
+    if (hash && flags) mutations.trash([hash], flags.in_trashcan === 0);
+  }, [hash, flags, mutations]);
+  const rate = useCallback(
+    (r: number) => {
+      if (hash) mutations.rate(hash, r);
+    },
+    [hash, mutations]
+  );
 
   // Pager context: a window of the timeline (mirror). Fallback to the single
   // tapped hash when it is not part of the visible timeline (e.g. hidden).
@@ -55,6 +96,7 @@ export function PhotoViewerScreen() {
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={initialIndex}
         keyExtractor={(s) => s.key}
+        onViewableItemsChanged={onViewableItemsChanged}
         renderItem={({ item }) => (
           <Pressable onPress={() => setShowDetail((v) => !v)} style={{ width, height, alignItems: "center", justifyContent: "center" }}>
             <Image
@@ -67,6 +109,54 @@ export function PhotoViewerScreen() {
             />
           </Pressable>
         )}
+      />
+
+      {flags ? (
+        <ViewerActionBar
+          isFavorite={flags.is_favorite === 1}
+          hidden={flags.hidden === 1}
+          inTrashcan={flags.in_trashcan === 1}
+          rating={flags.rating}
+          onToggleFavorite={toggleFavorite}
+          onToggleHide={toggleHide}
+          onToggleTrash={toggleTrash}
+          onRate={rate}
+          onEditCaption={() => setEditingCaption(true)}
+          onAddToAlbum={() => setPickingAlbum(true)}
+        />
+      ) : null}
+
+      <TextPromptModal
+        visible={editingCaption}
+        title={t("mutations.caption")}
+        placeholder={t("mutations.captionPlaceholder")}
+        submitLabel={t("mutations.save")}
+        multiline
+        testID="viewer-caption-prompt"
+        onSubmit={(value) => {
+          setEditingCaption(false);
+          if (hash) mutations.caption(hash, value);
+        }}
+        onCancel={() => setEditingCaption(false)}
+      />
+
+      <AlbumPickerSheet
+        visible={pickingAlbum}
+        onPick={(album) => {
+          setPickingAlbum(false);
+          if (hash) {
+            const photoId = remotePhotoIdByHash(db, hash);
+            if (photoId) mutations.addToAlbum(album.id, album.title, [photoId], [hash]);
+          }
+        }}
+        onCreate={(title) => {
+          setPickingAlbum(false);
+          if (hash) {
+            const photoId = remotePhotoIdByHash(db, hash);
+            mutations.createAlbum(title, photoId ? [photoId] : []);
+          }
+        }}
+        onCancel={() => setPickingAlbum(false)}
       />
 
       {showDetail ? (

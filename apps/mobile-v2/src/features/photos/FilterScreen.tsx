@@ -5,9 +5,24 @@ import { useRouter } from "expo-router";
 import { MirrorGrid, type GridItem } from "@/components/MirrorGrid";
 import { useReactiveQuery } from "@/db/provider";
 import { filterPhotos, type PhotoFilter, type PhotoTileRow } from "@/db/queries/filters";
+import { useGridSelection, type SelectionDirections } from "@/features/selection/useGridSelection";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
 import { useTheme } from "@/theme";
+
+/** On a flag screen the primary action inverts that flag (unfavorite/unhide/restore). */
+function directionsFor(filter: PhotoFilter): SelectionDirections {
+  switch (filter) {
+    case "favorites":
+      return { favorite: false };
+    case "hidden":
+      return { hidden: false };
+    case "deleted":
+      return { deleted: false };
+    default:
+      return {};
+  }
+}
 
 export function tileRowToItem(r: PhotoTileRow): GridItem {
   return {
@@ -30,12 +45,17 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
   const token = useAccessToken();
   const base = serverAddress();
   const items = useReactiveQuery((db) => filterPhotos(db, filter).map(tileRowToItem), [filter]);
+  const selection = useGridSelection(directionsFor(filter));
 
   const openPhoto = useCallback(
     (item: GridItem) => {
+      if (selection.active) {
+        selection.toggle(item);
+        return;
+      }
       if (item.imageHash) router.push(`/photo/${item.imageHash}`);
     },
-    [router]
+    [router, selection]
   );
 
   return (
@@ -51,6 +71,9 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
           serverAddress={base}
           accessToken={token}
           onPressItem={openPhoto}
+          onLongPressItem={selection.enter}
+          selectionActive={selection.active}
+          isSelected={selection.isSelected}
           ListEmptyComponent={
             <View testID="filter-empty" style={{ padding: 32, alignItems: "center" }}>
               <Text style={{ color: theme.muted }}>Nothing here yet.</Text>
@@ -58,6 +81,7 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
           }
         />
       </View>
+      {selection.overlay}
     </SafeAreaView>
   );
 }

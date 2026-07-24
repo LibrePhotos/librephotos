@@ -6,6 +6,8 @@ import { useLogoutMutation, useUserSelfDetailsQuery } from "@librephotos/api-cli
 import { tokenStorage } from "@/lib/tokenStorage";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
+import { useReactiveQuery } from "@/db/provider";
+import { pendingOutboxCount } from "@/mutations/outbox";
 import { useTheme } from "@/theme";
 
 /**
@@ -21,6 +23,7 @@ export default function ProfileRoute() {
   const onLoggedOut = useAuthStore((s) => s.onLoggedOut);
   const serverUrl = useSettingsStore((s) => s.serverUrl);
   const user = useUserSelfDetailsQuery(userId ?? undefined);
+  const pending = useReactiveQuery((db) => pendingOutboxCount(db), []);
 
   const logout = useLogoutMutation({
     getRefreshToken: () => tokenStorage.getRefreshToken(),
@@ -44,9 +47,17 @@ export default function ProfileRoute() {
         <Pressable
           testID="sync-status-link"
           onPress={() => router.push("/profile/sync")}
-          style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 10, paddingVertical: 14, alignItems: "center" }}
+          style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 10, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
         >
           <Text style={{ color: theme.text, fontWeight: "600" }}>{t("profile.syncStatus")}</Text>
+          {pending > 0 ? (
+            <View
+              testID="profile-outbox-badge"
+              style={{ backgroundColor: theme.brand, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 }}
+            >
+              <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>{pending}</Text>
+            </View>
+          ) : null}
         </Pressable>
 
         <Pressable

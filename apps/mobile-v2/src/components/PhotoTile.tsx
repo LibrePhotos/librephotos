@@ -25,12 +25,18 @@ export function PhotoTile({
   serverAddress,
   headers,
   onPress,
+  onLongPress,
+  selectionActive = false,
+  selected = false,
 }: {
   item: GridItem;
   size: number;
   serverAddress: string;
   headers: Record<string, string>;
   onPress?: (item: GridItem) => void;
+  onLongPress?: (item: GridItem) => void;
+  selectionActive?: boolean;
+  selected?: boolean;
 }) {
   const db = useDb();
   const uri = resolveUri(db, item, serverAddress);
@@ -38,7 +44,9 @@ export function PhotoTile({
     <Pressable
       testID={`tile-${item.key}`}
       onPress={() => onPress?.(item)}
-      style={{ width: size, height: size }}
+      onLongPress={() => onLongPress?.(item)}
+      delayLongPress={250}
+      style={{ width: size, height: size, opacity: selectionActive && !selected ? 0.6 : 1 }}
     >
       <Image
         testID={`thumb-${item.key}`}
@@ -73,6 +81,26 @@ export function PhotoTile({
           }}
         >
           <Text style={{ color: "#fff", fontSize: 9, fontWeight: "900", lineHeight: 11 }}>↑</Text>
+        </View>
+      ) : null}
+      {selectionActive ? (
+        <View
+          testID={`select-mark-${item.key}`}
+          style={{
+            position: "absolute",
+            right: 4,
+            top: 4,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            borderWidth: 2,
+            borderColor: "#fff",
+            backgroundColor: selected ? "#208AEF" : "rgba(0,0,0,0.25)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {selected ? <Text style={{ color: "#fff", fontSize: 11, fontWeight: "900", lineHeight: 13 }}>✓</Text> : null}
         </View>
       ) : null}
     </Pressable>

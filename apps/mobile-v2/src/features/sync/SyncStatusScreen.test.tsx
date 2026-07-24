@@ -5,6 +5,7 @@ import { createTestDb, type TestDb } from "@/db/test-db";
 import { remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
 import { upsertSyncState } from "@/db/queries/sync-state";
 import { appendSyncLog } from "@/db/queries/sync-log";
+import { enqueueOutbox } from "@/mutations/outbox";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
 
@@ -43,6 +44,24 @@ describe("SyncStatusScreen", () => {
       // Action buttons are present.
       expect(getByTestId("sync-repair-button")).toBeTruthy();
       expect(getByTestId("sync-now-button")).toBeTruthy();
+    });
+  });
+
+  it("shows the outbox pending badge when mutations are queued", async () => {
+    enqueueOutbox(t.db, "favorite", { imageHashes: ["hashA"], favorite: true });
+    enqueueOutbox(t.db, "hide", { imageHashes: ["hashB"], hidden: true });
+    const { getByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    await waitFor(() => {
+      expect(getByTestId("outbox-badge")).toBeTruthy();
+      expect(getByTestId("outbox-badge").props.children.props.children).toBe(2);
+    });
+  });
+
+  it("reports all-synced when the outbox is empty", async () => {
+    const { getByTestId, queryByTestId } = renderWithDb(<SyncStatusScreen />, t.db);
+    await waitFor(() => {
+      expect(queryByTestId("outbox-badge")).toBeNull();
+      expect(getByTestId("outbox-summary")).toBeTruthy();
     });
   });
 

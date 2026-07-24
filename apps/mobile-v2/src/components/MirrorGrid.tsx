@@ -14,9 +14,13 @@ type Props = {
   serverAddress: string;
   accessToken: string | null;
   onPressItem?: (item: GridItem) => void;
+  onLongPressItem?: (item: GridItem) => void;
   onEndReached?: () => void;
   ListEmptyComponent?: React.ComponentType | React.ReactElement | null;
   ListHeaderComponent?: React.ComponentType | React.ReactElement | null;
+  /** Multi-select mode: renders selection marks + routes taps to toggle. */
+  selectionActive?: boolean;
+  isSelected?: (key: string) => boolean;
   testID?: string;
 };
 
@@ -26,9 +30,12 @@ export function MirrorGrid({
   serverAddress,
   accessToken,
   onPressItem,
+  onLongPressItem,
   onEndReached,
   ListEmptyComponent,
   ListHeaderComponent,
+  selectionActive = false,
+  isSelected,
   testID = "mirror-grid",
 }: Props) {
   const { width } = useWindowDimensions();
@@ -43,10 +50,20 @@ export function MirrorGrid({
       keyExtractor={(item) => item.key}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
+      extraData={selectionActive}
       ListEmptyComponent={ListEmptyComponent}
       ListHeaderComponent={ListHeaderComponent}
       renderItem={({ item }) => (
-        <PhotoTile item={item} size={size} serverAddress={serverAddress} headers={headers} onPress={onPressItem} />
+        <PhotoTile
+          item={item}
+          size={size}
+          serverAddress={serverAddress}
+          headers={headers}
+          onPress={onPressItem}
+          onLongPress={onLongPressItem}
+          selectionActive={selectionActive}
+          selected={isSelected ? isSelected(item.key) : false}
+        />
       )}
     />
   );
