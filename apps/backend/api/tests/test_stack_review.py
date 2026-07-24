@@ -52,13 +52,35 @@ class StackReviewModelTestCase(TestCase):
         self.assertEqual(review.trashed_count, 0)
         self.assertIsNone(review.reviewed_at)
 
-    def test_uuid_primary_key(self):
-        """Review ID should be a valid UUID."""
+    def test_monotonic_primary_key(self):
+        """Review pk should be an integer from the sequence, not a random UUID.
+
+        The pk doubles as the tiebreak in Meta.ordering, so it has to follow
+        insertion order.
+        """
         review = StackReview.objects.create(
             stack=self.stack,
             reviewer=self.user,
         )
-        self.assertIsInstance(review.id, uuid.UUID)
+        self.assertIsInstance(review.id, int)
+
+    def test_uuid_external_identifier(self):
+        """Review should still carry a UUID for external reference."""
+        review = StackReview.objects.create(
+            stack=self.stack,
+            reviewer=self.user,
+        )
+        self.assertIsInstance(review.uuid, uuid.UUID)
+
+    def test_uuid_is_unique_per_review(self):
+        """Each review should get its own UUID."""
+        stack2 = PhotoStack.objects.create(
+            owner=self.user,
+            stack_type=PhotoStack.StackType.MANUAL,
+        )
+        review1 = StackReview.objects.create(stack=self.stack, reviewer=self.user)
+        review2 = StackReview.objects.create(stack=stack2, reviewer=self.user)
+        self.assertNotEqual(review1.uuid, review2.uuid)
 
     def test_one_to_one_with_stack(self):
         """Stack should have at most one review."""
@@ -122,11 +144,9 @@ class StackReviewModelTestCase(TestCase):
             stack=stack2,
             reviewer=self.user,
         )
-        # Space the two timestamps out by hand. created_at is auto_now_add, so
-        # back-to-back creates can land in the same clock tick, and the model
-        # orders on created_at alone - its pk is a random UUID, so it is no
-        # tiebreak - which left this test resolving a tie by coin flip. Use
-        # queryset.update() because auto_now_add ignores an assigned value.
+        # Space the two timestamps out by hand so this tests created_at and not
+        # the pk tiebreak behind it. Use queryset.update() because auto_now_add
+        # ignores a value assigned on the instance.
         now = timezone.now()
         StackReview.objects.filter(pk=review1.pk).update(
             created_at=now - timedelta(minutes=1)
@@ -139,6 +159,56 @@ class StackReviewModelTestCase(TestCase):
         # review2 was created later, should come first
         self.assertEqual(reviews[0], review2)
         self.assertEqual(reviews[1], review1)
+
+    def test_same_created_at_orders_by_insertion(self):
+        """Rows sharing a created_at should still come back newest-first.
+
+        created_at is auto_now_add, so rows written in the same clock tick share
+        a value. With only -created_at to sort by, the database was free to
+        return them in either order, which under offset pagination lets a row
+        move between pages and be served twice or skipped. The pk is monotonic,
+        so it resolves the tie the way created_at would have if it could tell
+        the rows apart.
+        """
+        reviews = []
+        for _ in range(5):
+            stack = PhotoStack.objects.create(
+                owner=self.user,
+                stack_type=PhotoStack.StackType.MANUAL,
+            )
+            reviews.append(StackReview.objects.create(stack=stack, reviewer=self.user))
+
+        # Collapse every row onto one timestamp - the worst case for the sort.
+        tick = timezone.now()
+        StackReview.objects.update(created_at=tick)
+
+        ordered = list(StackReview.objects.all())
+        self.assertEqual(ordered, list(reversed(reviews)))
+
+    def test_ordering_is_stable_across_queries(self):
+        """The same tied rows should come back in the same order every time.
+
+        This is the property offset pagination depends on: page 2 is computed by
+        a second query, so an unstable sort is what lets a row repeat or vanish.
+        """
+        for _ in range(5):
+            stack = PhotoStack.objects.create(
+                owner=self.user,
+                stack_type=PhotoStack.StackType.MANUAL,
+            )
+            StackReview.objects.create(stack=stack, reviewer=self.user)
+
+        StackReview.objects.update(created_at=timezone.now())
+
+        first = [r.pk for r in StackReview.objects.all()]
+        second = [r.pk for r in StackReview.objects.all()]
+        self.assertEqual(first, second)
+
+        # Walked in pages, every row is seen exactly once.
+        paged = []
+        for start in range(0, 5, 2):
+            paged.extend(r.pk for r in StackReview.objects.all()[start : start + 2])
+        self.assertEqual(paged, first)
 
 
 class DecisionChoicesTestCase(TestCase):

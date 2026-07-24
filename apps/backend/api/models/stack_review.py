@@ -44,7 +44,16 @@ class StackReview(models.Model):
         # User marked as "not actually duplicates"
         DISMISSED = "dismissed", "Dismissed"
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Monotonic primary key. Meta.ordering below needs a tiebreak that follows
+    # insertion order, and Django only allows an auto-incrementing column as the
+    # primary key (fields.E100, "AutoFields must set primary_key=True"), so the
+    # sortable column has to be the pk rather than a separate "seq" field.
+    id = models.BigAutoField(primary_key=True)
+
+    # Stable external identifier. This is the value that used to be the primary
+    # key, so the pk swap does not make the row externally unnameable, and it
+    # keeps the row count out of any identifier the API might hand out.
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     stack = models.OneToOneField(
         PhotoStack,
@@ -85,7 +94,14 @@ class StackReview(models.Model):
     note = models.TextField(blank=True, null=True)
 
     class Meta:
-        ordering = ["-created_at"]
+        # created_at is not a total order on its own: it is auto_now_add, so two
+        # rows written in the same clock tick hold the same value and the
+        # database is free to return them in either order. Under offset
+        # pagination that lets a row move between pages, so a client can be
+        # served it twice or never see it. id is monotonic, so it breaks the tie
+        # in insertion order - the nearest thing to the order created_at would
+        # have given if it had the resolution to tell the rows apart.
+        ordering = ["-created_at", "-id"]
         verbose_name = "Stack Review"
         verbose_name_plural = "Stack Reviews"
         indexes = [
