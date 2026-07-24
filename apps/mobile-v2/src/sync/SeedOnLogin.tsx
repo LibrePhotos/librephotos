@@ -1,27 +1,33 @@
 /**
- * Kicks off the initial full seed once after login when the mirror has never
- * been fully synced. Renders nothing; runs inside the DbProvider so it can read
- * the mirror's sync_state and write through the same DB handle.
+ * Session sync manager (renders nothing). On login it kicks the initial
+ * seed-from-zero (or a catch-up delta if the mirror is already populated) and
+ * registers the foreground + connectivity triggers for the session. Runs inside
+ * the DbProvider so it shares the mirror handle. The name is kept for the
+ * existing _layout mount point; behaviour now spans the whole sync engine
+ * (Phase 2) rather than just the Phase 1 seed.
  */
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useDb } from "@/db/provider";
-import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/stores/auth";
-import { needsInitialSeed, runSeed } from "./coordinator";
+import { needsInitialSeed } from "./orchestrator";
+import { runSync } from "./run";
+import { registerSyncTriggers } from "./triggers";
 
 export function SeedOnLogin() {
   const db = useDb();
   const userId = useAuthStore((s) => s.userId);
-  const started = useRef(false);
 
   useEffect(() => {
-    if (started.current || userId == null) return;
-    if (!needsInitialSeed(db)) return;
-    started.current = true;
-    void runSeed(db, apiClient, { userId }).catch(() => {
-      // Failures leave sync_state "running"; the next launch / pull resumes.
-      started.current = false;
+    if (userId == null) return;
+    // Initial full seed on first login; a normal catch-up delta otherwise.
+    // Single-flight in the orchestrator dedupes against trigger-driven runs.
+    void runSync(db, { userId, reason: needsInitialSeed(db) ? "login" : "foreground" });
+
+    const unsubscribe = registerSyncTriggers({
+      db,
+      getUserId: () => useAuthStore.getState().userId,
     });
+    return unsubscribe;
   }, [db, userId]);
 
   return null;

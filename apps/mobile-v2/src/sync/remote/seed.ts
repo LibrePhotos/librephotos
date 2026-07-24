@@ -1,8 +1,15 @@
 /**
+ * @deprecated Phase 1 legacy-endpoint seeder. Superseded in Phase 2 by the
+ * delta engine (./delta.ts + ../orchestrator.ts), which seeds via the dedicated
+ * `/api/sync/*` endpoints ("seed = delta from cursor zero"). This module is no
+ * longer wired into the app (SeedOnLogin/pull-to-refresh/status screen all use
+ * the orchestrator) and is retained only for its unit tests and as a reference
+ * for the injectable-source seam. Do not add new callers; it will be removed
+ * once the delta path has soaked.
+ *
  * Full remote seed (Phase 1 groundwork). Populates the SQLite mirror from the
  * EXISTING server endpoints the frontend already uses (date albums / photo lists
- * / album lists / people) via @librephotos/api-client. Delta sync arrives in
- * Phase 2; pull-to-refresh today simply re-runs this seed (idempotent upserts).
+ * / album lists / people) via @librephotos/api-client.
  *
  * Design:
  *  - The data source is injected (`SeedSource`) so the orchestration is unit-

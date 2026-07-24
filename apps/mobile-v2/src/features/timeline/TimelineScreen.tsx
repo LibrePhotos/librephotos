@@ -7,16 +7,16 @@ import { TimelineList } from "@/components/TimelineList";
 import type { GridItem } from "@/components/PhotoTile";
 import { useMirrorTimeline } from "./useMirrorTimeline";
 import { useAccessToken } from "@/hooks/use-access-token";
-import { serverAddress, apiClient } from "@/lib/apiClient";
+import { serverAddress } from "@/lib/apiClient";
 import { useDb } from "@/db/provider";
 import { useAuthStore } from "@/stores/auth";
-import { runSeed } from "@/sync/coordinator";
+import { runSync } from "@/sync/run";
 import { useTheme } from "@/theme";
 
 /**
  * The photos timeline, rendered from SQLite via a live query (day section
- * headers + 3-column grid). Pull-to-refresh triggers a full re-seed (delta sync
- * lands in Phase 2). Tapping a photo opens the full-screen viewer by hash.
+ * headers + 3-column grid). Pull-to-refresh runs a forced delta sync (not a full
+ * re-seed). Tapping a photo opens the full-screen viewer by hash.
  */
 export function TimelineScreen() {
   const { t } = useTranslation();
@@ -33,7 +33,7 @@ export function TimelineScreen() {
     if (userId == null) return;
     setRefreshing(true);
     try {
-      await runSeed(db, apiClient, { userId, force: false });
+      await runSync(db, { userId, reason: "refresh" });
     } finally {
       setRefreshing(false);
     }
