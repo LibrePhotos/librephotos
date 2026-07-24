@@ -20,14 +20,16 @@ jest.mock("expo-secure-store", () => {
 jest.mock("@shopify/flash-list", () => {
   const React = require("react");
   const { View } = require("react-native");
-  const FlashList = ({ data = [], renderItem, ListEmptyComponent, testID }) => {
-    if (data.length === 0 && ListEmptyComponent) {
-      const Empty = ListEmptyComponent;
-      return React.isValidElement(Empty) ? Empty : React.createElement(Empty);
+  const asNode = (C) => (C == null ? null : React.isValidElement(C) ? C : React.createElement(C));
+  const FlashList = ({ data = [], renderItem, ListEmptyComponent, ListHeaderComponent, testID }) => {
+    const header = asNode(ListHeaderComponent);
+    if (data.length === 0) {
+      return React.createElement(View, { testID }, header, asNode(ListEmptyComponent));
     }
     return React.createElement(
       View,
       { testID },
+      header,
       data.map((item, index) =>
         React.createElement(React.Fragment, { key: index }, renderItem({ item, index }))
       )
@@ -55,6 +57,12 @@ jest.mock("expo-network", () => ({
     isInternetReachable: globalThis.__mockNetworkConnected ?? true,
   })),
   addNetworkStateListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
+// expo-clipboard → capture copied strings in tests.
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: jest.fn(async () => true),
+  getStringAsync: jest.fn(async () => ""),
 }));
 
 // expo-image → a plain RN Image-like stub exposing testID/source.

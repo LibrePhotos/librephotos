@@ -3,6 +3,7 @@ import { useMutations } from "@/mutations/useMutations";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { SelectionActionBar } from "@/components/SelectionActionBar";
 import { AlbumPickerSheet } from "@/components/AlbumPickerSheet";
+import { ShareSheet } from "@/features/sharing/ShareSheet";
 import {
   emptySelection,
   isSelected as isSelectedSel,
@@ -36,6 +37,8 @@ export function useGridSelection(
   const isOnline = useOnlineStatus();
   const [state, dispatch] = useReducer(selectionReducer, emptySelection);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareHashes, setShareHashes] = useState<string[]>([]);
 
   const dir = {
     favorite: directions.favorite ?? true,
@@ -97,6 +100,13 @@ export function useGridSelection(
     clear();
   }, [album, state, mutations, clear]);
 
+  const runShare = useCallback(() => {
+    const hashes = selectedImageHashes(state);
+    if (hashes.length === 0) return;
+    setShareHashes(hashes);
+    setShareOpen(true);
+  }, [state]);
+
   const count = selectionCount(state);
 
   const overlay: ReactElement | null = state.active ? (
@@ -109,6 +119,7 @@ export function useGridSelection(
         onTrash={runTrash}
         onAddToAlbum={() => setPickerOpen(true)}
         onRemoveFromAlbum={album ? runRemoveFromAlbum : undefined}
+        onShareLink={runShare}
         onCancel={clear}
       />
       <AlbumPickerSheet
@@ -116,6 +127,14 @@ export function useGridSelection(
         onPick={onPickAlbum}
         onCreate={onCreateAlbum}
         onCancel={() => setPickerOpen(false)}
+      />
+      <ShareSheet
+        visible={shareOpen}
+        imageHashes={shareHashes}
+        onClose={() => {
+          setShareOpen(false);
+          clear();
+        }}
       />
     </>
   ) : null;

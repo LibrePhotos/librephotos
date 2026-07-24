@@ -10,6 +10,7 @@
     "expo": "~57.0.8",
     "expo-background-task": "~57.0.6",
     "expo-battery": "~57.0.1",
+    "expo-clipboard": "~57.0.1",
     "expo-constants": "~57.0.7",
     "expo-device": "~57.0.1",
     "expo-file-system": "~57.0.1",
