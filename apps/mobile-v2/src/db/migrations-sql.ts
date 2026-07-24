@@ -45,4 +45,6 @@ export const MIGRATION_STATEMENTS: string[] = [
   "ALTER TABLE `sync_log` ADD `duration_ms` integer;",
   "ALTER TABLE `sync_log` ADD `cursor` text;",
   "CREATE INDEX `idx_sync_log_ts` ON `sync_log` (`ts`);",
+  "ALTER TABLE `upload_queue` ADD `next_attempt_at` integer;",
+  "CREATE INDEX `idx_upload_queue_state` ON `upload_queue` (`state`);",
 ];

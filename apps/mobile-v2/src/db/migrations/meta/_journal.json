@@ -15,6 +15,13 @@
       "when": 1784898259227,
       "tag": "0001_even_korath",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784900936477,
+      "tag": "0002_reflective_snowbird",
+      "breakpoints": true
     }
   ]
 }

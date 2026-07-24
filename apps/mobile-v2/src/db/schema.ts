@@ -257,14 +257,21 @@ export const outbox = sqliteTable("outbox", {
 });
 
 /** Upload queue (doc 03 §5). Survives a wipe-and-reseed. */
-export const uploadQueue = sqliteTable("upload_queue", {
-  assetId: text("asset_id").primaryKey(),
-  state: text("state").notNull().default("pending"),
-  progress: real("progress").notNull().default(0),
-  attempts: integer("attempts").notNull().default(0),
-  lastError: text("last_error"),
-  enqueuedAt: integer("enqueued_at"),
-});
+export const uploadQueue = sqliteTable(
+  "upload_queue",
+  {
+    assetId: text("asset_id").primaryKey(),
+    // pending | checking | uploading | done | failed | skipped_exists
+    state: text("state").notNull().default("pending"),
+    progress: real("progress").notNull().default(0),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    enqueuedAt: integer("enqueued_at"),
+    /** Earliest ms-epoch a failed item may be retried (exponential backoff). */
+    nextAttemptAt: integer("next_attempt_at"),
+  },
+  (t) => [index("idx_upload_queue_state").on(t.state)]
+);
 
 /** Explicit offline thumbnail store with LRU eviction (doc 01). */
 export const thumbCache = sqliteTable(
