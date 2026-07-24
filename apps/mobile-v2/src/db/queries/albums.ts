@@ -67,3 +67,44 @@ export function autoAlbumPhotos(db: AppDatabase, albumId: number): PhotoTileRow[
         ORDER BY aap.ordering ASC, rp.timestamp DESC`
   ) as PhotoTileRow[];
 }
+
+/* ---- thing / place / tag list mirrors (membership fetched on tap) ------- */
+
+export type NamedAlbumRow = {
+  id: number;
+  title: string;
+  cover_hashes: string | null;
+  photo_count: number;
+};
+
+/** Parse the first cover hash out of the stored JSON array (or null). */
+export function firstCoverHash(coverHashes: string | null): string | null {
+  if (!coverHashes) return null;
+  try {
+    const arr = JSON.parse(coverHashes) as unknown;
+    if (Array.isArray(arr) && typeof arr[0] === "string") return arr[0];
+  } catch {
+    // malformed — treat as no cover
+  }
+  return null;
+}
+
+function namedAlbums(db: AppDatabase, table: "thing_album" | "place_album" | "tag_album"): NamedAlbumRow[] {
+  return db.all(
+    sql.raw(
+      `SELECT id, title, cover_hashes, photo_count FROM ${table} ORDER BY photo_count DESC, title ASC`
+    )
+  ) as NamedAlbumRow[];
+}
+
+export function thingAlbumsList(db: AppDatabase): NamedAlbumRow[] {
+  return namedAlbums(db, "thing_album");
+}
+
+export function placeAlbumsList(db: AppDatabase): NamedAlbumRow[] {
+  return namedAlbums(db, "place_album");
+}
+
+export function tagAlbumsList(db: AppDatabase): NamedAlbumRow[] {
+  return namedAlbums(db, "tag_album");
+}
