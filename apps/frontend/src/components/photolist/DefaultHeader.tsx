@@ -7,6 +7,7 @@ import {
   IconGlobe as Globe,
   IconFolderSearch,
   IconPhoto as Photo,
+  IconScreenshot as Screenshot,
   IconStar as Star,
   IconVideo as Video,
 } from "@tabler/icons-react";
@@ -72,7 +73,8 @@ export function DefaultHeader(props: Props) {
       path.startsWith("/recent") ||
       path.startsWith("/user/") ||
       path.startsWith("/photos") ||
-      path.startsWith("/videos")
+      path.startsWith("/videos") ||
+      path.startsWith("/screenshots")
     );
   };
 
@@ -211,6 +213,13 @@ export function DefaultHeader(props: Props) {
 
                   <Menu.Item leftSection={<Video color="pink" size={14} />} onClick={() => navigate({ to: "/videos" })}>
                     {t("sidemenu.videos")}
+                  </Menu.Item>
+
+                  <Menu.Item
+                    leftSection={<Screenshot color="violet" size={14} />}
+                    onClick={() => navigate({ to: "/screenshots" })}
+                  >
+                    {t("sidemenu.screenshots")}
                   </Menu.Item>
 
                   <Menu.Item
