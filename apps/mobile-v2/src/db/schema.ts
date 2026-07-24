@@ -246,15 +246,23 @@ export const syncState = sqliteTable("sync_state", {
 });
 
 /** Offline mutations (doc 03 §6). Survives a wipe-and-reseed. */
-export const outbox = sqliteTable("outbox", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  createdAt: integer("created_at").notNull(),
-  kind: text("kind").notNull(), // 'favorite' | 'hide' | 'trash' | 'album_add' | ...
-  payload: text("payload"), // zod-validated json
-  state: text("state").notNull().default("pending"), // pending | inflight | failed
-  attempts: integer("attempts").notNull().default(0),
-  lastError: text("last_error"),
-});
+export const outbox = sqliteTable(
+  "outbox",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    createdAt: integer("created_at").notNull(),
+    kind: text("kind").notNull(), // 'favorite' | 'hide' | 'trash' | 'album_add' | ...
+    payload: text("payload"), // zod-validated json
+    state: text("state").notNull().default("pending"), // pending | inflight | failed
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    /** ms-epoch an `inflight` row was claimed (stale-claim recovery on crash). */
+    inflightAt: integer("inflight_at"),
+    /** Earliest ms-epoch a failed row may be retried (exponential backoff). */
+    nextAttemptAt: integer("next_attempt_at"),
+  },
+  (t) => [index("idx_outbox_state").on(t.state)]
+);
 
 /** Upload queue (doc 03 §5). Survives a wipe-and-reseed. */
 export const uploadQueue = sqliteTable(

@@ -23,7 +23,7 @@ import {
 } from "./orchestrator";
 import { createApiSyncSource, type RemoteSyncSource } from "./remote/source";
 import { pullEntity } from "./remote/delta";
-import { replayOutbox } from "./outbox/replay";
+import { replayOutbox } from "./outbox/executor";
 import { prefetchNewThumbs } from "./thumb-prefetch";
 import { syncDeviceMedia } from "./device/media-sync";
 import { runHashPass } from "./device/hasher";
@@ -65,11 +65,15 @@ function getDeviceProbe(): DeviceProbe {
   return (deviceProbe ??= createExpoDeviceProbe());
 }
 
-/** Per-run cap on how many uploads the foreground/background top-up runs. */
+/** Per-run cap on how many uploads the foreground top-up runs. */
 const UPLOAD_BUDGET = 50;
 
 /** Build the injected hooks shared by every app-side run. */
-function appHooks(userId: number | null | undefined): SyncAllOptions {
+function appHooks(
+  userId: number | null | undefined,
+  runOpts: { uploadBudget?: number } = {}
+): SyncAllOptions {
+  const uploadBudget = runOpts.uploadBudget ?? UPLOAD_BUDGET;
   return {
     onProgress: (p) => useSyncStore.getState().setProgress(p),
     getFavoriteMinRating:
@@ -118,7 +122,7 @@ function appHooks(userId: number | null | undefined): SyncAllOptions {
         transport: getUploadTransport(),
         gate,
         signal,
-        maxItems: UPLOAD_BUDGET,
+        maxItems: uploadBudget,
         log,
         onProgress: (assetId, sent, total) =>
           useSyncStore.getState().setProgress({
@@ -198,7 +202,11 @@ let backupInFlight: Promise<ReturnType<typeof queueSummary>> | null = null;
  * that land trigger a photos delta so the merged-timeline badge flips. Single-
  * flight of its own; returns the resulting queue summary.
  */
-export async function runBackupNow(db: AppDatabase, userId?: number | null) {
+export async function runBackupNow(
+  db: AppDatabase,
+  userId?: number | null,
+  opts: { uploadBudget?: number } = {}
+) {
   if (backupInFlight) return backupInFlight;
   const now = Date.now();
   const log = (entry: Parameters<typeof appendSyncLog>[1]) => appendSyncLog(db, entry, Date.now());
@@ -207,7 +215,7 @@ export async function runBackupNow(db: AppDatabase, userId?: number | null) {
       await syncDeviceMedia(db, getMediaProvider(), { now, log });
       if (userId != null) {
         await runHashPass(db, getAssetHasher(), { userId, now, log });
-        await appHooks(userId).topUpUploadQueue?.({
+        await appHooks(userId, opts).topUpUploadQueue?.({
           db,
           source: getSource(),
           now,

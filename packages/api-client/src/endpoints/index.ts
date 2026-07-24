@@ -268,3 +268,119 @@ export async function syncCounts(client: ApiClient): Promise<S.SyncCounts> {
   const res = await client.get<unknown>("/sync/counts/");
   return parseResponse(S.SyncCounts, res, "sync counts");
 }
+
+/* ---- photo / album / person mutations (offline outbox, doc 03 §6) ------- *
+ * Thin wrappers over the same endpoints the web frontend uses. The mobile
+ * outbox replay engine calls these when draining offline mutations; the next
+ * delta pull re-materializes authoritative row state, so responses are only
+ * lightly validated (favorite = rating; hide/trash = flag toggles).
+ * ----------------------------------------------------------------------- */
+
+/** Toggle favorite on a set of photos (favorite = rating ≥ favorite_min_rating). */
+export async function setPhotosFavorite(
+  client: ApiClient,
+  imageHashes: string[],
+  favorite: boolean
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/favorite/", {
+    image_hashes: imageHashes,
+    favorite,
+  });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "set favorite");
+}
+
+/** Toggle hidden on a set of photos. */
+export async function setPhotosHidden(
+  client: ApiClient,
+  imageHashes: string[],
+  hidden: boolean
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/hide/", {
+    image_hashes: imageHashes,
+    hidden,
+  });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "set hidden");
+}
+
+/** Move photos to / restore from the trashcan (soft delete). */
+export async function setPhotosDeleted(
+  client: ApiClient,
+  imageHashes: string[],
+  deleted: boolean
+): Promise<S.BulkPhotoMutationResponse> {
+  const res = await client.post<unknown>("/photosedit/setdeleted/", {
+    image_hashes: imageHashes,
+    deleted,
+  });
+  return parseResponse(S.BulkPhotoMutationResponse, res, "set deleted");
+}
+
+/** Set an arbitrary star rating on one photo (keyed by image hash). */
+export async function setPhotoRating(
+  client: ApiClient,
+  imageHash: string,
+  rating: number
+): Promise<S.PhotoEditResponse> {
+  const res = await client.patch<unknown>(`/photos/edit/${imageHash}/`, { rating });
+  return parseResponse(S.PhotoEditResponse, res, "set rating");
+}
+
+/** Save a user caption on one photo. */
+export async function savePhotoCaption(
+  client: ApiClient,
+  imageHash: string,
+  caption: string
+): Promise<S.StatusResponse> {
+  const res = await client.post<unknown>("/photosedit/savecaption/", {
+    image_hash: imageHash,
+    caption,
+  });
+  return parseResponse(S.StatusResponse, res, "save caption");
+}
+
+/** Create a user album with an initial photo set (photo ids = UUID pks). */
+export async function createUserAlbum(
+  client: ApiClient,
+  title: string,
+  photoIds: string[]
+): Promise<S.CreateUserAlbumResponse> {
+  const res = await client.post<unknown>("/albums/user/edit/", { title, photos: photoIds });
+  return parseResponse(S.CreateUserAlbumResponse, res, "create user album");
+}
+
+/** Add photos (by UUID pk) to an existing user album. */
+export async function addPhotosToUserAlbum(
+  client: ApiClient,
+  albumId: number,
+  title: string,
+  photoIds: string[]
+): Promise<unknown> {
+  return client.patch(`/albums/user/edit/${albumId}/`, { title, photos: photoIds });
+}
+
+/** Remove photos (by image hash) from a user album. */
+export async function removePhotosFromUserAlbum(
+  client: ApiClient,
+  albumId: number,
+  imageHashes: string[]
+): Promise<unknown> {
+  return client.patch(`/albums/user/edit/${albumId}/`, { removedPhotos: imageHashes });
+}
+
+/** Rename a user album. */
+export async function renameUserAlbum(
+  client: ApiClient,
+  albumId: number,
+  title: string
+): Promise<unknown> {
+  return client.patch(`/albums/user/${albumId}/`, { title });
+}
+
+/** Rename a person. */
+export async function renamePerson(
+  client: ApiClient,
+  personId: number,
+  newPersonName: string
+): Promise<unknown> {
+  return client.patch(`/persons/${personId}/`, { newPersonName });
+}

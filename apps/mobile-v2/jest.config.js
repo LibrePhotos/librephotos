@@ -43,11 +43,12 @@ module.exports = {
       setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
       moduleNameMapper: RN_MODULE_NAME_MAPPER,
       modulePaths: ["<rootDir>/node_modules"],
-      // DB + sync tests belong to the node project.
+      // DB + sync + mutation-core tests belong to the node project.
       testPathIgnorePatterns: [
         "<rootDir>/node_modules/",
         "<rootDir>/src/db/",
         "<rootDir>/src/sync/",
+        "<rootDir>/src/mutations/",
       ],
       transformIgnorePatterns: [
         "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|nativewind|react-native-css-interop|react-native-reanimated|react-native-worklets|@shopify/flash-list))",
@@ -56,7 +57,11 @@ module.exports = {
     {
       displayName: "node",
       testEnvironment: "node",
-      testMatch: ["<rootDir>/src/db/**/*.test.ts", "<rootDir>/src/sync/**/*.test.ts"],
+      testMatch: [
+        "<rootDir>/src/db/**/*.test.ts",
+        "<rootDir>/src/sync/**/*.test.ts",
+        "<rootDir>/src/mutations/**/*.test.ts",
+      ],
       moduleNameMapper: NODE_MODULE_NAME_MAPPER,
       transform: { "^.+\\.[jt]sx?$": "babel-jest" },
       transformIgnorePatterns: ["node_modules/(?!(drizzle-orm))"],

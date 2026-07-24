@@ -11,3 +11,4 @@ export * from "./settings";
 export * from "./upload";
 export * from "./tags";
 export * from "./sync";
+export * from "./mutations";
