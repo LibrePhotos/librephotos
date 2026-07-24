@@ -138,6 +138,11 @@ class User(AbstractUser):
     )
     duplicate_clear_existing = models.BooleanField(default=False)
 
+    # Delta-sync ordering key for the sharing surface (mobile v2, doc 04):
+    # a profile change (name/avatar) must reach clients that mirror this user
+    # as a "shared_user" row.
+    last_modified = models.DateTimeField(auto_now=True, db_index=True)
+
 
 def get_admin_user():
     return User.objects.get(is_superuser=True)

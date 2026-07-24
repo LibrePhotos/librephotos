@@ -151,6 +151,16 @@ class Photo(models.Model):
 
     _loaded_values = {}
 
+    class Meta:
+        indexes = [
+            # Keyset pagination for the delta-sync photo feed (doc 04 §3):
+            # WHERE (last_modified, id) > (:c1, :c2) ORDER BY last_modified, id.
+            # The UUID pk is the tie-break, same trap as PR #1935.
+            models.Index(
+                fields=["last_modified", "id"], name="photo_sync_keyset_idx"
+            ),
+        ]
+
     def get_clip_embeddings(self):
         """Get clip embeddings as a list, regardless of storage format"""
         if not self.clip_embeddings:
