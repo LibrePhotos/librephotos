@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import { useDb } from "@/db/provider";
 import { useAuthStore } from "@/stores/auth";
 import { needsInitialSeed } from "./orchestrator";
-import { runSync } from "./run";
+import { runSync, registerDeviceMediaListener } from "./run";
 import { registerSyncTriggers } from "./triggers";
 
 export function SeedOnLogin() {
@@ -27,7 +27,12 @@ export function SeedOnLogin() {
       db,
       getUserId: () => useAuthStore.getState().userId,
     });
-    return unsubscribe;
+    // Camera-roll changes nudge a sync while the app is foregrounded (doc 03 §4).
+    const unsubscribeMedia = registerDeviceMediaListener(db, () => useAuthStore.getState().userId);
+    return () => {
+      unsubscribe();
+      unsubscribeMedia();
+    };
   }, [db, userId]);
 
   return null;

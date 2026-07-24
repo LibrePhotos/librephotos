@@ -1,5 +1,5 @@
-import { StubScreen } from "@/components/StubScreen";
+import { BackupScreen } from "@/features/backup/BackupScreen";
 
 export default function BackupRoute() {
-  return <StubScreen title="Backup" note="Camera-roll backup + queue lands with the sync engine (doc 03)." />;
+  return <BackupScreen />;
 }

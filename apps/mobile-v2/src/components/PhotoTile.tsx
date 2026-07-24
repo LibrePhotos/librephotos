@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { squareThumbnailUrl } from "@librephotos/api-client";
 import { useDb } from "@/db/provider";
@@ -54,11 +54,26 @@ export function PhotoTile({
           style={{ position: "absolute", right: 4, bottom: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#fff" }}
         />
       ) : null}
+      {/* Local-only asset (no remote counterpart yet): pending-upload badge.
+          Flips off once the uploaded/exists-matched server row arrives on the
+          next delta sync and the merged-timeline join absorbs this row. */}
       {item.photoId === null ? (
         <View
           testID={`local-badge-${item.key}`}
-          style={{ position: "absolute", left: 4, bottom: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: "#22c55e" }}
-        />
+          style={{
+            position: "absolute",
+            left: 3,
+            bottom: 3,
+            width: 14,
+            height: 14,
+            borderRadius: 7,
+            backgroundColor: "#22c55e",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 9, fontWeight: "900", lineHeight: 11 }}>↑</Text>
+        </View>
       ) : null}
     </Pressable>
   );
