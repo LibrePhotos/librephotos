@@ -33,6 +33,20 @@ export const en = {
   },
   profile: {
     logout: "Log out",
+    syncStatus: "Sync status",
+  },
+  sync: {
+    title: "Sync status",
+    running: "Syncing…",
+    idle: "Up to date",
+    entities: "Mirror",
+    lastRun: "Last run",
+    upTo: "Up to",
+    syncNow: "Sync now",
+    exportLogs: "Export logs",
+    repair: "Repair sync",
+    log: "Log",
+    logEmpty: "No sync activity yet",
   },
 } as const;
 

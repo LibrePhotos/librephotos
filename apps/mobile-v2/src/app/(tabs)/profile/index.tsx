@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "expo-router";
 import { useLogoutMutation, useUserSelfDetailsQuery } from "@librephotos/api-client";
 import { tokenStorage } from "@/lib/tokenStorage";
 import { useAuthStore } from "@/stores/auth";
@@ -15,6 +16,7 @@ import { useTheme } from "@/theme";
 export default function ProfileRoute() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const router = useRouter();
   const userId = useAuthStore((s) => s.userId);
   const onLoggedOut = useAuthStore((s) => s.onLoggedOut);
   const serverUrl = useSettingsStore((s) => s.serverUrl);
@@ -38,6 +40,14 @@ export default function ProfileRoute() {
         <Text style={{ color: theme.muted }}>{serverUrl}</Text>
 
         <View style={{ flex: 1 }} />
+
+        <Pressable
+          testID="sync-status-link"
+          onPress={() => router.push("/profile/sync")}
+          style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 10, paddingVertical: 14, alignItems: "center" }}
+        >
+          <Text style={{ color: theme.text, fontWeight: "600" }}>{t("profile.syncStatus")}</Text>
+        </Pressable>
 
         <Pressable
           testID="logout-button"
