@@ -20,6 +20,12 @@ class ApiConfig(AppConfig):
 
         from api.util import LoggingNotConfiguredError, reconfigure_logging
 
+        # Delta-sync bookkeeping: last_modified bumps + tombstone writers
+        # (mobile v2, doc 04). Registered here so all models are loaded first.
+        from api import sync_signals
+
+        sync_signals.register()
+
         try:
             reconfigure_logging()
         except LoggingNotConfiguredError:
