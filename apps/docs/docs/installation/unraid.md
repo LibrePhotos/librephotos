@@ -1,7 +1,7 @@
 ---
 title: "📦 unRAID"
-excerpt: "How to install LibrePhotos on Unraid using Docker Compose."
-sidebar_position: 4
+description: "How to install LibrePhotos on Unraid using Docker Compose."
+sidebar_position: 3
 ---
 
 ## Docker Compose
@@ -37,7 +37,10 @@ wget -O .env https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/deplo
 wget https://raw.githubusercontent.com/LibrePhotos/librephotos/dev/deploy/compose/docker-compose.yml
 ```
 
-You'll need to edit the .env file with paths to your photos (myPhotos) and possibly the timeZone variable. Optionally, you'll want to grab a mapbox API key as documented in the file. Keep note of the default HTTP port, 3000.
+You'll need to edit the .env file and set the two mandatory variables: `scanDirectory`, the folder holding your photos (e.g. `/mnt/user/pictures`), and `data`, a folder for LibrePhotos' internal state - its database, protected media, logs and model cache (e.g. `/mnt/user/appdata/librephotos`). Create both folders before you start the stack, and keep note of the default HTTP port, 3000.
+
+The map API key is no longer set in this file. After first boot, set it under your avatar -> Admin Area -> Site Settings. See [Old environment variables](environment-variables.md#old-environment-variables) if you'd rather seed it as a first-boot default.
+
 You should have LibrePhotos accessible after a few minutes of boot-up on unraidip:3000 unless you changed this in the .env file.
 
 ​Once done, you can fire up the containers by typing:
@@ -60,10 +63,16 @@ docker ps | grep librephoto
 
 Finally, you can access the UI by going to http://unraidip:3000
 
-Furthermore, you can also monitor progress from shell prompt by tailing this file:
+Furthermore, you can also monitor progress from the shell prompt by tailing the backend log. It lives at `logs/ownphotos.log` inside the `data` folder you set in .env (with the example above, that is `/mnt/user/appdata/librephotos/logs/ownphotos.log`):
 
 ```bash
-tail -f librephotos_logs/ownphotos.log
+tail -f /mnt/user/appdata/librephotos/logs/ownphotos.log
+```
+
+Or, independent of where you mounted it - the backend container is always named `backend`:
+
+```bash
+docker exec backend tail -f /logs/ownphotos.log
 ```
 
 To shut everything down:
@@ -72,11 +81,15 @@ To shut everything down:
 docker-compose down
 ```
 
-If you want to grab any updates, you can type:
+If you want to grab any updates, run:
 
 ```bash
+docker-compose down
 docker-compose pull
+docker-compose up -d
 ```
+
+Running `docker-compose pull` on its own only downloads the new images; the containers keep running the old ones until they are recreated, so pull the images and then bring the stack back up.
 
 ## docker-compose issues when rebooting
 

@@ -1,7 +1,7 @@
 ---
 title: "📂 Missing Photos"
-excerpt: "Understanding and managing missing photos in LibrePhotos"
-sidebar_position: 8
+description: "Understanding and managing missing photos in LibrePhotos"
+sidebar_position: 15
 ---
 
 ## What are Missing Photos?
@@ -21,12 +21,14 @@ LibrePhotos deliberately keeps missing photos in the database instead of immedia
 
 ## When Photos Get Marked as Missing
 
-LibrePhotos identifies missing photos during these operations:
+LibrePhotos only marks photos as missing during its missing-file check. This check runs automatically as one of the final steps of a photo scan, but only when:
 
-- **Photo scans** - Running the "Scan for Missing Photos" job checks all photos in the database
-- **File system scans** - Regular photo scans detect when previously indexed files are no longer present
-- **Photo access** - When attempting to view or serve a photo whose file doesn't exist
-- **File operations** - When LibrePhotos tries to access a file for processing
+- the scan is a **full scan** (a rescan of your whole library), or
+- the scan covers your configured scan directory without targeting a specific list of files.
+
+It is therefore skipped for scans that only cover a specific set of files or a single subdirectory — such as an upload — unless that scan is a full scan. The check looks at your own photos, and for each one whose file can no longer be found on disk, it marks the photo as missing.
+
+Simply opening, viewing, or downloading a photo whose file has gone does **not** mark it as missing — you will just get an error for that one photo. The missing-photo count only updates after a scan has run this check.
 
 Common scenarios that cause missing photos:
 
@@ -39,19 +41,19 @@ Common scenarios that cause missing photos:
 
 ## How to Identify Missing Photos
 
-LibrePhotos provides several ways to identify missing photos:
+LibrePhotos gives you two ways to spot missing photos:
 
-### Statistics Dashboard
+### Missing Photos Badge
 
-Navigate to your user statistics to see the count of missing photos. The statistics page displays `num_missing_photos` which shows how many photos in your library have missing files.
+Click your avatar in the top-right corner and select **Library**. If any of your photos are missing, a red **"N Missing Photos"** badge appears next to the **Photos** heading; it is hidden when the count is zero. Hover over the badge to read a short explanation of how LibrePhotos marks photos as missing.
 
-### Photo Labels
+:::caution
+Clicking the badge opens the **Remove missing photos** confirmation dialog, which permanently deletes those photos from the database. Hover only, unless deletion is what you intend.
+:::
 
-Photos with missing files are labeled with **["Missing"]** when viewed in the library or photo details.
+### In the Photo Details View
 
-### Admin Area
-
-Administrators can view detailed statistics about missing photos across all users in the Admin Area.
+A missing photo keeps its thumbnail, so it still appears normally in the timeline and albums. The difference only shows in the photo details view: because the file has been detached from the photo, the filename is shown as **"Unknown filename"** and the folder-path breadcrumb is hidden.
 
 ## Resolving Missing Photos
 
@@ -73,7 +75,7 @@ If the issue is related to mounting or storage:
 2. Check Docker volume mounts in your configuration
 3. Verify network storage is accessible
 4. Restart LibrePhotos after fixing storage issues
-5. Run "Scan for Missing Photos" job to detect restored files
+5. Run a scan from the **Library** page (avatar menu → **Library** → **Scan Library** → **Scan**) so LibrePhotos re-checks and relinks the restored files
 
 ### Option 3: Automatic Relinking
 
@@ -85,22 +87,25 @@ LibrePhotos automatically relinks photos when files reappear:
 
 To trigger automatic relinking:
 
-1. Go to Settings → Library Management
-2. Click "Scan Photos" to perform a new scan
+1. Click your avatar in the top-right corner and select **Library** (or press `Ctrl+K` and search for "Library")
+2. In the **Scan Library** row, click **Scan** to perform a new scan (a full re-read of every file is available as **Rescan** in the dropdown next to it)
 3. LibrePhotos will detect and relink matching files
 
 ### Option 4: Delete Missing Photos
 
 If you're certain the files are permanently gone:
 
-1. Go to Settings → Library Management
-2. Click "Delete Missing Photos"
-3. This will permanently remove all missing photos from the database, including:
+1. Open the **Library** page (avatar menu → **Library**)
+2. Next to the **Photos** heading, click the red **"N Missing Photos"** badge — it only appears when your library actually has missing photos
+3. In the **Remove missing photos** dialog, click **Confirm**
+4. This will permanently remove all missing photos from the database, including:
    - Photo metadata and EXIF information
    - Thumbnails
    - Face detections
    - Album associations
    - Ratings and captions
+
+The same action is also available from the Spotlight command palette (`Ctrl+K`) as **Delete Missing Photos**.
 
 :::caution
 Deleting missing photos is permanent. Make sure the files are truly gone and won't be restored before using this option.
@@ -125,14 +130,14 @@ Deleting missing photos is permanent. Make sure the files are truly gone and won
 1. Update your Docker configuration to use the original mount point, or
 2. Move your photos to match the new mount point
 3. Restart LibrePhotos
-4. Run "Scan for Missing Photos" to update the database
+4. Run a scan from the **Library** page to update the database
 
 ### Scenario: Files Moved to Different Folder
 
 **Problem**: You reorganized your photo collection using a file manager.
 
 **Solution**:
-1. If the new location is within your scanned directories, just run "Scan Photos"
+1. If the new location is within your scanned directories, just run a scan from the **Library** page (**Scan Library** → **Scan**)
 2. LibrePhotos will detect the files by hash and automatically relink them
 3. The original metadata, ratings, and face tags will be preserved
 
@@ -142,7 +147,7 @@ Deleting missing photos is permanent. Make sure the files are truly gone and won
 
 **Solution**:
 - If you want to keep them: Restore the files from trash and run a scan
-- If you want to remove them: Use "Delete Missing Photos" to clean up the database
+- If you want to remove them: Use the **"N Missing Photos"** badge on the Library page (or the **Delete Missing Photos** action in the Spotlight palette) to clean up the database
 
 ## Future Improvements
 
@@ -158,6 +163,6 @@ This real-time monitoring will use file system watchers (inotify on Linux, FSEve
 ## Related Documentation
 
 - [Trash Management](./trash.md) - Learn about LibrePhotos' trash system
-- [Job System](./job-system.md) - Understanding long-running jobs like "Scan for Missing Photos"
+- [Job System](./job-system.md) - Understanding long-running jobs such as "Delete Missing Photos", and how to monitor them in the Admin Area
 - [Auto Scan](./auto-scan.md) - Configure automatic photo scanning
 

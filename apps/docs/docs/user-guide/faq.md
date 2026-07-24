@@ -1,14 +1,16 @@
 ---
 title: "❓ FAQ"
-excerpt: "Scan always fails after importing few images"
-sidebar_position: 7
+description: "Scan always fails after importing few images"
+sidebar_position: 27
 ---
 
 ## Proxmox - Scan always fails after importing few images
 
 ### Symptom
 
-You get errors like these and you use Proxmox:
+Your scan crashes with a `Fatal Python error: Illegal instruction` on a Proxmox guest, usually after only a few images have been imported.
+
+The traceback below is an example from an older LibrePhotos release, which used dlib / `face_recognition` on Python 3.9. On current builds the frames differ - face detection runs in a separate process now - so what identifies this problem is the `Illegal instruction` crash during a scan, not the specific frames shown here.
 
 ```
 Thread 0x00007fc8dcf3f640 (most recent call first):
@@ -54,9 +56,12 @@ If you don't care about live migration and moving VMs between nodes, the much ea
 ### Steps for Proxmox 6.4:
 
 Select your VM and then Hardware tab.
-{% include figure image_path="/assets/images/135711616-14903f44-2bdc-4830-82e9-a29562f75762.png" alt="Select your VM and then Hardware tab" %}
+
+![Select your VM and then Hardware tab](../../static/img/135711616-14903f44-2bdc-4830-82e9-a29562f75762.png)
+
 Then double-click on Processors or select it and click Edit:
-{% include figure image_path="/assets/images/135711657-3cdc2600-2368-440c-af75-00313c8c8997.png" alt="Then double-click on Processors or select it and click Edit"  %}
+
+![Then double-click on Processors or select it and click Edit](../../static/img/135711657-3cdc2600-2368-440c-af75-00313c8c8997.png)
 
 ## error decoding 'Volumes[0]': invalid spec: :/data: empty section between colons / "The "scanDirectory" variable is not set. Defaulting to a blank string."
 

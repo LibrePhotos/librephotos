@@ -1,8 +1,8 @@
 ---
 title: "👨‍💻 Frontend"
-excerpt: "Development Information regarding LibrePhotos Frontend."
+description: "Development Information regarding LibrePhotos Frontend."
+sidebar_position: 2
 last_modified_at: 2026-07-22
-category: 5
 ---
 
 The frontend is a [React 18](https://react.dev/) single-page app, written in TypeScript and built
@@ -18,9 +18,16 @@ debugging, and how the source tree is laid out.
 
 ## ✨ Code Standards
 
-We use ESLint and Prettier to keep our code tidy. Running `yarn install` also installs the git hooks
-(the `prepare` script runs `husky install`), so staged files are formatted and linted on every
-commit — there is no extra setup step.
+We use ESLint and Prettier to keep our code tidy. Before you commit, run `yarn lint:error` to check
+your changes and `yarn lint:error:fix` to apply the automatic fixes — the ESLint config enforces
+Prettier through the `prettier/prettier` rule, so linting also flags unformatted code. The
+`lint-frontend` CI workflow runs the lint, test and build steps on every pull request that touches
+`apps/frontend` and fails on anything unclean, so nothing un-linted gets merged.
+
+The repository ships a `husky` pre-commit hook (`apps/frontend/.husky/pre-commit`, which runs
+`lint-staged`), but it is currently inactive in the monorepo: `yarn install` runs the `prepare`
+script — `husky install` — with the working directory set to `apps/frontend`, which has no `.git` of
+its own, so husky exits without registering the hook. Don't rely on it; lint before you commit.
 
 ## 🐛 Debugging
 

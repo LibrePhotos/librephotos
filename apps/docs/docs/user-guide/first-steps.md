@@ -1,6 +1,6 @@
 ---
 title: "✔️ First steps"
-excerpt: "First steps after setting up"
+description: "First steps after setting up"
 sidebar_position: 1
 ---
 
@@ -34,7 +34,9 @@ These settings can always be changed later in the Admin Area. Click **Continue**
 
 This is where you tell LibrePhotos where your photos are stored:
 
-1. **Skip RAW Files** (optional) – Toggle this on if you want LibrePhotos to ignore RAW image files during scanning
+1. **Stack RAW+JPEG pairs** (on by default) – Leave this on to have RAW files automatically grouped with their JPEG counterparts during scans. Both files remain in your library. Turn it off if you want RAW and JPEG versions to appear as separate photos.
+
+   You can change this later under your avatar (top right) > `Library`.
 
 2. **Scan Directory** – Select or type the path to your photos folder. If you haven't modified the default `docker-compose.yml`, this should be `/data`, which corresponds to the folder you configured as `scanDirectory` in your `.env` file.
 
@@ -65,10 +67,10 @@ Click on your avatar in the top right, and go to `Admin Area`. On this page, it 
 
 ### How to Start a Scan
 
-Click on your avatar in the top right, and go to `Library`. Click the green `Scan photos (file system)` button. See the [auto scan page](./auto-scan.md) if you would like to set up automated scanning for new photos. For more details on the Library page and all available actions, see [Library Management](./library.md).
+Click on your avatar in the top right, and go to `Library`. Under **Scan Library**, click the **Scan** button. The chevron next to it opens a menu with **Rescan**, which reprocesses your entire library. See the [auto scan page](./auto-scan.md) if you would like to set up automated scanning for new photos. For more details on the Library page and all available actions, see [Library Management](./library.md).
 
 ### How to Import Photos from an External Nextcloud Instance
 
-If you have a Nextcloud instance, you can also input login details for it in the `Dashboard` > `Library` page.
+If you have a Nextcloud instance, you can also input login details for it on the `Library` page (click on your avatar in the top right, and go to `Library`).
 The Nextcloud section is hidden until an admin enables it in `Admin Area` > `Site Settings` > `Enable Nextcloud integration` (see [Library Management](./library.md#enabling-the-integration)).
-Fill out the details for the Nextcloud section. Once logged in (the little circle next to `Nextcloud Scan Directory` will be green), you can choose a top level directory in your logged in Nextcloud account. Once this has been configured, you can click the blue `Scan photos (Nextcloud)` button. This will copy the contents of the specified Nextcloud directory ([excluding videos](https://github.com/LibrePhotos/librephotos/issues/278)) to the local filesystem.
+Fill out the server address, username and app password for the Nextcloud section. Once the connection succeeds, the **Status** badge at the top of the Nextcloud section turns green and reads *Connected*. You can then click **Browse** next to **Nextcloud Scan Directory** to pick a top level directory in your Nextcloud account. Once this has been configured, you can click the blue **Scan** button at the bottom of the Nextcloud section (the one with the Nextcloud icon). This will copy the contents of the specified Nextcloud directory — images, videos, RAW files and XMP sidecars — to the local filesystem, and then index them the same way a regular file system scan does.
