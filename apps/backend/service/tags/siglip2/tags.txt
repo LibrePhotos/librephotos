@@ -926,3 +926,13 @@ tournament
 quinceañera
 bar mitzvah
 bat mitzvah
+receipt
+document
+invoice
+business card
+identity document
+ticket
+menu
+whiteboard
+handwritten note
+book page
