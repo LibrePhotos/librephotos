@@ -26,6 +26,7 @@ class LongRunningJob(models.Model):
     JOB_SCAN_MISSING_PHOTOS = 14
     JOB_DETECT_DUPLICATES = 15
     JOB_REPAIR_FILE_VARIANTS = 16
+    JOB_CLASSIFY_MEDIA = 17
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -44,6 +45,7 @@ class LongRunningJob(models.Model):
         (JOB_SCAN_MISSING_PHOTOS, "Scan Missing Photos"),
         (JOB_DETECT_DUPLICATES, "Detect Duplicate Photos"),
         (JOB_REPAIR_FILE_VARIANTS, "Repair File Variants"),
+        (JOB_CLASSIFY_MEDIA, "Classify Media Categories"),
     )
 
     job_type = models.PositiveIntegerField(

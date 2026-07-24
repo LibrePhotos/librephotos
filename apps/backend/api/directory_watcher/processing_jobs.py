@@ -156,6 +156,80 @@ def generate_tag_job(photo: Photo, job_id: str):
     update_scan_counter(job_id, failed, error)
 
 
+def classify_media(user, job_id: UUID):
+    """
+    Backfill media-category flags (screenshot/document) for a user's photos.
+
+    Unlike the tag/geolocation jobs the per-photo work is DB-only: it runs the
+    pure :func:`api.screenshot_detection.classify` heuristic and writes the
+    result back in batches. No service calls, thumbnails or file reads. Photos a
+    user has manually corrected (``category_source == "user"``) are left alone.
+
+    Args:
+        user: The user whose photos to classify
+        job_id: Job ID for tracking progress
+    """
+    from api.screenshot_detection import classify
+
+    lrj = LongRunningJob.get_or_create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_CLASSIFY_MEDIA,
+        job_id=job_id,
+    )
+
+    # Flush accumulated updates in chunks to keep memory bounded on large
+    # libraries while avoiding a write per photo.
+    BATCH_SIZE = 200
+
+    try:
+        existing_photos = Photo.objects.filter(owner=user.id).exclude(
+            category_source="user"
+        )
+
+        target = existing_photos.count()
+        if target == 0:
+            lrj.update_progress(current=0, target=0)
+            lrj.complete()
+            return
+
+        lrj.update_progress(current=0, target=target)
+        db.connections.close_all()
+
+        pending = []
+        for idx, photo in enumerate(existing_photos.iterator()):
+            # Check for cancellation periodically
+            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+                util.logger.info("Classify media job cancelled")
+                return
+            failed = False
+            error = None
+            try:
+                new_value = classify(photo)
+                if new_value != photo.is_screenshot:
+                    photo.is_screenshot = new_value
+                    pending.append(photo)
+                if len(pending) >= BATCH_SIZE:
+                    Photo.objects.bulk_update(pending, ["is_screenshot"])
+                    pending = []
+            except Exception as err:
+                util.logger.exception("An error occurred: ")
+                print(f"[ERR]: {err}")
+                failed = True
+                error_msg = (
+                    f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+                )
+                error = error_msg
+            update_scan_counter(job_id, failed, error)
+
+        if pending:
+            Photo.objects.bulk_update(pending, ["is_screenshot"])
+
+    except Exception as err:
+        util.logger.exception("An error occurred: ")
+        print(f"[ERR]: {err}")
+        lrj.fail(error=err)
+
+
 def add_geolocation(user, job_id: UUID, full_scan=False):
     """
     Add geolocation data to photos based on GPS coordinates.

@@ -85,6 +85,12 @@ class Photo(models.Model):
     removed = models.BooleanField(default=False, db_index=True)
     hidden = models.BooleanField(default=False, db_index=True)
     video = models.BooleanField(default=False)
+    # Media category flags. ``category_source`` records who set them so a
+    # rescan/backfill never clobbers a manual correction: "auto" (detector) or
+    # "user" (manually corrected in the UI).
+    is_screenshot = models.BooleanField(default=False, db_index=True)
+    is_document = models.BooleanField(default=False, db_index=True)
+    category_source = models.CharField(max_length=8, default="auto")
     video_length = models.TextField(blank=True, null=True)
     size = models.BigIntegerField(default=0)
     # Metadata fields (camera, lens, fstop, etc.) moved to PhotoMetadata model
