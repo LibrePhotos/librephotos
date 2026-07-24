@@ -79,6 +79,10 @@ class PhotoSearch(models.Model):
         # Add media type
         if self.photo.video:
             search_captions += "type: video "
+        if self.photo.is_screenshot:
+            search_captions += "type: screenshot "
+        if self.photo.is_document:
+            search_captions += "type: document "
 
         # Add camera and lens info from PhotoMetadata
         try:

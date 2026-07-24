@@ -32,6 +32,8 @@ class SearchListViewSet(ListViewSet):
             OpenApiParameter("search", OpenApiTypes.STR),
             OpenApiParameter("video", OpenApiTypes.BOOL),
             OpenApiParameter("photo", OpenApiTypes.BOOL),
+            OpenApiParameter("is_screenshot", OpenApiTypes.BOOL),
+            OpenApiParameter("is_document", OpenApiTypes.BOOL),
         ],
         description=(
             "Search photos and videos. Pass video=true to return only videos "

@@ -21,6 +21,13 @@ class SemanticSearchFilter(filters.SearchFilter):
         elif request.query_params.get("photo"):
             queryset = queryset.filter(video=False)
 
+        # Narrow by media category (screenshot/document), independent of the
+        # search term, mirroring the video/photo params above.
+        if request.query_params.get("is_screenshot"):
+            queryset = queryset.filter(is_screenshot=True)
+        if request.query_params.get("is_document"):
+            queryset = queryset.filter(is_document=True)
+
         search_fields = self.get_search_fields(view, request)
         search_terms = self.get_search_terms(request)
 
