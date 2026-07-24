@@ -53,6 +53,7 @@ from api.views import (
     services,
     sharing,
     stacks,
+    sync,
     tags,
     timezone,
     upload,
@@ -400,6 +401,16 @@ urlpatterns = [
     re_path(r"^api/geocode/search", geocode.GeocodeSearchView.as_view()),
     re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view()),
     re_path(r"api/upload/", upload.UploadPhotosChunked.as_view()),
+    # Mobile-v2 delta-sync feeds (doc 04)
+    re_path(r"^api/sync/photos/?$", sync.SyncPhotosView.as_view()),
+    re_path(r"^api/sync/persons/?$", sync.SyncPersonsView.as_view()),
+    re_path(r"^api/sync/albums/user/?$", sync.SyncUserAlbumsView.as_view()),
+    re_path(r"^api/sync/albums/auto/?$", sync.SyncAutoAlbumsView.as_view()),
+    re_path(r"^api/sync/albums/thing/?$", sync.SyncThingAlbumsView.as_view()),
+    re_path(r"^api/sync/albums/place/?$", sync.SyncPlaceAlbumsView.as_view()),
+    re_path(r"^api/sync/albums/tag/?$", sync.SyncTagAlbumsView.as_view()),
+    re_path(r"^api/sync/sharing/?$", sync.SyncSharingView.as_view()),
+    re_path(r"^api/sync/counts/?$", sync.SyncCountsView.as_view()),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
