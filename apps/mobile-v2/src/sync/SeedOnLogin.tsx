@@ -12,6 +12,7 @@ import { useAuthStore } from "@/stores/auth";
 import { needsInitialSeed } from "./orchestrator";
 import { runSync, registerDeviceMediaListener } from "./run";
 import { registerSyncTriggers } from "./triggers";
+import { registerBackgroundTasks } from "./background/tasks";
 
 export function SeedOnLogin() {
   const db = useDb();
@@ -29,6 +30,8 @@ export function SeedOnLogin() {
     });
     // Camera-roll changes nudge a sync while the app is foregrounded (doc 03 §4).
     const unsubscribeMedia = registerDeviceMediaListener(db, () => useAuthStore.getState().userId);
+    // Register the OS background task (idempotent; a top-up, not the main path).
+    void registerBackgroundTasks();
     return () => {
       unsubscribe();
       unsubscribeMedia();

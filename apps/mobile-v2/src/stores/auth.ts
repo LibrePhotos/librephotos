@@ -18,7 +18,7 @@ type AuthState = {
   onLoggedOut: () => void;
 };
 
-function userIdFromToken(access: string | null): number | null {
+export function userIdFromToken(access: string | null): number | null {
   if (!access) return null;
   // exp is validated by decodeJwtExp; user_id is read opportunistically.
   const parts = access.split(".");
