@@ -24,7 +24,7 @@ jobs:
           # 3.11 here, but 3.14 in lint-backend.yml: ruff only parses the code
           # while the tests import and execute it, so this must be a version the
           # dependencies actually support. pyproject sets target-version = "py311".
-          python-version: "3.11"
+          python-version: "3.14"
 
       - name: Install dependencies
         working-directory: apps/backend
