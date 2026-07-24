@@ -1,7 +1,7 @@
 ---
 title: "💡 Feature Comparison"
-excerpt: "Which features does Librephotos have?"
-sidebar_position: 6
+description: "Which features does Librephotos have?"
+sidebar_position: 26
 ---
 
 ## Features compared to competitors

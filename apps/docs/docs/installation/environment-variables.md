@@ -1,7 +1,7 @@
 ---
 title: "📖 Advanced docker-compose usage"
-excerpt: "Here are a couple of advanced tips"
-sidebar_position: 5
+description: "Here are a couple of advanced tips"
+sidebar_position: 4
 ---
 
 ### PostgreSQL v18+ Volume Mount Change
@@ -203,19 +203,32 @@ services:
 
 By default LibrePhotos is served from the root of a domain (e.g. `https://photos.example.com/`). If you need to host it under a sub-path instead (e.g. `https://example.com/photos/`), the frontend has to know that base path.
 
-The frontend reads it from the `PUBLIC_URL` build-time variable (the alias `VITE_PUBLIC_URL` also works). It sets the base path used for the app's assets and routes and defaults to `/`.
+The frontend reads it from the `VITE_PUBLIC_URL` build-time variable. It sets the base path the app's static assets are loaded from and the prefix its API calls are made against, and defaults to `/`. (`PUBLIC_URL` is also read by `vite.config.ts`, but only for the asset paths — set it on its own and the app's API calls still point at the domain root and fail, so use `VITE_PUBLIC_URL`.)
 
 Because it is applied when the frontend is **built**, the prebuilt images are served from `/`. To use a sub-path you need to build the frontend yourself with the variable set, for example:
 
 ```bash
 # building the frontend directly
-PUBLIC_URL=/photos/ yarn build
+VITE_PUBLIC_URL=/photos yarn build
 ```
 
-or by passing `PUBLIC_URL` into the frontend image build. Make sure your reverse proxy forwards the same sub-path (`/photos/`) to the frontend container.
-
 :::note
-Always include the trailing slash, e.g. `/photos/`, not `/photos`.
+Do not add a trailing slash: use `/photos`, not `/photos/`. The app joins this value directly with `/api` and `/login`, so a trailing slash produces doubled paths such as `/photos//api`. Vite adds the slash it needs for the asset URLs on its own.
+:::
+
+The bundled proxy — not the frontend container — is the one published to the host (on `httpPort`, `3000` by default), and its nginx config matches `/api`, `/media` and the other backend paths anchored at the root. So an outer reverse proxy has to strip the sub-path before handing requests on to it, for example:
+
+```nginx
+location /photos/ {
+  # the trailing slash on proxy_pass strips the /photos/ prefix
+  proxy_pass http://127.0.0.1:3000/;
+}
+```
+
+Alternatively, re-anchor the location blocks in `deploy/docker/proxy/nginx.conf` under the sub-path yourself.
+
+:::warning
+Sub-path hosting is not fully working today. `VITE_PUBLIC_URL` re-bases the assets and the API calls, but the client-side router (`apps/frontend/src/App.tsx`) is created without a matching base path, so once the app has loaded its in-browser routes are still matched against root-relative paths and navigation breaks. Fixing this needs a change in the frontend, not just the build variable.
 :::
 
 ### Changing the container names
@@ -238,16 +251,24 @@ Older guides mention a `make rename` helper that rewrote these names from your `
 
 ### Old environment variables
 
-These are now site settings. If you set these values, they will act as the default on the first set-up.
+These are now site settings: setting them here only supplies the default used on the first set-up, after which the value lives in the site settings and any change you make there takes precedence.
 
 ```bash
 # Comma delimited list of patterns to ignore (e.g. "@eaDir,#recycle" for synology devices)
 skipPatterns=
 # Allow uploading files
 allowUpload=true
-# Do you want to see on a map where all your photos where taken (if a location is stored in your photos)
-# Get a Map box API Key https://account.mapbox.com/auth/signup/
+# API key for the geocoding map provider. Only needed if you switch the provider
+# to Mapbox, MapTiler, TomTom or OpenCage; the default, Nominatim (OpenStreetMap),
+# needs no key.
 mapApiKey=
+```
+
+### Admin account variables
+
+`userName`, `userPass` and `adminEmail` are **not** site settings. They are still live environment variables, wired to `ADMIN_USERNAME`, `ADMIN_PASSWORD` and `ADMIN_EMAIL` in `docker-compose.yml`:
+
+```bash
 # Username for the Administrator login.
 userName=admin
 # Password for the administrative user you set above.
@@ -255,3 +276,11 @@ userPass=admin
 # Email for the administrative user.
 adminEmail=admin@example.com
 ```
+
+Whenever `userName` is set, the backend entrypoint runs `createadmin` on **every** container start:
+
+- On the first start it creates the superuser. The username is lower-cased, and `adminEmail` is used for the account.
+- On every later start the existing user's password is overwritten with `userPass`. Leaving `userPass` set therefore resets the admin password on each restart — a password you changed in the UI will not survive a `docker compose restart`. This is the same behaviour described under [How to change the admin password, when you can't log in](../user-guide/managing-users.md#how-to-change-the-admin-password-when-you-cant-log-in).
+- `adminEmail` is only applied when the account is first created; on later starts `createadmin` ignores it and logs a warning.
+
+To stop the password from being reset, clear `userName` — that skips `createadmin` entirely. Clearing only `userPass` while leaving `userName` set instead makes the command abort on each start with "Admin password cannot be empty".

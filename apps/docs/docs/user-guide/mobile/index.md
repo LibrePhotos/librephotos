@@ -1,7 +1,7 @@
 ---
 title: "📱  Mobile Apps"
-excerpt: "Which apps does Librephotos have?"
-sidebar_position: 5
+description: "Which apps does Librephotos have?"
+sidebar_position: 25
 ---
 
 ## UhuruPhotos

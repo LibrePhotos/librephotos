@@ -1,7 +1,7 @@
 ---
 title: "🎞 Thumbnails"
-excerpt: "How do thumbnails work in LibrePhotos?"
-sidebar_position: 5
+description: "How do thumbnails work in LibrePhotos?"
+sidebar_position: 2
 ---
 
 We process media files with different libraries to convert them to a widely compatible format and to speed up previewing files.
@@ -29,50 +29,46 @@ Big thumbnails act as a source of truth for all subsequent processing like findi
 
 ### Other thumbnails
 
-We also create thumbnails for previewing the faces and for the avatars of users. This is done to increase the speed of displaying a lot of them.
+We also create thumbnails for previewing faces: during face extraction the face region is cropped out of the big thumbnail and stored as a JPEG under `protected_media/faces`, so a lot of them can be displayed quickly. User avatars are not thumbnailed by the backend — the frontend scales the chosen image to a 150x150 PNG in the browser before upload, and the backend stores that file as-is under `protected_media/avatars`.
 
 ## Endpoints:
+
+:::note Authentication
+
+These `/media/...` endpoints are all served by `UnifiedMediaAccessView`, which is declared `AllowAny` and authenticates from the **`jwt` cookie**, not from an `Authorization` header. Obtain the cookie with `POST /api/auth/token/obtain/` and refresh it with `POST /api/auth/token/refresh/`; both responses set the `jwt` cookie automatically. Send your request with cookies enabled — an `Authorization: Bearer <token>` header on its own is ignored, and the request is rejected with `403 Forbidden`.
+
+The exception is media belonging to an active public album share, which is served without any authentication. See [API authentication](../../../user-guide/api-authentication.md) for the full flow.
+
+:::
 
 ### `GET /media/thumbnails_big/<hash>`
 
 Gives you a large preview of the actual file. It is also an image for videos. If you want to display the video file use `media/photos/<hash>` instead.
 
-#### Headers:
-
-- `Authorization` - `Bearer <token>`
-
 ### `GET /media/square_thumbnails/<hash>`
 
 Gives you a normal preview of the actual file. Can be an image or a video.
 
-#### Headers:
-
-- `Authorization` - `Bearer <token>`
-
-### `GET /media/small_square_thumbnails/<hash>`
+### `GET /media/square_thumbnails_small/<hash>`
 
 Gives you a small preview. Usually only usable with a blur to indicate loading. Could be replaced by blur hash.
-
-#### Headers:
-
-- `Authorization` - `Bearer <token>`
 
 ### `GET /media/photos/<hash>`
 
 Return the actual image or video from the server.
 
-#### Headers:
+### `GET /media/faces/<filename>`
 
-- `Authorization` - `Bearer <token>`
+Returns the cropped face image for a photo. The file is created as `<hash>_<face_number>.jpg`, but Django's default storage appends a random uniqueness suffix when that name is already taken (for example `bb6685821c52c994cf7bbe9ebfd5eb7e1_2_fpZqB0S.jpg`), so do not construct the name yourself — use the `face_url` value returned by the faces or persons endpoints.
 
-### `GET /media/faces/<hash>_<face_number>.jpg`
+### `GET /media/avatars/<filename>`
 
-Returns the face for an image.
+Returns the avatar for a given user. The frontend uploads it as `<first_name>avatar.png` (there is no hash component on the first upload); the same random uniqueness suffix is appended on re-upload. Use the `avatar_url` field from the user endpoints rather than building the name.
 
-#### Headers:
+### `GET /media/embedded_media/<hash>`
 
-- `Authorization` - `Bearer <token>`
+Returns the embedded video track of a motion photo (Samsung or Google) as `video/mp4`. The path segment accepts either the photo UUID (36 characters with 4 hyphens) or the legacy image hash, and returns 404 if the photo has no embedded media file. Used by the frontend lightbox to play the motion-photo clip. Unlike the other endpoints this one does not hard-require the cookie: an unauthenticated request is limited to public photos, and it narrows to the owner's photos when a session user or valid `jwt` cookie is present.
 
-### `GET /media/avatars/<first_name>avatar_<hash>.png`
+### `GET /media/zip/<prefix>`
 
-Returns an avatar for a given user.
+Serves a bulk-download archive as `application/x-zip-compressed`. The path segment is a filename prefix, not the full filename — the backend appends the requesting user's id and `.zip`, so a user can only retrieve their own archive. Requires a valid `jwt` cookie; returns `403 Forbidden` otherwise.

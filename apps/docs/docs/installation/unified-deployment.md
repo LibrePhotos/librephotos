@@ -1,7 +1,7 @@
 ---
 title: "🚀 Single Container Deployment"
-excerpt: "Simplified single-container deployment with internal or external database"
-sidebar_position: 2
+description: "Simplified single-container deployment with internal or external database"
+sidebar_position: 1
 ---
 
 ## Overview
@@ -38,9 +38,9 @@ Single container deployment serves both the LibrePhotos API and frontend from on
 
 
 **Notes:**
-- **Secret key**: Optional - if not provided, one will be generated and saved to `/logs/secret_key.txt`
+- **Secret key**: Optional - if not provided, one will be generated and saved to `/logs/secret.key`. Do not delete this file (see [Internal files](../user-guide/internal-files.md)). To supply your own, pass `-e SECRET_KEY=...`
 - **Database**: SQLite file will be created automatically in the `/db` directory
-- **Photos**: Mount your photo directory as read-only if preferred: `-v /path/to/photos:/data:ro`
+- **Photos**: You can mount your photo directory read-only (`-v /path/to/photos:/data:ro`), but this disables uploading, deleting photos, and writing metadata back to files — uploads are otherwise written to an `uploads/` folder inside `/data`. Uploads are on by default, so if you use `:ro`, also pass `-e ALLOW_UPLOAD=false` (or turn off "Allow Upload" in the setup wizard). See [Why is the scan directory not mounted read-only?](../user-guide/faq.md#why-is-the-scan-directory-not-mounted-read-only)
 
 ## 🗄️ Option 2: External PostgreSQL Database
 
@@ -49,18 +49,27 @@ Single container deployment serves both the LibrePhotos API and frontend from on
 ### 1. PostgreSQL Setup
 
 **Existing PostgreSQL:**
+
+Create the database and a user that owns it. On first start the container runs `manage.py migrate` as this user, so it must be able to create tables — and since PostgreSQL 15, `GRANT ALL PRIVILEGES ON DATABASE` no longer conveys that. Make the app user the database owner instead:
+
 ```sql
-CREATE DATABASE librephotos;
 CREATE USER librephotos_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE librephotos TO librephotos_user;
+CREATE DATABASE librephotos OWNER librephotos_user;
 ```
 
+If the database already exists, run `ALTER DATABASE librephotos OWNER TO librephotos_user;`. For a database carried over from PostgreSQL 14 or earlier, also connect to it (`\c librephotos`) and run `GRANT ALL ON SCHEMA public TO librephotos_user;`.
+
 **New PostgreSQL container:**
+
+Create a shared network first so the database and LibrePhotos containers can reach each other by name, then start PostgreSQL on it (creating the database through `POSTGRES_USER`/`POSTGRES_DB` makes `librephotos_user` its owner, so no extra grants are needed):
+
 ```bash
+sudo docker network create librephotos-net
+
 sudo docker run -d \
   --name librephotos-db \
+  --network librephotos-net \
   --restart unless-stopped \
-  -p 5432:5432 \
   -e POSTGRES_DB=librephotos \
   -e POSTGRES_USER=librephotos_user \
   -e POSTGRES_PASSWORD=your_secure_password \
@@ -73,6 +82,7 @@ sudo docker run -d \
 ```bash
 sudo docker run -d \
   --name librephotos \
+  --network librephotos-net \
   --restart unless-stopped \
   -p 3000:8001 \
   -v /home/yourusername/librephotos/protected_media:/protected_media \
@@ -83,10 +93,19 @@ sudo docker run -d \
   -e DB_NAME=librephotos \
   -e DB_USER=librephotos_user \
   -e DB_PASS=your_secure_password \
-  -e DB_HOST=localhost \
+  -e DB_HOST=librephotos-db \
   -e DB_PORT=5432 \
   reallibrephotos/librephotos-unified:latest
 ```
+
+Set `DB_HOST` to match your database:
+
+- **Sibling `librephotos-db` container**: keep `--network librephotos-net` and use `-e DB_HOST=librephotos-db` (the container name), as shown above. `DB_HOST=localhost` will not work — inside the container it points back at LibrePhotos itself, not the database.
+- **Existing PostgreSQL server**: drop `--network librephotos-net` and set `-e DB_HOST=<hostname or IP of that server>`. If it runs on the Docker host itself, add `--add-host=host.docker.internal:host-gateway` and use `-e DB_HOST=host.docker.internal`, and make sure PostgreSQL listens on all interfaces with a matching `pg_hba.conf` entry.
+
+## Behind a reverse proxy
+
+If you put this container behind an HTTPS reverse proxy (Traefik, Caddy, a cloud load balancer), add `-e CSRF_TRUSTED_ORIGINS=https://photos.example.com` (comma-separated for several origins; each must include the scheme and match the browser-visible address exactly). The unified image starts with an empty trusted-origin list, so without it the Django admin at `/api/django-admin/` rejects logins with a CSRF error. The photo app itself is unaffected — it authenticates with JWT and its API endpoints are CSRF-exempt.
 
 ## Next Steps
 

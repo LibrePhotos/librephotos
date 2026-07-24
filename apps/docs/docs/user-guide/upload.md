@@ -1,7 +1,7 @@
 ---
 title: " ⬆ Upload"
-excerpt: "How to upload photos to LibrePhotos"
-sidebar_position: 5
+description: "How to upload photos to LibrePhotos"
+sidebar_position: 12
 ---
 
 ![](../../static/img/upload-image.png)
@@ -19,7 +19,7 @@ The upload process works in the following way:
 - If it is, don't upload it
 - If it isn't, upload it
 - We upload files in 1MB chunks
-- If all files are uploaded, we scan the your `scan folder + /uploads/web`
+- When each file finishes uploading, the backend registers that one photo and queues a background job chain for it (metadata and thumbnails, caption, geolocation, album dates, face extraction). No directory scan is triggered.
 
 ### Where are the files saved?
 
@@ -30,18 +30,18 @@ The upload behavior depends on whether the user has a scan directory configured:
 - This is the normal and expected behavior
 - Files are stored in the mounted host directory and are persistent
 
-#### When scan directory is NOT configured (⚠️ Problem):
-- Files are saved to: `uploads/web/{filename}` (relative path)
-- This resolves to `/code/uploads/web/{filename}` inside the container
-- **Files are stored inside the container's filesystem**
-- **Files will be lost when the container is restarted or recreated**
-- This is the issue described in [librephotos-docker#144](https://github.com/LibrePhotos/librephotos-docker/issues/144)
+#### When scan directory is NOT configured:
+Uploads are blocked and nothing is written to disk.
+
+- If your account has no scan directory set, the upload button is disabled and shows the tooltip *"Scan directory not configured - contact administrator"*.
+- If a scan directory is set but the path does not exist on the server, the button stays active, but the upload is rejected once the final chunk is submitted.
+- In both cases the API responds with HTTP 400 — `"Upload failed: No scan directory configured…"` or `"Upload failed: Scan directory '<path>' does not exist…"` — and no file is saved.
 
 ### Prerequisites for upload
 
 To use the upload feature properly, you **must** have:
 
-1. **Upload feature enabled**: Set `ALLOW_UPLOAD=true` in your environment variables or enable it in the admin panel
+1. **Upload feature enabled**: Turn on `Allow uploads` in the admin area. Docker Compose users can pre-enable it by adding `allowUpload=true` to their `.env` before the first start — Compose passes it to the backend as `ALLOW_UPLOAD` (note the variable in `.env` is `allowUpload`, not `ALLOW_UPLOAD`)
 2. **Scan directory configured**: Every user must have a scan directory set up by an admin
 
 ### How to configure scan directory
@@ -55,7 +55,7 @@ To use the upload feature properly, you **must** have:
 
 ![](../../static/img/allow-uploading.png)
 
-You can activate / deactivate by navigating as an admin to the admin area and clicking on the `Allow uploads` switch. You can also set this by setting the environment variable `ALLOW_UPLOADS` to `true` or `false`.
+You can activate / deactivate by navigating as an admin to the admin area and clicking on the `Allow uploads` switch. This switch is the authoritative setting. The `ALLOW_UPLOAD` environment variable (set through `allowUpload` in your `.env` for the Docker Compose deployment) only supplies the initial default: once a value has been saved to the database — by toggling the switch, or by the first-time setup wizard — the stored setting wins and the environment variable is ignored.
 
 ### Scanning uploaded photos
 
@@ -66,9 +66,17 @@ After upload, you can scan the uploaded photos in two ways:
 
 ### Troubleshooting
 
-#### Files disappear after container restart
-**Cause**: This happens when the user doesn't have a scan directory configured.
-**Solution**: Set up a scan directory for the user via the admin panel.
+#### Upload button is greyed out
+**Cause**: Your account has no scan directory configured. Hovering the button shows *"Scan directory not configured - contact administrator"*.
+**Solution**: Ask an admin to set your scan directory (see [How to configure scan directory](#how-to-configure-scan-directory)).
+
+#### Upload fails with "Scan directory does not exist"
+**Cause**: The configured scan directory path is not present inside the backend container.
+**Solution**: Check that the path matches the `${scanDirectory}:/data` bind mount in your compose file, and that the directory exists on the host.
+
+#### Uploaded files disappear after container restart
+**Cause**: The data root is not backed by a host directory. A scan directory has to live inside the backend's data root (`/data` by default) — anything outside it is rejected with *"Scan directory must be inside the data root."* — so the upload itself succeeds, but if `/data` is not bind-mounted, everything written there lives only in the container's filesystem and is lost when the container is recreated.
+**Solution**: Make sure your compose file mounts a host directory at `/data` (the `${scanDirectory}:/data` line on the `backend` service) and that `scanDirectory` in your `.env` points at a real, persistent path on the host.
 
 #### Upload fails with permission errors
 **Cause**: The container doesn't have write permissions to the scan directory.
@@ -76,17 +84,4 @@ After upload, you can scan the uploaded photos in two ways:
 
 #### Upload button not visible
 **Cause**: Upload feature is disabled.
-**Solution**: Enable uploads via environment variable `ALLOW_UPLOAD=true` or in the admin panel.
-
-### Docker configuration for uploads
-
-If you're using Docker and want to ensure uploads are properly mounted (workaround for missing scan directory):
-
-```yaml
-backend:
-  volumes:
-    - ${scanDirectory}:/data
-    - ${data}/uploads:/code/uploads  # Workaround for users without scan directory
-```
-
-However, the proper solution is to ensure all users have scan directories configured rather than relying on this workaround.
+**Solution**: Toggle `Allow uploads` on in the admin area. Note that the `allowUpload` environment variable only supplies the *default* value: once the setting has been saved from the admin area or the first-run setup wizard, the value lives in the database and changing the env var has no effect.

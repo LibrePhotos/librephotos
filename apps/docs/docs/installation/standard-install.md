@@ -1,7 +1,7 @@
 ---
 title: "🐋 Standard Docker Setup"
-excerpt: "Traditional multi-container deployment with nginx proxy."
-sidebar_position: 3
+description: "Traditional multi-container deployment with nginx proxy."
+sidebar_position: 2
 ---
 
 ## Docker Compose
@@ -38,7 +38,7 @@ Do not forget to create the directories you specified in the `.env` file if they
 If you are using Postgres v18+, you must mount your database volume to `/var/lib/postgresql` instead of `/var/lib/postgresql/data`. See the [advanced usage guide](environment-variables.md#postgresql-v18-volume-mount-change) for details.
 :::
 
-Start LibrePhotos with `docker-compose up -d`
+Start LibrePhotos with `docker compose up -d`
 
 You should have LibrePhotos accessible after a few minutes of boot-up on [localhost:3000](http://localhost:3000)
 
@@ -54,12 +54,21 @@ For more details, see the [first steps guide](../user-guide/first-steps.md).
 
 ### Updating
 
-To update LibrePhotos when using Docker Compose, navigate to the `librephotos/deploy/compose` folder that was created when you installed LibrePhotos.
-
-Then run:
+To update LibrePhotos when using Docker Compose, first refresh your checkout so you also pick up changes to `docker-compose.yml`, then update the running containers. From the `librephotos/deploy/compose` folder that was created when you installed LibrePhotos, run:
 
 ```sh
-docker-compose down
-docker-compose pull
-docker-compose up -d
+git pull            # updates docker-compose.yml and the other tracked files
+docker compose down
+docker compose pull # only refreshes the container images
+docker compose up -d
 ```
+
+:::note
+
+`docker compose pull` only downloads newer container images. `docker-compose.yml` is a tracked file in the repository and gains new settings over time. Recent versions, for example, added the lines that pass `workerConcurrency`, `gunicornTimeout` and `frontendBaseUrl` from your `.env` through to the backend, and changed the database volume path for Postgres v18+. If your `docker-compose.yml` predates those changes, setting the matching variables in `.env` has no effect until you `git pull`.
+
+Your `.env` is not tracked by git, so `git pull` will not touch your settings. After updating, compare it against the shipped `librephotos.env` to pick up any newly documented variables.
+
+If you edited `docker-compose.yml` yourself — for instance to use the GPU image or to set resource limits, as described in the [advanced usage guide](environment-variables.md) — `git pull` may refuse to update or report a conflict. Run `git stash` before the pull and `git stash pop` afterwards, then re-apply your changes on top of the updated file.
+
+:::
