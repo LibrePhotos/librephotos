@@ -1,16 +1,24 @@
+import tarfile
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
+import requests
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
 from api.ml_models import (
     ML_MODELS,
     MlTypes,
+    _download_file,
     _is_model_selected,
     _model_target_exists,
     do_all_models_exist,
+    download_model,
+    download_models,
 )
+from api.models.long_running_job import LongRunningJob
+from api.tests.utils import create_test_user
 
 
 def _ocr_model(tier):
@@ -122,3 +130,152 @@ class OcrModelTargetExistsTest(TestCase):
             model_folder = Path(temp_dir) / "data_models"
             model_folder.mkdir(parents=True)
             self.assertFalse(_model_target_exists(model_folder, model))
+
+
+class _FakeResponse:
+    """Minimal stand-in for a streamed ``requests`` response."""
+
+    def __init__(self, chunks=(), status_code=200, headers=None):
+        self._chunks = list(chunks)
+        self.status_code = status_code
+        self.headers = headers if headers is not None else {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return False
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(f"{self.status_code} Error", response=self)
+
+    def iter_content(self, chunk_size=1):
+        yield from self._chunks
+
+
+class DownloadFileTest(TestCase):
+    """A download either lands complete, or it lands nothing at all."""
+
+    def test_error_response_body_is_not_written(self):
+        # Hugging Face answers a missing file with a 15 byte "Entry not found"
+        # body, which used to be saved as the model and later blow up as a
+        # corrupt archive far away from the actual cause.
+        body = b"Entry not found"
+        response = _FakeResponse(
+            chunks=[body],
+            status_code=404,
+            headers={"content-length": str(len(body))},
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "ocr" / "ppocrv6_small.tar.gz"
+            with patch("api.ml_models.requests.get", return_value=response):
+                with self.assertRaises(requests.HTTPError):
+                    _download_file("https://example.invalid/x", target, "ppocrv6_small")
+
+            self.assertFalse(target.exists())
+            self.assertEqual([], list(target.parent.iterdir()))
+
+    def test_successful_download_is_written(self):
+        payload = b"a" * 2048
+        response = _FakeResponse(
+            chunks=[payload[:1024], payload[1024:]],
+            headers={"content-length": str(len(payload))},
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "nested" / "model.onnx"
+            with patch("api.ml_models.requests.get", return_value=response):
+                _download_file("https://example.invalid/x", target, "model")
+
+            self.assertEqual(payload, target.read_bytes())
+            self.assertEqual([target], list(target.parent.iterdir()))
+
+    def test_truncated_download_is_rejected(self):
+        response = _FakeResponse(
+            chunks=[b"half"],
+            headers={"content-length": "2048"},
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "model.onnx"
+            with patch("api.ml_models.requests.get", return_value=response):
+                with self.assertRaises(OSError):
+                    _download_file("https://example.invalid/x", target, "model")
+
+            self.assertFalse(target.exists())
+            self.assertEqual([], list(target.parent.iterdir()))
+
+    def test_transparently_decompressed_body_is_not_treated_as_truncated(self):
+        # requests decodes content-encoding on the fly, so the bytes written can
+        # legitimately differ from the advertised content-length.
+        payload = b"decompressed payload, longer than the encoded body"
+        response = _FakeResponse(
+            chunks=[payload],
+            headers={"content-length": "10", "content-encoding": "gzip"},
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            target = Path(temp_dir) / "model.onnx"
+            with patch("api.ml_models.requests.get", return_value=response):
+                _download_file("https://example.invalid/x", target, "model")
+
+            self.assertEqual(payload, target.read_bytes())
+
+
+@override_config(OCR_MODEL="ppocrv6_small")
+class DownloadModelFailureTest(TestCase):
+    def test_corrupt_archive_is_not_left_behind(self):
+        model = _ocr_model("small")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            model_folder = media_root / "data_models"
+            archive = model_folder / (model["target-dir"] + ".tar.gz")
+
+            def fake_download(url, target_path, model_name):
+                target_path = Path(target_path)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_bytes(b"Entry not found")
+
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                with patch("api.ml_models._download_file", side_effect=fake_download):
+                    with self.assertRaises(tarfile.ReadError):
+                        download_model(model)
+
+            self.assertFalse(archive.exists())
+            self.assertFalse(_model_target_exists(model_folder, model))
+
+
+class DownloadModelsJobTest(TestCase):
+    def setUp(self):
+        self.user = create_test_user()
+
+    def test_one_failing_model_does_not_stop_the_others(self):
+        attempted = []
+
+        def fake_download_model(model):
+            attempted.append(model["name"])
+            if model["name"] == "places365":
+                raise requests.HTTPError("404 Error")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
+                with patch(
+                    "api.ml_models.download_model", side_effect=fake_download_model
+                ):
+                    download_models(self.user)
+
+        self.assertEqual([m["name"] for m in ML_MODELS], attempted)
+
+        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        self.assertTrue(job.failed)
+        self.assertTrue(job.finished)
+        self.assertIn("places365", job.result["error"])
+        self.assertEqual(len(ML_MODELS), job.progress_current)
+
+    def test_job_completes_when_every_model_downloads(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with override_settings(MEDIA_ROOT=str(Path(temp_dir) / "protected_media")):
+                with patch("api.ml_models.download_model"):
+                    download_models(self.user)
+
+        job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
+        self.assertFalse(job.failed)
+        self.assertTrue(job.finished)
