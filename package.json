@@ -1,0 +1,9 @@
+{
+  "name": "librephotos-monorepo",
+  "private": true,
+  "description": "Root workspace wiring for the mobile-v2 rebuild. Only packages/* and apps/mobile-v2 are workspaces here; apps/frontend, apps/mobile, and apps/docs keep their own independent installs (Yarn) and are intentionally excluded so this file does not disturb them.",
+  "workspaces": [
+    "packages/*",
+    "apps/mobile-v2"
+  ]
+}
