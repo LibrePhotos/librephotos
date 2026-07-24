@@ -6,6 +6,7 @@ export * from "./albums";
 export * from "./persons";
 export * from "./search";
 export * from "./sharing";
+export * from "./faces";
 export * from "./jobs";
 export * from "./settings";
 export * from "./upload";

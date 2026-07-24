@@ -2,6 +2,12 @@ import { z } from "zod";
 import { PigPhoto, SimpleUser } from "./common";
 import { UserAlbumInfo } from "./albums";
 
+/** Photos shared WITH me — a bare PigPhoto list carrying the owner. */
+export const SharedToMePhotosResponse = z.object({
+  results: PigPhoto.array(),
+});
+export type SharedToMePhotosResponse = z.infer<typeof SharedToMePhotosResponse>;
+
 /** One photo shared to/from the current user (photos shared-by-me / with-me). */
 export const SharedFromMePhoto = z.object({
   user_id: z.number(),

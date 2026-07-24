@@ -152,6 +152,11 @@ export const PlaceAlbum = z.object({
 });
 export type PlaceAlbum = z.infer<typeof PlaceAlbum>;
 
+export const FetchPlaceAlbumResponse = z.object({
+  results: PlaceAlbum,
+});
+export type FetchPlaceAlbumResponse = z.infer<typeof FetchPlaceAlbumResponse>;
+
 /* ---- Mutation params (platform-agnostic) ------------------------------ */
 
 export type CreateUserAlbumParams = { title: string; photos: string[] };

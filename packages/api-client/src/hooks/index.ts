@@ -126,6 +126,33 @@ export function useTagAlbumsQuery() {
   return useQuery({ queryKey: queryKeys.tagAlbums(), queryFn: () => endpoints.fetchTagAlbumsList(client) });
 }
 
+export function useThingAlbumQuery(id: string | number | undefined) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.thingAlbum(id ?? ""),
+    queryFn: () => endpoints.fetchThingAlbum(client, id!),
+    enabled: id !== undefined && id !== "",
+  });
+}
+
+export function usePlaceAlbumQuery(id: string | number | undefined) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.placeAlbum(id ?? ""),
+    queryFn: () => endpoints.fetchPlaceAlbum(client, id!),
+    enabled: id !== undefined && id !== "",
+  });
+}
+
+export function useTagAlbumQuery(id: string | number | undefined) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.tagAlbum(id ?? ""),
+    queryFn: () => endpoints.fetchTagAlbum(client, id!),
+    enabled: id !== undefined && id !== "",
+  });
+}
+
 export function usePhotosWithoutTimestampQuery(page: number) {
   const client = useApiClient();
   return useQuery({
@@ -159,7 +186,82 @@ export function useSiteSettingsQuery() {
   return useQuery({ queryKey: queryKeys.siteSettings(), queryFn: () => endpoints.fetchSiteSettings(client) });
 }
 
-export function useJobsQuery() {
+export function useJobsQuery(options?: { page?: number; pageSize?: number; refetchInterval?: number }) {
   const client = useApiClient();
-  return useQuery({ queryKey: queryKeys.jobs(), queryFn: () => endpoints.fetchJobs(client) });
+  return useQuery({
+    queryKey: queryKeys.jobs(),
+    queryFn: () => endpoints.fetchJobs(client, options?.page ?? 0, options?.pageSize ?? 20),
+    refetchInterval: options?.refetchInterval,
+  });
+}
+
+export function useWorkerAvailabilityQuery(options?: { refetchInterval?: number; enabled?: boolean }) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.workerAvailability(),
+    queryFn: () => endpoints.fetchWorkerAvailability(client),
+    refetchInterval: options?.refetchInterval,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/* ---- sharing ----------------------------------------------------------- */
+
+export function useSharedPhotosByMeQuery(enabled = true) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.sharedPhotosByMe(),
+    queryFn: () => endpoints.fetchSharedPhotosByMe(client),
+    enabled,
+  });
+}
+
+export function useSharedPhotosWithMeQuery(enabled = true) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.sharedPhotosWithMe(),
+    queryFn: () => endpoints.fetchSharedPhotosWithMe(client),
+    enabled,
+  });
+}
+
+export function useSharedAlbumsByMeQuery(enabled = true) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.sharedAlbumsByMe(),
+    queryFn: () => endpoints.fetchSharedAlbumsByMe(client),
+    enabled,
+  });
+}
+
+export function useSharedAlbumsWithMeQuery(enabled = true) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.sharedAlbumsWithMe(),
+    queryFn: () => endpoints.fetchSharedAlbumsWithMe(client),
+    enabled,
+  });
+}
+
+/* ---- faces ------------------------------------------------------------- */
+
+export function useFacesQuery(
+  params: { person?: number; inferred?: boolean; page?: number } = {},
+  enabled = true
+) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.faces(params.person ?? 0, params.inferred ?? false, params.page ?? 0),
+    queryFn: () => endpoints.fetchFaces(client, params),
+    enabled,
+  });
+}
+
+export function useIncompleteFacesQuery(inferred = false, enabled = true) {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.incompleteFaces(inferred),
+    queryFn: () => endpoints.fetchIncompleteFaces(client, { inferred }),
+    enabled,
+  });
 }

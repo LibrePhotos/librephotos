@@ -163,6 +163,24 @@ export async function fetchTagAlbumsList(client: ApiClient): Promise<S.TagListRe
   return parseResponse(S.TagListResponse, res, "tag albums").results;
 }
 
+/** Photo grid (grouped by date) for one thing album. */
+export async function fetchThingAlbum(client: ApiClient, id: number | string): Promise<S.ThingAlbum> {
+  const res = await client.get<unknown>(`/albums/thing/${id}/`);
+  return parseResponse(S.FetchThingAlbumResponse, res, "thing album detail").results;
+}
+
+/** Photo grid (grouped by date) for one place album. */
+export async function fetchPlaceAlbum(client: ApiClient, id: number | string): Promise<S.PlaceAlbum> {
+  const res = await client.get<unknown>(`/albums/place/${id}/`);
+  return parseResponse(S.FetchPlaceAlbumResponse, res, "place album detail").results;
+}
+
+/** Photo grid (grouped by date) for one tag album. */
+export async function fetchTagAlbum(client: ApiClient, id: number | string): Promise<S.TagAlbum> {
+  const res = await client.get<unknown>(`/tags/${id}/`);
+  return parseResponse(S.TagAlbumResponse, res, "tag album detail").results;
+}
+
 /* ---- persons ----------------------------------------------------------- */
 
 export async function fetchPeopleAlbums(client: ApiClient): Promise<S.PersonList> {
@@ -196,11 +214,178 @@ export async function fetchSiteSettings(client: ApiClient): Promise<S.SiteSettin
   return parseResponse(S.SiteSettings, res, "site settings");
 }
 
+export async function updateUserPartial(
+  client: ApiClient,
+  userId: string | number,
+  patch: Record<string, unknown>
+): Promise<S.User> {
+  const res = await client.patch<unknown>(`/user/${userId}/`, patch);
+  return parseResponse(S.User, res, "update user");
+}
+
 /* ---- jobs -------------------------------------------------------------- */
 
-export async function fetchJobs(client: ApiClient): Promise<S.JobsResponse> {
-  const res = await client.get<unknown>("/jobs/");
+export async function fetchJobs(client: ApiClient, page = 0, pageSize = 20): Promise<S.JobsResponse> {
+  const res = await client.get<unknown>(`/jobs/${buildQuery({ page, page_size: pageSize })}`);
   return parseResponse(S.JobsResponse, res, "jobs");
+}
+
+export async function fetchWorkerAvailability(client: ApiClient): Promise<S.WorkerAvailabilityResponse> {
+  const res = await client.get<unknown>("/rqavailable/");
+  return parseResponse(S.WorkerAvailabilityResponse, res, "worker availability");
+}
+
+/** Trigger an incremental library scan. Returns the queued job id. */
+export async function scanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  const res = await client.post<unknown>("/scanphotos/", {});
+  return parseResponse(S.JobTriggerResponse, res, "scan photos");
+}
+
+/** Trigger a full library rescan. */
+export async function fullScanPhotos(client: ApiClient): Promise<S.JobTriggerResponse> {
+  const res = await client.post<unknown>("/fullscanphotos/", {});
+  return parseResponse(S.JobTriggerResponse, res, "full scan photos");
+}
+
+/* ---- sharing ----------------------------------------------------------- */
+
+export async function fetchSharedPhotosByMe(client: ApiClient): Promise<S.SharedPhotosResponse["results"]> {
+  const res = await client.get<unknown>("/photos/shared/fromme/");
+  return parseResponse(S.SharedPhotosResponse, res, "shared photos by me").results;
+}
+
+export async function fetchSharedPhotosWithMe(client: ApiClient): Promise<S.SharedToMePhotosResponse["results"]> {
+  const res = await client.get<unknown>("/photos/shared/tome/");
+  return parseResponse(S.SharedToMePhotosResponse, res, "shared photos with me").results;
+}
+
+export async function fetchSharedAlbumsByMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
+  const res = await client.get<{ results?: unknown } | unknown[]>("/albums/user/shared/fromme/");
+  const results = Array.isArray(res) ? res : ((res as { results?: unknown }).results ?? []);
+  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums by me").results;
+}
+
+export async function fetchSharedAlbumsWithMe(client: ApiClient): Promise<S.SharedAlbumsResponse["results"]> {
+  const res = await client.get<{ results?: unknown } | unknown[]>("/albums/user/shared/tome/");
+  const results = Array.isArray(res) ? res : ((res as { results?: unknown }).results ?? []);
+  return parseResponse(S.SharedAlbumsResponse, { results }, "shared albums with me").results;
+}
+
+/** Share (or unshare) photos to another user by hash. */
+export async function setPhotosShared(
+  client: ApiClient,
+  imageHashes: string[],
+  targetUserId: number,
+  shared: boolean
+): Promise<unknown> {
+  return client.post("/photosedit/share/", {
+    image_hashes: imageHashes,
+    target_user_id: targetUserId,
+    val_shared: shared,
+  });
+}
+
+/** Share (or unshare) a user album to another user. */
+export async function setUserAlbumShared(
+  client: ApiClient,
+  albumId: number | string,
+  targetUserId: number | string,
+  shared: boolean
+): Promise<unknown> {
+  return client.post("/useralbum/share/", {
+    album_id: String(albumId),
+    target_user_id: String(targetUserId),
+    shared,
+  });
+}
+
+/* ---- public links ------------------------------------------------------ */
+
+/** Make photos public (creates their public-gallery visibility) or private. */
+export async function setPhotosPublic(
+  client: ApiClient,
+  imageHashes: string[],
+  isPublic: boolean
+): Promise<unknown> {
+  return client.post("/photosedit/makepublic/", {
+    image_hashes: imageHashes,
+    val_public: isPublic,
+  });
+}
+
+/** Toggle a user album's public link (optionally with slug/expiry). */
+export async function setUserAlbumPublic(
+  client: ApiClient,
+  args: { albumId: number | string; isPublic: boolean; slug?: string; expiresAt?: string | null }
+): Promise<unknown> {
+  return client.post("/useralbum/makepublic", {
+    album_id: String(args.albumId),
+    val_public: args.isPublic,
+    slug: args.slug,
+    expires_at: args.expiresAt,
+  });
+}
+
+/* ---- faces ------------------------------------------------------------- */
+
+export type FaceListParams = {
+  /** Person id; 0 (default) means unknown/other faces. */
+  person?: number;
+  /** 0-based page index (frontend convention). */
+  page?: number;
+  inferred?: boolean;
+  orderBy?: "confidence" | "date";
+  analysisMethod?: "clustering" | "classification";
+  minConfidence?: number;
+};
+
+export async function fetchFaces(client: ApiClient, params: FaceListParams = {}): Promise<S.PersonFaceListResponse> {
+  const query = buildQuery({
+    person: params.person ?? 0,
+    page: params.page ?? 0,
+    inferred: params.inferred ?? false,
+    order_by: params.orderBy ?? "confidence",
+    analysis_method: params.analysisMethod,
+    min_confidence: params.minConfidence,
+  });
+  const res = await client.get<unknown>(`/faces/${query}`);
+  return parseResponse(S.PersonFaceListResponse, res, "faces");
+}
+
+export async function fetchIncompleteFaces(
+  client: ApiClient,
+  params: { inferred?: boolean; orderBy?: "confidence" | "date"; analysisMethod?: "clustering" | "classification" } = {}
+): Promise<S.IncompleteFacesResponse> {
+  const query = buildQuery({
+    inferred: params.inferred ?? false,
+    order_by: params.orderBy ?? "confidence",
+    analysis_method: params.inferred ? (params.analysisMethod ?? "clustering") : undefined,
+  });
+  const res = await client.get<unknown>(`/faces/incomplete/${query}`);
+  return parseResponse(S.IncompleteFacesResponse, res, "incomplete faces");
+}
+
+/**
+ * Assign faces to a person by name (auto-creates the person). Passing the
+ * unknown sentinel name rejects the faces back to unknown instead.
+ */
+export async function labelFaces(
+  client: ApiClient,
+  faceIds: number[],
+  personName: string
+): Promise<S.SetFacesLabelResponse> {
+  const res = await client.post<unknown>("/labelfaces", { face_ids: faceIds, person_name: personName });
+  return parseResponse(S.SetFacesLabelResponse, res, "label faces");
+}
+
+export async function deleteFaces(client: ApiClient, faceIds: number[]): Promise<S.DeleteFacesResponse> {
+  const res = await client.post<unknown>("/deletefaces", { face_ids: faceIds });
+  return parseResponse(S.DeleteFacesResponse, res, "delete faces");
+}
+
+export async function trainFaces(client: ApiClient): Promise<S.JobTriggerResponse> {
+  const res = await client.post<unknown>("/trainfaces", {});
+  return parseResponse(S.JobTriggerResponse, res, "train faces");
 }
 
 /* ---- upload / exists --------------------------------------------------- */
