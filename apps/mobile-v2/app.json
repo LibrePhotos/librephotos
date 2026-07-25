@@ -1,16 +1,18 @@
 {
   "expo": {
-    "name": "mobile-v2",
-    "slug": "mobile-v2",
+    "name": "LibrePhotos",
+    "slug": "librephotos-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobilev2",
+    "scheme": "librephotos",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.librephotosmobile"
     },
     "android": {
+      "package": "com.librephotosmobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
