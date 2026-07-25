@@ -165,6 +165,27 @@ These are load-bearing — changing them breaks the build or tests:
   packages by absolute resolved path (via `require.resolve`) rather than by
   name so both jest projects load the same physical copy. Keep new mappings in
   that style.
+- **React is pinned to `19.2.3`** in `apps/mobile-v2` *and* at the workspace
+  root. `jest-expo@57` and `@testing-library/react-native@13.3.3` both depend on
+  `react-test-renderer@19.2.3`, and jest-expo refuses to run unless
+  `react-test-renderer` matches `react` exactly — bumping React alone fails
+  every `rn` suite with *"Incorrect version of react-test-renderer detected"*.
+  Move `react`, `react-dom`, and `react-test-renderer` together, in both
+  manifests.
+- **`expo-router` is declared at the workspace root** purely so npm hoists it.
+  The Expo CLI hoists to the root, but npm nests this app's `expo-*` packages,
+  and the root CLI's typed-route generator then cannot resolve
+  `expo-router/_ctx-shared` — `expo start` crashes before Metro serves
+  anything. Do not delete the root `expo-router`/`react`/`react-dom` entries;
+  they are load-bearing and documented inline in the root `package.json`.
+- **`.sql` migrations need two pieces of config.** `metro.config.js` adds `sql`
+  to `resolver.sourceExts` (so Metro resolves the imports in drizzle's
+  generated `migrations.js`) **and** `babel.config.js` applies
+  `babel-plugin-inline-import` for `.sql` (so Babel inlines them as strings
+  instead of parsing SQL as JavaScript). With only the first, every bundle
+  fails with a `TransformError`. Note the jest DB tests import the inlined
+  `migrations-sql.ts` instead, so they stay green either way — only a real
+  bundle catches this.
 
 ## App identity
 
