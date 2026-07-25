@@ -14,5 +14,12 @@ module.exports = function (api) {
       ["babel-preset-expo", isTest ? {} : { jsxImportSource: "nativewind" }],
       ...(isTest ? [] : ["nativewind/babel"]),
     ],
+    // Drizzle's generated `src/db/migrations/migrations.js` imports the `.sql`
+    // files as modules. Metro resolves them (see `sourceExts` in
+    // metro.config.js), but Babel would then parse SQL as JavaScript and throw
+    // a TransformError, which breaks the app bundle. This plugin inlines each
+    // `.sql` file as a string instead. Both are required — sourceExts alone is
+    // not enough.
+    plugins: [["inline-import", { extensions: [".sql"] }]],
   };
 };
