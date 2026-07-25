@@ -5,5 +5,12 @@
   "workspaces": [
     "packages/*",
     "apps/mobile-v2"
-  ]
+  ],
+  "//expo-router": "Declared here ONLY to force npm to hoist expo-router into the root node_modules. The Expo CLI hoists to the root, but npm otherwise nests apps/mobile-v2's expo-* packages, so the root CLI's typed-route generator cannot resolve 'expo-router/_ctx-shared' and `expo start` crashes outright (experiments.typedRoutes).",
+  "//react": "react/react-dom are pinned here to the SAME versions apps/mobile-v2 uses. Without the pin, npm resolves expo-router's optional react-dom peer to the newest 19.x, which peer-requires react ^19.2.8 and conflicts with the app's 19.2.3 -- npm then refuses to hoist. 19.2.3 is not arbitrary: jest-expo@57 and @testing-library/react-native@13.3.3 both pin react-test-renderer@19.2.3, and jest-expo hard-fails if react-test-renderer does not match react exactly. Keep all of these in lockstep with apps/mobile-v2/package.json.",
+  "dependencies": {
+    "expo-router": "~57.0.8",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  }
 }
