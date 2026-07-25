@@ -514,7 +514,7 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
         photo_qs = _with_photo_summary_relations(
             album_date.photos.filter(*photo_filter)
             .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
-            .order_by("-exif_timestamp")
+            .order_by("-exif_timestamp", "main_file__path")
         )
 
         # Paginate photo queryset
