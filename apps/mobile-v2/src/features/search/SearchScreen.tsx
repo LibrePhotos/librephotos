@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { mediaHeaders, squareThumbnailUrl, useSearchPhotosQuery } from "@librephotos/api-client";
 import { Image } from "expo-image";
 import { OnlinePhotoGrid } from "@/components/OnlinePhotoGrid";
@@ -30,7 +30,7 @@ function useDebounced<T>(value: T, delayMs: number): T {
   return debounced;
 }
 
-const ALBUM_HREF: Record<SearchAlbumHit["kind"], (id: number) => string> = {
+const ALBUM_HREF: Record<SearchAlbumHit["kind"], (id: number) => Href> = {
   user: (id) => `/albums/user/${id}`,
   auto: (id) => `/albums/events/${id}`,
   thing: (id) => `/albums/things/${id}`,

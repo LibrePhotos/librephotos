@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { mediaHeaders, squareThumbnailUrl } from "@librephotos/api-client";
 import { useReactiveQuery } from "@/db/provider";
 import type { AppDatabase } from "@/db/types";
@@ -26,7 +26,7 @@ export function AlbumsListScreen({
 }: {
   title: string;
   query: (db: AppDatabase) => AlbumCard[];
-  hrefFor: (id: number) => string;
+  hrefFor: (id: number) => Href;
   /** My Albums: show a "New album" affordance (empty album, offline-capable). */
   creatable?: boolean;
   testID?: string;
