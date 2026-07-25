@@ -1,6 +1,17 @@
 /* global jest */
 // Test environment shims for native modules the screens touch indirectly.
 
+// Async-assertion headroom. Several screens debounce real timers (e.g. the
+// search input debounces 300ms via setTimeout, not fake timers) and then run a
+// SQL query before rendering. RNTL's default `waitFor` window is 1000ms, which
+// leaves ~700ms — enough on an idle machine, but jest runs ~40 suites across
+// parallel workers, and a starved worker blows that budget. That produced
+// order-dependent failures that passed in isolation. Widening the window keeps
+// every assertion intact (they must still become true) and removes the race.
+// Per-test timeout must exceed asyncUtilTimeout or the test aborts first.
+require("@testing-library/react-native").configure({ asyncUtilTimeout: 5000 });
+jest.setTimeout(30000);
+
 // expo-secure-store: an in-memory store so token-backed code paths run in Node.
 jest.mock("expo-secure-store", () => {
   const store = new Map();
