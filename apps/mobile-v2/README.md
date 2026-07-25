@@ -73,6 +73,15 @@ runtime has no filesystem dependency (see "Regenerating migrations" below).
   `npx` may not resolve under some shells).
 - **Android**: Android Studio + an emulator or a device. **iOS**: a Mac with
   Xcode (iOS dev builds go through EAS).
+- **Android emulator requires hardware virtualization.** x86/x86_64 system
+  images cannot boot without an acceleration backend (WHPX, AEHD/GVM, or
+  HAXM), and every backend needs virtualization enabled in firmware — `SVM
+  Mode` on AMD, `VT-x` on Intel. Check with `emulator -accel-check`; on
+  Windows, `systeminfo` must report *Virtualization Enabled In Firmware: Yes*.
+  If it says No, enable it in the BIOS/UEFI — no emulator flag works around
+  it. A USB device with debugging enabled needs none of this.
+  **Compiling** the app (`gradlew assembleDebug`) does not require
+  virtualization; only *running* an emulator does.
 
 ### Install
 
@@ -156,6 +165,27 @@ These are load-bearing — changing them breaks the build or tests:
   packages by absolute resolved path (via `require.resolve`) rather than by
   name so both jest projects load the same physical copy. Keep new mappings in
   that style.
+
+## App identity
+
+Set in `app.json` and consumed by `expo prebuild` (there is no checked-in
+manifest to edit):
+
+| Field | Value |
+| --- | --- |
+| Display name | `LibrePhotos` |
+| Android `package` | `com.librephotosmobile` |
+| iOS `bundleIdentifier` | `com.librephotosmobile` |
+| Deep-link `scheme` | `librephotos://` |
+
+The Android package **deliberately matches the legacy `apps/mobile` app**
+(`com.librephotosmobile`) so v2 ships as an **in-place Play Store update**
+rather than a separate listing — existing users upgrade without reinstalling.
+This requires signing with the **same upload key** as the legacy app. If the
+project instead wants a clean-slate listing, change `android.package` *before*
+the first store upload; afterwards it is immovable. The legacy iOS project
+never moved off the React Native template identifier
+(`org.reactjs.native.example.*`), so iOS carries no such constraint.
 
 ## F-Droid / FOSS
 
