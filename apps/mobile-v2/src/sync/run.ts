@@ -105,12 +105,15 @@ function appHooks(
     // Step 4 — hash new/changed images (videos are lazy-hashed at upload time).
     // Enqueue after every batch so uploads start on the first hashed photos
     // instead of waiting out an md5 pass over the whole library.
-    hashAssets: async ({ db, signal, log }) => {
+    hashAssets: async ({ db, signal, log, moreExpected }) => {
       if (userId == null) return;
       await runHashPass(db, getAssetHasher(), {
         userId,
         signal,
         log,
+        // Runs alongside the camera-roll scan: keep hashing what the scan has
+        // already committed instead of stopping at the first empty batch.
+        keepGoing: moreExpected,
         onBatch: () => {
           if (getBackupConfig(db).enabled) enqueueBackups(db);
         },
@@ -237,22 +240,37 @@ export async function runBackupNow(
   const log = (entry: Parameters<typeof appendSyncLog>[1]) => appendSyncLog(db, entry, Date.now());
   backupInFlight = (async () => {
     try {
-      try {
-        await syncDeviceMedia(db, getMediaProvider(), {
-          now,
-          log,
-          onProgress: (p) => useSyncStore.getState().setDeviceProgress(p),
-        });
-      } finally {
-        useSyncStore.getState().setDeviceProgress(null);
-      }
+      // Scan + hash concurrently, for the same reason the orchestrator does:
+      // hashing must not sit behind a full camera-roll enumeration (see
+      // orchestrator.runSequence).
+      let scanning = true;
+      const scan = (async () => {
+        try {
+          await syncDeviceMedia(db, getMediaProvider(), {
+            now,
+            log,
+            onProgress: (p) => useSyncStore.getState().setDeviceProgress(p),
+          });
+        } finally {
+          scanning = false;
+          useSyncStore.getState().setDeviceProgress(null);
+        }
+      })();
+      const hash =
+        userId == null
+          ? Promise.resolve()
+          : runHashPass(db, getAssetHasher(), {
+              userId,
+              now,
+              log,
+              keepGoing: () => scanning,
+              onBatch: () => enqueueBackups(db),
+            });
+      const settled = await Promise.allSettled([scan, hash]);
+      const rejected = settled.find((s) => s.status === "rejected");
+      if (rejected?.status === "rejected") throw rejected.reason;
+
       if (userId != null) {
-        await runHashPass(db, getAssetHasher(), {
-          userId,
-          now,
-          log,
-          onBatch: () => enqueueBackups(db),
-        });
         await appHooks(userId, opts).topUpUploadQueue?.({
           db,
           source: getSource(),

@@ -23,7 +23,11 @@ export function MemoriesScreen() {
 
   const openPhoto = useCallback(
     (item: GridItem) => {
-      if (item.imageHash) router.push(`/photo/${item.imageHash}`);
+      // Never a dead tap: a camera-roll asset has no image hash until it is
+      // hashed, and the old `if (item.imageHash)` guard silently swallowed the
+      // press so the viewer looked unimplemented. The viewer resolves a remote
+      // id, an image hash, or a local asset id.
+      router.push(`/photo/${item.imageHash ?? item.key}`);
     },
     [router]
   );

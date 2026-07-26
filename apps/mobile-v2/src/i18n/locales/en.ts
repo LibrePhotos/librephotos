@@ -34,6 +34,21 @@ export const en = {
     backup: "Backup",
     profile: "Profile",
   },
+  date: {
+    today: "Today",
+    yesterday: "Yesterday",
+  },
+  viewer: {
+    details: "Details",
+    camera: "Camera",
+    date: "Date",
+    location: "Location",
+    rating: "Rating",
+    loadingDetails: "Loading details…",
+    detailsOffline: "Details unavailable offline.",
+    cachedDetails: "Showing cached details",
+    localOnly: "This photo is still only on this device — it will get full details once it is backed up.",
+  },
   timeline: {
     title: "Photos",
     empty: "No photos yet",

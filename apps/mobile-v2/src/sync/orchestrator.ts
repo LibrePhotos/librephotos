@@ -47,6 +47,12 @@ export type SyncStepContext = {
   signal?: AbortSignal;
   now: number;
   log: (entry: SyncLogEntry) => void;
+  /**
+   * True while a concurrently running step may still produce rows for this one.
+   * The hash pass uses it to keep waiting for assets the camera-roll scan has
+   * not enumerated yet, instead of exiting the moment the queue looks empty.
+   */
+  moreExpected?: () => boolean;
 };
 
 export type SyncHooks = {
@@ -174,10 +180,34 @@ async function runSequence(
   // 2. Remote delta pull, per entity in dependency order.
   const pull = await pullAll(db, source, pullOpts);
 
-  // 3–6. Device media / hashing / upload / thumb prefetch (later phases; the
-  // hooks are no-ops until those phases wire them in).
-  if (opts.syncDeviceMedia) await opts.syncDeviceMedia(ctx);
-  if (opts.hashAssets) await opts.hashAssets(ctx);
+  // 3+4. Camera-roll scan and hashing run CONCURRENTLY.
+  //
+  // They used to be two bare awaits in a strictly sequential chain, which meant
+  // hashing could not start until the entire camera-roll enumeration had
+  // finished — and the enumeration restarts on every app reload. A user watched
+  // 161 of 2867 photos get hashed, reloaded, and the counter never moved again,
+  // because the scan in front of it never finished. A slow step must never be
+  // able to starve the step behind it forever: hashing now makes progress on
+  // the assets already in the mirror while the scan is still walking the
+  // library, and `moreExpected` keeps it alive for assets that land mid-scan.
+  //
+  // Ordering is still safe — the hasher only ever reads rows the scan has
+  // already committed, and an asset whose bytes changed has its hash cleared by
+  // the scan's upsert, so it is simply re-hashed on the next pass.
+  let scanning = opts.syncDeviceMedia != null;
+  const scanStep = (async () => {
+    try {
+      await opts.syncDeviceMedia?.(ctx);
+    } finally {
+      scanning = false;
+    }
+  })();
+  const hashStep = opts.hashAssets?.({ ...ctx, moreExpected: () => scanning }) ?? Promise.resolve();
+  // allSettled, not all: a failure in one must not leave the other running
+  // unobserved (an unhandled rejection). The first error still propagates.
+  const settled = await Promise.allSettled([scanStep, hashStep]);
+  const rejected = settled.find((s) => s.status === "rejected");
+  if (rejected?.status === "rejected") throw rejected.reason;
   if (opts.topUpUploadQueue) await opts.topUpUploadQueue(ctx);
   if (opts.prefetchThumbs) await opts.prefetchThumbs(ctx);
 

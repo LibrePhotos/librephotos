@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import { useTranslation } from "react-i18next";
 import { mediaHeaders } from "@librephotos/api-client";
+import { formatDayHeading } from "@/lib/format";
 import { PhotoTile, type GridItem } from "./PhotoTile";
 import { useTheme } from "@/theme";
 
@@ -79,10 +81,17 @@ export function TimelineList({
   testID?: string;
 }) {
   const theme = useTheme();
+  const { t, i18n } = useTranslation();
   const { width } = useWindowDimensions();
   const size = useMemo(() => Math.floor((width - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS), [width]);
   const headers = useMemo(() => mediaHeaders(accessToken), [accessToken]);
   const rows = useMemo(() => toRows(items), [items]);
+  // Section headers used to print the raw `bucket_day` key ("2026-07-24").
+  // The testID keeps the key so tests and scroll targets stay stable.
+  const dayLabels = useMemo(
+    () => ({ today: t("date.today"), yesterday: t("date.yesterday") }),
+    [t]
+  );
 
   return (
     <FlashList
@@ -102,7 +111,9 @@ export function TimelineList({
             onPress={selectionActive && onToggleDay ? () => onToggleDay(row.items) : undefined}
             style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 12, paddingTop: 16, paddingBottom: 6 }}
           >
-            <Text style={{ color: theme.text, fontWeight: "600", fontSize: 15 }}>{row.day}</Text>
+            <Text style={{ color: theme.text, fontWeight: "600", fontSize: 15 }}>
+              {formatDayHeading(row.day, { locale: i18n.language, labels: dayLabels })}
+            </Text>
             {selectionActive ? (
               <Text testID={`section-select-${row.day}`} style={{ color: theme.brand, fontSize: 13, fontWeight: "600" }}>
                 ⊟

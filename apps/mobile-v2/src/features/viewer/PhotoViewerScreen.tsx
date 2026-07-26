@@ -1,33 +1,49 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { bigThumbnailUrl, mediaHeaders } from "@librephotos/api-client";
 import { useDb, useReactiveQuery } from "@/db/provider";
 import { timelinePage } from "@/db/queries/timeline";
-import { photoFlagsByHash, remotePhotoIdByHash, type PhotoFlags } from "@/db/queries/detail";
+import {
+  photoFlagsByHash,
+  remotePhotoIdByHash,
+  viewerSlideById,
+  type PhotoFlags,
+  type ViewerSlide,
+} from "@/db/queries/detail";
 import { useMutations } from "@/mutations/useMutations";
 import { TextPromptModal } from "@/components/TextPromptModal";
 import { AlbumPickerSheet } from "@/components/AlbumPickerSheet";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
+import { formatFullDate } from "@/lib/format";
 import { usePhotoDetail } from "./usePhotoDetail";
 import { ViewerActionBar } from "./ViewerActionBar";
+import { ZoomableImage } from "./ZoomableImage";
 import { useTheme } from "@/theme";
-
-type Slide = { hash: string; key: string };
 
 /**
  * Full-screen viewer. Pages horizontally over the current timeline context
- * (from the mirror), opening at the tapped photo's hash. Tapping toggles a
- * detail sheet whose EXIF/location come from the photo-detail endpoint,
- * cache-then-network (remote_photo_detail).
+ * (from the mirror), opening at the tapped photo. Tapping toggles a detail
+ * sheet whose EXIF/location come from the photo-detail endpoint,
+ * cache-then-network (remote_photo_detail); pinch and double-tap zoom.
+ *
+ * The route param is *any* identity the grid can hand it: a remote photo id, an
+ * image hash, or a local asset id. It used to be an image hash only, and
+ * callers guarded with `if (item.imageHash)` — so tapping a camera-roll photo
+ * that had not been hashed yet did literally nothing, which is why the lightbox
+ * was reported as "not implemented". Local-only slides render from their
+ * `ph://` / `content://` uri and simply hide the server-side affordances.
  */
 export function PhotoViewerScreen() {
-  const { id: imageHash } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { id: routeId } = useLocalSearchParams<{ id: string }>();
+  // Frozen for the life of this screen instance: the viewer is opened at one
+  // photo and pages from there, and re-keying the (500-row) pager query on a
+  // param identity change would re-run it for nothing.
+  const [id] = useState(routeId);
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const db = useDb();
   const token = useAccessToken();
@@ -36,23 +52,56 @@ export function PhotoViewerScreen() {
   const { width, height } = useWindowDimensions();
   const headers = useMemo(() => mediaHeaders(token), [token]);
   const [showDetail, setShowDetail] = useState(false);
-  const [currentHash, setCurrentHash] = useState<string | undefined>(imageHash);
+  const [currentKey, setCurrentKey] = useState<string | undefined>(undefined);
   const [editingCaption, setEditingCaption] = useState(false);
   const [pickingAlbum, setPickingAlbum] = useState(false);
 
-  const flags = useReactiveQuery<PhotoFlags | null>(
-    (d) => (currentHash ? photoFlagsByHash(d, currentHash) : null),
-    [currentHash]
+  // Pager context: a window of the timeline (mirror), remote and local rows
+  // alike. Falls back to a single resolved slide when the tapped photo is not
+  // in that window (hidden photo, memories deep link, notification tap).
+  const slides = useReactiveQuery<ViewerSlide[]>(
+    (d) => {
+      const rows = timelinePage(d, { limit: 500 }).rows.map(
+        (r): ViewerSlide => ({
+          key: (r.remote_id ?? r.local_id ?? r.image_hash) as string,
+          remote_id: r.remote_id,
+          local_id: r.local_id,
+          image_hash: r.image_hash,
+          local_uri: r.local_uri,
+          type: r.type,
+        })
+      );
+      if (id && rows.some((r) => matchesId(r, id))) return rows;
+      const single = viewerSlideById(d, id ?? "");
+      return single ? [single] : rows;
+    },
+    [id]
   );
+
+  const initialIndex = Math.max(
+    0,
+    slides.findIndex((s) => (id ? matchesId(s, id) : false))
+  );
+  const current = useMemo(
+    () => slides.find((s) => s.key === currentKey) ?? slides[initialIndex],
+    [slides, currentKey, initialIndex]
+  );
+  const hash = current?.image_hash ?? null;
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: { key?: string | number | null }[] }) => {
       const first = viewableItems[0]?.key;
-      if (typeof first === "string") setCurrentHash(first);
+      if (typeof first === "string") setCurrentKey(first);
     }
   ).current;
 
-  const hash = currentHash;
+  // Server-side flags exist only for photos the server knows about; a local-only
+  // asset simply has no action bar rather than a bar that silently no-ops.
+  const flags = useReactiveQuery<PhotoFlags | null>(
+    (d) => (hash ? photoFlagsByHash(d, hash) : null),
+    [hash]
+  );
+
   const toggleFavorite = useCallback(() => {
     if (hash && flags) mutations.favorite([hash], flags.is_favorite === 0);
   }, [hash, flags, mutations]);
@@ -69,22 +118,8 @@ export function PhotoViewerScreen() {
     [hash, mutations]
   );
 
-  // Pager context: a window of the timeline (mirror). Fallback to the single
-  // tapped hash when it is not part of the visible timeline (e.g. hidden).
-  const context = useReactiveQuery(
-    (db) =>
-      timelinePage(db, { limit: 500 }).rows
-        .map((r) => r.image_hash)
-        .filter((h): h is string => h != null),
-    []
-  );
-  const slides: Slide[] = useMemo(() => {
-    const hashes = context.includes(imageHash ?? "") ? context : imageHash ? [imageHash] : [];
-    return hashes.map((h) => ({ hash: h, key: h }));
-  }, [context, imageHash]);
-  const initialIndex = Math.max(0, slides.findIndex((s) => s.hash === imageHash));
-
-  const detail = usePhotoDetail(imageHash);
+  const detail = usePhotoDetail(flags ? (hash ?? undefined) : undefined);
+  const toggleSheet = useCallback(() => setShowDetail((v) => !v), []);
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -98,16 +133,13 @@ export function PhotoViewerScreen() {
         keyExtractor={(s) => s.key}
         onViewableItemsChanged={onViewableItemsChanged}
         renderItem={({ item }) => (
-          <Pressable onPress={() => setShowDetail((v) => !v)} style={{ width, height, alignItems: "center", justifyContent: "center" }}>
-            <Image
-              testID={`viewer-image-${item.hash}`}
-              style={{ width, height: height * 0.8 }}
-              source={{ uri: bigThumbnailUrl(base, item.hash), headers }}
-              contentFit="contain"
-              cachePolicy="disk"
-              transition={150}
-            />
-          </Pressable>
+          <ZoomableImage
+            testID={`viewer-image-${item.image_hash ?? item.key}`}
+            width={width}
+            height={height}
+            onTap={toggleSheet}
+            source={sourceFor(item, base, headers)}
+          />
         )}
       />
 
@@ -164,28 +196,62 @@ export function PhotoViewerScreen() {
           testID="viewer-detail-sheet"
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: theme.card, padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: height * 0.5 }}
         >
-          {detail.isLoading ? (
-            <Text style={{ color: theme.muted }}>Loading details…</Text>
+          {/* A local-only photo has no server record to describe — say so
+              rather than spinning on a request that will never resolve. */}
+          {!flags ? (
+            <View>
+              <Text style={{ color: theme.text, fontWeight: "700", fontSize: 16, marginBottom: 8 }}>
+                {t("viewer.details")}
+              </Text>
+              <Text testID="viewer-local-only" style={{ color: theme.muted }}>
+                {t("viewer.localOnly")}
+              </Text>
+            </View>
+          ) : detail.isLoading ? (
+            <Text style={{ color: theme.muted }}>{t("viewer.loadingDetails")}</Text>
           ) : detail.detail ? (
             <ScrollView>
-              <Text style={{ color: theme.text, fontWeight: "700", fontSize: 16, marginBottom: 8 }}>Details</Text>
-              <DetailRow label="Camera" value={detail.detail.camera} theme={theme} />
-              <DetailRow label="Date" value={detail.detail.exif_timestamp} theme={theme} />
-              <DetailRow label="Location" value={detail.detail.search_location} theme={theme} />
-              <DetailRow label="Rating" value={String(detail.detail.rating)} theme={theme} />
+              <Text style={{ color: theme.text, fontWeight: "700", fontSize: 16, marginBottom: 8 }}>
+                {t("viewer.details")}
+              </Text>
+              <DetailRow label={t("viewer.camera")} value={detail.detail.camera} theme={theme} />
+              <DetailRow
+                label={t("viewer.date")}
+                value={formatFullDate(detail.detail.exif_timestamp, { locale: i18n.language }) || null}
+                theme={theme}
+              />
+              <DetailRow label={t("viewer.location")} value={detail.detail.search_location} theme={theme} />
+              <DetailRow label={t("viewer.rating")} value={String(detail.detail.rating)} theme={theme} />
               {detail.fromCache ? (
                 <Text testID="viewer-from-cache" style={{ color: theme.muted, fontSize: 11, marginTop: 8 }}>
-                  Showing cached details
+                  {t("viewer.cachedDetails")}
                 </Text>
               ) : null}
             </ScrollView>
           ) : (
-            <Text style={{ color: theme.muted }}>Details unavailable offline.</Text>
+            <Text style={{ color: theme.muted }}>{t("viewer.detailsOffline")}</Text>
           )}
         </View>
       ) : null}
     </View>
   );
+}
+
+/** Does this slide answer to the given route param? */
+function matchesId(slide: ViewerSlide, id: string): boolean {
+  return (
+    slide.key === id || slide.remote_id === id || slide.local_id === id || slide.image_hash === id
+  );
+}
+
+/**
+ * Local-first image source: the camera-roll file when we have it (instant, no
+ * network, and the only option for a photo not yet uploaded), the server's big
+ * thumbnail otherwise.
+ */
+function sourceFor(slide: ViewerSlide, base: string, headers: Record<string, string>) {
+  if (slide.local_uri) return { uri: slide.local_uri };
+  return slide.image_hash ? { uri: bigThumbnailUrl(base, slide.image_hash), headers } : { uri: "" };
 }
 
 function DetailRow({ label, value, theme }: { label: string; value: string | null; theme: { text: string; muted: string } }) {

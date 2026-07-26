@@ -3,7 +3,7 @@ import { PhotoViewerScreen } from "./PhotoViewerScreen";
 import { useSettingsStore } from "@/stores/settings";
 import { jsonResponse, makeMockClient, renderWithDb } from "@/test/test-utils";
 import { createTestDb, type TestDb } from "@/db/test-db";
-import { remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
+import { insertLocalAlbum, insertLocalAsset, remotePhoto, seedRemotePhotos } from "@/db/__tests__/fixtures";
 
 const PHOTO_DETAIL = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -76,6 +76,34 @@ describe("PhotoViewerScreen", () => {
     fireEvent.press(getByTestId("viewer-image-hashA"));
     await waitFor(() => {
       expect(getByTestId("viewer-detail-sheet")).toBeTruthy();
+    });
+  });
+
+  /**
+   * Device-run report: "Lightbox does not seem to be implemented". It was — but
+   * every caller guarded with `if (item.imageHash)`, and a camera-roll asset
+   * has no image hash until it is hashed, so tapping one did nothing at all.
+   */
+  describe("local-only camera-roll assets", () => {
+    beforeEach(() => {
+      insertLocalAsset(t.db, { id: "L1", hash: null, uri: "ph://L1" });
+      insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L1"] });
+      (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { id: "L1" };
+    });
+
+    it("opens by local asset id and renders from the camera-roll uri", () => {
+      const { getByTestId } = renderWithDb(<PhotoViewerScreen />, t.db);
+      const image = getByTestId("viewer-image-L1");
+      expect(image).toBeTruthy();
+      expect(image.props.source).toEqual({ uri: "ph://L1" });
+    });
+
+    it("hides server-only affordances and says why", () => {
+      const { getByTestId, queryByTestId } = renderWithDb(<PhotoViewerScreen />, t.db);
+      // No server row → no action bar full of no-ops.
+      expect(queryByTestId("viewer-action-bar")).toBeNull();
+      fireEvent.press(getByTestId("viewer-image-L1"));
+      expect(getByTestId("viewer-local-only")).toBeTruthy();
     });
   });
 });

@@ -52,11 +52,24 @@ export type HashOptions = {
    * backgrounded or interrupted run then still leaves usable work queued.
    */
   onBatch?: (progress: HashResult) => void;
+  /**
+   * Stay alive while this returns true even when nothing is currently
+   * hashable. The orchestrator passes "the camera-roll scan is still running",
+   * so hashing keeps picking up assets as the scan commits them instead of
+   * exiting on the first empty batch and waiting for the next sync.
+   */
+  keepGoing?: () => boolean;
+  /** Poll interval (ms) used while idling under {@link HashOptions.keepGoing}. */
+  idleDelayMs?: number;
 };
 
 export type HashResult = { hashed: number; failed: number };
 
 const defaultYield = () => new Promise<void>((r) => setTimeout(r, 0));
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** How long to idle between "is there anything to hash yet?" polls. */
+const IDLE_DELAY_MS = 150;
 
 /**
  * Select un-hashed candidates. Backup-selected assets sort first (they gate the
@@ -115,7 +128,15 @@ export async function runHashPass(
       selectedOnly: opts.selectedOnly,
       limit: batchSize,
     });
-    if (batch.length === 0) break;
+    if (batch.length === 0) {
+      // Nothing hashable *right now*. If a concurrent camera-roll scan is still
+      // committing rows, idle briefly and look again rather than ending the
+      // pass — otherwise a reload would leave a half-hashed library untouched
+      // until some later sync happened to run after the scan finished.
+      if (!opts.keepGoing?.()) break;
+      await sleep(opts.idleDelayMs ?? IDLE_DELAY_MS);
+      continue;
+    }
 
     for (const asset of batch) {
       if (opts.signal?.aborted) throw new HashAbortedError();
