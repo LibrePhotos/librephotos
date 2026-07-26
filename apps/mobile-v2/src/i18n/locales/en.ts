@@ -130,10 +130,8 @@ export const en = {
     emptyTitle: "Search your library",
     emptyHint: "Find photos by place, person, album, tag or date.",
     noRecent: "Your recent searches show up here.",
-    error: "Search failed. Pull down or try again.",
+    error: "Search couldn't reach the server.",
     resultsFor: "Results for “{{query}}”",
-    resultCount: "{{count}} result",
-    resultCount_other: "{{count}} results",
   },
   memories: {
     title: "On this day",
