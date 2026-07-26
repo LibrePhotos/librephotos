@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import type { SyncProgress, SyncReason, SyncResult } from "@/sync/orchestrator";
+import type { DeviceSyncProgress } from "@/sync/device/media-sync";
+import type { GateDecision } from "@/sync/upload/gate";
 
 /**
  * Live sync UI state (client state, not persisted). The orchestrator runner
@@ -14,8 +16,22 @@ type SyncUiState = {
   lastError: string | null;
   startedAt: number | null;
   finishedAt: number | null;
+  /**
+   * Camera-roll enumeration progress. Non-null only while the device scan is
+   * walking the library, so the Backup screen can say "Scanning 1,200 of 8,000"
+   * instead of showing a dead screen (the device-run freeze report).
+   */
+  deviceProgress: DeviceSyncProgress | null;
+  /**
+   * Last upload-gate decision observed by the engine. Lets the Backup screen
+   * explain "Waiting for Wi-Fi" / "Waiting to charge" rather than silently
+   * queueing forever.
+   */
+  gate: GateDecision | null;
   setRunning: (running: boolean, reason?: SyncReason | null) => void;
   setProgress: (progress: SyncProgress) => void;
+  setDeviceProgress: (progress: DeviceSyncProgress | null) => void;
+  setGate: (gate: GateDecision | null) => void;
   setResult: (result: SyncResult) => void;
   setError: (error: string | null) => void;
 };
@@ -28,6 +44,8 @@ export const useSyncStore = create<SyncUiState>((set) => ({
   lastError: null,
   startedAt: null,
   finishedAt: null,
+  deviceProgress: null,
+  gate: null,
   setRunning: (running, reason = null) =>
     set((s) => ({
       running,
@@ -35,8 +53,11 @@ export const useSyncStore = create<SyncUiState>((set) => ({
       startedAt: running ? Date.now() : s.startedAt,
       finishedAt: running ? null : Date.now(),
       progress: running ? s.progress : null,
+      deviceProgress: running ? s.deviceProgress : null,
     })),
   setProgress: (progress) => set({ progress }),
+  setDeviceProgress: (deviceProgress) => set({ deviceProgress }),
+  setGate: (gate) => set({ gate }),
   setResult: (lastResult) => set({ lastResult, lastError: null }),
   setError: (lastError) => set({ lastError }),
 }));

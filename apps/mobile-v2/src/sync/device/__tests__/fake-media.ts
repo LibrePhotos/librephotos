@@ -31,14 +31,14 @@ export function asset(id: string, overrides: Partial<MediaAsset> = {}): MediaAss
 export class FakeMedia implements MediaProvider {
   permission: MediaPermission = { granted: true, canAskAgain: true, accessPrivileges: "all" };
   /** albumId → ordered assets. */
-  albums = new Map<string, { title: string; assets: MediaAsset[] }>();
+  albums = new Map<string, { title: string; assets: MediaAsset[]; isSmart?: boolean }>();
   requestCount = 0;
   listeners: (() => void)[] = [];
   /** Query log for asserting fast-path vs full-diff behaviour. */
   queries: MediaQuery[] = [];
 
-  setAlbum(id: string, title: string, assets: MediaAsset[]): void {
-    this.albums.set(id, { title, assets });
+  setAlbum(id: string, title: string, assets: MediaAsset[], opts: { isSmart?: boolean } = {}): void {
+    this.albums.set(id, { title, assets, isSmart: opts.isSmart });
   }
 
   async getPermissions(): Promise<MediaPermission> {
@@ -49,7 +49,12 @@ export class FakeMedia implements MediaProvider {
     return this.permission;
   }
   async getAlbums(): Promise<MediaAlbum[]> {
-    return [...this.albums.entries()].map(([id, a]) => ({ id, title: a.title, assetCount: a.assets.length }));
+    return [...this.albums.entries()].map(([id, a]) => ({
+      id,
+      title: a.title,
+      assetCount: a.assets.length,
+      isSmart: a.isSmart,
+    }));
   }
   async getAssets(query: MediaQuery): Promise<MediaPage> {
     this.queries.push(query);

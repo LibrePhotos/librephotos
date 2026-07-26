@@ -48,9 +48,23 @@ export function createExpoMediaProvider(): MediaProvider {
       return mapPermission(await MediaLibrary.requestPermissionsAsync());
     },
     async getAlbums() {
-      const albums = await MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true });
+      // `includeSmartAlbums` is deliberately OFF. iOS returns ~20 overlapping
+      // smart albums (Recents, Favorites, Screenshots, Selfies, Live Photos, …)
+      // whose assets are almost entirely the same photos; enumerating each one
+      // made the first sync O(albums × assets) and froze the app on a real
+      // device. The whole library is covered once by the synthetic
+      // LIBRARY_ALBUM_ID pass in media-sync, so only user-created albums (which
+      // is what per-album backup selection is actually for) are needed here.
+      // The `isSmart` flag below is a second line of defence for platforms that
+      // report smart albums anyway.
+      const albums = await MediaLibrary.getAlbumsAsync({ includeSmartAlbums: false });
       return albums.map(
-        (al): MediaAlbum => ({ id: al.id, title: al.title, assetCount: al.assetCount })
+        (al): MediaAlbum => ({
+          id: al.id,
+          title: al.title,
+          assetCount: al.assetCount,
+          isSmart: al.type === "smartAlbum",
+        })
       );
     },
     async getAssets(query: MediaQuery): Promise<MediaPage> {

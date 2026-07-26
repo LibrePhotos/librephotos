@@ -45,6 +45,13 @@ export type HashOptions = {
   log?: (entry: SyncLogEntry) => void;
   /** Yield hook between batches (defaults to a macrotask yield). */
   yield?: () => Promise<void>;
+  /**
+   * Called after every batch is persisted. md5 over every byte of a multi-GB
+   * library takes minutes, so the caller uses this to enqueue uploads (and
+   * refresh the UI) *as assets are hashed* rather than only at the end — a
+   * backgrounded or interrupted run then still leaves usable work queued.
+   */
+  onBatch?: (progress: HashResult) => void;
 };
 
 export type HashResult = { hashed: number; failed: number };
@@ -129,6 +136,7 @@ export async function runHashPass(
         db.run(sql`UPDATE local_asset SET hashed_at = ${now} WHERE id = ${asset.id}`);
       }
     }
+    opts.onBatch?.({ hashed, failed });
     await yieldFn();
   }
 

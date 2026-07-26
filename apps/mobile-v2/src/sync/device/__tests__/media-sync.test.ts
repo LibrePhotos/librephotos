@@ -3,7 +3,7 @@
  */
 import { sql } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@/db/test-db";
-import { syncDeviceMedia, LIMITED_ALBUM_ID } from "../media-sync";
+import { syncDeviceMedia, LIBRARY_ALBUM_ID, LIMITED_ALBUM_ID } from "../media-sync";
 import { getAlbumWatermark, getMediaAccess } from "../media-store";
 import { FakeMedia, asset } from "./fake-media";
 
@@ -139,5 +139,151 @@ describe("syncDeviceMedia", () => {
     const controller = new AbortController();
     controller.abort();
     await expect(syncDeviceMedia(t.db, media, { signal: controller.signal })).rejects.toThrow();
+  });
+});
+
+/**
+ * Regression cover for the device-run freeze: granting photo-library access
+ * locked the UI for the whole enumeration. Each test below pins one of the
+ * three causes (smart-album fan-out, no yielding, unbounded buffering) plus the
+ * budget/resume path that keeps a huge library from monopolising one run.
+ */
+describe("syncDeviceMedia — large libraries stay responsive", () => {
+  let t: TestDb;
+  beforeEach(() => (t = createTestDb()));
+  afterEach(() => t.close());
+
+  /** `count` assets with strictly increasing creation times. */
+  function library(count: number, prefix = "p"): ReturnType<typeof asset>[] {
+    return Array.from({ length: count }, (_, i) =>
+      asset(`${prefix}${String(i).padStart(5, "0")}`, { creationTime: 1_000 + i })
+    );
+  }
+
+  function rowCount(db: TestDb["db"]): number {
+    return (db.get(sql`SELECT COUNT(*) AS c FROM local_asset`) as { c: number }).c;
+  }
+
+  it("enumerates the library once and never walks iOS smart albums", async () => {
+    const media = new FakeMedia();
+    const all = library(40);
+    // What iOS actually reports: a pile of smart albums over the same photos.
+    media.setAlbum("recents", "Recents", all, { isSmart: true });
+    media.setAlbum("favorites", "Favorites", all.slice(0, 20), { isSmart: true });
+    media.setAlbum("screenshots", "Screenshots", all.slice(20), { isSmart: true });
+    media.setAlbum("trip", "Trip", all.slice(0, 5)); // a real user album
+
+    const res = await syncDeviceMedia(t.db, media, { now: 1_000, pageSize: 10 });
+
+    const scoped = media.queries.map((q) => q.albumId).filter((id): id is string => id != null);
+    expect(scoped).not.toContain("recents");
+    expect(scoped).not.toContain("favorites");
+    expect(scoped).not.toContain("screenshots");
+    expect(new Set(scoped)).toEqual(new Set(["trip"]));
+    // The synthetic library album covers every asset the smart albums held.
+    expect(membership(t, LIBRARY_ALBUM_ID)).toHaveLength(40);
+    expect(res.added).toBe(40);
+    expect(res.albums).toBe(2); // library + the one user album
+  });
+
+  it("writes each asset once even when several albums contain it", async () => {
+    const media = new FakeMedia();
+    const all = library(60);
+    media.setAlbum("cam", "Camera", all);
+    media.setAlbum("trip", "Trip", all); // fully overlapping user album
+    media.setAlbum("faves", "Faves", all);
+
+    const res = await syncDeviceMedia(t.db, media, { now: 1_000, pageSize: 20 });
+
+    expect(rowCount(t.db)).toBe(60);
+    expect(res.added).toBe(60);
+    // Four passes read the same 60 assets, but only the first pass writes them.
+    expect(res.scanned).toBe(240);
+    expect(res.upserted).toBe(60);
+    // Album membership is still complete for every album.
+    expect(membership(t, "trip")).toHaveLength(60);
+    expect(membership(t, "faves")).toHaveLength(60);
+  });
+
+  it("pages the provider and yields between every page", async () => {
+    const media = new FakeMedia();
+    media.setAlbum("cam", "Camera", library(500));
+    let yields = 0;
+
+    await syncDeviceMedia(t.db, media, {
+      now: 1_000,
+      pageSize: 50,
+      yield: async () => {
+        yields += 1;
+      },
+    });
+
+    // No page may be larger than the page size — that is what keeps a single
+    // native call and a single transaction inside a frame budget.
+    expect(media.queries.every((q) => q.first <= 50)).toBe(true);
+    // 500 assets over two albums (library + cam) at 50/page = 20 pages minimum.
+    expect(yields).toBeGreaterThanOrEqual(20);
+  });
+
+  it("actually returns the JS thread to the event loop while it runs", async () => {
+    const media = new FakeMedia();
+    media.setAlbum("cam", "Camera", library(400));
+
+    // A self-rescheduling macrotask: it can only advance if syncDeviceMedia
+    // gives the event loop a turn. Awaiting promises alone would never let it
+    // tick, which is exactly how the app froze.
+    let ticks = 0;
+    let stop = false;
+    const tick = () => {
+      if (stop) return;
+      ticks += 1;
+      setTimeout(tick, 0);
+    };
+    setTimeout(tick, 0);
+
+    await syncDeviceMedia(t.db, media, { now: 1_000, pageSize: 25 });
+    stop = true;
+
+    expect(ticks).toBeGreaterThan(5);
+  });
+
+  it("commits rows page by page so the first photos render before the scan ends", async () => {
+    const media = new FakeMedia();
+    media.setAlbum("cam", "Camera", library(300));
+    let rowsAtFirstProgress: number | null = null;
+
+    await syncDeviceMedia(t.db, media, {
+      now: 1_000,
+      pageSize: 50,
+      onProgress: (p) => {
+        if (rowsAtFirstProgress == null) rowsAtFirstProgress = rowCount(t.db);
+        expect(p.total).toBeGreaterThan(0);
+      },
+    });
+
+    // Photos were queryable after the very first page, not only at the end.
+    expect(rowsAtFirstProgress).toBe(50);
+    expect(rowCount(t.db)).toBe(300);
+  });
+
+  it("bounds a huge first pass and resumes exactly where it stopped", async () => {
+    const media = new FakeMedia();
+    media.setAlbum("cam", "Camera", library(250));
+
+    const first = await syncDeviceMedia(t.db, media, {
+      now: 1_000,
+      pageSize: 50,
+      maxAssetsPerRun: 100,
+    });
+    expect(first.complete).toBe(false);
+    expect(rowCount(t.db)).toBe(100);
+    // A truncated run must not mistake unread assets for deletions.
+    expect(first.deleted).toBe(0);
+    expect(first.removed).toBe(0);
+
+    const second = await syncDeviceMedia(t.db, media, { now: 2_000, pageSize: 50 });
+    expect(second.complete).toBe(true);
+    expect(rowCount(t.db)).toBe(250);
+    expect(membership(t, LIBRARY_ALBUM_ID)).toHaveLength(250);
   });
 });

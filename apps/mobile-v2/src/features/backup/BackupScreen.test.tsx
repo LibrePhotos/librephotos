@@ -4,7 +4,7 @@ import { BackupScreen } from "./BackupScreen";
 import { renderWithDb } from "@/test/test-utils";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { insertLocalAlbum, insertLocalAsset } from "@/db/__tests__/fixtures";
-import { setBackupConfig } from "@/db/queries/backup";
+import { getBackupConfig, setBackupConfig } from "@/db/queries/backup";
 import { setMediaAccess } from "@/sync/device/media-store";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
@@ -65,6 +65,48 @@ describe("BackupScreen", () => {
       backup_selection: number;
     };
     expect(row.backup_selection).toBe(1); // none(0) → selected(1)
+  });
+
+  it("turns backup on when the first album is selected", async () => {
+    // Device-run report: "I can click on an album … but it will not upload
+    // anything". The master toggle defaults off, so the selection was inert.
+    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 0, assetIds: ["a1"] });
+    expect(getBackupConfig(t.db).enabled).toBe(false);
+
+    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await waitFor(() => expect(getByTestId("backup-album-cam")).toBeTruthy());
+    fireEvent.press(getByTestId("backup-album-cam"));
+
+    await waitFor(() => expect(getBackupConfig(t.db).enabled).toBe(true));
+  });
+
+  it("explains an idle queue instead of leaving it silent", async () => {
+    setMediaAccess(t.db, "all");
+    insertLocalAsset(t.db, { id: "a1", hash: "h1" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["a1"] });
+    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+
+    // Backup is off → that, and not "nothing queued", is the explanation.
+    await waitFor(() => expect(getByTestId("backup-blocker")).toBeTruthy());
+    expect(getByTestId("backup-blocker").props.children).toContain("Backup is off");
+  });
+
+  it("shows hashing progress against the album total, not the hashed count", async () => {
+    setMediaAccess(t.db, "all");
+    setBackupConfig(t.db, { enabled: true });
+    for (let i = 0; i < 10; i += 1) {
+      insertLocalAsset(t.db, { id: `a${i}`, hash: i < 3 ? `h${i}` : null });
+    }
+    insertLocalAlbum(t.db, {
+      id: "cam",
+      backupSelection: 1,
+      assetIds: Array.from({ length: 10 }, (_, i) => `a${i}`),
+    });
+    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+
+    await waitFor(() => expect(getByTestId("backup-stage")).toBeTruthy());
+    expect(getByTestId("backup-stage").props.children).toContain("3 of 10");
   });
 
   it("shows an empty-queue message when nothing is queued", async () => {

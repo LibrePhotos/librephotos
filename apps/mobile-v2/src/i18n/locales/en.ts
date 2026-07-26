@@ -65,6 +65,26 @@ export const en = {
     stateFailed: "Failed",
     stateSkipped: "Already on server",
     summary: "{{done}} done · {{pending}} pending · {{failed}} failed",
+    allPhotos: "All photos",
+    // Headline: which of the two stages is running, against a real total.
+    statusScanning: "Scanning your library — {{scanned}} of {{total}}",
+    statusHashing: "Preparing photos for upload — {{done}} of {{total}}",
+    statusUploading: "Uploading — {{done}} of {{total}} done",
+    statusWaiting: "{{count}} ready to upload",
+    statusUpToDate: "{{count}} backed up — nothing new to upload",
+    statusIdle: "Nothing selected to back up yet",
+    // Blockers: never leave an idle queue unexplained.
+    blockerNoAccess: "No photo access. Allow LibrePhotos to read your library in iOS Settings.",
+    blockerDisabled: 'Backup is off. Turn on "Back up my photos" to start uploading.',
+    blockerNoSelection: "Choose an album below to back it up.",
+    blockerOffline: "Waiting for a network connection.",
+    blockerWifi: 'Waiting for Wi‑Fi. Turn off "Wi‑Fi only" to upload over cellular.',
+    blockerCharging: "Waiting until this phone is charging.",
+    blockerFailed: "{{count}} upload(s) failed. Tap “Retry failed” to try again.",
+    // Per-stage detail lines, each against its own denominator.
+    hashProgress: "Prepared {{done}} of {{total}}",
+    uploadProgress: "Uploaded {{done}} of {{total}} ready",
+    albumCounts: "{{total}} photos · {{hashed}} prepared · {{onServer}} on server",
   },
   sync: {
     title: "Sync status",

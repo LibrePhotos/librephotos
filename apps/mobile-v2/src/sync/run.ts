@@ -88,14 +88,33 @@ function appHooks(
           }
         : undefined,
     replayOutbox,
-    // Step 3 — camera-roll diff into the local_asset tables.
+    // Step 3 — camera-roll diff into the local_asset tables. Progress goes to
+    // the UI store: on a large library this is the long pole right after the
+    // permission prompt, and a silent screen there reads as a freeze.
     syncDeviceMedia: async ({ db, signal, log }) => {
-      await syncDeviceMedia(db, getMediaProvider(), { signal, log });
+      try {
+        await syncDeviceMedia(db, getMediaProvider(), {
+          signal,
+          log,
+          onProgress: (p) => useSyncStore.getState().setDeviceProgress(p),
+        });
+      } finally {
+        useSyncStore.getState().setDeviceProgress(null);
+      }
     },
     // Step 4 — hash new/changed images (videos are lazy-hashed at upload time).
+    // Enqueue after every batch so uploads start on the first hashed photos
+    // instead of waiting out an md5 pass over the whole library.
     hashAssets: async ({ db, signal, log }) => {
       if (userId == null) return;
-      await runHashPass(db, getAssetHasher(), { userId, signal, log });
+      await runHashPass(db, getAssetHasher(), {
+        userId,
+        signal,
+        log,
+        onBatch: () => {
+          if (getBackupConfig(db).enabled) enqueueBackups(db);
+        },
+      });
     },
     // Step 5 — top up + drain the upload queue when backup is enabled.
     topUpUploadQueue: async ({ db, source: src, signal, log }) => {
@@ -103,13 +122,16 @@ function appHooks(
       const config = getBackupConfig(db);
       if (!config.enabled) return;
 
-      // Lazily hash selected videos so they become upload-eligible, then enqueue.
+      // Lazily hash selected videos so they become upload-eligible, enqueueing
+      // as we go (a GB-scale video pass must not withhold everything already
+      // hashed from the queue).
       await runHashPass(db, getAssetHasher(), {
         userId,
         signal,
         includeVideos: true,
         selectedOnly: true,
         log,
+        onBatch: () => enqueueBackups(db),
       });
       enqueueBackups(db);
 
@@ -117,6 +139,9 @@ function appHooks(
         { wifiOnly: config.wifiOnly, chargingOnly: config.chargingOnly },
         getDeviceProbe()
       );
+      // Publish the gate decision so the Backup screen can name the blocker
+      // ("Waiting for Wi-Fi") instead of showing a stalled queue with no reason.
+      useSyncStore.getState().setGate(await gate.check());
       const result = await runUploadQueue(db, {
         userId,
         transport: getUploadTransport(),
@@ -212,9 +237,22 @@ export async function runBackupNow(
   const log = (entry: Parameters<typeof appendSyncLog>[1]) => appendSyncLog(db, entry, Date.now());
   backupInFlight = (async () => {
     try {
-      await syncDeviceMedia(db, getMediaProvider(), { now, log });
+      try {
+        await syncDeviceMedia(db, getMediaProvider(), {
+          now,
+          log,
+          onProgress: (p) => useSyncStore.getState().setDeviceProgress(p),
+        });
+      } finally {
+        useSyncStore.getState().setDeviceProgress(null);
+      }
       if (userId != null) {
-        await runHashPass(db, getAssetHasher(), { userId, now, log });
+        await runHashPass(db, getAssetHasher(), {
+          userId,
+          now,
+          log,
+          onBatch: () => enqueueBackups(db),
+        });
         await appHooks(userId, opts).topUpUploadQueue?.({
           db,
           source: getSource(),

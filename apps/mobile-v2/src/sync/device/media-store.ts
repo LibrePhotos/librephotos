@@ -80,6 +80,28 @@ export function unlinkAlbumAssets(db: AppDatabase, albumId: string, assetIds: st
   });
 }
 
+/**
+ * Which of `ids` already have a row in `local_asset`. Asked *before* an upsert
+ * so the device sync can report how many assets are genuinely new rather than
+ * counting every re-seen asset as an addition. Chunked to stay under SQLite's
+ * bound-variable limit.
+ */
+export function existingAssetIds(db: AppDatabase, ids: string[], chunkSize = 400): Set<string> {
+  const out = new Set<string>();
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    if (chunk.length === 0) continue;
+    const rows = db.all(
+      sql`SELECT id FROM local_asset WHERE id IN (${sql.join(
+        chunk.map((id) => sql`${id}`),
+        sql`, `
+      )})`
+    ) as { id: string }[];
+    for (const r of rows) out.add(r.id);
+  }
+  return out;
+}
+
 /** Membership index (asset_id → modified_at) for one album, for the full diff. */
 export function albumAssetIndex(db: AppDatabase, albumId: string): Map<string, number> {
   const rows = db.all(

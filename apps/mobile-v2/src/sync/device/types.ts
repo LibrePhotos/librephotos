@@ -24,6 +24,14 @@ export type MediaAlbum = {
   id: string;
   title: string;
   assetCount: number;
+  /**
+   * True for an OS-generated smart album (iOS: Recents, Favorites, Screenshots,
+   * Selfies, …). These overlap each other and the camera roll almost entirely,
+   * so the device sync skips them — enumerating them turned a first sync into
+   * O(albums × assets) and froze the app. Undefined on platforms that do not
+   * report album kinds.
+   */
+  isSmart?: boolean;
 };
 
 /** A single camera-roll asset (metadata only; bytes are fetched lazily). */

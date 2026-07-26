@@ -24,7 +24,10 @@ import {
   type BackupConfig,
 } from "@/db/queries/backup";
 import { queueList, queueSummary, retryFailed, type QueueListRow, type QueueSummary } from "@/sync/upload/queue";
+import { backupState, type BackupBlocker, type BackupStage, type BackupState } from "@/sync/upload/status";
 import { getMediaAccess } from "@/sync/device/media-store";
+import { LIBRARY_ALBUM_ID } from "@/sync/device/media-sync";
+import type { MediaAccess } from "@/sync/device/types";
 
 const SELECTION_LABEL = ["selectionNone", "selectionSelected", "selectionExcluded"] as const;
 const SELECTION_COLOR = ["#9ca3af", "#22c55e", "#dc2626"];
@@ -44,12 +47,18 @@ export function BackupScreen() {
   const db = useDb();
   const userId = useAuthStore((s) => s.userId);
   const running = useSyncStore((s) => s.running);
+  const deviceProgress = useSyncStore((s) => s.deviceProgress);
+  const gate = useSyncStore((s) => s.gate);
 
   const config = useReactiveQuery<BackupConfig>((d) => getBackupConfig(d), []);
   const summary = useReactiveQuery<QueueSummary>((d) => queueSummary(d), []);
   const albums = useReactiveQuery<AlbumBackupRow[]>((d) => listBackupAlbums(d), []);
   const queue = useReactiveQuery<QueueListRow[]>((d) => queueList(d, 100), []);
-  const access = useReactiveQuery<string | null>((d) => getMediaAccess(d), []);
+  const access = useReactiveQuery<MediaAccess | null>((d) => getMediaAccess(d), []);
+  const state = useReactiveQuery<BackupState>(
+    (d) => backupState(d, { config: getBackupConfig(d), access: getMediaAccess(d), gate }),
+    [gate]
+  );
 
   const [busy, setBusy] = useState(false);
 
@@ -70,9 +79,19 @@ export function BackupScreen() {
 
   const onCycleAlbum = useCallback(
     (album: AlbumBackupRow) => {
-      setAlbumBackupSelection(db, album.id, cycleAlbumSelection(album.backup_selection));
+      const next = cycleAlbumSelection(album.backup_selection);
+      setAlbumBackupSelection(db, album.id, next);
+      // Picking an album *is* the user asking for it to be backed up. The
+      // master toggle defaults to off, so on the device run selecting an album
+      // did precisely nothing and said nothing about why. Turning backup on
+      // with the first selection (the toggle stays available to turn it back
+      // off) makes the choice mean what it looks like it means.
+      if (next === 1 && !getBackupConfig(db).enabled) {
+        setBackupConfig(db, { enabled: true });
+      }
+      if (next === 1) void backupNow(db, userId, setBusy);
     },
-    [db]
+    [db, userId]
   );
 
   return (
@@ -82,7 +101,35 @@ export function BackupScreen() {
           {t("backup.title")}
         </Text>
 
-        {/* Overall status */}
+        {/* Overall status. Three lines, in this order and never collapsed:
+            what stage is running, how far each pipeline has got, and what (if
+            anything) is blocking. An idle queue must never be silent. */}
+        <View style={{ gap: 4 }}>
+          <Text testID="backup-stage" style={{ color: theme.text, fontSize: 14, fontWeight: "600" }}>
+            {deviceProgress
+              ? t("backup.statusScanning", {
+                  scanned: deviceProgress.scanned,
+                  total: Math.max(deviceProgress.total, deviceProgress.scanned),
+                })
+              : stageText(t, state.stage)}
+          </Text>
+          {state.counts.selected > 0 ? (
+            <Text testID="backup-stage-detail" style={{ color: theme.muted, fontSize: 12 }}>
+              {t("backup.hashProgress", { done: state.counts.hashed, total: state.counts.selected })}
+              {" · "}
+              {t("backup.uploadProgress", {
+                done: state.queue.done + state.queue.skipped_exists,
+                total: Math.max(state.queue.total, state.queue.done + state.queue.skipped_exists),
+              })}
+            </Text>
+          ) : null}
+          {state.blocker ? (
+            <Text testID="backup-blocker" style={{ color: "#d97706", fontSize: 12 }}>
+              {blockerText(t, state.blocker)}
+            </Text>
+          ) : null}
+        </View>
+
         <Text testID="backup-summary" style={{ color: theme.muted, fontSize: 13 }}>
           {t("backup.summary", {
             done: summary.done + summary.skipped_exists,
@@ -167,10 +214,17 @@ export function BackupScreen() {
               >
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
-                    {album.title ?? album.id}
+                    {album.id === LIBRARY_ALBUM_ID ? t("backup.allPhotos") : (album.title ?? album.id)}
                   </Text>
-                  <Text style={{ color: theme.muted, fontSize: 11 }}>
-                    {album.linked} · {album.on_server}/{album.hashed} on server
+                  {/* Each number against its own, fixed denominator. The old
+                      "on_server/hashed" fraction had a denominator that grew
+                      with hashing, so "0/161" of 2867 photos looked done. */}
+                  <Text testID={`backup-album-counts-${album.id}`} style={{ color: theme.muted, fontSize: 11 }}>
+                    {t("backup.albumCounts", {
+                      total: album.linked,
+                      hashed: album.hashed,
+                      onServer: album.on_server,
+                    })}
                   </Text>
                 </View>
                 <Text
@@ -221,6 +275,46 @@ export function BackupScreen() {
   );
 }
 
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/** The headline: which stage is running, and how far along it is. */
+function stageText(t: Translate, stage: BackupStage): string {
+  switch (stage.kind) {
+    case "hashing":
+      return t("backup.statusHashing", { done: stage.done, total: stage.total });
+    case "uploading":
+      return t("backup.statusUploading", { done: stage.done, total: stage.total });
+    case "waiting":
+      return t("backup.statusWaiting", { count: stage.pending });
+    case "up_to_date":
+      return t("backup.statusUpToDate", { count: stage.total });
+    case "idle":
+    default:
+      return t("backup.statusIdle");
+  }
+}
+
+/** Why nothing is moving. Never null-rendered while a blocker exists. */
+function blockerText(t: Translate, blocker: BackupBlocker): string {
+  switch (blocker.kind) {
+    case "no_access":
+      return t("backup.blockerNoAccess");
+    case "disabled":
+      return t("backup.blockerDisabled");
+    case "no_selection":
+      return t("backup.blockerNoSelection");
+    case "offline":
+      return t("backup.blockerOffline");
+    case "wifi_required":
+      return t("backup.blockerWifi");
+    case "charging_required":
+      return t("backup.blockerCharging");
+    case "failed":
+    default:
+      return t("backup.blockerFailed", { count: blocker.count });
+  }
+}
+
 async function backupNow(
   db: Parameters<typeof queueSummary>[0],
   userId: number | null,
@@ -230,6 +324,11 @@ async function backupNow(
   try {
     const { runBackupNow } = await import("@/sync/run");
     await runBackupNow(db, userId);
+  } catch (err) {
+    // A rejected run must surface, not vanish into an unhandled rejection —
+    // "nothing happened and nothing said why" is the bug this screen exists to
+    // avoid.
+    useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
   } finally {
     setBusy(false);
   }
