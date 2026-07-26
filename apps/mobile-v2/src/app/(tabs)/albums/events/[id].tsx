@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useLocalSearchParams } from "expo-router";
 import { AlbumsListScreen } from "@/features/albums/AlbumsListScreen";
 import { AlbumDetailScreen } from "@/features/albums/AlbumDetailScreen";
@@ -5,11 +6,12 @@ import { autoAlbums, autoAlbumPhotos } from "@/db/queries/albums";
 
 /** Events (auto albums): `all` shows the list, a numeric id shows one event. */
 export default function EventsAlbumRoute() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   if (id === "all" || id === undefined) {
     return (
       <AlbumsListScreen
-        title="Events"
+        title={t("explore.autoAlbums")}
         query={(db) =>
           autoAlbums(db).map((a) => ({ id: a.id, title: a.title, coverHash: a.cover_hash, photoCount: a.photo_count }))
         }
@@ -21,7 +23,7 @@ export default function EventsAlbumRoute() {
   const albumId = Number(id);
   return (
     <AlbumDetailScreen
-      title="Event"
+      title={t("albumDetail.fallbackEvent")}
       query={(db) => autoAlbumPhotos(db, albumId)}
       album={{ id: albumId, kind: "auto" }}
     />

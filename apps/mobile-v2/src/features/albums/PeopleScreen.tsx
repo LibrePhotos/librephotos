@@ -31,7 +31,7 @@ export function PeopleScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
       <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-        <Text style={{ fontSize: 24, fontWeight: "700", color: theme.text }}>People</Text>
+        <Text style={{ fontSize: 24, fontWeight: "700", color: theme.text }}>{t("explore.people")}</Text>
       </View>
       <FlashList
         testID="people-list"
@@ -41,7 +41,7 @@ export function PeopleScreen() {
         contentContainerStyle={{ padding: 12 }}
         ListEmptyComponent={
           <View testID="people-empty" style={{ padding: 32, alignItems: "center" }}>
-            <Text style={{ color: theme.muted }}>No people yet.</Text>
+            <Text style={{ color: theme.muted }}>{t("explore.noPeople")}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -60,7 +60,7 @@ export function PeopleScreen() {
               cachePolicy="disk"
             />
             <Text numberOfLines={1} style={{ color: theme.text, marginTop: 6, fontSize: 12 }}>
-              {item.name ?? "Unknown"}
+              {item.name ?? t("faces.unknown")}
             </Text>
           </Pressable>
         )}
