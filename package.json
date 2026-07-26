@@ -6,11 +6,18 @@
     "packages/*",
     "apps/mobile-v2"
   ],
-  "//expo-router": "Declared here ONLY to force npm to hoist expo-router into the root node_modules. The Expo CLI hoists to the root, but npm otherwise nests apps/mobile-v2's expo-* packages, so the root CLI's typed-route generator cannot resolve 'expo-router/_ctx-shared' and `expo start` crashes outright (experiments.typedRoutes).",
-  "//react": "react/react-dom are pinned here to the SAME versions apps/mobile-v2 uses. Without the pin, npm resolves expo-router's optional react-dom peer to the newest 19.x, which peer-requires react ^19.2.8 and conflicts with the app's 19.2.3 -- npm then refuses to hoist. 19.2.3 is not arbitrary: jest-expo@57 and @testing-library/react-native@13.3.3 both pin react-test-renderer@19.2.3, and jest-expo hard-fails if react-test-renderer does not match react exactly. Keep all of these in lockstep with apps/mobile-v2/package.json.",
+  "//expo-router": "Declared here ONLY to force npm to hoist expo-router into the root node_modules. The Expo CLI hoists to the root, but npm otherwise nests apps/mobile-v2's expo-* packages, so the root CLI's typed-route generator cannot resolve 'expo-router/_ctx-shared' and `expo start` crashes outright (experiments.typedRoutes). Keep this in lockstep with the expo-router version in apps/mobile-v2 (SDK 54 -> ~6.0.24).",
+  "//expo": "expo is pinned here for the same reason, and to the SAME range as apps/mobile-v2. expo-router peer-depends on `expo: \"*\"`; with no pin npm satisfies that peer with the LATEST expo (SDK 57) at the root while the app's SDK 54 copy gets nested, so the repo root ends up with a newer Expo CLI than the app it is supposed to run. Bump this together with the SDK.",
+  "//react": "react/react-dom are pinned here to the SAME versions apps/mobile-v2 uses. Without the pin, npm resolves expo-router's optional react-dom peer to the newest 19.x, which peer-requires a newer react than the app's and conflicts -- npm then refuses to hoist. 19.1.0 is not arbitrary: it is the React version Expo SDK 54 / react-native 0.81.5 ships with, and jest-expo@54 pins react-test-renderer@19.1.0 while jest-expo hard-fails if react-test-renderer does not match react exactly. Keep all of these in lockstep with apps/mobile-v2/package.json.",
   "dependencies": {
-    "expo-router": "~57.0.8",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "expo": "~54.0.0",
+    "expo-router": "~6.0.24",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "//overrides": "expo-router is installed at the root (see above), and npm auto-installs its open-ended peers (react-native-screens: *, react-native-safe-area-context: >= 5.4.0) at the LATEST version there. That gave the root a newer copy than apps/mobile-v2 pins, so expo-router resolved a second copy of both native modules into the bundle. These overrides force one copy each, at the versions Expo SDK 54 bundles.",
+  "overrides": {
+    "react-native-screens": "~4.16.0",
+    "react-native-safe-area-context": "~5.6.0"
   }
 }

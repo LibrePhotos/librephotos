@@ -13,7 +13,7 @@
  * multi-chunk resume is a Phase 4 enhancement (see handoff).
  */
 import * as FileSystem from "expo-file-system/legacy";
-import * as MediaLibrary from "expo-media-library/legacy";
+import * as MediaLibrary from "expo-media-library";
 import type {
   UploadCompleteInput,
   UploadFileInput,

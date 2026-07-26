@@ -1,5 +1,5 @@
 /**
- * Real {@link AssetHasher} backed by expo-file-system (SDK 57 `legacy` entry).
+ * Real {@link AssetHasher} backed by expo-file-system (SDK 54 `legacy` entry).
  * Computes the raw md5 hex of an asset's bytes via `getInfoAsync(uri,
  * { md5: true })`. `ph://` assets (iOS) aren't directly readable, so they're
  * resolved to a `localUri` via `MediaLibrary.getAssetInfoAsync` first.
@@ -7,7 +7,7 @@
  * App-only: imported solely by sync/run.
  */
 import * as FileSystem from "expo-file-system/legacy";
-import * as MediaLibrary from "expo-media-library/legacy";
+import * as MediaLibrary from "expo-media-library";
 import type { AssetHasher, LocalMediaType } from "./types";
 
 async function readableUri(id: string, uri: string): Promise<string | null> {
