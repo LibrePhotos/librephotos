@@ -19,6 +19,7 @@ import { serverAddress } from "@/lib/apiClient";
 import { useToastStore } from "@/stores/toasts";
 import { faceImageUrl } from "./faceImage";
 import { AssignNameSheet } from "./AssignNameSheet";
+import { goBackOr } from "@/lib/navigation";
 import { useTheme } from "@/theme";
 
 type Tab = "inferred" | "unknown";
@@ -99,7 +100,7 @@ export function FaceTaggingScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12, gap: 12 }}>
-        <Pressable testID="faces-back" onPress={() => router.back()} hitSlop={8}>
+        <Pressable testID="faces-back" onPress={() => goBackOr(router, "/profile")} hitSlop={8}>
           <Text style={{ color: theme.brand, fontSize: 16 }}>‹</Text>
         </Pressable>
         <Text style={{ fontSize: 22, fontWeight: "700", color: theme.text, flex: 1 }}>{t("faces.title")}</Text>

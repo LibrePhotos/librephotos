@@ -17,6 +17,7 @@ import { useSettingsStore, type ThemePreference } from "@/stores/settings";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useToastStore } from "@/stores/toasts";
 import { formatBytes } from "@/lib/format";
+import { goBackOr } from "@/lib/navigation";
 import { useTheme, type ThemeColors } from "@/theme";
 
 /** GB choices for the thumbnail-cache cap. */
@@ -141,7 +142,7 @@ export function SettingsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
-        <Pressable testID="settings-back" onPress={() => router.back()} hitSlop={8}>
+        <Pressable testID="settings-back" onPress={() => goBackOr(router, "/profile")} hitSlop={8}>
           <Text style={{ color: theme.brand, fontSize: 16 }}>‹</Text>
         </Pressable>
         <Text style={{ fontSize: 22, fontWeight: "700", color: theme.text }}>{t("settings.title")}</Text>

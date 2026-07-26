@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useDb } from "@/db/provider";
+import { goBackOr } from "@/lib/navigation";
 import { enqueueSharedUploads, type SharedUploadItem } from "@/sync/upload/shared";
 import { runSync } from "@/sync/run";
 import { useAuthStore } from "@/stores/auth";
@@ -92,7 +93,7 @@ export function ShareIntentScreen() {
         >
           <Text style={{ color: "#fff", fontWeight: "700" }}>{t("shareIntent.upload")}</Text>
         </Pressable>
-        <Pressable testID="share-cancel" onPress={() => router.back()} style={{ paddingVertical: 8, alignItems: "center" }}>
+        <Pressable testID="share-cancel" onPress={() => goBackOr(router, "/photos")} style={{ paddingVertical: 8, alignItems: "center" }}>
           <Text style={{ color: theme.muted }}>{t("common.cancel")}</Text>
         </Pressable>
       </View>

@@ -9,6 +9,7 @@ import { onThisDay } from "@/db/queries/memories";
 import { tileRowToItem } from "@/features/photos/FilterScreen";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
+import { goBackOr } from "@/lib/navigation";
 import { useTheme } from "@/theme";
 
 /** Full "On this day" grid (the memories notification / See-all target). */
@@ -30,7 +31,7 @@ export function MemoriesScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={["top"]}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
-        <Pressable testID="memories-back" onPress={() => router.back()} hitSlop={8}>
+        <Pressable testID="memories-back" onPress={() => goBackOr(router, "/photos")} hitSlop={8}>
           <Text style={{ color: theme.brand, fontSize: 16 }}>‹</Text>
         </Pressable>
         <Text style={{ fontSize: 22, fontWeight: "700", color: theme.text }}>{t("memories.title")}</Text>

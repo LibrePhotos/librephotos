@@ -95,10 +95,21 @@ jest.mock("expo-image", () => {
 });
 
 // expo-router → capture navigation without a router provider.
-const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
+// `canGoBack` defaults to true (a screen reached by navigation); flip
+// `globalThis.__mockCanGoBack = false` to exercise the deep-link / cold-start
+// case where `router.back()` would throw.
+const mockRouter = {
+  push: jest.fn(),
+  replace: jest.fn(),
+  back: jest.fn(),
+  canGoBack: jest.fn(() => globalThis.__mockCanGoBack ?? true),
+  dismissTo: jest.fn(),
+  navigate: jest.fn(),
+};
 jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   useLocalSearchParams: () => globalThis.__mockSearchParams ?? {},
+  Redirect: () => null,
   Link: ({ children }) => children,
   Stack: Object.assign(() => null, { Screen: () => null, Protected: () => null }),
   Tabs: Object.assign(() => null, { Screen: () => null }),
