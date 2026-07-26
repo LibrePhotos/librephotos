@@ -142,6 +142,8 @@ export const en = {
     offline: "Album photos load when you're online",
     empty: "No photos in this album",
     error: "Could not load this album",
+    fallbackAlbum: "Album",
+    fallbackEvent: "Event",
   },
   search: {
     title: "Search",
@@ -157,6 +159,14 @@ export const en = {
     sectionPlaces: "Places",
     sectionAlbums: "Albums",
     sectionPhotos: "Photos",
+    sectionThings: "Things",
+    sectionTags: "Tags",
+    clearField: "Clear search",
+    emptyTitle: "Search your library",
+    emptyHint: "Find photos by place, person, album, tag or date.",
+    noRecent: "Your recent searches show up here.",
+    error: "Search couldn't reach the server.",
+    resultsFor: "Results for “{{query}}”",
   },
   memories: {
     title: "On this day",
@@ -313,6 +323,40 @@ export const en = {
     personName: "Name",
     chooseAlbum: "Add to album",
     noAlbums: "No albums yet — create one first.",
+  },
+  /**
+   * Albums hub. Wording is deliberately taken from the web frontend's
+   * `explore.*` / `sidemenu.*` / `personalbum.*` keys so mobile and web say the
+   * same thing for the same concept.
+   */
+  explore: {
+    title: "Explore Albums",
+    subtitle: "Browse all your album collections",
+    viewAll: "View all",
+    albumCount: "{{count}} album",
+    albumCount_other: "{{count}} albums",
+    peopleCount: "{{count}} person",
+    peopleCount_other: "{{count}} people",
+    photoCount: "{{count}} photo",
+    photoCount_other: "{{count}} photos",
+    noAlbums: "No albums yet",
+    noPeople: "No people yet",
+    noThings: "No things yet",
+    noPlaces: "No places yet",
+    noTags: "No tags yet",
+    noEvents: "No auto albums yet",
+    noCover: "No cover",
+    myAlbums: "My Albums",
+    people: "People",
+    things: "Things",
+    places: "Places",
+    tags: "Tags",
+    autoAlbums: "Auto Created Albums",
+    folders: "Folders",
+    manageFaces: "Manage Faces",
+    foldersOnServer: "On the server",
+    foldersOnline: "Browse your library the way it is stored on disk.",
+    foldersOffline: "Folders live on the server — reconnect to browse them.",
   },
 } as const;
 

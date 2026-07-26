@@ -90,7 +90,7 @@ export function AlbumDetailScreen({
           isSelected={selection.isSelected}
           ListEmptyComponent={
             <View testID="album-empty" style={{ padding: 32, alignItems: "center" }}>
-              <Text style={{ color: theme.muted }}>No photos in this album.</Text>
+              <Text style={{ color: theme.muted }}>{t("albumDetail.empty")}</Text>
             </View>
           }
         />

@@ -61,7 +61,7 @@ export function AlbumsListScreen({
         contentContainerStyle={{ padding: 12 }}
         ListEmptyComponent={
           <View testID="albums-empty" style={{ padding: 32, alignItems: "center" }}>
-            <Text style={{ color: theme.muted }}>No albums yet.</Text>
+            <Text style={{ color: theme.muted }}>{t("explore.noAlbums")}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -80,7 +80,9 @@ export function AlbumsListScreen({
             <Text numberOfLines={1} style={{ color: theme.text, fontWeight: "600", marginTop: 6 }}>
               {item.title}
             </Text>
-            <Text style={{ color: theme.muted, fontSize: 12 }}>{item.photoCount}</Text>
+            <Text style={{ color: theme.muted, fontSize: 12 }}>
+              {t("explore.photoCount", { count: item.photoCount })}
+            </Text>
           </Pressable>
         )}
       />
