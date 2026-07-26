@@ -1,6 +1,6 @@
 # LibrePhotos Mobile v2
 
-The official LibrePhotos mobile app, rebuilt on **Expo (SDK 57, New
+The official LibrePhotos mobile app, rebuilt on **Expo (SDK 54, New
 Architecture)** with an **offline-first, device-mirrored** data model. It
 replaces the legacy `apps/mobile` (bare React Native 0.72 + NativeBase), which
 is frozen and removed in a follow-up once v2 ships on all channels.
@@ -93,14 +93,25 @@ cd <repo-root>
 fnm exec --using=22 -- npm.cmd ci        # or: npm install
 ```
 
-### Run a dev build
+### Run it
 
-The app uses native modules, so **Expo Go will not work** — you need a
-[dev build](https://docs.expo.dev/develop/development-builds/introduction/)
-(`expo-dev-client`):
+Every native module the app uses is one **Expo Go** bundles, and the project
+is held at SDK 54 precisely so the App Store build of Expo Go can open it
+(see "Dependency constraints"). `expo-dev-client` is installed, so
+`expo start` defaults to dev-build mode — pass `--go` (or press `s` in the
+interactive prompt) for Expo Go:
 
 ```bash
 cd apps/mobile-v2
+fnm exec --using=22 -- npx.cmd expo start --go   # scan the QR with Expo Go
+```
+
+A [dev build](https://docs.expo.dev/develop/development-builds/introduction/)
+is still the better target for native work (custom native modules, the iOS
+share extension, background tasks under load) — on Android it needs nothing
+but a device or emulator; on iOS it needs a paid Apple Developer account:
+
+```bash
 fnm exec --using=22 -- npx.cmd expo run:android   # builds + installs a dev build
 fnm exec --using=22 -- npx.cmd expo start --dev-client
 ```
@@ -155,6 +166,23 @@ migrations" check is just running this and confirming a clean `git status`.
 
 These are load-bearing — changing them breaks the build or tests:
 
+- **Expo SDK 54 is a ceiling, not a starting point.** The App Store build of
+  **Expo Go for iOS is capped at client 54.0.2**, and an Expo Go client can
+  only open projects on its own SDK. Moving to SDK 55+ therefore means the app
+  can no longer be opened on an iPhone with Expo Go at all — the only
+  alternative is an iOS [dev build](https://docs.expo.dev/develop/development-builds/introduction/),
+  which requires the **$99/yr Apple Developer Program** (declined). So: bump
+  the SDK only together with a decision about how iOS gets tested. Android has
+  no such constraint (Expo Go is sideloadable and dev builds are free), but the
+  SDK must stay a single number for both platforms. Take versions from Expo's
+  own bundled-module list (`npx expo install --fix`), never by hand, and keep
+  `npx expo install --check` clean.
+- **`expo-media-library` has no `/legacy` subpath on SDK 54** — its classic
+  `getAssetsAsync`/`getAlbumsAsync` API *is* the main entry, and the rewrite
+  sits behind `expo-media-library/next`. `expo-file-system` is the opposite:
+  the new API is the main entry and the app imports
+  `expo-file-system/legacy`. Both flip in later SDKs, so these two imports are
+  the first thing to re-check on any SDK bump.
 - **zod v3**, not v4. `packages/api-client` pins `zod@^3` and its peer range is
   `^3.23.0`. The schemas rely on v3 semantics; do not bump to v4.
 - **Single `@types/react`**. React types must resolve to **one** copy across the
@@ -165,19 +193,36 @@ These are load-bearing — changing them breaks the build or tests:
   packages by absolute resolved path (via `require.resolve`) rather than by
   name so both jest projects load the same physical copy. Keep new mappings in
   that style.
-- **React is pinned to `19.2.3`** in `apps/mobile-v2` *and* at the workspace
-  root. `jest-expo@57` and `@testing-library/react-native@13.3.3` both depend on
-  `react-test-renderer@19.2.3`, and jest-expo refuses to run unless
+- **React is pinned to `19.1.0`** in `apps/mobile-v2` *and* at the workspace
+  root — the version Expo SDK 54 / react-native 0.81.5 ship with. `jest-expo@54`
+  depends on `react-test-renderer@19.1.0`, and jest-expo refuses to run unless
   `react-test-renderer` matches `react` exactly — bumping React alone fails
   every `rn` suite with *"Incorrect version of react-test-renderer detected"*.
   Move `react`, `react-dom`, and `react-test-renderer` together, in both
-  manifests.
-- **`expo-router` is declared at the workspace root** purely so npm hoists it.
-  The Expo CLI hoists to the root, but npm nests this app's `expo-*` packages,
-  and the root CLI's typed-route generator then cannot resolve
-  `expo-router/_ctx-shared` — `expo start` crashes before Metro serves
-  anything. Do not delete the root `expo-router`/`react`/`react-dom` entries;
-  they are load-bearing and documented inline in the root `package.json`.
+  manifests, and keep `packages/api-client`'s `react`/`@types/react` dev ranges
+  wide enough to resolve to the same copies.
+- **`expo` and `expo-router` are declared at the workspace root** purely so npm
+  hoists them. The Expo CLI hoists to the root, but npm nests this app's
+  `expo-*` packages, and the root CLI's typed-route generator then cannot
+  resolve `expo-router/_ctx-shared` — `expo start` crashes before Metro serves
+  anything. `expo` needs the same treatment because `expo-router` peer-depends
+  on `expo: "*"`: without a pin npm satisfies that peer with the *latest* expo
+  (a newer SDK) at the root and nests the app's copy, leaving the root CLI a
+  different SDK from the app. Do not delete the root
+  `expo`/`expo-router`/`react`/`react-dom` entries; they are load-bearing and
+  documented inline in the root `package.json`.
+- **The root `overrides` block keeps native modules single-copy.** npm
+  auto-installs the root `expo-router`'s open-ended peers
+  (`react-native-screens: *`, `react-native-safe-area-context: >= 5.4.0`) at
+  their newest versions, which put a second copy of both next to the versions
+  SDK 54 bundles — expo-router would then resolve different screens/safe-area
+  modules than the app. The overrides pin one copy of each.
+- **`babel-preset-expo` is a direct devDependency** even though `expo` already
+  depends on it. It peer-depends back on `expo`, so npm resolves that cycle by
+  nesting it inside `node_modules/expo`, where Babel — resolving presets
+  relative to `apps/mobile-v2/babel.config.js` — cannot find it, and every jest
+  suite dies with *"Cannot find module 'babel-preset-expo'"*. Keep its range in
+  step with the SDK.
 - **`.sql` migrations need two pieces of config.** `metro.config.js` adds `sql`
   to `resolver.sourceExts` (so Metro resolves the imports in drizzle's
   generated `migrations.js`) **and** `babel.config.js` applies
