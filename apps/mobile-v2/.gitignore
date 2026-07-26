@@ -2,6 +2,11 @@
 
 # dependencies
 node_modules/
+# This app is an npm workspace: the ROOT package-lock.json is the only
+# authoritative one (CI runs `npm ci` at the repo root). A lockfile written
+# here by a stray `npm install` inside the app pins a whole second dependency
+# tree -- it went stale on an old Expo SDK once already.
+package-lock.json
 
 # Expo
 .expo/
