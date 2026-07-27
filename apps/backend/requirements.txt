@@ -39,7 +39,7 @@ sentence_transformers==5.6.1
 # py3.10) or the GPU build fails. Renovate is disabled for it (see renovate.json).
 timezonefinder==8.2.4; python_version >= "3.11"
 timezonefinder==8.2.0; python_version < "3.11"
-tqdm==4.69.1
+tqdm==4.70.0
 gevent==25.9.1
 python-magic==0.4.27
 Wand==0.7.2
