@@ -1,80 +1,64 @@
 /**
- * Sync orchestrator (doc 03 §1). `syncAll()` runs a single-flight, cancellable
- * sequence:
+ * Sync orchestrator (doc 03 §1).
  *
- *   1. Replay outbox        (push local mutations first — Phase 4 stub)
- *   2. Remote delta pull     (per entity, dependency order — this phase)
- *   3. Device media sync     (camera roll diff — Phase 3 stub)
- *   4. Hash pass             (new/changed local assets — Phase 3 stub)
- *   5. Upload queue top-up   (backup engine — Phase 5 stub)
- *   6. Thumb prefetch        (fill thumb_cache for new remote photos — wired hook)
- *   7. Integrity snapshot    (counts vs local; drift ⇒ schedule reseed)
+ * `syncAll()` used to *be* the pipeline: a strict `await` chain of outbox replay
+ * → remote delta → device scan → hashing → uploads → thumbs. On a real
+ * 2867-photo library that shape failed three ways at once — hashing stalled
+ * behind a full camera-roll enumeration, uploads never started because they sat
+ * last behind the slowest steps, and the only record of progress was the call
+ * stack, so a JS reload restarted everything from the top. A user watched 161
+ * photos hash, reloaded, and the counter never moved again.
  *
- * The core is pure: it takes a `RemoteSyncSource` and a bag of injected step
- * hooks (all optional, default no-op) so the whole sequence — single-flight
- * mutex, cancellation, favorite_min_rating reseed, integrity drift — is
- * unit-tested under Node with a fake source. The app wiring (real api-client
- * source, thumb prefetch, later-phase steps) lives in ./run.
+ * So `syncAll()` no longer *runs* anything. It:
+ *
+ *   1. enqueues the jobs a full sync consists of (see `jobs/handlers.fullSyncJobs`),
+ *   2. ensures the worker is running,
+ *   3. resolves when the queue drains.
+ *
+ * Ordering, resumption and fairness are now properties of the `job_queue` table
+ * and the worker's priority/round-robin rules, not of this file's control flow.
+ * Progress is durable: kill the app mid-run and the surviving rows say exactly
+ * what is left to do.
+ *
+ * The public surface is unchanged for callers — `syncAll`, `repairSync`,
+ * `cancelSync`, `isSyncing`, `needsInitialSeed` all keep their signatures. The
+ * *steps* moved from injected `SyncHooks` to injected {@link JobSeams}, which is
+ * the same idea one layer down: the core stays pure and Node-testable against a
+ * fake source, and the app wiring lives in ./run.
  */
-import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
 import { clearMirror } from "@/db/reset";
-import {
-  getSyncState,
-  SYNC_ENTITIES,
-  type SyncEntity,
-} from "@/db/queries/sync-state";
+import { getSyncState, SYNC_ENTITIES } from "@/db/queries/sync-state";
 import { appendSyncLog, type SyncLogEntry } from "@/db/queries/sync-log";
-import {
-  getMetaNumber,
-  setMetaNumber,
-  setMeta,
-  META_FAVORITE_MIN_RATING,
-  META_LAST_INTEGRITY,
-} from "@/db/queries/app-meta";
 import type { RemoteSyncSource } from "./remote/source";
-import { pullAll, SyncAbortedError, type PullOptions, type SyncProgress } from "./remote/delta";
-import { checkIntegrity, type IntegrityReport } from "./integrity";
+import { SyncAbortedError, type PullOptions, type SyncProgress } from "./remote/delta";
+import type { IntegrityReport } from "./integrity";
+import { enqueueJobs, clearJobs } from "./jobs/queue";
+import { runWorker, type WorkerStats } from "./jobs/worker";
+import {
+  backupJobs,
+  createJobHandlers,
+  fullSyncJobs,
+  type JobSeams,
+  type OutboxReplayResult,
+} from "./jobs/handlers";
 
 export type SyncReason = "login" | "foreground" | "refresh" | "connectivity" | "outbox" | "manual";
 
-export type OutboxReplayResult = { replayed: number; dropped: number; remaining: number };
+export type { OutboxReplayResult };
 
-/** Context handed to each injected step hook. */
-export type SyncStepContext = {
-  db: AppDatabase;
-  source: RemoteSyncSource;
-  signal?: AbortSignal;
-  now: number;
-  log: (entry: SyncLogEntry) => void;
-  /**
-   * True while a concurrently running step may still produce rows for this one.
-   * The hash pass uses it to keep waiting for assets the camera-roll scan has
-   * not enumerated yet, instead of exiting the moment the queue looks empty.
-   */
-  moreExpected?: () => boolean;
-};
-
-export type SyncHooks = {
-  /** Current server-side favorite_min_rating; a change forces a full reseed. */
-  getFavoriteMinRating?: () => Promise<number | null>;
-  /** Step 1 — replay offline mutations before pulling (Phase 4). */
-  replayOutbox?: (ctx: SyncStepContext) => Promise<OutboxReplayResult>;
-  /** Step 3 — camera-roll diff into local_asset tables (Phase 3). */
-  syncDeviceMedia?: (ctx: SyncStepContext) => Promise<void>;
-  /** Step 4 — hash new/changed local assets (Phase 3). */
-  hashAssets?: (ctx: SyncStepContext) => Promise<void>;
-  /** Step 5 — top up the upload queue if backup is enabled (Phase 5). */
-  topUpUploadQueue?: (ctx: SyncStepContext) => Promise<void>;
-  /** Step 6 — prefetch grid thumbnails for new remote photos (Phase 1, wired). */
-  prefetchThumbs?: (ctx: SyncStepContext) => Promise<void>;
-};
-
+/** Everything the app injects into a run. `source` is passed separately. */
 export type SyncAllOptions = PullOptions &
-  SyncHooks & {
+  Omit<JobSeams, "source" | "pull" | "onIntegrity" | "onOutbox" | "onReseed"> & {
     reason?: SyncReason;
     /** Skip the favorite_min_rating check + integrity (used by repairSync). */
     skipIntegrity?: boolean;
+    /** Called after every job settles, so the UI can refresh queue counters. */
+    onWorkerProgress?: (stats: WorkerStats) => void;
+    /** Yield hook between jobs (tests use a synchronous one). */
+    yield?: () => Promise<void>;
+    /** Safety valve on jobs processed in one drain. */
+    maxJobs?: number;
   };
 
 export type SyncResult = {
@@ -85,6 +69,8 @@ export type SyncResult = {
   integrity: IntegrityReport | null;
   outbox: OutboxReplayResult | null;
   durationMs: number;
+  /** Per-run queue statistics — jobs processed, succeeded, failed. */
+  jobs: WorkerStats;
 };
 
 /** Whether a first full seed is still needed (photo mirror never completed). */
@@ -106,20 +92,48 @@ export function isSyncing(): boolean {
   return inFlight != null;
 }
 
-/** Cancel the in-flight sync (if any). Safe to call when idle. */
+/**
+ * Cancel the in-flight run. Safe to call when idle, and safe to call on app
+ * background: the worker stops between jobs and hands its claimed job back to
+ * `pending` with the attempt refunded, so nothing is lost and nothing is
+ * punished for being interrupted.
+ */
 export function cancelSync(): void {
   controller?.abort();
 }
 
 /**
- * Run the full sync sequence. Single-flight: concurrent callers share the one
- * in-flight run. Cancellable via {@link cancelSync}. The caller's `signal` is
- * linked to the shared controller.
+ * Enqueue a full sync and drain the queue. Single-flight: concurrent callers
+ * share the one in-flight drain (the jobs themselves are deduped by key, so an
+ * overlapping trigger adds nothing anyway). The caller's `signal` is linked to
+ * the shared controller.
  */
 export function syncAll(
   db: AppDatabase,
   source: RemoteSyncSource,
   opts: SyncAllOptions = {}
+): Promise<SyncResult> {
+  return startRun(db, source, opts, () => fullSyncJobs({ skipIntegrity: opts.skipIntegrity }));
+}
+
+/**
+ * Backup-only run for the Backup tab: device scan → hash → upload, skipping the
+ * remote delta pull (that is what "Sync now" is for). Uploads that land still
+ * chain a photos delta, so the merged-timeline badge flips.
+ */
+export function syncBackupOnly(
+  db: AppDatabase,
+  source: RemoteSyncSource,
+  opts: SyncAllOptions = {}
+): Promise<SyncResult> {
+  return startRun(db, source, { ...opts, skipIntegrity: true }, backupJobs);
+}
+
+function startRun(
+  db: AppDatabase,
+  source: RemoteSyncSource,
+  opts: SyncAllOptions,
+  jobs: () => ReturnType<typeof fullSyncJobs>
 ): Promise<SyncResult> {
   if (inFlight) return inFlight;
   controller = new AbortController();
@@ -129,7 +143,7 @@ export function syncAll(
     else opts.signal.addEventListener("abort", () => controller?.abort(), { once: true });
   }
 
-  inFlight = runSequence(db, source, { ...opts, signal }).finally(() => {
+  inFlight = drain(db, source, { ...opts, signal }, jobs).finally(() => {
     inFlight = null;
     controller = null;
     lastRunAt = Date.now();
@@ -137,142 +151,92 @@ export function syncAll(
   return inFlight;
 }
 
-async function runSequence(
+async function drain(
   db: AppDatabase,
   source: RemoteSyncSource,
-  opts: SyncAllOptions
+  opts: SyncAllOptions,
+  jobs: () => ReturnType<typeof fullSyncJobs>
 ): Promise<SyncResult> {
   const now = opts.now ?? Date.now();
   const reason = opts.reason ?? "foreground";
   const wallStart = Date.now();
   const log = (entry: SyncLogEntry) => appendSyncLog(db, entry, Date.now());
-  const ctx: SyncStepContext = { db, source, signal: opts.signal, now, log };
-  const pullOpts: PullOptions = {
-    signal: opts.signal,
-    now,
-    pageSize: opts.pageSize,
-    onProgress: opts.onProgress,
-    log,
-  };
 
   log({ op: "run", level: "info", message: `start:${reason}` });
 
-  // 1. Replay outbox first so pulls don't clobber un-pushed local mutations.
-  let outbox: OutboxReplayResult | null = null;
-  if (opts.replayOutbox) outbox = await opts.replayOutbox(ctx);
+  // Results the handlers report back out of band — they belong to the *run*,
+  // not to any single job. Held in one object rather than three `let`s so
+  // TypeScript does not narrow them to their initial values across the await.
+  const out: {
+    integrity: IntegrityReport | null;
+    outbox: OutboxReplayResult | null;
+    reseeded: boolean;
+  } = { integrity: null, outbox: null, reseeded: false };
 
-  // Reseed trigger: favorite_min_rating changed (is_favorite must be
-  // re-materialized from a clean pull, doc 02 §1 / 03 §3).
-  let reseeded = false;
-  if (opts.getFavoriteMinRating) {
-    const current = await opts.getFavoriteMinRating();
-    if (current != null) {
-      const prev = getMetaNumber(db, META_FAVORITE_MIN_RATING);
-      if (prev != null && prev !== current) {
-        clearMirror(db);
-        reseeded = true;
-        log({ op: "reseed", level: "warn", message: `favorite_min_rating ${prev}→${current}` });
-      }
-      setMetaNumber(db, META_FAVORITE_MIN_RATING, current, now);
-    }
-  }
+  const seams: JobSeams = {
+    source,
+    getFavoriteMinRating: opts.skipIntegrity ? undefined : opts.getFavoriteMinRating,
+    replayOutbox: opts.replayOutbox,
+    scanChunk: opts.scanChunk,
+    hashBatch: opts.hashBatch,
+    uploadAsset: opts.uploadAsset,
+    prefetchThumbs: opts.prefetchThumbs,
+    backupEnabled: opts.backupEnabled,
+    budgets: opts.budgets,
+    skipIntegrity: opts.skipIntegrity,
+    pull: { pageSize: opts.pageSize, onProgress: opts.onProgress },
+    onIntegrity: (r) => {
+      out.integrity = r;
+    },
+    onOutbox: (r) => {
+      out.outbox = r;
+    },
+    onReseed: () => {
+      out.reseeded = true;
+    },
+  };
 
-  // 2. Remote delta pull, per entity in dependency order.
-  const pull = await pullAll(db, source, pullOpts);
+  enqueueJobs(db, jobs(), now);
 
-  // 3+4. Camera-roll scan and hashing run CONCURRENTLY.
-  //
-  // They used to be two bare awaits in a strictly sequential chain, which meant
-  // hashing could not start until the entire camera-roll enumeration had
-  // finished — and the enumeration restarts on every app reload. A user watched
-  // 161 of 2867 photos get hashed, reloaded, and the counter never moved again,
-  // because the scan in front of it never finished. A slow step must never be
-  // able to starve the step behind it forever: hashing now makes progress on
-  // the assets already in the mirror while the scan is still walking the
-  // library, and `moreExpected` keeps it alive for assets that land mid-scan.
-  //
-  // Ordering is still safe — the hasher only ever reads rows the scan has
-  // already committed, and an asset whose bytes changed has its hash cleared by
-  // the scan's upsert, so it is simply re-hashed on the next pass.
-  let scanning = opts.syncDeviceMedia != null;
-  const scanStep = (async () => {
-    try {
-      await opts.syncDeviceMedia?.(ctx);
-    } finally {
-      scanning = false;
-    }
-  })();
-  const hashStep = opts.hashAssets?.({ ...ctx, moreExpected: () => scanning }) ?? Promise.resolve();
-  // allSettled, not all: a failure in one must not leave the other running
-  // unobserved (an unhandled rejection). The first error still propagates.
-  const settled = await Promise.allSettled([scanStep, hashStep]);
-  const rejected = settled.find((s) => s.status === "rejected");
-  if (rejected?.status === "rejected") throw rejected.reason;
-  if (opts.topUpUploadQueue) await opts.topUpUploadQueue(ctx);
-  if (opts.prefetchThumbs) await opts.prefetchThumbs(ctx);
+  const stats = await runWorker(db, {
+    handlers: createJobHandlers(seams),
+    signal: opts.signal,
+    log,
+    yield: opts.yield,
+    maxJobs: opts.maxJobs,
+    onProgress: opts.onWorkerProgress,
+  });
 
-  // 7. Integrity snapshot: counts endpoint vs local. Drift ⇒ schedule reseed.
-  let integrity: IntegrityReport | null = null;
-  if (!opts.skipIntegrity) {
-    try {
-      const server = await source.counts();
-      integrity = checkIntegrity(db, server);
-      setMeta(db, META_LAST_INTEGRITY, JSON.stringify({ at: now, ok: integrity.ok }), now);
-      if (!integrity.ok) {
-        for (const drift of integrity.drifts) {
-          scheduleReseed(db, drift.entity);
-          log({
-            op: "integrity",
-            entity: drift.entity,
-            level: "error",
-            applied: drift.local,
-            message: `drift local=${drift.local} server=${drift.server} — reseed scheduled`,
-          });
-        }
-      } else {
-        log({ op: "integrity", level: "info", message: "ok" });
-      }
-    } catch {
-      // A failed counts fetch is non-fatal — the next run retries.
-      log({ op: "integrity", level: "warn", message: "counts fetch failed" });
-    }
-  }
+  // A cancelled drain is not a completed sync. Throwing keeps the contract the
+  // old sequence had (callers treat an abort as an error), and the queue rows
+  // survive so the next run picks up exactly where this one stopped.
+  if (stats.stoppedReason === "cancelled") throw new SyncAbortedError();
 
   const result: SyncResult = {
     reason,
-    applied: pull.applied,
-    deleted: pull.deleted,
-    reseeded,
-    integrity,
-    outbox,
+    applied: stats.applied,
+    deleted: stats.deleted,
+    reseeded: out.reseeded,
+    integrity: out.integrity,
+    outbox: out.outbox,
     durationMs: Date.now() - wallStart,
+    jobs: stats,
   };
   log({
     op: "run",
-    level: "info",
-    applied: pull.applied,
-    deleted: pull.deleted,
+    level: stats.failed > 0 ? "warn" : "info",
+    applied: stats.applied,
+    deleted: stats.deleted,
     durationMs: result.durationMs,
-    message: `done:${reason}`,
+    message: `done:${reason} — ${stats.processed} job(s), ${stats.failed} failed`,
   });
   return result;
 }
 
 /**
- * Mark an entity for reseed on the next run by clearing its cursor. The entity's
- * rows are left in place (so the UI keeps showing stale-but-present data) until
- * the reseed pull replaces them from zero.
- */
-function scheduleReseed(db: AppDatabase, entity: SyncEntity): void {
-  // Clearing the cursor makes the next pullEntity treat it as a seed.
-  db.run(
-    sql`UPDATE sync_state SET cursor_id = NULL, cursor_modified = NULL, status = 'idle' WHERE entity = ${entity}`
-  );
-}
-
-/**
- * Manual "Repair sync": wipe the whole mirror and re-seed from zero. Used by the
- * Sync status screen's Repair button and by unrecoverable schema/drift states.
+ * Manual "Repair sync": wipe the whole mirror and re-seed from zero. Also clears
+ * the job queue, because a repair invalidates every cursor those jobs were
+ * resuming from — leaving them would have the new seed race a stale continuation.
  */
 export async function repairSync(
   db: AppDatabase,
@@ -280,9 +244,10 @@ export async function repairSync(
   opts: SyncAllOptions = {}
 ): Promise<SyncResult> {
   clearMirror(db);
+  clearJobs(db);
   appendSyncLog(db, { op: "reseed", level: "warn", message: "manual repair" }, Date.now());
   return syncAll(db, source, { ...opts, reason: "manual" });
 }
 
 export { SyncAbortedError, SYNC_ENTITIES };
-export type { SyncProgress };
+export type { SyncProgress, JobSeams, WorkerStats };

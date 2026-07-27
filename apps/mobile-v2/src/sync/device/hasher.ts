@@ -61,9 +61,21 @@ export type HashOptions = {
   keepGoing?: () => boolean;
   /** Poll interval (ms) used while idling under {@link HashOptions.keepGoing}. */
   idleDelayMs?: number;
+  /**
+   * Stop after this many assets have been attempted. The job queue passes it so
+   * one `hash_batch` job is a bounded, sub-second unit of work that can be
+   * interrupted cheaply — without it a single call runs the whole library and we
+   * are back to an unbreakable step.
+   */
+  maxAssets?: number;
 };
 
-export type HashResult = { hashed: number; failed: number };
+export type HashResult = {
+  hashed: number;
+  failed: number;
+  /** True when the pass stopped on its budget with work still outstanding. */
+  more?: boolean;
+};
 
 const defaultYield = () => new Promise<void>((r) => setTimeout(r, 0));
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -116,17 +128,30 @@ export async function runHashPass(
   opts: HashOptions
 ): Promise<HashResult> {
   const batchSize = opts.batchSize ?? HASH_BATCH;
+  const maxAssets = opts.maxAssets ?? Infinity;
   const now = opts.now ?? Date.now();
   const yieldFn = opts.yield ?? defaultYield;
   let hashed = 0;
   let failed = 0;
+  let more = false;
 
   for (;;) {
     if (opts.signal?.aborted) throw new HashAbortedError();
+    if (hashed + failed >= maxAssets) {
+      // Budget spent. Report whether anything is still outstanding so the caller
+      // (a `hash_batch` job) knows to enqueue its continuation.
+      more =
+        selectUnhashed(db, {
+          includeVideos: opts.includeVideos,
+          selectedOnly: opts.selectedOnly,
+          limit: 1,
+        }).length > 0;
+      break;
+    }
     const batch = selectUnhashed(db, {
       includeVideos: opts.includeVideos,
       selectedOnly: opts.selectedOnly,
-      limit: batchSize,
+      limit: Math.min(batchSize, maxAssets - hashed - failed),
     });
     if (batch.length === 0) {
       // Nothing hashable *right now*. If a concurrent camera-roll scan is still
@@ -162,5 +187,5 @@ export async function runHashPass(
   }
 
   opts.log?.({ op: "hash", level: "info", applied: hashed, message: `hashed ${hashed}, failed ${failed}` });
-  return { hashed, failed };
+  return { hashed, failed, more };
 }

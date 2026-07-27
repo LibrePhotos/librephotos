@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { SyncProgress, SyncReason, SyncResult } from "@/sync/orchestrator";
 import type { DeviceSyncProgress } from "@/sync/device/media-sync";
 import type { GateDecision } from "@/sync/upload/gate";
+import type { JobQueueSnapshot } from "@/sync/jobs/status";
 
 /**
  * Live sync UI state (client state, not persisted). The orchestrator runner
@@ -28,10 +29,18 @@ type SyncUiState = {
    * queueing forever.
    */
   gate: GateDecision | null;
+  /**
+   * Live job-queue snapshot, refreshed after every job settles. This is what
+   * lets the status screens answer "which stage is running, how far along, and
+   * what is blocking it" — the questions the old pipeline could not answer
+   * because its only state was the call stack.
+   */
+  queue: JobQueueSnapshot | null;
   setRunning: (running: boolean, reason?: SyncReason | null) => void;
   setProgress: (progress: SyncProgress) => void;
   setDeviceProgress: (progress: DeviceSyncProgress | null) => void;
   setGate: (gate: GateDecision | null) => void;
+  setQueue: (queue: JobQueueSnapshot | null) => void;
   setResult: (result: SyncResult) => void;
   setError: (error: string | null) => void;
 };
@@ -46,6 +55,7 @@ export const useSyncStore = create<SyncUiState>((set) => ({
   finishedAt: null,
   deviceProgress: null,
   gate: null,
+  queue: null,
   setRunning: (running, reason = null) =>
     set((s) => ({
       running,
@@ -58,6 +68,7 @@ export const useSyncStore = create<SyncUiState>((set) => ({
   setProgress: (progress) => set({ progress }),
   setDeviceProgress: (deviceProgress) => set({ deviceProgress }),
   setGate: (gate) => set({ gate }),
+  setQueue: (queue) => set({ queue }),
   setResult: (lastResult) => set({ lastResult, lastError: null }),
   setError: (lastError) => set({ lastError }),
 }));

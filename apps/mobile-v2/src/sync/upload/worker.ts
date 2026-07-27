@@ -14,6 +14,7 @@
  */
 import type { AppDatabase } from "@/db/types";
 import type { SyncLogEntry } from "@/db/queries/sync-log";
+import { sql } from "drizzle-orm";
 import {
   markDone,
   markFailed,
@@ -99,6 +100,50 @@ export async function runUploadQueue(db: AppDatabase, opts: WorkerOptions): Prom
     message: `uploaded ${res.uploaded}, skipped ${res.skipped}, failed ${res.failed}, stop=${res.stoppedReason}`,
   });
   return res;
+}
+
+/**
+ * Upload exactly ONE asset — the unit an `upload_asset` job runs.
+ *
+ * The queue-drain loop above still exists for the background task's small
+ * budgeted top-up, but the foreground path goes through here: one photo per job
+ * means one photo's worth of work is the most an interrupted run can lose, and
+ * it lets uploads round-robin with hashing and scanning instead of monopolising
+ * the worker until the queue is empty.
+ *
+ * A blocked gate is reported, not thrown: "waiting for Wi-Fi" is a state to
+ * display, not a failure to retry against an attempt budget.
+ */
+export async function runUploadItem(
+  db: AppDatabase,
+  assetId: string,
+  opts: WorkerOptions
+): Promise<{ uploaded: boolean; skipped: boolean; failed: boolean; gated?: string }> {
+  const now = opts.now ?? Date.now;
+  const base = opts.backoffBase ?? BACKOFF_BASE_MS;
+
+  if (opts.gate) {
+    const decision = await opts.gate.check();
+    if (!decision.allowed) return { uploaded: false, skipped: false, failed: false, gated: decision.reason };
+  }
+
+  const item = db.get(
+    sql`SELECT uq.asset_id AS asset_id, uq.state AS state, uq.attempts AS attempts, uq.progress AS progress,
+               la.uri AS uri, la.name AS name, la.type AS type, la.hash AS hash,
+               la.created_at AS created_at, la.modified_at AS modified_at
+        FROM upload_queue uq JOIN local_asset la ON la.id = uq.asset_id
+        WHERE uq.asset_id = ${assetId}`
+  ) as QueueItem | undefined;
+  // The row can legitimately have vanished (the asset was deleted from the
+  // device and swept) or already be done. Neither is an error.
+  if (!item) return { uploaded: false, skipped: true, failed: false };
+  if (item.state === "done" || item.state === "skipped_exists") {
+    return { uploaded: false, skipped: true, failed: false };
+  }
+
+  const res: WorkerResult = { uploaded: 0, skipped: 0, failed: 0 };
+  await processItem(db, item, opts, now, base, res);
+  return { uploaded: res.uploaded > 0, skipped: res.skipped > 0, failed: res.failed > 0 };
 }
 
 async function processItem(

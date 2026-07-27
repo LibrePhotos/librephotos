@@ -1,10 +1,13 @@
 /**
- * App-side wiring for the sync orchestrator. Binds the pure orchestrator to the
- * real api-client source, the user's favorite_min_rating, the thumb-prefetch
- * step, and the outbox-replay stub — and mirrors progress/result into the sync
- * UI store. This module imports the app singletons (apiClient, secure-store,
- * expo-file-system), so it is NEVER imported by the Node unit tests; those test
- * the orchestrator core directly against a fake source.
+ * App-side wiring for the sync orchestrator. Binds the pure job handlers to the
+ * real api-client source, the user's favorite_min_rating, the expo device/upload
+ * seams — and mirrors queue progress into the sync UI store. This module imports
+ * the app singletons (apiClient, secure-store, expo-file-system), so it is NEVER
+ * imported by the Node unit tests; those drive the orchestrator core directly
+ * against a fake source.
+ *
+ * Each seam below is one *job's worth* of work, not one pipeline stage: a scan
+ * chunk, a hash batch, a single upload. The queue decides what runs next.
  */
 import { endpoints } from "@librephotos/api-client";
 import type { AppDatabase } from "@/db/types";
@@ -13,16 +16,15 @@ import { tokenStorage } from "@/lib/tokenStorage";
 import { useSettingsStore } from "@/stores/settings";
 import { useSyncStore } from "@/stores/sync";
 import { getBackupConfig } from "@/db/queries/backup";
-import { appendSyncLog } from "@/db/queries/sync-log";
 import {
   repairSync,
   syncAll,
+  syncBackupOnly,
   type SyncAllOptions,
   type SyncReason,
   type SyncResult,
 } from "./orchestrator";
 import { createApiSyncSource, type RemoteSyncSource } from "./remote/source";
-import { pullEntity } from "./remote/delta";
 import { replayOutbox } from "./outbox/executor";
 import { prefetchNewThumbs } from "./thumb-prefetch";
 import { syncDeviceMedia } from "./device/media-sync";
@@ -31,10 +33,11 @@ import { createExpoMediaProvider } from "./device/expo-media-provider";
 import { createExpoAssetHasher } from "./device/expo-asset-hasher";
 import type { MediaProvider, AssetHasher } from "./device/types";
 import { enqueueBackups, queueSummary } from "./upload/queue";
-import { runUploadQueue } from "./upload/worker";
+import { runUploadItem } from "./upload/worker";
 import { makeUploadGate } from "./upload/gate";
 import { createExpoUploadTransport } from "./upload/expo-transport";
 import { createExpoDeviceProbe } from "./upload/expo-probe";
+import { jobQueueSnapshot } from "./jobs/status";
 import type { UploadTransport } from "./upload/transport";
 import type { DeviceProbe } from "./upload/gate";
 
@@ -65,15 +68,13 @@ function getDeviceProbe(): DeviceProbe {
   return (deviceProbe ??= createExpoDeviceProbe());
 }
 
-/** Per-run cap on how many uploads the foreground top-up runs. */
-const UPLOAD_BUDGET = 50;
+/** Push the current queue snapshot to the UI store after every job settles. */
+function publishQueue(db: AppDatabase): void {
+  useSyncStore.getState().setQueue(jobQueueSnapshot(db));
+}
 
-/** Build the injected hooks shared by every app-side run. */
-function appHooks(
-  userId: number | null | undefined,
-  runOpts: { uploadBudget?: number } = {}
-): SyncAllOptions {
-  const uploadBudget = runOpts.uploadBudget ?? UPLOAD_BUDGET;
+/** Build the seams shared by every app-side run. */
+function appSeams(userId: number | null | undefined): SyncAllOptions {
   return {
     onProgress: (p) => useSyncStore.getState().setProgress(p),
     getFavoriteMinRating:
@@ -87,56 +88,48 @@ function appHooks(
             }
           }
         : undefined,
-    replayOutbox,
-    // Step 3 — camera-roll diff into the local_asset tables. Progress goes to
-    // the UI store: on a large library this is the long pole right after the
-    // permission prompt, and a silent screen there reads as a freeze.
-    syncDeviceMedia: async ({ db, signal, log }) => {
+
+    replayOutbox: (ctx, budget) => replayOutbox(ctx.db, { signal: ctx.signal, log: ctx.log, maxRows: budget }),
+
+    // One chunk of the camera roll. `maxAssetsPerRun` is what makes it a chunk:
+    // the scan stores an ascending per-album watermark, so a truncated pass
+    // resumes exactly where it stopped on the next job instead of re-walking the
+    // library from the start (which is what used to make a reload fatal).
+    scanChunk: async (ctx, budget) => {
       try {
-        await syncDeviceMedia(db, getMediaProvider(), {
-          signal,
-          log,
+        const result = await syncDeviceMedia(ctx.db, getMediaProvider(), {
+          signal: ctx.signal,
+          log: ctx.log,
+          maxAssetsPerRun: budget,
           onProgress: (p) => useSyncStore.getState().setDeviceProgress(p),
         });
+        return { complete: result.complete, added: result.added, scanned: result.scanned };
       } finally {
         useSyncStore.getState().setDeviceProgress(null);
       }
     },
-    // Step 4 — hash new/changed images (videos are lazy-hashed at upload time).
-    // Enqueue after every batch so uploads start on the first hashed photos
-    // instead of waiting out an md5 pass over the whole library.
-    hashAssets: async ({ db, signal, log, moreExpected }) => {
-      if (userId == null) return;
-      await runHashPass(db, getAssetHasher(), {
-        userId,
-        signal,
-        log,
-        // Runs alongside the camera-roll scan: keep hashing what the scan has
-        // already committed instead of stopping at the first empty batch.
-        keepGoing: moreExpected,
-        onBatch: () => {
-          if (getBackupConfig(db).enabled) enqueueBackups(db);
-        },
-      });
-    },
-    // Step 5 — top up + drain the upload queue when backup is enabled.
-    topUpUploadQueue: async ({ db, source: src, signal, log }) => {
-      if (userId == null) return;
-      const config = getBackupConfig(db);
-      if (!config.enabled) return;
 
-      // Lazily hash selected videos so they become upload-eligible, enqueueing
-      // as we go (a GB-scale video pass must not withhold everything already
-      // hashed from the queue).
-      await runHashPass(db, getAssetHasher(), {
+    // One batch of md5s over new/changed images (videos are hashed lazily at
+    // upload time). Enqueuing uploads is the job handler's business, not ours.
+    hashBatch: async (ctx, budget) => {
+      if (userId == null) return { hashed: 0, failed: 0, more: false };
+      const result = await runHashPass(ctx.db, getAssetHasher(), {
         userId,
-        signal,
-        includeVideos: true,
-        selectedOnly: true,
-        log,
-        onBatch: () => enqueueBackups(db),
+        signal: ctx.signal,
+        log: ctx.log,
+        maxAssets: budget,
+        batchSize: budget,
       });
-      enqueueBackups(db);
+      // Materialise upload_queue rows for whatever just became hashable; the
+      // handler then opens an upload window over them.
+      if (getBackupConfig(ctx.db).enabled) enqueueBackups(ctx.db);
+      return { hashed: result.hashed, failed: result.failed, more: result.more === true };
+    },
+
+    uploadAsset: async (ctx, assetId) => {
+      if (userId == null) return { uploaded: false, skipped: true };
+      const config = getBackupConfig(ctx.db);
+      if (!config.enabled) return { uploaded: false, skipped: true };
 
       const gate = makeUploadGate(
         { wifiOnly: config.wifiOnly, chargingOnly: config.chargingOnly },
@@ -144,15 +137,16 @@ function appHooks(
       );
       // Publish the gate decision so the Backup screen can name the blocker
       // ("Waiting for Wi-Fi") instead of showing a stalled queue with no reason.
-      useSyncStore.getState().setGate(await gate.check());
-      const result = await runUploadQueue(db, {
+      const decision = await gate.check();
+      useSyncStore.getState().setGate(decision);
+      if (!decision.allowed) return { uploaded: false, skipped: false, gated: decision.reason };
+
+      const result = await runUploadItem(ctx.db, assetId, {
         userId,
         transport: getUploadTransport(),
-        gate,
-        signal,
-        maxItems: uploadBudget,
-        log,
-        onProgress: (assetId, sent, total) =>
+        signal: ctx.signal,
+        log: ctx.log,
+        onProgress: (id, sent, total) =>
           useSyncStore.getState().setProgress({
             entity: "photo",
             current: sent,
@@ -160,21 +154,22 @@ function appHooks(
             phase: "delta",
           }),
       });
-      // A successful upload means new server rows: pull a photos delta so the
-      // merged-timeline badge flips from pending to synced (doc 03 §5).
-      if (result.uploaded > 0) {
-        await pullEntity(db, src, "photo", { signal, log });
-      }
+      return { uploaded: result.uploaded, skipped: result.skipped, gated: result.gated };
     },
-    prefetchThumbs: async ({ db, signal }) => {
+
+    prefetchThumbs: async (ctx, limit) => {
       const token = await tokenStorage.getAccessToken();
-      await prefetchNewThumbs(db, {
+      const fetched = await prefetchNewThumbs(ctx.db, {
         serverAddress: serverAddress(),
         accessToken: token,
         capBytes: useSettingsStore.getState().thumbCapBytes,
-        signal,
+        limit,
+        signal: ctx.signal,
       });
+      return { fetched, more: fetched >= limit };
     },
+
+    backupEnabled: (db) => getBackupConfig(db).enabled,
   };
 }
 
@@ -208,9 +203,10 @@ export async function runSync(db: AppDatabase, opts: RunSyncOptions): Promise<Sy
   useSyncStore.getState().setRunning(true, opts.reason);
   try {
     const result = await syncAll(db, getSource(), {
-      ...appHooks(opts.userId),
+      ...appSeams(opts.userId),
       reason: opts.reason,
       signal: opts.signal,
+      onWorkerProgress: () => publishQueue(db),
     });
     useSyncStore.getState().setResult(result);
     return result;
@@ -218,87 +214,56 @@ export async function runSync(db: AppDatabase, opts: RunSyncOptions): Promise<Sy
     useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
     return null;
   } finally {
+    publishQueue(db);
     useSyncStore.getState().setRunning(false);
   }
 }
 
-let backupInFlight: Promise<ReturnType<typeof queueSummary>> | null = null;
-
 /**
- * Backup-only run for the Backup tab: device diff → hash → enqueue → upload,
- * skipping the heavy remote delta pull (that's what "Sync now" is for). Uploads
- * that land trigger a photos delta so the merged-timeline badge flips. Single-
- * flight of its own; returns the resulting queue summary.
+ * Backup-only run for the Backup tab: device scan → hash → upload, skipping the
+ * heavy remote delta pull (that's what "Sync now" is for). Uploads that land
+ * chain a photos delta so the merged-timeline badge flips. Returns the resulting
+ * queue summary.
  */
 export async function runBackupNow(
   db: AppDatabase,
   userId?: number | null,
   opts: { uploadBudget?: number } = {}
 ) {
-  if (backupInFlight) return backupInFlight;
-  const now = Date.now();
-  const log = (entry: Parameters<typeof appendSyncLog>[1]) => appendSyncLog(db, entry, Date.now());
-  backupInFlight = (async () => {
-    try {
-      // Scan + hash concurrently, for the same reason the orchestrator does:
-      // hashing must not sit behind a full camera-roll enumeration (see
-      // orchestrator.runSequence).
-      let scanning = true;
-      const scan = (async () => {
-        try {
-          await syncDeviceMedia(db, getMediaProvider(), {
-            now,
-            log,
-            onProgress: (p) => useSyncStore.getState().setDeviceProgress(p),
-          });
-        } finally {
-          scanning = false;
-          useSyncStore.getState().setDeviceProgress(null);
-        }
-      })();
-      const hash =
-        userId == null
-          ? Promise.resolve()
-          : runHashPass(db, getAssetHasher(), {
-              userId,
-              now,
-              log,
-              keepGoing: () => scanning,
-              onBatch: () => enqueueBackups(db),
-            });
-      const settled = await Promise.allSettled([scan, hash]);
-      const rejected = settled.find((s) => s.status === "rejected");
-      if (rejected?.status === "rejected") throw rejected.reason;
-
-      if (userId != null) {
-        await appHooks(userId, opts).topUpUploadQueue?.({
-          db,
-          source: getSource(),
-          now,
-          log,
-        });
-      }
-    } catch (err) {
-      useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
-    }
-    return queueSummary(db);
-  })().finally(() => {
-    backupInFlight = null;
-  });
-  return backupInFlight;
+  useSyncStore.getState().setRunning(true, "manual");
+  try {
+    await syncBackupOnly(db, getSource(), {
+      ...appSeams(userId),
+      reason: "manual",
+      // The OS background window is short: cap the jobs so any prefix is useful
+      // and the pass returns rather than being killed mid-upload.
+      maxJobs: opts.uploadBudget != null ? opts.uploadBudget * 4 : undefined,
+      onWorkerProgress: () => publishQueue(db),
+    });
+  } catch (err) {
+    useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
+  } finally {
+    publishQueue(db);
+    useSyncStore.getState().setRunning(false);
+  }
+  return queueSummary(db);
 }
 
 /** Manual "Repair sync": wipe the mirror and reseed. */
 export async function repair(db: AppDatabase, userId?: number | null): Promise<SyncResult | null> {
   useSyncStore.getState().setRunning(true, "manual");
   try {
-    const result = await repairSync(db, getSource(), appHooks(userId));
+    const result = await repairSync(db, getSource(), {
+      ...appSeams(userId),
+      onWorkerProgress: () => publishQueue(db),
+    });
     useSyncStore.getState().setResult(result);
     return result;
   } catch (err) {
     useSyncStore.getState().setError(err instanceof Error ? err.message : String(err));
     return null;
   } finally {
+    publishQueue(db);
     useSyncStore.getState().setRunning(false);
   }
 }

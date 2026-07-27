@@ -67,7 +67,7 @@ describe("orchestrator", () => {
     expect(recentSyncLog(t.db).some((l) => l.op === "reseed")).toBe(true);
   });
 
-  it("detects integrity drift and schedules a reseed", async () => {
+  it("detects integrity drift and re-seeds the drifted entity in the same run", async () => {
     const store = emptyStore();
     store.photo = [photoItem("p1")];
     // Server claims 99 photos but the mirror only has 1 → drift.
@@ -76,9 +76,16 @@ describe("orchestrator", () => {
 
     expect(res.integrity?.ok).toBe(false);
     expect(res.integrity?.drifts.some((d) => d.entity === "photo")).toBe(true);
-    // Drift schedules a reseed: the photo cursor is cleared for the next run.
-    expect(getSyncState(t.db, "photo")?.cursor_id).toBeNull();
     expect(recentSyncLog(t.db).some((l) => l.op === "integrity" && l.level === "error")).toBe(true);
+
+    // Drift clears the cursor AND enqueues a fresh `remote_delta` for the
+    // entity, so the repair happens now rather than "next time something runs".
+    // Under the old sequential driver the reseed was merely *scheduled* and the
+    // mirror stayed wrong until some later sync happened to fire — the same
+    // "progress deferred indefinitely" failure the job queue exists to end.
+    // 2 fetches for the initial seed + 2 for the drift-driven re-seed.
+    expect(source.calls.photo).toBe(4);
+    expect(getSyncState(t.db, "photo")?.status).toBe("done");
   });
 
   it("repairSync wipes the mirror and re-seeds", async () => {

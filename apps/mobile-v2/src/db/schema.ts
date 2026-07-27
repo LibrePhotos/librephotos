@@ -23,6 +23,7 @@ import {
   real,
   sqliteTable,
   text,
+  uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
 /* ---------------------------------------------------------------------- *
@@ -281,6 +282,57 @@ export const uploadQueue = sqliteTable(
   (t) => [index("idx_upload_queue_state").on(t.state)]
 );
 
+/**
+ * Durable job queue (doc 03 §1) — the sync engine's driver.
+ *
+ * The pipeline used to be one `await` chain, so the only record of progress was
+ * the JS call stack: a reload discarded it and the whole sequence restarted from
+ * the top, which on a 2867-photo library meant hashing never resumed and uploads
+ * (last in the chain) never began at all. Every unit of work is now a row here,
+ * so progress is durable, a killed process resumes, and no step can starve the
+ * one behind it — the worker picks by priority, not by position in a chain.
+ *
+ * Deliberately shaped like the `outbox` and `upload_queue` tables that already
+ * work this way (attempts / next_attempt_at / last_error), rather than inventing
+ * a third convention.
+ */
+export const jobQueue = sqliteTable(
+  "job_queue",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    kind: text("kind").notNull(), // see sync/jobs/types JOB_KINDS
+    /**
+     * Identity of the unit of work. At most one *live* (pending|running) row may
+     * carry a given key, so re-enqueuing the same work — which every trigger,
+     * foreground event and chained job does constantly — updates nothing instead
+     * of piling up duplicates.
+     */
+    dedupeKey: text("dedupe_key").notNull(),
+    payload: text("payload"), // json
+    state: text("state").notNull().default("pending"), // pending | running | done | failed
+    /** Lower runs first. Interactive work (remote delta) outranks background. */
+    priority: integer("priority").notNull().default(100),
+    attempts: integer("attempts").notNull().default(0),
+    /** Earliest ms-epoch this job may be claimed (exponential backoff). */
+    nextAttemptAt: integer("next_attempt_at").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+    startedAt: integer("started_at"),
+    finishedAt: integer("finished_at"),
+    lastError: text("last_error"),
+  },
+  (t) => [
+    // The "next eligible job" probe, in exactly the order the claim uses it.
+    index("idx_job_queue_ready").on(t.state, t.priority, t.nextAttemptAt, t.id),
+    // Queue-depth-per-kind for the status screens.
+    index("idx_job_queue_kind").on(t.kind, t.state),
+    // Dedupe guard. Partial, so a finished row never blocks re-enqueuing the
+    // same work later (a device_scan chunk runs again on the next sync).
+    uniqueIndex("idx_job_queue_dedupe")
+      .on(t.dedupeKey)
+      .where(sql`state IN ('pending', 'running')`),
+  ]
+);
+
 /** Explicit offline thumbnail store with LRU eviction (doc 01). */
 export const thumbCache = sqliteTable(
   "thumb_cache",
@@ -347,6 +399,7 @@ export const schema = {
   syncState,
   outbox,
   uploadQueue,
+  jobQueue,
   thumbCache,
   syncLog,
   appMeta,

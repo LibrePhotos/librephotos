@@ -50,4 +50,8 @@ export const MIGRATION_STATEMENTS: string[] = [
   "ALTER TABLE `outbox` ADD `inflight_at` integer;",
   "ALTER TABLE `outbox` ADD `next_attempt_at` integer;",
   "CREATE INDEX `idx_outbox_state` ON `outbox` (`state`);",
+  "CREATE TABLE `job_queue` (\n\t`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,\n\t`kind` text NOT NULL,\n\t`dedupe_key` text NOT NULL,\n\t`payload` text,\n\t`state` text DEFAULT 'pending' NOT NULL,\n\t`priority` integer DEFAULT 100 NOT NULL,\n\t`attempts` integer DEFAULT 0 NOT NULL,\n\t`next_attempt_at` integer DEFAULT 0 NOT NULL,\n\t`created_at` integer NOT NULL,\n\t`started_at` integer,\n\t`finished_at` integer,\n\t`last_error` text\n);",
+  "CREATE INDEX `idx_job_queue_ready` ON `job_queue` (`state`,`priority`,`next_attempt_at`,`id`);",
+  "CREATE INDEX `idx_job_queue_kind` ON `job_queue` (`kind`,`state`);",
+  "CREATE UNIQUE INDEX `idx_job_queue_dedupe` ON `job_queue` (`dedupe_key`) WHERE state IN ('pending', 'running');",
 ];

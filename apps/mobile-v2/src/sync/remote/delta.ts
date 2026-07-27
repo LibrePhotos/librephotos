@@ -83,6 +83,21 @@ export type EntityPullResult = {
   seeded: boolean;
 };
 
+/** One page's worth of work — the unit the `remote_delta` job runs. */
+export type PullStepResult = {
+  entity: SyncEntity;
+  applied: number;
+  deleted: number;
+  /** True when the server reported no next cursor: this entity is caught up. */
+  done: boolean;
+  /** True when this step started from cursor zero (a seed rather than a delta). */
+  seeded: boolean;
+  /** True when a 410 forced the entity to be cleared and restarted. */
+  reseeded: boolean;
+  /** Determinate total the server reported for a seed (0 when unknown). */
+  total: number;
+};
+
 type LooseEnvelope = PageEnvelope<{ last_modified?: number | null }> & { server_time: string };
 
 type EntityHandler = {
@@ -115,29 +130,42 @@ function handlerFor(source: RemoteSyncSource, entity: SyncEntity): EntityHandler
   }
 }
 
+export type PullStepOptions = PullOptions & {
+  /**
+   * Restart the entity's progress counters at zero — set on the first step of a
+   * pass. Progress is durable (it lives in `sync_state`), so a resumed pass must
+   * *not* reset it or the seed bar would restart from zero on every app launch.
+   */
+  resetProgress?: boolean;
+  /** Allow one 410-driven reseed. The caller tracks "once" across steps. */
+  allowReseed?: boolean;
+};
+
 /**
- * Pull one entity to quiescence. Resumes from the stored cursor; on 410 clears
- * the entity and re-seeds from zero (once). Idempotent + cancellable.
+ * Fetch and apply exactly ONE page for an entity, then return.
+ *
+ * This is the resumable unit the `remote_delta` job runs, and it is why the
+ * queue can promise sub-second jobs against a 1000-row page. Everything it needs
+ * to resume — the keyset cursor, the accumulated count, the determinate total —
+ * already lives in `sync_state`, written inside the applier's transaction, so a
+ * step is a pure function of the durable state plus one HTTP response. Killing
+ * the app between steps costs at most one page.
  */
-export async function pullEntity(
+export async function pullEntityStep(
   db: AppDatabase,
   source: RemoteSyncSource,
   entity: SyncEntity,
-  opts: PullOptions = {}
-): Promise<EntityPullResult> {
+  opts: PullStepOptions = {}
+): Promise<PullStepResult> {
   const now = opts.now ?? Date.now();
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
   const handler = handlerFor(source, entity);
-  const wallStart = Date.now();
 
   const prev = getSyncState(db, entity);
-  let loopCursor: string | null = prev?.cursor_id ?? null;
-  let seeded = loopCursor == null;
-  let didReseed = false;
-  let total = prev?.progress_total ?? 0;
-  let applied = 0;
-  let deleted = 0;
-  let pages = 0;
+  const cursor: string | null = prev?.cursor_id ?? null;
+  const seeded = cursor == null;
+  const base = opts.resetProgress ? 0 : (prev?.progress_current ?? 0);
+  let total = opts.resetProgress && seeded ? 0 : (prev?.progress_total ?? 0);
 
   // Initialise the row so the applier's in-transaction cursor UPDATE has a row
   // to hit. cursor_id is COALESCE-preserved by upsertSyncState.
@@ -145,71 +173,110 @@ export async function pullEntity(
     status: "running",
     cursor_modified: prev?.cursor_modified ?? null,
     last_full_sync: prev?.last_full_sync ?? null,
-    progress_current: 0,
+    progress_current: base,
     progress_total: total,
   });
 
   throwIfAborted(opts.signal);
 
-  for (;;) {
-    throwIfAborted(opts.signal);
-
-    let env: LooseEnvelope;
-    try {
-      env = await handler.fetch({ cursor: loopCursor, pageSize });
-    } catch (err) {
-      if (isCursorExpired(err) && !didReseed) {
-        didReseed = true;
-        clearEntity(db, entity);
-        upsertSyncState(db, entity, { status: "running", progress_current: 0, progress_total: 0 });
-        opts.log?.({ op: "reseed", entity, level: "warn", message: "cursor_expired" });
-        loopCursor = null;
-        seeded = true;
-        total = 0;
-        applied = 0;
-        deleted = 0;
-        pages = 0;
-        continue;
-      }
-      upsertSyncState(db, entity, {
-        status: "error",
-        progress_current: applied,
-        progress_total: total,
-      });
-      throw err;
+  let env: LooseEnvelope;
+  try {
+    env = await handler.fetch({ cursor, pageSize });
+  } catch (err) {
+    if (isCursorExpired(err) && opts.allowReseed !== false) {
+      // The mirror is disposable: drop this entity and restart from zero. Not
+      // "done" — the caller re-enters and the next step seeds.
+      clearEntity(db, entity);
+      upsertSyncState(db, entity, { status: "running", progress_current: 0, progress_total: 0 });
+      opts.log?.({ op: "reseed", entity, level: "warn", message: "cursor_expired" });
+      return { entity, applied: 0, deleted: 0, done: false, seeded: true, reseeded: true, total: 0 };
     }
-
-    // Seed (cursorless) first page carries the determinate total.
-    if (loopCursor == null && env.total != null) total = env.total;
-
-    const res = handler.apply(db, env, now);
-    applied += res.applied;
-    deleted += res.deleted;
-    pages += 1;
-
     upsertSyncState(db, entity, {
-      status: "running",
-      progress_current: applied,
-      progress_total: Math.max(total, applied),
+      status: "error",
+      progress_current: base,
+      progress_total: total,
     });
-    opts.onProgress?.({
-      entity,
-      current: applied,
-      total: Math.max(total, applied),
-      phase: seeded ? "seed" : "delta",
-    });
-
-    if (env.next_cursor == null) break;
-    loopCursor = env.next_cursor;
+    throw err;
   }
 
-  const durableCursor = getSyncState(db, entity)?.cursor_id ?? null;
+  // Seed (cursorless) first page carries the determinate total.
+  if (cursor == null && env.total != null) total = env.total;
+
+  const res = handler.apply(db, env, now);
+  const applied = base + res.applied;
+  const done = env.next_cursor == null;
+
   upsertSyncState(db, entity, {
-    status: "done",
-    last_full_sync: now,
+    status: done ? "done" : "running",
+    last_full_sync: done ? now : (prev?.last_full_sync ?? null),
     progress_current: applied,
     progress_total: Math.max(total, applied),
   });
+  opts.onProgress?.({
+    entity,
+    current: applied,
+    total: Math.max(total, applied),
+    phase: seeded ? "seed" : "delta",
+  });
+
+  return {
+    entity,
+    applied: res.applied,
+    deleted: res.deleted,
+    done,
+    seeded,
+    reseeded: false,
+    total,
+  };
+}
+
+/**
+ * Pull one entity to quiescence by running {@link pullEntityStep} until the
+ * server says it is caught up. Resumes from the stored cursor; on 410 clears the
+ * entity and re-seeds from zero (once). Idempotent + cancellable.
+ *
+ * The job queue drives the steps individually instead; this loop remains for the
+ * callers that legitimately want the whole entity in one await — the background
+ * task's photo top-up and the post-upload timeline refresh.
+ */
+export async function pullEntity(
+  db: AppDatabase,
+  source: RemoteSyncSource,
+  entity: SyncEntity,
+  opts: PullOptions = {}
+): Promise<EntityPullResult> {
+  const wallStart = Date.now();
+  let didReseed = false;
+  let applied = 0;
+  let deleted = 0;
+  let pages = 0;
+  let seeded = (getSyncState(db, entity)?.cursor_id ?? null) == null;
+  let first = true;
+
+  for (;;) {
+    throwIfAborted(opts.signal);
+    const step = await pullEntityStep(db, source, entity, {
+      ...opts,
+      resetProgress: first,
+      allowReseed: !didReseed,
+    });
+    first = false;
+    if (step.reseeded) {
+      didReseed = true;
+      seeded = true;
+      applied = 0;
+      deleted = 0;
+      pages = 0;
+      first = true;
+      continue;
+    }
+    applied += step.applied;
+    deleted += step.deleted;
+    pages += 1;
+    if (step.done) break;
+  }
+
+  const durableCursor = getSyncState(db, entity)?.cursor_id ?? null;
   opts.log?.({
     op: seeded ? "seed" : "pull",
     entity,
