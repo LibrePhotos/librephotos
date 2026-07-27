@@ -15,6 +15,7 @@ superpowers (camera-roll backup, offline browsing).
 | [04-backend-sync-api.md](04-backend-sync-api.md) | Django changes: tombstones, delta endpoints, serializers, tests |
 | [05-feature-parity.md](05-feature-parity.md) | Route-by-route parity matrix against the web frontend, with priorities and mobile-specific UX notes |
 | [06-roadmap.md](06-roadmap.md) | Phases, milestones, risks, open questions |
+| [07-lightbox-parity.md](07-lightbox-parity.md) | Capability-by-capability parity for the photo viewer against the web lightbox: the bottom-sheet presentation model, offline tiers, mutation routing |
 
 ## Executive summary
 

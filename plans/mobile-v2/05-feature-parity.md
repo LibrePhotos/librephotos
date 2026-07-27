@@ -14,7 +14,7 @@ Priorities: **P0** = launch blocker (parity core), **P1** = fast-follow,
 | Frontend route | Mobile screen | Pri | Data | Notes |
 | --- | --- | --- | --- | --- |
 | `/` + `/photos` (timeline) | Photos tab | P0 | mirror + local | Merged timeline (doc 02 §4), day/month headers, scrubber, multi-select |
-| `/photo/$id` (viewer) | `photo/[id]` modal | P0 | mirror + query | Swipe pager, zoom, video (expo-video), info sheet: EXIF/map/people from `remote_photo_detail` (cached → partial offline) |
+| `/photo/$id` (viewer) | `photo/[id]` modal | P0 | mirror + query | Swipe pager, zoom, video (expo-video), filmstrip, face overlay. Info = a **draggable three-detent bottom sheet** (no sidebar fits a phone): caption edit + rating + albums offline via the outbox; EXIF/camera/people/similar/scene-tags from `remote_photo_detail` (cached → offline once seen); location shown as an OSM raster-tile preview (no native map module needed — the *interactive* map stays P2). Full matrix: [07-lightbox-parity.md](./07-lightbox-parity.md) |
 | `/favorites` | Photos filter | P0 | mirror | Flag filter; offline mutation ✅ |
 | `/hidden` | Photos filter | P0 | mirror | Offline mutation ✅ |
 | `/deleted` (trash) | Photos filter | P0 | mirror | Trash/restore offline ✅; empty-trash online-only |

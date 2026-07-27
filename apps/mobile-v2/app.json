@@ -23,13 +23,31 @@
       "intentFilters": [
         {
           "action": "SEND",
-          "category": ["DEFAULT"],
-          "data": [{ "mimeType": "image/*" }, { "mimeType": "video/*" }]
+          "category": [
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "mimeType": "image/*"
+            },
+            {
+              "mimeType": "video/*"
+            }
+          ]
         },
         {
           "action": "SEND_MULTIPLE",
-          "category": ["DEFAULT"],
-          "data": [{ "mimeType": "image/*" }, { "mimeType": "video/*" }]
+          "category": [
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "mimeType": "image/*"
+            },
+            {
+              "mimeType": "video/*"
+            }
+          ]
         }
       ]
     },
@@ -55,7 +73,8 @@
           "icon": "./assets/images/android-icon-monochrome.png",
           "color": "#208AEF"
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
