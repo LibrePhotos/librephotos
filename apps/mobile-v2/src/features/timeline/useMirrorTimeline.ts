@@ -24,11 +24,21 @@ export function rowToItem(r: MergedTimelineRow): TimelineItem {
  * by a page on scroll. Keyset pagination is available in the query layer for a
  * future windowed refinement; a growing window keeps Phase 1 simple + reactive.
  */
+/**
+ * Every table `timelinePage` reads, across both of its shapes: the remote fast
+ * path (`remote_photo` only) and the merged `UNION ALL` (adds the three local
+ * media tables, including the `backup_selection` join). Declared so the query is
+ * not re-run by unrelated churn — during a scan that is `job_queue`, `sync_log`
+ * and `app_meta` on essentially every job.
+ */
+const TIMELINE_TABLES = ["remote_photo", "local_asset", "local_album", "local_album_asset"] as const;
+
 export function useMirrorTimeline() {
   const [limit, setLimit] = useState(PAGE);
   const items = useReactiveQuery(
     (db) => timelinePage(db, { limit }).rows.map(rowToItem),
-    [limit]
+    [limit],
+    TIMELINE_TABLES
   );
   const loadMore = useCallback(() => {
     if (items.length >= limit) setLimit((n) => n + PAGE);

@@ -4,6 +4,7 @@ import { FlashList } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
 import { mediaHeaders } from "@librephotos/api-client";
 import { formatDayHeading } from "@/lib/format";
+import { noteScroll } from "@/sync/activity";
 import { PhotoTile, type GridItem } from "./PhotoTile";
 import { useTheme } from "@/theme";
 
@@ -99,6 +100,11 @@ export function TimelineList({
       data={rows}
       keyExtractor={(r) => r.key}
       getItemType={(r) => r.kind}
+      // The scan's back-off signal. `onScroll` fires throughout a drag *and* its
+      // momentum, so it keeps the interaction window alive for the whole gesture
+      // — unlike a touch-start sniffer, which a native ScrollView never reports
+      // for the frames that actually matter.
+      onScroll={() => noteScroll()}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
       extraData={selectionActive}

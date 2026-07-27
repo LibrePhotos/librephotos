@@ -23,7 +23,10 @@ export function MemoriesCard() {
   const base = serverAddress();
   const headers = useMemo(() => mediaHeaders(token), [token]);
 
-  const memories = useReactiveQuery((db) => onThisDay(db, { limit: 20 }), []);
+  // `onThisDay` reads remote_photo and nothing else, so a camera-roll scan
+  // (local_asset / local_album_asset churn) must not re-run it — this card sits
+  // in the timeline header, which is exactly what the user is scrolling.
+  const memories = useReactiveQuery((db) => onThisDay(db, { limit: 20 }), [], ["remote_photo"]);
   const years = useMemo(() => [...new Set(memories.map((m) => m.year))], [memories]);
 
   if (memories.length === 0) return null;

@@ -16,9 +16,16 @@
 import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
 import type { SyncLogEntry } from "@/db/queries/sync-log";
+import { HASH_BATCH_SIZE } from "@/sync/jobs/types";
 import type { AssetHasher, LocalMediaType } from "./types";
 
-export const HASH_BATCH = 50;
+/**
+ * Default assets per batch when the caller does not pass one. The job queue
+ * always does (it is the adaptive per-job budget), so this only covers direct
+ * callers and tests — but it tracks the queue's constant so the two cannot drift
+ * back apart. See {@link HASH_BATCH_SIZE} for why 50 was too many.
+ */
+export const HASH_BATCH = HASH_BATCH_SIZE;
 
 export class HashAbortedError extends Error {
   constructor() {

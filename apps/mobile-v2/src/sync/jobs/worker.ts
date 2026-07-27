@@ -15,8 +15,15 @@
  *   - **cancellation**   — an AbortSignal stops the loop between jobs *and* is
  *                          handed to the handler, and the in-flight job is
  *                          released (not failed) so backgrounding costs nothing.
- *   - **yielding**       — a macrotask between jobs, so React can commit and the
- *                          timeline keeps painting during a 2867-photo scan.
+ *   - **yielding**       — a hook between jobs, so React can commit and the
+ *                          timeline keeps painting during a 2867-photo scan. The
+ *                          default is a bare macrotask; the app injects the
+ *                          adaptive yield from sync/activity, which additionally
+ *                          backs the whole pipeline off while the user is
+ *                          touching the screen.
+ *   - **timing**         — every settled job's duration is recorded, per kind,
+ *                          so an oversized unit of work is visible in an
+ *                          exported sync log instead of only on a device.
  *
  * Pure: handlers are injected, so the whole thing runs under Node against
  * better-sqlite3 with fakes.
@@ -33,6 +40,7 @@ import {
   reclaimStaleJobs,
   releaseJob,
 } from "./queue";
+import { JOB_SLOW_MS } from "./sizing";
 import type { JobKind, JobRow, JobSpec } from "./types";
 
 /** Bounded concurrency. One is deliberate: the device is a phone, and every
@@ -99,6 +107,15 @@ export type WorkerStats = {
   deleted: number;
   /** Per-kind completion counts, for the run summary. */
   byKind: Partial<Record<JobKind, number>>;
+  /** Longest single job in this drain (ms) — the responsiveness metric. */
+  slowest: number;
+  /**
+   * Longest single job *per kind* (ms). The per-job log rows are a 500-row ring
+   * that thousands of hash and upload jobs scroll away in seconds, so this is
+   * what actually answers "which unit of work is oversized on this phone" from
+   * one surviving summary row.
+   */
+  slowestByKind: Partial<Record<JobKind, number>>;
   stoppedReason: "drained" | "cancelled" | "budget";
 };
 
@@ -143,6 +160,8 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
     applied: 0,
     deleted: 0,
     byKind: {},
+    slowest: 0,
+    slowestByKind: {},
     stoppedReason: "drained",
   };
 
@@ -188,6 +207,26 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
   return stats;
 }
 
+/** Fold one job's wall time into the drain's responsiveness metrics. */
+function recordDuration(stats: WorkerStats, kind: JobKind, durationMs: number): void {
+  stats.slowest = Math.max(stats.slowest, durationMs);
+  stats.slowestByKind[kind] = Math.max(stats.slowestByKind[kind] ?? 0, durationMs);
+}
+
+/**
+ * Render the per-kind worst case as one compact line, worst first. This is the
+ * diagnostic the maintainer reads off an exported sync log to see which unit of
+ * work is too big on their device — see {@link WorkerStats.slowestByKind}.
+ */
+export function formatSlowestByKind(stats: WorkerStats): string {
+  const entries = Object.entries(stats.slowestByKind) as [JobKind, number][];
+  if (entries.length === 0) return "none";
+  return entries
+    .sort((a, b) => b[1] - a[1])
+    .map(([kind, ms]) => `${kind} ${ms}ms`)
+    .join(", ");
+}
+
 async function runOne(
   db: AppDatabase,
   job: JobRow,
@@ -223,23 +262,34 @@ async function runOne(
     completeJob(db, job.id, now());
     stats.succeeded += 1;
     stats.byKind[job.kind] = (stats.byKind[job.kind] ?? 0) + 1;
+
+    const durationMs = Date.now() - started;
+    recordDuration(stats, job.kind, durationMs);
     if (outcome) {
       stats.applied += outcome.applied ?? 0;
       stats.deleted += outcome.deleted ?? 0;
       // Chained work is enqueued only after the outcome is recorded, so a job
       // that re-enqueues *itself* is not blocked by its own dedupe key.
       if (outcome.enqueue?.length) enqueueJobs(db, outcome.enqueue, now());
-      if (outcome.note) {
-        log({
-          op: "job",
-          entity: job.kind,
-          level: "info",
-          applied: outcome.applied,
-          deleted: outcome.deleted,
-          durationMs: Date.now() - started,
-          message: outcome.note,
-        });
-      }
+    }
+
+    // Every settled job is timed. A job over the budget is logged as a warning
+    // rather than merely recorded, so an oversized unit is *findable* in an
+    // exported sync log instead of something you have to spot by reading 500
+    // rows of durations — that is how the 400-asset scan chunk and the 50-photo
+    // hash batch stayed invisible until a device report.
+    const slow = durationMs >= JOB_SLOW_MS;
+    if (outcome?.note || slow) {
+      const note = outcome?.note ?? "done";
+      log({
+        op: "job",
+        entity: job.kind,
+        level: slow ? "warn" : "info",
+        applied: outcome?.applied,
+        deleted: outcome?.deleted,
+        durationMs,
+        message: slow ? `${note} — SLOW: ${durationMs}ms (budget ${JOB_SLOW_MS}ms)` : note,
+      });
     }
   } catch (err) {
     if (opts.signal?.aborted) {
@@ -252,6 +302,7 @@ async function runOne(
     const message = err instanceof Error ? err.message : String(err);
     const outcome = failJob(db, job, message, now());
     stats.failed += 1;
+    recordDuration(stats, job.kind, Date.now() - started);
     log({
       op: "job",
       entity: job.kind,
