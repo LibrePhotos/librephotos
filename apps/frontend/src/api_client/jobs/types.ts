@@ -59,6 +59,9 @@ export type Job = z.infer<typeof Job>;
 export const JobRequest = z.object({
   pageSize: z.number().optional(),
   page: z.number().optional(),
+  /** Narrow the list to the caller's own jobs. Only meaningful for staff, who
+   *  otherwise get the global list; everyone else is already scoped server-side. */
+  mine: z.boolean().optional(),
 });
 
 export type JobRequest = z.infer<typeof JobRequest>;
