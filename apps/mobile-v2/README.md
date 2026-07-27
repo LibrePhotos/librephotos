@@ -92,6 +92,35 @@ and lets the next delta restore server truth; a network error keeps it and
 backs off. Delta pulls never run while an entity has pending outbox rows —
 replay-first, last-write-wins with server authority, no merge logic.
 
+### The photo viewer (`src/features/viewer/`)
+
+The mobile answer to the web lightbox. The full capability-by-capability
+comparison — 27 shipped, 12 adapted, 18 deferred with reasons — is
+[07-lightbox-parity.md](../../plans/mobile-v2/07-lightbox-parity.md). Three
+things are worth knowing before changing it:
+
+- **The info surface is a draggable bottom sheet, not a sidebar.** A phone has
+  no room for the web's 400px column. `src/components/BottomSheet.tsx` is
+  ~120 lines of gesture-handler + reanimated rather than a sheet library,
+  because the hoisting rules below make every new package a real risk. Only the
+  grabber pans, so the ScrollView inside never fights it.
+- **Three data tiers, three offline states, no blanks.** The mirror
+  (`remote_photo`, album membership) is always available; the cached
+  `remote_photo_detail` payload carries EXIF, people with face boxes, similar
+  photos and the AI caption, so those work offline *once the photo has been
+  opened online*; anything else is an online-only control that renders disabled
+  with a reason. A section that has nothing to show says so — it never
+  disappears, because a missing section reads as "this photo has no camera".
+- **The map is OpenStreetMap raster tiles fetched as images**, not a map
+  module. `react-native-maps` / `expo-maps` need a dev build, and an iOS dev
+  build needs the Apple Developer Program this project declined — adding one
+  would make the app unopenable in Expo Go. Tapping hands off to the platform
+  maps app.
+
+Mutations follow the outbox rule: caption, rating, favorite, hide, trash,
+album add/remove and person rename go through `useMutations()`; timestamp edit
+and make-public are direct api-client calls, disabled offline.
+
 ### Backup
 
 Camera-roll assets are enumerated with `expo-media-library`, hashed with native

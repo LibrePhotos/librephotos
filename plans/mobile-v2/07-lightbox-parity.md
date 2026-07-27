@@ -272,23 +272,30 @@ already honours.
 
 ## 5. Implementation order
 
-Each step is independently shippable and independently testable.
+Each step is independently shippable and independently testable. **All fourteen
+have landed** — the status column records where each one lives.
 
-1. **`BottomSheet`** — gesture + detents + tests.
-2. **`PhotoInfoSheet` shell** — sections, three-state rendering, local-only path.
-   Replaces the ad-hoc absolute box.
-3. **File info + camera info + extra EXIF** (tier B, the densest parity win).
-4. **Location** — place name, OSM tile preview, open-in-maps.
-5. **People + face overlay** — chips, highlight, person link, rename.
-6. **Caption** — inline editor through the outbox, AI-suggestion chip, scene tags.
-7. **Timestamp** — display + online-only edit.
-8. **Albums** — mirror membership, add/remove through the outbox.
-9. **Similar photos.**
-10. **Chrome** — top bar, `Icon`-based action bar, tap-to-toggle, safe areas.
-11. **Thumbnail filmstrip.**
-12. **Video** — `expo-video` slides.
-13. **Neighbour preloading.**
-14. **Make public** (online-only) — last, lowest value.
+| # | Step | Lands in |
+| --- | --- | --- |
+| 1 | `BottomSheet` — gesture, detents, velocity snapping | `src/components/BottomSheet.tsx` |
+| 2 | `PhotoInfoSheet` shell — sections, three-state rendering, local-only path | `src/features/viewer/PhotoInfoSheet.tsx`, `InfoPrimitives.tsx` |
+| 3 | File info + camera info + extra EXIF | `InfoSections.tsx`, `exif.ts` |
+| 4 | Location — place name, OSM tile preview, open-in-maps | `MapPreview.tsx` |
+| 5 | People + face overlay | `InfoSections.tsx`, `FaceOverlay.tsx` |
+| 6 | Caption through the outbox, AI-suggestion chip, scene tags | `InfoSections.tsx` |
+| 7 | Timestamp display + online-only edit | `timestamp.ts`, `endpoints.setPhotoTimestamp` |
+| 8 | Albums from the mirror, add/remove through the outbox | `db/queries/detail.ts` (`albumsContainingPhoto`) |
+| 9 | Similar photos | `InfoSections.tsx` |
+| 10 | Chrome — top bar, icon action bar, tap-to-toggle, safe areas | `ViewerChrome.tsx`, `ViewerActionBar.tsx` |
+| 11 | Thumbnail filmstrip | `ViewerChrome.tsx` |
+| 12 | Video via `expo-video` (+ animated GIFs from the originals endpoint) | `VideoSlide.tsx`, `PhotoViewerScreen.tsx` |
+| 13 | Neighbour preloading (±2, into `expo-image`'s disk cache) | `PhotoViewerScreen.tsx` |
+| 14 | Make public (online-only) + copy link | `ViewerActionBar.tsx` |
+
+The one dependency added for all of it is `expo-video` (`~3.0.16`, the SDK 54
+version), which Expo Go bundles. Nothing else needed a new package — the sheet,
+the map and the face overlay are all built on gesture-handler, reanimated and
+expo-image, which the app already had.
 
 ---
 
