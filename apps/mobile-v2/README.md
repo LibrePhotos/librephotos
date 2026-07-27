@@ -132,6 +132,19 @@ wifi/charging-aware upload queue (a table, so it survives restarts) checks
 `/api/exists/{hash}` then uploads via the chunked upload endpoints, sending
 device timestamps so the server can date EXIF-less photos correctly.
 
+**Hashing never downloads.** `getAssetInfoAsync` defaults to
+`shouldDownloadFromNetwork: true`, and on an iPhone with iCloud Photos +
+"Optimise iPhone Storage" that made every md5 pull a multi-megabyte original
+down the wire first — measured at ~1.8 s per photo, against ~10 ms of actual
+hashing. The hash pass now asks with `shouldDownloadFromNetwork: false` (the
+only mode in which iOS populates `isNetworkAsset`) and parks anything not on
+the device as `local_asset.hash_state = 'icloud'`. Those assets are queued for
+upload *unhashed* and sorted last; the upload worker fetches each one once via
+the `materialize` seam, which returns the bytes' md5 so a single download feeds
+the hash, the `/api/exists` dedupe check and the upload. Every iCloud download
+is therefore behind the backup toggle and the Wi-Fi/charging gate, and the
+Backup screen names the state rather than showing a stalled bar.
+
 ### Local database
 
 Drizzle schema, checked-in SQL migrations, and query layer in `src/db/`.
