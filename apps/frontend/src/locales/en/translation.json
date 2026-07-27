@@ -290,7 +290,13 @@
     "settings": "Settings",
     "profile": "Profile",
     "library": "Library",
-    "adminarea": "Admin Area"
+    "adminarea": "Admin Area",
+    "jobs": "My Jobs",
+    "viewalljobs": "View all jobs"
+  },
+  "jobs": {
+    "header": "My Jobs",
+    "myjobs": "Your recent jobs"
   },
   "metadata": "Metadata Options",
   "defaulttimezone": "Default timezone",

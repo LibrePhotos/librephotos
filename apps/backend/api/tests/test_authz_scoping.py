@@ -100,6 +100,63 @@ class JobScopingTest(TestCase):
         self.assertIn(self.bob_job.id, ids)
 
 
+class JobMineParameterTest(TestCase):
+    """?mine backs the per-user jobs view (#1909).
+
+    The parameter exists so that "My Jobs" means the caller's own jobs for every
+    role, including staff. It may only ever narrow the list: for a non-staff
+    caller it must make no difference whatsoever, because their queryset is
+    already confined to themselves and no request input may widen it.
+    """
+
+    def setUp(self):
+        self.alice = create_test_user()
+        self.bob = create_test_user()
+        self.admin = create_test_user(is_admin=True)
+        self.alice_job = LongRunningJob.objects.create(
+            started_by=self.alice,
+            job_id=str(uuid.uuid4()),
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+        )
+        self.admin_job = LongRunningJob.objects.create(
+            started_by=self.admin,
+            job_id=str(uuid.uuid4()),
+            job_type=LongRunningJob.JOB_SCAN_PHOTOS,
+        )
+
+    def _ids(self, user, query=""):
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return {row["id"] for row in _results(client.get(f"/api/jobs/{query}"))}
+
+    def test_mine_narrows_the_list_for_staff(self):
+        self.assertEqual(self._ids(self.admin, "?mine=true"), {self.admin_job.id})
+
+    def test_staff_still_see_everything_without_the_parameter(self):
+        ids = self._ids(self.admin)
+        self.assertIn(self.alice_job.id, ids)
+        self.assertIn(self.admin_job.id, ids)
+
+    def test_staff_mine_false_is_the_global_list(self):
+        self.assertIn(self.alice_job.id, self._ids(self.admin, "?mine=false"))
+
+    def test_non_staff_cannot_widen_their_list_with_mine_false(self):
+        # The flaw this guards: if ?mine were read before the non-staff scoping,
+        # opting out of it would expose every user's jobs.
+        for query in ("?mine=false", "?mine=0", "?mine=", "?mine=TRUE", ""):
+            with self.subTest(query=query):
+                self.assertEqual(
+                    self._ids(self.bob, query),
+                    set(),
+                    "a non-staff caller must never see another user's jobs",
+                )
+
+    def test_non_staff_sees_own_jobs_regardless_of_the_parameter(self):
+        for query in ("?mine=true", "?mine=false", ""):
+            with self.subTest(query=query):
+                self.assertEqual(self._ids(self.alice, query), {self.alice_job.id})
+
+
 class UserProfileExposureTest(TestCase):
     """Finding 3: non-admins must not see other users' private profile fields."""
 

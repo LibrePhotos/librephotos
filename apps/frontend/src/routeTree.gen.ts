@@ -32,6 +32,7 @@ import { Route as ProtectedDeletedRouteImport } from './routes/_protected/delete
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedStatisticsIndexRouteImport } from './routes/_protected/statistics/index'
 import { Route as ProtectedSharingIndexRouteImport } from './routes/_protected/sharing/index'
+import { Route as ProtectedJobsIndexRouteImport } from './routes/_protected/jobs/index'
 import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
 import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
@@ -45,6 +46,7 @@ import { Route as ProtectedSharingLinksRouteImport } from './routes/_protected/s
 import { Route as ProtectedSearchQueryRouteImport } from './routes/_protected/search.$query'
 import { Route as ProtectedPhotoIdRouteImport } from './routes/_protected/photo.$id'
 import { Route as ProtectedOrganizingTabRouteImport } from './routes/_protected/organizing.$tab'
+import { Route as ProtectedJobsIdRouteImport } from './routes/_protected/jobs/$id'
 import { Route as ProtectedAlbumUserIndexRouteImport } from './routes/_protected/album/user.index'
 import { Route as ProtectedAlbumThingsIndexRouteImport } from './routes/_protected/album/things.index'
 import { Route as ProtectedAlbumTagsIndexRouteImport } from './routes/_protected/album/tags.index'
@@ -179,6 +181,11 @@ const ProtectedSharingIndexRoute = ProtectedSharingIndexRouteImport.update({
   path: '/sharing/',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
+const ProtectedJobsIndexRoute = ProtectedJobsIndexRouteImport.update({
+  id: '/jobs/',
+  path: '/jobs/',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
 const ProtectedAlbumIndexRoute = ProtectedAlbumIndexRouteImport.update({
   id: '/album/',
   path: '/album/',
@@ -247,6 +254,11 @@ const ProtectedPhotoIdRoute = ProtectedPhotoIdRouteImport.update({
 const ProtectedOrganizingTabRoute = ProtectedOrganizingTabRouteImport.update({
   id: '/organizing/$tab',
   path: '/organizing/$tab',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedJobsIdRoute = ProtectedJobsIdRouteImport.update({
+  id: '/jobs/$id',
+  path: '/jobs/$id',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedAlbumUserIndexRoute = ProtectedAlbumUserIndexRouteImport.update({
@@ -368,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/videos': typeof ProtectedVideosRoute
   '/public/$users': typeof PublicUsersRoute
   '/password-reset/': typeof PasswordResetIndexRoute
+  '/jobs/$id': typeof ProtectedJobsIdRoute
   '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
@@ -381,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/public/s/$slug': typeof PublicSSlugRoute
   '/admin/': typeof ProtectedAdminIndexRoute
   '/album/': typeof ProtectedAlbumIndexRoute
+  '/jobs/': typeof ProtectedJobsIndexRoute
   '/sharing/': typeof ProtectedSharingIndexRoute
   '/statistics/': typeof ProtectedStatisticsIndexRoute
   '/admin/job/$id': typeof ProtectedAdminJobIdRoute
@@ -422,6 +436,7 @@ export interface FileRoutesByTo {
   '/public/$users': typeof PublicUsersRoute
   '/': typeof ProtectedIndexRoute
   '/password-reset': typeof PasswordResetIndexRoute
+  '/jobs/$id': typeof ProtectedJobsIdRoute
   '/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/photo/$id': typeof ProtectedPhotoIdRoute
   '/search/$query': typeof ProtectedSearchQueryRoute
@@ -435,6 +450,7 @@ export interface FileRoutesByTo {
   '/public/s/$slug': typeof PublicSSlugRoute
   '/admin': typeof ProtectedAdminIndexRoute
   '/album': typeof ProtectedAlbumIndexRoute
+  '/jobs': typeof ProtectedJobsIndexRoute
   '/sharing': typeof ProtectedSharingIndexRoute
   '/statistics': typeof ProtectedStatisticsIndexRoute
   '/admin/job/$id': typeof ProtectedAdminJobIdRoute
@@ -479,6 +495,7 @@ export interface FileRoutesById {
   '/public/$users': typeof PublicUsersRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/password-reset/': typeof PasswordResetIndexRoute
+  '/_protected/jobs/$id': typeof ProtectedJobsIdRoute
   '/_protected/organizing/$tab': typeof ProtectedOrganizingTabRoute
   '/_protected/photo/$id': typeof ProtectedPhotoIdRoute
   '/_protected/search/$query': typeof ProtectedSearchQueryRoute
@@ -492,6 +509,7 @@ export interface FileRoutesById {
   '/public/s/$slug': typeof PublicSSlugRoute
   '/_protected/admin/': typeof ProtectedAdminIndexRoute
   '/_protected/album/': typeof ProtectedAlbumIndexRoute
+  '/_protected/jobs/': typeof ProtectedJobsIndexRoute
   '/_protected/sharing/': typeof ProtectedSharingIndexRoute
   '/_protected/statistics/': typeof ProtectedStatisticsIndexRoute
   '/_protected/admin/job/$id': typeof ProtectedAdminJobIdRoute
@@ -536,6 +554,7 @@ export interface FileRouteTypes {
     | '/videos'
     | '/public/$users'
     | '/password-reset/'
+    | '/jobs/$id'
     | '/organizing/$tab'
     | '/photo/$id'
     | '/search/$query'
@@ -549,6 +568,7 @@ export interface FileRouteTypes {
     | '/public/s/$slug'
     | '/admin/'
     | '/album/'
+    | '/jobs/'
     | '/sharing/'
     | '/statistics/'
     | '/admin/job/$id'
@@ -590,6 +610,7 @@ export interface FileRouteTypes {
     | '/public/$users'
     | '/'
     | '/password-reset'
+    | '/jobs/$id'
     | '/organizing/$tab'
     | '/photo/$id'
     | '/search/$query'
@@ -603,6 +624,7 @@ export interface FileRouteTypes {
     | '/public/s/$slug'
     | '/admin'
     | '/album'
+    | '/jobs'
     | '/sharing'
     | '/statistics'
     | '/admin/job/$id'
@@ -646,6 +668,7 @@ export interface FileRouteTypes {
     | '/public/$users'
     | '/_protected/'
     | '/password-reset/'
+    | '/_protected/jobs/$id'
     | '/_protected/organizing/$tab'
     | '/_protected/photo/$id'
     | '/_protected/search/$query'
@@ -659,6 +682,7 @@ export interface FileRouteTypes {
     | '/public/s/$slug'
     | '/_protected/admin/'
     | '/_protected/album/'
+    | '/_protected/jobs/'
     | '/_protected/sharing/'
     | '/_protected/statistics/'
     | '/_protected/admin/job/$id'
@@ -853,6 +877,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedSharingIndexRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
+    '/_protected/jobs/': {
+      id: '/_protected/jobs/'
+      path: '/jobs'
+      fullPath: '/jobs/'
+      preLoaderRoute: typeof ProtectedJobsIndexRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
     '/_protected/album/': {
       id: '/_protected/album/'
       path: '/album'
@@ -942,6 +973,13 @@ declare module '@tanstack/react-router' {
       path: '/organizing/$tab'
       fullPath: '/organizing/$tab'
       preLoaderRoute: typeof ProtectedOrganizingTabRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/jobs/$id': {
+      id: '/_protected/jobs/$id'
+      path: '/jobs/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof ProtectedJobsIdRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/album/user/': {
@@ -1103,6 +1141,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedStacksRoute: typeof ProtectedStacksRoute
   ProtectedVideosRoute: typeof ProtectedVideosRoute
   ProtectedIndexRoute: typeof ProtectedIndexRoute
+  ProtectedJobsIdRoute: typeof ProtectedJobsIdRoute
   ProtectedOrganizingTabRoute: typeof ProtectedOrganizingTabRoute
   ProtectedPhotoIdRoute: typeof ProtectedPhotoIdRoute
   ProtectedSearchQueryRoute: typeof ProtectedSearchQueryRoute
@@ -1114,6 +1153,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedStatisticsTimelineRoute: typeof ProtectedStatisticsTimelineRoute
   ProtectedStatisticsWordcloudsRoute: typeof ProtectedStatisticsWordcloudsRoute
   ProtectedAlbumIndexRoute: typeof ProtectedAlbumIndexRoute
+  ProtectedJobsIndexRoute: typeof ProtectedJobsIndexRoute
   ProtectedSharingIndexRoute: typeof ProtectedSharingIndexRoute
   ProtectedStatisticsIndexRoute: typeof ProtectedStatisticsIndexRoute
   ProtectedAlbumEventsIdRoute: typeof ProtectedAlbumEventsIdRoute
@@ -1150,6 +1190,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedStacksRoute: ProtectedStacksRoute,
   ProtectedVideosRoute: ProtectedVideosRoute,
   ProtectedIndexRoute: ProtectedIndexRoute,
+  ProtectedJobsIdRoute: ProtectedJobsIdRoute,
   ProtectedOrganizingTabRoute: ProtectedOrganizingTabRoute,
   ProtectedPhotoIdRoute: ProtectedPhotoIdRoute,
   ProtectedSearchQueryRoute: ProtectedSearchQueryRoute,
@@ -1161,6 +1202,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedStatisticsTimelineRoute: ProtectedStatisticsTimelineRoute,
   ProtectedStatisticsWordcloudsRoute: ProtectedStatisticsWordcloudsRoute,
   ProtectedAlbumIndexRoute: ProtectedAlbumIndexRoute,
+  ProtectedJobsIndexRoute: ProtectedJobsIndexRoute,
   ProtectedSharingIndexRoute: ProtectedSharingIndexRoute,
   ProtectedStatisticsIndexRoute: ProtectedStatisticsIndexRoute,
   ProtectedAlbumEventsIdRoute: ProtectedAlbumEventsIdRoute,
