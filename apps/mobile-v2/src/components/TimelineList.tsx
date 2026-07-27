@@ -4,7 +4,7 @@ import { FlashList } from "@shopify/flash-list";
 import { useTranslation } from "react-i18next";
 import { mediaHeaders } from "@librephotos/api-client";
 import { formatDayHeading } from "@/lib/format";
-import { noteInteraction } from "@/sync/activity";
+import { noteScroll } from "@/sync/activity";
 import { PhotoTile, type GridItem } from "./PhotoTile";
 import { useTheme } from "@/theme";
 
@@ -104,7 +104,7 @@ export function TimelineList({
       // momentum, so it keeps the interaction window alive for the whole gesture
       // — unlike a touch-start sniffer, which a native ScrollView never reports
       // for the frames that actually matter.
-      onScroll={() => noteInteraction()}
+      onScroll={() => noteScroll()}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
       extraData={selectionActive}

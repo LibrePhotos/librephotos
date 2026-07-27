@@ -19,7 +19,9 @@ import {
   createAdaptiveYield,
   INTERACTION_WINDOW_MS,
   isInteracting,
+  isScrolling,
   noteInteraction,
+  noteScroll,
   resetActivityForTests,
 } from "../activity";
 
@@ -54,10 +56,28 @@ describe("interaction signal", () => {
 
   it("is cleared when the app goes to the background", () => {
     noteInteraction(1_000);
+    noteScroll(1_000);
     clearInteraction();
     // Backgrounded: the queue's short OS window must not be spent waiting out a
     // touch nobody is making any more.
     expect(isInteracting(1_000)).toBe(false);
+    expect(isScrolling(1_000)).toBe(false);
+  });
+
+  it("does not treat a plain tap as scrolling", () => {
+    // The distinction that keeps tap-to-favourite feeling instant: a tap backs
+    // the sync queue off, but must not defer the live-query flush that shows the
+    // user their own write.
+    noteInteraction(1_000);
+    expect(isInteracting(1_000)).toBe(true);
+    expect(isScrolling(1_000)).toBe(false);
+  });
+
+  it("counts a scroll as an interaction too", () => {
+    noteScroll(1_000);
+    expect(isScrolling(1_000)).toBe(true);
+    expect(isInteracting(1_000)).toBe(true);
+    expect(isScrolling(1_000 + INTERACTION_WINDOW_MS)).toBe(false);
   });
 });
 

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useWindowDimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { mediaHeaders } from "@librephotos/api-client";
-import { noteInteraction } from "@/sync/activity";
+import { noteScroll } from "@/sync/activity";
 import { PhotoTile, type GridItem } from "./PhotoTile";
 
 export type { GridItem } from "./PhotoTile";
@@ -51,7 +51,7 @@ export function MirrorGrid({
       keyExtractor={(item) => item.key}
       // Same back-off signal as the timeline: scrolling any photo grid tells the
       // sync queue to get out of the way (see sync/activity).
-      onScroll={() => noteInteraction()}
+      onScroll={() => noteScroll()}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.6}
       extraData={selectionActive}

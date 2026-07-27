@@ -39,18 +39,39 @@ export const DEFAULT_BUSY_SLICE_MS = 100;
 export const DEFAULT_MAX_HOLD_MS = 1_500;
 
 let lastInteractionAt = 0;
+let lastScrollAt = 0;
 
 /**
- * Record a user interaction. Cheap by design — it is called from scroll handlers
- * that fire many times a second, so it does nothing but stamp a number.
+ * Record a user interaction — any touch. Cheap by design: it is called from
+ * handlers that fire many times a second, so it does nothing but stamp a number.
  */
 export function noteInteraction(now: number = Date.now()): void {
+  lastInteractionAt = now;
+}
+
+/**
+ * Record a *scroll*, which is an interaction and then some.
+ *
+ * The two are tracked separately on purpose. Backing background work off is
+ * right for any touch, but holding a live-query re-run back is only right while
+ * the content is moving: a tap that favourites a photo is itself a write, and
+ * deferring its flush would leave the user's own action un-reflected for a
+ * second. Scrolling is the one case where re-querying actively hurts, because it
+ * reflows the list under their finger.
+ */
+export function noteScroll(now: number = Date.now()): void {
+  lastScrollAt = now;
   lastInteractionAt = now;
 }
 
 /** True while the user is (or has just been) touching the app. */
 export function isInteracting(now: number = Date.now()): boolean {
   return lastInteractionAt > 0 && now - lastInteractionAt < INTERACTION_WINDOW_MS;
+}
+
+/** True while content is (or has just been) moving under the user's finger. */
+export function isScrolling(now: number = Date.now()): boolean {
+  return lastScrollAt > 0 && now - lastScrollAt < INTERACTION_WINDOW_MS;
 }
 
 /**
@@ -60,11 +81,12 @@ export function isInteracting(now: number = Date.now()): boolean {
  */
 export function clearInteraction(): void {
   lastInteractionAt = 0;
+  lastScrollAt = 0;
 }
 
 /** Test seam. */
 export function resetActivityForTests(): void {
-  lastInteractionAt = 0;
+  clearInteraction();
 }
 
 export type AdaptiveYieldOptions = {
