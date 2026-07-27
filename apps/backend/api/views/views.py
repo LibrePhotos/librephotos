@@ -773,6 +773,61 @@ class UnifiedMediaAccessView(APIView):
             Q(share__expires_at__isnull=True) | Q(share__expires_at__gte=timezone.now())
         )
 
+    def _resolve_requester(self, jwt):
+        """Return ``(user, token_valid)`` for the value of the ``jwt`` cookie.
+
+        ``user`` is None both when there is no usable token and when the token
+        names a user that no longer exists, so callers must not assume a valid
+        token yields a user.
+        """
+        if jwt is None:
+            return None, False
+        try:
+            token = AccessToken(jwt)
+        except TokenError:
+            return None, False
+        user = (
+            User.objects.filter(id=token["user_id"])
+            .only("id", "transcode_videos")
+            .first()
+        )
+        return user, True
+
+    def _pick_visible_photo(self, photos, user):
+        """Choose which row a shared ``image_hash`` resolves to.
+
+        ``Photo.image_hash`` is meant to be unique per user, but two users who
+        scan the same file end up sharing one: ``File.create()`` returns the
+        existing row for a path already on disk, so the second user's Photo
+        inherits the first scanner's hash. Falling back to an arbitrary row
+        then denies an owner access to their own photo, so prefer a row the
+        requester can actually see.
+        """
+        candidates = list(photos)
+        if not candidates:
+            return None
+        if user is not None:
+            for p in candidates:
+                if p.owner_id == user.id:
+                    return p
+            for p in candidates:
+                if p.shared_to.filter(id=user.id).exists():
+                    return p
+        for p in candidates:
+            if p.albumuser_set.filter(self._public_album_active_q()).exists():
+                return p
+        return candidates[0]
+
+    def _may_access(self, photo, user):
+        """Whether `user` may fetch `photo`: owner, direct share, or via album."""
+        if user is None:
+            return False
+        if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
+            return True
+        return photo.albumuser_set.filter(
+            self._public_album_active_q() | Q(shared_to=user)
+        ).exists()
+
     def get(self, request, path, fname, album_id=None, format=None):
         use_proxy = self._should_use_proxy()
 
@@ -913,6 +968,10 @@ class UnifiedMediaAccessView(APIView):
 
         # Non-photos (thumbnails, faces, etc.)
         if path.lower() != "photos":
+            # Resolved up front so that a hash shared by several Photo rows can
+            # be resolved in the requester's favour.
+            user, token_valid = self._resolve_requester(request.COOKIES.get("jwt"))
+
             # Try UUID lookup first (for new-style requests after migration 0099),
             # then fall back to image_hash lookup (for legacy/backward compatibility)
             is_uuid_format = len(image_hash) == 36 and image_hash.count("-") == 4
@@ -924,38 +983,21 @@ class UnifiedMediaAccessView(APIView):
             except Photo.DoesNotExist:
                 return HttpResponse(status=404)
             except Photo.MultipleObjectsReturned:
-                # Multiple photos with same hash - find one that matches permissions
-                photos = Photo.objects.filter(image_hash=image_hash)
-                photo = None
-                # First try to find one in a public album
-                for p in photos:
-                    if p.albumuser_set.filter(self._public_album_active_q()).exists():
-                        photo = p
-                        break
-                # If none found, we'll check user permissions below
+                photo = self._pick_visible_photo(
+                    Photo.objects.filter(image_hash=image_hash), user
+                )
                 if photo is None:
-                    photo = photos.first()
+                    return HttpResponse(status=404)
 
             if photo.albumuser_set.filter(self._public_album_active_q()).exists():
                 if use_proxy:
                     return self._generate_response_proxy(photo, path, fname, False)
                 return self._generate_response_direct(photo, path, fname, False)
 
-            jwt = request.COOKIES.get("jwt")
-            if jwt is not None:
-                try:
-                    token = AccessToken(jwt)
-                except TokenError:
-                    return HttpResponseForbidden()
-            else:
+            if not token_valid:
                 return HttpResponseForbidden()
 
-            user = (
-                User.objects.filter(id=token["user_id"])
-                .only("id", "transcode_videos")
-                .first()
-            )
-            if photo.owner == user or user in photo.shared_to.all():
+            if self._may_access(photo, user):
                 if use_proxy:
                     return self._generate_response_proxy(
                         photo, path, fname, user.transcode_videos
@@ -963,64 +1005,37 @@ class UnifiedMediaAccessView(APIView):
                 return self._generate_response_direct(
                     photo, path, fname, user.transcode_videos
                 )
-            else:
-                for album in photo.albumuser_set.only("shared_to", "public"):
-                    if getattr(album, "public", False) or user in album.shared_to.all():
-                        if use_proxy:
-                            return self._generate_response_proxy(
-                                photo, path, fname, user.transcode_videos
-                            )
-                        return self._generate_response_direct(
-                            photo, path, fname, user.transcode_videos
-                        )
             return HttpResponse(status=404)
 
         # Original photos (path == photos)
+        user, token_valid = self._resolve_requester(request.COOKIES.get("jwt"))
+
         try:
             photo = Photo.objects.get(image_hash=image_hash)
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
         except Photo.MultipleObjectsReturned:
-            # Multiple photos with same hash - find one that matches permissions
-            photos = Photo.objects.filter(image_hash=image_hash)
-            photo = None
-            # First try to find one in a public album
-            for p in photos:
-                if p.albumuser_set.filter(self._public_album_active_q()).exists():
-                    photo = p
-                    break
-            # If none found, we'll check user permissions below
+            photo = self._pick_visible_photo(
+                Photo.objects.filter(image_hash=image_hash), user
+            )
             if photo is None:
-                photo = photos.first()
+                return HttpResponse(status=404)
 
         if photo.albumuser_set.filter(self._public_album_active_q()).exists():
             return self._generate_response_original(photo, use_proxy, False)
 
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                return HttpResponseForbidden()
-        else:
+        if not token_valid:
             return HttpResponseForbidden()
 
-        user = (
-            User.objects.filter(id=token["user_id"])
-            .only("id", "transcode_videos")
-            .first()
-        )
         transcode_videos = user is not None and user.transcode_videos
-        if photo.owner == user or user in photo.shared_to.all():
+        if user is not None and (
+            photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists()
+        ):
             return self._generate_response_original(
                 photo, use_proxy, transcode_videos, inline=True
             )
-        else:
-            for album in photo.albumuser_set.only("shared_to", "public"):
-                if getattr(album, "public", False) or user in album.shared_to.all():
-                    return self._generate_response_original(
-                        photo, use_proxy, transcode_videos
-                    )
+        if self._may_access(photo, user):
+            return self._generate_response_original(photo, use_proxy, transcode_videos)
         return HttpResponse(status=404)
 
 
