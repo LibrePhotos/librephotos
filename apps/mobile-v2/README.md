@@ -36,6 +36,52 @@ reseed on drift. The mirror is disposable — a reseed is always a safe recovery
 See [03-sync-engine.md](../../plans/mobile-v2/03-sync-engine.md) and the backend
 contract in [04-backend-sync-api.md](../../plans/mobile-v2/04-backend-sync-api.md).
 
+### The job queue (`src/sync/jobs/`)
+
+Sync is **driven by a durable, SQLite-backed job queue**, not by a sequence of
+awaits. This is load-bearing, and the reasons are worth knowing before changing
+it — the previous design was a strict chain (outbox → remote delta → device
+scan → hashing → uploads → thumbs), and on a real 2867-photo library it failed
+three ways at once: hashing stalled behind a full camera-roll enumeration,
+uploads never began because they sat last behind the slowest steps, and the only
+record of progress was the JS call stack, so a reload restarted everything.
+
+- **`job_queue` table** — `kind`, `payload`, `state`
+  (`pending|running|done|failed`), `priority`, `attempts`, `next_attempt_at`,
+  `last_error`. Shaped like the `outbox` and `upload_queue` tables that already
+  worked this way. A **partial unique index** on `dedupe_key` over
+  `(pending|running)` makes re-enqueuing the same work a no-op, so the triggers
+  can fire as often as they like.
+- **Job kinds**, each sized to finish *well under a second*: `outbox_replay`,
+  `reseed_check`, `remote_delta` (one page), `device_scan` (one chunk of ~400
+  assets), `hash_batch` (~50 md5s), `upload_asset` (one photo),
+  `thumb_prefetch`, `integrity_check`. If a unit can exceed a second, split it —
+  that budget is what keeps the UI responsive and makes an interrupted run cheap.
+- **Worker** (`jobs/worker.ts`) — claims the next eligible job inside a
+  transaction (so a claim is exclusive), runs it, records the outcome, applies
+  whatever the job chained, yields a macrotask, repeats. Concurrency is a
+  constant, currently 1.
+- **Boot reclaim** — a `running` row can only be residue from a killed process,
+  so the first worker start of a process reverts them all to `pending`, with the
+  attempt refunded.
+- **Priorities**: `outbox_replay` (10) < `reseed_check` (15) < `remote_delta`
+  (20) < the background band (60) < `thumb_prefetch` (90) < `integrity_check`
+  (95). **`device_scan`, `hash_batch` and `upload_asset` deliberately share
+  priority 60.** Each enqueues its own continuation, so distinct priorities
+  would let the best-ranked one monopolise the worker — the strict chain
+  re-implemented in data. Sharing one priority makes the tie-break insertion
+  order, so the three round-robin and uploads begin *while* hashing runs.
+- **Chaining**: a `device_scan` chunk enqueues the next chunk plus a
+  `hash_batch`; a `hash_batch` opens an `upload_asset` window over whatever it
+  just made uploadable plus its own continuation. Nothing waits for a
+  predecessor to *finish*, only for it to *produce something*.
+
+`syncAll()` enqueues and drains; `runSync`, `runBackupNow`, `repairSync`,
+`cancelSync` and the triggers are unchanged for callers. The regression tests
+live in `src/sync/jobs/__tests__/chaining.test.ts` and
+`src/sync/__tests__/pipeline.test.ts` — they pin resume-after-reload and
+uploads-during-hashing, so read them before touching the chaining rules.
+
 ### Outbox (offline mutations)
 
 Mutations (favorite, hide, trash/restore, rating, album add/remove, caption,

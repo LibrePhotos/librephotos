@@ -196,6 +196,12 @@ export type RunSyncOptions = {
   userId?: number | null;
   reason: SyncReason;
   signal?: AbortSignal;
+  /**
+   * Cap on jobs processed in this drain. The OS background window is short and
+   * unpredictable, so the background task passes one: whatever prefix completes
+   * is durable, and the rest stays queued for the next window.
+   */
+  maxJobs?: number;
 };
 
 /** Run a full sync (single-flight in the orchestrator), updating the UI store. */
@@ -206,6 +212,7 @@ export async function runSync(db: AppDatabase, opts: RunSyncOptions): Promise<Sy
       ...appSeams(opts.userId),
       reason: opts.reason,
       signal: opts.signal,
+      maxJobs: opts.maxJobs,
       onWorkerProgress: () => publishQueue(db),
     });
     useSyncStore.getState().setResult(result);
@@ -228,16 +235,14 @@ export async function runSync(db: AppDatabase, opts: RunSyncOptions): Promise<Sy
 export async function runBackupNow(
   db: AppDatabase,
   userId?: number | null,
-  opts: { uploadBudget?: number } = {}
+  opts: { maxJobs?: number } = {}
 ) {
   useSyncStore.getState().setRunning(true, "manual");
   try {
     await syncBackupOnly(db, getSource(), {
       ...appSeams(userId),
       reason: "manual",
-      // The OS background window is short: cap the jobs so any prefix is useful
-      // and the pass returns rather than being killed mid-upload.
-      maxJobs: opts.uploadBudget != null ? opts.uploadBudget * 4 : undefined,
+      maxJobs: opts.maxJobs,
       onWorkerProgress: () => publishQueue(db),
     });
   } catch (err) {
