@@ -252,6 +252,20 @@ describe("job_queue: retry + backoff", () => {
     expect(row.last_error).toBeNull();
   });
 
+  it("retryFailedJobs collapses two failures that share a dedupe key", () => {
+    // The same work can die terminally in two different sessions, leaving two
+    // `failed` rows with one key. Reviving both would violate the one-live-row
+    // guarantee the partial unique index enforces — so only the newest returns.
+    const older = enqueueJob(t.db, { kind: "hash_batch" })!;
+    failJob(t.db, { id: claimNextJob(t.db, 1_000)!.id, attempts: MAX_JOB_ATTEMPTS }, "a", 1_000);
+    const newer = enqueueJob(t.db, { kind: "hash_batch" })!;
+    failJob(t.db, { id: claimNextJob(t.db, 2_000)!.id, attempts: MAX_JOB_ATTEMPTS }, "b", 2_000);
+
+    expect(() => retryFailedJobs(t.db)).not.toThrow();
+    expect(getJob(t.db, older)).toBeNull();
+    expect(getJob(t.db, newer)!.state).toBe("pending");
+  });
+
   it("retryFailedJobs drops a failure whose work has already been re-requested", () => {
     const stale = enqueueJob(t.db, { kind: "hash_batch" })!;
     const job = claimNextJob(t.db, 1_000)!;

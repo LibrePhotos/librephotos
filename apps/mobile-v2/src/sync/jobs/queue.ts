@@ -191,13 +191,21 @@ export function retryFailedJobs(db: AppDatabase, kind?: JobKind): number {
     }
   ).c;
   if (n === 0) return 0;
-  // A failed row may collide with a live row carrying the same dedupe key (the
-  // work was already re-requested). Drop those instead of resurrecting them —
-  // the live row is the newer, better copy.
+  // Reviving must not violate the one-live-row-per-key guarantee, and there are
+  // two ways it could:
+  //
+  //   1. a live row already carries the key (the work was re-requested since) —
+  //      that row is the newer, better copy, so drop the failure;
+  //   2. two failures share the key (the same work died terminally in two
+  //      different sessions) — keep only the most recent.
   db.run(
     sql`DELETE FROM job_queue WHERE state = 'failed'${kindFilter}
         AND EXISTS (SELECT 1 FROM job_queue live
                     WHERE live.dedupe_key = job_queue.dedupe_key AND live.state IN ('pending', 'running'))`
+  );
+  db.run(
+    sql`DELETE FROM job_queue WHERE state = 'failed'${kindFilter}
+        AND id NOT IN (SELECT MAX(id) FROM job_queue WHERE state = 'failed' GROUP BY dedupe_key)`
   );
   db.run(
     sql`UPDATE job_queue
