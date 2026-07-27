@@ -14,9 +14,16 @@ import { runMigrations } from "./migrate";
 import { DbProvider, type DbChangeSubscribe } from "./provider";
 import type { AppDatabase } from "./types";
 
-function makeSubscribe(sqlite: SQLiteDatabase): DbChangeSubscribe {
+/**
+ * Bridge expo-sqlite's change events to the provider's `subscribe` contract.
+ *
+ * This is `sqlite3_update_hook` underneath, so it fires once per changed ROW.
+ * The table name is forwarded so the hub can skip queries that do not read it;
+ * the coalescing itself happens in db/live-query, not here.
+ */
+function makeSubscribe(_sqlite: SQLiteDatabase): DbChangeSubscribe {
   return (listener) => {
-    const sub = addDatabaseChangeListener(() => listener());
+    const sub = addDatabaseChangeListener((event) => listener(event.tableName));
     return () => sub.remove();
   };
 }
