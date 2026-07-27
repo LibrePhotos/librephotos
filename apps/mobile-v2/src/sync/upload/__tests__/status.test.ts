@@ -153,4 +153,47 @@ describe("backupState", () => {
     expect(state.blocker).toBeNull();
     expect(state.stage.kind).toBe("up_to_date");
   });
+  /* -- iCloud: photos that are not on the phone at all ------------------- */
+
+  it("counts iCloud-parked assets separately from ones awaiting the hasher", () => {
+    seedSelected(t, 1, 0); // a0: selected, un-hashed, readable
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('cam', 'cloud')`);
+
+    const counts = stateOf(t).counts;
+    // Folding these together is what would produce a hash bar that never
+    // reaches its total on a phone using "Optimise iPhone Storage".
+    expect(counts).toMatchObject({ selected: 2, awaitingHash: 1, awaitingRemote: 1 });
+  });
+
+  it("names the iCloud wait rather than claiming to be up to date", () => {
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
+    setBackupConfig(t.db, { enabled: true });
+
+    const state = stateOf(t);
+    expect(state.stage).toEqual({ kind: "icloud", pending: 1 });
+    expect(state.blocker).toBeNull(); // waiting on a download is not a fault
+  });
+
+  it("does not call a queue of iCloud-only assets 'ready to upload'", () => {
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
+    t.db.run(
+      sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+          VALUES ('cloud', 'pending', 0, 0, 1)`
+    );
+    expect(stateOf(t).stage).toEqual({ kind: "icloud", pending: 1 });
+  });
+
+  it("still reports locally-ready uploads while iCloud assets queue behind them", () => {
+    seedSelected(t, 1, 1); // a0 is hashed and ready
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('cam', 'cloud')`);
+    t.db.run(
+      sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+          VALUES ('a0', 'pending', 0, 0, 1), ('cloud', 'pending', 0, 0, 2)`
+    );
+    expect(stateOf(t).stage).toEqual({ kind: "waiting", pending: 1 });
+  });
 });

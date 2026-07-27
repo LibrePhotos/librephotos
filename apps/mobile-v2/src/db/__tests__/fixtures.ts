@@ -57,13 +57,16 @@ export function insertLocalAsset(
     width?: number;
     height?: number;
     uri?: string;
+    /** `'icloud'` for an asset the hash pass parked (bytes not on the device). */
+    hashState?: string | null;
   }
 ): void {
   db.run(
-    sql`INSERT INTO local_asset (id, name, type, created_at, modified_at, width, height, uri, hash, hashed_at)
+    sql`INSERT INTO local_asset (id, name, type, created_at, modified_at, width, height, uri, hash, hashed_at, hash_state)
         VALUES (${args.id}, ${args.id}, ${args.type ?? "image"}, ${args.createdAt ?? Date.UTC(2024, 0, 1)},
                 ${args.createdAt ?? Date.UTC(2024, 0, 1)}, ${args.width ?? 100}, ${args.height ?? 100},
-                ${args.uri ?? `ph://${args.id}`}, ${args.hash ?? null}, ${args.hash ? Date.now() : null})`
+                ${args.uri ?? `ph://${args.id}`}, ${args.hash ?? null}, ${args.hash ? Date.now() : null},
+                ${args.hashState ?? null})`
   );
 }
 

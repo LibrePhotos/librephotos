@@ -156,4 +156,52 @@ describe("BackupScreen", () => {
       expect(getByTestId("backup-retry-button")).toBeTruthy();
     });
   });
+  it("says how many photos are in iCloud rather than stalling silently", async () => {
+    // The state a phone on "Optimise iPhone Storage" spends most of its time
+    // in: hashing has done everything it can without downloading, and the rest
+    // is simply not on the device. That has to be a sentence, not a stuck bar.
+    setMediaAccess(t.db, "all");
+    setBackupConfig(t.db, { enabled: true });
+    insertLocalAsset(t.db, { id: "here", hash: "h1" });
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["here", "cloud"] });
+
+    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await waitFor(() => {
+      expect(getByTestId("backup-icloud").props.children).toContain("iCloud");
+      expect(getByTestId("backup-stage").props.children).toContain("iCloud");
+    });
+  });
+
+  it("keeps quiet about iCloud when every photo is on the device", async () => {
+    setMediaAccess(t.db, "all");
+    setBackupConfig(t.db, { enabled: true });
+    insertLocalAsset(t.db, { id: "here", hash: "h1" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["here"] });
+
+    const { queryByTestId, getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await waitFor(() => expect(getByTestId("backup-title")).toBeTruthy());
+    expect(queryByTestId("backup-icloud")).toBeNull();
+  });
+
+  it("un-parks iCloud-deferred assets when the user retries", async () => {
+    setMediaAccess(t.db, "all");
+    setBackupConfig(t.db, { enabled: true });
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
+    t.db.run(
+      sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
+          VALUES ('cloud', 'failed', 0, 1, 1000)`
+    );
+
+    const { getByTestId } = renderWithDb(<BackupScreen />, t.db);
+    await waitFor(() => expect(getByTestId("backup-retry-button")).toBeTruthy());
+    fireEvent.press(getByTestId("backup-retry-button"));
+
+    // Retry is also how a user says "I turned Optimise iPhone Storage off".
+    const row = t.db.get(sql`SELECT hash_state FROM local_asset WHERE id = 'cloud'`) as {
+      hash_state: string | null;
+    };
+    expect(row.hash_state).toBeNull();
+  });
 });

@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { insertLocalAlbum, insertLocalAsset, seedRemotePhotos, remotePhoto } from "@/db/__tests__/fixtures";
 import { enqueueBackups, nextEligible, markFailed, queueSummary, MAX_ATTEMPTS } from "../queue";
+import { enqueueUploadWindow } from "@/sync/jobs/handlers";
 
 function queuedIds(t: TestDb): string[] {
   return (t.db.all(sql`SELECT asset_id FROM upload_queue ORDER BY asset_id`) as { asset_id: string }[]).map(
@@ -67,5 +68,34 @@ describe("upload queue enqueue rule", () => {
     for (let i = 0; i < MAX_ATTEMPTS; i++) markFailed(t.db, "a1", "boom", 1_000, 1);
     expect(nextEligible(t.db, 10_000_000)).toBeNull();
     expect(queueSummary(t.db).failed).toBe(1);
+  });
+  /* -- iCloud-parked assets are still the user's photos ------------------ */
+
+  it("enqueues a selected iCloud-only asset even though it has no hash", () => {
+    // Refusing these would silently drop most of the library on any iPhone
+    // using "Optimise iPhone Storage" — the exact configuration this whole
+    // change exists for. The worker fetches and hashes them on the way out.
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    // …but an asset with no hash and no reason recorded is not ready for
+    // anything: it has simply not been looked at yet.
+    insertLocalAsset(t.db, { id: "untouched", hash: null });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud", "untouched"] });
+
+    expect(enqueueBackups(t.db, 1_000)).toBe(1);
+    expect(queuedIds(t)).toEqual(["cloud"]);
+  });
+
+  it("opens the upload window on local assets before iCloud ones", () => {
+    // The iCloud asset is enqueued FIRST, so FIFO alone would put it in front
+    // and park the serial queue on a download while ready photos waited.
+    insertLocalAsset(t.db, { id: "cloud", hash: null, hashState: "icloud" });
+    insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["cloud"] });
+    enqueueBackups(t.db, 1_000);
+    insertLocalAsset(t.db, { id: "local", hash: "h-local" });
+    t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('cam', 'local')`);
+    enqueueBackups(t.db, 2_000);
+
+    const window = enqueueUploadWindow(t.db, 3_000);
+    expect(window.map((j) => (j.payload as { assetId: string }).assetId)).toEqual(["local", "cloud"]);
   });
 });
