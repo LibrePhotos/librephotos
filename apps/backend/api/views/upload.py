@@ -52,6 +52,51 @@ def parse_device_timestamp(raw):
     return parsed
 
 
+def _bearer_token(request):
+    """Extract the raw JWT from an ``Authorization: Bearer <token>`` header."""
+    header = request.META.get("HTTP_AUTHORIZATION") or ""
+    prefix = "bearer "
+    if header.lower().startswith(prefix):
+        token = header[len(prefix) :].strip()
+        return token or None
+    return None
+
+
+def authenticate_upload_request(request):
+    """Resolve the uploading user for the chunked-upload views.
+
+    These views predate the mobile client and read the JWT from a ``jwt``
+    cookie, which is a browser-ism: React Native's ``fetch`` cannot reliably set
+    a ``Cookie`` header (on iOS ``NSURLSession`` owns the cookie store and drops
+    it), so a native client had to forge a cookie that never arrived and every
+    ``/api/upload/complete/`` answered 403.
+
+    The header is therefore checked first and the cookie kept as a fallback, so
+    the web frontend is unaffected. Raises ``ChunkedUploadError`` (403) when no
+    usable credential is present.
+    """
+    raw = _bearer_token(request) or request.COOKIES.get("jwt")
+    if not raw:
+        raise ChunkedUploadError(
+            status=http_status.HTTP_403_FORBIDDEN,
+            detail="Authentication credentials were not provided",
+        )
+    try:
+        token = AccessToken(raw)
+    except TokenError:
+        raise ChunkedUploadError(
+            status=http_status.HTTP_403_FORBIDDEN,
+            detail="Authentication credentials were invalid",
+        )
+    user = User.objects.filter(id=token["user_id"]).first()
+    if not user or not user.is_authenticated:
+        raise ChunkedUploadError(
+            status=http_status.HTTP_403_FORBIDDEN,
+            detail="Authentication credentials were not provided",
+        )
+    return user
+
+
 def generate_captions_wrapper(photo, commit=True):
     """Wrapper function to generate captions for use in chain"""
     caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
@@ -80,27 +125,8 @@ class UploadPhotosChunked(ChunkedUploadView):
                 status=http_status.HTTP_403_FORBIDDEN,
                 detail="Uploading is not allowed",
             )
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                raise ChunkedUploadError(
-                    status=http_status.HTTP_403_FORBIDDEN,
-                    detail="Authentication credentials were invalid",
-                )
-        else:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
         # To-Do: Check if file is allowed type
-        user = User.objects.filter(id=token["user_id"]).first()
-        if not user or not user.is_authenticated:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
+        authenticate_upload_request(request)
 
     def create_chunked_upload(self, save=False, **attrs):
         """Creates new chunked upload instance. Called if no 'upload_id' is
@@ -122,49 +148,10 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 status=http_status.HTTP_403_FORBIDDEN,
                 detail="Uploading is not allowed",
             )
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                raise ChunkedUploadError(
-                    status=http_status.HTTP_403_FORBIDDEN,
-                    detail="Authentication credentials were invalid",
-                )
-        else:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
-        user = User.objects.filter(id=token["user_id"]).first()
-        if not user or not user.is_authenticated:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
+        authenticate_upload_request(request)
 
     def on_completion(self, uploaded_file, request):
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                raise ChunkedUploadError(
-                    status=http_status.HTTP_403_FORBIDDEN,
-                    detail="Authentication credentials were invalid",
-                )
-        else:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
-
-        user = User.objects.filter(id=token["user_id"]).first()
-        if not user or not user.is_authenticated:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
+        user = authenticate_upload_request(request)
 
         # Validate that user has a configured scan directory
         if not user.scan_directory or user.scan_directory.strip() == "":
@@ -184,6 +171,10 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             chunked_upload = get_object_or_404(
                 ChunkedUpload, upload_id=request.POST.get("upload_id")
             )
+            # Release our handle on the staged file before removing it; a
+            # still-open handle makes the delete fail outright on Windows and
+            # leaks a descriptor everywhere else.
+            uploaded_file.close()
             chunked_upload.delete(delete_file=True)
             raise ChunkedUploadError(
                 status=http_status.HTTP_400_BAD_REQUEST,
@@ -243,6 +234,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
         chunked_upload = get_object_or_404(
             ChunkedUpload, upload_id=request.POST.get("upload_id")
         )
+        uploaded_file.close()
         chunked_upload.delete(delete_file=True)
 
         if not photo_path:
