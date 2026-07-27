@@ -350,7 +350,10 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
     /* -- 7. grid thumbnails for the freshly-pulled timeline --------------- */
     thumb_prefetch: async (ctx): Promise<JobOutcome> => {
       if (!seams.prefetchThumbs) return;
-      const result = await seams.prefetchThumbs(ctx, budgets.thumbs ?? THUMB_BATCH);
+      const budget = budgets.thumbs ?? sizer.budgetFor("thumb_prefetch") ?? THUMB_BATCH;
+      const startedAt = Date.now();
+      const result = await seams.prefetchThumbs(ctx, budget);
+      if (budgets.thumbs == null) sizer.observe("thumb_prefetch", Date.now() - startedAt);
       return {
         note: result.fetched > 0 ? `prefetched ${result.fetched}` : undefined,
         enqueue: result.more ? [{ kind: "thumb_prefetch" }] : [],

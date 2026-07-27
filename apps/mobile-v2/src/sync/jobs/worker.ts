@@ -15,8 +15,15 @@
  *   - **cancellation**   — an AbortSignal stops the loop between jobs *and* is
  *                          handed to the handler, and the in-flight job is
  *                          released (not failed) so backgrounding costs nothing.
- *   - **yielding**       — a macrotask between jobs, so React can commit and the
- *                          timeline keeps painting during a 2867-photo scan.
+ *   - **yielding**       — a hook between jobs, so React can commit and the
+ *                          timeline keeps painting during a 2867-photo scan. The
+ *                          default is a bare macrotask; the app injects the
+ *                          adaptive yield from sync/activity, which additionally
+ *                          backs the whole pipeline off while the user is
+ *                          touching the screen.
+ *   - **timing**         — every settled job's duration is recorded, per kind,
+ *                          so an oversized unit of work is visible in an
+ *                          exported sync log instead of only on a device.
  *
  * Pure: handlers are injected, so the whole thing runs under Node against
  * better-sqlite3 with fakes.
@@ -102,6 +109,13 @@ export type WorkerStats = {
   byKind: Partial<Record<JobKind, number>>;
   /** Longest single job in this drain (ms) — the responsiveness metric. */
   slowest: number;
+  /**
+   * Longest single job *per kind* (ms). The per-job log rows are a 500-row ring
+   * that thousands of hash and upload jobs scroll away in seconds, so this is
+   * what actually answers "which unit of work is oversized on this phone" from
+   * one surviving summary row.
+   */
+  slowestByKind: Partial<Record<JobKind, number>>;
   stoppedReason: "drained" | "cancelled" | "budget";
 };
 
@@ -147,6 +161,7 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
     deleted: 0,
     byKind: {},
     slowest: 0,
+    slowestByKind: {},
     stoppedReason: "drained",
   };
 
@@ -192,6 +207,26 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
   return stats;
 }
 
+/** Fold one job's wall time into the drain's responsiveness metrics. */
+function recordDuration(stats: WorkerStats, kind: JobKind, durationMs: number): void {
+  stats.slowest = Math.max(stats.slowest, durationMs);
+  stats.slowestByKind[kind] = Math.max(stats.slowestByKind[kind] ?? 0, durationMs);
+}
+
+/**
+ * Render the per-kind worst case as one compact line, worst first. This is the
+ * diagnostic the maintainer reads off an exported sync log to see which unit of
+ * work is too big on their device — see {@link WorkerStats.slowestByKind}.
+ */
+export function formatSlowestByKind(stats: WorkerStats): string {
+  const entries = Object.entries(stats.slowestByKind) as [JobKind, number][];
+  if (entries.length === 0) return "none";
+  return entries
+    .sort((a, b) => b[1] - a[1])
+    .map(([kind, ms]) => `${kind} ${ms}ms`)
+    .join(", ");
+}
+
 async function runOne(
   db: AppDatabase,
   job: JobRow,
@@ -229,7 +264,7 @@ async function runOne(
     stats.byKind[job.kind] = (stats.byKind[job.kind] ?? 0) + 1;
 
     const durationMs = Date.now() - started;
-    stats.slowest = Math.max(stats.slowest, durationMs);
+    recordDuration(stats, job.kind, durationMs);
     if (outcome) {
       stats.applied += outcome.applied ?? 0;
       stats.deleted += outcome.deleted ?? 0;
@@ -267,7 +302,7 @@ async function runOne(
     const message = err instanceof Error ? err.message : String(err);
     const outcome = failJob(db, job, message, now());
     stats.failed += 1;
-    stats.slowest = Math.max(stats.slowest, Date.now() - started);
+    recordDuration(stats, job.kind, Date.now() - started);
     log({
       op: "job",
       entity: job.kind,

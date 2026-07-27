@@ -34,7 +34,7 @@ import type { RemoteSyncSource } from "./remote/source";
 import { SyncAbortedError, type PullOptions, type SyncProgress } from "./remote/delta";
 import type { IntegrityReport } from "./integrity";
 import { enqueueJobs, clearJobs } from "./jobs/queue";
-import { runWorker, type WorkerStats } from "./jobs/worker";
+import { formatSlowestByKind, runWorker, type WorkerStats } from "./jobs/worker";
 import {
   backupJobs,
   createJobHandlers,
@@ -228,11 +228,12 @@ async function drain(
     applied: stats.applied,
     deleted: stats.deleted,
     durationMs: result.durationMs,
-    // `slowest` is the responsiveness number: however long the whole drain took,
-    // what the user actually feels is the longest single job in it.
+    // The responsiveness numbers, in the one row that outlives the per-job rows:
+    // however long the whole drain took, what the user feels is the longest
+    // single job in it, and which kind that was.
     message:
-      `done:${reason} — ${stats.processed} job(s), ${stats.failed} failed, ` +
-      `slowest job ${stats.slowest}ms`,
+      `done:${reason} — ${stats.processed} job(s), ${stats.failed} failed; ` +
+      `slowest ${formatSlowestByKind(stats)}`,
   });
   return result;
 }
