@@ -1,14 +1,22 @@
 /**
  * Sync status screen (doc 03 §8) — Settings → Sync status. Shows, live:
+ *   - the **work queue**: what is running now, how deep each kind is, and every
+ *     failure with its own reason
+ *   - the **pipeline**: each stage's progress against a real, fixed total
  *   - per-entity cursor / last-run / progress table (from sync_state)
  *   - local mirror counts (from the mirror tables)
- *   - a live progress bar for the in-flight run (from the sync UI store)
  *   - the structured sync log (ring buffer), with an "export logs" action
  *   - a "Repair sync" button (wipe + reseed)
  *
- * Everything is read from SQLite via live queries, so the table updates as the
- * sync writes pages. `run.ts` (which imports app singletons) is loaded lazily on
- * button press, keeping this component's static module graph test-friendly.
+ * The first two sections are the answer to the question the device run could
+ * not answer: *which stage is running, how far along is it, and what is
+ * blocking it.* Under the old sequential driver none of that was observable —
+ * the pipeline's only state was the JS call stack.
+ *
+ * Everything is read from SQLite via live queries, so the tables update as the
+ * worker settles each job. `run.ts` (which imports app singletons) is loaded
+ * lazily on button press, keeping this component's static module graph
+ * test-friendly.
  */
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Share, Text, View } from "react-native";
@@ -22,6 +30,9 @@ import { outboxSummary, type OutboxSummary } from "@/mutations/outbox";
 import { useAuthStore } from "@/stores/auth";
 import { useSyncStore } from "@/stores/sync";
 import { useTheme } from "@/theme";
+import { retryFailedJobs } from "@/sync/jobs/queue";
+import { jobQueueSnapshot, syncStages, type JobQueueSnapshot, type StageProgress } from "@/sync/jobs/status";
+import type { JobKind } from "@/sync/jobs/types";
 
 const ENTITY_LABEL: Record<string, string> = {
   photo: "Photos",
@@ -32,6 +43,26 @@ const ENTITY_LABEL: Record<string, string> = {
   place_album: "Places",
   tag_album: "Tags",
   sharing: "Sharing",
+};
+
+/** Human names for the job kinds, so the queue reads as work, not as enum values. */
+const JOB_LABEL_KEY: Record<JobKind, string> = {
+  outbox_replay: "sync.jobKindOutboxReplay",
+  reseed_check: "sync.jobKindReseedCheck",
+  remote_delta: "sync.jobKindRemoteDelta",
+  device_scan: "sync.jobKindDeviceScan",
+  hash_batch: "sync.jobKindHashBatch",
+  upload_asset: "sync.jobKindUploadAsset",
+  thumb_prefetch: "sync.jobKindThumbPrefetch",
+  integrity_check: "sync.jobKindIntegrityCheck",
+};
+
+const STAGE_LABEL_KEY: Record<StageProgress["stage"], string> = {
+  remote: "sync.stageRemote",
+  scan: "sync.stageScan",
+  hash: "sync.stageHash",
+  upload: "sync.stageUpload",
+  thumbs: "sync.stageThumbs",
 };
 
 function fmtTime(ms: number | null | undefined): string {
@@ -53,12 +84,25 @@ export function SyncStatusScreen() {
   const logs = useReactiveQuery<SyncLogRow[]>((d) => recentSyncLog(d, 100), []);
   const counts = useReactiveQuery<LocalCounts>((d) => localCounts(d), []);
   const outbox = useReactiveQuery<OutboxSummary>((d) => outboxSummary(d), []);
+  const queue = useReactiveQuery<JobQueueSnapshot>((d) => jobQueueSnapshot(d), []);
+  const stages = useReactiveQuery<StageProgress[]>((d) => syncStages(d), []);
 
   const running = useSyncStore((s) => s.running);
   const progress = useSyncStore((s) => s.progress);
   const lastError = useSyncStore((s) => s.lastError);
 
   const [busy, setBusy] = useState(false);
+
+  const onRetryJobs = useCallback(async () => {
+    retryFailedJobs(db);
+    setBusy(true);
+    try {
+      const { runSync } = await import("@/sync/run");
+      await runSync(db, { userId, reason: "manual" });
+    } finally {
+      setBusy(false);
+    }
+  }, [db, userId]);
 
   const onRepair = useCallback(async () => {
     setBusy(true);
@@ -126,6 +170,117 @@ export function SyncStatusScreen() {
               {lastError}
             </Text>
           ) : null}
+        </View>
+
+        {/* Work queue — which stage is running, how deep, and what is stuck.
+            This section exists because the old pipeline could answer none of
+            those: its only state was the JS call stack, so a stalled run looked
+            identical to an idle one. */}
+        <View testID="sync-queue" style={{ gap: 6 }}>
+          <Text style={{ fontWeight: "600", color: theme.text }}>{t("sync.queue")}</Text>
+          <Text testID="sync-queue-depth" style={{ color: theme.muted, fontSize: 12 }}>
+            {queue.totals.pending + queue.totals.running === 0 && queue.totals.failed === 0
+              ? t("sync.queueIdle")
+              : t("sync.queueDepth", {
+                  pending: queue.totals.pending,
+                  running: queue.totals.running,
+                  failed: queue.totals.failed,
+                })}
+          </Text>
+
+          {/* What is running right now, by name. */}
+          {queue.inFlight.map((job) => (
+            <Text
+              key={job.id}
+              testID={`sync-queue-inflight-${job.kind}`}
+              style={{ color: theme.text, fontSize: 12 }}
+            >
+              {t("sync.queueRunning", { kind: t(JOB_LABEL_KEY[job.kind] ?? job.kind) })}
+            </Text>
+          ))}
+
+          {/* Queue depth per kind, so a backlog is visible before it stalls. */}
+          {queue.depth
+            .filter((d) => d.pending + d.running > 0)
+            .map((d) => (
+              <View
+                key={d.kind}
+                testID={`sync-queue-kind-${d.kind}`}
+                style={{ flexDirection: "row", justifyContent: "space-between" }}
+              >
+                <Text style={{ color: theme.muted, fontSize: 11 }} numberOfLines={1}>
+                  {t(JOB_LABEL_KEY[d.kind] ?? d.kind)}
+                </Text>
+                <Text style={{ color: theme.muted, fontSize: 11 }}>
+                  {d.pending + d.running}
+                  {d.running > 0 ? " ●" : ""}
+                </Text>
+              </View>
+            ))}
+
+          {/* Failures, each with its own reason — never a silent stall. */}
+          {queue.failures.length > 0 ? (
+            <View testID="sync-queue-failures" style={{ gap: 2, marginTop: 4 }}>
+              <Text style={{ fontWeight: "600", color: theme.text, fontSize: 12 }}>
+                {t("sync.queueFailures")}
+              </Text>
+              {queue.failures.map((f) => (
+                <Text
+                  key={f.id}
+                  testID={`sync-queue-failure-${f.id}`}
+                  style={{ color: f.terminal ? "#dc2626" : "#d97706", fontSize: 11 }}
+                >
+                  {t(JOB_LABEL_KEY[f.kind] ?? f.kind)} · {f.lastError ?? "—"}
+                  {f.terminal ? "" : ` · ${t("sync.queueWaiting")}`}
+                </Text>
+              ))}
+              <ActionButton
+                testID="sync-queue-retry-button"
+                label={t("sync.queueRetry")}
+                onPress={onRetryJobs}
+                disabled={busy || running || !queue.failures.some((f) => f.terminal)}
+                theme={theme}
+              />
+            </View>
+          ) : null}
+        </View>
+
+        {/* Pipeline — every stage against its own REAL total. Never a growing
+            denominator: the counts come from work that already exists (mirror
+            rows, the device's own library count), not from work discovered so
+            far. "0/161" of a 2867-photo library is the bug this prevents. */}
+        <View testID="sync-stages" style={{ gap: 6 }}>
+          <Text style={{ fontWeight: "600", color: theme.text }}>{t("sync.stages")}</Text>
+          {stages.map((stage) => (
+            <View key={stage.stage} testID={`sync-stage-${stage.stage}`} style={{ gap: 2 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <Text style={{ color: theme.text, fontSize: 12, fontWeight: stage.active ? "700" : "400" }}>
+                  {t(STAGE_LABEL_KEY[stage.stage])}
+                  {stage.active ? " ●" : ""}
+                </Text>
+                <Text testID={`sync-stage-progress-${stage.stage}`} style={{ color: theme.muted, fontSize: 12 }}>
+                  {(stage.total === 0
+                    ? t("sync.stageNothing")
+                    : t("sync.stageProgress", { done: stage.done, total: stage.total })) +
+                    (stage.stuck > 0 ? ` · ${t("sync.stageStuck", { count: stage.stuck })}` : "")}
+                </Text>
+              </View>
+              {stage.total > 0 ? (
+                <View
+                  style={{ height: 4, backgroundColor: theme.border, borderRadius: 2, overflow: "hidden" }}
+                >
+                  <View
+                    testID={`sync-stage-bar-${stage.stage}`}
+                    style={{
+                      height: 4,
+                      width: `${Math.min(100, Math.round((stage.done / stage.total) * 100))}%`,
+                      backgroundColor: theme.brand,
+                    }}
+                  />
+                </View>
+              ) : null}
+            </View>
+          ))}
         </View>
 
         {/* Offline outbox (pending mutations) */}

@@ -27,6 +27,8 @@ import { queueList, queueSummary, retryFailed, type QueueListRow, type QueueSumm
 import { backupState, type BackupBlocker, type BackupStage, type BackupState } from "@/sync/upload/status";
 import { getMediaAccess } from "@/sync/device/media-store";
 import { LIBRARY_ALBUM_ID } from "@/sync/device/media-sync";
+import { jobQueueSnapshot, type JobQueueSnapshot } from "@/sync/jobs/status";
+import { retryFailedJobs } from "@/sync/jobs/queue";
 import type { MediaAccess } from "@/sync/device/types";
 
 const SELECTION_LABEL = ["selectionNone", "selectionSelected", "selectionExcluded"] as const;
@@ -55,8 +57,18 @@ export function BackupScreen() {
   const albums = useReactiveQuery<AlbumBackupRow[]>((d) => listBackupAlbums(d), []);
   const queue = useReactiveQuery<QueueListRow[]>((d) => queueList(d, 100), []);
   const access = useReactiveQuery<MediaAccess | null>((d) => getMediaAccess(d), []);
+  const jobs = useReactiveQuery<JobQueueSnapshot>((d) => jobQueueSnapshot(d), []);
+  // The job queue tells the screen which stage is actually running, so the
+  // headline can name the camera-roll scan instead of silently reporting a hash
+  // fraction over a library that has not finished being enumerated.
   const state = useReactiveQuery<BackupState>(
-    (d) => backupState(d, { config: getBackupConfig(d), access: getMediaAccess(d), gate }),
+    (d) =>
+      backupState(d, {
+        config: getBackupConfig(d),
+        access: getMediaAccess(d),
+        gate,
+        jobs: jobQueueSnapshot(d),
+      }),
     [gate]
   );
 
@@ -74,6 +86,9 @@ export function BackupScreen() {
 
   const onRetry = useCallback(() => {
     retryFailed(db);
+    // A stage that gave up is as much a reason for "nothing is uploading" as a
+    // failed item, so one Retry has to revive both.
+    retryFailedJobs(db);
     void backupNow(db, userId, setBusy);
   }, [db, userId]);
 
@@ -103,24 +118,43 @@ export function BackupScreen() {
 
         {/* Overall status. Three lines, in this order and never collapsed:
             what stage is running, how far each pipeline has got, and what (if
-            anything) is blocking. An idle queue must never be silent. */}
+            anything) is blocking. An idle queue must never be silent.
+
+            The headline comes from the job queue's own view of which stage is
+            live, and every number below is against a fixed total. The screen
+            this replaces derived its headline from table counts alone, so
+            during a scan it reported a hash fraction over a library it had not
+            finished enumerating — "0/161" of 2867 photos. */}
         <View style={{ gap: 4 }}>
           <Text testID="backup-stage" style={{ color: theme.text, fontSize: 14, fontWeight: "600" }}>
-            {deviceProgress
-              ? t("backup.statusScanning", {
-                  scanned: deviceProgress.scanned,
-                  total: Math.max(deviceProgress.total, deviceProgress.scanned),
-                })
-              : stageText(t, state.stage)}
+            {stageText(t, state.stage)}
           </Text>
-          {state.counts.selected > 0 ? (
-            <Text testID="backup-stage-detail" style={{ color: theme.muted, fontSize: 12 }}>
-              {t("backup.hashProgress", { done: state.counts.hashed, total: state.counts.selected })}
-              {" · "}
-              {t("backup.uploadProgress", {
-                done: state.queue.done + state.queue.skipped_exists,
-                total: Math.max(state.queue.total, state.queue.done + state.queue.skipped_exists),
-              })}
+          <Text testID="backup-stage-detail" style={{ color: theme.muted, fontSize: 12 }}>
+            {[
+              // Scan progress only once the device has told us how big the
+              // library is; before that there is no honest denominator.
+              state.scan.total > 0
+                ? t("backup.scanProgress", { done: state.scan.scanned, total: state.scan.total })
+                : null,
+              state.counts.selected > 0
+                ? t("backup.hashProgress", {
+                    done: state.counts.hashed,
+                    total: state.counts.selected,
+                  })
+                : null,
+              state.queue.total > 0
+                ? t("backup.uploadProgress", {
+                    done: state.queue.done + state.queue.skipped_exists,
+                    total: state.queue.total,
+                  })
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </Text>
+          {deviceProgress ? (
+            <Text testID="backup-scan-live" style={{ color: theme.muted, fontSize: 11 }}>
+              {deviceProgress.album} · {deviceProgress.scanned}
             </Text>
           ) : null}
           {state.blocker ? (
@@ -178,7 +212,7 @@ export function BackupScreen() {
             disabled={busy || running || !config.enabled}
             theme={theme}
           />
-          {summary.failed > 0 ? (
+          {summary.failed > 0 || jobs.failures.some((f) => f.terminal) ? (
             <ActionButton
               testID="backup-retry-button"
               label={t("backup.retryFailed")}
@@ -280,6 +314,8 @@ type Translate = (key: string, options?: Record<string, unknown>) => string;
 /** The headline: which stage is running, and how far along it is. */
 function stageText(t: Translate, stage: BackupStage): string {
   switch (stage.kind) {
+    case "scanning":
+      return t("backup.statusScanning", { scanned: stage.done, total: stage.total });
     case "hashing":
       return t("backup.statusHashing", { done: stage.done, total: stage.total });
     case "uploading":
@@ -309,6 +345,10 @@ function blockerText(t: Translate, blocker: BackupBlocker): string {
       return t("backup.blockerWifi");
     case "charging_required":
       return t("backup.blockerCharging");
+    case "job_failed":
+      // The only blocker that can quote the actual error — a whole stage has
+      // stopped, and guessing why is exactly what the device run had to do.
+      return t("backup.blockerJobFailed", { message: blocker.message });
     case "failed":
     default:
       return t("backup.blockerFailed", { count: blocker.count });

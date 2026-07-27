@@ -8,14 +8,21 @@
  * denominator *grows as hashing proceeds*, so "0/161" on a 2867-photo album read
  * as "nearly there" when it was 6% through stage one of two.
  *
- * So this module reports the two pipelines separately, each against a real
- * total, plus the single thing currently blocking progress:
+ * So this module reports the pipelines separately, each against a real total,
+ * plus the single thing currently blocking progress:
  *
+ *   scanning: how many camera-roll assets are in the mirror, out of the count
+ *             the device itself reports (the real 2867, known up front).
  *   hashing : how many selected assets have a file hash yet (md5 over every
  *             byte — minutes on a multi-GB library), out of *all* selected.
  *   upload  : how many upload-ready assets have reached the server, out of all
  *             that are ready.
- *   blocker : permission, master toggle, album selection, gate, or failures.
+ *   blocker : permission, master toggle, album selection, gate, upload failures,
+ *             or a job the queue has given up on.
+ *
+ * The job queue is the source of truth for "which stage is running" — this
+ * module reads its snapshot rather than re-deriving stage state from table
+ * counts, so the screen and the worker can never disagree.
  *
  * Pure SQL + plain values so every state is Node-tested.
  */
@@ -23,6 +30,7 @@ import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
 import type { BackupConfig } from "@/db/queries/backup";
 import type { MediaAccess } from "@/sync/device/types";
+import { scanCounts, type JobQueueSnapshot } from "@/sync/jobs/status";
 import type { GateDecision } from "./gate";
 import { queueSummary, type QueueSummary } from "./queue";
 
@@ -47,11 +55,15 @@ export type BackupBlocker =
   | { kind: "offline" }
   | { kind: "wifi_required" }
   | { kind: "charging_required" }
-  | { kind: "failed"; count: number };
+  | { kind: "failed"; count: number }
+  /** A job the queue has stopped retrying — the only blocker that names itself. */
+  | { kind: "job_failed"; count: number; message: string };
 
 /** The headline: which stage is running (or why none is). */
 export type BackupStage =
   | { kind: "idle" }
+  /** The camera-roll enumeration, against the device's own reported total. */
+  | { kind: "scanning"; done: number; total: number }
   | { kind: "hashing"; done: number; total: number }
   | { kind: "uploading"; done: number; total: number; inFlight: number }
   | { kind: "waiting"; pending: number }
@@ -62,6 +74,8 @@ export type BackupState = {
   blocker: BackupBlocker | null;
   counts: BackupCounts;
   queue: QueueSummary;
+  /** Camera-roll scan progress against the device's reported library size. */
+  scan: { scanned: number; total: number };
 };
 
 /** Membership predicates shared with the enqueue rule in ./queue. */
@@ -99,27 +113,46 @@ const GATE_BLOCKER: Record<string, BackupBlocker> = {
   charging_required: { kind: "charging_required" },
 };
 
+export type BackupStateOptions = {
+  config: BackupConfig;
+  access: MediaAccess | null;
+  gate?: GateDecision | null;
+  /**
+   * Live job-queue snapshot. When supplied, "which stage is running" comes from
+   * the queue's own in-flight/depth counts rather than being inferred from table
+   * totals — the screen and the worker then cannot disagree. Optional so the
+   * pure counts path still works before the first drain.
+   */
+  jobs?: JobQueueSnapshot | null;
+};
+
 /**
  * Resolve the current backup state. `gate` is the last decision the engine
  * observed (null when it has not run yet) — a blocked gate is only reported
  * when there is actually work waiting on it.
  */
-export function backupState(
-  db: AppDatabase,
-  opts: { config: BackupConfig; access: MediaAccess | null; gate?: GateDecision | null }
-): BackupState {
+export function backupState(db: AppDatabase, opts: BackupStateOptions): BackupState {
   const counts = backupCounts(db);
   const queue = queueSummary(db);
+  const scan = scanCounts(db);
   const inFlight = queue.uploading + queue.checking;
-  const hasWork = counts.awaitingHash > 0 || queue.pending > 0 || inFlight > 0;
+  const scanning = jobsActive(opts.jobs, "device_scan");
+  const hasWork =
+    counts.awaitingHash > 0 || queue.pending > 0 || inFlight > 0 || jobsActive(opts.jobs, "upload_asset");
 
   const blocker = resolveBlocker(opts, counts, queue, hasWork);
 
-  return { stage: resolveStage(counts, queue, inFlight), blocker, counts, queue };
+  return { stage: resolveStage(counts, queue, scan, inFlight, scanning), blocker, counts, queue, scan };
+}
+
+/** True when the queue has a job of this kind pending or running. */
+function jobsActive(jobs: JobQueueSnapshot | null | undefined, kind: string): boolean {
+  const d = jobs?.depth.find((x) => x.kind === kind);
+  return d != null && d.pending + d.running > 0;
 }
 
 function resolveBlocker(
-  opts: { config: BackupConfig; access: MediaAccess | null; gate?: GateDecision | null },
+  opts: BackupStateOptions,
   counts: BackupCounts,
   queue: QueueSummary,
   hasWork: boolean
@@ -133,11 +166,34 @@ function resolveBlocker(
   if (gate && gate.allowed === false && hasWork) {
     return GATE_BLOCKER[gate.reason] ?? { kind: "offline" };
   }
+  // A job the queue has given up on outranks a per-item upload failure: it
+  // means a whole *stage* has stopped, and it is the only blocker that can say
+  // in its own words why.
+  const dead = opts.jobs?.failures.filter((f) => f.terminal) ?? [];
+  if (dead.length > 0) {
+    return {
+      kind: "job_failed",
+      count: dead.length,
+      message: `${dead[0].kind}: ${dead[0].lastError ?? "unknown error"}`,
+    };
+  }
   if (queue.failed > 0) return { kind: "failed", count: queue.failed };
   return null;
 }
 
-function resolveStage(counts: BackupCounts, queue: QueueSummary, inFlight: number): BackupStage {
+function resolveStage(
+  counts: BackupCounts,
+  queue: QueueSummary,
+  scan: { scanned: number; total: number },
+  inFlight: number,
+  scanning: boolean
+): BackupStage {
+  // Scanning comes first because it is the stage that produces everything
+  // downstream, and because it is the one the old UI was silent about — the
+  // user saw "0/161" of a library it had not finished enumerating.
+  if (scanning && scan.scanned < scan.total) {
+    return { kind: "scanning", done: scan.scanned, total: scan.total };
+  }
   if (counts.selected === 0) return { kind: "idle" };
   if (inFlight > 0) {
     return {
@@ -147,8 +203,8 @@ function resolveStage(counts: BackupCounts, queue: QueueSummary, inFlight: numbe
       inFlight,
     };
   }
-  // Hashing is stage one and gates everything downstream, so it outranks a
-  // queue that is merely waiting.
+  // Hashing gates everything downstream, so it outranks a queue that is merely
+  // waiting.
   if (counts.awaitingHash > 0) {
     return { kind: "hashing", done: counts.hashed, total: counts.selected };
   }
