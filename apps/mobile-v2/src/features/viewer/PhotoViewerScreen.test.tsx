@@ -278,6 +278,52 @@ describe("PhotoViewerScreen", () => {
     });
   });
 
+  describe("media types", () => {
+    it("plays the active slide as video and leaves the rest as posters", async () => {
+      seedRemotePhotos(t.db, [
+        remotePhoto({
+          id: "22222222-2222-4222-8222-222222222222",
+          imageHash: "hashV",
+          type: "video",
+          timestamp: Date.UTC(2024, 0, 2),
+        }),
+      ]);
+      (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { id: "hashV" };
+
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db);
+      const view = utils.getByTestId("viewer-video-hashV");
+      expect(view).toBeTruthy();
+      // Both slides exist, but only one player is ever mounted.
+      expect(utils.getByTestId("viewer-image-hashA")).toBeTruthy();
+    });
+
+    /**
+     * The big thumbnail of a GIF is one frame. Animating it means the originals
+     * endpoint — but only for the slide being looked at, since originals are
+     * full-size files and the pager window holds hundreds.
+     */
+    it("loads an animated GIF from the originals endpoint", async () => {
+      const client = makeMockClient(async (url) => {
+        if (url.includes("/photos/hashA/"))
+          return jsonResponse({ ...PHOTO_DETAIL, image_path: ["/data/photos/anim.gif"] });
+        return jsonResponse({}, 404);
+      });
+      const utils = renderWithDb(<PhotoViewerScreen />, t.db, client);
+      await waitFor(() =>
+        expect(utils.getByTestId("viewer-image-hashA").props.source.uri).toContain("/media/photos/hashA")
+      );
+    });
+  });
+
+  it("offers a filmstrip over the pager window", () => {
+    seedRemotePhotos(t.db, [
+      remotePhoto({ id: "33333333-3333-4333-8333-333333333333", imageHash: "hashC", timestamp: Date.UTC(2024, 0, 2) }),
+    ]);
+    const utils = renderWithDb(<PhotoViewerScreen />, t.db);
+    expect(utils.getByTestId("viewer-filmstrip")).toBeTruthy();
+    expect(utils.getByTestId("viewer-filmstrip-33333333-3333-4333-8333-333333333333")).toBeTruthy();
+  });
+
   /**
    * Device-run report: "Lightbox does not seem to be implemented". It was — but
    * every caller guarded with `if (item.imageHash)`, and a camera-roll asset

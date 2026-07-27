@@ -338,7 +338,7 @@ export function PhotoViewerScreen() {
           width={width}
           height={height}
           onTap={toggleChrome}
-          source={sourceFor(item, base, headers)}
+          source={sourceFor(item, base, headers, active && isAnimated(detail.detail?.image_path))}
           overlay={
             face ? (
               <FaceOverlay
@@ -494,18 +494,32 @@ function matchesId(slide: ViewerSlide, id: string): boolean {
   );
 }
 
+/** Does this photo's file animate? Its big thumbnail would be a still frame. */
+function isAnimated(paths: readonly string[] | undefined): boolean {
+  return !!paths?.some((path) => path.toLowerCase().endsWith(".gif"));
+}
+
 /**
  * Local-first image source: the camera-roll file when we have it (instant, no
  * network, and the only option for a photo not yet uploaded), the server's big
- * thumbnail otherwise. Animated GIFs come from the originals endpoint, because
- * the big thumbnail is a still frame.
+ * thumbnail otherwise.
+ *
+ * `original` switches to the originals endpoint, which is how an animated GIF
+ * actually animates — the big thumbnail is one frame. Only ever set for the
+ * active slide, because originals are full-size files and a pager window holds
+ * hundreds of them.
  */
-function sourceFor(slide: ViewerSlide, base: string, headers: Record<string, string>) {
+function sourceFor(
+  slide: ViewerSlide,
+  base: string,
+  headers: Record<string, string>,
+  original = false
+) {
   if (slide.local_uri) return { uri: slide.local_uri };
   if (!slide.image_hash) return { uri: "" };
-  const url =
-    slide.type === "motion_photo"
-      ? photoUrl(base, slide.image_hash)
-      : bigThumbnailUrl(base, slide.image_hash);
+  const wantsOriginal = original || slide.type === "motion_photo";
+  const url = wantsOriginal
+    ? photoUrl(base, slide.image_hash)
+    : bigThumbnailUrl(base, slide.image_hash);
   return { uri: url, headers };
 }

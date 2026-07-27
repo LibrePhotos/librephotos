@@ -45,12 +45,9 @@ export const en = {
    */
   viewer: {
     details: "Details",
-    camera: "Camera",
     date: "Date",
     location: "Location",
-    rating: "Rating",
     loadingDetails: "Loading details…",
-    detailsOffline: "Details unavailable offline.",
     cachedDetails: "Showing cached details",
     localOnly: "This photo is still only on this device — it will get full details once it is backed up.",
     localOnlyTitle: "Only on this device",
