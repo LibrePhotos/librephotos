@@ -36,11 +36,30 @@ export type UploadCompleteInput = {
 
 export type UploadProgress = { sent: number; total: number };
 
+/**
+ * What a chunk upload yields. `md5` is the checksum of the bytes that were
+ * *actually sent* — see {@link UploadResult.md5}.
+ */
+export type UploadResult = {
+  uploadId: string;
+  /**
+   * md5 of the uploaded bytes, when the transport could measure them.
+   *
+   * The completion call must checksum what it uploaded, not what was hashed
+   * days earlier: `local_asset.hash` is recorded during the hash pass, and an
+   * asset whose bytes changed in between (an iOS edit re-rendering the asset, a
+   * re-download from iCloud) makes the server answer a permanent 400 "md5
+   * checksum does not match" that no retry can clear. Falls back to the stored
+   * hash when the transport has no better answer.
+   */
+  md5?: string;
+};
+
 export interface UploadTransport {
   /** GET /api/exists/{hash} */
   exists(hash: string): Promise<boolean>;
   /** POST /api/upload/ (one or more chunks). Resolves with the upload_id. */
-  uploadFile(input: UploadFileInput, onProgress?: (p: UploadProgress) => void): Promise<{ uploadId: string }>;
+  uploadFile(input: UploadFileInput, onProgress?: (p: UploadProgress) => void): Promise<UploadResult>;
   /** POST /api/upload/complete/ with device-timestamp fallback. */
   complete(input: UploadCompleteInput): Promise<void>;
 }

@@ -65,6 +65,15 @@ export type UploadAssetResult = {
   skipped: boolean;
   /** Set when the wifi/charging gate refused: retry later, don't burn attempts. */
   gated?: string;
+  /**
+   * The upload did not land. This has to be reported, not inferred: an upload
+   * that neither uploaded nor skipped used to settle as a *successful* job with
+   * `applied=0`, which is precisely how a server rejecting every completion
+   * stayed invisible while the queue drained itself clean.
+   */
+  failed?: boolean;
+  /** Why it failed — becomes the job's failure message in the sync log. */
+  error?: string;
 };
 export type ThumbBatchResult = { fetched: number; more: boolean };
 
@@ -333,6 +342,14 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
             },
           ],
         };
+      }
+
+      // A rejected upload fails the *job*. Anything else is a lie the queue
+      // tells itself: the item is still sitting in upload_queue with a failure
+      // recorded, so reporting "done" here drains the window, logs applied=0 and
+      // leaves nothing for the Sync screen to raise as a blocker.
+      if (result.failed) {
+        throw new Error(result.error ?? `upload failed for ${assetId}`);
       }
 
       const next: JobSpec[] = topUpUploadWindow(ctx.db, ctx.now, window);

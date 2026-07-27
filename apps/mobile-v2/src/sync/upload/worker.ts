@@ -57,6 +57,8 @@ export type WorkerResult = {
   /** Set when the run stopped because the gate blocked (not drained). */
   stoppedReason?: "gated" | "aborted" | "drained" | "budget";
   gateReason?: string;
+  /** Message of the most recent per-item failure, for the caller to surface. */
+  lastError?: string;
 };
 
 export async function runUploadQueue(db: AppDatabase, opts: WorkerOptions): Promise<WorkerResult> {
@@ -118,7 +120,14 @@ export async function runUploadItem(
   db: AppDatabase,
   assetId: string,
   opts: WorkerOptions
-): Promise<{ uploaded: boolean; skipped: boolean; failed: boolean; gated?: string }> {
+): Promise<{
+  uploaded: boolean;
+  skipped: boolean;
+  failed: boolean;
+  gated?: string;
+  /** Why it failed — the caller turns this into a *failed job*, not a note. */
+  error?: string;
+}> {
   const now = opts.now ?? Date.now;
   const base = opts.backoffBase ?? BACKOFF_BASE_MS;
 
@@ -143,7 +152,12 @@ export async function runUploadItem(
 
   const res: WorkerResult = { uploaded: 0, skipped: 0, failed: 0 };
   await processItem(db, item, opts, now, base, res);
-  return { uploaded: res.uploaded > 0, skipped: res.skipped > 0, failed: res.failed > 0 };
+  return {
+    uploaded: res.uploaded > 0,
+    skipped: res.skipped > 0,
+    failed: res.failed > 0,
+    error: res.lastError,
+  };
 }
 
 async function processItem(
@@ -158,6 +172,7 @@ async function processItem(
   if (!hash || !uri) {
     markFailed(db, assetId, "asset missing hash or uri", now(), base);
     res.failed += 1;
+    res.lastError = "asset missing hash or uri";
     return;
   }
   try {
@@ -172,7 +187,7 @@ async function processItem(
     // 2. Chunked upload of the bytes.
     setQueueState(db, assetId, "uploading", 0);
     const filename = name ?? assetId;
-    const { uploadId } = await opts.transport.uploadFile(
+    const { uploadId, md5: uploadedMd5 } = await opts.transport.uploadFile(
       { assetId, uri, filename, type: item.type, hash, userId: opts.userId },
       (p) => {
         if (p.total > 0) setQueueState(db, assetId, "uploading", p.sent / p.total);
@@ -180,11 +195,15 @@ async function processItem(
       }
     );
 
-    // 3. Finalize with device-timestamp fallback (issue #614).
+    // 3. Finalize with device-timestamp fallback (issue #614). The checksum is
+    // the one the transport measured on the bytes it just sent; the stored hash
+    // is only a fallback, because a hash recorded during the hash pass can be
+    // stale by the time the bytes go out and the server rejects the mismatch
+    // with a permanent 400 (see UploadResult.md5).
     await opts.transport.complete({
       uploadId,
       filename,
-      md5: rawMd5(hash, opts.userId),
+      md5: uploadedMd5 ?? rawMd5(hash, opts.userId),
       userId: opts.userId,
       deviceCreatedAt: item.created_at ?? null,
       deviceModifiedAt: item.modified_at ?? null,
@@ -195,7 +214,9 @@ async function processItem(
     opts.onUploaded?.(assetId);
   } catch (err) {
     if (opts.signal?.aborted) throw new UploadAbortedError();
-    markFailed(db, assetId, err instanceof Error ? err.message : String(err), now(), base);
+    const message = err instanceof Error ? err.message : String(err);
+    markFailed(db, assetId, message, now(), base);
     res.failed += 1;
+    res.lastError = message;
   }
 }

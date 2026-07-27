@@ -2,10 +2,14 @@
  * Real {@link UploadTransport} for the LibrePhotos chunked-upload endpoints
  * (apps/backend/api/views/upload.py). App-only: imported solely by sync/run.
  *
- * Auth nuance: `/api/exists/` uses the normal DRF JWT (Authorization: Bearer),
- * but `UploadPhotosChunked` / `...Complete` read the token from a `jwt` COOKIE
- * (they override check_permissions). We therefore send BOTH the bearer header
- * and a `Cookie: jwt=<token>` on the upload/complete calls.
+ * Auth: every call sends `Authorization: Bearer <token>`. The upload views used
+ * to read the JWT from a `jwt` COOKIE only, which is a browser-ism — React
+ * Native's `fetch` cannot reliably set a `Cookie` header (on iOS NSURLSession
+ * owns the cookie store and drops or overrides it), so `complete()` arrived
+ * unauthenticated and answered 403 while the native chunk upload — whose headers
+ * *are* passed verbatim — answered 200. The backend now accepts the header on
+ * both views; the cookie is still sent alongside so this client keeps working
+ * against a server that has not been updated yet.
  *
  * The bytes go through `expo-file-system` `uploadAsync` (streams from disk,
  * background URLSession on iOS). v1 sends the whole file as a single chunk
@@ -18,6 +22,7 @@ import type {
   UploadCompleteInput,
   UploadFileInput,
   UploadProgress,
+  UploadResult,
   UploadTransport,
 } from "./transport";
 
@@ -43,6 +48,25 @@ async function resolveReadableUri(id: string, uri: string): Promise<string> {
   return info.localUri;
 }
 
+/**
+ * Fold the server's own explanation into the thrown message.
+ *
+ * A bare "HTTP 400" in the sync log is exactly why the stuck-upload bug took a
+ * device export to diagnose: the server always said *why* ("md5 checksum does
+ * not match", "No scan directory configured"), and the client threw that away.
+ */
+function httpError(what: string, status: number, body: string): Error {
+  let detail = (body ?? "").trim();
+  try {
+    const parsed = JSON.parse(detail) as { detail?: string };
+    if (parsed?.detail) detail = parsed.detail;
+  } catch {
+    // not JSON — keep the raw text
+  }
+  if (detail.length > 300) detail = `${detail.slice(0, 300)}…`;
+  return new Error(detail ? `${what} failed: HTTP ${status} — ${detail}` : `${what} failed: HTTP ${status}`);
+}
+
 export function createExpoUploadTransport(deps: TransportDeps): UploadTransport {
   const base = () => deps.serverAddress().replace(/\/+$/, "");
 
@@ -53,7 +77,7 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
         method: "GET",
         headers: { Accept: "application/json", ...authHeaders(token, false) },
       });
-      if (!res.ok) throw new Error(`exists check failed: HTTP ${res.status}`);
+      if (!res.ok) throw httpError("exists check", res.status, await res.text().catch(() => ""));
       const json = (await res.json()) as { exists?: boolean };
       return json.exists === true;
     },
@@ -61,12 +85,16 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
     async uploadFile(
       input: UploadFileInput,
       onProgress?: (p: UploadProgress) => void
-    ): Promise<{ uploadId: string }> {
+    ): Promise<UploadResult> {
       const token = await deps.getAccessToken();
       const uri = await resolveReadableUri(input.assetId, input.uri);
-      const stat = await FileSystem.getInfoAsync(uri);
+      // Checksum the bytes we are about to send, in the same stat call that
+      // sizes them — the completion call must not checksum a stale hash from
+      // the hash pass (see UploadResult.md5).
+      const stat = await FileSystem.getInfoAsync(uri, { md5: true });
       if (!stat.exists) throw new Error("asset file not found on disk");
       const size = stat.size ?? 0;
+      const md5 = stat.md5 ?? undefined;
 
       const task = FileSystem.createUploadTask(
         `${base()}/api/upload/`,
@@ -89,9 +117,8 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
         }
       );
       const result = await task.uploadAsync();
-      if (!result || result.status >= 300) {
-        throw new Error(`upload failed: HTTP ${result?.status ?? "?"}`);
-      }
+      if (!result) throw new Error("upload failed: no response");
+      if (result.status >= 300) throw httpError("upload", result.status, result.body);
       let uploadId = "";
       try {
         const parsed = JSON.parse(result.body) as { upload_id?: string };
@@ -100,7 +127,7 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
         throw new Error("upload response was not valid JSON");
       }
       if (!uploadId) throw new Error("upload response missing upload_id");
-      return { uploadId };
+      return { uploadId, md5 };
     },
 
     async complete(input: UploadCompleteInput): Promise<void> {
@@ -117,7 +144,7 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
         headers: { ...authHeaders(token, true) },
         body: form,
       });
-      if (!res.ok) throw new Error(`complete failed: HTTP ${res.status}`);
+      if (!res.ok) throw httpError("complete", res.status, await res.text().catch(() => ""));
     },
   };
 }

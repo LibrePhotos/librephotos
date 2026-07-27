@@ -164,7 +164,16 @@ function appSeams(userId: number | null | undefined): SyncAllOptions {
             phase: "delta",
           }),
       });
-      return { uploaded: result.uploaded, skipped: result.skipped, gated: result.gated };
+      // `failed` must survive this hop. Dropping it is how a 403 on
+      // /api/upload/complete/ used to report a *done* job with applied=0 — a
+      // queue that believed it had succeeded and therefore never retried.
+      return {
+        uploaded: result.uploaded,
+        skipped: result.skipped,
+        gated: result.gated,
+        failed: result.failed,
+        error: result.error,
+      };
     },
 
     prefetchThumbs: async (ctx, limit) => {
