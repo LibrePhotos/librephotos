@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { addDatabaseChangeListener, type SQLiteDatabase } from "expo-sqlite";
+import { isInteracting } from "@/sync/activity";
 import { useTheme } from "@/theme";
 import { openDb } from "./client";
 import { runMigrations } from "./migrate";
@@ -56,7 +57,10 @@ export function DatabaseGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <DbProvider db={handle.current.db} subscribe={handle.current.subscribe}>
+    // `defer` holds live-query re-runs back while the user is mid-gesture: a
+    // background write must not reflow the list under a scrolling finger. The
+    // hub caps how long it will wait, so progress still shows either way.
+    <DbProvider db={handle.current.db} subscribe={handle.current.subscribe} defer={isInteracting}>
       {children}
     </DbProvider>
   );

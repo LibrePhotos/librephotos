@@ -38,6 +38,7 @@ import { makeUploadGate } from "./upload/gate";
 import { createExpoUploadTransport } from "./upload/expo-transport";
 import { createExpoDeviceProbe } from "./upload/expo-probe";
 import { jobQueueSnapshot } from "./jobs/status";
+import { createAdaptiveYield } from "./activity";
 import type { UploadTransport } from "./upload/transport";
 import type { DeviceProbe } from "./upload/gate";
 
@@ -73,9 +74,18 @@ function publishQueue(db: AppDatabase): void {
   useSyncStore.getState().setQueue(jobQueueSnapshot(db));
 }
 
+/**
+ * The worker's between-jobs yield. Backs the pipeline off while the user is
+ * touching the app and lets it run flat out when they are not — the difference
+ * between "a scan is running" and "the app is unresponsive". One instance, so
+ * every run (full sync, backup-only, repair) shares the same policy.
+ */
+const adaptiveYield = createAdaptiveYield();
+
 /** Build the seams shared by every app-side run. */
 function appSeams(userId: number | null | undefined): SyncAllOptions {
   return {
+    yield: adaptiveYield,
     onProgress: (p) => useSyncStore.getState().setProgress(p),
     getFavoriteMinRating:
       userId != null

@@ -19,6 +19,7 @@ import type { AppDatabase } from "@/db/types";
 import { runSync } from "./run";
 import type { SyncReason } from "./orchestrator";
 import { createThrottle, FOREGROUND_THROTTLE_MS } from "./throttle";
+import { clearInteraction, noteInteraction } from "./activity";
 
 export { FOREGROUND_THROTTLE_MS };
 
@@ -39,7 +40,16 @@ function fire(deps: TriggerDeps, reason: SyncReason): void {
 export function registerSyncTriggers(deps: TriggerDeps): () => void {
   const foregroundThrottle = createThrottle(FOREGROUND_THROTTLE_MS);
   const appStateSub = AppState.addEventListener("change", (state: AppStateStatus) => {
-    if (state !== "active") return;
+    if (state !== "active") {
+      // Nobody is looking: drop any stale touch so the queue spends its short
+      // background window working rather than waiting one out.
+      clearInteraction();
+      return;
+    }
+    // The user just came back to the app and is about to touch something. Treat
+    // the transition itself as interaction so the first moments after a resume
+    // belong to them, not to a scan that woke up with them.
+    noteInteraction();
     if (!foregroundThrottle.tryRun()) return;
     fire(deps, "foreground");
   });

@@ -10,12 +10,28 @@ import { DatabaseGate } from "@/db/DatabaseGate";
 import { SeedOnLogin } from "@/sync/SeedOnLogin";
 import { AppChrome } from "@/components/AppChrome";
 import { NotificationRouter } from "@/features/memories/NotificationRouter";
+import { noteInteraction } from "@/sync/activity";
 import { useAuthStore } from "@/stores/auth";
 import { useResolvedScheme, useTheme } from "@/theme";
 
+/**
+ * Capture-phase touch sniffer. Returning false declines the responder, so the
+ * touch reaches whatever it was aimed at untouched — this only observes. It
+ * covers taps, tab switches and press-and-holds; the lists report their own
+ * scrolls, which native ScrollViews do not surface here.
+ */
+function sniffTouch(): boolean {
+  noteInteraction();
+  return false;
+}
+
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView
+      style={{ flex: 1 }}
+      onStartShouldSetResponderCapture={sniffTouch}
+      onMoveShouldSetResponderCapture={sniffTouch}
+    >
       <AppProviders>
         <RootNavigator />
       </AppProviders>
