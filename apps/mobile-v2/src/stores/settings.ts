@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { serverStorage } from "@/lib/tokenStorage";
 
 export type ThemePreference = "system" | "light" | "dark";
 
@@ -20,6 +21,8 @@ type SettingsState = {
   /** LRU cap for the on-device thumbnail cache (doc 01 / thumb_cache). */
   thumbCapBytes: number;
   setServerUrl: (url: string) => void;
+  /** Restore the persisted server URL. Must complete before any sync runs. */
+  hydrateServerUrl: () => Promise<string | null>;
   setTheme: (theme: ThemePreference) => void;
   setLocale: (locale: string) => void;
   setThumbCapBytes: (bytes: number) => void;
@@ -37,7 +40,18 @@ export const useSettingsStore = create<SettingsState>(set => ({
   theme: "system",
   locale: "en",
   thumbCapBytes: DEFAULT_THUMB_CAP_BYTES,
-  setServerUrl: url => set({ serverUrl: normalizeServerUrl(url) }),
+  setServerUrl: url => {
+    const normalized = normalizeServerUrl(url);
+    set({ serverUrl: normalized });
+    // Fire-and-forget: the in-memory value is what this session uses; the write
+    // only has to win before the next cold start.
+    void serverStorage.set(normalized);
+  },
+  async hydrateServerUrl() {
+    const stored = await serverStorage.get();
+    if (stored) set({ serverUrl: stored });
+    return stored;
+  },
   setTheme: theme => set({ theme }),
   setLocale: locale => set({ locale }),
   setThumbCapBytes: bytes => set({ thumbCapBytes: bytes }),

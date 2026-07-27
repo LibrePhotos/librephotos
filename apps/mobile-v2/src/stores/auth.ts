@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { decodeJwtExp } from "@librephotos/api-client";
 import { tokenStorage } from "@/lib/tokenStorage";
+import { useSettingsStore } from "@/stores/settings";
 
 export type AuthStatus = "unknown" | "authenticated" | "unauthenticated";
 
@@ -38,11 +39,17 @@ export const useAuthStore = create<AuthState>(set => ({
   status: "unknown",
   userId: null,
   async bootstrap() {
+    // Restore the server URL BEFORE reporting "authenticated". Sync starts as
+    // soon as the router sees that status, and a run with no base URL issues
+    // relative requests that hit the Metro dev server instead of LibrePhotos.
+    const serverUrl = await useSettingsStore.getState().hydrateServerUrl();
     const access = await tokenStorage.getAccessToken();
     const refresh = await tokenStorage.getRefreshToken();
     // A refresh token is enough to be "authenticated" — the transport will mint
     // a fresh access token on the first request if the current one is expired.
-    if (refresh) {
+    // Tokens without a server to spend them on are useless, so treat a missing
+    // URL as signed out and send the user back to the login screen.
+    if (refresh && serverUrl) {
       set({ status: "authenticated", userId: userIdFromToken(access) });
     } else {
       set({ status: "unauthenticated", userId: null });

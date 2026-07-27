@@ -10,8 +10,21 @@ import { tokenStorage } from "@/lib/tokenStorage";
  * router bounces to the login screen. Mobile uses the Authorization header only
  * (no cookies), so `useCredentials` stays false.
  */
+/**
+ * Never return an empty base URL. A relative request in Expo Go resolves
+ * against the Metro dev server, which answers unknown paths with its own HTML
+ * error page — so a missing server URL surfaced as a flood of "API error: 500"
+ * that never reached LibrePhotos. Failing loudly here turns a misleading server
+ * error into an accurate client one.
+ */
+function requireBaseUrl(): string {
+  const url = useSettingsStore.getState().serverUrl;
+  if (!url) throw new Error("No LibrePhotos server configured — sign in again to set the server URL.");
+  return url;
+}
+
 export const apiClient: ApiClient = createApiClient({
-  baseUrl: () => useSettingsStore.getState().serverUrl ?? "",
+  baseUrl: requireBaseUrl,
   tokens: tokenStorage,
   useCredentials: false,
   onAuthError: () => {
