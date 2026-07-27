@@ -248,9 +248,9 @@ describe("job chaining: interrupt and restart", () => {
     // ---- run 1: killed partway through, exactly like a JS reload -----------
     const controller = new AbortController();
     const hasher1 = new FakeHasher();
-    const originalMd5 = hasher1.md5.bind(hasher1);
+    const originalMd5 = hasher1.hash.bind(hasher1);
     let hashes = 0;
-    hasher1.md5 = async (a) => {
+    hasher1.hash = async (a) => {
       hashes += 1;
       if (hashes === 25) controller.abort();
       return originalMd5(a);
@@ -307,8 +307,8 @@ describe("job chaining: interrupt and restart", () => {
 
     const controller = new AbortController();
     const hasher = new FakeHasher();
-    const originalMd5 = hasher.md5.bind(hasher);
-    hasher.md5 = async (a) => {
+    const originalMd5 = hasher.hash.bind(hasher);
+    hasher.hash = async (a) => {
       controller.abort(); // die inside the very first hash batch
       return originalMd5(a);
     };

@@ -204,6 +204,14 @@ export const localAsset = sqliteTable(
     uri: text("uri"), // ph:// | content://
     hash: text("hash"), // md5(bytes)+userId — null until hashed
     hashedAt: integer("hashed_at"),
+    /**
+     * Why this asset has no hash yet, when the reason is not "nobody has tried".
+     * NULL is the normal case. `'icloud'` means the bytes are not on the device
+     * (iOS "Optimise iPhone Storage") — hashing them would mean downloading a
+     * multi-megabyte original, so the hash pass defers them and the upload path
+     * fetches them once, if and when the user actually asks for a backup.
+     */
+    hashState: text("hash_state"),
   },
   (t) => [
     index("idx_local_asset_hash").on(t.hash),

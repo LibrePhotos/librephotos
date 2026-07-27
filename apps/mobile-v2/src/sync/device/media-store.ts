@@ -41,9 +41,9 @@ export function upsertLocalAssets(db: AppDatabase, assets: MediaAsset[]): void {
     for (const a of assets) {
       tx.run(
         sql`INSERT INTO local_asset
-              (id, name, type, created_at, modified_at, width, height, duration_ms, uri, hash, hashed_at)
+              (id, name, type, created_at, modified_at, width, height, duration_ms, uri, hash, hashed_at, hash_state)
             VALUES (${a.id}, ${a.filename}, ${typeToDb(a.type)}, ${a.creationTime}, ${a.modificationTime},
-              ${a.width}, ${a.height}, ${Math.round(a.duration * 1000)}, ${a.uri}, NULL, NULL)
+              ${a.width}, ${a.height}, ${Math.round(a.duration * 1000)}, ${a.uri}, NULL, NULL, NULL)
             ON CONFLICT(id) DO UPDATE SET
               name = excluded.name, type = excluded.type, created_at = excluded.created_at,
               width = excluded.width, height = excluded.height, duration_ms = excluded.duration_ms,
@@ -51,6 +51,9 @@ export function upsertLocalAssets(db: AppDatabase, assets: MediaAsset[]): void {
               -- Invalidate the hash iff the file changed (modified_at moved).
               hash = CASE WHEN local_asset.modified_at = excluded.modified_at THEN local_asset.hash ELSE NULL END,
               hashed_at = CASE WHEN local_asset.modified_at = excluded.modified_at THEN local_asset.hashed_at ELSE NULL END,
+              -- …and with it the "waiting for iCloud" parking, so a changed asset
+              -- is re-checked for local availability rather than staying deferred.
+              hash_state = CASE WHEN local_asset.modified_at = excluded.modified_at THEN local_asset.hash_state ELSE NULL END,
               modified_at = excluded.modified_at`
       );
     }

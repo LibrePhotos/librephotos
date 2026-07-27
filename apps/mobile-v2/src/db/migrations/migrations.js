@@ -7,6 +7,7 @@ import m0002 from './0002_reflective_snowbird.sql';
 import m0003 from './0003_unique_viper.sql';
 import m0004 from './0004_icy_the_hand.sql';
 import m0005 from './0005_special_wolf_cub.sql';
+import m0006 from './0006_tidy_tiger_shark.sql';
 
   export default {
     journal,
@@ -16,7 +17,8 @@ m0001,
 m0002,
 m0003,
 m0004,
-m0005
+m0005,
+m0006
     }
   }
   

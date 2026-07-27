@@ -55,4 +55,5 @@ export const MIGRATION_STATEMENTS: string[] = [
   "CREATE INDEX `idx_job_queue_kind` ON `job_queue` (`kind`,`state`);",
   "CREATE UNIQUE INDEX `idx_job_queue_dedupe` ON `job_queue` (`dedupe_key`) WHERE state IN ('pending', 'running');",
   "CREATE INDEX `idx_local_asset_timeline` ON `local_asset` (`created_at`,`id`);",
+  "ALTER TABLE `local_asset` ADD `hash_state` text;",
 ];

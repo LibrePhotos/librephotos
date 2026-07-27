@@ -150,6 +150,10 @@ export const en = {
     statusHashing: "Preparing photos for upload — {{done}} of {{total}}",
     statusUploading: "Uploading — {{done}} of {{total}} done",
     statusWaiting: "{{count}} ready to upload",
+    // Not a stall: hashing never downloads, so these move only as the upload
+    // step fetches them.
+    statusICloud: "{{count}} photo waiting to download from iCloud",
+    statusICloud_other: "{{count}} photos waiting to download from iCloud",
     statusUpToDate: "{{count}} backed up — nothing new to upload",
     statusIdle: "Nothing selected to back up yet",
     // Blockers: never leave an idle queue unexplained.
@@ -164,6 +168,10 @@ export const en = {
     // Per-stage detail lines, each against its own denominator.
     scanProgress: "Found {{done}} of {{total}}",
     hashProgress: "Prepared {{done}} of {{total}}",
+    icloudPending:
+      "{{count}} photo is stored in iCloud, not on this phone — it downloads as it uploads.",
+    icloudPending_other:
+      "{{count}} photos are stored in iCloud, not on this phone — they download as they upload.",
     uploadProgress: "Uploaded {{done}} of {{total}} ready",
     albumCounts: "{{total}} photos · {{hashed}} prepared · {{onServer}} on server",
   },

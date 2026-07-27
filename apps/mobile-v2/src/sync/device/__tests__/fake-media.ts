@@ -6,6 +6,10 @@
  */
 import type {
   AssetHasher,
+  AssetHashResult,
+  AssetMaterializer,
+  HashableAsset,
+  MaterializedAsset,
   MediaAlbum,
   MediaAsset,
   MediaPage,
@@ -101,14 +105,30 @@ export class FakeMedia implements MediaProvider {
   }
 }
 
-/** Deterministic hasher: md5 = `md5:<id>` unless overridden; records order. */
-export class FakeHasher implements AssetHasher {
+/**
+ * Deterministic hasher: md5 = `md5:<id>` unless overridden; records order.
+ *
+ * `remote` marks assets whose bytes live in iCloud — the fake refuses to hash
+ * them just as the real one does, and `materialized` records every asset that
+ * had to be fetched, so a test can assert the default path never downloads.
+ */
+export class FakeHasher implements AssetHasher, AssetMaterializer {
   order: string[] = [];
   fail = new Set<string>();
+  remote = new Set<string>();
   map = new Map<string, string>();
-  async md5(a: { id: string; uri: string }): Promise<string | null> {
+  materialized: string[] = [];
+
+  async hash(a: HashableAsset): Promise<AssetHashResult> {
     this.order.push(a.id);
+    if (this.fail.has(a.id)) return { status: "unavailable" };
+    if (this.remote.has(a.id)) return { status: "remote" };
+    return { status: "hashed", md5: this.map.get(a.id) ?? `md5:${a.id}` };
+  }
+
+  async materialize(a: HashableAsset): Promise<MaterializedAsset | null> {
+    this.materialized.push(a.id);
     if (this.fail.has(a.id)) return null;
-    return this.map.get(a.id) ?? `md5:${a.id}`;
+    return { uri: `file://${a.id}`, md5: this.map.get(a.id) ?? `md5:${a.id}` };
   }
 }

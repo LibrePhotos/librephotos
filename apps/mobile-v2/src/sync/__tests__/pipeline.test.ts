@@ -117,8 +117,8 @@ describe("sync pipeline: no step may starve the one behind it", () => {
     // First run: aborted partway, exactly like the app being killed/reloaded.
     const controller = new AbortController();
     let hashes = 0;
-    const originalMd5 = hasher.md5.bind(hasher);
-    hasher.md5 = async (a) => {
+    const originalMd5 = hasher.hash.bind(hasher);
+    hasher.hash = async (a) => {
       hashes += 1;
       if (hashes === 30) controller.abort();
       return originalMd5(a);

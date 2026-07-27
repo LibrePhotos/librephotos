@@ -26,6 +26,7 @@ import {
 import { queueList, queueSummary, retryFailed, type QueueListRow, type QueueSummary } from "@/sync/upload/queue";
 import { backupState, type BackupBlocker, type BackupStage, type BackupState } from "@/sync/upload/status";
 import { getMediaAccess } from "@/sync/device/media-store";
+import { clearDeferredHashes } from "@/sync/device/hasher";
 import { LIBRARY_ALBUM_ID } from "@/sync/device/media-sync";
 import { jobQueueSnapshot, type JobQueueSnapshot } from "@/sync/jobs/status";
 import { retryFailedJobs } from "@/sync/jobs/queue";
@@ -86,6 +87,11 @@ export function BackupScreen() {
 
   const onRetry = useCallback(() => {
     retryFailed(db);
+    // Un-park the iCloud-deferred assets too: "Retry" is also the only way to
+    // tell the app that "Optimise iPhone Storage" is off now, or that iOS has
+    // pulled the originals back down. Re-checking costs one no-network lookup
+    // each, not a download.
+    clearDeferredHashes(db);
     // A stage that gave up is as much a reason for "nothing is uploading" as a
     // failed item, so one Retry has to revive both.
     retryFailedJobs(db);
@@ -152,6 +158,15 @@ export function BackupScreen() {
               .filter(Boolean)
               .join(" · ")}
           </Text>
+          {/* The iCloud line is never folded into the hash fraction. Hashing
+              deliberately does not download originals, so on a phone using
+              "Optimise iPhone Storage" these assets are simply elsewhere —
+              and the user is owed that sentence rather than a bar that stops. */}
+          {state.counts.awaitingRemote > 0 ? (
+            <Text testID="backup-icloud" style={{ color: theme.muted, fontSize: 12 }}>
+              {t("backup.icloudPending", { count: state.counts.awaitingRemote })}
+            </Text>
+          ) : null}
           {deviceProgress ? (
             <Text testID="backup-scan-live" style={{ color: theme.muted, fontSize: 11 }}>
               {deviceProgress.album} · {deviceProgress.scanned}
@@ -322,6 +337,8 @@ function stageText(t: Translate, stage: BackupStage): string {
       return t("backup.statusUploading", { done: stage.done, total: stage.total });
     case "waiting":
       return t("backup.statusWaiting", { count: stage.pending });
+    case "icloud":
+      return t("backup.statusICloud", { count: stage.pending });
     case "up_to_date":
       return t("backup.statusUpToDate", { count: stage.total });
     case "idle":

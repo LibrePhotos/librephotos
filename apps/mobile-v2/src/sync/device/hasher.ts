@@ -10,6 +10,18 @@
  * lazily — only when `includeVideos` is set (the upload top-up passes it for
  * selected videos), since hashing GB-scale files eagerly wastes battery.
  *
+ * ## Hashing never downloads
+ *
+ * The hasher is asked for a *local* md5 only. An asset whose bytes live in
+ * iCloud (iOS "Optimise iPhone Storage") answers `{ status: "remote" }`, and
+ * this pass records that on the row (`hash_state = 'icloud'`) instead of
+ * blocking for seconds while a multi-megabyte original comes down the wire —
+ * which is what made "Preparing photos" cost ~1.8 s per photo on a real iPhone.
+ * Deferred rows leave the hash pass alone (they are excluded from
+ * {@link selectUnhashed}, so `more` cannot spin on them) and are picked up by
+ * the upload path, which downloads them *once* and hashes the bytes on their
+ * way out.
+ *
  * The md5 itself comes from an injected {@link AssetHasher}; the pure pipeline
  * (selection, batching, composition, invalidation) is Node-tested with a fake.
  */
@@ -17,7 +29,7 @@ import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
 import type { SyncLogEntry } from "@/db/queries/sync-log";
 import { HASH_BATCH_SIZE } from "@/sync/jobs/types";
-import type { AssetHasher, LocalMediaType } from "./types";
+import type { AssetHasher, AssetHashResult, LocalMediaType } from "./types";
 
 /**
  * Default assets per batch when the caller does not pass one. The job queue
@@ -80,8 +92,12 @@ export type HashOptions = {
 export type HashResult = {
   hashed: number;
   failed: number;
+  /** Assets whose bytes are only in iCloud — deferred to the upload path. */
+  deferred: number;
   /** True when the pass stopped on its budget with work still outstanding. */
   more?: boolean;
+  /** Wall-clock ms spent in {@link AssetHasher.hash}, for the sync log. */
+  elapsedMs?: number;
 };
 
 const defaultYield = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -109,20 +125,68 @@ export function selectUnhashed(
   // hash + hashed_at; a permanent read failure sets hashed_at only (hash stays
   // NULL, so the asset is never enqueued for upload). A modified_at change
   // clears both (upsertLocalAssets), re-queuing the row.
+  //
+  // `hash_state IS NULL` drops the iCloud-deferred rows. This is load-bearing:
+  // they keep `hashed_at` NULL (they have not been *attempted*, they are
+  // waiting), so without this clause every batch would re-select them, re-learn
+  // they are remote, and report `more` forever.
   return db.all(
     sql`SELECT la.id AS id, la.uri AS uri, la.type AS type
         FROM local_asset la
-        WHERE la.hash IS NULL AND la.hashed_at IS NULL AND la.uri IS NOT NULL ${videoClause} ${selectedFilter}
+        WHERE la.hash IS NULL AND la.hashed_at IS NULL AND la.hash_state IS NULL
+          AND la.uri IS NOT NULL ${videoClause} ${selectedFilter}
         ORDER BY (CASE WHEN ${selectedExpr} THEN 0 ELSE 1 END) ASC, la.modified_at DESC
         LIMIT ${opts.limit}`
   ) as Candidate[];
 }
 
-/** Persist a computed hash (`md5 + userId`) onto the asset row. */
+/**
+ * Persist a computed hash (`md5 + userId`) onto the asset row. Clears
+ * `hash_state` too: whatever was once deferred has now been read.
+ */
 export function storeHash(db: AppDatabase, assetId: string, md5: string, userId: number, now: number): void {
   db.run(
-    sql`UPDATE local_asset SET hash = ${md5 + String(userId)}, hashed_at = ${now} WHERE id = ${assetId}`
+    sql`UPDATE local_asset SET hash = ${md5 + String(userId)}, hashed_at = ${now}, hash_state = NULL
+        WHERE id = ${assetId}`
   );
+}
+
+/** The `hash_state` value meaning "the bytes are in iCloud, not on this device". */
+export const HASH_STATE_ICLOUD = "icloud";
+
+/**
+ * Park an asset as "bytes not on this device". `hashed_at` stays NULL — nothing
+ * has been *attempted* — so the row returns to the hash pass for free the moment
+ * {@link clearDeferredHashes} runs (a user retry, or the asset coming back down
+ * from iCloud), while `hash_state` keeps it out of the current pass.
+ */
+export function deferHash(db: AppDatabase, assetId: string): void {
+  db.run(sql`UPDATE local_asset SET hash_state = ${HASH_STATE_ICLOUD} WHERE id = ${assetId}`);
+}
+
+/**
+ * Un-defer every iCloud-parked asset so the next hash pass re-checks local
+ * availability. Cheap (a no-network `getAssetInfoAsync` each) and the only way
+ * the mirror notices that the user turned "Optimise iPhone Storage" off or that
+ * iOS pulled the originals back down. Returns how many rows were revived.
+ */
+export function clearDeferredHashes(db: AppDatabase): number {
+  const n = (
+    db.get(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash_state = ${HASH_STATE_ICLOUD}`) as {
+      c: number;
+    }
+  ).c;
+  db.run(sql`UPDATE local_asset SET hash_state = NULL WHERE hash_state = ${HASH_STATE_ICLOUD}`);
+  return n;
+}
+
+/** How many assets are parked waiting for their bytes to come down from iCloud. */
+export function countDeferred(db: AppDatabase): number {
+  return (
+    db.get(sql`SELECT COUNT(*) AS c FROM local_asset WHERE hash_state = ${HASH_STATE_ICLOUD}`) as {
+      c: number;
+    }
+  ).c;
 }
 
 /**
@@ -140,11 +204,14 @@ export async function runHashPass(
   const yieldFn = opts.yield ?? defaultYield;
   let hashed = 0;
   let failed = 0;
+  let deferred = 0;
   let more = false;
+  let elapsedMs = 0;
+  const attempted = () => hashed + failed + deferred;
 
   for (;;) {
     if (opts.signal?.aborted) throw new HashAbortedError();
-    if (hashed + failed >= maxAssets) {
+    if (attempted() >= maxAssets) {
       // Budget spent. Report whether anything is still outstanding so the caller
       // (a `hash_batch` job) knows to enqueue its continuation.
       more =
@@ -158,7 +225,7 @@ export async function runHashPass(
     const batch = selectUnhashed(db, {
       includeVideos: opts.includeVideos,
       selectedOnly: opts.selectedOnly,
-      limit: Math.min(batchSize, maxAssets - hashed - failed),
+      limit: Math.min(batchSize, maxAssets - attempted()),
     });
     if (batch.length === 0) {
       // Nothing hashable *right now*. If a concurrent camera-roll scan is still
@@ -172,15 +239,23 @@ export async function runHashPass(
 
     for (const asset of batch) {
       if (opts.signal?.aborted) throw new HashAbortedError();
-      let md5: string | null = null;
+      let result: AssetHashResult;
+      const startedAt = Date.now();
       try {
-        md5 = await hasher.md5(asset);
+        result = await hasher.hash(asset);
       } catch {
-        md5 = null;
+        result = { status: "unavailable" };
       }
-      if (md5) {
-        storeHash(db, asset.id, md5, opts.userId, now);
+      elapsedMs += Date.now() - startedAt;
+      if (result.status === "hashed") {
+        storeHash(db, asset.id, result.md5, opts.userId, now);
         hashed += 1;
+      } else if (result.status === "remote") {
+        // Not a failure and not progress — the bytes are simply somewhere else.
+        // Park it so the pass moves on at full speed; the upload path will fetch
+        // it once, if the user asked for this album to be backed up.
+        deferHash(db, asset.id);
+        deferred += 1;
       } else {
         failed += 1;
         // Mark attempted (hashed_at set, hash left NULL) so a permanently
@@ -189,10 +264,21 @@ export async function runHashPass(
         db.run(sql`UPDATE local_asset SET hashed_at = ${now} WHERE id = ${asset.id}`);
       }
     }
-    opts.onBatch?.({ hashed, failed });
+    opts.onBatch?.({ hashed, failed, deferred });
     await yieldFn();
   }
 
-  opts.log?.({ op: "hash", level: "info", applied: hashed, message: `hashed ${hashed}, failed ${failed}` });
-  return { hashed, failed, more };
+  // The per-asset cost is in the message on purpose: it is the number that
+  // exposed this bug (14726 ms for 8 photos) and the number that proves the fix.
+  const attempts = attempted();
+  const perAsset = attempts > 0 ? Math.round(elapsedMs / attempts) : 0;
+  opts.log?.({
+    op: "hash",
+    level: "info",
+    applied: hashed,
+    message:
+      `hashed ${hashed}, failed ${failed}, iCloud-deferred ${deferred}` +
+      ` — ${elapsedMs}ms (${perAsset}ms/photo)`,
+  });
+  return { hashed, failed, deferred, more, elapsedMs };
 }

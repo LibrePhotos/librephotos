@@ -79,12 +79,50 @@ export interface MediaProvider {
   addChangeListener(listener: () => void): { remove: () => void };
 }
 
+/** The asset identity the hashing/materialising seams work on. */
+export type HashableAsset = { id: string; uri: string; type: LocalMediaType };
+
+/**
+ * What one hash attempt learned. Three outcomes, not two, because "the bytes
+ * are not on this device" is a *state*, not a failure:
+ *
+ * - `hashed`      — raw md5 hex of the file bytes (NO user-id suffix).
+ * - `remote`      — iOS only: the original lives in iCloud (the device is on
+ *                   "Optimise iPhone Storage"). Reading it would download a
+ *                   multi-megabyte original, so the pass records the state and
+ *                   moves on; the upload path fetches it later, once, if the
+ *                   user actually asked for this album to be backed up.
+ * - `unavailable` — permanently unreadable (deleted, corrupt, unsupported).
+ */
+export type AssetHashResult =
+  | { status: "hashed"; md5: string }
+  | { status: "remote" }
+  | { status: "unavailable" };
+
 /** Abstraction over the native md5 hasher used by the pure hash pipeline. */
 export interface AssetHasher {
   /**
-   * Return the raw md5 hex of the asset's file bytes (NO user id suffix), or
-   * null if the file can't be read. The implementation resolves `ph://` assets
-   * to a readable local uri first when needed.
+   * Hash the asset's bytes **without ever touching the network**. An asset that
+   * would have to be downloaded first answers `{ status: "remote" }` instead of
+   * quietly stalling the pipeline for seconds per photo.
    */
-  md5(asset: { id: string; uri: string; type: LocalMediaType }): Promise<string | null>;
+  hash(asset: HashableAsset): Promise<AssetHashResult>;
+}
+
+/** The bytes of an asset, on disk and already checksummed. */
+export type MaterializedAsset = {
+  /** A readable `file://` uri for the bytes. */
+  uri: string;
+  /** Raw md5 hex of those exact bytes (NO user-id suffix). */
+  md5: string;
+};
+
+/**
+ * The one place allowed to pull an original down from iCloud — and it hands
+ * back the md5 of what it fetched, so the bytes are paid for **once**: the
+ * upload path hashes them on their way out instead of downloading to hash and
+ * downloading again to upload.
+ */
+export interface AssetMaterializer {
+  materialize(asset: HashableAsset): Promise<MaterializedAsset | null>;
 }

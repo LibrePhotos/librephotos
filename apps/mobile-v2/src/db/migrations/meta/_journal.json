@@ -43,6 +43,13 @@
       "when": 1785139711482,
       "tag": "0005_special_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785141567957,
+      "tag": "0006_tidy_tiger_shark",
+      "breakpoints": true
     }
   ]
 }
