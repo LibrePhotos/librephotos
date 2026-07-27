@@ -147,9 +147,29 @@ const LOCAL_ARM = `
          la.id AS sort_id
   FROM local_asset la`;
 
+/**
+ * The camera-roll arm suppresses an asset exactly when the remote arm is
+ * already showing it — the *same* visibility predicate, not bare existence.
+ *
+ * Device report: "backed up images disappear from the timeline." The two arms
+ * disagreed. The local arm dropped an asset the moment *any* remote_photo row
+ * shared its hash, while the remote arm only surfaced rows that were visible
+ * (`hidden = 0 AND in_trashcan = 0 AND removed = 0 AND timestamp IS NOT NULL`).
+ * A photo whose server row existed but failed that predicate therefore fell
+ * through both arms and vanished — on the device, on the server, invisible in
+ * the app. The common way in is a freshly uploaded photo whose row syncs back
+ * before the server has extracted a timestamp from EXIF: back it up, watch it
+ * disappear.
+ *
+ * The trade-off is deliberate and is the only self-consistent rule: a photo the
+ * user hid or trashed *on the server* comes back to the timeline as a plain
+ * camera-roll photo for as long as the file is still on the phone. It is on the
+ * device; the app must not pretend otherwise.
+ */
 const LOCAL_ARM_WHERE = `
   (la.hash IS NULL
-   OR NOT EXISTS (SELECT 1 FROM remote_photo rp WHERE rp.image_hash = la.hash))
+   OR NOT EXISTS (SELECT 1 FROM remote_photo rp
+                  WHERE rp.image_hash = la.hash AND ${REMOTE_ARM_WHERE}))
   AND EXISTS (SELECT 1 FROM local_album_asset laa
               JOIN local_album l ON l.id = laa.album_id
               WHERE laa.asset_id = la.id AND l.backup_selection = 1)

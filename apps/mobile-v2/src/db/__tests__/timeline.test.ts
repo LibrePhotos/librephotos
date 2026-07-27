@@ -98,6 +98,62 @@ describe("merged timeline", () => {
       expect(rows.map((r) => r.local_id)).toEqual(["L5"]);
     });
 
+    /**
+     * Device report: "backed up images disappear from the timeline."
+     *
+     * The two arms disagreed about what "already on the server" meant: the
+     * local arm dropped an asset on the mere existence of a remote row, the
+     * remote arm only showed rows that were *visible*. Anything in between —
+     * most importantly a freshly uploaded photo the server has not dated yet —
+     * fell through both arms and vanished from the app while sitting on the
+     * phone. Each of these must appear exactly once, from the camera roll.
+     */
+    describe.each([
+      ["the server has not dated it yet (fresh upload, no EXIF)", { timestamp: null }],
+      ["it was hidden on the server", { hidden: true }],
+      ["it was moved to the server trash", { inTrashcan: true }],
+      ["it was deleted on the server", { removed: true }],
+      ["all of the above at once", { timestamp: null, hidden: true, removed: true }],
+    ])("a backed-up photo still on the device stays visible when %s", (_label, overrides) => {
+      beforeEach(() => {
+        seedRemotePhotos(t.db, [
+          remotePhoto({ id: "r1", imageHash: "backed-up", timestamp: D(2024, 4, 1), ...overrides }),
+        ]);
+        insertLocalAsset(t.db, { id: "L1", hash: "backed-up", createdAt: D(2024, 4, 1) });
+        insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L1"] });
+      });
+
+      it("appears exactly once, as the camera-roll copy", () => {
+        const { rows } = timelinePage(t.db, { limit: 100 });
+        expect(rows).toHaveLength(1);
+        expect(rows[0].local_id).toBe("L1");
+        expect(rows[0].local_uri).toBe("ph://L1");
+        expect(rows[0].image_hash).toBe("backed-up");
+      });
+
+      it("is counted once in the day buckets", () => {
+        expect(timelineBuckets(t.db).reduce((n, b) => n + b.count, 0)).toBe(1);
+      });
+
+      it("can still anchor the viewer's window", () => {
+        expect(timelineCursorFor(t.db, "L1")).toEqual({ timestamp: D(2024, 4, 1), sortId: "L1" });
+      });
+    });
+
+    it("does not double-count a photo whose remote row IS visible", () => {
+      seedRemotePhotos(t.db, [
+        remotePhoto({ id: "r1", imageHash: "shared", timestamp: D(2024, 4, 1) }),
+      ]);
+      insertLocalAsset(t.db, { id: "L1", hash: "shared", createdAt: D(2024, 4, 1) });
+      insertLocalAlbum(t.db, { id: "cam", backupSelection: 1, assetIds: ["L1"] });
+
+      const { rows } = timelinePage(t.db, { limit: 100 });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].remote_id).toBe("r1"); // the server row wins
+      expect(rows[0].local_id).toBe("L1"); // "also on this device"
+      expect(timelineBuckets(t.db).reduce((n, b) => n + b.count, 0)).toBe(1);
+    });
+
     it("limits each arm without losing the merge order", () => {
       // Ten remote and ten local rows interleaved in time. If either arm were
       // limited *before* the interleave was understood — or not limited at all —

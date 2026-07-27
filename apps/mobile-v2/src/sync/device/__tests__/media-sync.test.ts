@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { createTestDb, type TestDb } from "@/db/test-db";
 import { syncDeviceMedia, LIBRARY_ALBUM_ID, LIMITED_ALBUM_ID } from "../media-sync";
 import { getAlbumWatermark, getMediaAccess } from "../media-store";
+import { timelinePage } from "@/db/queries/timeline";
 import { FakeMedia, asset } from "./fake-media";
 
 function assetIds(t: TestDb): string[] {
@@ -285,5 +286,85 @@ describe("syncDeviceMedia — large libraries stay responsive", () => {
     expect(second.complete).toBe(true);
     expect(rowCount(t.db)).toBe(250);
     expect(membership(t, LIBRARY_ALBUM_ID)).toHaveLength(250);
+  });
+});
+
+/**
+ * Device report: "backed up images disappear from the timeline."
+ *
+ * One hypothesis was backup selection: the scan stopped enumerating iOS smart
+ * albums (the library is walked once as a synthetic `__library__` album), so an
+ * asset the user had made backup-eligible only through a smart album could have
+ * ended up in no backup-selected album and dropped out of the merged timeline —
+ * with no upload involved at all.
+ *
+ * It does not happen, and these tests hold that line: nothing prunes album rows
+ * or their memberships, so a selection made before the change keeps working,
+ * and every asset is (re)linked to the whole-library album on every run anyway.
+ *
+ * They also pin the one genuine consequence of the change, which is *not* a
+ * disappearance: an album the provider no longer reports stops accumulating new
+ * assets, so a user whose only selected album is a stale smart album will not
+ * see photos taken after the upgrade until they select something current.
+ */
+describe("syncDeviceMedia — dropping smart albums must not hide anything", () => {
+  let t: TestDb;
+  beforeEach(() => (t = createTestDb()));
+  afterEach(() => t.close());
+
+  /** The DB an install that still enumerated smart albums would have left. */
+  function seedPreUpgradeSmartAlbum(ids: string[]): void {
+    t.db.run(
+      sql`INSERT INTO local_album (id, title, asset_count, modified_at, backup_selection)
+          VALUES ('recents', 'Recents', ${ids.length}, 0, 1)`
+    );
+    for (const id of ids) {
+      t.db.run(
+        sql`INSERT INTO local_asset (id, name, type, created_at, modified_at, width, height, uri)
+            VALUES (${id}, ${id}, 'image', 1000, 1000, 100, 100, ${`ph://${id}`})`
+      );
+      t.db.run(sql`INSERT INTO local_album_asset (album_id, asset_id) VALUES ('recents', ${id})`);
+    }
+  }
+
+  it("keeps a smart album's rows, membership and backup selection after a scan that ignores it", async () => {
+    seedPreUpgradeSmartAlbum(["a1", "a2"]);
+    const media = new FakeMedia();
+    media.setAlbum("recents", "Recents", [asset("a1"), asset("a2")], { isSmart: true });
+
+    await syncDeviceMedia(t.db, media, { now: 2_000 });
+
+    // The scan never walks the smart album…
+    expect(media.queries.map((q) => q.albumId)).not.toContain("recents");
+    // …and never takes its rows away either, so the user's selection survives.
+    expect(membership(t, "recents")).toEqual(["a1", "a2"]);
+    const row = t.db.get(
+      sql`SELECT backup_selection FROM local_album WHERE id = 'recents'`
+    ) as { backup_selection: number };
+    expect(row.backup_selection).toBe(1);
+    // Both assets are also covered by the whole-library pass.
+    expect(membership(t, LIBRARY_ALBUM_ID)).toEqual(["a1", "a2"]);
+  });
+
+  it("leaves those assets in the merged timeline", async () => {
+    seedPreUpgradeSmartAlbum(["a1", "a2"]);
+    const media = new FakeMedia();
+    media.setAlbum("recents", "Recents", [asset("a1"), asset("a2")], { isSmart: true });
+
+    await syncDeviceMedia(t.db, media, { now: 2_000 });
+
+    const { rows } = timelinePage(t.db, { limit: 100 });
+    expect(rows.map((r) => r.local_id).sort()).toEqual(["a1", "a2"]);
+  });
+
+  it("does not orphan-sweep an asset just because its smart album went unwalked", async () => {
+    seedPreUpgradeSmartAlbum(["a1"]);
+    const media = new FakeMedia();
+    media.setAlbum("recents", "Recents", [asset("a1")], { isSmart: true });
+
+    const res = await syncDeviceMedia(t.db, media, { now: 2_000 });
+
+    expect(res.deleted).toBe(0);
+    expect(assetIds(t)).toEqual(["a1"]);
   });
 });
