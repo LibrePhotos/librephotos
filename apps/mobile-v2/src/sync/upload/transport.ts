@@ -21,6 +21,12 @@ export type UploadFileInput = {
   /** LibrePhotos hash (md5 + userId) — used only for the exists check. */
   hash: string;
   userId: number;
+  /**
+   * Raw md5 of these exact bytes, when the caller has already measured it (the
+   * iCloud path checksums the original as it comes down). Lets the transport
+   * skip a second full read of the same file; absent, it measures its own.
+   */
+  md5?: string;
 };
 
 export type UploadCompleteInput = {

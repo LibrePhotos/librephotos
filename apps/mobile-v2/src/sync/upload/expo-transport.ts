@@ -41,6 +41,12 @@ function authHeaders(token: string | null, withCookie: boolean): Record<string, 
   return h;
 }
 
+/**
+ * Network access IS allowed here, unlike in the hash pass: an upload cannot
+ * happen without the bytes, and by the time we are here the user has turned
+ * backup on and the Wi-Fi/charging gate has said yes. The iCloud path hands us
+ * an already-resolved `file://` uri, so this is a no-op for it.
+ */
 async function resolveReadableUri(id: string, uri: string): Promise<string> {
   if (!uri.startsWith("ph://")) return uri;
   const info = await MediaLibrary.getAssetInfoAsync(id, { shouldDownloadFromNetwork: true });
@@ -90,11 +96,14 @@ export function createExpoUploadTransport(deps: TransportDeps): UploadTransport 
       const uri = await resolveReadableUri(input.assetId, input.uri);
       // Checksum the bytes we are about to send, in the same stat call that
       // sizes them — the completion call must not checksum a stale hash from
-      // the hash pass (see UploadResult.md5).
-      const stat = await FileSystem.getInfoAsync(uri, { md5: true });
+      // the hash pass (see UploadResult.md5). When the caller already measured
+      // these exact bytes (the iCloud path checksums the original as it lands),
+      // take its answer and stat for the size only: re-reading a just-downloaded
+      // original to learn what we were told is the second half of paying twice.
+      const stat = await FileSystem.getInfoAsync(uri, { md5: input.md5 == null });
       if (!stat.exists) throw new Error("asset file not found on disk");
       const size = stat.size ?? 0;
-      const md5 = stat.md5 ?? undefined;
+      const md5 = input.md5 ?? stat.md5 ?? undefined;
 
       const task = FileSystem.createUploadTask(
         `${base()}/api/upload/`,

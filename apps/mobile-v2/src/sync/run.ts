@@ -31,7 +31,7 @@ import { syncDeviceMedia } from "./device/media-sync";
 import { runHashPass } from "./device/hasher";
 import { createExpoMediaProvider } from "./device/expo-media-provider";
 import { createExpoAssetHasher } from "./device/expo-asset-hasher";
-import type { MediaProvider, AssetHasher } from "./device/types";
+import type { MediaProvider, AssetHasher, AssetMaterializer } from "./device/types";
 import { enqueueBackups, queueSummary } from "./upload/queue";
 import { runUploadItem } from "./upload/worker";
 import { makeUploadGate } from "./upload/gate";
@@ -50,13 +50,13 @@ function getSource(): RemoteSyncSource {
 // Lazy app singletons for the device/upload seams (each pulls an expo native
 // module, so they are created on first use, never at import time).
 let mediaProvider: MediaProvider | null = null;
-let assetHasher: AssetHasher | null = null;
+let assetHasher: (AssetHasher & AssetMaterializer) | null = null;
 let uploadTransport: UploadTransport | null = null;
 let deviceProbe: DeviceProbe | null = null;
 function getMediaProvider(): MediaProvider {
   return (mediaProvider ??= createExpoMediaProvider());
 }
-function getAssetHasher(): AssetHasher {
+function getAssetHasher(): AssetHasher & AssetMaterializer {
   return (assetHasher ??= createExpoAssetHasher());
 }
 function getUploadTransport(): UploadTransport {
@@ -131,9 +131,17 @@ function appSeams(userId: number | null | undefined): SyncAllOptions {
         batchSize: budget,
       });
       // Materialise upload_queue rows for whatever just became hashable; the
-      // handler then opens an upload window over them.
+      // handler then opens an upload window over them. iCloud-deferred assets
+      // are queued too — unhashed and sorted last — because the upload path is
+      // the only place allowed to fetch their bytes, and it hashes them on the
+      // way out.
       if (getBackupConfig(ctx.db).enabled) enqueueBackups(ctx.db);
-      return { hashed: result.hashed, failed: result.failed, more: result.more === true };
+      return {
+        hashed: result.hashed,
+        failed: result.failed,
+        deferred: result.deferred,
+        more: result.more === true,
+      };
     },
 
     uploadAsset: async (ctx, assetId) => {
@@ -154,6 +162,10 @@ function appSeams(userId: number | null | undefined): SyncAllOptions {
       const result = await runUploadItem(ctx.db, assetId, {
         userId,
         transport: getUploadTransport(),
+        // The single sanctioned iCloud download. It is reached only here, i.e.
+        // only with backup on and the gate satisfied, and it returns the md5 of
+        // the bytes it fetched so nothing downloads twice.
+        materialize: (asset) => getAssetHasher().materialize(asset),
         signal: ctx.signal,
         log: ctx.log,
         onProgress: (id, sent, total) =>

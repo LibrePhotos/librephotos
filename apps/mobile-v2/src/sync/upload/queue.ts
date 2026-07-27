@@ -6,9 +6,16 @@
  * Enqueue rule: a local asset that is hashed, lives in a backup-SELECTED album,
  * is NOT in an excluded album, and whose hash has no `remote_photo` counterpart
  * (i.e. "will be backed up but isn't on the server yet").
+ *
+ * …plus one exception. An asset the hash pass parked as `hash_state = 'icloud'`
+ * has no hash *because it has no bytes on this device*, and refusing to queue it
+ * would silently drop most of the library on any iPhone using "Optimise iPhone
+ * Storage". Those are queued unhashed and sorted last; the worker downloads each
+ * one once and hashes the bytes on their way out (see ./worker).
  */
 import { sql } from "drizzle-orm";
 import type { AppDatabase } from "@/db/types";
+import { HASH_STATE_ICLOUD } from "@/sync/device/hasher";
 
 export type UploadState =
   | "pending"
@@ -37,7 +44,7 @@ export function enqueueBackups(db: AppDatabase, now = Date.now()): number {
     sql`INSERT INTO upload_queue (asset_id, state, progress, attempts, enqueued_at)
         SELECT la.id, 'pending', 0, 0, ${now}
         FROM local_asset la
-        WHERE la.hash IS NOT NULL
+        WHERE (la.hash IS NOT NULL OR la.hash_state = ${HASH_STATE_ICLOUD})
           AND EXISTS (SELECT 1 FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
                       WHERE laa.asset_id = la.id AND l.backup_selection = 1)
           AND NOT EXISTS (SELECT 1 FROM local_album_asset laa JOIN local_album l ON l.id = laa.album_id
@@ -61,25 +68,37 @@ export type QueueItem = {
   name: string | null;
   type: string | null;
   hash: string | null;
+  /** `'icloud'` when the bytes still have to be fetched (hash is NULL). */
+  hash_state: string | null;
   created_at: number | null;
   modified_at: number | null;
 };
 
+export const QUEUE_ITEM_COLUMNS = sql`uq.asset_id AS asset_id, uq.state AS state, uq.attempts AS attempts,
+       uq.progress AS progress, la.uri AS uri, la.name AS name, la.type AS type, la.hash AS hash,
+       la.hash_state AS hash_state, la.created_at AS created_at, la.modified_at AS modified_at`;
+
+/**
+ * Assets that already have a hash go first. An unhashed row is an iCloud-only
+ * asset whose bytes must be downloaded before anything can happen, so letting
+ * one of those to the front would park the whole serial queue on a network
+ * fetch while photos that are sitting right there on the disk wait behind it.
+ */
+export const LOCAL_FIRST = sql`(CASE WHEN la.hash IS NULL THEN 1 ELSE 0 END) ASC`;
+
 /**
  * The next item eligible to run: a `pending` row, or a `failed` row that is
- * under the attempt cap and past its backoff window. Newest-enqueued last
- * (FIFO). Returns null when the queue is drained/blocked.
+ * under the attempt cap and past its backoff window. Locally-hashed assets
+ * first, then FIFO. Returns null when the queue is drained/blocked.
  */
 export function nextEligible(db: AppDatabase, now = Date.now()): QueueItem | null {
   const row = db.get(
-    sql`SELECT uq.asset_id AS asset_id, uq.state AS state, uq.attempts AS attempts, uq.progress AS progress,
-               la.uri AS uri, la.name AS name, la.type AS type, la.hash AS hash,
-               la.created_at AS created_at, la.modified_at AS modified_at
+    sql`SELECT ${QUEUE_ITEM_COLUMNS}
         FROM upload_queue uq JOIN local_asset la ON la.id = uq.asset_id
         WHERE (uq.state = 'pending'
                OR (uq.state = 'failed' AND uq.attempts < ${MAX_ATTEMPTS}
                    AND (uq.next_attempt_at IS NULL OR uq.next_attempt_at <= ${now})))
-        ORDER BY uq.enqueued_at ASC, uq.asset_id ASC
+        ORDER BY ${LOCAL_FIRST}, uq.enqueued_at ASC, uq.asset_id ASC
         LIMIT 1`
   ) as QueueItem | undefined;
   return row ?? null;

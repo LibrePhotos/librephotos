@@ -31,6 +31,8 @@ import {
 } from "@/db/queries/app-meta";
 import { SYNC_ENTITIES, type SyncEntity } from "@/db/queries/sync-state";
 import { checkIntegrity, type IntegrityReport } from "@/sync/integrity";
+import { HASH_STATE_ICLOUD } from "@/sync/device/hasher";
+import { LOCAL_FIRST } from "@/sync/upload/queue";
 import { pullEntityStep, type PullOptions } from "@/sync/remote/delta";
 import type { RemoteSyncSource } from "@/sync/remote/source";
 import { jobSizer, type JobSizer } from "./sizing";
@@ -57,6 +59,8 @@ export type ScanChunkResult = {
 export type HashBatchResult = {
   hashed: number;
   failed: number;
+  /** Assets left for the upload path to fetch from iCloud (never hashed here). */
+  deferred?: number;
   /** True when un-hashed assets remain (or a scan may still produce some). */
   more: boolean;
 };
@@ -127,6 +131,11 @@ export type JobSeams = {
  * eligible, up to the window size. Deliberately reads `upload_queue` rather than
  * taking ids from the caller: that table already owns eligibility, attempts and
  * backoff, and duplicating the rule here is how the two would drift apart.
+ *
+ * An unhashed row is an iCloud-only asset (`hash_state = 'icloud'`) whose bytes
+ * the worker will fetch and hash in one go, so it is eligible — but it sorts
+ * behind everything already on disk, so a network fetch never holds up photos
+ * that are ready to go.
  */
 export function enqueueUploadWindow(
   db: AppDatabase,
@@ -138,12 +147,12 @@ export function enqueueUploadWindow(
         FROM upload_queue uq JOIN local_asset la ON la.id = uq.asset_id
         WHERE uq.state IN ('pending', 'failed')
           AND (uq.next_attempt_at IS NULL OR uq.next_attempt_at <= ${now})
-          AND la.hash IS NOT NULL
+          AND (la.hash IS NOT NULL OR la.hash_state = ${HASH_STATE_ICLOUD})
           AND NOT EXISTS (
             SELECT 1 FROM job_queue j
             WHERE j.dedupe_key = 'upload_asset:' || uq.asset_id AND j.state IN ('pending', 'running')
           )
-        ORDER BY uq.enqueued_at ASC, uq.asset_id ASC
+        ORDER BY ${LOCAL_FIRST}, uq.enqueued_at ASC, uq.asset_id ASC
         LIMIT ${limit}`
   ) as { asset_id: string }[];
   return rows.map((r) => ({ kind: "upload_asset" as const, payload: { assetId: r.asset_id } }));
@@ -312,9 +321,13 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       }
       if (result.more) next.push({ kind: "hash_batch" });
 
+      const deferred = result.deferred ?? 0;
       return {
         applied: result.hashed,
-        note: `hashed ${result.hashed}, failed ${result.failed} (budget ${budget})${result.more ? "" : " (complete)"}`,
+        note:
+          `hashed ${result.hashed}, failed ${result.failed}` +
+          (deferred > 0 ? `, iCloud ${deferred}` : "") +
+          ` (budget ${budget})${result.more ? "" : " (complete)"}`,
         enqueue: next,
       };
     },
