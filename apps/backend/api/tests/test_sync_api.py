@@ -106,6 +106,37 @@ class SyncPhotosCursorTest(TestCase):
         resp = self.client.get(PHOTOS_URL, {"page_size": "99999"})
         self.assertEqual(resp.status_code, 200)
 
+    def test_timestamp_comes_from_the_extracted_exif_date(self):
+        """The wire ``timestamp`` is the photo's effective capture time.
+
+        A scan writes the date it extracted to ``Photo.exif_timestamp`` and
+        leaves ``Photo.timestamp`` -- the manual/device override *input* -- null.
+        Reading the override alone reported every scanned photo as undated,
+        which hid them all from a timeline that orders by capture time.
+        """
+        photo = create_test_photo(owner=self.user)
+        taken = datetime.datetime(2019, 9, 3, 15, 11, 38, tzinfo=datetime.timezone.utc)
+        Photo.objects.filter(pk=photo.pk).update(exif_timestamp=taken, timestamp=None)
+
+        items, _t, _c = sync_pull(self.client, PHOTOS_URL)
+
+        self.assertEqual(items[0]["timestamp"], int(taken.timestamp() * 1000))
+
+    def test_timestamp_falls_back_to_the_override_field(self):
+        """A photo whose override has not been folded into EXIF yet still dates.
+
+        ``apply_device_timestamp_fallback`` writes ``Photo.timestamp`` first and
+        only then re-runs extraction, so there is a window - and a failure mode -
+        in which the override is the only date the photo has.
+        """
+        photo = create_test_photo(owner=self.user)
+        given = datetime.datetime(2021, 6, 15, 12, 0, tzinfo=datetime.timezone.utc)
+        Photo.objects.filter(pk=photo.pk).update(exif_timestamp=None, timestamp=given)
+
+        items, _t, _c = sync_pull(self.client, PHOTOS_URL)
+
+        self.assertEqual(items[0]["timestamp"], int(given.timestamp() * 1000))
+
     def test_favorite_flag_resolved_server_side(self):
         create_test_photos(number_of_photos=1, owner=self.user, rating=3)
         create_test_photos(number_of_photos=1, owner=self.user, rating=0)

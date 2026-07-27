@@ -43,6 +43,7 @@ PHOTO_VALUES = (
     "id",
     "image_hash",
     "owner_id",
+    "exif_timestamp",
     "timestamp",
     "added_on",
     "last_modified",
@@ -76,7 +77,15 @@ def serialize_photo_row(row):
         "id": str(row["id"]),
         "image_hash": row["image_hash"],
         "owner_id": row["owner_id"],
-        "timestamp": to_ms(row["timestamp"]),
+        # ``Photo.exif_timestamp`` is the photo's effective capture time: the
+        # scan writes the extracted EXIF date there, and a user-supplied or
+        # device-supplied date arrives via ``Photo.timestamp`` and is folded in
+        # by the datetime rules (see Photo._extract_date_time_from_exif and
+        # apply_device_timestamp_fallback). ``Photo.timestamp`` on its own is
+        # only the *input* override and is null on almost every photo, so
+        # reading it alone made every scanned photo look undated. Keep it as the
+        # fallback for a photo whose override has not been folded in yet.
+        "timestamp": to_ms(row["exif_timestamp"] or row["timestamp"]),
         "added_on": to_ms(row["added_on"]),
         "last_modified": to_ms(row["last_modified"]),
         "type": media_type,
