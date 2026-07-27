@@ -6,6 +6,7 @@ import m0001 from './0001_even_korath.sql';
 import m0002 from './0002_reflective_snowbird.sql';
 import m0003 from './0003_unique_viper.sql';
 import m0004 from './0004_icy_the_hand.sql';
+import m0005 from './0005_special_wolf_cub.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_icy_the_hand.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   

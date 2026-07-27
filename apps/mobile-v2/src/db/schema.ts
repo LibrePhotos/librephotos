@@ -208,6 +208,11 @@ export const localAsset = sqliteTable(
   (t) => [
     index("idx_local_asset_hash").on(t.hash),
     index("idx_local_asset_modified").on(t.modifiedAt),
+    // The merged timeline's local arm reads in (created_at, id) key order and
+    // stops at its LIMIT. Without this index that arm is a full table scan plus
+    // a temp B-tree over the whole camera roll — thousands of rows, on the JS
+    // thread, before the viewer can paint.
+    index("idx_local_asset_timeline").on(t.createdAt, t.id),
   ]
 );
 

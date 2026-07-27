@@ -36,6 +36,13 @@
       "when": 1785132893042,
       "tag": "0004_icy_the_hand",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1785139711482,
+      "tag": "0005_special_wolf_cub",
+      "breakpoints": true
     }
   ]
 }
