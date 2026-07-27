@@ -33,6 +33,7 @@ import { SYNC_ENTITIES, type SyncEntity } from "@/db/queries/sync-state";
 import { checkIntegrity, type IntegrityReport } from "@/sync/integrity";
 import { pullEntityStep, type PullOptions } from "@/sync/remote/delta";
 import type { RemoteSyncSource } from "@/sync/remote/source";
+import { jobSizer, type JobSizer } from "./sizing";
 import type { JobContext, JobHandlers, JobOutcome } from "./worker";
 import {
   GATE_RETRY_MS,
@@ -87,7 +88,10 @@ export type JobSeams = {
   pull?: PullOptions;
   /** Skip the counts-vs-mirror integrity snapshot (repair does). */
   skipIntegrity?: boolean;
-  /** Budget overrides, for tests that want tiny chunks. */
+  /**
+   * Budget overrides, for tests that want tiny chunks. An override also opts the
+   * kind out of adaptive sizing, so a test's chosen size stays put.
+   */
   budgets?: Partial<{
     outbox: number;
     scan: number;
@@ -95,6 +99,8 @@ export type JobSeams = {
     thumbs: number;
     uploadWindow: number;
   }>;
+  /** Work-unit sizer (defaults to the process-wide one). Injectable for tests. */
+  sizer?: JobSizer;
   /** Sink for the integrity report so `syncAll` can put it in its result. */
   onIntegrity?: (report: IntegrityReport | null) => void;
   /** Sink for the outbox result, same reason. */
@@ -180,6 +186,7 @@ export function backupJobs(): JobSpec[] {
 
 export function createJobHandlers(seams: JobSeams): JobHandlers {
   const budgets = seams.budgets ?? {};
+  const sizer = seams.sizer ?? jobSizer;
 
   return {
     /* -- 1. push local mutations before anything pulls over them ---------- */
@@ -257,7 +264,12 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
     device_scan: async (ctx): Promise<JobOutcome> => {
       if (!seams.scanChunk) return;
       const { chunk = 0 } = jobPayload<"device_scan">(ctx.job);
-      const result = await seams.scanChunk(ctx, budgets.scan ?? SCAN_CHUNK);
+      const budget = budgets.scan ?? sizer.budgetFor("device_scan") ?? SCAN_CHUNK;
+      const startedAt = Date.now();
+      const result = await seams.scanChunk(ctx, budget);
+      // Only feed the controller when *it* chose the budget; an explicit override
+      // (tests, repair flows) must not teach it about a size it did not pick.
+      if (budgets.scan == null) sizer.observe("device_scan", Date.now() - startedAt);
 
       const next: JobSpec[] = [];
       // Hash what the scan has already committed — the whole point of splitting
@@ -269,7 +281,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
       }
       return {
         applied: result.added,
-        note: `chunk ${chunk}: scanned ${result.scanned}, +${result.added}${result.complete ? " (complete)" : ""}`,
+        note: `chunk ${chunk} (budget ${budget}): scanned ${result.scanned}, +${result.added}${result.complete ? " (complete)" : ""}`,
         enqueue: next,
       };
     },
@@ -277,12 +289,15 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
     /* -- 5. one batch of md5s, then hand the results to the uploader ------ */
     hash_batch: async (ctx): Promise<JobOutcome> => {
       if (!seams.hashBatch) return;
-      const result = await seams.hashBatch(ctx, budgets.hash ?? HASH_BATCH_SIZE);
+      const budget = budgets.hash ?? sizer.budgetFor("hash_batch") ?? HASH_BATCH_SIZE;
+      const startedAt = Date.now();
+      const result = await seams.hashBatch(ctx, budget);
+      if (budgets.hash == null) sizer.observe("hash_batch", Date.now() - startedAt);
 
       const next: JobSpec[] = [];
       // Uploads must start *during* hashing, not after it. Every batch tops the
-      // upload window up, so the first 50 hashed photos are already uploading
-      // while the other 2817 are still being read.
+      // upload window up, so the first handful of hashed photos are already
+      // uploading while the other 2800-odd are still being read.
       if (seams.backupEnabled?.(ctx.db) !== false) {
         next.push(...topUpUploadWindow(ctx.db, ctx.now, budgets.uploadWindow ?? UPLOAD_WINDOW));
       }
@@ -290,7 +305,7 @@ export function createJobHandlers(seams: JobSeams): JobHandlers {
 
       return {
         applied: result.hashed,
-        note: `hashed ${result.hashed}, failed ${result.failed}${result.more ? "" : " (complete)"}`,
+        note: `hashed ${result.hashed}, failed ${result.failed} (budget ${budget})${result.more ? "" : " (complete)"}`,
         enqueue: next,
       };
     },

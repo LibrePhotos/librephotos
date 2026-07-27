@@ -71,8 +71,12 @@ function isSyntheticAlbum(id: string): boolean {
 /**
  * Assets per provider page. Small enough that one page's native fetch + SQLite
  * write stays well inside a frame budget, large enough not to spam the bridge.
+ *
+ * Lowered from 200: a page is the unit between yields, so it is also the longest
+ * the UI thread can be held during a scan. 100 assets is ~200 SQLite row writes,
+ * which an iPhone 11 clears in a few milliseconds.
  */
-const PAGE = 200;
+const PAGE = 100;
 
 /** Default cap on assets enumerated in a single run (the rest resumes next run). */
 const MAX_ASSETS_PER_RUN = 20_000;
@@ -178,7 +182,20 @@ async function streamAssets(
   let after: string | undefined;
   for (;;) {
     throwIfAborted(ctx.signal);
-    const page = await ctx.provider.getAssets({ ...base, first: ctx.pageSize, after });
+    // Clamp the fetch to what is left of the budget. Without this the budget was
+    // only ever checked *after* a whole page had been read, so a `maxAssetsPerRun`
+    // of 150 against a 200-asset page still did 200 assets of work — the job
+    // budget was advisory rather than a cap.
+    const remaining = ctx.budget - ctx.scanned;
+    if (remaining <= 0) {
+      ctx.truncated = true;
+      return;
+    }
+    const page = await ctx.provider.getAssets({
+      ...base,
+      first: Math.min(ctx.pageSize, remaining),
+      after,
+    });
     if (page.assets.length > 0) {
       onPage(page.assets);
       ctx.scanned += page.assets.length;

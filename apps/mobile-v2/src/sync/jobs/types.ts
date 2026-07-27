@@ -83,10 +83,23 @@ export const JOB_PRIORITY: Record<JobKind, number> = {
 
 /** Outbox rows drained per `outbox_replay` run (each is one small HTTP call). */
 export const OUTBOX_BUDGET = 10;
-/** Assets enumerated per `device_scan` chunk (metadata only, ~2 provider pages). */
-export const SCAN_CHUNK = 400;
-/** Assets hashed per `hash_batch` (md5 over bytes — the expensive one). */
-export const HASH_BATCH_SIZE = 50;
+/**
+ * Assets enumerated per `device_scan` chunk. Was 400, which was roughly a second
+ * of enumeration plus 800 SQLite row writes on an iPhone 11 — over budget, and
+ * a coarse granularity to interrupt a scan at. 150 is ~1.5 provider pages.
+ *
+ * This is a *starting* value: `sizing.ts` measures what a chunk actually costs on
+ * this device and converges on {@link JOB_TARGET_MS}.
+ */
+export const SCAN_CHUNK = 150;
+/**
+ * Assets hashed per `hash_batch` — md5 over every byte of each photo, the
+ * heaviest unit in the app. Was 50, i.e. potentially hundreds of MB read and 50
+ * bridge round trips (more on iOS, where a `ph://` asset may first have to come
+ * back from iCloud) in what is supposed to be a sub-second job. 8 is a
+ * conservative start; `sizing.ts` adapts it from the measured duration.
+ */
+export const HASH_BATCH_SIZE = 8;
 /** Thumbnails downloaded per `thumb_prefetch` run. */
 export const THUMB_BATCH = 12;
 /**

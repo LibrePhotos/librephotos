@@ -228,7 +228,11 @@ async function drain(
     applied: stats.applied,
     deleted: stats.deleted,
     durationMs: result.durationMs,
-    message: `done:${reason} — ${stats.processed} job(s), ${stats.failed} failed`,
+    // `slowest` is the responsiveness number: however long the whole drain took,
+    // what the user actually feels is the longest single job in it.
+    message:
+      `done:${reason} — ${stats.processed} job(s), ${stats.failed} failed, ` +
+      `slowest job ${stats.slowest}ms`,
   });
   return result;
 }

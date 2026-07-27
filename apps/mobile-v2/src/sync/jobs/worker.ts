@@ -33,6 +33,7 @@ import {
   reclaimStaleJobs,
   releaseJob,
 } from "./queue";
+import { JOB_SLOW_MS } from "./sizing";
 import type { JobKind, JobRow, JobSpec } from "./types";
 
 /** Bounded concurrency. One is deliberate: the device is a phone, and every
@@ -99,6 +100,8 @@ export type WorkerStats = {
   deleted: number;
   /** Per-kind completion counts, for the run summary. */
   byKind: Partial<Record<JobKind, number>>;
+  /** Longest single job in this drain (ms) — the responsiveness metric. */
+  slowest: number;
   stoppedReason: "drained" | "cancelled" | "budget";
 };
 
@@ -143,6 +146,7 @@ export async function runWorker(db: AppDatabase, opts: WorkerOptions): Promise<W
     applied: 0,
     deleted: 0,
     byKind: {},
+    slowest: 0,
     stoppedReason: "drained",
   };
 
@@ -223,23 +227,34 @@ async function runOne(
     completeJob(db, job.id, now());
     stats.succeeded += 1;
     stats.byKind[job.kind] = (stats.byKind[job.kind] ?? 0) + 1;
+
+    const durationMs = Date.now() - started;
+    stats.slowest = Math.max(stats.slowest, durationMs);
     if (outcome) {
       stats.applied += outcome.applied ?? 0;
       stats.deleted += outcome.deleted ?? 0;
       // Chained work is enqueued only after the outcome is recorded, so a job
       // that re-enqueues *itself* is not blocked by its own dedupe key.
       if (outcome.enqueue?.length) enqueueJobs(db, outcome.enqueue, now());
-      if (outcome.note) {
-        log({
-          op: "job",
-          entity: job.kind,
-          level: "info",
-          applied: outcome.applied,
-          deleted: outcome.deleted,
-          durationMs: Date.now() - started,
-          message: outcome.note,
-        });
-      }
+    }
+
+    // Every settled job is timed. A job over the budget is logged as a warning
+    // rather than merely recorded, so an oversized unit is *findable* in an
+    // exported sync log instead of something you have to spot by reading 500
+    // rows of durations — that is how the 400-asset scan chunk and the 50-photo
+    // hash batch stayed invisible until a device report.
+    const slow = durationMs >= JOB_SLOW_MS;
+    if (outcome?.note || slow) {
+      const note = outcome?.note ?? "done";
+      log({
+        op: "job",
+        entity: job.kind,
+        level: slow ? "warn" : "info",
+        applied: outcome?.applied,
+        deleted: outcome?.deleted,
+        durationMs,
+        message: slow ? `${note} — SLOW: ${durationMs}ms (budget ${JOB_SLOW_MS}ms)` : note,
+      });
     }
   } catch (err) {
     if (opts.signal?.aborted) {
@@ -252,6 +267,7 @@ async function runOne(
     const message = err instanceof Error ? err.message : String(err);
     const outcome = failJob(db, job, message, now());
     stats.failed += 1;
+    stats.slowest = Math.max(stats.slowest, Date.now() - started);
     log({
       op: "job",
       entity: job.kind,
