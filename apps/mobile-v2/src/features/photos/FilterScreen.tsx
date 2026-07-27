@@ -9,6 +9,7 @@ import { useGridSelection, type SelectionDirections } from "@/features/selection
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
 import { useTheme } from "@/theme";
+import { photoRoute } from "@/features/viewer/route";
 
 /** On a flag screen the primary action inverts that flag (unfavorite/unhide/restore). */
 function directionsFor(filter: PhotoFilter): SelectionDirections {
@@ -56,8 +57,9 @@ export function FilterScreen({ filter, title }: { filter: PhotoFilter; title: st
       // Never a dead tap: a camera-roll asset has no image hash until it is
       // hashed, and the old `if (item.imageHash)` guard silently swallowed the
       // press so the viewer looked unimplemented. The viewer resolves a remote
-      // id, an image hash, or a local asset id.
-      router.push(`/photo/${item.imageHash ?? item.key}`);
+      // id, an image hash, or a local asset id — and the tile it already has
+      // rides along so the viewer can paint before it queries anything.
+      router.push(photoRoute(item));
     },
     [router, selection]
   );

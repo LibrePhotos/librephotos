@@ -112,6 +112,61 @@ describe("PhotoViewerScreen", () => {
   });
 
   /**
+   * Device report: "clicking on a photo to open up a lightbox takes a while.
+   * this should be instant." The first frame must not depend on the database at
+   * all — the grid hands over the slide it was already drawing.
+   */
+  describe("first paint", () => {
+    it("paints the tapped photo from the route params with an empty mirror", () => {
+      const empty = createTestDb();
+      try {
+        (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = {
+          id: "L9",
+          su: "ph://L9",
+          sl: "L9",
+          st: "image",
+        };
+        const { getByTestId } = renderWithDb(<PhotoViewerScreen />, empty.db);
+        expect(getByTestId("viewer-image-L9").props.source).toEqual({ uri: "ph://L9" });
+      } finally {
+        empty.close();
+      }
+    });
+
+    /**
+     * The pager used to materialise 500 slides — 500 rows out of a whole-library
+     * sort, and 500 filmstrip tiles — before it could show one photo. It now
+     * loads a window around the tapped photo and grows it on demand.
+     */
+    it("loads a window around the tapped photo, not the whole timeline", () => {
+      const many = createTestDb();
+      try {
+        seedRemotePhotos(
+          many.db,
+          Array.from({ length: 200 }, (_, i) =>
+            remotePhoto({
+              id: `p${String(i).padStart(3, "0")}`,
+              imageHash: `wh${i}`,
+              timestamp: Date.UTC(2024, 0, 1) + i * 86_400_000,
+            })
+          )
+        );
+        (globalThis as { __mockSearchParams?: unknown }).__mockSearchParams = { id: "wh100" };
+        const { getByTestId, queryByTestId } = renderWithDb(<PhotoViewerScreen />, many.db);
+
+        expect(getByTestId("viewer-filmstrip-p100")).toBeTruthy();
+        expect(getByTestId("viewer-filmstrip-p120")).toBeTruthy(); // window edge
+        expect(getByTestId("viewer-filmstrip-p080")).toBeTruthy();
+        // …and not the rest of the library.
+        expect(queryByTestId("viewer-filmstrip-p199")).toBeNull();
+        expect(queryByTestId("viewer-filmstrip-p000")).toBeNull();
+      } finally {
+        many.close();
+      }
+    });
+  });
+
+  /**
    * A single tap is the platform gesture for "get the furniture out of my way",
    * not for "show me metadata". The info surface has its own button.
    */

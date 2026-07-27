@@ -29,6 +29,10 @@ describe("MemoriesCard", () => {
     await waitFor(() => expect(getByTestId("memories-card")).toBeTruthy());
     fireEvent.press(getByTestId("memory-mem-hash"));
     const router = (globalThis as unknown as { __mockRouter: { push: jest.Mock } }).__mockRouter;
-    expect(router.push).toHaveBeenCalledWith("/photo/mem-hash");
+    // Seeded: the viewer paints this photo without asking the mirror first.
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/photo/[id]",
+      params: { id: "mem-hash", sh: "mem-hash" },
+    });
   });
 });

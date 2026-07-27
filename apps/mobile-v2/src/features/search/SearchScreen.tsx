@@ -30,6 +30,7 @@ import { useAccessToken } from "@/hooks/use-access-token";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { serverAddress } from "@/lib/apiClient";
 import { useTheme, type ThemeColors } from "@/theme";
+import { photoRoute } from "@/features/viewer/route";
 
 /** Debounce a changing value by `delayMs`. */
 function useDebounced<T>(value: T, delayMs: number): T {
@@ -291,7 +292,7 @@ function OfflineResults({ query, offline }: { query: string; offline: OfflineSea
                   key={p.id}
                   testID={`search-offline-photo-${p.image_hash}`}
                   accessibilityRole="imagebutton"
-                  onPress={() => router.push(`/photo/${p.image_hash}`)}
+                  onPress={() => router.push(photoRoute({ key: p.image_hash, imageHash: p.image_hash }))}
                 >
                   <Image
                     style={{ width: 110, height: 110, borderRadius: 6, backgroundColor: theme.card }}
@@ -512,7 +513,7 @@ function PhotoResults({
       items={items}
       serverAddress={base}
       accessToken={token}
-      onPressItem={item => item.imageHash && router.push(`/photo/${item.imageHash}`)}
+      onPressItem={item => item.imageHash && router.push(photoRoute(item))}
       ListEmptyComponent={
         <View testID={`${testID}-empty`} style={{ padding: 32, alignItems: "center", gap: 6 }}>
           <Icon name="search" size={32} color={theme.muted} />

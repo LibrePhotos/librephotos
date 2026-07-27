@@ -11,6 +11,7 @@ import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
 import { goBackOr } from "@/lib/navigation";
 import { useTheme } from "@/theme";
+import { photoRoute } from "@/features/viewer/route";
 
 /** Full "On this day" grid (the memories notification / See-all target). */
 export function MemoriesScreen() {
@@ -26,8 +27,9 @@ export function MemoriesScreen() {
       // Never a dead tap: a camera-roll asset has no image hash until it is
       // hashed, and the old `if (item.imageHash)` guard silently swallowed the
       // press so the viewer looked unimplemented. The viewer resolves a remote
-      // id, an image hash, or a local asset id.
-      router.push(`/photo/${item.imageHash ?? item.key}`);
+      // id, an image hash, or a local asset id — and the tile it already has
+      // rides along so the viewer can paint before it queries anything.
+      router.push(photoRoute(item));
     },
     [router]
   );

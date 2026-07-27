@@ -28,6 +28,7 @@ const DOUBLE_TAP_SCALE = 2.5;
  */
 export function ZoomableImage({
   source,
+  placeholder,
   width,
   height,
   onTap,
@@ -35,6 +36,13 @@ export function ZoomableImage({
   testID,
 }: {
   source: ImageSource;
+  /**
+   * The grid tile the user just tapped, if it has one. expo-image already has
+   * it decoded from the grid, so it paints on the first frame while the
+   * full-size source is still coming off disk or the network — the difference
+   * between "instant" and "a beat of black".
+   */
+  placeholder?: ImageSource;
   width: number;
   height: number;
   onTap?: () => void;
@@ -122,6 +130,8 @@ export function ZoomableImage({
             testID={testID}
             style={{ width, height }}
             source={source}
+            placeholder={placeholder}
+            placeholderContentFit="contain"
             contentFit="contain"
             cachePolicy="disk"
             transition={150}

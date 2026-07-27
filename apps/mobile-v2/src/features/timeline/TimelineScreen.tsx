@@ -14,6 +14,7 @@ import { useDb } from "@/db/provider";
 import { useAuthStore } from "@/stores/auth";
 import { runSync } from "@/sync/run";
 import { useTheme } from "@/theme";
+import { photoRoute } from "@/features/viewer/route";
 
 /**
  * The photos timeline, rendered from SQLite via a live query (day section
@@ -51,8 +52,9 @@ export function TimelineScreen() {
       // Never a dead tap: a camera-roll asset has no image hash until it is
       // hashed, and the old `if (item.imageHash)` guard silently swallowed the
       // press so the viewer looked unimplemented. The viewer resolves a remote
-      // id, an image hash, or a local asset id.
-      router.push(`/photo/${item.imageHash ?? item.key}`);
+      // id, an image hash, or a local asset id — and the tile it already has
+      // rides along so the viewer can paint before it queries anything.
+      router.push(photoRoute(item));
     },
     [router, selection]
   );

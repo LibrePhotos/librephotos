@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { Image } from "expo-image";
@@ -11,13 +11,13 @@ import {
   endpoints,
   mediaHeaders,
   photoUrl,
+  squareThumbnailUrl,
   useApiClient,
   useSiteSettingsQuery,
   videoUrl,
   type People,
 } from "@librephotos/api-client";
 import { useDb, useReactiveQuery } from "@/db/provider";
-import { timelinePage } from "@/db/queries/timeline";
 import {
   albumsContainingPhoto,
   localAssetById,
@@ -25,7 +25,6 @@ import {
   photoFlagsByHash,
   photoSummaryByHash,
   remotePhotoIdByHash,
-  viewerSlideById,
   type PhotoAlbumRow,
   type PhotoFlags,
   type PhotoSummary,
@@ -42,6 +41,9 @@ import { goBackOr } from "@/lib/navigation";
 import { formatFullDate } from "@/lib/format";
 import { useToastStore } from "@/stores/toasts";
 import { usePhotoDetail } from "./usePhotoDetail";
+import { useAfterFirstPaint } from "./useAfterFirstPaint";
+import { useViewerWindow } from "./useViewerWindow";
+import { seedSlideFromParams } from "./route";
 import { PhotoInfoSheet } from "./PhotoInfoSheet";
 import { ViewerActionBar } from "./ViewerActionBar";
 import { ThumbnailStrip, ViewerTopBar } from "./ViewerChrome";
@@ -66,13 +68,24 @@ import { parseEditableTimestamp, toEditableTimestamp } from "./timestamp";
  * reported as "not implemented". Local-only slides render from their
  * `ph://` / `content://` uri and say, in the sheet, why the server-side sections
  * are empty rather than showing blanks.
+ *
+ * ## The first frame
+ *
+ * Device report: "clicking on a photo to open up a lightbox takes a while".
+ * Nothing on the critical path to painting the tapped photo may touch the
+ * timeline. The grid seeds the route with the slide it already has (`./route`),
+ * so frame one is that photo and nothing else; the pager window (`useViewerWindow`),
+ * the detail payload, the album rows and the neighbour prefetch all arrive after
+ * it. See `useAfterFirstPaint` for what is deferred and why.
  */
 export function PhotoViewerScreen() {
-  const { id: routeId } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  const routeId = params.id;
   // Frozen for the life of this screen instance: the viewer is opened at one
-  // photo and pages from there, and re-keying the (500-row) pager query on a
-  // param identity change would re-run it for nothing.
+  // photo and pages from there, so a param identity change must not re-key the
+  // pager.
   const [id] = useState(routeId);
+  const [seed] = useState(() => seedSlideFromParams(params));
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const db = useDb();
@@ -94,45 +107,46 @@ export function PhotoViewerScreen() {
   const [renamingPerson, setRenamingPerson] = useState<People | null>(null);
   const [highlightedFace, setHighlightedFace] = useState<number | null>(null);
 
-  // Pager context: a window of the timeline (mirror), remote and local rows
-  // alike. Falls back to a single resolved slide when the tapped photo is not
-  // in that window (hidden photo, memories deep link, notification tap).
-  const slides = useReactiveQuery<ViewerSlide[]>(
-    (d) => {
-      const rows = timelinePage(d, { limit: 500 }).rows.map(
-        (r): ViewerSlide => ({
-          key: (r.remote_id ?? r.local_id ?? r.image_hash) as string,
-          remote_id: r.remote_id,
-          local_id: r.local_id,
-          image_hash: r.image_hash,
-          local_uri: r.local_uri,
-          type: r.type,
-        })
-      );
-      if (id && rows.some((r) => matchesId(r, id))) return rows;
-      const single = viewerSlideById(d, id ?? "");
-      return single ? [single] : rows;
-    },
-    [id]
-  );
+  const listRef = useRef<React.ComponentRef<typeof FlashList<ViewerSlide>>>(null);
+  const ready = useAfterFirstPaint();
 
-  const initialIndex = Math.max(
-    0,
-    slides.findIndex((s) => (id ? matchesId(s, id) : false))
-  );
+  // Pager context: a window of the timeline (mirror) *around* the tapped photo,
+  // remote and local rows alike, extended as the user swipes. Starts as the one
+  // seeded slide so the first frame owes the database nothing.
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const { slides, restoreIndex, restored } = useViewerWindow({ id: id ?? "", seed, currentIndex });
+
   const current = useMemo(
-    () => slides.find((s) => s.key === currentKey) ?? slides[initialIndex],
-    [slides, currentKey, initialIndex]
+    () => slides.find((s) => s.key === currentKey) ?? slides[currentIndex] ?? slides[0],
+    [slides, currentKey, currentIndex]
   );
   const hash = current?.image_hash ?? null;
-  const listRef = useRef<React.ComponentRef<typeof FlashList<ViewerSlide>>>(null);
 
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: { key?: string | number | null }[] }) => {
-      const first = viewableItems[0]?.key;
-      if (typeof first === "string") setCurrentKey(first);
+    ({ viewableItems }: { viewableItems: { key?: string | number | null; index?: number | null }[] }) => {
+      const first = viewableItems[0];
+      if (typeof first?.key === "string") setCurrentKey(first.key);
+      if (typeof first?.index === "number") setCurrentIndex(first.index);
     }
   ).current;
+
+  /**
+   * The window grows at both ends, and growth at the *start* shifts every index
+   * under the pager — FlashList only maintains visible content position for
+   * vertical lists, so a horizontal pager has to re-anchor itself. Slides are
+   * exactly one screen wide, so the target index is unambiguous. This also
+   * covers the first hand-off, from the single seeded slide to the real window.
+   */
+  useLayoutEffect(() => {
+    if (restoreIndex == null) return;
+    if (restoreIndex !== currentIndex) {
+      listRef.current?.scrollToIndex({ index: restoreIndex, animated: false });
+      setCurrentIndex(restoreIndex);
+    }
+    restored();
+    // `currentIndex` is the value being corrected, not an input to the correction.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoreIndex, restored]);
 
   // A new slide is a new subject: a face box from the previous photo would be
   // drawn over an unrelated one.
@@ -154,12 +168,16 @@ export function PhotoViewerScreen() {
     (d) => (current?.local_id ? localAssetById(d, current.local_id) : null),
     [current?.local_id]
   );
+  // Album membership is sheet content, never first-frame content: a two-table
+  // UNION for a surface the user has not opened yet.
   const albums = useReactiveQuery<PhotoAlbumRow[]>(
-    (d) => (summary ? albumsContainingPhoto(d, summary.id) : []),
-    [summary?.id]
+    (d) => (ready && summary ? albumsContainingPhoto(d, summary.id) : []),
+    [ready, summary?.id]
   );
 
-  const detail = usePhotoDetail(flags ? (hash ?? undefined) : undefined);
+  // Deferred: this reads the cached payload off disk and runs it through zod,
+  // then fetches over the network. None of that belongs in a mount render.
+  const detail = usePhotoDetail(ready && flags ? (hash ?? undefined) : undefined);
   // Site settings decide whether the server wants maps shown at all — the same
   // `map_tile_provider === "none"` switch the web frontend honours.
   const settings = useSiteSettingsQuery();
@@ -169,8 +187,10 @@ export function PhotoViewerScreen() {
 
   // The web lightbox preloads prev/main/next; mobile widens that to ±2 because
   // a swipe is faster and cheaper to start than a click. expo-image's disk cache
-  // makes the work durable, so this doubles as offline warming.
+  // makes the work durable, so this doubles as offline warming. Deferred: it is
+  // work for the *next* photo, and it competes with decoding this one.
   useEffect(() => {
+    if (!ready) return;
     const index = slides.findIndex((s) => s.key === current?.key);
     if (index < 0) return;
     const urls = [index - 2, index - 1, index + 1, index + 2]
@@ -181,7 +201,7 @@ export function PhotoViewerScreen() {
     // Guarded: the jest expo-image stub has no prefetch, and neither does an
     // older runtime — preloading is an optimization, never a requirement.
     void Image.prefetch?.(urls, { cachePolicy: "disk", headers });
-  }, [slides, current?.key, base, headers]);
+  }, [ready, slides, current?.key, base, headers]);
 
   /* ---- mutations ------------------------------------------------------- */
 
@@ -275,6 +295,7 @@ export function PhotoViewerScreen() {
         // Already in this pager's window — scroll rather than stack a screen.
         listRef.current?.scrollToIndex({ index, animated: true });
         setCurrentKey(slides[index].key);
+        setCurrentIndex(index);
         return;
       }
       router.push(`/photo/${imageHash}`);
@@ -339,6 +360,7 @@ export function PhotoViewerScreen() {
           height={height}
           onTap={toggleChrome}
           source={sourceFor(item, base, headers, active && isAnimated(detail.detail?.image_path))}
+          placeholder={placeholderFor(item, base, headers)}
           overlay={
             face ? (
               <FaceOverlay
@@ -366,7 +388,10 @@ export function PhotoViewerScreen() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        initialScrollIndex={initialIndex}
+        // Read once, at FlashList's first layout. If the window has landed by
+        // then (the common case) the pager opens on the tapped photo with no
+        // scroll at all; if not, the layout effect above re-anchors it.
+        initialScrollIndex={restoreIndex ?? currentIndex}
         keyExtractor={(s) => s.key}
         onViewableItemsChanged={onViewableItemsChanged}
         renderItem={renderSlide}
@@ -393,6 +418,7 @@ export function PhotoViewerScreen() {
           onSelect={(index) => {
             listRef.current?.scrollToIndex({ index, animated: true });
             setCurrentKey(slides[index].key);
+            setCurrentIndex(index);
           }}
         />
       ) : null}
@@ -487,13 +513,6 @@ export function PhotoViewerScreen() {
   );
 }
 
-/** Does this slide answer to the given route param? */
-function matchesId(slide: ViewerSlide, id: string): boolean {
-  return (
-    slide.key === id || slide.remote_id === id || slide.local_id === id || slide.image_hash === id
-  );
-}
-
 /** Does this photo's file animate? Its big thumbnail would be a still frame. */
 function isAnimated(paths: readonly string[] | undefined): boolean {
   return !!paths?.some((path) => path.toLowerCase().endsWith(".gif"));
@@ -522,4 +541,15 @@ function sourceFor(
     ? photoUrl(base, slide.image_hash)
     : bigThumbnailUrl(base, slide.image_hash);
   return { uri: url, headers };
+}
+
+/**
+ * The square grid thumbnail of a remote slide — the exact image the grid was
+ * showing a moment ago, so expo-image serves it from cache immediately while the
+ * big thumbnail loads. A camera-roll slide already renders from its own file and
+ * has nothing to wait for.
+ */
+function placeholderFor(slide: ViewerSlide, base: string, headers: Record<string, string>) {
+  if (slide.local_uri || !slide.image_hash) return undefined;
+  return { uri: squareThumbnailUrl(base, slide.image_hash), headers };
 }

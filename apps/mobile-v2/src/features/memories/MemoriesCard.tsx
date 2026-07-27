@@ -9,6 +9,7 @@ import { onThisDay } from "@/db/queries/memories";
 import { useAccessToken } from "@/hooks/use-access-token";
 import { serverAddress } from "@/lib/apiClient";
 import { useTheme } from "@/theme";
+import { photoRoute } from "@/features/viewer/route";
 
 /**
  * "On this day" card for the top of the timeline (doc 05 §Memories). Pure mirror
@@ -52,7 +53,7 @@ export function MemoriesCard() {
           <Pressable
             key={m.id}
             testID={`memory-${m.image_hash}`}
-            onPress={() => router.push(`/photo/${m.image_hash}`)}
+            onPress={() => router.push(photoRoute({ key: m.image_hash, imageHash: m.image_hash }))}
           >
             <Image
               style={{ width: 120, height: 150, borderRadius: 10, backgroundColor: theme.card }}
