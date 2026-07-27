@@ -28,7 +28,29 @@ export type IconName =
   | "clear"
   | "photo"
   | "offline"
-  | "recent";
+  | "recent"
+  // viewer / lightbox
+  | "back"
+  | "info"
+  | "star"
+  | "starOutline"
+  | "hide"
+  | "unhide"
+  | "trash"
+  | "restore"
+  | "edit"
+  | "camera"
+  | "calendar"
+  | "location"
+  | "album"
+  | "similar"
+  | "public"
+  | "copy"
+  | "expand"
+  | "collapse"
+  | "play"
+  | "file"
+  | "sparkle";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -48,6 +70,27 @@ const GLYPHS: Record<IconName, IoniconName> = {
   photo: "image-outline",
   offline: "cloud-offline-outline",
   recent: "time-outline",
+  back: "chevron-back",
+  info: "information-circle-outline",
+  star: "star",
+  starOutline: "star-outline",
+  hide: "eye-off-outline",
+  unhide: "eye-outline",
+  trash: "trash-outline",
+  restore: "arrow-undo-outline",
+  edit: "pencil",
+  camera: "camera-outline",
+  calendar: "calendar-outline",
+  location: "location-outline",
+  album: "albums-outline",
+  similar: "copy-outline",
+  public: "globe-outline",
+  copy: "clipboard-outline",
+  expand: "chevron-down",
+  collapse: "chevron-up",
+  play: "play",
+  file: "document-outline",
+  sparkle: "sparkles-outline",
 };
 
 export function Icon({

@@ -510,6 +510,27 @@ export async function setPhotoRating(
   return parseResponse(S.PhotoEditResponse, res, "set rating");
 }
 
+/**
+ * Set (or clear) one photo's EXIF capture timestamp.
+ *
+ * Same `PATCH /photos/edit/{hash}/` the rating uses; the backend expects a
+ * naive `YYYY-MM-DDTHH:mm:ss` local timestamp, and `null` to mark the photo as
+ * having no timestamp at all. Deliberately **not** an outbox mutation: the
+ * timestamp drives timeline ordering and day/month bucketing, so an optimistic
+ * offline write would reshuffle a client's whole timeline against a change the
+ * server has not accepted.
+ */
+export async function setPhotoTimestamp(
+  client: ApiClient,
+  imageHash: string,
+  timestamp: string | null
+): Promise<S.PhotoEditResponse> {
+  const res = await client.patch<unknown>(`/photos/edit/${imageHash}/`, {
+    exif_timestamp: timestamp,
+  });
+  return parseResponse(S.PhotoEditResponse, res, "set timestamp");
+}
+
 /** Save a user caption on one photo. */
 export async function savePhotoCaption(
   client: ApiClient,

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Pressable } from "react-native";
+import { useState, type ReactNode } from "react";
+import { Pressable, View } from "react-native";
 import { Image, type ImageSource } from "expo-image";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -31,12 +31,19 @@ export function ZoomableImage({
   width,
   height,
   onTap,
+  overlay,
   testID,
 }: {
   source: ImageSource;
   width: number;
   height: number;
   onTap?: () => void;
+  /**
+   * Decoration drawn in the image's own coordinate space (the face box). It
+   * lives inside the transformed container so it tracks pinch and pan instead of
+   * drifting off the face the moment the user zooms in.
+   */
+  overlay?: ReactNode;
   testID?: string;
 }) {
   const scale = useSharedValue(1);
@@ -110,15 +117,20 @@ export function ZoomableImage({
       <Animated.View
         style={[{ width, height, alignItems: "center", justifyContent: "center" }, animatedStyle]}
       >
-        <Pressable onPress={onTap} style={{ width, height, alignItems: "center", justifyContent: "center" }}>
+        <Pressable onPress={onTap} style={{ width, height }}>
           <Image
             testID={testID}
-            style={{ width, height: height * 0.8 }}
+            style={{ width, height }}
             source={source}
             contentFit="contain"
             cachePolicy="disk"
             transition={150}
           />
+          {overlay ? (
+            <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width, height }}>
+              {overlay}
+            </View>
+          ) : null}
         </Pressable>
       </Animated.View>
     </GestureDetector>

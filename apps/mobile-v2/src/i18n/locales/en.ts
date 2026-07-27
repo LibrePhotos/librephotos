@@ -38,6 +38,11 @@ export const en = {
     today: "Today",
     yesterday: "Yesterday",
   },
+  /**
+   * Photo viewer / lightbox. Wording is taken from the web frontend's
+   * `lightbox.sidebar.*`, `lightbox.controls.*` and `exif.*` keys wherever an
+   * equivalent exists, so mobile and web name the same concept the same way.
+   */
   viewer: {
     details: "Details",
     camera: "Camera",
@@ -48,6 +53,68 @@ export const en = {
     detailsOffline: "Details unavailable offline.",
     cachedDetails: "Showing cached details",
     localOnly: "This photo is still only on this device — it will get full details once it is backed up.",
+    localOnlyTitle: "Only on this device",
+    info: "Photo info",
+    showMore: "Show More",
+    showLess: "Show Less",
+    // Caption
+    caption: "Caption",
+    noCaption: "No caption yet",
+    editCaption: "Edit caption",
+    // Scene labels (the server's own captioning model)
+    scene: "Scene",
+    attributes: "Attributes",
+    categories: "Categories",
+    tags: "Tags",
+    noScene: "No scene labels",
+    // People
+    people: "People",
+    noPeople: "No people found in this photo",
+    openPerson: "Open {{name}}",
+    reviewFaces: "Review faces",
+    renameUnavailable: "This person is not synced to this device yet.",
+    // Location
+    noLocation: "No location yet",
+    coordinates: "Coordinates",
+    openInMaps: "Open in Maps",
+    mapsDisabled: "Maps are turned off on this server",
+    // Albums
+    albums: "Albums",
+    noAlbums: "Not in any album",
+    // Similar photos
+    similarPhotos: "Similar Photos",
+    noSimilarPhotos: "No similar photos",
+    // File
+    fileInfo: "File",
+    filename: "Filename",
+    unknownFilename: "Unknown filename",
+    dimensions: "Dimensions",
+    size: "Size",
+    filePath: "File Path",
+    noFileInfo: "No file information",
+    // Camera
+    cameraInfo: "Camera",
+    lens: "Lens",
+    capture: "Exposure",
+    subjectDistance: "Subject Distance",
+    digitalZoom: "Digital Zoom Ratio",
+    focalLength35: "Focal Length 35mm Equivalent",
+    noCameraInfo: "No camera information",
+    // Timestamp
+    editDateTime: "Edit date and time",
+    withoutTimestamp: "Without timestamp",
+    timestampSaved: "Date updated",
+    timestampInvalid: "Use the format YYYY-MM-DD HH:MM:SS",
+    timestampError: "Could not update the date",
+    // Sharing
+    makePublic: "Make public",
+    makePrivate: "Make private",
+    // Video
+    video: "Video",
+    playVideo: "Play video",
+    // Honest states
+    notSyncedYet: "Open this photo once while online to see its details here.",
+    deferredNote: "Tags, keywords, file versions and stacks are on the web for now.",
   },
   timeline: {
     title: "Photos",

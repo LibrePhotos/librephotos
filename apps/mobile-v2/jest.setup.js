@@ -88,10 +88,30 @@ jest.mock("expo-clipboard", () => ({
 }));
 
 // expo-image → a plain RN Image-like stub exposing testID/source.
+// `prefetch` is a real (static) part of the API: the viewer warms its
+// neighbouring slides through it, and a missing function would throw.
 jest.mock("expo-image", () => {
   const React = require("react");
   const { View } = require("react-native");
-  return { Image: props => React.createElement(View, props) };
+  const Image = props => React.createElement(View, props);
+  Image.prefetch = jest.fn(async () => true);
+  Image.clearDiskCache = jest.fn(async () => true);
+  return { Image };
+});
+
+// expo-video → the player is native; stub it as a view plus an inert player so
+// video slides render (and are assertable) without a decoder.
+jest.mock("expo-video", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  return {
+    useVideoPlayer: jest.fn((source, setup) => {
+      const player = { loop: false, muted: false, play: jest.fn(), pause: jest.fn(), release: jest.fn() };
+      setup?.(player);
+      return player;
+    }),
+    VideoView: props => React.createElement(View, props),
+  };
 });
 
 // expo-router → capture navigation without a router provider.
