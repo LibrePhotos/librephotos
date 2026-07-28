@@ -109,6 +109,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.postgres",
+    # django.contrib.sites is required by allauth (SocialApp is tied to a Site).
+    "django.contrib.sites",
     "api",
     "nextcloud",
     "rest_framework",
@@ -119,7 +121,18 @@ INSTALLED_APPS = [
     "constance",
     "constance.backends.database",
     "django_q",
+    # OIDC / SSO via django-allauth. The generic openid_connect provider handles
+    # any standards-compliant IdP (Keycloak, Authentik, Authelia, Zitadel, Google,
+    # Azure, ...). Provider credentials live in the DB (admin-editable SocialApp),
+    # not the environment. See api/adapters.py for the login/linking policy and
+    # api/views/sso.py for the JWT bridge.
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.openid_connect",
 ]
+
+SITE_ID = 1
 
 Q_CLUSTER = {
     "name": "DjangORM",
@@ -287,6 +300,27 @@ CONSTANCE_CONFIG = {
         "Number of rotated log files to keep (default 10)",
         int,
     ),
+    "OIDC_ENABLED": (
+        False,
+        "Show a single-sign-on (SSO) button on the login screen. Requires a "
+        "configured OpenID Connect provider (Admin → Social Applications) and, "
+        "for provisioning new users, a configured email provider (Site Settings "
+        "→ Email) so the identity provider's email can be trusted.",
+        bool,
+    ),
+    "OIDC_BUTTON_LABEL": (
+        "Sign in with SSO",
+        "Text shown on the single-sign-on button on the login screen",
+        str,
+    ),
+    "OIDC_ALLOW_SIGNUP": (
+        False,
+        "Allow a first-time SSO login to create a new LibrePhotos account. When "
+        "off, SSO only logs in users that already exist (admin-provisioned). "
+        "Auto-creation additionally requires a configured email provider so the "
+        "identity provider's verified-email claim can be trusted.",
+        bool,
+    ),
 }
 
 INTERNAL_IPS = ("127.0.0.1", "localhost")
@@ -335,6 +369,17 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "api.middleware.FingerPrintMiddleware",
+    # Required by allauth (>=0.56): rebuilds request state for the account flow.
+    "allauth.account.middleware.AccountMiddleware",
+]
+
+# allauth adds its authentication backend alongside the default ModelBackend so
+# that regular username/password login keeps working (hybrid login — the
+# maintainer's call on #401). ModelBackend stays first so password auth is
+# unaffected.
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 TEMPLATES = [
@@ -440,3 +485,48 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # Base URL of the frontend, used to build the link in the password-reset email.
 # Falls back to the request's own origin when not set (see PasswordResetView).
 FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "")
+
+# ---------------------------------------------------------------------------
+# django-allauth (OIDC / SSO) — see api/adapters.py and api/views/sso.py
+# ---------------------------------------------------------------------------
+# LibrePhotos authenticates with JWT, not sessions. allauth runs the OIDC
+# redirect/callback dance server-side (establishing a short-lived Django
+# session); LOGIN_REDIRECT_URL then hands off to the JWT bridge, which mints the
+# same simplejwt access/refresh the password login issues, sets the cookies
+# identically, and redirects into the SPA — so nothing downstream can tell an
+# SSO login from a password login.
+LOGIN_REDIRECT_URL = "/api/auth/sso/finish/"
+
+# All login/linking/provisioning policy lives in the adapter (stable API across
+# allauth versions, and able to read runtime state such as EmailConfig and the
+# OIDC_* Constance flags). Keep the declarative settings minimal.
+SOCIALACCOUNT_ADAPTER = "api.adapters.SSOSocialAccountAdapter"
+ACCOUNT_ADAPTER = "api.adapters.NoLocalSignupAccountAdapter"
+
+# We never drive password signup/login or verification emails through allauth —
+# LibrePhotos keeps its own login and (separately) its own password reset. Trust
+# the IdP's verified-email claim; the adapter enforces it explicitly.
+ACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+
+# The SPA button click is the deliberate user action, so redirect straight to the
+# IdP on GET rather than rendering allauth's HTML interstitial (we ship no
+# allauth templates).
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# We only need the identity to mint our own JWT; don't persist the IdP's tokens.
+SOCIALACCOUNT_STORE_TOKENS = False
+
+# Keep allauth to brokering OIDC and nothing else. Without this, including
+# allauth.urls also mounts allauth's own session-based account views: a second
+# login form, a signup form, and — worst — a second password-reset flow that
+# would bypass the throttling and address-enumeration protections on
+# LibrePhotos' own reset endpoint. This drops those routes (signup, password
+# reset/change/set, email management) while leaving account_login/logout
+# resolvable, so allauth's internal reverse() calls still work, and it refuses
+# non-GET requests to the login view it does keep.
+#
+# Note this disables *allauth's* local authentication, not LibrePhotos': the
+# username/password login is our own simplejwt endpoint and is untouched, so
+# hybrid login still works as the maintainer asked.
+SOCIALACCOUNT_ONLY = True

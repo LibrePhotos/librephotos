@@ -1,4 +1,5 @@
 import {
+  Alert,
   Anchor,
   Button,
   Card,
@@ -29,6 +30,7 @@ import {
   useIsFirstTimeSetupQuery,
   useLoginMutation,
   useSignUpMutation,
+  useSsoConfigQuery,
 } from "../api_client/auth";
 import { useScanPhotosMutation } from "../api_client/jobs";
 import { useGetSettingsQuery } from "../api_client/settings";
@@ -39,6 +41,7 @@ import {
   useUpdateUserScanDirectoryMutation,
 } from "../api_client/user/hooks";
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
+import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
 import { EMAIL_REGEX } from "../util/util";
 
@@ -55,7 +58,14 @@ export function LoginPage(): JSX.Element {
   const { t } = useTranslation();
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
   const { data: siteSettings } = useGetSettingsQuery();
+  const { data: ssoConfig } = useSsoConfigQuery();
   const { mutate: login, isPending: isLoading } = useLoginMutation();
+  // The backend redirects here with a full page load, so the query string is the
+  // source of truth; there is no router state to carry the reason.
+  const ssoErrorKey = useMemo(
+    () => ssoErrorMessageKey(new URLSearchParams(window.location.search).get("sso_error")),
+    []
+  );
   const form = useForm({
     initialValues: {
       username: "",
@@ -84,6 +94,12 @@ export function LoginPage(): JSX.Element {
         <Card>
           <Stack>
             <Title order={3}>{t("login.login")}</Title>
+
+            {ssoErrorKey && (
+              <Alert color="red" variant="light" title={t("login.error")}>
+                {t(ssoErrorKey)}
+              </Alert>
+            )}
 
             <form onSubmit={onSubmit}>
               <Stack>
@@ -122,6 +138,24 @@ export function LoginPage(): JSX.Element {
                 )}
               </Stack>
             </form>
+
+            {ssoConfig?.enabled && (
+              <>
+                <Divider label={t("login.sso.divider")} labelPosition="center" />
+                <Stack gap="xs">
+                  {ssoConfig.providers.map(provider => (
+                    // A plain anchor, not a router link: the browser has to leave
+                    // the SPA and hit the backend to start the redirect to the IdP.
+                    <Button key={provider.id} component="a" href={provider.login_url} variant="default" fullWidth>
+                      {/* The configured label reads as one button ("Sign in with
+                          Keycloak"); with several providers it stops being
+                          descriptive, so name each one instead. */}
+                      {ssoConfig.providers.length > 1 ? provider.name : ssoConfig.label || t("login.sso.button")}
+                    </Button>
+                  ))}
+                </Stack>
+              </>
+            )}
           </Stack>
         </Card>
       </div>

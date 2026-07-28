@@ -667,7 +667,16 @@
     "erroremail": "Enter a valid email address.",
     "tagline": "A comfy place for your photos.",
     "firsttimesetup": "First time setup",
-    "setupdatadirectory": "Choose your scan directory"
+    "setupdatadirectory": "Choose your scan directory",
+    "sso": {
+      "divider": "or",
+      "button": "Sign in with SSO",
+      "errorsignupdisabled": "That account is not known to LibrePhotos. Ask an administrator to create it, or to allow sign-ups over SSO.",
+      "erroremailnotverified": "Your identity provider has not verified that email address, so it cannot be used to sign in.",
+      "errornotauthenticated": "The sign-in did not complete. Please try again.",
+      "errorpublicurlnotconfigured": "Single sign-on is not fully configured: the administrator needs to set this server's public URL (FRONTEND_BASE_URL).",
+      "errorunknown": "Single sign-on failed. Please try again or use your password."
+    }
   },
   "passwordreset": {
     "forgotpassword": "Forgot your password?",

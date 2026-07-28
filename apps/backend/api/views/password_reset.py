@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
@@ -13,22 +12,11 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from api.public_url import public_base_url
+
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
-
-
-def _frontend_base_url(request):
-    """Where the SPA lives, for building the reset link.
-
-    Prefers the explicitly configured FRONTEND_BASE_URL and otherwise falls
-    back to the origin the request itself arrived on, so a default single-host
-    deployment works without any extra configuration.
-    """
-    configured = (settings.FRONTEND_BASE_URL or "").rstrip("/")
-    if configured:
-        return configured
-    return request.build_absolute_uri("/").rstrip("/")
 
 
 class PasswordResetView(APIView):
@@ -59,7 +47,7 @@ class PasswordResetView(APIView):
     def _send_reset_email(self, request, user):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        base = _frontend_base_url(request)
+        base = public_base_url(request)
         link = f"{base}/password-reset/confirm/{uid}/{token}"
 
         subject = "Reset your LibrePhotos password"
