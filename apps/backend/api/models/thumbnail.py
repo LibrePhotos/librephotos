@@ -4,8 +4,6 @@ from django.conf import settings
 from django.db import models
 from PIL import Image
 
-from api.metadata.reader import get_metadata
-from api.metadata.tags import Tags
 from api.models.photo import Photo
 from api.thumbnails import (
     create_animated_thumbnail,
@@ -142,16 +140,19 @@ class Thumbnail(models.Model):
 
     def _calculate_aspect_ratio(self):
         try:
-            # Relies on big thumbnail for correct aspect ratio
-            height, width = get_metadata(
-                self.thumbnail_big.path,
-                tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
-                try_sidecar=False,
-            )
+            # Relies on big thumbnail for correct aspect ratio. The thumbnail is
+            # a file we generated ourselves, so read its dimensions directly
+            # instead of asking the exif service: a photo without an aspect
+            # ratio is filtered out of every grid view, and that must not hinge
+            # on a sidecar being reachable.
+            if not self.thumbnail_big:
+                logger.warning(
+                    f"no big thumbnail for photo {self.photo_id}; skipping aspect ratio"
+                )
+                return
+            with Image.open(self.thumbnail_big.path) as img:
+                width, height = img.size
             if not height or not width:
-                # Dimensions unavailable (e.g. the exif sidecar was unreachable).
-                # Skip rather than abort the whole photo pipeline — a missing
-                # aspect ratio is backfilled by a later scan.
                 logger.warning(
                     f"missing dimensions for image {self.thumbnail_big.path}; "
                     "skipping aspect ratio"
