@@ -106,7 +106,7 @@
     "@types/crypto-js": "4.2.2",
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.24",
-    "@types/luxon": "3.7.2",
+    "@types/luxon": "3.7.4",
     "@types/node": "^22.19.17",
     "@types/react": "18.3.31",
     "@types/react-beautiful-dnd": "^13.1.8",
