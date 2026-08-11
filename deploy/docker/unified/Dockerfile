@@ -1,5 +1,5 @@
 # Multi-stage build: First build the frontend
-FROM node:20-slim as frontend-builder
+FROM node:24-slim as frontend-builder
 
 RUN npm config set fetch-retry-maxtimeout 60000
 
