@@ -643,30 +643,64 @@ class UnifiedMediaAccessView(APIView):
             content_type="video/mp4",
         )
 
+    def _thumbnail_field_for(self, photo, path):
+        """Return the ``FieldFile`` holding the thumbnail ``path`` asks for.
+
+        The request filename cannot be turned into an on-disk name by string
+        manipulation: ``Thumbnail._generate_thumbnail`` always stores files as
+        ``<image_hash>.<ext>``, while the frontend also addresses photos by
+        their UUID (``AlbumCoverPickerModal``, the lightbox preloader), so a
+        UUID request would otherwise be pointed at a file that does not exist.
+        The model is the only reliable source of the stored name.
+
+        Returns ``None`` when the photo has no ``Thumbnail`` row or the
+        relevant field was never populated -- callers then fall back to the
+        legacy request-derived name instead of raising.
+        """
+        thumbnail = photo.thumbnail if hasattr(photo, "thumbnail") else None
+        if thumbnail is None:
+            return None
+        if "thumbnails_big" in path:
+            field = thumbnail.thumbnail_big
+        elif "square_thumbnails_small" in path:
+            field = thumbnail.square_thumbnail_small
+        else:
+            field = thumbnail.square_thumbnail
+        # An empty FileField raises ValueError on .path/.name access downstream.
+        return field if field else None
+
     def _generate_response_proxy(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
             response = HttpResponse()
+            thumb = self._thumbnail_field_for(photo, path)
 
-            # thumbnails_big is always .webp (static image), even for videos
+            # thumbnails_big is a static image even for videos: .webp today,
+            # .jpg on installs that predate the webp switch.
             if "thumbnails_big" in path:
-                response["Content-Type"] = "image/webp"
+                name = os.path.basename(thumb.name) if thumb else fname + ".webp"
+                response["Content-Type"] = (
+                    "image/jpeg" if "jpg" in os.path.splitext(name)[1] else "image/webp"
+                )
+                response["X-Accel-Redirect"] = self._protected_media_url(path, name)
+                return response
+
+            if thumb is None:
+                # No Thumbnail row (or an unpopulated field): keep serving the
+                # legacy request-derived name rather than 500ing on the
+                # missing relation.
+                ext = ".mp4" if photo.video else ".webp"
+                response["Content-Type"] = "video/mp4" if photo.video else "image/webp"
                 response["X-Accel-Redirect"] = self._protected_media_url(
-                    path, fname + ".webp"
+                    path, fname + ext
                 )
                 return response
 
-            thumb = (
-                photo.thumbnail.square_thumbnail_small
-                if "square_thumbnails_small" in path
-                else photo.thumbnail.square_thumbnail
-            )
-            ext = os.path.splitext(thumb.path)[1]
-            actual_name = os.path.basename(thumb.path)
+            ext = os.path.splitext(thumb.name)[1]
+            actual_name = os.path.basename(thumb.name)
             if "jpg" in ext:
                 response["Content-Type"] = "image/jpg"
-                response["X-Accel-Redirect"] = getattr(
-                    photo.thumbnail, "thumbnail_big", photo.thumbnail.square_thumbnail
-                ).path
+                big = self._thumbnail_field_for(photo, "thumbnails_big")
+                response["X-Accel-Redirect"] = (big or thumb).path
             if "webp" in ext:
                 response["Content-Type"] = "image/webp"
                 response["X-Accel-Redirect"] = self._protected_media_url(
@@ -704,6 +738,23 @@ class UnifiedMediaAccessView(APIView):
 
     def _generate_response_direct(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
+            # Resolve from the model first: `fname` is the Photo UUID for
+            # UUID-addressed requests, and no thumbnail is ever stored under
+            # that name, so the request-derived lookup below can only ever
+            # 404 for them.
+            thumb = self._thumbnail_field_for(photo, path)
+            if thumb is not None:
+                ext = os.path.splitext(thumb.name)[1]
+                if "jpg" in ext:
+                    # Legacy jpg thumbnails: only the big variant is usable.
+                    big = self._thumbnail_field_for(photo, "thumbnails_big")
+                    return self._serve_file_direct((big or thumb).path, "image/jpg")
+                if os.path.exists(thumb.path):
+                    return self._serve_file_direct(
+                        thumb.path,
+                        "video/mp4" if "mp4" in ext else "image/webp",
+                    )
+
             file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
             if not os.path.exists(file_path):
                 if not fname.endswith(".webp"):
@@ -714,12 +765,12 @@ class UnifiedMediaAccessView(APIView):
                     mp4 = os.path.join(settings.MEDIA_ROOT, path, fname + ".mp4")
                     if os.path.exists(mp4):
                         return self._serve_file_direct(mp4, "video/mp4")
-            if hasattr(photo, "thumbnail"):
-                ext = os.path.splitext(photo.thumbnail.square_thumbnail.path)[1]
-                if "jpg" in ext:
-                    return self._serve_file_direct(
-                        photo.thumbnail.thumbnail_big.path, "image/jpg"
-                    )
+            # Legacy jpg installs may never have populated the small/square
+            # variants; fall back to the big jpg for any of them, as before.
+            square = self._thumbnail_field_for(photo, "square_thumbnails")
+            if square is not None and "jpg" in os.path.splitext(square.name)[1]:
+                big = self._thumbnail_field_for(photo, "thumbnails_big")
+                return self._serve_file_direct((big or square).path, "image/jpg")
             return self._serve_file_direct(file_path)
 
         if "faces" in path:
