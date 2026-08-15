@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from rest_framework import serializers
 
@@ -94,10 +95,25 @@ class PersonSerializer(serializers.ModelSerializer):
             instance.save()
             return instance
         if "cover_photo" in validated_data.keys():
-            image_hash = validated_data.pop("cover_photo")
-            photo = Photo.objects.filter(image_hash=image_hash).first()
+            photo_ref = validated_data.pop("cover_photo")
+
+            # Backward compatibility:
+            # older frontend paths send image_hash, newer paths send Photo UUID.
+            photo = Photo.objects.filter(image_hash=photo_ref).first()
+
+            if photo is None:
+                try:
+                    photo = Photo.objects.filter(pk=photo_ref).first()
+                except (ValueError, TypeError, DjangoValidationError):
+                    photo = None
+
+            if photo is None:
+                raise serializers.ValidationError(
+                    {"cover_photo": f"Photo not found: {photo_ref}"}
+                )
+
             instance.cover_photo = photo
-            instance.cover_face = photo.faces.filter(person__name=instance.name).first()
+            instance.cover_face = photo.faces.filter(person=instance).first()
             instance.save()
             return instance
         return instance
