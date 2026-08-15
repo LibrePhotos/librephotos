@@ -235,6 +235,47 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
         update_scan_counter(job_id)
 
 
+def backfill_missing_aspect_ratios(user):
+    """Recalculate aspect ratios for photos that have a thumbnail but no ratio.
+
+    Every grid view filters on ``thumbnail__aspect_ratio__isnull=False``, so a
+    photo without one is invisible in the UI with no other symptom — the library
+    just looks short. Returns the number of photos still missing an aspect ratio
+    after this pass, and logs a warning when that number is non-zero.
+    """
+    photos_with_missing_aspect_ratio = Photo.objects.filter(
+        Q(owner=user.id)
+        & Q(thumbnail__isnull=False)
+        & Q(thumbnail__thumbnail_big__isnull=False)
+        & Q(thumbnail__aspect_ratio__isnull=True)
+    )
+    if not photos_with_missing_aspect_ratio.exists():
+        return 0
+
+    util.logger.info(
+        f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios"
+    )
+    for photo in photos_with_missing_aspect_ratio:
+        try:
+            thumbnail = getattr(photo, "thumbnail", None)
+            if thumbnail and isinstance(thumbnail, Thumbnail):
+                thumbnail._calculate_aspect_ratio()
+        except Exception as e:
+            util.logger.exception(
+                f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
+            )
+
+    # ``.all()`` re-queries: iterating above cached the pre-repair rows.
+    still_missing = photos_with_missing_aspect_ratio.all().count()
+    if still_missing:
+        util.logger.warning(
+            f"{still_missing} photos still have no aspect ratio after the repair "
+            "pass; they will not appear in the timeline or album views until it "
+            "can be calculated"
+        )
+    return still_missing
+
+
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
     """
     Two-phase scan to avoid race conditions with RAW+JPEG grouping.
@@ -387,25 +428,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         util.logger.info("Finished updating album things")
 
         # Check for photos with missing aspect ratios but existing thumbnails
-        photos_with_missing_aspect_ratio = Photo.objects.filter(
-            Q(owner=user.id)
-            & Q(thumbnail__isnull=False)
-            & Q(thumbnail__thumbnail_big__isnull=False)
-            & Q(thumbnail__aspect_ratio__isnull=True)
-        )
-        if photos_with_missing_aspect_ratio.exists():
-            util.logger.info(
-                f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios"
-            )
-            for photo in photos_with_missing_aspect_ratio:
-                try:
-                    thumbnail = getattr(photo, "thumbnail", None)
-                    if thumbnail and isinstance(thumbnail, Thumbnail):
-                        thumbnail._calculate_aspect_ratio()
-                except Exception as e:
-                    util.logger.exception(
-                        f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
-                    )
+        backfill_missing_aspect_ratios(user)
 
         # if the scan type is not the default user scan directory, or if it is specified as only scanning
         # specific files, there is no need to rescan fully for missing photos.
