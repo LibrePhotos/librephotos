@@ -655,12 +655,13 @@ class UnifiedMediaAccessView(APIView):
                 )
                 return response
 
-            # For square_thumbnails, use the actual extension from the model
-            ext = (
-                os.path.splitext(getattr(photo.thumbnail, "square_thumbnail").path)[1]
-                if hasattr(photo, "thumbnail")
-                else ""
+            thumb = (
+                photo.thumbnail.square_thumbnail_small
+                if "square_thumbnails_small" in path
+                else photo.thumbnail.square_thumbnail
             )
+            ext = os.path.splitext(thumb.path)[1]
+            actual_name = os.path.basename(thumb.path)
             if "jpg" in ext:
                 response["Content-Type"] = "image/jpg"
                 response["X-Accel-Redirect"] = getattr(
@@ -669,12 +670,12 @@ class UnifiedMediaAccessView(APIView):
             if "webp" in ext:
                 response["Content-Type"] = "image/webp"
                 response["X-Accel-Redirect"] = self._protected_media_url(
-                    path, fname + ".webp"
+                    path, actual_name
                 )
             if "mp4" in ext:
                 response["Content-Type"] = "video/mp4"
                 response["X-Accel-Redirect"] = self._protected_media_url(
-                    path, fname + ".mp4"
+                    path, actual_name
                 )
             return response
 
