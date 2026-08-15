@@ -200,6 +200,17 @@ services:
 `secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either - it logs every user out and the passwords have to be reset.
 :::
 
+### Telling LibrePhotos its own public address
+
+`FRONTEND_BASE_URL` is the URL your users actually browse to, for example `https://photos.example.com` (no trailing slash). Leave it unset and LibrePhotos falls back to the origin each request appears to have arrived on.
+
+That fallback is wrong behind the bundled proxy, which forwards `/api/` to the backend with the `Host` header rewritten to `backend` — a name that only resolves inside the Docker network. The rewrite is deliberate (it means Django's host validation passes whatever domain you use), but it does mean the backend cannot work out its own public address on its own.
+
+So set this whenever LibrePhotos has to hand a URL to something outside the container:
+
+- **Password-reset emails** — the link in the email. Without it the fallback can produce a link pointing at `http://backend/...`, which no mail recipient can open.
+- **Single sign-on** — the OAuth `redirect_uri` sent to your identity provider, which the browser has to follow and the provider has to recognise. SSO refuses to start rather than send a broken one, so this is effectively required for [OIDC](../user-guide/settings/single-sign-on.md).
+
 ### Hosting under a sub-path (subdirectory)
 
 By default LibrePhotos is served from the root of a domain (e.g. `https://photos.example.com/`). If you need to host it under a sub-path instead (e.g. `https://example.com/photos/`), the frontend has to know that base path.
