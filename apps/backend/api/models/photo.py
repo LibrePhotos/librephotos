@@ -457,6 +457,29 @@ class Photo(models.Model):
                 if _overlaps_existing_face(
                     existing_face_locations, top, right, bottom, left
                 ):
+                    if person is not None:
+                        for existing_face in api.models.face.Face.objects.filter(
+                            photo=self
+                        ):
+                            existing_location = (
+                                existing_face.location_top,
+                                existing_face.location_right,
+                                existing_face.location_bottom,
+                                existing_face.location_left,
+                            )
+                            if _overlaps_existing_face(
+                                [existing_location], top, right, bottom, left
+                            ):
+                                if existing_face.person_id is None:
+                                    existing_face.person = person
+                                    existing_face.save(update_fields=["person"])
+                                    person._calculate_face_count()
+                                    person._set_default_cover_photo()
+                                    logger.warning(
+                                        f"XMP face reconciliation: assigned {person_name} "
+                                        f"to existing face {existing_face.id}"
+                                    )
+                                break
                     continue
 
                 face = api.models.face.Face(
