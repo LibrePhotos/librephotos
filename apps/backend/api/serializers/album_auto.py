@@ -29,6 +29,8 @@ class AlbumAutoSerializer(serializers.ModelSerializer):
         for photo in obj.photos.all():
             faces = photo.faces.all()
             for face in faces:
+                if face.person is None:
+                    continue
                 serialized_person = PersonSerializer(face.person).data
                 if serialized_person not in res:
                     res.append(serialized_person)
