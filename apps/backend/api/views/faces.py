@@ -304,8 +304,11 @@ class SetFacePersonLabel(APIView):
         updated = []
         not_updated = []
         relabeled_faces = []
+        affected_person_ids = set()
         for face in faces.values():
             if face.photo.owner == request.user:
+                if face.person_id is not None:
+                    affected_person_ids.add(face.person_id)
                 face.person = person
                 if not person:
                     face.cluster_person = cluster_person
@@ -318,8 +321,10 @@ class SetFacePersonLabel(APIView):
             relabeled_faces, ["person", "cluster_person", "classification_person"]
         )
         if person:
-            person._calculate_face_count()
-            person._set_default_cover_photo()
+            affected_person_ids.add(person.id)
+        for affected_person in Person.objects.filter(id__in=affected_person_ids):
+            affected_person._calculate_face_count()
+            affected_person._set_default_cover_photo()
 
         # Every photo we relabeled needs its captions rebuilt, not just the one
         # the loop happened to end on.

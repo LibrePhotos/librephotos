@@ -48,7 +48,7 @@ export const PersonFace = z.object({
   photo_image_hash: z.string().nullable().optional(),
   person_label_probability: z.number(),
   isTemp: z.boolean().optional(),
-  person: z.number().optional(),
+  person: z.number().nullable().optional(),
   person_name: z.string().optional(),
   timestamp: z.string().optional().nullable(),
 });
