@@ -203,6 +203,7 @@ export const PlaceAlbum = z.object({
 });
 
 export const PhotoSimple = z.object({
+  id: z.string().uuid(),
   square_thumbnail: z.string(),
   image_hash: z.string(),
   exif_timestamp: z.string(),

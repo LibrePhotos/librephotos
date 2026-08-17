@@ -39,7 +39,7 @@ export function AlbumAutoGalleryView() {
   const groupedPhotos = Object.entries(byDate).map(([date, items]) => ({
     date,
     items: items.map(photo => ({
-      id: photo.image_hash,
+      id: photo.id,
       hash: photo.image_hash,
       video: photo.video,
       timestamp: photo.exif_timestamp,
@@ -126,7 +126,7 @@ export function AlbumAutoGalleryView() {
         loading={isFetching}
         icon={<SettingsAutomation size={50} />}
         photoset={groupedPhotos}
-        idx2hash={photos.map(photo => ({ id: photo.image_hash, image_hash: photo.image_hash }))}
+        idx2hash={photos.map(photo => ({ id: photo.id, image_hash: photo.image_hash }))}
         selectable
       />
     </div>
