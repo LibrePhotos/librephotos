@@ -443,7 +443,9 @@ class Photo(models.Model):
                 top, right, bottom, left, person_name = face_location
                 if person_name:
                     person = api.models.person.get_or_create_person(
-                        name=person_name, owner=self.owner
+                        name=person_name,
+                        owner=self.owner,
+                        kind=api.models.person.Person.KIND_USER,
                     )
                     person.save()
                 else:
@@ -492,9 +494,6 @@ class Photo(models.Model):
                     person=person,
                     cluster=unknown_cluster,
                 )
-                if person_name:
-                    person._calculate_face_count()
-                    person._set_default_cover_photo()
                 face_io = BytesIO()
                 if face_image.mode in ("RGBA", "P"):
                     face_image = face_image.convert("RGB")
@@ -502,6 +501,9 @@ class Photo(models.Model):
                 face.image.save(image_path, ContentFile(face_io.getvalue()))
                 face_io.close()
                 face.save()
+                if person_name:
+                    person._calculate_face_count()
+                    person._set_default_cover_photo()
                 existing_face_locations.append((top, right, bottom, left))
             logger.info(f"image {self.image_hash}: {len(face_locations)} face(s) saved")
         except IntegrityError:
