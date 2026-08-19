@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04 AS builder
+FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04 AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -82,7 +82,7 @@ RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_
     rm -rf /tmp/builds/*
 
 # Stage 2: Deployment Stage
-FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
