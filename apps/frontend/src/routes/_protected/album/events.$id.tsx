@@ -39,7 +39,7 @@ export function AlbumAutoGalleryView() {
   const groupedPhotos = Object.entries(byDate).map(([date, items]) => ({
     date,
     items: items.map(photo => ({
-      id: photo.image_hash,
+      id: photo.id,
       hash: photo.image_hash,
       video: photo.video,
       timestamp: photo.exif_timestamp,

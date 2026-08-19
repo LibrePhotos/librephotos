@@ -15,6 +15,7 @@ class PhotoSimpleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
         fields = (
+            "id",
             "square_thumbnail",
             "image_hash",
             "exif_timestamp",
