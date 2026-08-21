@@ -43,6 +43,8 @@ class Person(models.Model):
         default=None,
         null=True,
     )
+    # Delta-sync ordering key (mobile v2, doc 04). Bumped on every save.
+    last_modified = models.DateTimeField(auto_now=True, db_index=True)
 
     def __str__(self):
         return (

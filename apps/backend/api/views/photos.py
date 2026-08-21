@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db.models import Count, Prefetch, Q
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -213,7 +214,9 @@ class SetPhotosDeleted(APIView):
                         f"Reset {len(stack_ids)} photo stacks to pending after restore"
                     )
 
-            count = photos_qs.update(in_trashcan=val_deleted)
+            count = photos_qs.update(
+                in_trashcan=val_deleted, last_modified=timezone.now()
+            )
 
             if val_deleted:
                 logger.info(
@@ -258,7 +261,7 @@ class SetPhotosDeleted(APIView):
         if photos_to_update:
             Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
-            ).update(in_trashcan=val_deleted)
+            ).update(in_trashcan=val_deleted, last_modified=timezone.now())
 
             # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
@@ -325,7 +328,7 @@ class SetPhotosFavorite(APIView):
             if val_favorite:
                 # Only update photos that aren't already favorites
                 count = photos_qs.filter(rating__lt=user.favorite_min_rating).update(
-                    rating=user.favorite_min_rating
+                    rating=user.favorite_min_rating, last_modified=timezone.now()
                 )
                 logger.info(
                     f"{count} photos were added to favorites via select_all for user {user.id}."
@@ -333,7 +336,7 @@ class SetPhotosFavorite(APIView):
             else:
                 # Only update photos that are currently favorites
                 count = photos_qs.filter(rating__gte=user.favorite_min_rating).update(
-                    rating=0
+                    rating=0, last_modified=timezone.now()
                 )
                 logger.info(
                     f"{count} photos were removed from favorites via select_all for user {user.id}."
@@ -377,12 +380,12 @@ class SetPhotosFavorite(APIView):
         if photos_to_favorite:
             Photo.objects.filter(
                 image_hash__in=photos_to_favorite, owner=request.user
-            ).update(rating=user.favorite_min_rating)
+            ).update(rating=user.favorite_min_rating, last_modified=timezone.now())
 
         if photos_to_unfavorite:
             Photo.objects.filter(
                 image_hash__in=photos_to_unfavorite, owner=request.user
-            ).update(rating=0)
+            ).update(rating=0, last_modified=timezone.now())
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}
@@ -426,7 +429,7 @@ class SetPhotosHidden(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            count = photos_qs.update(hidden=val_hidden)
+            count = photos_qs.update(hidden=val_hidden, last_modified=timezone.now())
 
             if val_hidden:
                 logger.info(
@@ -470,7 +473,7 @@ class SetPhotosHidden(APIView):
         if photos_to_update:
             Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
-            ).update(hidden=val_hidden)
+            ).update(hidden=val_hidden, last_modified=timezone.now())
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}
@@ -706,18 +709,41 @@ class SetPhotosShared(APIView):
         ).only("id", "image_hash")
         photo_ids = [photo.id for photo in photos]
 
+        # This endpoint writes the Photo.shared_to through table directly
+        # (bulk_create / queryset delete), which fires no m2m_changed signal,
+        # so the delta-sync bookkeeping (api/sync_signals.py) is done here by
+        # hand: bump last_modified on a share so the row crosses the newly
+        # shared user's cursor, and emit a tombstone on an un-share so that
+        # user's mirror drops it (visibility loss = deletion, doc 04 §2).
+        from api.models import DeletionLog
+
         if shared:
             already_existing = through_model.objects.filter(
                 user_id=target_user_id, photo_id__in=photo_ids
             ).only("photo_id")
             already_existing_photo_ids = set(e.photo_id for e in already_existing)
+            newly_shared_ids = [
+                photo_id
+                for photo_id in photo_ids
+                if photo_id not in already_existing_photo_ids
+            ]
             res = through_model.objects.bulk_create(
                 [
                     through_model(user_id=target_user_id, photo_id=photo_id)
-                    for photo_id in photo_ids
-                    if photo_id not in already_existing_photo_ids
+                    for photo_id in newly_shared_ids
                 ]
             )
+            if newly_shared_ids:
+                Photo.objects.filter(id__in=newly_shared_ids).update(
+                    last_modified=timezone.now()
+                )
+                # Cancel any stale tombstone from a previous un-share so the
+                # resurrected row is not shadowed on the recipient's next pull.
+                DeletionLog.objects.filter(
+                    entity=DeletionLog.ENTITY_PHOTO,
+                    entity_id__in=[str(i) for i in newly_shared_ids],
+                    owner_id=target_user_id,
+                ).delete()
             logger.info(
                 f"Shared {request.user.id}'s {len(res)} images to user {target_user_id}"
             )
@@ -726,6 +752,20 @@ class SetPhotosShared(APIView):
             res = through_model.objects.filter(
                 user_id=target_user_id, photo_id__in=photo_ids
             ).delete()
+            if photo_ids:
+                Photo.objects.filter(id__in=photo_ids).update(
+                    last_modified=timezone.now()
+                )
+                DeletionLog.objects.bulk_create(
+                    [
+                        DeletionLog(
+                            entity=DeletionLog.ENTITY_PHOTO,
+                            entity_id=str(photo_id),
+                            owner_id=target_user_id,
+                        )
+                        for photo_id in photo_ids
+                    ]
+                )
             logger.info(
                 f"Unshared {request.user.id}'s {len(res)} images to user {target_user_id}"
             )
@@ -750,7 +790,7 @@ class SetPhotosPublic(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            count = photos_qs.update(public=val_public)
+            count = photos_qs.update(public=val_public, last_modified=timezone.now())
 
             if val_public:
                 logger.info(
@@ -794,7 +834,7 @@ class SetPhotosPublic(APIView):
         if photos_to_update:
             Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
-            ).update(public=val_public)
+            ).update(public=val_public, last_modified=timezone.now())
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}

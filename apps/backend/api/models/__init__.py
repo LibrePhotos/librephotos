@@ -5,6 +5,7 @@ from api.models.album_thing import AlbumThing
 from api.models.album_user import AlbumUser
 from api.models.album_user_share import AlbumUserShare
 from api.models.cluster import Cluster
+from api.models.deletion_log import DeletionLog
 from api.models.duplicate import Duplicate
 from api.models.email_config import EmailConfig
 from api.models.face import Face
@@ -30,6 +31,7 @@ __all__ = [
     "AlbumUser",
     "AlbumUserShare",
     "Cluster",
+    "DeletionLog",
     "Duplicate",
     "EmailConfig",
     "Face",

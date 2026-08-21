@@ -8,7 +8,7 @@ from django.utils import timezone
 from .settings import MAX_BYTES
 from .models import ChunkedUpload
 from .response import Response
-from .constants import http_status, COMPLETE
+from .constants import http_status, COMPLETE, UPLOADING
 from .exceptions import ChunkedUploadError
 
 
@@ -311,7 +311,19 @@ class ChunkedUploadCompleteView(ChunkedUploadBaseView):
         chunked_upload.status = COMPLETE
         chunked_upload.completed_on = timezone.now()
         self._save(chunked_upload)
-        self.on_completion(chunked_upload.get_uploaded_file(), request)
+        try:
+            self.on_completion(chunked_upload.get_uploaded_file(), request)
+        except ChunkedUploadError:
+            # The upload did NOT complete. Leaving the row marked COMPLETE
+            # poisons the upload_id: every retry then answers 400 "Upload has
+            # already been marked as complete" and the staged bytes are
+            # orphaned. Hand the id back so a retry can re-run completion.
+            # A queryset update (rather than .save()) is deliberate: on_completion
+            # is allowed to have deleted the row, in which case this is a no-op.
+            self.model.objects.filter(upload_id=chunked_upload.upload_id).update(
+                status=UPLOADING, completed_on=None
+            )
+            raise
 
         return Response(
             self.get_response_data(chunked_upload, request),

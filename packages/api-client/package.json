@@ -1,0 +1,39 @@
+{
+  "name": "@librephotos/api-client",
+  "version": "0.1.0",
+  "description": "Platform-agnostic LibrePhotos API client: zod schemas, injectable fetch transport, and TanStack Query v5 hooks. Shared between apps/frontend and apps/mobile-v2.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./transport": "./src/transport/index.ts",
+    "./hooks": "./src/hooks/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.0.0",
+    "react": ">=18",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@tanstack/react-query": "^5.62.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "~19.1.10",
+    "eslint": "^9.17.0",
+    "react": "^19.1.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.18.1",
+    "vitest": "^2.1.8",
+    "zod": "^3.24.1"
+  }
+}

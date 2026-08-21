@@ -28,6 +28,8 @@ class AlbumThing(models.Model):
         Photo, related_name="album_thing_cover_photos"
     )
     photo_count = models.IntegerField(default=0)
+    # Delta-sync ordering key (mobile v2, doc 04).
+    last_modified = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         constraints = [
