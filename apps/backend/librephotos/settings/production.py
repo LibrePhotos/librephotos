@@ -16,6 +16,16 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DATA_ROOT = PHOTOS
+
+# Serving an original file is nginx's job: the backend authorizes the request
+# and hands off with X-Accel-Redirect. nginx's workers run as uid/gid 101 in the
+# stock proxy image ("user nginx;" in its nginx.conf) while the backend runs as
+# root, so the two disagree about which files are readable and a library the
+# scanner indexed fine can still 403 on playback. The media diagnostics use
+# these to explain such a failure instead of guessing at it; override them only
+# if you run a rebuilt proxy whose nginx uses different ids.
+WEBSERVER_UID = int(os.environ.get("WEBSERVER_UID", "101"))
+WEBSERVER_GID = int(os.environ.get("WEBSERVER_GID", "101"))
 IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
 
 BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
@@ -339,6 +349,10 @@ CORS_ALLOW_HEADERS = (
     "x-csrftoken",
     "x-requested-with",
 )
+# The media endpoints mark their own 403s so the frontend can tell "your
+# session expired" apart from "the web server cannot read this file"; a
+# split-origin dev setup can only read that header if it is exposed.
+CORS_EXPOSE_HEADERS = ("x-media-error",)
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]

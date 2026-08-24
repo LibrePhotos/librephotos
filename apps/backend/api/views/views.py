@@ -608,6 +608,19 @@ class UnifiedMediaAccessView(APIView):
     def _should_use_proxy(self):
         return not getattr(settings, "SERVE_FRONTEND", False)
 
+    def _forbidden_unauthenticated(self):
+        """403 because the caller has no usable session -- not because of the file.
+
+        Both refusals reach the browser as a bare 403: this one, and the one
+        nginx raises on its own when it cannot open an original it was handed
+        via X-Accel-Redirect. They call for opposite responses -- sign in again
+        versus fix the library permissions -- and a <video> element surfaces no
+        body to tell them apart, so mark ours.
+        """
+        response = HttpResponseForbidden()
+        response["X-Media-Error"] = "authentication"
+        return response
+
     def _protected_media_url(self, path, fname):
         path = path.lstrip("/")
         return f"/protected_media/{path}/{fname}"
@@ -626,8 +639,16 @@ class UnifiedMediaAccessView(APIView):
                 except Exception:
                     response["Content-Type"] = "application/octet-stream"
             return response
-        except (FileNotFoundError, PermissionError):
+        except FileNotFoundError:
             return HttpResponse(status=404)
+        except PermissionError:
+            # Not a 404: the file is right there and we were refused. Reporting
+            # "not found" sends the administrator hunting for a missing file
+            # while a permissions problem sits in plain sight, and it denies the
+            # frontend the one signal it has for telling those two apart -- a
+            # <video> element exposes no HTTP status, so the status code is the
+            # whole diagnosis.
+            return HttpResponse(status=403)
         except Exception:
             return HttpResponse(status=500)
 
@@ -890,9 +911,9 @@ class UnifiedMediaAccessView(APIView):
                 try:
                     token = AccessToken(jwt)
                 except TokenError:
-                    return HttpResponseForbidden()
+                    return self._forbidden_unauthenticated()
             else:
-                return HttpResponseForbidden()
+                return self._forbidden_unauthenticated()
             try:
                 filename = fname + str(token["user_id"]) + ".zip"
                 if use_proxy:
@@ -907,7 +928,7 @@ class UnifiedMediaAccessView(APIView):
                     file_path, "application/x-zip-compressed"
                 )
             except Exception:
-                return HttpResponseForbidden()
+                return self._forbidden_unauthenticated()
 
         # Avatars
         if path.lower() == "avatars":
@@ -916,9 +937,9 @@ class UnifiedMediaAccessView(APIView):
                 try:
                     token = AccessToken(jwt)
                 except TokenError:
-                    return HttpResponseForbidden()
+                    return self._forbidden_unauthenticated()
             else:
-                return HttpResponseForbidden()
+                return self._forbidden_unauthenticated()
             try:
                 _ = User.objects.filter(id=token["user_id"]).only("id").first()
                 if use_proxy:
@@ -1047,7 +1068,7 @@ class UnifiedMediaAccessView(APIView):
                 return self._generate_response_direct(photo, path, fname, False)
 
             if not token_valid:
-                return HttpResponseForbidden()
+                return self._forbidden_unauthenticated()
 
             if self._may_access(photo, user):
                 if use_proxy:
@@ -1077,7 +1098,7 @@ class UnifiedMediaAccessView(APIView):
             return self._generate_response_original(photo, use_proxy, False)
 
         if not token_valid:
-            return HttpResponseForbidden()
+            return self._forbidden_unauthenticated()
 
         transcode_videos = user is not None and user.transcode_videos
         if user is not None and (
