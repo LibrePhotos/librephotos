@@ -18,7 +18,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { VideoPlayer, classifyVideoFailure } from "./VideoPlayer";
+import { classifyVideoFailure, factToText, VideoPlayer } from "./VideoPlayer";
 
 const accessToken = { current: { access: { user_id: "1", name: "dotan", is_admin: false } } };
 const diagnostics = { current: undefined as unknown };
@@ -26,6 +26,14 @@ const diagnosticsEnabled = vi.fn();
 
 vi.mock("../../api_client/auth/hooks", () => ({
   useAccessToken: () => ({ data: accessToken.current }),
+}));
+
+const copied = vi.fn();
+
+// Mocked bare, without importOriginal: util.ts pulls in ../api_client/dir-tree,
+// which does not exist in the tree, so loading the real module here fails.
+vi.mock("../../util/util", () => ({
+  copyToClipboard: (text: string) => copied(text),
 }));
 
 vi.mock("../../api_client/media", () => ({
@@ -73,13 +81,7 @@ async function renderPlayer() {
   await act(async () => {
     root.render(
       <MantineProvider>
-        <VideoPlayer
-          url="/media/photos/abc.mp4"
-          height="80vh"
-          controls
-          playing={false}
-          mediaHash="abc"
-        />
+        <VideoPlayer url="/media/photos/abc.mp4" height="80vh" controls playing={false} mediaHash="abc" />
       </MantineProvider>
     );
   });
@@ -101,6 +103,15 @@ async function renderPlayer() {
   };
   return { container, fail, unmount };
 }
+
+// Shared by every describe below: a test that leaves the viewer as an admin
+// would otherwise change what the next one is even asserting about.
+beforeEach(() => {
+  accessToken.current = { access: { user_id: "1", name: "dotan", is_admin: false } };
+  diagnostics.current = undefined;
+  diagnosticsEnabled.mockClear();
+  copied.mockClear();
+});
 
 describe("classifyVideoFailure", () => {
   it("blames the format only when the file actually arrived", () => {
@@ -130,12 +141,6 @@ describe("classifyVideoFailure", () => {
 });
 
 describe("VideoPlayer error reporting", () => {
-  beforeEach(() => {
-    accessToken.current = { access: { user_id: "1", name: "dotan", is_admin: false } };
-    diagnostics.current = undefined;
-    diagnosticsEnabled.mockClear();
-  });
-
   it("probes with HEAD so a playable file is not downloaded twice", async () => {
     const fetchMock = stubProbe(200);
     const { fail, unmount } = await renderPlayer();
@@ -243,6 +248,123 @@ describe("VideoPlayer error reporting", () => {
     await fail();
 
     expect(container.textContent).toContain("lightbox.videoerror.unknowntitle");
+    await unmount();
+  });
+});
+
+describe("factToText", () => {
+  it("keeps the path and the mode on one pasteable line", () => {
+    expect(
+      factToText({ label: "Cannot enter:", code: "/data/SomeUser", suffix: "mode 0750, owned by 1000:1000" })
+    ).toBe("Cannot enter: /data/SomeUser \u2014 mode 0750, owned by 1000:1000");
+  });
+
+  it("omits the parts that are not there", () => {
+    expect(factToText({ label: "Reads files as 101:101." })).toBe("Reads files as 101:101.");
+  });
+});
+
+describe("VideoPlayer copy button", () => {
+  const adminDiagnostics = {
+    path: "/data/SomeUser/Videos/clip.mp4",
+    cause: "mode_bits",
+    blocking: { path: "/data/SomeUser", kind: "directory", mode: "0750", uid: 1000, gid: 1000 },
+    webserver: { uid: 101, gid: 101 },
+    mount: { point: "/data", type: "ext4", read_only: false, permissions_from_mount: false, network: false },
+    remedies: ["mount_deeper", "chmod"],
+  };
+
+  it("copies a report carrying every fact the panel shows", async () => {
+    accessToken.current = { access: { user_id: "1", name: "dotan", is_admin: true } };
+    diagnostics.current = adminDiagnostics;
+    stubProbe(403);
+    const { container, fail, unmount } = await renderPlayer();
+    await fail();
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+    });
+
+    expect(copied).toHaveBeenCalledTimes(1);
+    const report = copied.mock.calls[0][0] as string;
+    // The offending path and the remedy are the whole reason to copy this.
+    expect(report).toContain("/data/SomeUser");
+    expect(report).toContain("lightbox.videoerror.remedychmod");
+    // The mode digits arrive through interpolation, which is inert without an
+    // i18next instance -- factToText covers that half directly.
+    expect(report).toContain("lightbox.videoerror.modeandowner");
+    // The failing URL makes the report usable in a bug report.
+    expect(report).toContain("/media/photos/abc.mp4");
+    await unmount();
+  });
+
+  it("copies exactly the lines that were rendered, so the two cannot drift", async () => {
+    accessToken.current = { access: { user_id: "1", name: "dotan", is_admin: true } };
+    diagnostics.current = adminDiagnostics;
+    stubProbe(403);
+    const { container, fail, unmount } = await renderPlayer();
+    await fail();
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+    });
+
+    const report = copied.mock.calls[0][0] as string;
+    const facts = [
+      factToText({
+        label: "lightbox.videoerror.blockeddirectory",
+        code: "/data/SomeUser",
+        suffix: "lightbox.videoerror.modeandowner",
+      }),
+      "lightbox.videoerror.webserverids",
+      "lightbox.videoerror.filesystem",
+      "lightbox.videoerror.remedymountdeeper",
+      "lightbox.videoerror.remedychmod",
+    ];
+    facts.forEach(line => expect(report).toContain(line));
+    await unmount();
+  });
+
+  it("offers the button to a regular user too, so they can pass the message on", async () => {
+    stubProbe(403);
+    const { container, fail, unmount } = await renderPlayer();
+    await fail();
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[aria-label="lightbox.videoerror.copy"]')!.click();
+    });
+
+    const report = copied.mock.calls[0][0] as string;
+    expect(report).toContain("lightbox.videoerror.permissionuser");
+    // A regular user never receives filesystem detail, so none can leak here.
+    expect(report).not.toContain("/data/");
+    await unmount();
+  });
+
+  it("hides the button while the probe is still deciding what to say", async () => {
+    let release: (value: unknown) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise(resolve => {
+            release = resolve;
+          })
+      )
+    );
+    const { container, unmount } = await renderPlayer();
+    await act(async () => {
+      container.querySelector("video")!.dispatchEvent(new Event("error"));
+    });
+
+    expect(container.querySelector('[aria-label="lightbox.videoerror.copy"]')).toBeNull();
+
+    await act(async () => {
+      release({ ok: false, status: 404, headers: { get: () => null } });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container.querySelector('[aria-label="lightbox.videoerror.copy"]')).not.toBeNull();
     await unmount();
   });
 });

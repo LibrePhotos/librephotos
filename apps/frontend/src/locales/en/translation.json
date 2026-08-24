@@ -554,7 +554,10 @@
       "remedymountdeeper": "What is closed is the library root itself, or something above it. Rather than opening up a directory that has good reason to stay private, mount the photo folders directly into the data root.",
       "remedyreadonly": "This mount is read-only, so any permission change will fail until it is remounted read-write.",
       "remedynetworkfs": "This is a network filesystem, so permissions are decided on the machine that exports it — a local chmod may be squashed or ignored.",
-      "remedylabels": "The mode bits along this path already let the web server read the file, so permissions are not the problem. Look instead at SELinux or AppArmor labelling (a bind mount may need :z or :Z), a container runtime that remaps user ids, or a rebuilt proxy image whose web server does not run as the ids above."
+      "remedylabels": "The mode bits along this path already let the web server read the file, so permissions are not the problem. Look instead at SELinux or AppArmor labelling (a bind mount may need :z or :Z), a container runtime that remaps user ids, or a rebuilt proxy image whose web server does not run as the ids above.",
+      "copy": "Copy this report",
+      "copied": "Copied",
+      "copyheading": "LibrePhotos — this video could not be played"
     }
   },
   "exif": {

@@ -1,8 +1,10 @@
-import { Alert, Button, Center, Code, Group, Loader, Stack, Text } from "@mantine/core";
+import { ActionIcon, Alert, Button, Center, Code, Group, Loader, Stack, Text, Tooltip } from "@mantine/core";
+import { IconCopy as CopyIcon } from "@tabler/icons-react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAccessToken } from "../../api_client/auth/hooks";
 import { useMediaDiagnosticsQuery } from "../../api_client/media";
+import { copyToClipboard } from "../../util/util";
 
 type VideoPlayerProps = {
   url: string;
@@ -40,6 +42,17 @@ export function classifyVideoFailure(status: number, mediaError: string | null):
   if (status === 403) return mediaError === "authentication" ? "session" : "permission";
   if (status === 404) return "missing";
   return "server";
+}
+
+/**
+ * One line of the diagnosis. Kept as data rather than JSX because the same line
+ * has to be both rendered and copied to the clipboard, and building those
+ * separately is how the copied report silently stops matching the panel.
+ */
+export type DiagnosticFact = { label: string; code?: string; suffix?: string };
+
+export function factToText({ label, code, suffix }: DiagnosticFact): string {
+  return [label, code, suffix ? `\u2014 ${suffix}` : undefined].filter(Boolean).join(" ");
 }
 
 const REMEDY_KEYS: Record<string, string> = {
@@ -82,7 +95,9 @@ export const VideoPlayer = memo(function VideoPlayer({
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [probing, setProbing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [copied, setCopied] = useState(false);
   const readyFiredRef = useRef(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Bumped on every probe so a stale answer cannot overwrite a newer one after
   // the user has already navigated to a different video.
   const probeRef = useRef(0);
@@ -113,6 +128,13 @@ export const VideoPlayer = memo(function VideoPlayer({
       video.pause();
     }
   }, [playing, loading, hasError]);
+
+  useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    []
+  );
 
   const handleCanPlay = useCallback(() => {
     if (!readyFiredRef.current) {
@@ -196,39 +218,76 @@ export const VideoPlayer = memo(function VideoPlayer({
     }
   };
 
-  const renderDiagnostics = () => {
-    if (!diagnostics) return null;
+  const diagnosticFacts = (): DiagnosticFact[] => {
+    if (!diagnostics) return [];
     const { blocking, webserver, mount, remedies } = diagnostics;
-    const remedyKeys = remedies.map(remedy => REMEDY_KEYS[remedy]).filter(Boolean);
+    const facts: DiagnosticFact[] = [];
+    if (blocking) {
+      facts.push({
+        label:
+          blocking.kind === "directory"
+            ? t("lightbox.videoerror.blockeddirectory")
+            : t("lightbox.videoerror.blockedfile"),
+        code: blocking.path,
+        suffix: blocking.mode
+          ? t("lightbox.videoerror.modeandowner", {
+              mode: blocking.mode,
+              uid: blocking.uid,
+              gid: blocking.gid,
+            })
+          : undefined,
+      });
+    }
+    if (webserver) {
+      facts.push({ label: t("lightbox.videoerror.webserverids", { uid: webserver.uid, gid: webserver.gid }) });
+    }
+    if (mount) {
+      facts.push({ label: t("lightbox.videoerror.filesystem", { type: mount.type, point: mount.point }) });
+    }
+    remedies
+      .map(remedy => REMEDY_KEYS[remedy])
+      .filter(Boolean)
+      .forEach(key => facts.push({ label: t(`lightbox.videoerror.${key}`) }));
+    return facts;
+  };
+
+  /** The whole diagnosis as plain text, ready to paste into a terminal or an
+   * issue. Everything here is meant to leave the browser -- a path to chmod, a
+   * mount to re-mount, a report to hand to whoever administers the server -- so
+   * re-typing it off the screen would defeat the point of collecting it. */
+  const buildReport = () => {
+    const facts = diagnosticFacts();
+    return [
+      t("lightbox.videoerror.copyheading"),
+      "",
+      errorTitle(),
+      errorBody(),
+      "",
+      url,
+      ...(facts.length ? ["", `${t("lightbox.videoerror.diagnosticstitle")}:`, ...facts.map(factToText)] : []),
+    ].join("\n");
+  };
+
+  const handleCopy = () => {
+    copyToClipboard(buildReport());
+    setCopied(true);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 1200);
+  };
+
+  const renderDiagnostics = () => {
+    const facts = diagnosticFacts();
+    if (!facts.length) return null;
 
     return (
       <Stack gap={4} mt="sm">
         <Text size="xs" fw={600}>
           {t("lightbox.videoerror.diagnosticstitle")}
         </Text>
-        {blocking && (
-          <Text size="xs">
-            {blocking.kind === "directory"
-              ? t("lightbox.videoerror.blockeddirectory")
-              : t("lightbox.videoerror.blockedfile")}{" "}
-            <Code>{blocking.path}</Code>
-            {blocking.mode &&
-              ` — ${t("lightbox.videoerror.modeandowner", {
-                mode: blocking.mode,
-                uid: blocking.uid,
-                gid: blocking.gid,
-              })}`}
-          </Text>
-        )}
-        {webserver && (
-          <Text size="xs">{t("lightbox.videoerror.webserverids", { uid: webserver.uid, gid: webserver.gid })}</Text>
-        )}
-        {mount && (
-          <Text size="xs">{t("lightbox.videoerror.filesystem", { type: mount.type, point: mount.point })}</Text>
-        )}
-        {remedyKeys.map(key => (
-          <Text key={key} size="xs">
-            {t(`lightbox.videoerror.${key}`)}
+        {facts.map(fact => (
+          <Text key={factToText(fact)} size="xs">
+            {fact.label} {fact.code ? <Code>{fact.code}</Code> : null}
+            {fact.suffix ? ` \u2014 ${fact.suffix}` : null}
           </Text>
         ))}
       </Stack>
@@ -267,9 +326,27 @@ export const VideoPlayer = memo(function VideoPlayer({
               {renderDiagnostics()}
             </>
           )}
-          <Button variant="light" color="red" size="xs" mt="sm" onClick={handleRetry}>
-            {t("lightbox.videoerror.retry")}
-          </Button>
+          <Group gap="xs" mt="sm">
+            <Button variant="light" color="red" size="xs" onClick={handleRetry}>
+              {t("lightbox.videoerror.retry")}
+            </Button>
+            {!probing && (
+              <Tooltip
+                label={copied ? t("lightbox.videoerror.copied") : t("lightbox.videoerror.copy")}
+                opened={copied ? true : undefined}
+              >
+                <ActionIcon
+                  variant="light"
+                  color="red"
+                  size="sm"
+                  aria-label={t("lightbox.videoerror.copy")}
+                  onClick={handleCopy}
+                >
+                  <CopyIcon size={16} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
         </Alert>
       </div>
     );
