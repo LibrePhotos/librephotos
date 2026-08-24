@@ -23,6 +23,7 @@ import { Route as ProtectedScreenshotsRouteImport } from './routes/_protected/sc
 import { Route as ProtectedRecentRouteImport } from './routes/_protected/recent'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
 import { Route as ProtectedPhotosRouteImport } from './routes/_protected/photos'
+import { Route as ProtectedMemoriesRouteImport } from './routes/_protected/memories'
 import { Route as ProtectedNotimestampRouteImport } from './routes/_protected/notimestamp'
 import { Route as ProtectedLibraryRouteImport } from './routes/_protected/library'
 import { Route as ProtectedHiddenRouteImport } from './routes/_protected/hidden'
@@ -133,6 +134,11 @@ const ProtectedProfileRoute = ProtectedProfileRouteImport.update({
 const ProtectedPhotosRoute = ProtectedPhotosRouteImport.update({
   id: '/photos',
   path: '/photos',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedMemoriesRoute = ProtectedMemoriesRouteImport.update({
+  id: '/memories',
+  path: '/memories',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedNotimestampRoute = ProtectedNotimestampRouteImport.update({
@@ -370,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/favorites': typeof ProtectedFavoritesRoute
   '/hidden': typeof ProtectedHiddenRoute
   '/library': typeof ProtectedLibraryRoute
+  '/memories': typeof ProtectedMemoriesRoute
   '/notimestamp': typeof ProtectedNotimestampRoute
   '/photos': typeof ProtectedPhotosRoute
   '/profile': typeof ProtectedProfileRoute
@@ -425,6 +432,7 @@ export interface FileRoutesByTo {
   '/favorites': typeof ProtectedFavoritesRoute
   '/hidden': typeof ProtectedHiddenRoute
   '/library': typeof ProtectedLibraryRoute
+  '/memories': typeof ProtectedMemoriesRoute
   '/notimestamp': typeof ProtectedNotimestampRoute
   '/photos': typeof ProtectedPhotosRoute
   '/profile': typeof ProtectedProfileRoute
@@ -484,6 +492,7 @@ export interface FileRoutesById {
   '/_protected/favorites': typeof ProtectedFavoritesRoute
   '/_protected/hidden': typeof ProtectedHiddenRoute
   '/_protected/library': typeof ProtectedLibraryRoute
+  '/_protected/memories': typeof ProtectedMemoriesRoute
   '/_protected/notimestamp': typeof ProtectedNotimestampRoute
   '/_protected/photos': typeof ProtectedPhotosRoute
   '/_protected/profile': typeof ProtectedProfileRoute
@@ -544,6 +553,7 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/hidden'
     | '/library'
+    | '/memories'
     | '/notimestamp'
     | '/photos'
     | '/profile'
@@ -599,6 +609,7 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/hidden'
     | '/library'
+    | '/memories'
     | '/notimestamp'
     | '/photos'
     | '/profile'
@@ -657,6 +668,7 @@ export interface FileRouteTypes {
     | '/_protected/favorites'
     | '/_protected/hidden'
     | '/_protected/library'
+    | '/_protected/memories'
     | '/_protected/notimestamp'
     | '/_protected/photos'
     | '/_protected/profile'
@@ -812,6 +824,13 @@ declare module '@tanstack/react-router' {
       path: '/photos'
       fullPath: '/photos'
       preLoaderRoute: typeof ProtectedPhotosRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/memories': {
+      id: '/_protected/memories'
+      path: '/memories'
+      fullPath: '/memories'
+      preLoaderRoute: typeof ProtectedMemoriesRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/notimestamp': {
@@ -1132,6 +1151,7 @@ interface ProtectedRouteRouteChildren {
   ProtectedFavoritesRoute: typeof ProtectedFavoritesRoute
   ProtectedHiddenRoute: typeof ProtectedHiddenRoute
   ProtectedLibraryRoute: typeof ProtectedLibraryRoute
+  ProtectedMemoriesRoute: typeof ProtectedMemoriesRoute
   ProtectedNotimestampRoute: typeof ProtectedNotimestampRoute
   ProtectedPhotosRoute: typeof ProtectedPhotosRoute
   ProtectedProfileRoute: typeof ProtectedProfileRoute
@@ -1181,6 +1201,7 @@ const ProtectedRouteRouteChildren: ProtectedRouteRouteChildren = {
   ProtectedFavoritesRoute: ProtectedFavoritesRoute,
   ProtectedHiddenRoute: ProtectedHiddenRoute,
   ProtectedLibraryRoute: ProtectedLibraryRoute,
+  ProtectedMemoriesRoute: ProtectedMemoriesRoute,
   ProtectedNotimestampRoute: ProtectedNotimestampRoute,
   ProtectedPhotosRoute: ProtectedPhotosRoute,
   ProtectedProfileRoute: ProtectedProfileRoute,
