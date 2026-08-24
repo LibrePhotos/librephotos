@@ -52,7 +52,7 @@ export function classifyVideoFailure(status: number, mediaError: string | null):
 export type DiagnosticFact = { label: string; code?: string; suffix?: string };
 
 export function factToText({ label, code, suffix }: DiagnosticFact): string {
-  return [label, code, suffix ? `\u2014 ${suffix}` : undefined].filter(Boolean).join(" ");
+  return [label, code, suffix ? `- ${suffix}` : undefined].filter(Boolean).join(" ");
 }
 
 const REMEDY_KEYS: Record<string, string> = {
@@ -287,7 +287,7 @@ export const VideoPlayer = memo(function VideoPlayer({
         {facts.map(fact => (
           <Text key={factToText(fact)} size="xs">
             {fact.label} {fact.code ? <Code>{fact.code}</Code> : null}
-            {fact.suffix ? ` \u2014 ${fact.suffix}` : null}
+            {fact.suffix ? ` - ${fact.suffix}` : null}
           </Text>
         ))}
       </Stack>

@@ -256,7 +256,7 @@ describe("factToText", () => {
   it("keeps the path and the mode on one pasteable line", () => {
     expect(
       factToText({ label: "Cannot enter:", code: "/data/SomeUser", suffix: "mode 0750, owned by 1000:1000" })
-    ).toBe("Cannot enter: /data/SomeUser \u2014 mode 0750, owned by 1000:1000");
+    ).toBe("Cannot enter: /data/SomeUser - mode 0750, owned by 1000:1000");
   });
 
   it("omits the parts that are not there", () => {
