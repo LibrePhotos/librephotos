@@ -96,6 +96,7 @@ export function MediaDisplay({
       <VideoPlayer
         url={videoUrl}
         posterUrl={thumbnailUrl}
+        mediaHash={mediaHash}
         height={videoContainerHeight}
         controls={isMainContent}
         playing={isMainContent && playing}

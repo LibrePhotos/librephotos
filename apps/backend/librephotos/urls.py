@@ -51,6 +51,7 @@ from api.views import (
     public_albums,
     search,
     services,
+    serving_diagnostics,
     sharing,
     sso,
     stacks,
@@ -388,6 +389,11 @@ urlpatterns = [
     re_path(
         r"^api/auth/password/reset/confirm/$",
         password_reset.PasswordResetConfirmView.as_view(),
+    ),
+    re_path(
+        r"^api/media/diagnostics/(?P<fname>[^/]+)/$",
+        serving_diagnostics.MediaPermissionDiagnosticsView.as_view(),
+        name="media-diagnostics",
     ),
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",
