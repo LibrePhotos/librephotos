@@ -768,6 +768,13 @@ class SetPhotosPublic(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
+            # Scope the write to the requester's own photos. build_photo_queryset
+            # intentionally does not filter by owner when query.public=true (it is
+            # shared with public read paths), so without this an authenticated user
+            # could bulk-set OTHER users' public photos to private (issue #1981,
+            # incomplete fix for CVE-2026-57943).
+            photos_qs = photos_qs.filter(owner=request.user)
+
             count = photos_qs.update(public=val_public)
 
             if val_public:
