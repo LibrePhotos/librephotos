@@ -318,7 +318,11 @@ class SetPhotosFavorite(APIView):
             query_params = data.get("query", {})
             excluded_hashes = data.get("excluded_hashes", [])
 
-            photos_qs = build_photo_queryset(request.user, query_params)
+            # build_photo_queryset drops the owner filter for public queries,
+            # so re-scope to the requesting user before writing (see #1980).
+            photos_qs = build_photo_queryset(request.user, query_params).filter(
+                owner=request.user
+            )
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -672,7 +676,12 @@ class SetPhotosShared(APIView):
             query_params = data.get("query", {})
             excluded_hashes = data.get("excluded_hashes", [])
 
-            photos_qs = build_photo_queryset(request.user, query_params)
+            # build_photo_queryset drops the owner filter for public queries.
+            # The write below re-filters by owner, but scope here too so the
+            # security property doesn't hinge on a distant check.
+            photos_qs = build_photo_queryset(request.user, query_params).filter(
+                owner=request.user
+            )
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -893,7 +902,12 @@ class DeletePhotos(APIView):
             # Override query to filter for trashcan photos only
             query_params["in_trashcan"] = True
 
-            photos_qs = build_photo_queryset(request.user, query_params)
+            # build_photo_queryset drops the owner filter for public queries.
+            # The loop below re-checks ownership, but scope here too so other
+            # users' photos are never even loaded.
+            photos_qs = build_photo_queryset(request.user, query_params).filter(
+                owner=request.user
+            )
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
