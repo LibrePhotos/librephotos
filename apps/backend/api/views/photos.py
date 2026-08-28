@@ -191,6 +191,10 @@ class SetPhotosDeleted(APIView):
             excluded_hashes = data.get("excluded_hashes", [])
 
             photos_qs = build_photo_queryset(request.user, query_params)
+            # Security: build_photo_queryset does not scope to the requester
+            # when query.public is set, so bind the write target to the
+            # requesting user's own photos (CVE-2026-57943, issue #1982).
+            photos_qs = photos_qs.filter(owner=request.user)
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
