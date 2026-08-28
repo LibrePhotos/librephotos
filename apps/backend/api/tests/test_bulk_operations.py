@@ -351,6 +351,115 @@ class BulkSetPhotosDeletedTest(TestCase):
             self.assertFalse(photo.in_trashcan)
 
 
+class BulkSetPhotosDeletedOwnerScopeTest(TestCase):
+    """Regression tests for issue #1982 (incomplete fix for CVE-2026-57943).
+
+    An authenticated attacker must not be able to trash or restore another
+    user's photos through the public-photos query in select_all mode of
+    POST /api/photosedit/setdeleted/.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.attacker = create_test_user()
+        self.victim = create_test_user()
+        self.client.force_authenticate(user=self.attacker)
+
+    def test_select_all_public_query_with_username_cannot_trash_others_photos(self):
+        """query.public + username=<victim> must not move victim photos to trash."""
+        victim_photos = create_test_photos(
+            number_of_photos=3, owner=self.victim, public=True, in_trashcan=False
+        )
+
+        payload = {
+            "select_all": True,
+            "query": {"public": True, "username": self.victim.username},
+            "deleted": True,
+        }
+        response = self.client.post(
+            "/api/photosedit/setdeleted/", format="json", data=payload
+        )
+        data = response.json()
+
+        self.assertEqual(data["count"], 0)
+        for photo in victim_photos:
+            photo.refresh_from_db()
+            self.assertFalse(
+                photo.in_trashcan,
+                "Attacker was able to trash another user's public photo",
+            )
+
+    def test_select_all_public_query_without_username_cannot_trash_others_photos(self):
+        """query.public without username must not move other users' photos to trash."""
+        victim_photos = create_test_photos(
+            number_of_photos=2, owner=self.victim, public=True, in_trashcan=False
+        )
+
+        payload = {
+            "select_all": True,
+            "query": {"public": True},
+            "deleted": True,
+        }
+        response = self.client.post(
+            "/api/photosedit/setdeleted/", format="json", data=payload
+        )
+        data = response.json()
+
+        self.assertEqual(data["count"], 0)
+        for photo in victim_photos:
+            photo.refresh_from_db()
+            self.assertFalse(
+                photo.in_trashcan,
+                "Attacker was able to trash another user's public photo",
+            )
+
+    def test_select_all_public_query_cannot_restore_others_trashed_photos(self):
+        """query.public + in_trashcan must not restore other users' trashed photos."""
+        victim_photos = create_test_photos(
+            number_of_photos=2, owner=self.victim, public=True, in_trashcan=True
+        )
+
+        payload = {
+            "select_all": True,
+            "query": {"public": True, "in_trashcan": True},
+            "deleted": False,
+        }
+        response = self.client.post(
+            "/api/photosedit/setdeleted/", format="json", data=payload
+        )
+        data = response.json()
+
+        self.assertEqual(data["count"], 0)
+        for photo in victim_photos:
+            photo.refresh_from_db()
+            self.assertTrue(
+                photo.in_trashcan,
+                "Attacker was able to restore another user's trashed photo",
+            )
+
+    def test_select_all_owner_can_still_trash_own_photos(self):
+        """Sanity: the owner can still trash their own photos via select_all."""
+        own_photos = create_test_photos(
+            number_of_photos=3, owner=self.attacker, in_trashcan=False
+        )
+
+        payload = {
+            "select_all": True,
+            "query": {},
+            "deleted": True,
+        }
+        response = self.client.post(
+            "/api/photosedit/setdeleted/", format="json", data=payload
+        )
+        data = response.json()
+
+        self.assertTrue(data["status"])
+        self.assertEqual(data["count"], 3)
+        for photo in own_photos:
+            photo.refresh_from_db()
+            self.assertTrue(photo.in_trashcan)
+
+
 class BulkSharePhotosTest(TestCase):
     """Tests for bulk SetPhotosShared with select_all mode."""
 
