@@ -14,8 +14,8 @@ jobs:
       run:
         working-directory: apps/mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: apps/mobile/.node-version
           cache: yarn
@@ -28,13 +28,13 @@ jobs:
         run: yarn lint
 
       - name: Cache Gradle Wrapper
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Cache Gradle Dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-caches-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
@@ -66,7 +66,7 @@ jobs:
           SIGNED_FILE: ${{ steps.sign_apk.outputs.signedReleaseFile }}
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Signed Apk Bundle
           path: librephotos-latest-signed.apk
