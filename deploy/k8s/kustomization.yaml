@@ -28,4 +28,4 @@ images:
     newTag: 2023w31
   - name: postgresql-placeholder
     newName: postgres
-    newTag: "13"
+    newTag: "18"
