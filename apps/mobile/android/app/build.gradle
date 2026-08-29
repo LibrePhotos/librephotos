@@ -157,7 +157,7 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
 
     debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
     debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}") {
@@ -173,10 +173,10 @@ dependencies {
     implementation project(':react-native-file-access')
     implementation project(':@react-native-camera-roll_camera-roll')
     constraints {
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24") {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25") {
             because("kotlin-stdlib-jdk7 is now a part of kotlin-stdlib")
         }
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24") {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25") {
             because("kotlin-stdlib-jdk8 is now a part of kotlin-stdlib")
         }
     }
