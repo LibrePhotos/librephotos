@@ -61,6 +61,34 @@
    The `test_sqlite` settings module (`librephotos/settings/test_sqlite.py`) uses
    an in-memory SQLite database so no PostgreSQL instance is required.
 
+**On Windows (native dev box, no Docker):** the full pinned dependency set installs
+natively on Python 3.11 from prebuilt wheels — see `requirements.windows.txt`, which
+reuses every pin from `requirements.txt`/`requirements.dev.txt` and only swaps in the
+Windows-friendly variants (`pyvips[binary]`, `python-magic-bin`, `psycopg[binary]`,
+and the llama-cpp-python CPU wheel index). One-time setup + run:
+
+```powershell
+# requires Python 3.11 (winget install --id Python.Python.3.11) and winget
+./scripts/setup_windows.ps1          # venv .venv-win + deps + exiftool/ImageMagick + libmagic shim
+./scripts/run_tests_windows.ps1                              # whole suite (in-memory SQLite)
+./scripts/run_tests_windows.ps1 api.tests.test_photo_metadata
+```
+
+Notes: `insightface` has no prebuilt wheel and compiles from sdist, so an MSVC v143
+C++ toolchain (Visual Studio 2022 / Build Tools) must be present. `exiftool.exe` is
+required (migration 0009 starts it at test-DB setup). `python-magic` needs the bundled
+`libmagic.dll` ahead of Git-for-Windows' MSYS one on PATH — `setup_windows.ps1` writes
+a venv shim (`_lp_win_magic_shim.pth`) that handles this automatically. `gunicorn`
+installs but can't serve on Windows (no `fcntl`); use `manage.py runserver` for a dev
+server.
+
+*Lightweight alternative (no native deps / no C++ compiler):* install
+`requirements.windows-test.txt` (pure-Python subset) and run with
+`DJANGO_SETTINGS_MODULE=librephotos.settings.test_windows`, which stubs the native/ML
+modules (`magic`, `pyvips`, `torch`, `insightface`, ...) via a meta-path finder so the
+app imports and the pure-Python logic tests run. Tests that exercise real native
+behaviour are expected to fail under the stubs.
+
 ### Debugging
 - **PDB Breakpoint**: Add `import pdb; pdb.set_trace()` in code
 - **Attach to Container**: `docker attach $(docker ps --filter name=backend -q)`
