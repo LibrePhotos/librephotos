@@ -1,7 +1,7 @@
 ---
 title: "📝 Image Captioning"
 description: "What is image captioning and how do I use it?"
-sidebar_position: 8
+sidebar_position: 9
 ---
 
 ## What is image captioning?

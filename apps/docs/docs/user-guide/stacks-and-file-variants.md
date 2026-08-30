@@ -1,7 +1,7 @@
 ---
 title: "📚 Stacks & File Variants"
 description: "How LibrePhotos handles RAW+JPEG pairs, Live Photos, bursts, and other related photo groups"
-sidebar_position: 13
+sidebar_position: 14
 ---
 
 LibrePhotos can automatically detect and group related photos together. There are two distinct concepts: **file variants** (same capture in different formats) and **stacks** (different captures grouped together).

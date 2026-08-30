@@ -1,7 +1,7 @@
 ---
 title: "📇 Exif Data"
 description: "What exif data can we read, write and filter for"
-sidebar_position: 17
+sidebar_position: 18
 ---
 
 ## Compatibility

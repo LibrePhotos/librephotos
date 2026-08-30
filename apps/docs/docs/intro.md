@@ -33,6 +33,7 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 - Public album sharing via link with fine-grained privacy controls
 - Photo details sidebar showing location, people, albums, and similar photos
 - Slideshow mode and fullscreen lightbox
+- Memories: the photos you took on this day in earlier years
 - Spotlight search with keyboard navigation
 
 ## What does it use?

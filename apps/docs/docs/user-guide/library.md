@@ -1,7 +1,7 @@
 ---
 title: "📚 Library Management"
 description: "Scanning, Nextcloud integration, services, and server management"
-sidebar_position: 10
+sidebar_position: 11
 ---
 
 The **Library** page is your central hub for managing your photo library. Access it by clicking on your avatar (top right) and selecting **Library**, or via the spotlight search (`Ctrl+K` → "Library").

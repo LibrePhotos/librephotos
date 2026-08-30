@@ -1,7 +1,7 @@
 ---
 title: "🗺 Places"
 description: "An overview on how geolocation and places work in LibrePhotos"
-sidebar_position: 7
+sidebar_position: 8
 ---
 
 LibrePhotos can display your photos on an interactive map based on their GPS coordinates. This page explains how geolocation works and how to get the most out of the Places feature.
