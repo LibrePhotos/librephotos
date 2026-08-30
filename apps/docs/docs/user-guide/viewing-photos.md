@@ -168,6 +168,8 @@ Click on any similar photo to view it directly.
 | Key | Action |
 |-----|--------|
 | `←` / `→` | Previous / Next photo |
+| `Shift` + `←` / `→` | Jump back / forward 10 seconds (videos only) |
+| `Ctrl` + `←` / `→` | Jump back / forward 1 minute (videos only) |
 | `Escape` | Close photo viewer |
 | `Space` | Play / pause (videos only) |
 | `z` | Toggle zoom (still images only) |
@@ -181,3 +183,10 @@ Click on any similar photo to view it directly.
 
 The `f`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on public (unauthenticated) album pages.
 
+### Seeking in Videos
+
+`Space` starts and pauses a video. Holding `Shift` with the arrow keys jumps ten seconds back or forward, and holding `Ctrl` instead jumps a full minute — the same split VLC makes between a short and a long jump. The plain arrow keys keep moving between photos even while a video is playing, so skipping through a clip never costs you your place in the album. Each jump is confirmed on screen — the player's own control bar stays hidden when you drive it from the keyboard, so there would otherwise be nothing to see.
+
+On macOS, `Ctrl` with the arrow keys is claimed by Mission Control for switching between desktops, so the one-minute jump may not reach the page there; `Shift` is unaffected.
+
+Seeking is unavailable while a video is still being converted for playback, which happens when you have **Always transcode videos** turned on in your settings. For as long as that conversion is running the browser is never told how long the video is or how to jump within it, so the player says so rather than ignoring the key.

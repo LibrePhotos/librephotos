@@ -9,11 +9,21 @@ import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useRotatePhotosMutation } from "../../api_client/photos/hooks/useRotatePhotosMutation";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { ImagePreloader } from "./ImagePreloader";
+import {
+  NEXT_KEY,
+  PLAY_PAUSE_KEY,
+  PREVIOUS_KEY,
+  SEEK_BACK_KEY,
+  SEEK_FORWARD_KEY,
+  SEEK_LONG_BACK_KEY,
+  SEEK_LONG_FORWARD_KEY,
+} from "./lightbox.hotkeys";
 import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { LightboxControls } from "./LightboxControls";
 import { MediaDisplay } from "./MediaDisplay";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
+import { requestLightboxSeek, SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./VideoPlayer";
 
 export function ContentViewer({
   mainSrc,
@@ -219,10 +229,23 @@ export function ContentViewer({
 
   // Add keyboard navigation using Mantine's useHotkeys
   useHotkeys([
-    ["ArrowLeft", () => prevSrc && onMovePrevRequest()],
-    ["ArrowRight", () => nextSrc && onMoveNextRequest()],
+    [PREVIOUS_KEY, () => prevSrc && onMovePrevRequest()],
+    [NEXT_KEY, () => nextSrc && onMoveNextRequest()],
+    // Seeking is added alongside the arrows rather than taking them over. A
+    // focused <video> would seek with the bare arrow keys, but these hotkeys
+    // are bound on `document` and Mantine's ignore list covers only INPUT,
+    // TEXTAREA and SELECT -- so the arrows reach navigation from inside the
+    // player too, and whether a key seeks or navigates would otherwise depend
+    // on the invisible question of whether the user had clicked the video
+    // first. Google Photos and Apple Photos likewise keep the arrows on
+    // navigation. Mantine matches modifiers exactly, so these do not fire the
+    // two bindings above.
+    [SEEK_BACK_KEY, () => requestLightboxSeek(-SEEK_STEP_SECONDS)],
+    [SEEK_FORWARD_KEY, () => requestLightboxSeek(SEEK_STEP_SECONDS)],
+    [SEEK_LONG_BACK_KEY, () => requestLightboxSeek(-SEEK_LONG_STEP_SECONDS)],
+    [SEEK_LONG_FORWARD_KEY, () => requestLightboxSeek(SEEK_LONG_STEP_SECONDS)],
     ["Escape", handleClose],
-    [" ", () => type === "video" && setPlaying(prev => !prev)],
+    [PLAY_PAUSE_KEY, () => type === "video" && setPlaying(prev => !prev)],
     ["z", () => type === "photo" && toggleZoom()],
     ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
     // Additional shortcuts for photo actions handled by lightbox controls
