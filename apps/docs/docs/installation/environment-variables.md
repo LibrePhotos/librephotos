@@ -173,6 +173,23 @@ services:
 `FEATURE_PROCESS_EMBEDDED_MEDIA` is checked only at the moment a file is first imported. Turning it on for a library that has already been scanned extracts nothing for the photos already there — not even with **Rescan All Photos** — so only files added afterwards are affected.
 :::
 
+### Cached video conversions
+
+A user who turns on **Always transcode videos** (Settings → Experimental) has videos in containers or codecs their browser cannot decode converted as they play. A conversion happening live has no known length, so it carries no `Content-Length` and no `Accept-Ranges`, and it cannot be sought at all — no duration, no scrub bar, no skipping. The same conversion is therefore written to a file once, and every later play of that video is served from the file instead, as an ordinary seekable mp4. The first play still streams live and starts exactly as quickly as it does today: the copy is written **after** that stream ends, never alongside it, because the live conversion has to keep ahead of playback and would lose a share of the machine to a second ffmpeg. The copy is also niced and limited to half the cores, so playback, thumbnails and a running scan all outrank it.
+
+The cache costs somewhere between 10 and 20 MB per minute of video — how much movement there is in the footage decides where in that range it lands — and only for the videos somebody actually opens with that setting on. If nobody turns it on, nothing is ever written.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `TRANSCODE_CACHE_MAX_GB` | `transcodeCacheMaxGb` | `10` | How large the cache may grow, in GB. Roughly an hour of video per GB. Set it to `0` to switch caching off entirely and keep only the live streaming. |
+| `TRANSCODE_CACHE_MIN_FREE_GB` | `transcodeCacheMinFreeGb` | `2` | How much free space to leave alone on the volume, in GB. The cache never writes into this, and a conversion already running is abandoned if the free space drops into it. |
+| `TRANSCODE_CACHE_MAX_CONCURRENT` | `transcodeCacheMaxConcurrent` | `1` | How many conversions may be written at once. Each is an ffmpeg process, so raising this trades CPU for having more videos become seekable sooner. |
+| `TRANSCODE_CACHE_NICE` | `transcodeCacheNice` | `10` | How far the background conversion stands back from everything else, as a `nice` value. `0` turns the courtesy off. |
+
+When either ceiling is reached, the least recently played entries are deleted until the new one fits; if even that is not enough, the video simply is not cached and plays live as before. Nothing is ever served before its conversion has finished, so an interrupted one leaves no half-playable file behind.
+
+The files live under `protected_media/transcoded/`, named by image hash, and are deleted along with the photo. Deleting the directory by hand is safe at any time — it costs only the CPU to convert those videos again.
+
 ### Logging
 
 The backend writes its log files into the directory named by `BASE_LOGS`. `ownphotos.log` is the one to look at first; it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).

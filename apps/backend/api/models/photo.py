@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 
 import api.models
-from api import date_time_extractor, face_extractor, util
+from api import date_time_extractor, face_extractor, transcode_cache, util
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.metadata.reader import get_metadata
@@ -591,6 +591,11 @@ class Photo(models.Model):
         self.files.set([])
         self.main_file = None
         self.removed = True
+
+        # A cached transcode outlives the photo otherwise: it is named after the
+        # image hash, which no longer belongs to anything, so nothing would ever
+        # serve it and nothing would ever reclaim it until the cache filled up.
+        transcode_cache.discard(self.image_hash)
 
         # Clear all stack references from this photo (ManyToMany)
         self.stacks.clear()

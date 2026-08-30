@@ -81,6 +81,10 @@ services:
       - FEATURE_REVERSE_GEOCODING=${featureReverseGeocoding:-true}
       - FEATURE_SCENE_CLASSIFICATION=${featureSceneClassification:-true}
       - FEATURE_PROCESS_EMBEDDED_MEDIA=${featureProcessEmbeddedMedia:-true}
+      - TRANSCODE_CACHE_MAX_GB=${transcodeCacheMaxGb:-10}
+      - TRANSCODE_CACHE_MIN_FREE_GB=${transcodeCacheMinFreeGb:-2}
+      - TRANSCODE_CACHE_MAX_CONCURRENT=${transcodeCacheMaxConcurrent:-1}
+      - TRANSCODE_CACHE_NICE=${transcodeCacheNice:-10}
       - DEBUG=0
     depends_on:
       db:

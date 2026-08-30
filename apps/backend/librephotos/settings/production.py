@@ -31,6 +31,27 @@ IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
 BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
 PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
 CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
+
+# Videos in a container or codec the browser cannot decode are converted on the
+# fly for users who turn on "Always transcode videos". A live conversion has no
+# known length, so it cannot be sought at all; the same conversion is therefore
+# written to a file in the background and later plays are served from that,
+# seekable. See api/transcode_cache.py.
+#
+# The cache is bounded twice over: it never grows past TRANSCODE_CACHE_MAX_GB,
+# and it never eats into the last TRANSCODE_CACHE_MIN_FREE_GB of the volume,
+# which is shared with the thumbnails and (in the default layout) the database.
+# Set the size to 0 to switch caching off and keep only the live streaming.
+TRANSCODE_CACHE_ROOT = os.path.join(MEDIA_ROOT, "transcoded")
+TRANSCODE_CACHE_MAX_GB = float(os.environ.get("TRANSCODE_CACHE_MAX_GB", "10"))
+TRANSCODE_CACHE_MIN_FREE_GB = float(os.environ.get("TRANSCODE_CACHE_MIN_FREE_GB", "2"))
+TRANSCODE_CACHE_MAX_CONCURRENT = int(
+    os.environ.get("TRANSCODE_CACHE_MAX_CONCURRENT", "1")
+)
+# How far the background conversion stands back from everything else. It is
+# niced and given half the cores, because playback, thumbnails and the scan all
+# matter more than a copy nobody is waiting for.
+TRANSCODE_CACHE_NICE = int(os.environ.get("TRANSCODE_CACHE_NICE", "10"))
 LOGS_ROOT = BASE_LOGS
 # Create the directory before anything in this module writes to it. secret.key
 # lives in there too and is written some 40 lines further down, so an install
