@@ -47,6 +47,26 @@ def _get_photo_filter_kwargs(lookup_value):
     return {"image_hash": lookup_value}
 
 
+def _get_owned_photo(image_hash, user):
+    """Return the user's photo for ``image_hash``, or None if there is none."""
+    try:
+        return Photo.objects.get(image_hash=image_hash, owner=user)
+    except Photo.DoesNotExist:
+        return None
+    except Photo.MultipleObjectsReturned:
+        return Photo.objects.filter(image_hash=image_hash, owner=user).first()
+
+
+def _detect_content_type(path):
+    """Return the MIME type of a file, falling back to a generic binary type."""
+    import magic
+
+    try:
+        return magic.Magic(mime=True).from_file(path)
+    except Exception:
+        return "application/octet-stream"
+
+
 class RecentlyAddedPhotoListViewSet(ListViewSet):
     serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
@@ -1004,67 +1024,41 @@ class FileVariantDownloadView(APIView):
     )
     def get(self, request, image_hash, file_hash):
         """Download a specific file variant by hash."""
-        import magic
         import os
         from django.http import FileResponse
 
-        # Find the photo
-        try:
-            photo = Photo.objects.get(
-                image_hash=image_hash,
-                owner=request.user,
-            )
-        except Photo.DoesNotExist:
+        photo = _get_owned_photo(image_hash, request.user)
+        if not photo:
             return Response(
                 {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        except Photo.MultipleObjectsReturned:
-            # Multiple photos with same hash - get the one owned by user
-            photo = Photo.objects.filter(
-                image_hash=image_hash,
-                owner=request.user,
-            ).first()
-            if not photo:
-                return Response(
-                    {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
-                )
 
-        # Find the requested file variant
         file_variant = photo.files.filter(hash=file_hash).first()
         if not file_variant:
             return Response(
                 {"error": "File variant not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Check file exists
         if not os.path.exists(file_variant.path):
             return Response(
                 {"error": "File not found on disk"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Serve the file
         try:
             response = FileResponse(
                 open(file_variant.path, "rb"),
                 as_attachment=True,
                 filename=os.path.basename(file_variant.path),
             )
-
-            # Set content type
-            try:
-                mime = magic.Magic(mime=True)
-                response["Content-Type"] = mime.from_file(file_variant.path)
-            except Exception:
-                response["Content-Type"] = "application/octet-stream"
-
-            return response
-
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Error serving file {file_variant.path}: {e}")
             return Response(
                 {"error": "Could not read file"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+        response["Content-Type"] = _detect_content_type(file_variant.path)
+        return response
 
 
 class SetMainFileView(APIView):
@@ -1075,6 +1069,15 @@ class SetMainFileView(APIView):
     Useful when a photo has multiple variants (RAW, JPEG, etc.).
     """
 
+    @staticmethod
+    def _get_owned_photo(image_hash, user):
+        try:
+            return Photo.objects.get(image_hash=image_hash, owner=user)
+        except Photo.DoesNotExist:
+            return None
+        except Photo.MultipleObjectsReturned:
+            return Photo.objects.filter(image_hash=image_hash, owner=user).first()
+
     def post(self, request, image_hash):
         """Set the main file for a photo."""
         file_hash = request.data.get("file_hash")
@@ -1084,25 +1087,11 @@ class SetMainFileView(APIView):
                 {"error": "file_hash is required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Find the photo
-        try:
-            photo = Photo.objects.get(
-                image_hash=image_hash,
-                owner=request.user,
-            )
-        except Photo.DoesNotExist:
+        photo = self._get_owned_photo(image_hash, request.user)
+        if not photo:
             return Response(
                 {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        except Photo.MultipleObjectsReturned:
-            photo = Photo.objects.filter(
-                image_hash=image_hash,
-                owner=request.user,
-            ).first()
-            if not photo:
-                return Response(
-                    {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
-                )
 
         # Find the requested file variant
         file_variant = photo.files.filter(hash=file_hash).first()
@@ -1164,6 +1153,38 @@ class SaveMetadataView(APIView):
         return Response({"status": True, "written": written, "errors": errors})
 
 
+def _rotation_error(message, status_code=status.HTTP_400_BAD_REQUEST):
+    return Response({"status": False, "message": message}, status=status_code)
+
+
+def _parse_rotation_angle(raw_angle):
+    """Return ``(angle, error_message)`` for a requested rotation angle."""
+    try:
+        angle = int(raw_angle)
+    except (TypeError, ValueError):
+        return None, "angle must be an integer"
+
+    if angle % 90 != 0:
+        return None, "angle must be a multiple of 90 degrees"
+
+    return angle, None
+
+
+def _get_rotatable_photo(image_hash, user):
+    """Return ``(photo, error_response)`` for a photo that may be rotated."""
+    try:
+        photo = Photo.objects.select_related("thumbnail", "main_file", "owner").get(
+            image_hash=image_hash, owner=user
+        )
+    except Photo.DoesNotExist:
+        return None, _rotation_error("photo not found", status.HTTP_404_NOT_FOUND)
+
+    if photo.video:
+        return None, _rotation_error("rotation is not supported for videos")
+
+    return photo, None
+
+
 class RotatePhotoView(APIView):
     """Non-destructive photo rotation.
 
@@ -1195,52 +1216,25 @@ class RotatePhotoView(APIView):
 
     def post(self, request, format=None):
         image_hash = request.data.get("image_hash")
-        angle = request.data.get("angle", 0)
         flip_horizontal = bool(request.data.get("flip_horizontal", False))
 
         if not image_hash:
-            return Response(
-                {"status": False, "message": "image_hash is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return _rotation_error("image_hash is required")
 
-        try:
-            angle = int(angle)
-        except (TypeError, ValueError):
-            return Response(
-                {"status": False, "message": "angle must be an integer"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        angle, angle_error = _parse_rotation_angle(request.data.get("angle", 0))
+        if angle_error:
+            return _rotation_error(angle_error)
 
-        if angle % 90 != 0:
-            return Response(
-                {"status": False, "message": "angle must be a multiple of 90 degrees"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            photo = Photo.objects.select_related("thumbnail", "main_file", "owner").get(
-                image_hash=image_hash, owner=request.user
-            )
-        except Photo.DoesNotExist:
-            return Response(
-                {"status": False, "message": "photo not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if photo.video:
-            return Response(
-                {"status": False, "message": "rotation is not supported for videos"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        photo, photo_error = _get_rotatable_photo(image_hash, request.user)
+        if photo_error:
+            return photo_error
 
         try:
             photo.rotate(angle=angle, flip_horizontal=flip_horizontal)
         except Exception:
             logger.exception(f"Failed to rotate photo {image_hash}")
-            return Response(
-                {"status": False, "message": "failed to rotate photo"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return _rotation_error(
+                "failed to rotate photo", status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         # Refresh from DB to get updated last_modified

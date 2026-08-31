@@ -113,6 +113,61 @@ class Places365:
     def remove_nonspace_separators(self, text):
         return " ".join(" ".join(" ".join(text.split("_")).split("/")).split("-"))
 
+    def clamp_softmax_weights(self):
+        # kept for parity: the clamped weights share memory with the model
+        params = list(self.model.parameters())
+        weight_softmax = params[-2].data.numpy()
+        weight_softmax[weight_softmax < 0] = 0
+
+    def predict_scene(self, img_path):
+        # load the test image
+        # img_url = 'http://places2.csail.mit.edu/imgs/3.jpg'
+        # os.system('wget %s -q -O test.jpg' % img_url)
+        tf = self.returnTF()  # image transformer
+        img = Image.open(img_path)
+        # Normalize the image for processing
+        input_img = V(tf(img).unsqueeze(0))
+
+        logit = self.model.forward(input_img)
+        h_x = F.softmax(logit, 1).data.squeeze()
+        probs, idx = h_x.sort(0, True)
+        return probs.numpy(), idx.numpy()
+
+    def predict_environment(self, idx):
+        # labels_IO[idx[:10]] returns a list of 0's and 1's: 0 -> inside, 1 -> outside
+        # Determine the mean to reach a consensus
+        io_image = np.mean(self.labels_IO[idx[:10]])
+        return "indoor" if io_image < 0.5 else "outdoor"
+
+    def predict_categories(self, probs, idx, confidence):
+        # idx[i] returns a index number for which class it corresponds to
+        # classes[idx[i]], thus returns the class name
+        # idx is sorted together with probs, with highest probabilities first
+        categories = []
+        for i in range(0, 5):
+            # Deliberately `not (prob > confidence)` rather than `prob <= confidence`:
+            # both comparisons are False for NaN, so only this form keeps a NaN
+            # probability breaking the loop, as the original code did.
+            if not probs[i] > confidence:
+                break
+            categories.append(self.remove_nonspace_separators(self.classes[idx[i]]))
+        return categories
+
+    def predict_attributes(self):
+        # TODO Should be replaced with more meaningful tags in the future
+        # This is something I don't quiet grasp yet
+        # Probs is not usable here anymore, we're not processing our input_image
+        # Take the dot product of out W_attribute model and the feature blobs
+        # And sort it along the -1 axis
+        # This results in idx_a, with the last elements the index numbers of attributes, we have the most confidence in
+        # Can't seem to get any confidence values, also all the attributes it detect are not really meaningful i.m.o.
+        responses_attribute = self.W_attribute.dot(self.features_blobs[1])
+        idx_a = np.argsort(responses_attribute)
+        return [
+            self.remove_nonspace_separators(self.labels_attribute[idx_a[i]])
+            for i in range(-1, -10, -1)
+        ]
+
     def inference_places365(self, img_path, confidence):
         """@param img_path: path to the image to generate labels from
         @param confidence: minimum confidence before an category is selected
@@ -122,71 +177,15 @@ class Places365:
             if not self.labels_and_model_are_load:
                 self.load()
 
-            # load the model
             self.features_blobs = []
+            self.clamp_softmax_weights()
+            probs, idx = self.predict_scene(img_path)
 
-            # load the transformer
-            tf = self.returnTF()  # image transformer
-
-            # get the softmax weight
-            params = list(self.model.parameters())
-            weight_softmax = params[-2].data.numpy()
-            weight_softmax[weight_softmax < 0] = 0
-
-            # load the test image
-            # img_url = 'http://places2.csail.mit.edu/imgs/3.jpg'
-            # os.system('wget %s -q -O test.jpg' % img_url)
-            img = Image.open(img_path)
-            # Normalize the image for processing
-            input_img = V(tf(img).unsqueeze(0))
-
-            # forward pass
-            logit = self.model.forward(input_img)
-            h_x = F.softmax(logit, 1).data.squeeze()
-            probs, idx = h_x.sort(0, True)
-            probs = probs.numpy()
-            idx = idx.numpy()
-
-            res = {}
-
-            # output the IO prediction
-            # labels_IO[idx[:10]] returns a list of 0's and 1's: 0 -> inside, 1 -> outside
-            # Determine the mean to reach a consensus
-            io_image = np.mean(self.labels_IO[idx[:10]])
-            if io_image < 0.5:
-                res["environment"] = "indoor"
-            else:
-                res["environment"] = "outdoor"
-
-            # output the prediction of scene category
-            # idx[i] returns a index number for which class it corresponds to
-            # classes[idx[i]], thus returns the class name
-            # idx is sorted together with probs, with highest probabilities first
-            res["categories"] = []
-            for i in range(0, 5):
-                if probs[i] > confidence:
-                    res["categories"].append(
-                        self.remove_nonspace_separators(self.classes[idx[i]])
-                    )
-                else:
-                    break
-            # TODO Should be replaced with more meaningful tags in the future
-            # output the scene attributes
-            # This is something I don't quiet grasp yet
-            # Probs is not usable here anymore, we're not processing our input_image
-            # Take the dot product of out W_attribute model and the feature blobs
-            # And sort it along the -1 axis
-            # This results in idx_a, with the last elements the index numbers of attributes, we have the most confidence in
-            # Can't seem to get any confidence values, also all the attributes it detect are not really meaningful i.m.o.
-            responses_attribute = self.W_attribute.dot(self.features_blobs[1])
-            idx_a = np.argsort(responses_attribute)
-            res["attributes"] = []
-            for i in range(-1, -10, -1):
-                res["attributes"].append(
-                    self.remove_nonspace_separators(self.labels_attribute[idx_a[i]])
-                )
-
-            return res
+            return {
+                "environment": self.predict_environment(idx),
+                "categories": self.predict_categories(probs, idx, confidence),
+                "attributes": self.predict_attributes(),
+            }
         except Exception as e:
             print("tags: {}".format("Error in Places365 inference"))
             raise e

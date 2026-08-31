@@ -15,16 +15,20 @@ from api.serializers.album_user import (
 from api.serializers.photos import PublicPhotoDetailSerializer
 
 
+SHARING_OPTION_FIELDS = (
+    "share_location",
+    "share_camera_info",
+    "share_timestamps",
+    "share_captions",
+    "share_faces",
+)
+
+
 class SetUserAlbumPublic(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        val_public = data.get("val_public")
         album_id = data.get("album_id")
-        slug = data.get("slug")
-        expires_at = data.get("expires_at")  # ISO string or None
-
-        # Sharing options - None means use user default, True/False overrides
-        sharing_options = data.get("sharing_options", {})
+        val_public = data.get("val_public")
 
         if album_id is None or val_public is None:
             return Response(
@@ -44,32 +48,28 @@ class SetUserAlbumPublic(APIView):
 
         share, _ = AlbumUserShare.objects.get_or_create(album=album)
         share.enabled = bool(val_public)
-        if slug is not None:
-            share.slug = slug or None
-        if expires_at is not None:
-            try:
-                dt = parse_datetime(expires_at)
-                share.expires_at = dt
-            except Exception:
-                pass
-
-        # Update sharing options if provided
-        if sharing_options:
-            # Each option can be True, False, or None (use default)
-            if "share_location" in sharing_options:
-                share.share_location = sharing_options.get("share_location")
-            if "share_camera_info" in sharing_options:
-                share.share_camera_info = sharing_options.get("share_camera_info")
-            if "share_timestamps" in sharing_options:
-                share.share_timestamps = sharing_options.get("share_timestamps")
-            if "share_captions" in sharing_options:
-                share.share_captions = sharing_options.get("share_captions")
-            if "share_faces" in sharing_options:
-                share.share_faces = sharing_options.get("share_faces")
-
+        self._apply_share_settings(share, data)
         share.save()
 
         return Response({"status": True, "album": AlbumUserListSerializer(album).data})
+
+    def _apply_share_settings(self, share, data):
+        slug = data.get("slug")
+        if slug is not None:
+            share.slug = slug or None
+
+        expires_at = data.get("expires_at")  # ISO string or None
+        if expires_at is not None:
+            try:
+                share.expires_at = parse_datetime(expires_at)
+            except Exception:
+                pass
+
+        # Each option can be True, False, or None (use default)
+        sharing_options = data.get("sharing_options") or {}
+        for field in SHARING_OPTION_FIELDS:
+            if field in sharing_options:
+                setattr(share, field, sharing_options[field])
 
 
 class PublicAlbumBySlug(APIView):

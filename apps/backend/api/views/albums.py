@@ -442,84 +442,73 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     serializer_class = AlbumDateSerializer
     pagination_class = RegularResultsSetPagination
 
-    def get_queryset(self):
-        photo_filter = []
-        photo_filter.append(Q(thumbnail__aspect_ratio__isnull=False))
+    MEDIA_FLAG_FILTERS = (
+        ("video", Q(video=True)),
+        ("photo", Q(video=False)),
+        ("is_screenshot", Q(is_screenshot=True)),
+        ("is_document", Q(is_document=True)),
+    )
 
-        if not self.request.user.is_anonymous and not self.request.query_params.get(
-            "public"
-        ):
-            photo_filter.append(Q(owner=self.request.user))
-        if self.request.query_params.get("favorite"):
-            min_rating = self.request.user.favorite_min_rating
-            photo_filter.append(Q(rating__gte=min_rating))
+    def _ownership_filters(self):
+        params = self.request.query_params
+        user = self.request.user
 
-        if self.request.query_params.get("public"):
-            if self.request.query_params.get("username"):
-                username = self.request.query_params.get("username")
-                photo_filter.append(Q(owner__username=username))
-            photo_filter.append(Q(public=True))
+        filters = [Q(thumbnail__aspect_ratio__isnull=False)]
+        if not user.is_anonymous and not params.get("public"):
+            filters.append(Q(owner=user))
+        if params.get("favorite"):
+            filters.append(Q(rating__gte=user.favorite_min_rating))
+        if params.get("public"):
+            if params.get("username"):
+                filters.append(Q(owner__username=params.get("username")))
+            filters.append(Q(public=True))
+        return filters
 
-        # Filter by folder path if provided
-        if self.request.query_params.get("folder"):
-            folder_path = self.request.query_params.get("folder")
-            photo_filter.append(Q(files__path__startswith=folder_path))
+    def _media_flag_filters(self):
+        params = self.request.query_params
 
-        if self.request.query_params.get("hidden"):
-            photo_filter.append(Q(hidden=True))
+        filters = [Q(hidden=bool(params.get("hidden")))]
+        for param, condition in self.MEDIA_FLAG_FILTERS:
+            if params.get(param):
+                filters.append(condition)
+        if params.get("in_trashcan"):
+            filters.append(Q(in_trashcan=True) & Q(removed=False))
         else:
-            photo_filter.append(Q(hidden=False))
+            filters.append(Q(in_trashcan=False))
+        return filters
 
-        if self.request.query_params.get("video"):
-            photo_filter.append(Q(video=True))
+    def _grouping_filters(self):
+        params = self.request.query_params
 
-        if self.request.query_params.get("photo"):
-            photo_filter.append(Q(video=False))
+        filters = []
+        if params.get("folder"):
+            filters.append(Q(files__path__startswith=params.get("folder")))
+        # Photos that are not stacked, or that are the primary photo of their stack.
+        # Non-primary photos stay out of the timeline but remain reachable by
+        # expanding the stack. Duplicates are handled via the Duplicate model.
+        if not params.get("show_all_stack_photos"):
+            filters.append(Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False))
+        if params.get("person"):
+            filters.append(Q(faces__person__id=params.get("person")))
+        return filters
 
-        if self.request.query_params.get("is_screenshot"):
-            photo_filter.append(Q(is_screenshot=True))
+    def _photo_filters(self):
+        params = self.request.query_params
 
-        if self.request.query_params.get("is_document"):
-            photo_filter.append(Q(is_document=True))
-
-        if self.request.query_params.get("in_trashcan"):
-            photo_filter.append(Q(in_trashcan=True) & Q(removed=False))
-        else:
-            photo_filter.append(Q(in_trashcan=False))
-
-        # Stack filtering: Show photos that are either:
-        # 1. Not in any stack, OR
-        # 2. The primary photo of their stack
-        # Stacks are for organizational purposes (RAW+JPEG pairs, bursts, brackets, live photos, manual)
-        # Non-primary photos are hidden in the timeline but accessible via stack expansion
-        # NOTE: Duplicates are handled separately via the Duplicate model and are not filtered here
-        if not self.request.query_params.get("show_all_stack_photos"):
-            photo_filter.append(
-                Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False)
-            )
-
-        if self.request.query_params.get("person"):
-            photo_filter.append(
-                Q(faces__person__id=self.request.query_params.get("person"))
-            )
-        if self.request.query_params.get("last_modified"):
-            photo_filter = []
-            photo_filter.append(Q(owner=self.request.user))
-            photo_filter.append(
-                Q(exif_timestamp__gte=self.request.query_params.get("last_modified"))
-            )
-
-        album_date = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
-
-        photo_qs = _with_photo_summary_relations(
-            album_date.photos.filter(*photo_filter)
-            .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
-            .order_by("-exif_timestamp", "main_file__path")
+        # last_modified deliberately replaces every other filter
+        if params.get("last_modified"):
+            return [
+                Q(owner=self.request.user),
+                Q(exif_timestamp__gte=params.get("last_modified")),
+            ]
+        return (
+            self._ownership_filters()
+            + self._media_flag_filters()
+            + self._grouping_filters()
         )
 
-        # Paginate photo queryset
-        page_size = self.request.query_params.get("size") or 100
-        paginator = Paginator(photo_qs, page_size)
+    def _paginate_photos(self, photo_qs):
+        paginator = Paginator(photo_qs, self.request.query_params.get("size") or 100)
         page = self.request.query_params.get("page")
 
         try:
@@ -528,8 +517,19 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             photos = paginator.page(1)
         except EmptyPage:
             photos = paginator.page(paginator.num_pages)
+        return photos, paginator.count
 
-        return album_date, photos, paginator.count
+    def get_queryset(self):
+        album_date = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
+
+        photo_qs = _with_photo_summary_relations(
+            album_date.photos.filter(*self._photo_filters())
+            .distinct()  # Remove duplicates that can occur when filtering through reverse ForeignKey relationships (e.g., faces__person__id)
+            .order_by("-exif_timestamp", "main_file__path")
+        )
+
+        photos, count = self._paginate_photos(photo_qs)
+        return album_date, photos, count
 
     def get_permissions(self):
         if self.request.query_params.get("public"):

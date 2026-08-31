@@ -213,6 +213,16 @@ class PhotoEditSerializer(serializers.ModelSerializer):
         read_only_fields = ("category_source",)
 
     def update(self, instance, validated_data):
+        self._apply_category_override(instance, validated_data)
+        self._apply_exif_timestamp(instance, validated_data)
+
+        lat = validated_data.pop("exif_gps_lat", None)
+        lon = validated_data.pop("exif_gps_lon", None)
+        if lat is not None and lon is not None:
+            self._apply_gps_location(instance, lat, lon)
+        return instance
+
+    def _apply_category_override(self, instance, validated_data):
         # Media-category manual override. Any explicit write to a category flag
         # marks the photo as user-corrected so rescans and the classify_media
         # backfill (which skip category_source == "user") never clobber it.
@@ -221,87 +231,73 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             for field in ("is_screenshot", "is_document")
             if field in validated_data
         ]
-        if category_fields:
-            for field in category_fields:
-                setattr(instance, field, validated_data.pop(field))
-            instance.category_source = "user"
-            instance.save(update_fields=[*category_fields, "category_source"])
+        if not category_fields:
+            return
+        for field in category_fields:
+            setattr(instance, field, validated_data.pop(field))
+        instance.category_source = "user"
+        instance.save(update_fields=[*category_fields, "category_source"])
 
-        # photo can only update the following
-        if "exif_timestamp" in validated_data:
-            instance.timestamp = validated_data.pop("exif_timestamp")
+    def _apply_exif_timestamp(self, instance, validated_data):
+        if "exif_timestamp" not in validated_data:
+            return
+        instance.timestamp = validated_data.pop("exif_timestamp")
+        instance.save()
+        instance._extract_date_time_from_exif()
+
+    def _apply_gps_location(self, instance, lat, lon):
+        try:
+            # Track old places to update album place relations
+            old_album_places = instance._find_album_place()
+
+            instance.exif_gps_lat = float(lat)
+            instance.exif_gps_lon = float(lon)
             instance.save()
-            instance._extract_date_time_from_exif()
 
-        # Update GPS location if provided
-        lat = validated_data.pop("exif_gps_lat", None)
-        lon = validated_data.pop("exif_gps_lon", None)
-
-        if lat is not None and lon is not None:
-            try:
-                # Track old places to update album place relations
-                old_album_places = instance._find_album_place()
-
-                instance.exif_gps_lat = float(lat)
-                instance.exif_gps_lon = float(lon)
-                instance.save()
-
-                # Reverse geocode and update geolocation/search location
-                geocode_result = reverse_geocode(
-                    instance.exif_gps_lat, instance.exif_gps_lon
+            geocode_result = reverse_geocode(
+                instance.exif_gps_lat, instance.exif_gps_lon
+            )
+            if not geocode_result:
+                util.logger.warning(
+                    "Reverse geocoding returned no result for provided coordinates"
                 )
-                if geocode_result:
-                    geocode_result["_v"] = GEOCODE_VERSION
-                    instance.geolocation_json = geocode_result
+                return
 
-                    # Update search location through PhotoSearch model
-                    from api.models.photo_search import PhotoSearch
+            geocode_result["_v"] = GEOCODE_VERSION
+            instance.geolocation_json = geocode_result
+            self._update_search_location(instance, geocode_result)
+            self._rebuild_album_places(instance, geocode_result, old_album_places)
+            instance.save()
+        except Exception as e:
+            util.logger.warning(e)
+            util.logger.warning("Failed to update GPS location for photo")
 
-                    search_instance, _created = PhotoSearch.objects.get_or_create(
-                        photo=instance
-                    )
-                    search_instance.update_search_location(geocode_result)
-                    search_instance.save()
+    def _update_search_location(self, instance, geocode_result):
+        from api.models.photo_search import PhotoSearch
 
-                    # Update album place relations
-                    if old_album_places is not None:
-                        for old_album_place in old_album_places:
-                            old_album_place.photos.remove(instance)
-                            old_album_place.save()
+        search_instance, _created = PhotoSearch.objects.get_or_create(photo=instance)
+        search_instance.update_search_location(geocode_result)
+        search_instance.save()
 
-                    if "features" in geocode_result:
-                        for geolocation_level, feature in enumerate(
-                            geocode_result["features"]
-                        ):
-                            if (
-                                "text" not in feature.keys()
-                                or str(feature["text"]).isnumeric()
-                            ):
-                                continue
-                            album_place = get_album_place(
-                                feature["text"], owner=instance.owner
-                            )
-                            if (
-                                album_place.photos.filter(
-                                    image_hash=instance.image_hash
-                                ).count()
-                                == 0
-                            ):
-                                album_place.geolocation_level = (
-                                    len(geocode_result["features"]) - geolocation_level
-                                )
-                            album_place.photos.add(instance)
-                            album_place.save()
+    def _rebuild_album_places(self, instance, geocode_result, old_album_places):
+        if old_album_places is not None:
+            for old_album_place in old_album_places:
+                old_album_place.photos.remove(instance)
+                old_album_place.save()
 
-                    instance.save()
-                else:
-                    util.logger.warning(
-                        "Reverse geocoding returned no result for provided coordinates"
-                    )
-            except Exception as e:
-                util.logger.warning(e)
-                util.logger.warning("Failed to update GPS location for photo")
-        return instance
+        if "features" not in geocode_result:
+            return
+
+        features = geocode_result["features"]
+
+        for geolocation_level, feature in enumerate(features):
+            if "text" not in feature.keys() or str(feature["text"]).isnumeric():
+                continue
+            album_place = get_album_place(feature["text"], owner=instance.owner)
+            if album_place.photos.filter(image_hash=instance.image_hash).count() == 0:
+                album_place.geolocation_level = len(features) - geolocation_level
+            album_place.photos.add(instance)
+            album_place.save()
 
 
 class PhotoHashListSerializer(serializers.ModelSerializer):
@@ -732,52 +728,54 @@ class PhotoSerializer(serializers.ModelSerializer):
 
         result = []
         for stack in stacks:
-            is_primary = (
-                stack.primary_photo_id == obj.pk if stack.primary_photo_id else False
-            )
-
-            # Get all photos in the stack for the detail view
-            stack_photos = []
-            for photo in stack.photos.select_related("thumbnail").all():
-                # Get width/height from PhotoMetadata
-                try:
-                    photo_metadata = photo.metadata
-                    photo_width = photo_metadata.width or 0
-                    photo_height = photo_metadata.height or 0
-                except PhotoMetadata.DoesNotExist:
-                    photo_width = 0
-                    photo_height = 0
-
-                stack_photos.append(
-                    {
-                        "id": str(photo.id),
-                        "image_hash": photo.image_hash,
-                        "is_primary": photo.pk == stack.primary_photo_id,
-                        "thumbnail_url": (
-                            f"/media/square_thumbnails_small/{photo.image_hash}"
-                            if hasattr(photo, "thumbnail")
-                            and photo.thumbnail
-                            and photo.thumbnail.square_thumbnail_small
-                            else None
-                        ),
-                        "size": photo.size,
-                        "width": photo_width,
-                        "height": photo_height,
-                    }
-                )
-
+            stack_photos = [
+                self._serialize_stack_photo(photo, stack)
+                for photo in stack.photos.select_related("thumbnail").all()
+            ]
             result.append(
                 {
                     "id": str(stack.id),
                     "type": stack.stack_type,
                     "type_display": stack.get_stack_type_display(),
                     "photo_count": len(stack_photos),
-                    "is_primary": is_primary,
+                    "is_primary": (
+                        stack.primary_photo_id == obj.pk
+                        if stack.primary_photo_id
+                        else False
+                    ),
                     "photos": stack_photos,
                 }
             )
 
         return result
+
+    def _serialize_stack_photo(self, photo: Photo, stack) -> dict:
+        width, height = self._stack_photo_dimensions(photo)
+        has_thumbnail = (
+            hasattr(photo, "thumbnail")
+            and photo.thumbnail
+            and photo.thumbnail.square_thumbnail_small
+        )
+        return {
+            "id": str(photo.id),
+            "image_hash": photo.image_hash,
+            "is_primary": photo.pk == stack.primary_photo_id,
+            "thumbnail_url": (
+                f"/media/square_thumbnails_small/{photo.image_hash}"
+                if has_thumbnail
+                else None
+            ),
+            "size": photo.size,
+            "width": width,
+            "height": height,
+        }
+
+    def _stack_photo_dimensions(self, photo: Photo) -> tuple:
+        try:
+            metadata = photo.metadata
+            return metadata.width or 0, metadata.height or 0
+        except PhotoMetadata.DoesNotExist:
+            return 0, 0
 
 
 class SharedFromMePhotoThroughSerializer(serializers.ModelSerializer):
@@ -984,14 +982,10 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
 
         return [
             {
-                "name": (
-                    f.person.name
-                    if f.person
-                    else (f.cluster_person.name if f.cluster_person else "Unknown")
-                ),
-                "face_url": f.image.url if f.image else None,
-                "face_id": f.id,
+                "name": person.name,
+                "face_url": face.image.url if face.image else None,
+                "face_id": face.id,
             }
-            for f in obj.faces.all()
-            if f.person or f.cluster_person
+            for face in obj.faces.all()
+            if (person := face.person or face.cluster_person)
         ]

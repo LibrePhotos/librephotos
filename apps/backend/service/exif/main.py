@@ -13,33 +13,47 @@ def log(message):
     print(f"exif: {message}")
 
 
-@app.route("/get-tags", methods=["POST"])
-def get_tags():
+def parse_get_tags_request():
     try:
         data = request.get_json()
-        files_by_reverse_priority = data["files_by_reverse_priority"]
-        tags = data["tags"]
-        struct = data["struct"]
+        return (
+            data["files_by_reverse_priority"],
+            data["tags"],
+            data["struct"],
+        )
     except Exception:
-        return "", 400
+        return None
 
-    et = None
-    if struct:
-        et = static_struct_et
-    else:
-        et = static_et
+
+def running_exiftool(struct):
+    et = static_struct_et if struct else static_et
     if not et.running:
         et.start()
+    return et
+
+
+def highest_priority_value(et, tag, files_by_reverse_priority):
+    value = None
+    for file in files_by_reverse_priority:
+        retrieved_value = et.get_tag(tag, file)
+        if retrieved_value is not None:
+            value = retrieved_value
+    return value
+
+
+@app.route("/get-tags", methods=["POST"])
+def get_tags():
+    payload = parse_get_tags_request()
+    if payload is None:
+        return "", 400
+    files_by_reverse_priority, tags, struct = payload
+
+    et = running_exiftool(struct)
 
     values = []
     try:
         for tag in tags:
-            value = None
-            for file in files_by_reverse_priority:
-                retrieved_value = et.get_tag(tag, file)
-                if retrieved_value is not None:
-                    value = retrieved_value
-            values.append(value)
+            values.append(highest_priority_value(et, tag, files_by_reverse_priority))
     except Exception:
         log("An error occurred")
 

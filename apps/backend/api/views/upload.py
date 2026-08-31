@@ -30,6 +30,45 @@ def generate_captions_wrapper(photo, commit=True):
     caption_instance.generate_tag_captions(commit=commit)
 
 
+def _forbidden(detail):
+    return ChunkedUploadError(
+        status=http_status.HTTP_403_FORBIDDEN,
+        detail=detail,
+    )
+
+
+def _bad_request(detail):
+    return ChunkedUploadError(
+        status=http_status.HTTP_400_BAD_REQUEST,
+        detail=detail,
+    )
+
+
+def authenticate_upload_request(request):
+    jwt = request.COOKIES.get("jwt")
+    if jwt is None:
+        raise _forbidden("Authentication credentials were not provided")
+    try:
+        token = AccessToken(jwt)
+    except TokenError:
+        raise _forbidden("Authentication credentials were invalid")
+    user = User.objects.filter(id=token["user_id"]).first()
+    if not user:
+        raise _forbidden("Authentication credentials were not provided")
+    return user
+
+
+def validate_scan_directory(user):
+    if not user.scan_directory or user.scan_directory.strip() == "":
+        raise _bad_request(
+            "Upload failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account."
+        )
+    if not os.path.exists(user.scan_directory):
+        raise _bad_request(
+            f"Upload failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator."
+        )
+
+
 class UploadPhotoExists(viewsets.ViewSet):
     def retrieve(self, request, pk):
         try:
@@ -48,31 +87,9 @@ class UploadPhotosChunked(ChunkedUploadView):
 
     def check_permissions(self, request):
         if not site_config.ALLOW_UPLOAD:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Uploading is not allowed",
-            )
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                raise ChunkedUploadError(
-                    status=http_status.HTTP_403_FORBIDDEN,
-                    detail="Authentication credentials were invalid",
-                )
-        else:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
+            raise _forbidden("Uploading is not allowed")
         # To-Do: Check if file is allowed type
-        user = User.objects.filter(id=token["user_id"]).first()
-        if not user or not user.is_authenticated:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
+        authenticate_upload_request(request)
 
     def create_chunked_upload(self, save=False, **attrs):
         """Creates new chunked upload instance. Called if no 'upload_id' is
@@ -90,77 +107,53 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
 
     def check_permissions(self, request):
         if not site_config.ALLOW_UPLOAD:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Uploading is not allowed",
-            )
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                raise ChunkedUploadError(
-                    status=http_status.HTTP_403_FORBIDDEN,
-                    detail="Authentication credentials were invalid",
-                )
-        else:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
-        user = User.objects.filter(id=token["user_id"]).first()
-        if not user or not user.is_authenticated:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
+            raise _forbidden("Uploading is not allowed")
+        authenticate_upload_request(request)
+
+    def delete_chunked_upload(self, request):
+        chunked_upload = get_object_or_404(
+            ChunkedUpload, upload_id=request.POST.get("upload_id")
+        )
+        chunked_upload.delete(delete_file=True)
+
+    def target_path(self, user, device, filename, image_hash):
+        """Destination for the upload, or "" when it is a known duplicate."""
+        if Photo.objects.filter(image_hash=image_hash).exists():
+            util.logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+            return ""
+
+        upload_dir = os.path.join(user.scan_directory, "uploads", device)
+        photo_path = os.path.join(upload_dir, filename)
+        if not os.path.exists(photo_path):
+            return photo_path
+
+        if calculate_hash(user, photo_path) == image_hash:
+            # File already exist, do not copy it in the upload folder
+            util.logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+            return ""
+
+        file_name, file_name_extension = os.path.splitext(os.path.basename(filename))
+        return os.path.join(
+            upload_dir, file_name + "_" + image_hash + file_name_extension
+        )
+
+    def import_photo(self, user, photo_path, image_hash):
+        chain = Chain()
+        photo = create_new_image(user, photo_path)
+        chain.append(handle_new_image, user, photo_path, image_hash, photo)
+        chain.append(generate_captions_wrapper, photo, True)
+        chain.append(photo._geolocate)
+        chain.append(photo._add_location_to_album_dates)
+        chain.append(photo._extract_faces)
+        chain.run()
 
     def on_completion(self, uploaded_file, request):
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                raise ChunkedUploadError(
-                    status=http_status.HTTP_403_FORBIDDEN,
-                    detail="Authentication credentials were invalid",
-                )
-        else:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
-
-        user = User.objects.filter(id=token["user_id"]).first()
-        if not user or not user.is_authenticated:
-            raise ChunkedUploadError(
-                status=http_status.HTTP_403_FORBIDDEN,
-                detail="Authentication credentials were not provided",
-            )
-
-        # Validate that user has a configured scan directory
-        if not user.scan_directory or user.scan_directory.strip() == "":
-            raise ChunkedUploadError(
-                status=http_status.HTTP_400_BAD_REQUEST,
-                detail="Upload failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
-            )
-
-        # Validate that the scan directory exists
-        if not os.path.exists(user.scan_directory):
-            raise ChunkedUploadError(
-                status=http_status.HTTP_400_BAD_REQUEST,
-                detail=f"Upload failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator.",
-            )
+        user = authenticate_upload_request(request)
+        validate_scan_directory(user)
 
         if not is_valid_media(uploaded_file.file.path, user):
-            chunked_upload = get_object_or_404(
-                ChunkedUpload, upload_id=request.POST.get("upload_id")
-            )
-            chunked_upload.delete(delete_file=True)
-            raise ChunkedUploadError(
-                status=http_status.HTTP_400_BAD_REQUEST,
-                detail="File type not allowed",
-            )
+            self.delete_chunked_upload(request)
+            raise _bad_request("File type not allowed")
 
         # Sanitize file name
         filename = get_valid_filename(request.POST.get("filename"))
@@ -172,50 +165,17 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             os.mkdir(os.path.join(user.scan_directory, "uploads"))
         if not os.path.exists(os.path.join(user.scan_directory, "uploads", device)):
             os.mkdir(os.path.join(user.scan_directory, "uploads", device))
+
         photo = uploaded_file
         image_hash = calculate_hash_b64(user, io.BytesIO(photo.read()))
-        photo_path = ""
-
-        if not Photo.objects.filter(image_hash=image_hash).exists():
-            if not os.path.exists(
-                os.path.join(user.scan_directory, "uploads", device, filename)
-            ):
-                photo_path = os.path.join(
-                    user.scan_directory, "uploads", device, filename
-                )
-            else:
-                existing_photo_hash = calculate_hash(
-                    user, os.path.join(user.scan_directory, "uploads", device, filename)
-                )
-
-                file_name = os.path.splitext(os.path.basename(filename))[0]
-                file_name_extension = os.path.splitext(os.path.basename(filename))[1]
-
-                if existing_photo_hash == image_hash:
-                    # File already exist, do not copy it in the upload folder
-                    util.logger.info(
-                        f"Photo {filename} duplicated with hash {image_hash} "
-                    )
-                else:
-                    photo_path = os.path.join(
-                        user.scan_directory,
-                        "uploads",
-                        device,
-                        file_name + "_" + image_hash + file_name_extension,
-                    )
-
-        else:
-            util.logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+        photo_path = self.target_path(user, device, filename, image_hash)
 
         if photo_path:
             with open(photo_path, "wb") as f:
                 photo.seek(0)
                 f.write(photo.read())
 
-        chunked_upload = get_object_or_404(
-            ChunkedUpload, upload_id=request.POST.get("upload_id")
-        )
-        chunked_upload.delete(delete_file=True)
+        self.delete_chunked_upload(request)
 
         if not photo_path:
             return Response(
@@ -223,11 +183,4 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
                 status=http_status.HTTP_200_OK,
             )
 
-        chain = Chain()
-        photo = create_new_image(user, photo_path)
-        chain.append(handle_new_image, user, photo_path, image_hash, photo)
-        chain.append(generate_captions_wrapper, photo, True)
-        chain.append(photo._geolocate)
-        chain.append(photo._add_location_to_album_dates)
-        chain.append(photo._extract_faces)
-        chain.run()
+        self.import_photo(user, photo_path, image_hash)

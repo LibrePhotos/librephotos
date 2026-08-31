@@ -313,16 +313,74 @@ def download_model(model):
             # left behind is never useful and would only be re-read next run.
             Path(target_path).unlink(missing_ok=True)
 
-    if model.get("additional_files"):
-        for additional_file in model["additional_files"]:
-            additional_target = model_folder / additional_file["target"]
-            if not additional_target.exists():
-                _download_file(
-                    additional_file["url"],
-                    additional_target,
-                    f"{model['name']} ({additional_file['target']})",
-                    additional_file.get("sha256"),
-                )
+    _download_missing_additional_files(model_folder, model)
+
+
+def _download_missing_additional_files(model_folder, model):
+    for additional_file in model.get("additional_files") or []:
+        additional_target = model_folder / additional_file["target"]
+        if additional_target.exists():
+            continue
+        _download_file(
+            additional_file["url"],
+            additional_target,
+            f"{model['name']} ({additional_file['target']})",
+            additional_file.get("sha256"),
+        )
+
+
+def _log_download_progress(
+    model_name, current_progress, total_size, previous_percentage
+):
+    if total_size <= 0:
+        return previous_percentage
+    percentage = math.floor((current_progress / total_size) * 100)
+    if percentage != previous_percentage:
+        util.logger.info(
+            f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
+        )
+    return percentage
+
+
+def _stream_to_partial(response, partial_path, model_name, hasher):
+    total_size = int(response.headers.get("content-length", 0))
+    block_size = 1024
+    current_progress = 0
+    previous_percentage = -1
+
+    with open(partial_path, "wb") as target_file:
+        for chunk in response.iter_content(chunk_size=block_size):
+            if not chunk:
+                continue
+            target_file.write(chunk)
+            if hasher is not None:
+                hasher.update(chunk)
+            current_progress += len(chunk)
+            previous_percentage = _log_download_progress(
+                model_name, current_progress, total_size, previous_percentage
+            )
+
+    return current_progress, total_size
+
+
+def _verify_checksum(hasher, expected_sha256, model_name, url):
+    if hasher is None:
+        util.logger.debug(f"No sha256 pin for {model_name}; skipping verification")
+        return
+
+    actual_sha256 = hasher.hexdigest()
+    expected = expected_sha256.lower()
+    if actual_sha256 == expected:
+        return
+
+    # Named file plus both digests so the operator can tell a corrupted
+    # download from a stale pin at a glance.
+    message = (
+        f"Checksum mismatch for {model_name} from {url}: "
+        f"expected sha256 {expected}, got {actual_sha256}"
+    )
+    util.logger.error(message)
+    raise ModelChecksumError(message)
 
 
 def _download_file(url, target_path, model_name, expected_sha256=None):
@@ -354,29 +412,9 @@ def _download_file(url, target_path, model_name, expected_sha256=None):
             # not found" page gets written out as if it were the model.
             response.raise_for_status()
 
-            total_size = int(response.headers.get("content-length", 0))
-            block_size = 1024
-            current_progress = 0
-            previous_percentage = -1
-
-            with open(partial_path, "wb") as target_file:
-                for chunk in response.iter_content(chunk_size=block_size):
-                    if chunk:
-                        target_file.write(chunk)
-                        if hasher is not None:
-                            hasher.update(chunk)
-                        current_progress += len(chunk)
-
-                        if total_size > 0:
-                            percentage = math.floor(
-                                (current_progress / total_size) * 100
-                            )
-
-                            if percentage != previous_percentage:
-                                util.logger.info(
-                                    f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
-                                )
-                                previous_percentage = percentage
+            current_progress, total_size = _stream_to_partial(
+                response, partial_path, model_name, hasher
+            )
 
             # content-length describes the encoded body, so it only bounds the
             # bytes we wrote when requests did not decompress on the fly.
@@ -391,22 +429,7 @@ def _download_file(url, target_path, model_name, expected_sha256=None):
                 f"{total_size} bytes from {url}"
             )
 
-        if hasher is not None:
-            actual_sha256 = hasher.hexdigest()
-            expected = expected_sha256.lower()
-            if actual_sha256 != expected:
-                # Named file plus both digests so the operator can tell a
-                # corrupted download from a stale pin at a glance.
-                util.logger.error(
-                    f"Checksum mismatch for {model_name} from {url}: "
-                    f"expected sha256 {expected}, got {actual_sha256}"
-                )
-                raise ModelChecksumError(
-                    f"Checksum mismatch for {model_name} from {url}: "
-                    f"expected sha256 {expected}, got {actual_sha256}"
-                )
-        else:
-            util.logger.debug(f"No sha256 pin for {model_name}; skipping verification")
+        _verify_checksum(hasher, expected_sha256, model_name, url)
 
         if total_size == 0:
             util.logger.info(

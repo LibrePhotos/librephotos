@@ -125,17 +125,23 @@ class OCRConfig:
                 f"decoded character by one - refusing to start."
             )
 
+        self._note_space_class_mismatch(n_extra)
+
         decode = ["<blank>"] + list(self.charset)
         if n_extra == 2:
             decode.append(" ")
-
-        expected_extra = 2 if self.use_space_char else 1
-        if n_extra != expected_extra:
-            # The model geometry is authoritative; config.json's use_space_char
-            # flag is only advisory.  Log the discrepancy but trust the model.
-            print(
-                f"ocr: note: rec output width implies "
-                f"{'a space class' if n_extra == 2 else 'no space class'} but "
-                f"config use_space_char={self.use_space_char}; trusting the model."
-            )
         return decode
+
+    def _note_space_class_mismatch(self, n_extra):
+        """Report a use_space_char flag that disagrees with the model geometry.
+
+        The model geometry is authoritative; ``config.json``'s use_space_char
+        flag is only advisory.  Log the discrepancy but trust the model.
+        """
+        if n_extra == (2 if self.use_space_char else 1):
+            return
+        implied = "a space class" if n_extra == 2 else "no space class"
+        print(
+            f"ocr: note: rec output width implies {implied} but "
+            f"config use_space_char={self.use_space_char}; trusting the model."
+        )

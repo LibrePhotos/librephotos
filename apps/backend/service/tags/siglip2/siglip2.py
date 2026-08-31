@@ -46,11 +46,32 @@ def _pool_embeddings(raw_output, attention_mask=None):
     return pooled
 
 
+def _select_pooled_output(raw_outputs, expected_batch, attention_mask=None):
+    """Pick the first 2-D output matching the batch size, else pool the first one."""
+    for out in raw_outputs:
+        if out.ndim == 2 and out.shape[0] == expected_batch:
+            return out
+
+    return _pool_embeddings(raw_outputs[0], attention_mask)
+
+
 def _l2_normalize(embeddings):
     """L2-normalize along the last axis."""
     norms = np.linalg.norm(embeddings, axis=-1, keepdims=True)
     norms = np.maximum(norms, 1e-8)
     return embeddings / norms
+
+
+def _stale_cache_reason(embeddings, tag_count):
+    """Describe why cached embeddings are unusable, or None if they are fine."""
+    if embeddings.ndim != 2:
+        return f"cache has wrong shape {embeddings.shape}"
+    if embeddings.shape[0] != tag_count:
+        return f"cache has {embeddings.shape[0]} tags but tags.txt has {tag_count}"
+    if embeddings.shape[1] < 128:
+        return f"cache has dim={embeddings.shape[1]} (likely stale from a failed build)"
+
+    return None
 
 
 class SigLIP2:
@@ -71,40 +92,28 @@ class SigLIP2:
         with open(TAGS_FILE, "r") as f:
             self.tags = [line.strip() for line in f if line.strip()]
 
-        if os.path.exists(SIGLIP2_EMBEDDINGS_CACHE):
-            self.tag_embeddings = np.load(SIGLIP2_EMBEDDINGS_CACHE)
-            # Invalidate cache if tag count changed or embedding dimension is wrong
-            needs_rebuild = False
-            if self.tag_embeddings.ndim != 2:
-                print(
-                    f"siglip2: cache has wrong shape {self.tag_embeddings.shape}, rebuilding..."
-                )
-                needs_rebuild = True
-            elif self.tag_embeddings.shape[0] != len(self.tags):
-                print(
-                    f"siglip2: cache has {self.tag_embeddings.shape[0]} tags "
-                    f"but tags.txt has {len(self.tags)}, rebuilding..."
-                )
-                needs_rebuild = True
-            elif self.tag_embeddings.shape[1] < 128:
-                print(
-                    f"siglip2: cache has dim={self.tag_embeddings.shape[1]} "
-                    f"(likely stale from a failed build), rebuilding..."
-                )
-                needs_rebuild = True
-
-            if needs_rebuild:
-                os.remove(SIGLIP2_EMBEDDINGS_CACHE)
-                self._build_tag_embeddings()
-            else:
-                print(
-                    f"siglip2: loaded cached tag embeddings "
-                    f"({self.tag_embeddings.shape[0]} tags, dim={self.tag_embeddings.shape[1]})"
-                )
-        else:
-            self._build_tag_embeddings()
+        self._load_or_build_tag_embeddings()
 
         self.is_loaded = True
+
+    def _load_or_build_tag_embeddings(self):
+        """Use the cached tag embeddings, rebuilding them if the cache is unusable."""
+        if not os.path.exists(SIGLIP2_EMBEDDINGS_CACHE):
+            self._build_tag_embeddings()
+            return
+
+        self.tag_embeddings = np.load(SIGLIP2_EMBEDDINGS_CACHE)
+
+        reason = _stale_cache_reason(self.tag_embeddings, len(self.tags))
+        if reason is not None:
+            print(f"siglip2: {reason}, rebuilding...")
+            os.remove(SIGLIP2_EMBEDDINGS_CACHE)
+            self._build_tag_embeddings()
+        else:
+            print(
+                f"siglip2: loaded cached tag embeddings "
+                f"({self.tag_embeddings.shape[0]} tags, dim={self.tag_embeddings.shape[1]})"
+            )
 
     def unload(self):
         del self.vision_session
@@ -150,6 +159,18 @@ class SigLIP2:
             np.array(batch_attention_mask, dtype=np.int64),
         )
 
+    def _encode_text_batch(self, text_session, text_input_names, batch_texts):
+        """Run the text model over one batch and return pooled embeddings."""
+        input_ids, attention_mask = self._tokenize(batch_texts)
+
+        feed = {text_input_names[0]: input_ids}
+        if len(text_input_names) > 1:
+            feed[text_input_names[1]] = attention_mask
+
+        raw_outputs = text_session.run(None, feed)
+
+        return _select_pooled_output(raw_outputs, len(batch_texts), attention_mask)
+
     def _build_tag_embeddings(self):
         """Encode all tags with the text model and cache the embeddings."""
         print("siglip2: building tag embeddings (first run, this may take a minute)...")
@@ -173,26 +194,9 @@ class SigLIP2:
 
         for i in range(0, len(prompted_tags), batch_size):
             batch_texts = prompted_tags[i : i + batch_size]
-            input_ids, attention_mask = self._tokenize(batch_texts)
-
-            feed = {text_input_names[0]: input_ids}
-            if len(text_input_names) > 1:
-                feed[text_input_names[1]] = attention_mask
-
-            # Run all outputs so we can pick the best one
-            raw_outputs = text_session.run(None, feed)
-
-            # Find the output that gives us pooled embeddings (batch, hidden_dim)
-            # Prefer a 2-D output; if all are 3-D, pool the first one via EOS token
-            embeddings = None
-            for idx, out in enumerate(raw_outputs):
-                if out.ndim == 2 and out.shape[0] == len(batch_texts):
-                    embeddings = out
-                    break
-
-            if embeddings is None:
-                # All outputs are 3-D; pool the first one using EOS token position
-                embeddings = _pool_embeddings(raw_outputs[0], attention_mask)
+            embeddings = self._encode_text_batch(
+                text_session, text_input_names, batch_texts
+            )
 
             if i == 0:
                 print(f"siglip2: text embedding shape per batch: {embeddings.shape}")
@@ -251,31 +255,21 @@ class SigLIP2:
         # Run all outputs
         raw_outputs = self.vision_session.run(None, {vision_input_name: pixel_values})
 
-        # Find the pooled image embedding (2-D preferred, else pool from 3-D)
-        image_embeds = None
-        for out in raw_outputs:
-            if out.ndim == 2 and out.shape[0] == 1:
-                image_embeds = out
-                break
-
-        if image_embeds is None:
-            # 3-D output: pool via CLS token (position 0)
-            image_embeds = _pool_embeddings(raw_outputs[0], attention_mask=None)
-
-        image_embeds = _l2_normalize(image_embeds)
+        image_embeds = _l2_normalize(_select_pooled_output(raw_outputs, 1))
 
         # Compute cosine similarity: (1, dim) @ (n_tags, dim).T -> (1, n_tags)
         similarities = image_embeds @ self.tag_embeddings.T
-        scores = similarities[0]
 
-        # Get top tags sorted by score, filtered by threshold, capped at max_tags
-        ranked_indices = np.argsort(scores)[::-1]
+        return {"tags": self._top_tags(similarities[0], threshold, max_tags)}
+
+    def _top_tags(self, scores, threshold, max_tags):
+        """Tags ranked by score, cut off at the first sub-threshold score."""
         predicted_tags = []
-        for idx in ranked_indices:
+        for idx in np.argsort(scores)[::-1]:
             if scores[idx] < threshold:
                 break
             predicted_tags.append(self.tags[idx])
             if len(predicted_tags) >= max_tags:
                 break
 
-        return {"tags": predicted_tags}
+        return predicted_tags

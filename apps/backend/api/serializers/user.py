@@ -13,6 +13,65 @@ from api.models import Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import is_valid_path, logger
 
+# (field name, log message template) in the order the fields are applied.
+USER_UPDATE_FIELDS = (
+    ("avatar", None),
+    ("email", None),
+    ("first_name", None),
+    ("last_name", None),
+    ("transcode_videos", None),
+    ("nextcloud_server_address", None),
+    ("nextcloud_username", None),
+    ("nextcloud_app_password", None),
+    ("nextcloud_scan_directory", None),
+    ("confidence", "Updated confidence for user {value}"),
+    ("confidence_person", "Updated person album confidence for user {value}"),
+    ("semantic_search_topk", "Updated semantic_search_topk for user {value}"),
+    ("favorite_min_rating", "Updated favorite_min_rating for user {value}"),
+    ("save_metadata_to_disk", "Updated save_metadata_to_disk for user {value}"),
+    (
+        "save_face_tags_to_disk",
+        "Updated save_face_tags_to_disk to {value} for user {username}",
+    ),
+    ("image_scale", "Updated image_scale for user {value}"),
+    ("text_alignment", "Updated text_alignment for user {value}"),
+    ("header_size", "Updated header_size for user {value}"),
+    ("datetime_rules", "Updated datetime_rules for user {value}"),
+    ("default_timezone", "Updated default_timezone for user {value}"),
+    ("public_sharing", None),
+    ("min_cluster_size", None),
+    ("confidence_unknown_face", None),
+    ("min_samples", None),
+    ("cluster_selection_epsilon", None),
+    ("llm_settings", None),
+    ("skip_raw_files", "Updated skip_raw_files to {value} for user {username}"),
+    ("stack_raw_jpeg", "Updated stack_raw_jpeg to {value} for user {username}"),
+    (
+        "slideshow_interval",
+        "Updated slideshow_interval to {value} for user {username}",
+    ),
+    (
+        "duplicate_sensitivity",
+        "Updated duplicate_sensitivity to {value} for user {username}",
+    ),
+    (
+        "duplicate_clear_existing",
+        "Updated duplicate_clear_existing to {value} for user {username}",
+    ),
+)
+
+
+def set_password_if_allowed(instance, validated_data):
+    password = validated_data.pop("password")
+    if password != "" and not settings.DEMO_SITE:
+        instance.set_password(password)
+
+
+def assign_fields(instance, validated_data, fields):
+    for field in fields:
+        if field in validated_data:
+            setattr(instance, field, validated_data.pop(field))
+
 
 class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
@@ -122,173 +181,28 @@ class UserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         # user can only update the following
         if "password" in validated_data:
-            password = validated_data.pop("password")
-            if password != "" and not settings.DEMO_SITE:
-                instance.set_password(password)
-        if "avatar" in validated_data:
-            instance.avatar = validated_data.pop("avatar")
+            set_password_if_allowed(instance, validated_data)
+        for field, log_message in USER_UPDATE_FIELDS:
+            if field not in validated_data:
+                continue
+            value = validated_data.pop(field)
+            if field == "semantic_search_topk":
+                self.queue_semantic_search_jobs(instance, value)
+            setattr(instance, field, value)
             instance.save()
-        if "email" in validated_data:
-            instance.email = validated_data.pop("email")
-            instance.save()
-        if "first_name" in validated_data:
-            instance.first_name = validated_data.pop("first_name")
-            instance.save()
-        if "last_name" in validated_data:
-            instance.last_name = validated_data.pop("last_name")
-            instance.save()
-        if "transcode_videos" in validated_data:
-            instance.transcode_videos = validated_data.pop("transcode_videos")
-            instance.save()
-        if "nextcloud_server_address" in validated_data:
-            instance.nextcloud_server_address = validated_data.pop(
-                "nextcloud_server_address"
-            )
-            instance.save()
-        if "nextcloud_username" in validated_data:
-            instance.nextcloud_username = validated_data.pop("nextcloud_username")
-            instance.save()
-        if "nextcloud_app_password" in validated_data:
-            instance.nextcloud_app_password = validated_data.pop(
-                "nextcloud_app_password"
-            )
-            instance.save()
-        if "nextcloud_scan_directory" in validated_data:
-            instance.nextcloud_scan_directory = validated_data.pop(
-                "nextcloud_scan_directory"
-            )
-            instance.save()
-        if "confidence" in validated_data:
-            instance.confidence = validated_data.pop("confidence")
-            instance.save()
-            logger.info(f"Updated confidence for user {instance.confidence}")
-        if "confidence_person" in validated_data:
-            instance.confidence_person = validated_data.pop("confidence_person")
-            instance.save()
-            logger.info(
-                f"Updated person album confidence for user {instance.confidence_person}"
-            )
-        if "semantic_search_topk" in validated_data:
-            new_semantic_search_topk = validated_data.pop("semantic_search_topk")
-
-            if instance.semantic_search_topk == 0 and new_semantic_search_topk > 0:
-                chain = Chain()
-                if not do_all_models_exist():
-                    chain.append(download_models, User.objects.get(id=instance.id))
-                chain.append(
-                    batch_calculate_clip_embedding, User.objects.get(id=instance.id)
-                )
-                chain.run()
-
-            instance.semantic_search_topk = new_semantic_search_topk
-            instance.save()
-            logger.info(
-                f"Updated semantic_search_topk for user {instance.semantic_search_topk}"
-            )
-        if "favorite_min_rating" in validated_data:
-            new_favorite_min_rating = validated_data.pop("favorite_min_rating")
-            instance.favorite_min_rating = new_favorite_min_rating
-            instance.save()
-            logger.info(
-                f"Updated favorite_min_rating for user {instance.favorite_min_rating}"
-            )
-        if "save_metadata_to_disk" in validated_data:
-            instance.save_metadata_to_disk = validated_data.pop("save_metadata_to_disk")
-            instance.save()
-            logger.info(
-                f"Updated save_metadata_to_disk for user {instance.save_metadata_to_disk}"
-            )
-        if "save_face_tags_to_disk" in validated_data:
-            instance.save_face_tags_to_disk = validated_data.pop(
-                "save_face_tags_to_disk"
-            )
-            instance.save()
-            logger.info(
-                f"Updated save_face_tags_to_disk to {instance.save_face_tags_to_disk} for user {instance.username}"
-            )
-        if "image_scale" in validated_data:
-            new_image_scale = validated_data.pop("image_scale")
-            instance.image_scale = new_image_scale
-            instance.save()
-            logger.info(f"Updated image_scale for user {instance.image_scale}")
-        if "text_alignment" in validated_data:
-            new_text_alignment = validated_data.pop("text_alignment")
-            instance.text_alignment = new_text_alignment
-            instance.save()
-            logger.info(f"Updated text_alignment for user {instance.text_alignment}")
-        if "header_size" in validated_data:
-            new_header_size = validated_data.pop("header_size")
-            instance.header_size = new_header_size
-            instance.save()
-            logger.info(f"Updated header_size for user {instance.header_size}")
-        if "datetime_rules" in validated_data:
-            new_datetime_rules = validated_data.pop("datetime_rules")
-            instance.datetime_rules = new_datetime_rules
-            instance.save()
-            logger.info(f"Updated datetime_rules for user {instance.datetime_rules}")
-        if "default_timezone" in validated_data:
-            new_default_timezone = validated_data.pop("default_timezone")
-            instance.default_timezone = new_default_timezone
-            instance.save()
-            logger.info(
-                f"Updated default_timezone for user {instance.default_timezone}"
-            )
-        if "public_sharing" in validated_data:
-            instance.public_sharing = validated_data.pop("public_sharing")
-            instance.save()
-        if "min_cluster_size" in validated_data:
-            instance.min_cluster_size = validated_data.pop("min_cluster_size")
-            instance.save()
-        if "confidence_unknown_face" in validated_data:
-            instance.confidence_unknown_face = validated_data.pop(
-                "confidence_unknown_face"
-            )
-            instance.save()
-        if "min_samples" in validated_data:
-            instance.min_samples = validated_data.pop("min_samples")
-            instance.save()
-        if "cluster_selection_epsilon" in validated_data:
-            instance.cluster_selection_epsilon = validated_data.pop(
-                "cluster_selection_epsilon"
-            )
-            instance.save()
-        if "llm_settings" in validated_data:
-            instance.llm_settings = validated_data.pop("llm_settings")
-            instance.save()
-        if "skip_raw_files" in validated_data:
-            instance.skip_raw_files = validated_data.pop("skip_raw_files")
-            instance.save()
-            logger.info(
-                f"Updated skip_raw_files to {instance.skip_raw_files} for user {instance.username}"
-            )
-        if "stack_raw_jpeg" in validated_data:
-            instance.stack_raw_jpeg = validated_data.pop("stack_raw_jpeg")
-            instance.save()
-            logger.info(
-                f"Updated stack_raw_jpeg to {instance.stack_raw_jpeg} for user {instance.username}"
-            )
-        if "slideshow_interval" in validated_data:
-            instance.slideshow_interval = validated_data.pop("slideshow_interval")
-            instance.save()
-            logger.info(
-                f"Updated slideshow_interval to {instance.slideshow_interval} for user {instance.username}"
-            )
-        if "duplicate_sensitivity" in validated_data:
-            instance.duplicate_sensitivity = validated_data.pop("duplicate_sensitivity")
-            instance.save()
-            logger.info(
-                f"Updated duplicate_sensitivity to {instance.duplicate_sensitivity} for user {instance.username}"
-            )
-        if "duplicate_clear_existing" in validated_data:
-            instance.duplicate_clear_existing = validated_data.pop(
-                "duplicate_clear_existing"
-            )
-            instance.save()
-            logger.info(
-                f"Updated duplicate_clear_existing to {instance.duplicate_clear_existing} for user {instance.username}"
-            )
+            if log_message:
+                logger.info(log_message.format(value=value, username=instance.username))
 
         return instance
+
+    def queue_semantic_search_jobs(self, instance, new_semantic_search_topk):
+        if instance.semantic_search_topk != 0 or new_semantic_search_topk <= 0:
+            return
+        chain = Chain()
+        if not do_all_models_exist():
+            chain.append(download_models, User.objects.get(id=instance.id))
+        chain.append(batch_calculate_clip_embedding, User.objects.get(id=instance.id))
+        chain.run()
 
     def get_photo_count(self, obj) -> int:
         return Photo.objects.filter(owner=obj).count()
@@ -422,53 +336,40 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
     def update(self, instance: User, validated_data):
         if "password" in validated_data:
-            password = validated_data.pop("password")
-            if password != "" and not settings.DEMO_SITE:
-                instance.set_password(password)
+            set_password_if_allowed(instance, validated_data)
 
         if "scan_directory" in validated_data:
-            new_scan_directory = validated_data.pop("scan_directory")
+            self.apply_scan_directory(instance, validated_data.pop("scan_directory"))
 
-            if new_scan_directory:  # Ensure it's not an empty string
-                abs_new_scan_directory = os.path.abspath(new_scan_directory)
-
-                if not is_valid_path(abs_new_scan_directory, settings.DATA_ROOT):
-                    raise ValidationError(
-                        "Scan directory must be inside the data root."
-                    )
-
-                if os.path.exists(abs_new_scan_directory):
-                    instance.scan_directory = abs_new_scan_directory
-                    logger.info(
-                        f"Updated scan directory for user {instance.scan_directory}"
-                    )
-                else:
-                    raise ValidationError("Scan directory does not exist")
-        if "skip_raw_files" in validated_data:
-            instance.skip_raw_files = validated_data.pop("skip_raw_files")
-        if "stack_raw_jpeg" in validated_data:
-            instance.stack_raw_jpeg = validated_data.pop("stack_raw_jpeg")
+        assign_fields(instance, validated_data, ("skip_raw_files", "stack_raw_jpeg"))
 
         if "username" in validated_data:
-            username = validated_data.pop("username")
-            if username != "":
-                other_user = User.objects.filter(username=username).first()
-                if other_user is not None and other_user != instance:
-                    raise ValidationError("User name is already taken")
+            self.apply_username(instance, validated_data.pop("username"))
 
-            instance.username = username
-
-        if "email" in validated_data:
-            email = validated_data.pop("email")
-            instance.email = email
-
-        if "first_name" in validated_data:
-            first_name = validated_data.pop("first_name")
-            instance.first_name = first_name
-
-        if "last_name" in validated_data:
-            last_name = validated_data.pop("last_name")
-            instance.last_name = last_name
+        assign_fields(instance, validated_data, ("email", "first_name", "last_name"))
 
         instance.save()
         return instance
+
+    def apply_scan_directory(self, instance: User, new_scan_directory):
+        if not new_scan_directory:  # Ensure it's not an empty string
+            return
+
+        abs_new_scan_directory = os.path.abspath(new_scan_directory)
+
+        if not is_valid_path(abs_new_scan_directory, settings.DATA_ROOT):
+            raise ValidationError("Scan directory must be inside the data root.")
+
+        if not os.path.exists(abs_new_scan_directory):
+            raise ValidationError("Scan directory does not exist")
+
+        instance.scan_directory = abs_new_scan_directory
+        logger.info(f"Updated scan directory for user {instance.scan_directory}")
+
+    def apply_username(self, instance: User, username):
+        if username != "":
+            other_user = User.objects.filter(username=username).first()
+            if other_user is not None and other_user != instance:
+                raise ValidationError("User name is already taken")
+
+        instance.username = username

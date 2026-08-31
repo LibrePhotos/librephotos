@@ -28,6 +28,19 @@ from api.directory_watcher.utils import (
 )
 
 
+def _encode_face(face: Face, job_id: UUID):
+    failed = False
+    error = None
+    try:
+        face.generate_encoding()
+    except Exception as err:
+        util.logger.exception("An error occurred: ")
+        print(f"[ERR]: {err}")
+        failed = True
+        error = f"Face {face.id}: {str(err)}\n{traceback.format_exc()}"
+    update_scan_counter(job_id, failed, error)
+
+
 def generate_face_embeddings(user, job_id: UUID):
     """
     Generate face embeddings for faces that don't have them yet.
@@ -51,21 +64,9 @@ def generate_face_embeddings(user, job_id: UUID):
         db.connections.close_all()
 
         for idx, face in enumerate(faces):
-            # Check for cancellation periodically
-            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
-                util.logger.info("Generate face embeddings job cancelled")
+            if _scan_cancelled(idx, job_id, "Generate face embeddings job cancelled"):
                 return
-            failed = False
-            error = None
-            try:
-                face.generate_encoding()
-            except Exception as err:
-                util.logger.exception("An error occurred: ")
-                print(f"[ERR]: {err}")
-                failed = True
-                error_msg = f"Face {face.id}: {str(err)}\n{traceback.format_exc()}"
-                error = error_msg
-            update_scan_counter(job_id, failed, error)
+            _encode_face(face, job_id)
 
         lrj.complete()
 
@@ -73,6 +74,63 @@ def generate_face_embeddings(user, job_id: UUID):
         util.logger.exception("An error occurred: ")
         print(f"[ERR]: {err}")
         lrj.fail(error=err)
+
+
+def _limit_to_photos_added_since_last_scan(existing_photos, user, job_type, full_scan):
+    """Narrow ``existing_photos`` to the photos an incremental run should cover."""
+    if full_scan:
+        return existing_photos
+    last_scan = (
+        LongRunningJob.objects.filter(finished=True)
+        .filter(job_type=job_type)
+        .filter(started_by=user)
+        .order_by("-finished_at")
+        .first()
+    )
+    if not last_scan:
+        return existing_photos
+    return existing_photos.filter(added_on__gt=last_scan.started_at)
+
+
+def _begin_photo_scan(lrj, existing_photos) -> bool:
+    """Publish the job's target and report whether there is any work to do."""
+    target = existing_photos.count()
+    lrj.update_progress(current=0, target=target)
+    if target == 0:
+        lrj.complete()
+        return False
+    db.connections.close_all()
+    return True
+
+
+def _scan_cancelled(idx: int, job_id, message: str) -> bool:
+    """Periodic cancellation check for the per-photo loops."""
+    if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
+        util.logger.info(message)
+        return True
+    return False
+
+
+def _record_photo_error(photo: Photo, err: Exception) -> str:
+    util.logger.exception("An error occurred: ")
+    print(f"[ERR]: {err}")
+    return f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
+
+
+def _untagged_photos(user):
+    """Photos of ``user`` that carry no caption for the active tagging model."""
+    from constance import config as site_config
+
+    tagging_model = site_config.TAGGING_MODEL
+
+    return Photo.objects.filter(
+        Q(owner=user.id)
+        & (
+            Q(caption_instance__isnull=True)
+            | Q(caption_instance__captions_json__isnull=True)
+            | Q(**{f"caption_instance__captions_json__{tagging_model}__isnull": True})
+        )
+    )
 
 
 def generate_tags(user, job_id: UUID, full_scan=False):
@@ -91,43 +149,17 @@ def generate_tags(user, job_id: UUID, full_scan=False):
     )
 
     try:
-        last_scan = (
-            LongRunningJob.objects.filter(finished=True)
-            .filter(job_type=LongRunningJob.JOB_GENERATE_TAGS)
-            .filter(started_by=user)
-            .order_by("-finished_at")
-            .first()
+        existing_photos = _limit_to_photos_added_since_last_scan(
+            _untagged_photos(user),
+            user,
+            LongRunningJob.JOB_GENERATE_TAGS,
+            full_scan,
         )
-        from constance import config as site_config
-
-        tagging_model = site_config.TAGGING_MODEL
-
-        existing_photos = Photo.objects.filter(
-            Q(owner=user.id)
-            & (
-                Q(caption_instance__isnull=True)
-                | Q(caption_instance__captions_json__isnull=True)
-                | Q(
-                    **{
-                        f"caption_instance__captions_json__{tagging_model}__isnull": True
-                    }
-                )
-            )
-        )
-        if not full_scan and last_scan:
-            existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
-
-        if existing_photos.count() == 0:
-            lrj.update_progress(current=0, target=0)
-            lrj.complete()
+        if not _begin_photo_scan(lrj, existing_photos):
             return
-        lrj.update_progress(current=0, target=existing_photos.count())
-        db.connections.close_all()
 
         for idx, photo in enumerate(existing_photos):
-            # Check for cancellation periodically
-            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
-                util.logger.info("Generate tags job cancelled")
+            if _scan_cancelled(idx, job_id, "Generate tags job cancelled"):
                 return
             AsyncTask(generate_tag_job, photo, job_id).run()
 
@@ -539,27 +571,17 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
     )
 
     try:
-        last_scan = (
-            LongRunningJob.objects.filter(finished=True)
-            .filter(job_type=LongRunningJob.JOB_ADD_GEOLOCATION)
-            .filter(started_by=user)
-            .order_by("-finished_at")
-            .first()
+        existing_photos = _limit_to_photos_added_since_last_scan(
+            Photo.objects.filter(owner=user.id),
+            user,
+            LongRunningJob.JOB_ADD_GEOLOCATION,
+            full_scan,
         )
-        existing_photos = Photo.objects.filter(owner=user.id)
-        if not full_scan and last_scan:
-            existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
-        if existing_photos.count() == 0:
-            lrj.update_progress(current=0, target=0)
-            lrj.complete()
+        if not _begin_photo_scan(lrj, existing_photos):
             return
-        lrj.update_progress(current=0, target=existing_photos.count())
-        db.connections.close_all()
 
         for idx, photo in enumerate(existing_photos):
-            # Check for cancellation periodically
-            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
-                util.logger.info("Add geolocation job cancelled")
+            if _scan_cancelled(idx, job_id, "Add geolocation job cancelled"):
                 return
             AsyncTask(geolocation_job, photo, job_id).run()
 
@@ -591,6 +613,17 @@ def geolocation_job(photo: Photo, job_id: UUID):
     update_scan_counter(job_id, failed, error)
 
 
+def _extract_faces_for_photo(photo: Photo, job_id: UUID):
+    failed = False
+    error = None
+    try:
+        photo._extract_faces()
+    except Exception as err:
+        failed = True
+        error = _record_photo_error(photo, err)
+    update_scan_counter(job_id, failed, error)
+
+
 def scan_faces(user, job_id: UUID, full_scan=False):
     """
     Detect and extract faces from photos.
@@ -607,45 +640,21 @@ def scan_faces(user, job_id: UUID, full_scan=False):
     )
 
     try:
-        last_scan = (
-            LongRunningJob.objects.filter(finished=True)
-            .filter(job_type=LongRunningJob.JOB_SCAN_FACES)
-            .filter(started_by=user)
-            .order_by("-finished_at")
-            .first()
+        existing_photos = _limit_to_photos_added_since_last_scan(
+            Photo.objects.filter(
+                Q(owner=user.id) & Q(thumbnail__thumbnail_big__isnull=False)
+            ),
+            user,
+            LongRunningJob.JOB_SCAN_FACES,
+            full_scan,
         )
-        existing_photos = Photo.objects.filter(
-            Q(owner=user.id) & Q(thumbnail__thumbnail_big__isnull=False)
-        )
-        if not full_scan and last_scan:
-            existing_photos = existing_photos.filter(added_on__gt=last_scan.started_at)
-
-        if existing_photos.count() == 0:
-            lrj.update_progress(current=0, target=0)
-            lrj.complete()
+        if not _begin_photo_scan(lrj, existing_photos):
             return
 
-        lrj.update_progress(current=0, target=existing_photos.count())
-        db.connections.close_all()
-
         for idx, photo in enumerate(existing_photos):
-            # Check for cancellation periodically
-            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
-                util.logger.info("Scan faces job cancelled")
+            if _scan_cancelled(idx, job_id, "Scan faces job cancelled"):
                 return
-            failed = False
-            error = None
-            try:
-                photo._extract_faces()
-            except Exception as err:
-                util.logger.exception("An error occurred: ")
-                print(f"[ERR]: {err}")
-                failed = True
-                error_msg = (
-                    f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
-                )
-                error = error_msg
-            update_scan_counter(job_id, failed, error)
+            _extract_faces_for_photo(photo, job_id)
     except Exception as err:
         util.logger.exception("An error occurred: ")
         print(f"[ERR]: {err}")

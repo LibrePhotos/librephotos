@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 from datetime import datetime
 
 import numpy as np
@@ -102,7 +103,7 @@ def _coerce_cache_size(value):
     return None
 
 
-def get_server_stats():
+def _get_cpu_info():
     # CPU architecture, Speed, Number of Cores, 64bit / 32 Bits
     import cpuinfo
 
@@ -121,322 +122,101 @@ def get_server_stats():
                 del cpu_info[cache_field]
             else:
                 cpu_info[cache_field] = coerced
-    # Available RAM
-    import psutil
+    return cpu_info
 
-    available_ram = calc_megabytes(psutil.virtual_memory().total)
-    # GPU
+
+def _get_gpu_info():
     import torch
 
-    if torch.cuda.is_available():
-        gpu_name = torch.cuda.get_device_name(0)
-        gpu_memory = calc_megabytes(torch.cuda.get_device_properties(0).total_memory)
-    else:
-        gpu_name = ""
-        gpu_memory = ""
-    # Total Capacity
+    if not torch.cuda.is_available():
+        return "", ""
+    return (
+        torch.cuda.get_device_name(0),
+        calc_megabytes(torch.cuda.get_device_properties(0).total_memory),
+    )
+
+
+def _aggregate_stats(queryset, related, photo_filter=None):
+    annotated = queryset.annotate(count=Count(related, filter=photo_filter))
+    return {
+        "min": annotated.aggregate(Min("count"))["count__min"] or None,
+        "max": annotated.aggregate(Max("count"))["count__max"] or None,
+        "mean": annotated.aggregate(Avg("count"))["count__avg"] or None,
+        "median": median_value(annotated, "count"),
+    }
+
+
+def _photo_group_stats(queryset):
+    stats = {"count": queryset.count()}
+    stats.update(_aggregate_stats(queryset, "photos"))
+    videos = _aggregate_stats(queryset, "photos", Q(photos__video=True))
+    stats.update({f"{key}_videos": value for key, value in videos.items()})
+    return stats
+
+
+def _person_group_stats(queryset):
+    stats = {"count": queryset.count()}
+    stats.update(_aggregate_stats(queryset, "faces"))
+    return stats
+
+
+def _get_user_stats(user):
+    owned = Q(owner=user)
+    photos = Photo.objects.filter(owned)
+    return {
+        "date_joined": user.date_joined.strftime("%d-%m-%Y"),
+        "total_file_size_in_mb": calc_megabytes(
+            photos.aggregate(Sum("size"))["size__sum"] or None
+        ),
+        "number_of_photos": photos.count(),
+        "number_of_videos": Photo.objects.filter(owned & Q(video=True)).count(),
+        "number_of_screenshots": Photo.objects.filter(
+            owned & Q(is_screenshot=True)
+        ).count(),
+        "number_of_documents": Photo.objects.filter(
+            owned & Q(is_document=True)
+        ).count(),
+        "number_of_captions": Photo.objects.filter(
+            owned & Q(caption_instance__captions_json__user_caption__isnull=False)
+        ).count(),
+        "number_of_generated_captions": Photo.objects.filter(
+            owned & Q(caption_instance__captions_json__im2txt__isnull=False)
+        ).count(),
+        "album": _photo_group_stats(AlbumUser.objects.filter(owned)),
+        "person": _person_group_stats(Person.objects.filter(Q(cluster_owner=user))),
+        "number_of_clusters": Cluster.objects.filter(owned).count(),
+        "places": _photo_group_stats(AlbumPlace.objects.filter(owned)),
+        "things": _photo_group_stats(AlbumThing.objects.filter(owned)),
+        "events": _photo_group_stats(AlbumAuto.objects.filter(owned)),
+        "number_of_favorites": Photo.objects.filter(
+            owned & Q(rating__gte=user.favorite_min_rating)
+        ).count(),
+        "number_of_hidden": Photo.objects.filter(owned & Q(hidden=True)).count(),
+        "number_of_public": Photo.objects.filter(owned & Q(public=True)).count(),
+    }
+
+
+def get_server_stats():
+    import psutil
     import shutil
 
+    cpu_info = _get_cpu_info()
+    available_ram = calc_megabytes(psutil.virtual_memory().total)
+    gpu_name, gpu_memory = _get_gpu_info()
     total_storage, used_storage, free_storage = shutil.disk_usage("/")
-    image_tag = os.environ.get("IMAGE_TAG", "")
-    number_of_users = User.objects.filter(~Q(id=get_deleted_user().id)).count()
-    users = []
-    for user in User.objects.filter(~Q(id=get_deleted_user().id)):
-        date_joined = user.date_joined
-        number_of_photos = Photo.objects.filter(Q(owner=user)).count()
-        number_of_videos = Photo.objects.filter(Q(owner=user) & Q(video=True)).count()
-        number_of_screenshots = Photo.objects.filter(
-            Q(owner=user) & Q(is_screenshot=True)
-        ).count()
-        number_of_documents = Photo.objects.filter(
-            Q(owner=user) & Q(is_document=True)
-        ).count()
-        number_of_captions = Photo.objects.filter(
-            Q(owner=user)
-            & Q(caption_instance__captions_json__user_caption__isnull=False)
-        ).count()
-        number_of_generated_captions = Photo.objects.filter(
-            Q(owner=user) & Q(caption_instance__captions_json__im2txt__isnull=False)
-        ).count()
-        number_of_albums = AlbumUser.objects.filter(Q(owner=user)).count()
-        min_number_of_photos_per_album = (
-            AlbumUser.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Min("count"))
-        )
-        max_number_of_photos_per_album = (
-            AlbumUser.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_photos_per_album = (
-            AlbumUser.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_photos_per_album = median_value(
-            AlbumUser.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
-            "count",
-        )
-        min_number_of_videos_per_album = (
-            AlbumUser.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Min("count"))
-        )
-        max_number_of_videos_per_album = (
-            AlbumUser.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_videos_per_album = (
-            AlbumUser.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_videos_per_album = median_value(
-            AlbumUser.objects.filter(Q(owner=user)).annotate(
-                count=Count("photos", filter=Q(photos__video=True))
-            ),
-            "count",
-        )
-        number_of_persons = Person.objects.filter(Q(cluster_owner=user)).count()
-        min_number_of_faces_per_person = (
-            Person.objects.filter(Q(cluster_owner=user))
-            .annotate(count=Count("faces"))
-            .aggregate(Min("count"))
-        )
-        max_number_of_faces_per_person = (
-            Person.objects.filter(Q(cluster_owner=user))
-            .annotate(count=Count("faces"))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_faces_per_person = (
-            Person.objects.filter(Q(cluster_owner=user))
-            .annotate(count=Count("faces"))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_faces_per_person = median_value(
-            Person.objects.filter(Q(cluster_owner=user)).annotate(count=Count("faces")),
-            "count",
-        )
-        number_of_clusters = Cluster.objects.filter(Q(owner=user)).count()
-        number_of_places = AlbumPlace.objects.filter(Q(owner=user)).count()
-        min_number_of_photos_per_place = (
-            AlbumPlace.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Min("count"))
-        )
-        max_number_of_photos_per_place = (
-            AlbumPlace.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_photos_per_place = (
-            AlbumPlace.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_photos_per_place = median_value(
-            AlbumPlace.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
-            "count",
-        )
-        min_number_of_videos_per_place = (
-            AlbumPlace.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Min("count"))
-        )
-        max_number_of_videos_per_place = (
-            AlbumPlace.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_videos_per_place = (
-            AlbumPlace.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_videos_per_place = median_value(
-            AlbumPlace.objects.filter(Q(owner=user)).annotate(
-                count=Count("photos", filter=Q(photos__video=True))
-            ),
-            "count",
-        )
-        number_of_things = AlbumThing.objects.filter(Q(owner=user)).count()
-        min_number_of_photos_per_thing = (
-            AlbumThing.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Min("count"))
-        )
-        max_number_of_photos_per_thing = (
-            AlbumThing.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_photos_per_thing = (
-            AlbumThing.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_photos_per_thing = median_value(
-            AlbumThing.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
-            "count",
-        )
-        min_number_of_videos_per_thing = (
-            AlbumThing.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Min("count"))
-        )
-        max_number_of_videos_per_thing = (
-            AlbumThing.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_videos_per_thing = (
-            AlbumThing.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_videos_per_thing = median_value(
-            AlbumThing.objects.filter(Q(owner=user)).annotate(
-                count=Count("photos", filter=Q(photos__video=True))
-            ),
-            "count",
-        )
-        number_of_events = AlbumAuto.objects.filter(Q(owner=user)).count()
-        min_number_of_photos_per_event = (
-            AlbumAuto.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Min("count"))
-        )
-        max_number_of_photos_per_event = (
-            AlbumAuto.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_photos_per_event = (
-            AlbumAuto.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos"))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_photos_per_event = median_value(
-            AlbumAuto.objects.filter(Q(owner=user)).annotate(count=Count("photos")),
-            "count",
-        )
-        min_number_of_videos_per_event = (
-            AlbumAuto.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Min("count"))
-        )
-        max_number_of_videos_per_event = (
-            AlbumAuto.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Max("count"))
-        )
-        mean_number_of_videos_per_event = (
-            AlbumAuto.objects.filter(Q(owner=user))
-            .annotate(count=Count("photos", filter=Q(photos__video=True)))
-            .aggregate(Avg("count"))
-        )
-        median_number_of_videos_per_event = median_value(
-            AlbumAuto.objects.filter(Q(owner=user)).annotate(
-                count=Count("photos", filter=Q(photos__video=True))
-            ),
-            "count",
-        )
-        number_of_favorites = Photo.objects.filter(
-            Q(owner=user) & Q(rating__gte=user.favorite_min_rating)
-        ).count()
-        number_of_hidden = Photo.objects.filter(Q(owner=user) & Q(hidden=True)).count()
-        number_of_public = Photo.objects.filter(Q(owner=user) & Q(public=True)).count()
-        users.append(
-            {
-                "date_joined": date_joined.strftime("%d-%m-%Y"),
-                "total_file_size_in_mb": calc_megabytes(
-                    Photo.objects.filter(Q(owner=user)).aggregate(Sum("size"))[
-                        "size__sum"
-                    ]
-                    or None
-                ),
-                "number_of_photos": number_of_photos,
-                "number_of_videos": number_of_videos,
-                "number_of_screenshots": number_of_screenshots,
-                "number_of_documents": number_of_documents,
-                "number_of_captions": number_of_captions,
-                "number_of_generated_captions": number_of_generated_captions,
-                "album": {
-                    "count": number_of_albums,
-                    "min": min_number_of_photos_per_album["count__min"] or None,
-                    "max": max_number_of_photos_per_album["count__max"] or None,
-                    "mean": mean_number_of_photos_per_album["count__avg"] or None,
-                    "median": median_number_of_photos_per_album,
-                    "min_videos": min_number_of_videos_per_album["count__min"] or None,
-                    "max_videos": max_number_of_videos_per_album["count__max"] or None,
-                    "mean_videos": mean_number_of_videos_per_album["count__avg"]
-                    or None,
-                    "median_videos": median_number_of_videos_per_album,
-                },
-                "person": {
-                    "count": number_of_persons,
-                    "min": min_number_of_faces_per_person["count__min"] or None,
-                    "max": max_number_of_faces_per_person["count__max"] or None,
-                    "mean": mean_number_of_faces_per_person["count__avg"] or None,
-                    "median": median_number_of_faces_per_person,
-                },
-                "number_of_clusters": number_of_clusters,
-                "places": {
-                    "count": number_of_places,
-                    "min": min_number_of_photos_per_place["count__min"] or None,
-                    "max": max_number_of_photos_per_place["count__max"] or None,
-                    "mean": mean_number_of_photos_per_place["count__avg"] or None,
-                    "median": median_number_of_photos_per_place,
-                    "min_videos": min_number_of_videos_per_place["count__min"] or None,
-                    "max_videos": max_number_of_videos_per_place["count__max"] or None,
-                    "mean_videos": mean_number_of_videos_per_place["count__avg"]
-                    or None,
-                    "median_videos": median_number_of_videos_per_place,
-                },
-                "things": {
-                    "count": number_of_things,
-                    "min": min_number_of_photos_per_thing["count__min"] or None,
-                    "max": max_number_of_photos_per_thing["count__max"] or None,
-                    "mean": mean_number_of_photos_per_thing["count__avg"] or None,
-                    "median": median_number_of_photos_per_thing,
-                    "min_videos": min_number_of_videos_per_thing["count__min"] or None,
-                    "max_videos": max_number_of_videos_per_thing["count__max"] or None,
-                    "mean_videos": mean_number_of_videos_per_thing["count__avg"]
-                    or None,
-                    "median_videos": median_number_of_videos_per_thing,
-                },
-                "events": {
-                    "count": number_of_events,
-                    "min": min_number_of_photos_per_event["count__min"] or None,
-                    "max": max_number_of_photos_per_event["count__max"] or None,
-                    "mean": mean_number_of_photos_per_event["count__avg"] or None,
-                    "median": median_number_of_photos_per_event,
-                    "min_videos": min_number_of_videos_per_event["count__min"] or None,
-                    "max_videos": max_number_of_videos_per_event["count__max"] or None,
-                    "mean_videos": mean_number_of_videos_per_event["count__avg"]
-                    or None,
-                    "median_videos": median_number_of_videos_per_event,
-                },
-                "number_of_favorites": number_of_favorites,
-                "number_of_hidden": number_of_hidden,
-                "number_of_public": number_of_public,
-            }
-        )
-    res = {
+    real_users = User.objects.filter(~Q(id=get_deleted_user().id))
+    return {
         "cpu_info": cpu_info,
-        "image_tag": image_tag,
+        "image_tag": os.environ.get("IMAGE_TAG", ""),
         "available_ram_in_mb": available_ram,
         "gpu_name": gpu_name,
         "gpu_memory_in_mb": gpu_memory,
         "total_storage_in_mb": calc_megabytes(total_storage),
         "used_storage_in_mb": calc_megabytes(used_storage),
         "free_storage_in_mb": calc_megabytes(free_storage),
-        "number_of_users": number_of_users,
-        "users": users,
+        "number_of_users": real_users.count(),
+        "users": [_get_user_stats(user) for user in real_users],
     }
-    return res
 
 
 def get_count_stats(user):
@@ -554,16 +334,70 @@ def get_photo_month_counts(user):
         return []
 
 
+class _LabelTally:
+    """Counts labels and remembers the order in which they were first seen."""
+
+    def __init__(self):
+        self.counts: Counter[str] = Counter()
+        self.first_seen: dict[str, int] = {}
+
+    def add(self, label, order_index, first_seen=None):
+        self.counts[label] += 1
+        if label in self.first_seen:
+            return order_index
+        self.first_seen[label] = order_index if first_seen is None else first_seen
+        return order_index + 1
+
+    def top(self, limit=100):
+        return sorted(
+            self.counts.items(),
+            key=lambda kv: (-kv[1], self.first_seen.get(kv[0], 1_000_000)),
+        )[:limit]
+
+
+def _places365_labels(captions_json):
+    places365 = (captions_json or {}).get("places365", {})
+    labels = []
+    for key in ("categories", "attributes"):
+        values = places365.get(key, [])
+        if isinstance(values, list):
+            labels.extend(str(value) for value in values if value)
+    environment = places365.get("environment")
+    if isinstance(environment, str) and environment:
+        labels.append(environment)
+    return labels
+
+
+def _location_texts(geolocation_json):
+    try:
+        features = (geolocation_json or {}).get("features", [])
+    except Exception:
+        features = []
+    texts = set()
+    for feature in features:
+        if not isinstance(feature, dict):
+            continue
+        value = feature.get("text")
+        if not value:
+            continue
+        place_type = feature.get("place_type")
+        types = place_type if isinstance(place_type, list) else [place_type]
+        if any(t in ("postcode", "poi") for t in types if t):
+            continue
+        texts.add(str(value))
+    return texts
+
+
+def _wordcloud_entries(pairs):
+    return [{"label": label, "y": float(np.log(count))} for label, count in pairs]
+
+
 def get_searchterms_wordcloud(user):
     # Python fallbacks (SQLite): stream and aggregate
-    from collections import Counter
-
-    out = {"captions": [], "people": [], "locations": []}
+    order_index = 0
 
     # Captions: use Places365 categories, attributes and environment from captions_json
-    captions_counter: Counter[str] = Counter()
-    captions_first_seen: dict[str, int] = {}
-    order_index = 0
+    captions = _LabelTally()
     captions_iter = (
         Photo.objects.filter(owner=user)
         .exclude(caption_instance__captions_json__isnull=True)
@@ -572,36 +406,25 @@ def get_searchterms_wordcloud(user):
     )
     for caps in captions_iter:
         try:
-            places365 = (caps or {}).get("places365", {})
-            categories = places365.get("categories", [])
-            if isinstance(categories, list):
-                for cat in categories:
-                    if not cat:
-                        continue
-                    label = str(cat)
-                    captions_counter[label] += 1
-                    if label not in captions_first_seen:
-                        captions_first_seen[label] = order_index
-                        order_index += 1
-            attributes = places365.get("attributes", [])
-            if isinstance(attributes, list):
-                for attr in attributes:
-                    if not attr:
-                        continue
-                    label = str(attr)
-                    captions_counter[label] += 1
-                    if label not in captions_first_seen:
-                        captions_first_seen[label] = order_index
-                        order_index += 1
-            environment = places365.get("environment")
-            if isinstance(environment, str) and environment:
-                label = environment
-                captions_counter[label] += 1
-                if label not in captions_first_seen:
-                    captions_first_seen[label] = order_index
-                    order_index += 1
+            labels = _places365_labels(caps)
         except Exception:
             continue
+        for label in labels:
+            order_index = captions.add(label, order_index)
+
+    # Locations: parse geolocation_json, ignore postcode and poi, one word per photo
+    locations = _LabelTally()
+    geo_iter = (
+        Photo.objects.filter(owner=user)
+        .exclude(geolocation_json=None)
+        .values_list("geolocation_json", flat=True)
+        .iterator(chunk_size=2000)
+    )
+    for geo in geo_iter:
+        for value in _location_texts(geo):
+            order_index = locations.add(
+                value, order_index, captions.first_seen.get(value)
+            )
 
     # People: aggregate with ORM to avoid per-row Python loops
     people_rows = (
@@ -611,63 +434,14 @@ def get_searchterms_wordcloud(user):
         .order_by("-c")[:100]
     )
 
-    # Locations: parse geolocation_json, ignore postcode and poi, one word per photo
-    locations_counter: Counter[str] = Counter()
-    locations_first_seen: dict[str, int] = {}
-    geo_iter = (
-        Photo.objects.filter(owner=user)
-        .exclude(geolocation_json=None)
-        .values_list("image_hash", "geolocation_json")
-        .iterator(chunk_size=2000)
-    )
-    for _image_hash, geo in geo_iter:
-        try:
-            features = (geo or {}).get("features", [])
-        except Exception:
-            features = []
-        seen_values = set()
-        for feature in features:
-            if not isinstance(feature, dict):
-                continue
-            place_type = feature.get("place_type")
-            value = feature.get("text")
-            if not value:
-                continue
-            # place_type can be list or string
-            types = place_type if isinstance(place_type, list) else [place_type]
-            types = [t for t in types if t]
-            if any(t in ("postcode", "poi") for t in types):
-                continue
-            seen_values.add(str(value))
-        for value in seen_values:
-            locations_counter[value] += 1
-            if value not in locations_first_seen:
-                locations_first_seen[value] = captions_first_seen.get(
-                    value, order_index
-                )
-                order_index += 1
-
-    # Build outputs (log of count as before)
-    # Ensure stable order to match expectations: attributes/environment may come first
-    # Sort captions by count desc, then by first-seen order for deterministic ties
-    captions_sorted = sorted(
-        captions_counter.items(),
-        key=lambda kv: (-kv[1], captions_first_seen.get(kv[0], 1_000_000)),
-    )[:100]
-    for label, count in captions_sorted:
-        out["captions"].append({"label": label, "y": float(np.log(count))})
-    for row in people_rows:
-        out["people"].append(
+    return {
+        "captions": _wordcloud_entries(captions.top()),
+        "people": [
             {"label": row["person__name"], "y": float(np.log(row["c"]))}
-        )
-    locations_sorted = sorted(
-        locations_counter.items(),
-        key=lambda kv: (-kv[1], locations_first_seen.get(kv[0], 1_000_000)),
-    )[:100]
-    for label, count in locations_sorted:
-        out["locations"].append({"label": label, "y": float(np.log(count))})
-
-    return out
+            for row in people_rows
+        ],
+        "locations": _wordcloud_entries(locations.top()),
+    }
 
 
 def get_location_sunburst(user):
@@ -732,6 +506,24 @@ def get_location_sunburst(user):
     return data_structure
 
 
+_NUMERIC_LOCATION_NAME = re.compile(r"^(-)?[0-9]+$")
+
+
+def _location_cluster_row(feature):
+    if not isinstance(feature, dict):
+        return None
+    location_text = feature.get("text")
+    if not location_text or _NUMERIC_LOCATION_NAME.match(str(location_text)):
+        return None
+    center = feature.get("center")
+    if not (isinstance(center, (list, tuple)) and len(center) >= 2):
+        return None
+    try:
+        return [float(center[1]), float(center[0]), location_text]
+    except Exception:
+        return None
+
+
 def get_location_clusters(user):
     start = datetime.now()
     # Build clusters in Python from JSON fields (works for both SQLite and Postgres)
@@ -743,29 +535,16 @@ def get_location_clusters(user):
         .values_list("geolocation_json", flat=True)
         .iterator(chunk_size=2000)
     )
-    numeric_pattern = re.compile(r"^(-)?[0-9]+$")
     for geo in photo_geo_iter:
         try:
             features = (geo or {}).get("features", [])
         except Exception:
             features = []
         for feature in features:
-            location_text = feature.get("text") if isinstance(feature, dict) else None
-            if not location_text or numeric_pattern.match(str(location_text)):
-                continue
-            center = feature.get("center") if isinstance(feature, dict) else None
-            if not (isinstance(center, (list, tuple)) and len(center) >= 2):
-                continue
-            # Keep first occurrence per distinct location name
-            if location_text not in results_by_location:
-                lon = center[0]
-                lat = center[1]
-                try:
-                    lat_f = float(lat)
-                    lon_f = float(lon)
-                except Exception:
-                    continue
-                results_by_location[location_text] = [lat_f, lon_f, location_text]
+            row = _location_cluster_row(feature)
+            if row is not None:
+                # Keep first occurrence per distinct location name
+                results_by_location.setdefault(row[2], row)
 
     # Order by location to mimic SQL ordering
     res = [results_by_location[key] for key in sorted(results_by_location.keys())]
