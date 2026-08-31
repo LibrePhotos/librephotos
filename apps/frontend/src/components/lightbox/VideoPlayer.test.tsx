@@ -18,7 +18,14 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { classifyVideoFailure, factToText, VideoPlayer } from "./VideoPlayer";
+import {
+  classifyVideoFailure,
+  factToText,
+  formatSeekDistance,
+  LIGHTBOX_SEEK_EVENT,
+  requestLightboxSeek,
+  VideoPlayer,
+} from "./VideoPlayer";
 
 const accessToken = { current: { access: { user_id: "1", name: "dotan", is_admin: false } } };
 const diagnostics = { current: undefined as unknown };
@@ -111,6 +118,147 @@ beforeEach(() => {
   diagnostics.current = undefined;
   diagnosticsEnabled.mockClear();
   copied.mockClear();
+});
+
+/**
+ * Give the element a seekable window and a settable playhead. jsdom loads no
+ * media, so a bare `<video>` reports an empty `seekable` and its `currentTime`
+ * goes nowhere -- which is also, usefully, exactly what a chunked transcode
+ * looks like to the browser.
+ */
+function stubPlayhead(video: HTMLVideoElement, ranges: [number, number][], startAt = 0) {
+  let time = startAt;
+  Object.defineProperty(video, "currentTime", {
+    configurable: true,
+    get: () => time,
+    set: (value: number) => {
+      time = value;
+    },
+  });
+  Object.defineProperty(video, "seekable", {
+    configurable: true,
+    get: () => ({
+      length: ranges.length,
+      start: (index: number) => ranges[index][0],
+      end: (index: number) => ranges[index][1],
+    }),
+  });
+  return () => time;
+}
+
+describe("VideoPlayer seeking", () => {
+  it("moves the playhead by the requested amount and says how far", async () => {
+    const { container, unmount } = await renderPlayer();
+    const at = stubPlayhead(container.querySelector("video")!, [[0, 120]], 30);
+
+    await act(async () => {
+      requestLightboxSeek(10);
+    });
+
+    expect(at()).toBe(40);
+    expect(container.textContent).toContain("+10s");
+
+    await act(async () => {
+      requestLightboxSeek(-10);
+    });
+
+    expect(at()).toBe(30);
+    expect(container.textContent).toContain("-10s");
+    await unmount();
+  });
+
+  it("takes the long jump too, and says so in minutes", async () => {
+    const { container, unmount } = await renderPlayer();
+    const at = stubPlayhead(container.querySelector("video")!, [[0, 600]], 120);
+
+    await act(async () => {
+      requestLightboxSeek(60);
+    });
+
+    expect(at()).toBe(180);
+    expect(container.textContent).toContain("+1m");
+    await unmount();
+  });
+
+  it("stops at the ends of the seekable window instead of running past them", async () => {
+    const { container, unmount } = await renderPlayer();
+    const at = stubPlayhead(container.querySelector("video")!, [[0, 12]], 4);
+
+    await act(async () => {
+      requestLightboxSeek(-10);
+    });
+    expect(at()).toBe(0);
+
+    await act(async () => {
+      requestLightboxSeek(10);
+    });
+    expect(at()).toBe(10);
+
+    await act(async () => {
+      requestLightboxSeek(10);
+    });
+    expect(at()).toBe(12);
+    await unmount();
+  });
+
+  it("says seeking is unavailable rather than pretending a chunked stream moved", async () => {
+    // The transcoding path streams with no length and no Accept-Ranges, so the
+    // browser offers no seekable window at all. A shortcut that quietly did
+    // nothing here is the failure this feature exists to avoid.
+    const { container, unmount } = await renderPlayer();
+    const at = stubPlayhead(container.querySelector("video")!, [], 5);
+
+    await act(async () => {
+      requestLightboxSeek(10);
+    });
+
+    expect(at()).toBe(5);
+    expect(container.textContent).toContain("lightbox.video.seekunavailable");
+    await unmount();
+  });
+
+  it("ignores a request carrying no distance", async () => {
+    const { container, unmount } = await renderPlayer();
+    const at = stubPlayhead(container.querySelector("video")!, [[0, 120]], 30);
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT, { detail: { seconds: 0 } }));
+      window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT));
+    });
+
+    expect(at()).toBe(30);
+    expect(container.textContent).not.toContain("+10s");
+    expect(container.textContent).not.toContain("lightbox.video.seekunavailable");
+    await unmount();
+  });
+
+  it("stops listening once the player is gone", async () => {
+    const { container, unmount } = await renderPlayer();
+    const at = stubPlayhead(container.querySelector("video")!, [[0, 120]], 30);
+    await unmount();
+
+    await act(async () => {
+      requestLightboxSeek(10);
+    });
+
+    expect(at()).toBe(30);
+  });
+});
+
+describe("formatSeekDistance", () => {
+  it("counts seconds below a minute", () => {
+    expect(formatSeekDistance(10)).toBe("+10s");
+    expect(formatSeekDistance(-10)).toBe("-10s");
+  });
+
+  it("counts whole minutes above one, which is what the long jump moves", () => {
+    expect(formatSeekDistance(60)).toBe("+1m");
+    expect(formatSeekDistance(-120)).toBe("-2m");
+  });
+
+  it("keeps seconds when they are not a whole number of minutes", () => {
+    expect(formatSeekDistance(90)).toBe("+90s");
+  });
 });
 
 describe("classifyVideoFailure", () => {

@@ -22,6 +22,34 @@ type VideoPlayerProps = {
  * stream and nothing more -- so these are recovered by re-requesting the same
  * URL and reading the HTTP status, which is the only place the difference lives.
  */
+/** How far one press of a seek shortcut moves the playhead, in seconds. */
+export const SEEK_STEP_SECONDS = 10;
+
+/** The same, for the long jump on Ctrl -- VLC's split between the two. */
+export const SEEK_LONG_STEP_SECONDS = 60;
+
+/** "+10s", "-1m": whole minutes read better than "+60s" once past a minute. */
+export function formatSeekDistance(seconds: number): string {
+  const sign = seconds > 0 ? "+" : "-";
+  const size = Math.abs(seconds);
+  return size >= 60 && size % 60 === 0 ? `${sign}${size / 60}m` : `${sign}${size}s`;
+}
+
+/**
+ * Seek requests arrive as a window event because the two halves of the gesture
+ * live apart: the lightbox owns the keyboard -- its hotkeys are bound on
+ * `document`, so they fire no matter what has focus -- while the `<video>`
+ * element only ever exists in here. Threading a ref down through `MediaDisplay`
+ * into a memoised player would couple three components to one keypress, and
+ * the lightbox already talks to its controls this way. Only the main slide
+ * renders a player, so exactly one listener is ever mounted.
+ */
+export const LIGHTBOX_SEEK_EVENT = "lightbox-seek";
+
+export function requestLightboxSeek(seconds: number) {
+  window.dispatchEvent(new CustomEvent(LIGHTBOX_SEEK_EVENT, { detail: { seconds } }));
+}
+
 export type VideoErrorKind = "permission" | "missing" | "format" | "server" | "session" | "unknown";
 
 /**
@@ -101,6 +129,11 @@ export const VideoPlayer = memo(function VideoPlayer({
   // Bumped on every probe so a stale answer cannot overwrite a newer one after
   // the user has already navigated to a different video.
   const probeRef = useRef(0);
+  // What the last seek shortcut did, shown briefly over the picture. A
+  // keyboard-driven seek never raises the native control bar, so without this
+  // the key produces no visible acknowledgement at all.
+  const [seekHint, setSeekHint] = useState<{ seconds: number } | "unavailable" | null>(null);
+  const seekHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasError = errorKind !== null;
   // Only the permission case has anything to diagnose, and only an administrator
@@ -115,6 +148,7 @@ export const VideoPlayer = memo(function VideoPlayer({
     setErrorStatus(null);
     setProbing(false);
     setRetryCount(0);
+    setSeekHint(null);
     readyFiredRef.current = false;
     probeRef.current += 1;
   }, [url]);
@@ -129,9 +163,42 @@ export const VideoPlayer = memo(function VideoPlayer({
     }
   }, [playing, loading, hasError]);
 
+  useEffect(() => {
+    const showHint = (hint: { seconds: number } | "unavailable") => {
+      setSeekHint(hint);
+      if (seekHintTimerRef.current) clearTimeout(seekHintTimerRef.current);
+      seekHintTimerRef.current = setTimeout(() => setSeekHint(null), 900);
+    };
+
+    const handleSeek = (event: Event) => {
+      const video = videoRef.current;
+      const seconds = (event as CustomEvent<{ seconds: number }>).detail?.seconds;
+      if (!video || !seconds) return;
+      // `seekable` is the honest bound, not `duration`. A video the backend is
+      // transcoding on the fly is served as a chunked stream with no length and
+      // no `Accept-Ranges`, so its duration reads as Infinity and the playhead
+      // will not move however far we ask it to. Saying that out loud beats a
+      // shortcut that silently does nothing.
+      const { seekable } = video;
+      if (!seekable || seekable.length === 0) {
+        showHint("unavailable");
+        return;
+      }
+      video.currentTime = Math.min(
+        Math.max(video.currentTime + seconds, seekable.start(0)),
+        seekable.end(seekable.length - 1)
+      );
+      showHint({ seconds });
+    };
+
+    window.addEventListener(LIGHTBOX_SEEK_EVENT, handleSeek);
+    return () => window.removeEventListener(LIGHTBOX_SEEK_EVENT, handleSeek);
+  }, []);
+
   useEffect(
     () => () => {
       if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+      if (seekHintTimerRef.current) clearTimeout(seekHintTimerRef.current);
     },
     []
   );
@@ -368,6 +435,18 @@ export const VideoPlayer = memo(function VideoPlayer({
           }}
         >
           <Loader color="white" size="lg" />
+        </Center>
+      )}
+      {seekHint !== null && (
+        <Center style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
+          <Text
+            size="xl"
+            fw={600}
+            c="white"
+            style={{ background: "rgba(0,0,0,0.65)", borderRadius: 8, padding: "8px 16px" }}
+          >
+            {seekHint === "unavailable" ? t("lightbox.video.seekunavailable") : formatSeekDistance(seekHint.seconds)}
+          </Text>
         </Center>
       )}
       <video
