@@ -30,13 +30,9 @@ learning_rate = 0.001
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def main():
-    # Create model directory
-    if not os.path.exists(model_path):
-        os.makedirs(model_path)
-
+def build_transform():
     # Image preprocessing, normalization for the pretrained resnet
-    transform = transforms.Compose(
+    return transforms.Compose(
         [
             transforms.RandomCrop(crop_size),
             transforms.RandomHorizontalFlip(),
@@ -45,9 +41,63 @@ def main():
         ]
     )
 
-    # Load vocabulary wrapper
+
+def load_vocab():
     with open(vocab_path, "rb") as f:
-        vocab = pickle.load(f)
+        return pickle.load(f)
+
+
+def train_step(encoder, decoder, criterion, optimizer, batch):
+    images, captions, lengths = batch
+    images = images.to(device)
+    captions = captions.to(device)
+    targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
+
+    features = encoder(images)
+    outputs = decoder(features, captions, lengths)
+    loss = criterion(outputs, targets)
+    decoder.zero_grad()
+    encoder.zero_grad()
+    loss.backward()
+    optimizer.step()
+    return loss
+
+
+def log_progress(epoch, step, total_step, loss):
+    print(
+        f"Epoch [{epoch}/{num_epochs}], Step [{step}/{total_step}], Loss: {loss.item():.4f}, Perplexity: {np.exp(loss.item()):5.4f}"
+    )
+
+
+def save_checkpoints(encoder, decoder, epoch, step):
+    torch.save(
+        decoder.state_dict(),
+        os.path.join(model_path, f"decoder-{epoch + 1}-{step + 1}.ckpt"),
+    )
+    torch.save(
+        encoder.state_dict(),
+        os.path.join(model_path, f"encoder-{epoch + 1}-{step + 1}.ckpt"),
+    )
+
+
+def run_epoch(epoch, data_loader, encoder, decoder, criterion, optimizer, total_step):
+    for i, batch in enumerate(data_loader):
+        loss = train_step(encoder, decoder, criterion, optimizer, batch)
+
+        if i % log_step == 0:
+            log_progress(epoch, i, total_step, loss)
+
+        if (i + 1) % save_step == 0:
+            save_checkpoints(encoder, decoder, epoch, i)
+
+
+def main():
+    # Create model directory
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+
+    transform = build_transform()
+    vocab = load_vocab()
 
     # Build data loader
     data_loader = get_loader(
@@ -76,34 +126,6 @@ def main():
     # Train the models
     total_step = len(data_loader)
     for epoch in range(num_epochs):
-        for i, (images, captions, lengths) in enumerate(data_loader):
-            # Set mini-batch dataset
-            images = images.to(device)
-            captions = captions.to(device)
-            targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
-
-            # Forward, backward and optimize
-            features = encoder(images)
-            outputs = decoder(features, captions, lengths)
-            loss = criterion(outputs, targets)
-            decoder.zero_grad()
-            encoder.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            # Print log info
-            if i % log_step == 0:
-                print(
-                    f"Epoch [{epoch}/{num_epochs}], Step [{i}/{total_step}], Loss: {loss.item():.4f}, Perplexity: {np.exp(loss.item()):5.4f}"
-                )
-
-            # Save the model checkpoints
-            if (i + 1) % save_step == 0:
-                torch.save(
-                    decoder.state_dict(),
-                    os.path.join(model_path, f"decoder-{epoch + 1}-{i + 1}.ckpt"),
-                )
-                torch.save(
-                    encoder.state_dict(),
-                    os.path.join(model_path, f"encoder-{epoch + 1}-{i + 1}.ckpt"),
-                )
+        run_epoch(
+            epoch, data_loader, encoder, decoder, criterion, optimizer, total_step
+        )

@@ -336,6 +336,42 @@ class SearchTermExamples(APIView):
 
 
 # long running jobs
+def _validate_scan_directory(user):
+    if not user.scan_directory or user.scan_directory.strip() == "":
+        return Response(
+            {
+                "status": False,
+                "message": "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
+            },
+            status=400,
+        )
+
+    if not os.path.exists(user.scan_directory):
+        return Response(
+            {
+                "status": False,
+                "message": f"Scan failed: Scan directory '{user.scan_directory}' does not exist. Please contact your administrator.",
+            },
+            status=400,
+        )
+
+    return None
+
+
+def _start_photo_scan(user, directory):
+    chain = Chain()
+    if not do_all_models_exist():
+        chain.append(download_models, user)
+    try:
+        job_id = uuid.uuid4()
+        chain.append(scan_photos, user, False, job_id, directory)
+        chain.run()
+        return Response({"status": True, "job_id": job_id})
+    except BaseException:
+        logger.exception("An Error occurred")
+        return Response({"status": False})
+
+
 class ScanPhotosView(APIView):
     def post(self, request, format=None):
         return self._scan_photos(request)
@@ -348,82 +384,19 @@ class ScanPhotosView(APIView):
         return self._scan_photos(request)
 
     def _scan_photos(self, request):
-        # Validate that user has a configured scan directory
-        if not request.user.scan_directory or request.user.scan_directory.strip() == "":
-            return Response(
-                {
-                    "status": False,
-                    "message": "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
-                },
-                status=400,
-            )
-
-        # Validate that the scan directory exists
-        if not os.path.exists(request.user.scan_directory):
-            return Response(
-                {
-                    "status": False,
-                    "message": f"Scan failed: Scan directory '{request.user.scan_directory}' does not exist. Please contact your administrator.",
-                },
-                status=400,
-            )
-
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, request.user)
-        try:
-            job_id = uuid.uuid4()
-            chain.append(
-                scan_photos, request.user, False, job_id, request.user.scan_directory
-            )
-            chain.run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return _validate_scan_directory(request.user) or _start_photo_scan(
+            request.user, request.user.scan_directory
+        )
 
 
 # To-Do: Allow for custom paths
 class SelectiveScanPhotosView(APIView):
     def get(self, request, format=None):
-        # Validate that user has a configured scan directory
-        if not request.user.scan_directory or request.user.scan_directory.strip() == "":
-            return Response(
-                {
-                    "status": False,
-                    "message": "Scan failed: No scan directory configured. Please contact your administrator to set up a scan directory for your account.",
-                },
-                status=400,
-            )
-
-        # Validate that the scan directory exists
-        if not os.path.exists(request.user.scan_directory):
-            return Response(
-                {
-                    "status": False,
-                    "message": f"Scan failed: Scan directory '{request.user.scan_directory}' does not exist. Please contact your administrator.",
-                },
-                status=400,
-            )
-
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, request.user)
         # To-Do: Sanatize the scan_directory
-        try:
-            job_id = uuid.uuid4()
-            chain.append(
-                scan_photos,
-                request.user,
-                False,
-                job_id,
-                os.path.join(request.user.scan_directory, "uploads", "web"),
-            )
-            chain.run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return _validate_scan_directory(request.user) or _start_photo_scan(
+            request.user,
+            os.path.join(request.user.scan_directory, "uploads", "web"),
+        )
 
 
 class FullScanPhotosView(APIView):
@@ -507,60 +480,62 @@ class MediaAccessView(APIView):
     def _get_protected_media_url(self, path, fname):
         return f"protected_media/{path}/{fname}"
 
+    def _granted_response(self, path, fname):
+        response = HttpResponse()
+        response["Content-Type"] = "image/jpeg"
+        response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
+        return response
+
+    def _is_public(self, photo):
+        return photo.public or photo.albumuser_set.filter(public=True).exists()
+
+    def _resolve_photo(self, image_hash):
+        try:
+            return Photo.objects.get(image_hash=image_hash)
+        except Photo.DoesNotExist:
+            return None
+        except Photo.MultipleObjectsReturned:
+            # Multiple photos with same hash - find one that matches permissions
+            photos = Photo.objects.filter(image_hash=image_hash)
+            for p in photos:
+                if self._is_public(p):
+                    return p
+            # If none found, we'll check user permissions below
+            return photos.first()
+
+    def _shared_via_album(self, photo, user):
+        for album in photo.albumuser_set.only("shared_to", "public"):
+            if album.public or user in album.shared_to.all():
+                return True
+        return False
+
     # @silk_profile(name='media')
     def get(self, request, path, fname, format=None):
         jwt = request.COOKIES.get("jwt")
         image_hash = fname.split(".")[0].split("_")[0]
-        try:
-            photo = Photo.objects.get(image_hash=image_hash)
-        except Photo.DoesNotExist:
+        photo = self._resolve_photo(image_hash)
+        if photo is None:
             return HttpResponse(status=404)
-        except Photo.MultipleObjectsReturned:
-            # Multiple photos with same hash - find one that matches permissions
-            photos = Photo.objects.filter(image_hash=image_hash)
-            photo = None
-            # First try to find one that's public or in a public album
-            for p in photos:
-                if p.public or p.albumuser_set.filter(public=True).exists():
-                    photo = p
-                    break
-            # If none found, we'll check user permissions below
-            if photo is None:
-                photo = photos.first()
 
         # grant access if the requested photo is public or part of any public user album
-        if photo.public or photo.albumuser_set.filter(public=True).exists():
-            response = HttpResponse()
-            response["Content-Type"] = "image/jpeg"
-            response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
-            return response
+        if self._is_public(photo):
+            return self._granted_response(path, fname)
 
         # forbid access if trouble with jwt
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                return HttpResponseForbidden()
-        else:
+        if jwt is None:
+            return HttpResponseForbidden()
+        try:
+            token = AccessToken(jwt)
+        except TokenError:
             return HttpResponseForbidden()
 
         # grant access if the user is owner of the requested photo,
         # the photo is shared with the user, or the photo belongs to a public user album
         user = User.objects.filter(id=token["user_id"]).only("id").first()
         if photo.owner == user or user in photo.shared_to.all():
-            response = HttpResponse()
-            response["Content-Type"] = "image/jpeg"
-            response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
-            return response
-        else:
-            for album in photo.albumuser_set.only("shared_to", "public"):
-                if album.public or user in album.shared_to.all():
-                    response = HttpResponse()
-                    response["Content-Type"] = "image/jpeg"
-                    response["X-Accel-Redirect"] = self._get_protected_media_url(
-                        path, fname
-                    )
-                    return response
+            return self._granted_response(path, fname)
+        if self._shared_via_album(photo, user):
+            return self._granted_response(path, fname)
         return HttpResponse(status=404)
 
 
@@ -630,17 +605,19 @@ class UnifiedMediaAccessView(APIView):
         path = path.lstrip("/")
         return f"/protected_media/{path}/{fname}"
 
+    def _file_content_type(self, file_path):
+        try:
+            mime = magic.Magic(mime=True)
+            return mime.from_file(file_path)
+        except Exception:
+            return "application/octet-stream"
+
     def _serve_file_direct(self, file_path, content_type=None):
         if not os.path.exists(file_path):
             return HttpResponse(status=404)
         try:
             handle = open(file_path, "rb")
-            if not content_type:
-                try:
-                    mime = magic.Magic(mime=True)
-                    content_type = mime.from_file(file_path)
-                except Exception:
-                    content_type = "application/octet-stream"
+            content_type = content_type or self._file_content_type(file_path)
             # Ranges matter here and nowhere else in this class: behind the
             # bundled proxy the bytes never come from Django, but an install
             # serving media itself has to answer a seek on its own, and a video
@@ -819,42 +796,62 @@ class UnifiedMediaAccessView(APIView):
         response["X-Accel-Redirect"] = self._protected_media_url(path, fname)
         return response
 
+    def _big_jpg_thumbnail_response(self, photo, fallback):
+        """Serve the big jpg thumbnail, or ``fallback`` when it was never stored."""
+        big = self._thumbnail_field_for(photo, "thumbnails_big")
+        return self._serve_file_direct((big or fallback).path, "image/jpg")
+
+    def _stored_thumbnail_response(self, photo, path):
+        """Serve the thumbnail the model names, or ``None`` to fall back.
+
+        Resolve from the model first: `fname` is the Photo UUID for
+        UUID-addressed requests, and no thumbnail is ever stored under that
+        name, so the request-derived lookup can only ever 404 for them.
+        """
+        thumb = self._thumbnail_field_for(photo, path)
+        if thumb is None:
+            return None
+        ext = os.path.splitext(thumb.name)[1]
+        if "jpg" in ext:
+            # Legacy jpg thumbnails: only the big variant is usable.
+            return self._big_jpg_thumbnail_response(photo, thumb)
+        if os.path.exists(thumb.path):
+            return self._serve_file_direct(
+                thumb.path,
+                "video/mp4" if "mp4" in ext else "image/webp",
+            )
+        return None
+
+    def _suffixed_thumbnail_response(self, path, fname):
+        """Serve ``fname`` with a thumbnail extension appended, if one is there."""
+        for ext, content_type in ((".webp", "image/webp"), (".mp4", "video/mp4")):
+            if fname.endswith(ext):
+                continue
+            candidate = os.path.join(settings.MEDIA_ROOT, path, fname + ext)
+            if os.path.exists(candidate):
+                return self._serve_file_direct(candidate, content_type)
+        return None
+
+    def _thumbnail_response_direct(self, photo, path, fname):
+        response = self._stored_thumbnail_response(photo, path)
+        if response is not None:
+            return response
+
+        file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+        if not os.path.exists(file_path):
+            response = self._suffixed_thumbnail_response(path, fname)
+            if response is not None:
+                return response
+        # Legacy jpg installs may never have populated the small/square
+        # variants; fall back to the big jpg for any of them, as before.
+        square = self._thumbnail_field_for(photo, "square_thumbnails")
+        if square is not None and "jpg" in os.path.splitext(square.name)[1]:
+            return self._big_jpg_thumbnail_response(photo, square)
+        return self._serve_file_direct(file_path)
+
     def _generate_response_direct(self, photo, path, fname, transcode_videos):
         if "thumbnail" in path:
-            # Resolve from the model first: `fname` is the Photo UUID for
-            # UUID-addressed requests, and no thumbnail is ever stored under
-            # that name, so the request-derived lookup below can only ever
-            # 404 for them.
-            thumb = self._thumbnail_field_for(photo, path)
-            if thumb is not None:
-                ext = os.path.splitext(thumb.name)[1]
-                if "jpg" in ext:
-                    # Legacy jpg thumbnails: only the big variant is usable.
-                    big = self._thumbnail_field_for(photo, "thumbnails_big")
-                    return self._serve_file_direct((big or thumb).path, "image/jpg")
-                if os.path.exists(thumb.path):
-                    return self._serve_file_direct(
-                        thumb.path,
-                        "video/mp4" if "mp4" in ext else "image/webp",
-                    )
-
-            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
-            if not os.path.exists(file_path):
-                if not fname.endswith(".webp"):
-                    webp = os.path.join(settings.MEDIA_ROOT, path, fname + ".webp")
-                    if os.path.exists(webp):
-                        return self._serve_file_direct(webp, "image/webp")
-                if not fname.endswith(".mp4"):
-                    mp4 = os.path.join(settings.MEDIA_ROOT, path, fname + ".mp4")
-                    if os.path.exists(mp4):
-                        return self._serve_file_direct(mp4, "video/mp4")
-            # Legacy jpg installs may never have populated the small/square
-            # variants; fall back to the big jpg for any of them, as before.
-            square = self._thumbnail_field_for(photo, "square_thumbnails")
-            if square is not None and "jpg" in os.path.splitext(square.name)[1]:
-                big = self._thumbnail_field_for(photo, "thumbnails_big")
-                return self._serve_file_direct((big or square).path, "image/jpg")
-            return self._serve_file_direct(file_path)
+            return self._thumbnail_response_direct(photo, path, fname)
 
         if "faces" in path:
             file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
@@ -878,11 +875,7 @@ class UnifiedMediaAccessView(APIView):
         """
         if photo.video and transcode_videos:
             return self._transcoded_video_response(photo, use_proxy=use_proxy)
-        try:
-            mime = magic.Magic(mime=True)
-            content_type = mime.from_file(photo.main_file.path)
-        except Exception:
-            content_type = "application/octet-stream"
+        content_type = self._file_content_type(photo.main_file.path)
 
         if use_proxy:
             response = HttpResponse()
@@ -963,198 +956,163 @@ class UnifiedMediaAccessView(APIView):
             self._public_album_active_q() | Q(shared_to=user)
         ).exists()
 
-    def get(self, request, path, fname, album_id=None, format=None):
-        use_proxy = self._should_use_proxy()
+    @staticmethod
+    def _is_uuid_format(value):
+        return len(value) == 36 and value.count("-") == 4
 
-        # ZIP files
-        if path.lower() == "zip":
-            jwt = request.COOKIES.get("jwt")
-            if jwt is not None:
-                try:
-                    token = AccessToken(jwt)
-                except TokenError:
-                    return self._forbidden_unauthenticated()
-            else:
-                return self._forbidden_unauthenticated()
-            try:
-                filename = fname + str(token["user_id"]) + ".zip"
-                if use_proxy:
-                    response = HttpResponse()
-                    response["Content-Type"] = "application/x-zip-compressed"
-                    response["X-Accel-Redirect"] = self._protected_media_url(
-                        path, filename
-                    )
-                    return response
-                file_path = os.path.join(settings.MEDIA_ROOT, path, filename)
-                return self._serve_file_direct(
-                    file_path, "application/x-zip-compressed"
-                )
-            except Exception:
-                return self._forbidden_unauthenticated()
+    def _token_or_none(self, request):
+        jwt = request.COOKIES.get("jwt")
+        if jwt is None:
+            return None
+        try:
+            return AccessToken(jwt)
+        except TokenError:
+            return None
 
-        # Avatars
-        if path.lower() == "avatars":
-            jwt = request.COOKIES.get("jwt")
-            if jwt is not None:
-                try:
-                    token = AccessToken(jwt)
-                except TokenError:
-                    return self._forbidden_unauthenticated()
-            else:
-                return self._forbidden_unauthenticated()
-            try:
-                _ = User.objects.filter(id=token["user_id"]).only("id").first()
-                if use_proxy:
-                    response = HttpResponse()
-                    response["Content-Type"] = "image/png"
-                    response["X-Accel-Redirect"] = self._protected_media_url(
-                        path, fname
-                    )
-                    return response
-                file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
-                return self._serve_file_direct(file_path, "image/png")
-            except Exception:
-                return HttpResponse(status=404)
+    def _generate_response(self, photo, path, fname, transcode_videos, use_proxy):
+        if use_proxy:
+            return self._generate_response_proxy(photo, path, fname, transcode_videos)
+        return self._generate_response_direct(photo, path, fname, transcode_videos)
 
-        # Embedded media
-        if path.lower() == "embedded_media":
-            jwt = request.COOKIES.get("jwt")
-            query = Q(public=True)
-            if request.user.is_authenticated:
-                query = Q(owner=request.user)
-            if jwt is not None:  # pragma: no cover
-                try:
-                    token = AccessToken(jwt)
-                    user = User.objects.filter(id=token["user_id"]).only("id").first()
-                    query = Q(owner=user)
-                except TokenError:
-                    pass
-            try:
-                # Check if fname is UUID format (36 chars with 4 hyphens) or image_hash
-                is_uuid_format = len(fname) == 36 and fname.count("-") == 4
-                if is_uuid_format:
-                    photo = Photo.objects.filter(query, pk=fname).first()
-                else:
-                    photo = Photo.objects.filter(query, image_hash=fname).first()
-                embedded_media_file = (
-                    photo.main_file.embedded_media.first() if photo else None
-                )
-                if not photo or not embedded_media_file:
-                    raise Photo.DoesNotExist()
-            except Photo.DoesNotExist:
-                return HttpResponse(status=404)
-            if use_proxy:
-                response = HttpResponse()
-                response["Content-Type"] = "video/mp4"
-                response["X-Accel-Redirect"] = self._protected_media_url(
-                    path, os.path.basename(embedded_media_file.path)
-                )
-                return response
-            return self._serve_file_direct(embedded_media_file.path, "video/mp4")
+    def _lookup_photo(self, image_hash, user, allow_uuid=False):
+        """Resolve a request's hash (or, where allowed, UUID) to a single Photo.
 
-        # Determine photo by hash
-        image_hash = fname.split(".")[0].split("_")[0]
-
-        # Public album access
-        if album_id is not None:
-            album = (
-                AlbumUser.objects.filter(id=album_id)
-                .filter(self._public_album_active_q())
-                .first()
+        UUID lookups exist for new-style requests made after migration 0099;
+        the image_hash lookup stays for legacy/backward compatibility. Returns
+        None when nothing the requester could be shown matches.
+        """
+        try:
+            if allow_uuid and self._is_uuid_format(image_hash):
+                return Photo.objects.get(pk=image_hash)
+            return Photo.objects.get(image_hash=image_hash)
+        except Photo.DoesNotExist:
+            return None
+        except Photo.MultipleObjectsReturned:
+            return self._pick_visible_photo(
+                Photo.objects.filter(image_hash=image_hash), user
             )
-            if album is None:
-                return HttpResponse(status=404)
-            try:
-                photo = album.photos.only(
-                    "image_hash", "video", "main_file", "thumbnail"
-                ).get(image_hash=image_hash)
-            except Photo.DoesNotExist:
-                return HttpResponse(status=404)
 
-            if "thumbnail" in path or "thumbnails" in path or "faces" in path:
-                if use_proxy:
-                    return self._generate_response_proxy(photo, path, fname, False)
-                return self._generate_response_direct(photo, path, fname, False)
-
+    def _serve_zip(self, request, path, fname, use_proxy):
+        token = self._token_or_none(request)
+        if token is None:
+            return self._forbidden_unauthenticated()
+        try:
+            filename = fname + str(token["user_id"]) + ".zip"
             if use_proxy:
                 response = HttpResponse()
-                try:
-                    mime = magic.Magic(mime=True)
-                    filename = mime.from_file(photo.main_file.path)
-                except Exception:
-                    filename = "application/octet-stream"
-                response["Content-Type"] = filename if photo.video else "image/webp"
-                if photo.main_file.path.startswith(settings.PHOTOS):
-                    internal_path = (
-                        "/original" + photo.main_file.path[len(settings.PHOTOS) :]
-                    )
-                else:
-                    internal_path = photo.main_file.path
-                response["X-Accel-Redirect"] = iri_to_uri(internal_path)
+                response["Content-Type"] = "application/x-zip-compressed"
+                response["X-Accel-Redirect"] = self._protected_media_url(path, filename)
                 return response
+            file_path = os.path.join(settings.MEDIA_ROOT, path, filename)
+            return self._serve_file_direct(file_path, "application/x-zip-compressed")
+        except Exception:
+            return self._forbidden_unauthenticated()
+
+    def _serve_avatar(self, request, path, fname, use_proxy):
+        token = self._token_or_none(request)
+        if token is None:
+            return self._forbidden_unauthenticated()
+        try:
+            _ = User.objects.filter(id=token["user_id"]).only("id").first()
+            if use_proxy:
+                response = HttpResponse()
+                response["Content-Type"] = "image/png"
+                response["X-Accel-Redirect"] = self._protected_media_url(path, fname)
+                return response
+            file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
+            return self._serve_file_direct(file_path, "image/png")
+        except Exception:
+            return HttpResponse(status=404)
+
+    def _embedded_media_query(self, request):
+        query = Q(public=True)
+        if request.user.is_authenticated:
+            query = Q(owner=request.user)
+        jwt = request.COOKIES.get("jwt")
+        if jwt is not None:  # pragma: no cover
             try:
-                mime = magic.Magic(mime=True)
-                content_type = mime.from_file(photo.main_file.path)
-            except Exception:
-                content_type = "application/octet-stream"
+                token = AccessToken(jwt)
+                user = User.objects.filter(id=token["user_id"]).only("id").first()
+                query = Q(owner=user)
+            except TokenError:
+                pass
+        return query
+
+    def _serve_embedded_media(self, request, path, fname, use_proxy):
+        query = self._embedded_media_query(request)
+        if self._is_uuid_format(fname):
+            photo = Photo.objects.filter(query, pk=fname).first()
+        else:
+            photo = Photo.objects.filter(query, image_hash=fname).first()
+        embedded_media_file = photo.main_file.embedded_media.first() if photo else None
+        if not embedded_media_file:
+            return HttpResponse(status=404)
+        if use_proxy:
+            response = HttpResponse()
+            response["Content-Type"] = "video/mp4"
+            response["X-Accel-Redirect"] = self._protected_media_url(
+                path, os.path.basename(embedded_media_file.path)
+            )
+            return response
+        return self._serve_file_direct(embedded_media_file.path, "video/mp4")
+
+    def _serve_shared_album_media(self, album_id, image_hash, path, fname, use_proxy):
+        album = (
+            AlbumUser.objects.filter(id=album_id)
+            .filter(self._public_album_active_q())
+            .first()
+        )
+        if album is None:
+            return HttpResponse(status=404)
+        try:
+            photo = album.photos.only(
+                "image_hash", "video", "main_file", "thumbnail"
+            ).get(image_hash=image_hash)
+        except Photo.DoesNotExist:
+            return HttpResponse(status=404)
+
+        if "thumbnail" in path or "thumbnails" in path or "faces" in path:
+            return self._generate_response(photo, path, fname, False, use_proxy)
+
+        content_type = self._file_content_type(photo.main_file.path)
+        if not use_proxy:
             return self._serve_file_direct(
                 photo.main_file.path, content_type if photo.video else "image/webp"
             )
+        response = HttpResponse()
+        response["Content-Type"] = content_type if photo.video else "image/webp"
+        if photo.main_file.path.startswith(settings.PHOTOS):
+            internal_path = "/original" + photo.main_file.path[len(settings.PHOTOS) :]
+        else:
+            internal_path = photo.main_file.path
+        response["X-Accel-Redirect"] = iri_to_uri(internal_path)
+        return response
 
-        # Non-photos (thumbnails, faces, etc.)
-        if path.lower() != "photos":
-            # Resolved up front so that a hash shared by several Photo rows can
-            # be resolved in the requester's favour.
-            user, token_valid = self._resolve_requester(request.COOKIES.get("jwt"))
-
-            # Try UUID lookup first (for new-style requests after migration 0099),
-            # then fall back to image_hash lookup (for legacy/backward compatibility)
-            is_uuid_format = len(image_hash) == 36 and image_hash.count("-") == 4
-            try:
-                if is_uuid_format:
-                    photo = Photo.objects.get(pk=image_hash)
-                else:
-                    photo = Photo.objects.get(image_hash=image_hash)
-            except Photo.DoesNotExist:
-                return HttpResponse(status=404)
-            except Photo.MultipleObjectsReturned:
-                photo = self._pick_visible_photo(
-                    Photo.objects.filter(image_hash=image_hash), user
-                )
-                if photo is None:
-                    return HttpResponse(status=404)
-
-            if photo.albumuser_set.filter(self._public_album_active_q()).exists():
-                if use_proxy:
-                    return self._generate_response_proxy(photo, path, fname, False)
-                return self._generate_response_direct(photo, path, fname, False)
-
-            if not token_valid:
-                return self._forbidden_unauthenticated()
-
-            if self._may_access(photo, user):
-                if use_proxy:
-                    return self._generate_response_proxy(
-                        photo, path, fname, user.transcode_videos
-                    )
-                return self._generate_response_direct(
-                    photo, path, fname, user.transcode_videos
-                )
-            return HttpResponse(status=404)
-
-        # Original photos (path == photos)
+    def _serve_derived_media(self, request, image_hash, path, fname, use_proxy):
+        # The requester is resolved up front so that a hash shared by several
+        # Photo rows can be resolved in their favour.
         user, token_valid = self._resolve_requester(request.COOKIES.get("jwt"))
-
-        try:
-            photo = Photo.objects.get(image_hash=image_hash)
-        except Photo.DoesNotExist:
+        photo = self._lookup_photo(image_hash, user, allow_uuid=True)
+        if photo is None:
             return HttpResponse(status=404)
-        except Photo.MultipleObjectsReturned:
-            photo = self._pick_visible_photo(
-                Photo.objects.filter(image_hash=image_hash), user
+
+        if photo.albumuser_set.filter(self._public_album_active_q()).exists():
+            return self._generate_response(photo, path, fname, False, use_proxy)
+
+        if not token_valid:
+            return self._forbidden_unauthenticated()
+
+        if self._may_access(photo, user):
+            return self._generate_response(
+                photo, path, fname, user.transcode_videos, use_proxy
             )
-            if photo is None:
-                return HttpResponse(status=404)
+        return HttpResponse(status=404)
+
+    def _serve_original_media(self, request, image_hash, use_proxy):
+        user, token_valid = self._resolve_requester(request.COOKIES.get("jwt"))
+        photo = self._lookup_photo(image_hash, user)
+        if photo is None:
+            return HttpResponse(status=404)
 
         if photo.albumuser_set.filter(self._public_album_active_q()).exists():
             return self._generate_response_original(photo, use_proxy, False)
@@ -1172,6 +1130,28 @@ class UnifiedMediaAccessView(APIView):
         if self._may_access(photo, user):
             return self._generate_response_original(photo, use_proxy, transcode_videos)
         return HttpResponse(status=404)
+
+    def get(self, request, path, fname, album_id=None, format=None):
+        use_proxy = self._should_use_proxy()
+        kind = path.lower()
+
+        if kind == "zip":
+            return self._serve_zip(request, path, fname, use_proxy)
+        if kind == "avatars":
+            return self._serve_avatar(request, path, fname, use_proxy)
+        if kind == "embedded_media":
+            return self._serve_embedded_media(request, path, fname, use_proxy)
+
+        image_hash = fname.split(".")[0].split("_")[0]
+        if album_id is not None:
+            return self._serve_shared_album_media(
+                album_id, image_hash, path, fname, use_proxy
+            )
+        if kind != "photos":
+            return self._serve_derived_media(
+                request, image_hash, path, fname, use_proxy
+            )
+        return self._serve_original_media(request, image_hash, use_proxy)
 
 
 class ZipListPhotosView_V2(APIView):

@@ -7,6 +7,74 @@ from api.models.person import Person
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
 
+TIME_OF_DAY = (
+    (5, "Early Morning"),
+    (12, "Morning"),
+    (18, "Afternoon"),
+    (25, "Evening"),
+)
+WEEKEND = [5, 6]
+
+
+def _time_of_day(hour):
+    if hour <= 0:
+        return ""
+    for until, label in TIME_OF_DAY:
+        if hour < until:
+            return label
+    return ""
+
+
+def _collect_photo_details(photos):
+    places = []
+    people = []
+    timestamps = []
+    for photo in photos:
+        geolocation = photo.geolocation_json
+        if geolocation and len(geolocation.get("places", [])) > 0:
+            places = geolocation["places"]
+        timestamps.append(photo.exif_timestamp)
+        for face in photo.faces.all():
+            people.append(face.person.name)
+    return places, people, timestamps
+
+
+def _describe_places(places):
+    if not places:
+        return ""
+    return "in " + " and ".join(dict(Counter(places).most_common(2)).keys())
+
+
+def _describe_people(people):
+    if not people:
+        return ""
+    names = dict(
+        [
+            (k, v)
+            for k, v in Counter(people).most_common(2)
+            if k.lower() != "unknown" and k.lower() != Person.UNKNOWN_PERSON_NAME
+        ]
+    ).keys()
+    if not names:
+        return ""
+    return "with " + " and ".join(names)
+
+
+def _describe_span(timestamps, when):
+    if not timestamps:
+        return when
+    first = min(timestamps)
+    last = max(timestamps)
+    if (last - first).days >= 3:
+        when = "%d days" % ((last - first).days)
+    if (
+        last.weekday() in WEEKEND
+        and first.weekday() in WEEKEND
+        and last.weekday() != first.weekday()
+    ):
+        when = "Weekend"
+    return when
+
 
 class AlbumAuto(models.Model):
     title = models.CharField(
@@ -31,70 +99,16 @@ class AlbumAuto(models.Model):
         try:
             weekday = ""
             time = ""
-            loc = ""
             if self.timestamp:
                 weekday = util.weekdays[self.timestamp.isoweekday()]
-                hour = self.timestamp.hour
-                if hour > 0 and hour < 5:
-                    time = "Early Morning"
-                elif hour >= 5 and hour < 12:
-                    time = "Morning"
-                elif hour >= 12 and hour < 18:
-                    time = "Afternoon"
-                elif hour >= 18 and hour <= 24:
-                    time = "Evening"
+                time = _time_of_day(self.timestamp.hour)
 
             when = " ".join([weekday, time])
 
-            photos = self.photos.all()
-
-            loc = ""
-            pep = ""
-
-            places = []
-            people = []
-            timestamps = []
-
-            for photo in photos:
-                if (
-                    photo.geolocation_json
-                    and "places" in photo.geolocation_json.keys()
-                    and len(photo.geolocation_json["places"]) > 0
-                ):
-                    places = photo.geolocation_json["places"]
-
-                timestamps.append(photo.exif_timestamp)
-
-                faces = photo.faces.all()
-                for face in faces:
-                    people.append(face.person.name)
-
-            if len(places) > 0:
-                cnts_places = Counter(places)
-                loc = "in " + " and ".join(dict(cnts_places.most_common(2)).keys())
-            if len(people) > 0:
-                cnts_people = Counter(people)
-                names = dict(
-                    [
-                        (k, v)
-                        for k, v in cnts_people.most_common(2)
-                        if k.lower() != "unknown"
-                        and k.lower() != Person.UNKNOWN_PERSON_NAME
-                    ]
-                ).keys()
-                if len(names) > 0:
-                    pep = "with " + " and ".join(names)
-            if len(timestamps) > 0:
-                if (max(timestamps) - min(timestamps)).days >= 3:
-                    when = "%d days" % ((max(timestamps) - min(timestamps)).days)
-
-                weekend = [5, 6]
-                if (
-                    max(timestamps).weekday() in weekend
-                    and min(timestamps).weekday() in weekend
-                    and not (max(timestamps).weekday() == min(timestamps).weekday())
-                ):
-                    when = "Weekend"
+            places, people, timestamps = _collect_photo_details(self.photos.all())
+            loc = _describe_places(places)
+            pep = _describe_people(people)
+            when = _describe_span(timestamps, when)
 
             title = " ".join([when, pep, loc]).strip()
             # Ensure title is never empty

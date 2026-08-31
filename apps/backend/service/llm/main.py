@@ -29,41 +29,45 @@ def log(message):
     print(f"llm: {message}")
 
 
+def create_moondream_model(model_path):
+    """Build a Moondream model wired to its multimodal chat handler"""
+    from llama_cpp.llama_chat_format import MoondreamChatHandler
+
+    mmproj_path = "/protected_media/data_models/moondream2-mmproj-f16.gguf"
+
+    if not Path(mmproj_path).exists():
+        raise Exception(f"Moondream mmproj file not found at {mmproj_path}")
+
+    log(f"Loading Moondream chat handler with mmproj: {mmproj_path}")
+    chat_handler = MoondreamChatHandler(clip_model_path=mmproj_path)
+
+    return Llama(
+        model_path=model_path,
+        chat_handler=chat_handler,
+        n_ctx=2048,  # Increase context window for image processing
+        verbose=False,
+    )
+
+
 def load_model(model_path, multimodal=False):
     """Load a model with optional multimodal support"""
     global llm_model, current_model_path
 
-    if llm_model is None or current_model_path != model_path:
-        try:
-            log(f"Loading model from {model_path}, multimodal: {multimodal}")
-            if multimodal:
-                # For Moondream, we need to use the chat handler approach
-                from llama_cpp.llama_chat_format import MoondreamChatHandler
+    if llm_model is not None and current_model_path == model_path:
+        return
 
-                # Path to the mmproj file for Moondream
-                mmproj_path = "/protected_media/data_models/moondream2-mmproj-f16.gguf"
+    try:
+        log(f"Loading model from {model_path}, multimodal: {multimodal}")
+        if multimodal:
+            llm_model = create_moondream_model(model_path)
+        else:
+            llm_model = Llama(model_path=model_path, verbose=False)
 
-                if not Path(mmproj_path).exists():
-                    raise Exception(f"Moondream mmproj file not found at {mmproj_path}")
-
-                log(f"Loading Moondream chat handler with mmproj: {mmproj_path}")
-                chat_handler = MoondreamChatHandler(clip_model_path=mmproj_path)
-
-                llm_model = Llama(
-                    model_path=model_path,
-                    chat_handler=chat_handler,
-                    n_ctx=2048,  # Increase context window for image processing
-                    verbose=False,
-                )
-            else:
-                # For text-only models
-                llm_model = Llama(model_path=model_path, verbose=False)
-
-            current_model_path = model_path
-            log("Model loaded successfully")
-        except Exception as e:
-            log(f"Error loading model: {str(e)}")
-            raise
+        current_model_path = model_path
+        log("Model loaded successfully")
+    except Exception as e:
+        log(f"Error loading model: {str(e)}")
+        raise
 
 
 @app.route("/generate", methods=["POST"])

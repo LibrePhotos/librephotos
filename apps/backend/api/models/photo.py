@@ -23,6 +23,9 @@ from api.models.user import User, get_deleted_user
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou, logger
 
 
+_NO_PLACES365 = object()
+
+
 def _overlaps_existing_face(existing_face_locations, top, right, bottom, left):
     """Return True if a new face region overlaps significantly with any
     existing face (IoU >= FACE_OVERLAP_IOU_THRESHOLD).
@@ -36,6 +39,16 @@ def _overlaps_existing_face(existing_face_locations, top, right, bottom, left):
         if iou >= FACE_OVERLAP_IOU_THRESHOLD:
             return True
     return False
+
+
+def _has_usable_coordinates(lat, lon):
+    """Reject missing coordinates and the (0, 0) "null island" default that
+    cameras write when there is no fix. A single zero axis (the equator or the
+    prime meridian) is a valid location and must be kept.
+    """
+    if lat is None or lon is None:
+        return False
+    return not (float(lat) == 0.0 and float(lon) == 0.0)
 
 
 class VisiblePhotoManager(models.Manager):
@@ -330,68 +343,71 @@ class Photo(models.Model):
             try_sidecar=True,
         )
         old_album_places = self._find_album_place()
-        # Skip if coordinates are missing or the (0, 0) "null island" default
-        # that cameras write when there is no fix. A single zero axis (the
-        # equator or the prime meridian) is a valid location and must be kept.
-        if (
-            new_gps_lat is None
-            or new_gps_lon is None
-            or (float(new_gps_lat) == 0.0 and float(new_gps_lon) == 0.0)
-        ):
+        if not _has_usable_coordinates(new_gps_lat, new_gps_lon):
             return
         if (
             old_gps_lat == float(new_gps_lat)
             and old_gps_lon == float(new_gps_lon)
             and old_album_places.exists()
-            and self.geolocation_json
-            and "_v" in self.geolocation_json
-            and self.geolocation_json["_v"] == GEOCODE_VERSION
+            and self._has_current_geolocation()
         ):
             return
         self.exif_gps_lon = float(new_gps_lon)
         self.exif_gps_lat = float(new_gps_lat)
         if commit:
             self.save()
-        try:
-            res = reverse_geocode(new_gps_lat, new_gps_lon)
-            if not res:
-                return
-        except Exception as e:
-            util.logger.warning(e)
-            util.logger.warning("Something went wrong with geolocating")
+
+        res = self._reverse_geocode_safely(new_gps_lat, new_gps_lon)
+        if not res:
             return
 
         self.geolocation_json = res
+        self._update_search_location(res)
+        self._move_to_album_places(old_album_places)
 
-        # Update search location through PhotoSearch model
+        if commit:
+            self.save()
+
+    def _has_current_geolocation(self):
+        return bool(
+            self.geolocation_json
+            and "_v" in self.geolocation_json
+            and self.geolocation_json["_v"] == GEOCODE_VERSION
+        )
+
+    def _reverse_geocode_safely(self, lat, lon):
+        try:
+            return reverse_geocode(lat, lon)
+        except Exception as e:
+            util.logger.warning(e)
+            util.logger.warning("Something went wrong with geolocating")
+            return None
+
+    def _update_search_location(self, res):
         from api.models.photo_search import PhotoSearch
 
-        search_instance, created = PhotoSearch.objects.get_or_create(photo=self)
+        search_instance, _ = PhotoSearch.objects.get_or_create(photo=self)
         search_instance.update_search_location(res)
         search_instance.save()
 
+    def _move_to_album_places(self, old_album_places):
         # Delete photo from album places if location has changed
         if old_album_places is not None:
             for old_album_place in old_album_places:
                 old_album_place.photos.remove(self)
                 old_album_place.save()
 
-        # Add photo to new album places
-        for geolocation_level, feature in enumerate(self.geolocation_json["features"]):
+        features = self.geolocation_json["features"]
+        for geolocation_level, feature in enumerate(features):
             if "text" not in feature.keys() or feature["text"].isnumeric():
                 continue
             album_place = api.models.album_place.get_album_place(
                 feature["text"], owner=self.owner
             )
             if not album_place.photos.filter(image_hash=self.image_hash).exists():
-                album_place.geolocation_level = (
-                    len(self.geolocation_json["features"]) - geolocation_level
-                )
+                album_place.geolocation_level = len(features) - geolocation_level
             album_place.photos.add(self)
             album_place.save()
-
-        if commit:
-            self.save()
 
     def _add_location_to_album_dates(self):
         places = (self.geolocation_json or {}).get("places") or []
@@ -421,136 +437,158 @@ class Photo(models.Model):
             api.models.cluster.get_unknown_cluster(user=self.owner)
         )
         try:
-            big_thumbnail_image = np.array(
-                PIL.Image.open(self.thumbnail.thumbnail_big.path)
-            )
-
-            face_locations = face_extractor.extract(
-                self.main_file.path, self.thumbnail.thumbnail_big.path, self.owner
-            )
-
-            if len(face_locations) == 0:
-                return
-
-            # Fetch existing face locations once to avoid repeated DB queries.
-            existing_face_locations = list(
-                api.models.face.Face.objects.filter(photo=self).values_list(
-                    "location_top", "location_right", "location_bottom", "location_left"
-                )
-            )
-
-            for idx_face, face_location in enumerate(face_locations):
-                top, right, bottom, left, person_name = face_location
-                if person_name:
-                    person = api.models.person.get_or_create_person(
-                        name=person_name,
-                        owner=self.owner,
-                        kind=api.models.person.Person.KIND_USER,
-                    )
-                    person.save()
-                else:
-                    person = None
-
-                face_image = big_thumbnail_image[top:bottom, left:right]
-                face_image = PIL.Image.fromarray(face_image)
-
-                image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
-
-                if _overlaps_existing_face(
-                    existing_face_locations, top, right, bottom, left
-                ):
-                    if person is not None:
-                        for existing_face in api.models.face.Face.objects.filter(
-                            photo=self
-                        ):
-                            existing_location = (
-                                existing_face.location_top,
-                                existing_face.location_right,
-                                existing_face.location_bottom,
-                                existing_face.location_left,
-                            )
-                            if _overlaps_existing_face(
-                                [existing_location], top, right, bottom, left
-                            ):
-                                if existing_face.person_id is None:
-                                    existing_face.person = person
-                                    existing_face.save(update_fields=["person"])
-                                    person._calculate_face_count()
-                                    person._set_default_cover_photo()
-                                    logger.warning(
-                                        f"XMP face reconciliation: assigned {person_name} "
-                                        f"to existing face {existing_face.id}"
-                                    )
-                                break
-                    continue
-
-                face = api.models.face.Face(
-                    photo=self,
-                    location_top=top,
-                    location_right=right,
-                    location_bottom=bottom,
-                    location_left=left,
-                    encoding="",
-                    person=person,
-                    cluster=unknown_cluster,
-                )
-                face_io = BytesIO()
-                if face_image.mode in ("RGBA", "P"):
-                    face_image = face_image.convert("RGB")
-                face_image.save(face_io, format="JPEG")
-                face.image.save(image_path, ContentFile(face_io.getvalue()))
-                face_io.close()
-                face.save()
-                if person_name:
-                    person._calculate_face_count()
-                    person._set_default_cover_photo()
-                existing_face_locations.append((top, right, bottom, left))
-            logger.info(f"image {self.image_hash}: {len(face_locations)} face(s) saved")
+            self._detect_and_save_faces(unknown_cluster)
         except IntegrityError:
-            # When using multiple processes, then we can save at the same time, which leads to this error
-            if self.files.exists():
-                # print out the location of the image only if we have a path
-                logger.info(f"image {self.main_file.path}: rescan face failed")
-            if not second_try:
-                self._extract_faces(True)
-            elif self.files.exists():
-                logger.error(f"image {self.main_file.path}: rescan face failed")
-            else:
-                logger.error(f"image {self}: rescan face failed")
+            self._retry_face_extraction(second_try)
         except Exception as e:
             logger.error(f"image {self}: scan face failed")
             raise e
 
+    def _detect_and_save_faces(self, unknown_cluster):
+        big_thumbnail_image = np.array(
+            PIL.Image.open(self.thumbnail.thumbnail_big.path)
+        )
+
+        face_locations = face_extractor.extract(
+            self.main_file.path, self.thumbnail.thumbnail_big.path, self.owner
+        )
+
+        if len(face_locations) == 0:
+            return
+
+        # Fetch existing face locations once to avoid repeated DB queries.
+        existing_face_locations = list(
+            api.models.face.Face.objects.filter(photo=self).values_list(
+                "location_top", "location_right", "location_bottom", "location_left"
+            )
+        )
+
+        for idx_face, face_location in enumerate(face_locations):
+            top, right, bottom, left, person_name = face_location
+            person = self._get_or_create_named_person(person_name)
+
+            face_image = big_thumbnail_image[top:bottom, left:right]
+            face_image = PIL.Image.fromarray(face_image)
+
+            image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
+
+            if _overlaps_existing_face(
+                existing_face_locations, top, right, bottom, left
+            ):
+                if person is not None:
+                    self._reconcile_xmp_face_name(
+                        person, person_name, (top, right, bottom, left)
+                    )
+                continue
+
+            self._save_detected_face(
+                face_image,
+                image_path,
+                person,
+                unknown_cluster,
+                (top, right, bottom, left),
+            )
+            if person_name:
+                person._calculate_face_count()
+                person._set_default_cover_photo()
+            existing_face_locations.append((top, right, bottom, left))
+        logger.info(f"image {self.image_hash}: {len(face_locations)} face(s) saved")
+
+    def _get_or_create_named_person(self, person_name):
+        if not person_name:
+            return None
+        person = api.models.person.get_or_create_person(
+            name=person_name,
+            owner=self.owner,
+            kind=api.models.person.Person.KIND_USER,
+        )
+        person.save()
+        return person
+
+    def _reconcile_xmp_face_name(self, person, person_name, location):
+        top, right, bottom, left = location
+        for existing_face in api.models.face.Face.objects.filter(photo=self):
+            existing_location = (
+                existing_face.location_top,
+                existing_face.location_right,
+                existing_face.location_bottom,
+                existing_face.location_left,
+            )
+            if not _overlaps_existing_face(
+                [existing_location], top, right, bottom, left
+            ):
+                continue
+            if existing_face.person_id is None:
+                existing_face.person = person
+                existing_face.save(update_fields=["person"])
+                person._calculate_face_count()
+                person._set_default_cover_photo()
+                logger.warning(
+                    f"XMP face reconciliation: assigned {person_name} "
+                    f"to existing face {existing_face.id}"
+                )
+            break
+
+    def _save_detected_face(self, face_image, image_path, person, cluster, location):
+        top, right, bottom, left = location
+        face = api.models.face.Face(
+            photo=self,
+            location_top=top,
+            location_right=right,
+            location_bottom=bottom,
+            location_left=left,
+            encoding="",
+            person=person,
+            cluster=cluster,
+        )
+        face_io = BytesIO()
+        if face_image.mode in ("RGBA", "P"):
+            face_image = face_image.convert("RGB")
+        face_image.save(face_io, format="JPEG")
+        face.image.save(image_path, ContentFile(face_io.getvalue()))
+        face_io.close()
+        face.save()
+
+    def _retry_face_extraction(self, second_try):
+        # When using multiple processes, then we can save at the same time, which leads to this error
+        if self.files.exists():
+            # print out the location of the image only if we have a path
+            logger.info(f"image {self.main_file.path}: rescan face failed")
+        if not second_try:
+            self._extract_faces(True)
+        elif self.files.exists():
+            logger.error(f"image {self.main_file.path}: rescan face failed")
+        else:
+            logger.error(f"image {self}: rescan face failed")
+
+    def _places365_captions(self):
+        caption_instance = getattr(self, "caption_instance", None)
+        if not caption_instance:
+            return _NO_PLACES365
+        captions_json = caption_instance.captions_json
+        if not captions_json or type(captions_json) is not dict:
+            return _NO_PLACES365
+        if "places365" not in captions_json.keys():
+            return _NO_PLACES365
+        return captions_json["places365"]
+
+    def _add_to_album_things(self, titles, thing_type):
+        for title in titles:
+            album_thing = api.models.album_thing.get_album_thing(
+                title=title,
+                owner=self.owner,
+            )
+            if not album_thing.photos.filter(image_hash=self.image_hash).exists():
+                album_thing.photos.add(self)
+                album_thing.thing_type = thing_type
+                album_thing.save()
+
     def _add_to_album_thing(self):
-        if (
-            hasattr(self, "caption_instance")
-            and self.caption_instance
-            and self.caption_instance.captions_json
-            and type(self.caption_instance.captions_json) is dict
-            and "places365" in self.caption_instance.captions_json.keys()
-        ):
-            for attribute in self.caption_instance.captions_json["places365"][
-                "attributes"
-            ]:
-                album_thing = api.models.album_thing.get_album_thing(
-                    title=attribute,
-                    owner=self.owner,
-                )
-                if not album_thing.photos.filter(image_hash=self.image_hash).exists():
-                    album_thing.photos.add(self)
-                    album_thing.thing_type = "places365_attribute"
-                    album_thing.save()
-            for category in self.caption_instance.captions_json["places365"][
-                "categories"
-            ]:
-                album_thing = api.models.album_thing.get_album_thing(
-                    title=category,
-                    owner=self.owner,
-                )
-                if not album_thing.photos.filter(image_hash=self.image_hash).exists():
-                    album_thing.photos.add(self)
-                    album_thing.thing_type = "places365_category"
-                    album_thing.save()
+        places365 = self._places365_captions()
+        if places365 is _NO_PLACES365:
+            return
+        self._add_to_album_things(places365["attributes"], "places365_attribute")
+        self._add_to_album_things(places365["categories"], "places365_category")
 
     def _check_files(self):
         for file in self.files.all():
@@ -676,29 +714,35 @@ class Photo(models.Model):
         # Regenerate thumbnails so the UI sees the updated orientation.
         self.thumbnail._regenerate_thumbnails()
 
-        # Write combined orientation to the file / sidecar when the user has
-        # opted into persisting metadata to disk.
-        user = self.owner
-        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
-            try:
-                exif_orientation = self.metadata.orientation or 1
-            except Exception:
-                exif_orientation = 1
+        self._write_orientation_to_disk(angle, flip_horizontal)
 
-            # Compose the user's local rotation with the original EXIF
-            # orientation so a standards-compliant viewer shows the image
-            # correctly without relying on LibrePhotos-specific DB fields.
-            combined = compose_orientation(
-                exif_orientation,
-                delta_angle_cw=angle,
-                flip_h=flip_horizontal,
-            )
-            use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
-            write_metadata(
-                self.main_file.path,
-                {Tags.ORIENTATION: combined},
-                use_sidecar=use_sidecar,
-            )
+    def _write_orientation_to_disk(self, angle: int, flip_horizontal: bool) -> None:
+        """Write the combined orientation to the file / sidecar when the user
+        has opted into persisting metadata to disk."""
+        user = self.owner
+        if user.save_metadata_to_disk == User.SaveMetadata.OFF:
+            return
+
+        from api.util import compose_orientation
+
+        try:
+            exif_orientation = self.metadata.orientation or 1
+        except Exception:
+            exif_orientation = 1
+
+        # Compose the user's local rotation with the original EXIF orientation
+        # so a standards-compliant viewer shows the image correctly without
+        # relying on LibrePhotos-specific DB fields.
+        combined = compose_orientation(
+            exif_orientation,
+            delta_angle_cw=angle,
+            flip_h=flip_horizontal,
+        )
+        write_metadata(
+            self.main_file.path,
+            {Tags.ORIENTATION: combined},
+            use_sidecar=user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE,
+        )
 
     def _set_embedded_media(self, obj):
         return obj.main_file.embedded_media

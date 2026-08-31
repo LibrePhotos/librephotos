@@ -9,6 +9,17 @@ from api import util
 from api.models.file import is_raw
 
 
+_ORIENTATION_TRANSFORMS = {
+    2: lambda image: image.flip(pyvips.enums.Direction.HORIZONTAL),
+    3: lambda image: image.rot180(),
+    4: lambda image: image.flip(pyvips.enums.Direction.VERTICAL),
+    5: lambda image: image.rot90().flip(pyvips.enums.Direction.HORIZONTAL),
+    6: lambda image: image.rot270(),
+    7: lambda image: image.rot270().flip(pyvips.enums.Direction.HORIZONTAL),
+    8: lambda image: image.rot90(),
+}
+
+
 def _apply_local_orientation(
     image: pyvips.Image, local_orientation: int
 ) -> pyvips.Image:
@@ -29,88 +40,85 @@ def _apply_local_orientation(
         7 – rotate 90° CW then flip horizontal
         8 – rotate 90° CCW (= 270° CW)
     """
-    if local_orientation == 1 or local_orientation is None:
+    transform = _ORIENTATION_TRANSFORMS.get(local_orientation)
+    if transform is None:
         return image
-    if local_orientation == 2:
-        return image.flip(pyvips.enums.Direction.HORIZONTAL)
-    if local_orientation == 3:
-        return image.rot180()
-    if local_orientation == 4:
-        return image.flip(pyvips.enums.Direction.VERTICAL)
-    if local_orientation == 5:
-        # 90° CCW + flip H
-        return image.rot90().flip(pyvips.enums.Direction.HORIZONTAL)
-    if local_orientation == 6:
-        # pyvips.rot270() rotates 270° counter-clockwise, which is the same
-        # as 90° clockwise — matching EXIF orientation 6 (display: 90° CW).
-        return image.rot270()
-    if local_orientation == 7:
-        # 90° CW + flip H
-        return image.rot270().flip(pyvips.enums.Direction.HORIZONTAL)
-    if local_orientation == 8:
-        # pyvips.rot90() rotates 90° counter-clockwise — matching EXIF
-        # orientation 8 (display: 270° CW = 90° CCW).
-        return image.rot90()
-    return image
+    return transform(image)
+
+
+def _media_path(output_path, hash, file_type):
+    return os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
+
+
+def _reorient_file_in_place(complete_path, local_orientation):
+    if not local_orientation or local_orientation == 1:
+        return
+    x = pyvips.Image.new_from_file(complete_path)
+    x = x.copy_memory()
+    x = _apply_local_orientation(x, local_orientation)
+    x.write_to_file(complete_path, Q=95)
+
+
+def _request_raw_thumbnail(input_path, output_height, complete_path, local_orientation):
+    json = {
+        "source": input_path,
+        "destination": complete_path,
+        "height": output_height,
+    }
+    from api.http_timeouts import THUMBNAIL
+
+    response = requests.post(
+        "http://localhost:8003/", json=json, timeout=THUMBNAIL
+    ).json()
+    # The RAW service applies auto-orientation internally.  Apply
+    # any user-specified rotation on top.
+    _reorient_file_in_place(complete_path, local_orientation)
+    return response["thumbnail"]
+
+
+def _resize_big_thumbnail(output_height, complete_path, hash, file_type):
+    # only encode raw image in worse case, smaller thumbnails can get created from the big thumbnail instead
+    big_thumbnail_path = os.path.join(
+        settings.MEDIA_ROOT, "thumbnails_big", hash + file_type
+    )
+    x = pyvips.Image.thumbnail(
+        big_thumbnail_path,
+        10000,
+        height=output_height,
+        size=pyvips.enums.Size.DOWN,
+    )
+    # The big thumbnail already has EXIF auto-rotation and any
+    # local_orientation applied, so we only resize here.
+    x.write_to_file(complete_path, Q=95)
+    return complete_path
+
+
+def _render_thumbnail(input_path, output_height, complete_path, local_orientation):
+    x = pyvips.Image.thumbnail(
+        input_path, 10000, height=output_height, size=pyvips.enums.Size.DOWN
+    )
+    if local_orientation and local_orientation != 1:
+        x = x.copy_memory()
+        x = _apply_local_orientation(x, local_orientation)
+    x.write_to_file(complete_path, Q=95)
+    return complete_path
 
 
 def create_thumbnail(
     input_path, output_height, output_path, hash, file_type, local_orientation=1
 ):
     try:
-        if is_raw(input_path):
-            if "thumbnails_big" in output_path:
-                complete_path = os.path.join(
-                    settings.MEDIA_ROOT, output_path, hash + file_type
-                )
-                json = {
-                    "source": input_path,
-                    "destination": complete_path,
-                    "height": output_height,
-                }
-                from api.http_timeouts import THUMBNAIL
-
-                response = requests.post(
-                    "http://localhost:8003/", json=json, timeout=THUMBNAIL
-                ).json()
-                # The RAW service applies auto-orientation internally.  Apply
-                # any user-specified rotation on top.
-                if local_orientation and local_orientation != 1:
-                    x = pyvips.Image.new_from_file(complete_path)
-                    x = x.copy_memory()
-                    x = _apply_local_orientation(x, local_orientation)
-                    x.write_to_file(complete_path, Q=95)
-                return response["thumbnail"]
-            else:
-                # only encode raw image in worse case, smaller thumbnails can get created from the big thumbnail instead
-                big_thumbnail_path = os.path.join(
-                    settings.MEDIA_ROOT, "thumbnails_big", hash + file_type
-                )
-                x = pyvips.Image.thumbnail(
-                    big_thumbnail_path,
-                    10000,
-                    height=output_height,
-                    size=pyvips.enums.Size.DOWN,
-                )
-                # The big thumbnail already has EXIF auto-rotation and any
-                # local_orientation applied, so we only resize here.
-                complete_path = os.path.join(
-                    settings.MEDIA_ROOT, output_path, hash + file_type
-                )
-                x.write_to_file(complete_path, Q=95)
-            return complete_path
-        else:
-            x = pyvips.Image.thumbnail(
-                input_path, 10000, height=output_height, size=pyvips.enums.Size.DOWN
+        raw = is_raw(input_path)
+        complete_path = _media_path(output_path, hash, file_type)
+        if not raw:
+            return _render_thumbnail(
+                input_path, output_height, complete_path, local_orientation
             )
-            if local_orientation and local_orientation != 1:
-                x = x.copy_memory()
-                x = _apply_local_orientation(x, local_orientation)
-            complete_path = os.path.join(
-                settings.MEDIA_ROOT, output_path, hash + file_type
+        if "thumbnails_big" in output_path:
+            return _request_raw_thumbnail(
+                input_path, output_height, complete_path, local_orientation
             )
-            x.write_to_file(complete_path, Q=95)
-            return complete_path
+        return _resize_big_thumbnail(output_height, complete_path, hash, file_type)
     except Exception as e:
         util.logger.error(f"Could not create thumbnail for file {input_path}")
         raise e

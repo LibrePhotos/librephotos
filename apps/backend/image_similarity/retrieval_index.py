@@ -7,6 +7,26 @@ from utils import logger
 embedding_size = 512
 
 
+def _reshaped_embeddings(embeddings_array, user_id):
+    """Return the array shaped as (n_vectors, embedding_size), or None if invalid."""
+    if embeddings_array.size == 0:
+        logger.warning(f"Empty embeddings array for user {user_id}")
+        return None
+
+    dimensions = len(embeddings_array.shape)
+    if dimensions == 1:
+        return embeddings_array.reshape(1, -1)
+    if dimensions != 2:
+        logger.error(f"Unexpected embedding shape: {embeddings_array.shape}")
+        return None
+    if embeddings_array.shape[1] != embedding_size:
+        logger.error(
+            f"Expected embedding size {embedding_size}, got {embeddings_array.shape[1]}"
+        )
+        return None
+    return embeddings_array
+
+
 class RetrievalIndex:
     def __init__(self):
         self.indices = {}
@@ -29,37 +49,14 @@ class RetrievalIndex:
         if not self.image_hashes.get(user_id):
             self.image_hashes[user_id] = []
 
-        # Convert embeddings to numpy array and ensure correct shape
         # FAISS expects shape (n_vectors, embedding_size)
-        embeddings_array = np.array(image_embeddings, dtype=np.float32)
-
-        # Handle empty or invalid arrays
-        if embeddings_array.size == 0:
-            logger.warning(f"Empty embeddings array for user {user_id}")
+        embeddings_array = _reshaped_embeddings(
+            np.array(image_embeddings, dtype=np.float32), user_id
+        )
+        if embeddings_array is None:
             return
 
-        if len(embeddings_array.shape) == 1:
-            # If we got a single vector, reshape it to (1, embedding_size)
-            embeddings_array = embeddings_array.reshape(1, -1)
-        elif len(embeddings_array.shape) == 2:
-            # If we got multiple vectors, ensure the second dimension is embedding_size
-            if embeddings_array.shape[1] != embedding_size:
-                logger.error(
-                    f"Expected embedding size {embedding_size}, got {embeddings_array.shape[1]}"
-                )
-                return
-        else:
-            logger.error(f"Unexpected embedding shape: {embeddings_array.shape}")
-            return
-
-        try:
-            self.indices[user_id].add(embeddings_array)
-            # Add hashes to the list
-            self.image_hashes[user_id].extend(image_hashes)
-        except Exception as e:
-            logger.error(
-                f"Error adding embeddings to index for user {user_id}: {str(e)}"
-            )
+        if not self._add_embeddings(user_id, image_hashes, embeddings_array):
             return
 
         elapsed = (datetime.datetime.now() - start).total_seconds()
@@ -67,6 +64,17 @@ class RetrievalIndex:
             "finished building index for user %d - took %.2f seconds"
             % (user_id, elapsed)
         )
+
+    def _add_embeddings(self, user_id, image_hashes, embeddings_array):
+        try:
+            self.indices[user_id].add(embeddings_array)
+            self.image_hashes[user_id].extend(image_hashes)
+        except Exception as e:
+            logger.error(
+                f"Error adding embeddings to index for user {user_id}: {str(e)}"
+            )
+            return False
+        return True
 
     def search_similar(self, user_id, in_embedding, n=100, thres=27.0):
         start = datetime.datetime.now()

@@ -9,19 +9,8 @@ from api.models.photo import Photo
 from api.semantic_search import create_clip_embeddings
 
 
-def batch_calculate_clip_embedding(user):
+def configure_torch_runtime():
     import torch
-
-    lrj = LongRunningJob.create_job(
-        user=user,
-        job_type=LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
-        start_now=True,
-    )
-
-    count = Photo.objects.filter(
-        Q(owner=user) & Q(clip_embeddings__isnull=True)
-    ).count()
-    lrj.update_progress(current=0, target=count)
 
     if not torch.cuda.is_available():
         num_threads = 1
@@ -29,39 +18,59 @@ def batch_calculate_clip_embedding(user):
         os.environ["OMP_NUM_THREADS"] = str(num_threads)
     else:
         torch.multiprocessing.set_start_method("spawn", force=True)
-
-    BATCH_SIZE = 64
     util.logger.info(f"Using threads: {torch.get_num_threads()}")
 
+
+def photos_missing_clip_embeddings(user):
+    return Photo.objects.filter(Q(owner=user) & Q(clip_embeddings__isnull=True))
+
+
+def photos_with_existing_thumbnail(objs):
+    # Thumbnail could have been deleted
+    return [
+        obj
+        for obj in objs
+        if obj.thumbnail.thumbnail_big
+        and os.path.exists(obj.thumbnail.thumbnail_big.path)
+    ]
+
+
+def store_clip_embeddings(objs):
+    imgs = [obj.thumbnail.thumbnail_big.path for obj in objs]
+    imgs_emb, magnitudes = create_clip_embeddings(imgs)
+
+    for obj, img_emb, magnitude in zip(objs, imgs_emb, magnitudes):
+        obj.clip_embeddings = img_emb.tolist()
+        obj.clip_embeddings_magnitude = magnitude
+        obj.save()
+
+
+def batch_calculate_clip_embedding(user):
+    lrj = LongRunningJob.create_job(
+        user=user,
+        job_type=LongRunningJob.JOB_CALCULATE_CLIP_EMBEDDINGS,
+        start_now=True,
+    )
+
+    count = photos_missing_clip_embeddings(user).count()
+    lrj.update_progress(current=0, target=count)
+
+    configure_torch_runtime()
+
+    BATCH_SIZE = 64
     done_count = 0
     while done_count < count:
         try:
-            objs = list(
-                Photo.objects.filter(Q(owner=user) & Q(clip_embeddings__isnull=True))[
-                    :BATCH_SIZE
-                ]
-            )
+            objs = list(photos_missing_clip_embeddings(user)[:BATCH_SIZE])
             done_count += len(objs)
 
             if len(objs) == 0:
                 break
-            valid_objs = []
-            for obj in objs:
-                # Thumbnail could have been deleted
-                if obj.thumbnail.thumbnail_big and os.path.exists(
-                    obj.thumbnail.thumbnail_big.path
-                ):
-                    valid_objs.append(obj)
-            imgs = list(map(lambda obj: obj.thumbnail.thumbnail_big.path, valid_objs))
+            valid_objs = photos_with_existing_thumbnail(objs)
             if len(valid_objs) == 0:
                 continue
 
-            imgs_emb, magnitudes = create_clip_embeddings(imgs)
-
-            for obj, img_emb, magnitude in zip(valid_objs, imgs_emb, magnitudes):
-                obj.clip_embeddings = img_emb.tolist()
-                obj.clip_embeddings_magnitude = magnitude
-                obj.save()
+            store_clip_embeddings(valid_objs)
         except Exception as e:
             util.logger.error(f"Error calculating clip embeddings: {e}")
 

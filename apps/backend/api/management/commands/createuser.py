@@ -45,38 +45,37 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        self._validate_email(options["email"])
+
+        username = options["username"].lower()
+        password = self._resolve_password(options)
+
+        if not User.objects.filter(username=username).exists():
+            self._create_user(username, options["email"], password, options["admin"])
+        elif options["update"]:
+            self._update_password(username, options["email"], password)
+        else:
+            raise CommandError("Specified user already exists")
+
+    def _validate_email(self, email):
         try:
-            validate_email(options["email"])
+            validate_email(email)
         except ValidationError as err:
             raise CommandError(err.message)
 
+    def _resolve_password(self, options):
         if options["admin"] and "ADMIN_PASSWORD" in os.environ:
             options["password"] = os.environ["ADMIN_PASSWORD"]
-
         if not options["password"]:
             options["password"] = get_random_string(GENERATED_PASSWORD_LENGTH)
+        return options["password"]
 
-        if not User.objects.filter(username=options["username"].lower()).exists():
-            if options["admin"]:
-                User.objects.create_superuser(
-                    options["username"].lower(),
-                    options["email"],
-                    options["password"],
-                )
-            else:
-                User.objects.create_user(
-                    options["username"].lower(),
-                    options["email"],
-                    options["password"],
-                )
+    def _create_user(self, username, email, password, admin):
+        create = User.objects.create_superuser if admin else User.objects.create_user
+        create(username, email, password)
 
-        elif options["update"]:
-            print(
-                "Warning: ignoring provided email " + options["email"],
-                file=sys.stderr,
-            )
-            user = User.objects.get(username=options["username"].lower())
-            user.set_password(options["password"])
-            user.save()
-        else:
-            raise CommandError("Specified user already exists")
+    def _update_password(self, username, email, password):
+        print("Warning: ignoring provided email " + email, file=sys.stderr)
+        user = User.objects.get(username=username)
+        user.set_password(password)
+        user.save()

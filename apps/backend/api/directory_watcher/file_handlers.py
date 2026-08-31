@@ -70,6 +70,43 @@ def create_file_record(user, path) -> File | None:
     return file
 
 
+def _attach_embedded_motion_video(user, photo: Photo, file: File) -> File | None:
+    """Extract a Google/Samsung Live Photo motion video and attach it as a variant."""
+    if not (
+        has_embedded_motion_video(file.path)
+        and settings.FEATURE_PROCESS_EMBEDDED_MEDIA
+        and settings.FEATURE_VIDEO
+    ):
+        return None
+
+    em_path = extract_embedded_motion_video(file.path, file.hash)
+    if not em_path:
+        return None
+
+    em_file = File.create(em_path, user)
+    file.embedded_media.add(em_file)
+    photo.files.add(em_file)
+    return em_file
+
+
+def _adopt_files_into_photo(photo: Photo, files: list[File], main_file: File, job_id):
+    """Attach missing files to an existing Photo and upgrade its main_file."""
+    for f in files:
+        if not photo.files.filter(hash=f.hash).exists():
+            photo.files.add(f)
+            util.logger.info(
+                f"job {job_id}: Attached file {f.path} to existing Photo {photo.image_hash}"
+            )
+
+    if not photo.main_file:
+        return
+
+    current_priority = FILE_TYPE_PRIORITY.get(photo.main_file.type, 999)
+    if FILE_TYPE_PRIORITY.get(main_file.type, 999) < current_priority:
+        photo.main_file = main_file
+        photo.save(update_fields=["main_file"])
+
+
 def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     """
     Phase 2: Group a list of related files into a single Photo.
@@ -114,24 +151,7 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     ).first()
 
     if existing_photo:
-        # Add any missing files to the existing photo
-        for f in files:
-            if not existing_photo.files.filter(hash=f.hash).exists():
-                existing_photo.files.add(f)
-                util.logger.info(
-                    f"job {job_id}: Attached file {f.path} to existing Photo {existing_photo.image_hash}"
-                )
-
-        # Update main_file if current one has lower priority
-        if existing_photo.main_file:
-            current_priority = FILE_TYPE_PRIORITY.get(
-                existing_photo.main_file.type, 999
-            )
-            new_priority = FILE_TYPE_PRIORITY.get(main_file.type, 999)
-            if new_priority < current_priority:
-                existing_photo.main_file = main_file
-                existing_photo.save(update_fields=["main_file"])
-
+        _adopt_files_into_photo(existing_photo, files, main_file, job_id)
         return existing_photo
 
     # Create new Photo
@@ -150,23 +170,65 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     photo.main_file = main_file
     photo.save()
 
-    # Handle embedded media (Google/Samsung Live Photos with embedded video)
-    if (
-        has_embedded_motion_video(main_file.path)
-        and settings.FEATURE_PROCESS_EMBEDDED_MEDIA
-        and settings.FEATURE_VIDEO
-    ):
-        em_path = extract_embedded_motion_video(main_file.path, main_file.hash)
-        if em_path:
-            em_file = File.create(em_path, user)
-            main_file.embedded_media.add(em_file)
-            photo.files.add(em_file)
-            photo.save()
+    if _attach_embedded_motion_video(user, photo, main_file):
+        photo.save()
 
     util.logger.info(
         f"job {job_id}: Created Photo {photo.image_hash} with {len(files)} file(s)"
     )
     return photo
+
+
+def _attach_metadata_sidecar(user, path) -> None:
+    """Attach an XMP sidecar to the Photo it describes, if one exists."""
+    photo_name = os.path.splitext(os.path.basename(path))[0]
+    photo_dir = os.path.dirname(path)
+    photo = Photo.objects.filter(
+        Q(files__path__contains=photo_dir)
+        & Q(files__path__contains=photo_name)
+        & ~Q(files__path__contains=os.path.basename(path))
+    ).first()
+
+    if not photo:
+        util.logger.warning(f"no photo to metadata file found {path}")
+        return
+
+    photo.files.add(File.create(path, user))
+    photo.save()
+
+
+def _attach_file_variant(user, path, photo: Photo, label, keep_image=False) -> Photo:
+    """Attach a sibling file to an existing Photo as a variant."""
+    if not photo.files.filter(path=path).exists():
+        photo.files.add(File.create(path, user))
+        if keep_image:
+            photo.video = False
+        photo.save()
+        util.logger.info(
+            f"Attached {label} {path} to existing Photo {photo.image_hash}"
+        )
+    return photo
+
+
+def _adopt_as_variant(user, path) -> Photo | None:
+    """
+    Attach RAW files and Live Photo videos to the image Photo they belong to.
+
+    Returns the adopting Photo, or None when the file stands on its own.
+    """
+    if is_raw(path):
+        photo = find_matching_jpeg_photo(path, user)
+        if photo:
+            return _attach_file_variant(user, path, photo, "RAW file")
+
+    if is_video(path):
+        photo = find_matching_image_for_video(path, user)
+        if photo:
+            return _attach_file_variant(
+                user, path, photo, "Live Photo video", keep_image=True
+            )
+
+    return None
 
 
 def create_new_image(user, path) -> Photo | None:
@@ -197,56 +259,13 @@ def create_new_image(user, path) -> Photo | None:
         util.logger.warning(f"embedded content file found {path}")
         return None
 
-    # Handle metadata files (XMP sidecars)
     if is_metadata(path):
-        photo_name = os.path.splitext(os.path.basename(path))[0]
-        photo_dir = os.path.dirname(path)
-        photo = Photo.objects.filter(
-            Q(files__path__contains=photo_dir)
-            & Q(files__path__contains=photo_name)
-            & ~Q(files__path__contains=os.path.basename(path))
-        ).first()
-
-        if photo:
-            file = File.create(path, user)
-            photo.files.add(file)
-            photo.save()
-        else:
-            util.logger.warning(f"no photo to metadata file found {path}")
+        _attach_metadata_sidecar(user, path)
         return None
 
-    # === File Variant Handling (PhotoPrism-like model) ===
-
-    # Handle RAW files: attach to existing JPEG Photo if found
-    if is_raw(path):
-        existing_photo = find_matching_jpeg_photo(path, user)
-        if existing_photo:
-            # Check if this RAW file is already attached
-            if not existing_photo.files.filter(path=path).exists():
-                raw_file = File.create(path, user)
-                existing_photo.files.add(raw_file)
-                existing_photo.save()
-                util.logger.info(
-                    f"Attached RAW file {path} to existing Photo {existing_photo.image_hash}"
-                )
-            return existing_photo
-
-    # Handle Live Photo videos (.mov): attach to existing image Photo if found
-    if is_video(path):
-        existing_photo = find_matching_image_for_video(path, user)
-        if existing_photo:
-            # Check if this video is already attached
-            if not existing_photo.files.filter(path=path).exists():
-                video_file = File.create(path, user)
-                existing_photo.files.add(video_file)
-                existing_photo.video = (
-                    False  # Keep photo as image (video is just a variant)
-                )
-                existing_photo.save()
-                util.logger.info(
-                    f"Attached Live Photo video {path} to existing Photo {existing_photo.image_hash}"
-                )
-            return existing_photo
+    existing_photo = _adopt_as_variant(user, path)
+    if existing_photo:
+        return existing_photo
 
     # === Standard Photo Creation ===
     photo = Photo()
@@ -258,18 +277,7 @@ def create_new_image(user, path) -> Photo | None:
     photo.save()
     file = File.create(path, user)
 
-    # Live Photo detection - extracts embedded motion video if present (Google/Samsung)
-    if (
-        has_embedded_motion_video(file.path)
-        and settings.FEATURE_PROCESS_EMBEDDED_MEDIA
-        and settings.FEATURE_VIDEO
-    ):
-        em_path = extract_embedded_motion_video(file.path, file.hash)
-        if em_path:
-            em_file = File.create(em_path, user)
-            file.embedded_media.add(em_file)
-            # Also add embedded video to Photo.files as a variant
-            photo.files.add(em_file)
+    _attach_embedded_motion_video(user, photo, file)
 
     photo.files.add(file)
     photo.main_file = file
@@ -310,6 +318,25 @@ def handle_new_image(user, path, job_id, photo=None):
         update_scan_counter(job_id)
 
 
+def _collect_file_records(user, file_paths: list[str]) -> list[File]:
+    """Create File records for every valid path in a group."""
+    files = []
+    for path in file_paths:
+        file = create_file_record(user, path)
+        if file:
+            files.append(file)
+    return files
+
+
+def _log_file_group_failure(job_id, file_paths, error: Exception):
+    try:
+        util.logger.exception(
+            f"job {job_id}: could not process file group {file_paths}. reason: {str(error)}"
+        )
+    except Exception:
+        util.logger.exception(f"job {job_id}: could not process file group")
+
+
 def handle_file_group(user, file_paths: list[str], job_id):
     """
     Phase 2 handler: Process a group of related files into a single Photo.
@@ -325,13 +352,7 @@ def handle_file_group(user, file_paths: list[str], job_id):
     try:
         start = datetime.datetime.now()
 
-        # Get or create File records for all paths
-        files = []
-        for path in file_paths:
-            file = create_file_record(user, path)
-            if file:
-                files.append(file)
-
+        files = _collect_file_records(user, file_paths)
         if not files:
             util.logger.warning(f"job {job_id}: No valid files in group: {file_paths}")
             return
@@ -355,12 +376,7 @@ def handle_file_group(user, file_paths: list[str], job_id):
             _process_photo(photo, photo.main_file.path, job_id, start)
 
     except Exception as e:
-        try:
-            util.logger.exception(
-                f"job {job_id}: could not process file group {file_paths}. reason: {str(e)}"
-            )
-        except Exception:
-            util.logger.exception(f"job {job_id}: could not process file group")
+        _log_file_group_failure(job_id, file_paths, e)
     finally:
         update_scan_counter(job_id)
 

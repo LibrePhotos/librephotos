@@ -28,33 +28,30 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # Nextcloud scan
         if options["nextcloud"]:
             self.nextcloud_scan()
-            return
+        elif options["scan_files"]:
+            self.scan_selected_files(options["scan_files"])
+        else:
+            self.directory_scan(options["full_scan"])
 
-        # Add a single file.
-        if options["scan_files"]:
-            scan_files = options["scan_files"]
-            deleted_user: User = get_deleted_user()
-            for user in User.objects.all():
-                user_files = []
-                if user == deleted_user:
-                    continue
-                for scan_file in scan_files:
-                    if scan_file.startswith(user.scan_directory):
-                        user_files.append(scan_file)
-                if user_files:
-                    scan_photos(user, False, uuid.uuid4(), scan_files=user_files)
-            return
-
-        # Directory scan
+    def scannable_users(self):
         deleted_user: User = get_deleted_user()
-        for user in User.objects.all():
-            if user != deleted_user:
-                scan_photos(
-                    user, options["full_scan"], uuid.uuid4(), user.scan_directory
-                )
+        return [user for user in User.objects.all() if user != deleted_user]
+
+    def scan_selected_files(self, scan_files):
+        for user in self.scannable_users():
+            user_files = [
+                scan_file
+                for scan_file in scan_files
+                if scan_file.startswith(user.scan_directory)
+            ]
+            if user_files:
+                scan_photos(user, False, uuid.uuid4(), scan_files=user_files)
+
+    def directory_scan(self, full_scan):
+        for user in self.scannable_users():
+            scan_photos(user, full_scan, uuid.uuid4(), user.scan_directory)
 
     def nextcloud_scan(self):
         for user in User.objects.all():
