@@ -1,7 +1,7 @@
 ---
 title: 📂 Internal files
 description: "Which folders and files LibrePhotos creates on disk"
-sidebar_position: 18
+sidebar_position: 19
 ---
 
 ## /logs

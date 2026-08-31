@@ -319,6 +319,7 @@
     "videos": "Videos",
     "screenshots": "Screenshots",
     "albums": "Albums",
+    "memories": "Memories",
     "people": "People",
     "places": "Places",
     "things": "Things",
@@ -340,6 +341,21 @@
     "publicphotos": "Public photos",
     "youshared": "You shared",
     "sharedwithyou": "Shared with you"
+  },
+  "memories": {
+    "title": "Memories",
+    "subtitle": "Photos you took on this day in earlier years",
+    "yearsago_one": "{{count}} year ago",
+    "yearsago_other": "{{count}} years ago",
+    "photocount_one": "{{count}} photo",
+    "photocount_other": "{{count}} photos",
+    "play": "Play this memory",
+    "playall": "Play all",
+    "tiles": "Tiles",
+    "gallery": "Gallery",
+    "capped": "showing the first {{count}} photos of each year",
+    "emptytitle": "No memories yet",
+    "emptydescription": "Memories show up once your library reaches back further than a year. Try again on another day, or scan more photos."
   },
   "explore": {
     "title": "Explore Albums",
@@ -768,6 +784,7 @@
     "nav": {
       "photos": "Go to Photos",
       "albums": "Go to Albums",
+      "memories": "Go to Memories",
       "people": "Go to People",
       "places": "Go to Places",
       "things": "Go to Things",

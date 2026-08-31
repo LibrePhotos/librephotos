@@ -1,7 +1,7 @@
 ---
 title: "😃 Face recognition"
 description: "How to use the face dashboard"
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 ## Label a face

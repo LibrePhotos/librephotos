@@ -3,6 +3,7 @@ import type { Icon } from "@tabler/icons-react";
 import {
   IconAlbum as Album,
   IconPhoto as Photo,
+  IconSparkles as Sparkles,
   IconLayersSubtract as Stacks,
   IconTrash as Trash,
   IconUsers as Users,
@@ -32,6 +33,13 @@ export function getNavigationItems(t: TFunction<"translation", undefined>, isAut
   return [
     { label: t("sidemenu.photos"), link: "/", icon: Photo, color: "green" },
     { label: t("sidemenu.albums"), link: "/album", icon: Album, color: "blue" },
+    {
+      label: t("sidemenu.memories", "Memories"),
+      link: "/memories",
+      display: isAuthenticated,
+      icon: Sparkles,
+      color: "grape",
+    },
     {
       label: t("sidemenu.sharing"),
       link: "/sharing",

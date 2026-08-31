@@ -1,7 +1,7 @@
 ---
 title: "📂 Missing Photos"
 description: "Understanding and managing missing photos in LibrePhotos"
-sidebar_position: 15
+sidebar_position: 16
 ---
 
 ## What are Missing Photos?

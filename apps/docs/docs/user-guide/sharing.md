@@ -1,7 +1,7 @@
 ---
 title: "🔗 Sharing"
 description: "Share photos and albums with other users or publicly via links"
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 LibrePhotos offers multiple ways to share your photos and albums — with other users on your instance, or publicly with anyone via a link.

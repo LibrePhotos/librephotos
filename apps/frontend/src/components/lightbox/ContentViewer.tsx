@@ -40,6 +40,7 @@ export function ContentViewer({
   isPublic,
   publicAlbumSlug,
   onPhotoSelect,
+  startSlideshow = false,
 }: ContentViewerProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
@@ -59,7 +60,7 @@ export function ContentViewer({
   const pendingRotationReset = useRef(false);
 
   // Slideshow state
-  const [isSlideshowActive, setIsSlideshowActive] = useState(false);
+  const [isSlideshowActive, setIsSlideshowActive] = useState(startSlideshow);
   const [localSlideshowInterval, setLocalSlideshowInterval] = useState<number | null>(null);
   const [slideshowProgress, setSlideshowProgress] = useState(0);
 

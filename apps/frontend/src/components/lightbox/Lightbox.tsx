@@ -17,7 +17,16 @@ function usePrevious<T>(value: T): T | undefined {
 }
 
 export function Lightbox(props: ExtendedLightBoxProps) {
-  const { idx2hash, isPublic, publicAlbumSlug, onCloseRequest, selectedImage, onChangedIndex, onImageChange } = props;
+  const {
+    idx2hash,
+    isPublic,
+    publicAlbumSlug,
+    onCloseRequest,
+    selectedImage,
+    onChangedIndex,
+    onImageChange,
+    startSlideshow,
+  } = props;
   const [lightboxImageId, setLightboxImageId] = useState(selectedImage);
   // Track previous idx2hash to detect when current image is deleted
   const previousIdx2hash = usePrevious(idx2hash);
@@ -190,6 +199,7 @@ export function Lightbox(props: ExtendedLightBoxProps) {
         onMoveNextRequest={onMoveNextRequest}
         onImageLoad={() => {}}
         onPhotoSelect={handlePhotoSelect}
+        startSlideshow={startSlideshow}
       />
     </div>
   );

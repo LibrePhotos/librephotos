@@ -29,6 +29,7 @@ import {
   IconSettings,
   IconShare,
   IconShield,
+  IconSparkles,
   IconSun,
   IconTag,
   IconTimeline,
@@ -172,6 +173,13 @@ export function useSpotlightActions(query: string = "") {
         leftSection: React.createElement(IconAlbum, iconProps),
         onClick: () => navigate({ to: "/album" }),
         keywords: ["albums", "collections"],
+      },
+      {
+        id: "nav-memories",
+        label: t("spotlight.nav.memories"),
+        leftSection: React.createElement(IconSparkles, iconProps),
+        onClick: () => navigate({ to: "/memories" }),
+        keywords: ["memories", "on this day", "years ago", "anniversary", "rediscover"],
       },
       {
         id: "nav-people",
