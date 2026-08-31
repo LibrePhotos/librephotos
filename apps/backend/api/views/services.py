@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from api.services import (
     SERVICE_FEATURE_FLAGS,
     SERVICES,
+    disabled_reason,
     is_healthy,
     is_service_enabled,
     start_service,
@@ -52,11 +53,13 @@ class ServiceViewSet(viewsets.ViewSet):
             )
 
         if not is_service_enabled(service_name):
-            flag = SERVICE_FEATURE_FLAGS[service_name]
             return Response(
                 {
-                    "error": f"Service {service_name} is not started: {flag} is disabled",
-                    "feature_flag": flag,
+                    "error": (
+                        f"Service {service_name} is not started: "
+                        f"{disabled_reason(service_name)}"
+                    ),
+                    "feature_flag": SERVICE_FEATURE_FLAGS.get(service_name),
                 },
                 status=status.HTTP_409_CONFLICT,
             )

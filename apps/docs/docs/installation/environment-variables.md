@@ -187,7 +187,9 @@ The backend runs its heavy models in separate sidecar processes, and a watchdog 
 | `FEATURE_IMAGE_CAPTIONING` | `image_captioning`, `llm` |
 | `FEATURE_SCENE_CLASSIFICATION` | `tags` |
 
-The remaining services — `exif`, `thumbnail`, `ocr`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
+The remaining services — `exif`, `thumbnail`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
+
+`ocr` has no environment variable either, but it is not always on: it follows the **OCR model** choice in Site Settings, which ships with nothing selected. The service starts once a model is picked, and stops being started if the choice is set back to none — the watchdog re-reads the setting every minute, so neither direction needs a restart. A configuration the backend cannot read counts as a model being selected, so a database that is still starting can never take the service away.
 
 A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running. The Admin Area's **Services** list shows one as **Disabled** rather than as unhealthy, and offers no Start button for it.
 

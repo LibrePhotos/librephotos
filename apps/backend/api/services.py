@@ -60,17 +60,58 @@ SERVICE_FEATURE_FLAGS = {
 }
 
 
+def _ocr_model_selected():
+    """Whether an admin has picked an OCR model in the site settings.
+
+    OCR's switch is a site setting rather than an environment variable, and it
+    ships with nothing selected, so the sidecar would otherwise be started on
+    every deployment for a feature none of them has turned on. Reusing
+    ml_models' notion of "not selected" keeps this gate, the model download and
+    the OCR jobs from ever disagreeing about what the value means.
+
+    A configuration the process cannot read counts as selected: the flags fail
+    open for the same reason, and a database that is not up yet must not be able
+    to take a service away.
+    """
+    try:
+        from constance import config as site_config
+
+        from api.ml_models import _is_model_not_selected
+
+        return not _is_model_not_selected(site_config.OCR_MODEL)
+    except Exception:
+        return True
+
+
+# Services whose switch is a site setting rather than an environment flag. The
+# per-minute watchdog re-reads these, so selecting an OCR model starts the
+# sidecar without a restart.
+SERVICE_SITE_GATES = {"ocr": _ocr_model_selected}
+
+
 def is_service_enabled(service):
-    """Whether this deployment's feature flags call for the service to run.
+    """Whether this deployment's configuration calls for the service to run.
 
     A flag the settings module does not define counts as enabled, so an
     unrecognised switch can never take a service away from a deployment that
     had it before.
     """
+    gate = SERVICE_SITE_GATES.get(service)
+    if gate is not None and not gate():
+        return False
+
     flag = SERVICE_FEATURE_FLAGS.get(service)
     if flag is None:
         return True
     return bool(getattr(settings, flag, True))
+
+
+def disabled_reason(service):
+    """Why is_service_enabled turned the service down, for a log or an error."""
+    flag = SERVICE_FEATURE_FLAGS.get(service)
+    if flag is not None and not bool(getattr(settings, flag, True)):
+        return f"{flag} is disabled"
+    return "no model is selected for it in the site settings"
 
 
 def check_services():
@@ -128,11 +169,7 @@ def _service_environment():
 
 def start_service(service):
     if not is_service_enabled(service):
-        logger.info(
-            "Service '%s' not started: %s is disabled",
-            service,
-            SERVICE_FEATURE_FLAGS[service],
-        )
+        logger.info("Service '%s' not started: %s", service, disabled_reason(service))
         return False
 
     # Check system compatibility before attempting to start the service

@@ -3,8 +3,8 @@ from django_q.models import Schedule
 from django_q.tasks import schedule
 
 from api.services import (
-    SERVICE_FEATURE_FLAGS,
     SERVICES,
+    disabled_reason,
     is_service_enabled,
     start_service,
 )
@@ -30,9 +30,7 @@ class Command(BaseCommand):
         if service == "all":
             for svc in SERVICES.keys():
                 if not is_service_enabled(svc):
-                    self.stdout.write(
-                        f"Skipping {svc}: {SERVICE_FEATURE_FLAGS[svc]} is disabled"
-                    )
+                    self.stdout.write(f"Skipping {svc}: {disabled_reason(svc)}")
                     continue
                 start_service(svc)
             if not Schedule.objects.filter(func="api.services.check_services").exists():

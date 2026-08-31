@@ -7,19 +7,26 @@ per-minute watchdog restarted any that were killed to reclaim the memory.
 
 from unittest.mock import patch
 
+from constance.test import override_config
 from django.core.management import call_command
+from django.db.utils import OperationalError
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.models import User
 from api.services import (
     SERVICE_FEATURE_FLAGS,
+    SERVICE_SITE_GATES,
     SERVICES,
     check_services,
     is_service_enabled,
     start_service,
 )
 from api.tests.utils import create_password
+
+# The site settings that have to say yes before the services they gate are
+# started at all; the flag tests are about the environment, not about these.
+EVERY_MODEL_SELECTED = override_config(OCR_MODEL="ppocrv6_small")
 
 
 def spawned_services(popen_mock):
@@ -40,7 +47,8 @@ class ServiceFeatureFlagMappingTest(SimpleTestCase):
         self.assertEqual(set(SERVICES), set(SERVICE_FEATURE_FLAGS))
 
     def test_every_service_is_enabled_out_of_the_box(self):
-        for service in SERVICES:
+        """Services gated on a site setting are covered by OcrSiteGateTest."""
+        for service in set(SERVICES) - set(SERVICE_SITE_GATES):
             self.assertTrue(is_service_enabled(service), service)
 
     def test_flags_name_real_settings(self):
@@ -104,6 +112,7 @@ class StartServiceTest(SimpleTestCase):
         )
 
 
+@EVERY_MODEL_SELECTED
 @patch("api.services.is_service_compatible", return_value=True)
 @patch("api.services.subprocess.Popen")
 class StartAllCommandTest(TestCase):
@@ -211,6 +220,80 @@ class CheckServicesTest(SimpleTestCase):
             ],
             logs.output,
         )
+
+
+@patch("api.services.is_service_compatible", return_value=True)
+@patch("api.services.subprocess.Popen")
+class OcrSiteGateTest(TestCase):
+    """OCR's switch is a site setting, not an environment flag.
+
+    It ships with no model selected and the jobs already finish cleanly in that
+    state, so until an admin picks one the sidecar is a process nothing will
+    ever call. Reading the setting rather than an environment variable is what
+    lets the per-minute watchdog pick the choice up without a restart.
+    """
+
+    def test_no_model_selected_keeps_the_sidecar_down(self, popen_mock, _compatible):
+        self.assertFalse(is_service_enabled("ocr"))
+
+    @override_config(OCR_MODEL="ppocrv6_small")
+    def test_selecting_a_model_enables_it(self, popen_mock, _compatible):
+        self.assertTrue(is_service_enabled("ocr"))
+
+    @override_config(OCR_MODEL="none")
+    def test_the_lowercase_spelling_of_none_also_counts_as_unselected(
+        self, popen_mock, _compatible
+    ):
+        """The dropdown sends "none"; the default is "None"."""
+        self.assertFalse(is_service_enabled("ocr"))
+
+    def test_start_all_skips_it_while_no_model_is_selected(
+        self, popen_mock, _compatible
+    ):
+        call_command("start_service", "all")
+
+        self.assertNotIn("ocr", spawned_services(popen_mock))
+
+    @override_config(OCR_MODEL="ppocrv6_small")
+    def test_start_all_spawns_it_once_a_model_is_selected(
+        self, popen_mock, _compatible
+    ):
+        call_command("start_service", "all")
+
+        self.assertIn("ocr", spawned_services(popen_mock))
+
+    @override_config(OCR_MODEL="ppocrv6_small")
+    @patch("api.services.is_healthy", return_value=False)
+    @patch("api.services.stop_service")
+    def test_the_watchdog_brings_it_up_after_the_admin_selects_a_model(
+        self, stop_mock, healthy_mock, popen_mock, _compatible
+    ):
+        """No restart required: check_services re-reads the setting every minute."""
+        check_services()
+
+        self.assertIn("ocr", spawned_services(popen_mock))
+
+    def test_an_unreadable_configuration_leaves_the_service_enabled(
+        self, popen_mock, _compatible
+    ):
+        """Fail open, like an unrecognised flag: a database that is not up yet
+        must not be able to take a service away."""
+        with patch(
+            "constance.base.Config.__getattr__",
+            side_effect=OperationalError("no such table: constance_config"),
+        ):
+            self.assertTrue(is_service_enabled("ocr"))
+
+    def test_the_refusal_names_the_site_setting_rather_than_a_flag(
+        self, popen_mock, _compatible
+    ):
+        with self.assertLogs("ownphotos", level="INFO") as logs:
+            start_service("ocr")
+
+        self.assertTrue(
+            any("site settings" in line for line in logs.output), logs.output
+        )
+        self.assertFalse([line for line in logs.output if "None is disabled" in line])
 
 
 class ServiceAdminApiTest(TestCase):
