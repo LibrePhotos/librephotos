@@ -547,6 +547,8 @@ class VideoTranscoder:
             "ffmpeg",
             "-i",
             path,
+            "-threads",
+            "2",  # Cap parallelism to avoid saturating all CPU cores during playback
             "-vcodec",
             "libx264",
             "-preset",
