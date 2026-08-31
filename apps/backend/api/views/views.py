@@ -11,7 +11,6 @@ from django.conf import settings
 from api.mail import email_is_configured
 from django.db.models import Q, Sum
 from django.http import (
-    FileResponse,
     HttpResponse,
     HttpResponseForbidden,
     StreamingHttpResponse,
@@ -34,10 +33,12 @@ from api.all_tasks import create_download_job, delete_zip_file
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
+from api.http_range import file_size, ranged_response
 from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
+from api import transcode_cache
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
 
@@ -578,7 +579,11 @@ class VideoTranscoder:
             "-movflags",
             "frag_keyframe+empty_moov",
             "-filter:v",
-            ("scale=-2:" + str(720)),
+            # A ceiling, not a target: plain "scale=-2:720" enlarges anything
+            # shorter than 720 lines, and the phone clips that most often need
+            # converting are exactly that. Upscaling costs bandwidth and CPU to
+            # add nothing a viewer can see.
+            "scale=-2:'min(720,ih)'",
             "-f",
             "mp4",
             "-",
@@ -629,16 +634,24 @@ class UnifiedMediaAccessView(APIView):
         if not os.path.exists(file_path):
             return HttpResponse(status=404)
         try:
-            response = FileResponse(open(file_path, "rb"))
-            if content_type:
-                response["Content-Type"] = content_type
-            else:
+            handle = open(file_path, "rb")
+            if not content_type:
                 try:
                     mime = magic.Magic(mime=True)
-                    response["Content-Type"] = mime.from_file(file_path)
+                    content_type = mime.from_file(file_path)
                 except Exception:
-                    response["Content-Type"] = "application/octet-stream"
-            return response
+                    content_type = "application/octet-stream"
+            # Ranges matter here and nowhere else in this class: behind the
+            # bundled proxy the bytes never come from Django, but an install
+            # serving media itself has to answer a seek on its own, and a video
+            # served without ranges cannot be sought at all.
+            request = getattr(self, "request", None)
+            return ranged_response(
+                handle,
+                file_size(handle),
+                request.headers.get("Range") if request is not None else None,
+                content_type,
+            )
         except FileNotFoundError:
             return HttpResponse(status=404)
         except PermissionError:
@@ -652,17 +665,66 @@ class UnifiedMediaAccessView(APIView):
         except Exception:
             return HttpResponse(status=500)
 
-    def _transcoded_video_response(self, photo):
-        """Pipe the original through ffmpeg and hand out a plain mp4 stream.
+    def _transcoded_video_response(self, photo, use_proxy):
+        """Hand out a playable mp4 for a video the browser cannot decode.
 
         Browsers cannot decode every container/codec we store, so the per-user
         "Always transcode videos" setting exists to get them something they can
         actually play.
+
+        A conversion happening live cannot be sought -- its length is unknown
+        until it ends, so there is no ``Content-Length``, no ``Accept-Ranges``
+        and nothing a ``Range`` request can be answered with. The first play
+        still streams like that, because it starts immediately; in the
+        background the same conversion is written to a file, and every later
+        play is served from that instead, as an ordinary seekable mp4. See
+        :mod:`api.transcode_cache` for what keeps it from filling the disk.
         """
-        return StreamingHttpResponse(
-            gen(VideoTranscoder(photo.main_file.path)),
+        cached = transcode_cache.cached_path(photo)
+        if cached:
+            served_by_proxy = use_proxy and cached.startswith(
+                os.path.join(settings.MEDIA_ROOT, "")
+            )
+            if served_by_proxy:
+                response = HttpResponse()
+                response["Content-Type"] = "video/mp4"
+                response["X-Accel-Redirect"] = self._protected_media_url(
+                    os.path.dirname(os.path.relpath(cached, settings.MEDIA_ROOT)),
+                    os.path.basename(cached),
+                )
+                return response
+            return self._serve_file_direct(cached, "video/mp4")
+
+        response = StreamingHttpResponse(
+            self._cache_after_streaming(
+                gen(VideoTranscoder(photo.main_file.path)), photo
+            ),
             content_type="video/mp4",
         )
+        # The live stream and the cached file answer to the same URL, and this
+        # one is the poorer of the two: a browser that kept it would keep
+        # serving an unseekable video after a seekable one exists.
+        response["Cache-Control"] = "no-store"
+        return response
+
+    @staticmethod
+    def _cache_after_streaming(stream, photo):
+        """Stream the live conversion, and only then start writing the copy.
+
+        Not alongside it. The live conversion has to keep ahead of playback, and
+        a second ffmpeg started next to it takes a share of the machine away
+        from the one thing somebody is actually waiting for -- on a two-core
+        server, half of it, which is enough to turn a video that used to start
+        at once into one that looks stuck.
+
+        Waiting costs nothing, because the copy is for the *next* play. The
+        generator is closed either way, whether the video ran to the end or the
+        viewer left after five seconds, so the copy still gets written.
+        """
+        try:
+            yield from stream
+        finally:
+            transcode_cache.ensure_cached(photo)
 
     def _thumbnail_field_for(self, photo, path):
         """Return the ``FieldFile`` holding the thumbnail ``path`` asks for.
@@ -742,7 +804,7 @@ class UnifiedMediaAccessView(APIView):
 
         if photo.video:
             if transcode_videos:
-                return self._transcoded_video_response(photo)
+                return self._transcoded_video_response(photo, use_proxy=True)
             mime = magic.Magic(mime=True)
             filename = mime.from_file(photo.main_file.path)
             response = HttpResponse()
@@ -800,7 +862,7 @@ class UnifiedMediaAccessView(APIView):
 
         if photo.video:
             if transcode_videos:
-                return self._transcoded_video_response(photo)
+                return self._transcoded_video_response(photo, use_proxy=False)
             return self._serve_file_direct(photo.main_file.path)
 
         file_path = os.path.join(settings.MEDIA_ROOT, path, fname)
@@ -815,7 +877,7 @@ class UnifiedMediaAccessView(APIView):
         transcode videos", exactly like the thumbnail/video paths do.
         """
         if photo.video and transcode_videos:
-            return self._transcoded_video_response(photo)
+            return self._transcoded_video_response(photo, use_proxy=use_proxy)
         try:
             mime = magic.Magic(mime=True)
             content_type = mime.from_file(photo.main_file.path)

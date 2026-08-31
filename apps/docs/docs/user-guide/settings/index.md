@@ -55,6 +55,10 @@ For each rule you can toggle it on or off, delete it, or drag it to reorder the 
 
 Always transcode videos will transcode all videos on demand to h264 to improve compatibility. This is not yet well optimized.
 
+The first time you play a video with this on, it is converted as it plays. A conversion happening live has no known length, so that first play has no duration and cannot be sought — the scrub bar and the seek shortcuts do nothing, and the player says so. Once you are done watching, that same conversion is written to a file in the background — afterwards rather than at the same time, so it never slows down the video you are watching — and every later play of that video is served from it: an ordinary video with a duration, a working scrub bar and working seek keys.
+
+Converted copies are kept under `protected_media/transcoded/` and cost somewhere between 10 and 20 MB per minute of video, depending on how much movement there is in it. The store is capped and prunes the videos you have not watched for longest; an administrator can change the ceiling, or turn the whole thing off, with [`TRANSCODE_CACHE_MAX_GB`](../../installation/environment-variables.md#cached-video-conversions).
+
 ### Large Language Model Settings
 
 These switches enhance generated captions with the large language model an administrator selects in the Admin Area (`Large Language Model`). If that is set to `None`, the switches have no effect. All are off by default.
