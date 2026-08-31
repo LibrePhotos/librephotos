@@ -39,11 +39,90 @@ SERVICES = {
 
 HTTP_OK = 200
 
+# The feature flag each service serves; None means core scan/search, always on.
+#
+# llm is gated on captioning because captioning is its only consumer: port 8008
+# is reached from api.llm.generate_prompt and the Moondream branch of
+# api.image_captioning.generate_caption, and both are called only from
+# PhotoCaption's caption generation, which already stops when
+# FEATURE_IMAGE_CAPTIONING is off. If anything else ever calls generate_prompt
+# — chat, cluster naming — this has to go back to None.
+SERVICE_FEATURE_FLAGS = {
+    "image_similarity": None,
+    "thumbnail": None,
+    "face_recognition": "FEATURE_FACE_DETECTION",
+    "clip_embeddings": None,
+    "llm": "FEATURE_IMAGE_CAPTIONING",
+    "image_captioning": "FEATURE_IMAGE_CAPTIONING",
+    "exif": None,
+    "tags": "FEATURE_SCENE_CLASSIFICATION",
+    "ocr": None,
+}
+
+
+def _ocr_model_selected():
+    """Whether an admin has picked an OCR model in the site settings.
+
+    OCR's switch is a site setting rather than an environment variable, and it
+    ships with nothing selected, so the sidecar would otherwise be started on
+    every deployment for a feature none of them has turned on. Reusing
+    ml_models' notion of "not selected" keeps this gate, the model download and
+    the OCR jobs from ever disagreeing about what the value means.
+
+    A configuration the process cannot read counts as selected: the flags fail
+    open for the same reason, and a database that is not up yet must not be able
+    to take a service away.
+    """
+    try:
+        from constance import config as site_config
+
+        from api.ml_models import _is_model_not_selected
+
+        return not _is_model_not_selected(site_config.OCR_MODEL)
+    except Exception:
+        return True
+
+
+# Services whose switch is a site setting rather than an environment flag. The
+# per-minute watchdog re-reads these, so selecting an OCR model starts the
+# sidecar without a restart.
+SERVICE_SITE_GATES = {"ocr": _ocr_model_selected}
+
+
+def is_service_enabled(service):
+    """Whether this deployment's configuration calls for the service to run.
+
+    A flag the settings module does not define counts as enabled, so an
+    unrecognised switch can never take a service away from a deployment that
+    had it before.
+    """
+    gate = SERVICE_SITE_GATES.get(service)
+    if gate is not None and not gate():
+        return False
+
+    flag = SERVICE_FEATURE_FLAGS.get(service)
+    if flag is None:
+        return True
+    return bool(getattr(settings, flag, True))
+
+
+def disabled_reason(service):
+    """Why is_service_enabled turned the service down, for a log or an error."""
+    flag = SERVICE_FEATURE_FLAGS.get(service)
+    if flag is not None and not bool(getattr(settings, flag, True)):
+        return f"{flag} is disabled"
+    return "no model is selected for it in the site settings"
+
 
 def check_services():
     for service in SERVICES.keys():
         if service in INCOMPATIBLE_SERVICES:
             logger.info(f"Skipping restart of incompatible service: {service}")
+            continue
+
+        if not is_service_enabled(service):
+            # Silent on purpose: this runs every minute, and startup already
+            # logged the reason once.
             continue
 
         if not is_healthy(service):
@@ -89,6 +168,10 @@ def _service_environment():
 
 
 def start_service(service):
+    if not is_service_enabled(service):
+        logger.info("Service '%s' not started: %s", service, disabled_reason(service))
+        return False
+
     # Check system compatibility before attempting to start the service
     if not is_service_compatible(service):
         logger.error(f"Service '{service}' is not compatible with this system")

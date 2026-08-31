@@ -847,6 +847,9 @@
     "actions": "Actions",
     "healthy": "Healthy",
     "unhealthy": "Unhealthy",
+    "disabled": "Disabled",
+    "disabled_by": "Switched off by {{flag}}. Set {{flag}}=true and restart to run this service.",
+    "disabled_hint": "Switched off in the site settings — select a model to run this service.",
     "start": "Start",
     "stop": "Stop",
     "refresh": "Refresh health status"

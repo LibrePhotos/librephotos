@@ -2,7 +2,12 @@ from django.core.management.base import BaseCommand
 from django_q.models import Schedule
 from django_q.tasks import schedule
 
-from api.services import SERVICES, start_service
+from api.services import (
+    SERVICES,
+    disabled_reason,
+    is_service_enabled,
+    start_service,
+)
 
 
 class Command(BaseCommand):
@@ -24,6 +29,9 @@ class Command(BaseCommand):
         service = kwargs["service"]
         if service == "all":
             for svc in SERVICES.keys():
+                if not is_service_enabled(svc):
+                    self.stdout.write(f"Skipping {svc}: {disabled_reason(svc)}")
+                    continue
                 start_service(svc)
             if not Schedule.objects.filter(func="api.services.check_services").exists():
                 schedule(

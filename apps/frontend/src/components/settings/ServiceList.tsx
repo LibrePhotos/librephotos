@@ -19,6 +19,7 @@ const SERVICE_LABELS: Record<string, string> = {
   image_captioning: "Image Captioning",
   exif: "EXIF",
   tags: "Tags",
+  ocr: "OCR",
 };
 
 export function ServiceList() {
@@ -64,7 +65,9 @@ export function ServiceList() {
         <Table.Tbody>
           {servicesList &&
             Object.entries(servicesList.services).map(([name, port]) => {
-              const healthy = healthMap?.[name];
+              const health = healthMap?.[name];
+              const healthy = health?.healthy;
+              const disabled = health?.enabled === false;
               const isThisServicePending = isPending && pendingAction?.serviceName === name;
 
               return (
@@ -72,9 +75,21 @@ export function ServiceList() {
                   <Table.Td>{SERVICE_LABELS[name] ?? name}</Table.Td>
                   <Table.Td>{port}</Table.Td>
                   <Table.Td>
-                    {healthMap === undefined ? (
-                      <Loader size="xs" />
-                    ) : (
+                    {healthMap === undefined && <Loader size="xs" />}
+                    {healthMap !== undefined && disabled && (
+                      <Tooltip
+                        label={
+                          health?.feature_flag
+                            ? t("services.disabled_by", { flag: health.feature_flag })
+                            : t("services.disabled_hint")
+                        }
+                      >
+                        <Badge color="gray" variant="light">
+                          {t("services.disabled")}
+                        </Badge>
+                      </Tooltip>
+                    )}
+                    {healthMap !== undefined && !disabled && (
                       <Badge color={healthy ? "green" : "red"} variant="filled">
                         {healthy ? t("services.healthy") : t("services.unhealthy")}
                       </Badge>
@@ -82,7 +97,7 @@ export function ServiceList() {
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
-                      {!healthy && (
+                      {!healthy && !disabled && (
                         <Button
                           size="xs"
                           color="green"
