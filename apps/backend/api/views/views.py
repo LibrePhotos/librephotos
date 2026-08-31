@@ -572,6 +572,10 @@ class VideoTranscoder:
             "ffmpeg",
             "-i",
             path,
+            # After the input, so it caps the encoder -- where the CPU goes.
+            # Before it, ffmpeg would read it as a decoder setting.
+            "-threads",
+            str(getattr(settings, "TRANSCODE_LIVE_THREADS", 0)),
             "-vcodec",
             "libx264",
             "-preset",

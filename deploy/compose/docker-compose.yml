@@ -85,6 +85,7 @@ services:
       - TRANSCODE_CACHE_MIN_FREE_GB=${transcodeCacheMinFreeGb:-2}
       - TRANSCODE_CACHE_MAX_CONCURRENT=${transcodeCacheMaxConcurrent:-1}
       - TRANSCODE_CACHE_NICE=${transcodeCacheNice:-10}
+      - TRANSCODE_LIVE_THREADS=${transcodeLiveThreads:-}
       - DEBUG=0
     depends_on:
       db:

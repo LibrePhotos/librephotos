@@ -52,6 +52,17 @@ TRANSCODE_CACHE_MAX_CONCURRENT = int(
 # niced and given half the cores, because playback, thumbnails and the scan all
 # matter more than a copy nobody is waiting for.
 TRANSCODE_CACHE_NICE = int(os.environ.get("TRANSCODE_CACHE_NICE", "10"))
+# How much of the machine the conversion someone *is* waiting for may take.
+# ffmpeg helps itself to every core, and playback only needs the stream to stay
+# ahead of itself, so the rest buys a lead nobody perceives while the interface,
+# the scan and every other viewer go without. Half, and never fewer than one.
+# Set it to 0 to hand ffmpeg the whole machine again.
+# The `or` is load-bearing: compose passes this through with an empty default,
+# because the real one is computed rather than a literal, so the variable
+# arrives set to "" on every containerised install. "0" is truthy and survives.
+TRANSCODE_LIVE_THREADS = int(
+    os.environ.get("TRANSCODE_LIVE_THREADS") or max(1, (os.cpu_count() or 2) // 2)
+)
 LOGS_ROOT = BASE_LOGS
 # Create the directory before anything in this module writes to it. secret.key
 # lives in there too and is written some 40 lines further down, so an install
