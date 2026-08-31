@@ -52,6 +52,24 @@ TRANSCODE_CACHE_MAX_CONCURRENT = int(
 # niced and given half the cores, because playback, thumbnails and the scan all
 # matter more than a copy nobody is waiting for.
 TRANSCODE_CACHE_NICE = int(os.environ.get("TRANSCODE_CACHE_NICE", "10"))
+
+# What the *live* conversion -- the one a viewer is waiting on -- is allowed to
+# take. Left alone ffmpeg uses every core and converts as fast as the hardware
+# permits, so one person opening one video can starve the web UI, the scan
+# workers and everybody else. Playback needs output a little faster than real
+# time and nothing more.
+#
+# Cores are capped to 1/N of the machine, and the conversion is held to
+# TRANSCODE_LIVE_READRATE times real time after an initial burst of
+# TRANSCODE_LIVE_BURST_SECONDS, which keeps the start instant and gives the
+# browser a buffer. Set the readrate to 0 to convert as fast as the host can.
+TRANSCODE_LIVE_CPU_FRACTION = max(
+    1, int(os.environ.get("TRANSCODE_LIVE_CPU_FRACTION", "2"))
+)
+TRANSCODE_LIVE_READRATE = float(os.environ.get("TRANSCODE_LIVE_READRATE", "2"))
+TRANSCODE_LIVE_BURST_SECONDS = float(
+    os.environ.get("TRANSCODE_LIVE_BURST_SECONDS", "30")
+)
 LOGS_ROOT = BASE_LOGS
 # Create the directory before anything in this module writes to it. secret.key
 # lives in there too and is written some 40 lines further down, so an install

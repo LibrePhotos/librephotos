@@ -1,5 +1,7 @@
+import collections
 import os
 import subprocess
+import threading
 import uuid
 from urllib.parse import quote
 
@@ -38,7 +40,7 @@ from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
-from api import transcode_cache
+from api import ffmpeg_budget, transcode_cache
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
 
@@ -539,42 +541,142 @@ class MediaAccessView(APIView):
         return HttpResponse(status=404)
 
 
+def build_live_command(path):
+    """The conversion a viewer is waiting on, bounded so it cannot take the host.
+
+    Unbounded, this is one person's playback against everybody else's: ffmpeg
+    defaults to every core and to converting as fast as the machine allows,
+    while a viewer needs only a little more than real time. See
+    :mod:`api.ffmpeg_budget` for what the two limits below each bound, and why
+    ``-threads`` has to appear on both sides of the input to mean anything.
+
+    It is deliberately *not* niced -- unlike the cached copy, somebody is
+    watching this one, so it should outrank the background work rather than
+    yield to it.
+    """
+    threads = str(ffmpeg_budget.cpu_share(settings.TRANSCODE_LIVE_CPU_FRACTION))
+    # -loglevel error is load-bearing, not tidiness. stderr is a pipe that
+    # nothing in the request path ever reads, and ffmpeg's default progress
+    # output is written on a wall-clock cadence, so a conversion long enough to
+    # write ~64 KB of it fills the pipe buffer and blocks in write() forever --
+    # mid-video, with the process still alive and the browser still waiting.
+    # Rate limiting lengthens exactly that wall clock, which would have turned a
+    # bug reachable only on long videos into one reachable on ordinary ones.
+    command = ["ffmpeg", "-nostdin", "-loglevel", "error", "-threads", threads]
+
+    # -threads does not govern the filter pool, which defaults to one thread per
+    # core: on a many-core host the scale filter alone can spawn as many threads
+    # as the machine has, straight past the cap. Measured on a 4-core host,
+    # 1080p -> 720p: 2.44 cores with -threads 2 alone, 2.38 with this as well.
+    # A small saving here and a much larger one on a machine with more cores.
+    # Probed like the others -- it long predates them, but an ffmpeg old enough
+    # to lack it would exit rather than ignore it.
+    if ffmpeg_budget.supports("filter_threads"):
+        command += ["-filter_threads", threads]
+
+    readrate = settings.TRANSCODE_LIVE_READRATE
+    if readrate > 0 and ffmpeg_budget.supports("readrate"):
+        command += ["-readrate", str(readrate)]
+        burst = settings.TRANSCODE_LIVE_BURST_SECONDS
+        if burst > 0 and ffmpeg_budget.supports("readrate_initial_burst"):
+            command += ["-readrate_initial_burst", str(burst)]
+
+    return command + [
+        "-i",
+        path,
+        # Again after the input: the first one capped the decoder, this caps the
+        # encoder. Only one of the two and half the work stays uncapped.
+        "-threads",
+        threads,
+        "-vcodec",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-movflags",
+        "frag_keyframe+empty_moov",
+        "-filter:v",
+        # A ceiling, not a target: plain "scale=-2:720" enlarges anything
+        # shorter than 720 lines, and the phone clips that most often need
+        # converting are exactly that. Upscaling costs bandwidth and CPU to
+        # add nothing a viewer can see.
+        "scale=-2:'min(720,ih)'",
+        "-f",
+        "mp4",
+        "-",
+    ]
+
+
 class VideoTranscoder:
+    """A live conversion, its output on stdout and its complaints drained.
+
+    Nothing in the request path ever read stderr, and it was a pipe: ffmpeg
+    writes progress there on a wall-clock cadence, so a conversion running long
+    enough to produce about 64 KB of it filled the pipe buffer and blocked in
+    write() forever, mid-video, with the process alive and the browser waiting.
+    Progress arrives at about 315 bytes a second of wall clock, so 64 KB --
+    a pipe's full capacity -- accumulates after roughly six minutes of
+    conversion: a video of about sixteen minutes on a four-core host, less on a
+    slower one, and less again once the conversion is rate limited. What
+    decides it is how long the conversion runs, not the resolution or the
+    layout of the file. Caught in the act on unmodified dev: stdout frozen at
+    302.9 MB, the process alive with /proc/<pid>/syscall reading write() on fd
+    2, and output resuming the moment the pipe was read.
+
+    ``-loglevel error`` removes almost all of that output, but a file that
+    decodes badly can still produce error lines without end, so the pipe is
+    also drained -- into a small ring buffer, kept for the log if the
+    conversion turns out to have failed. Today those lines are discarded
+    unread, which is why a transcode that dies leaves nothing but a truncated
+    video and no explanation.
+    """
+
+    # Enough to identify a failure, small enough that a file erroring on every
+    # frame cannot grow it without bound.
+    STDERR_TAIL_BYTES = 8192
+
     process = ""
 
     def __init__(self, path):
-        ffmpeg_command = [
-            "ffmpeg",
-            "-i",
-            path,
-            "-vcodec",
-            "libx264",
-            "-preset",
-            "ultrafast",
-            "-movflags",
-            "frag_keyframe+empty_moov",
-            "-filter:v",
-            # A ceiling, not a target: plain "scale=-2:720" enlarges anything
-            # shorter than 720 lines, and the phone clips that most often need
-            # converting are exactly that. Upscaling costs bandwidth and CPU to
-            # add nothing a viewer can see.
-            "scale=-2:'min(720,ih)'",
-            "-f",
-            "mp4",
-            "-",
-        ]
         self.process = subprocess.Popen(
-            ffmpeg_command,
+            build_live_command(path),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+        self._stderr_tail = collections.deque(maxlen=self.STDERR_TAIL_BYTES)
+        self._drain = threading.Thread(target=self._read_stderr, daemon=True)
+        self._drain.start()
+
+    def _read_stderr(self):
+        for chunk in iter(lambda: self.process.stderr.read(4096), b""):
+            self._stderr_tail.extend(chunk)
+
+    def stderr_tail(self):
+        """What ffmpeg last said, once there is no more of it coming.
+
+        The drain thread is joined first: a deque is safe to extend from
+        another thread but not to iterate while it is being extended, and
+        process exit does not by itself mean the pipe has been read to the end.
+        """
+        self._drain.join(timeout=5)
+        return bytes(self._stderr_tail).decode("utf-8", "replace").strip()
 
     def __del__(self):
         self.process.kill()
 
 
 def gen(transcoder):
+    """Stream the conversion, and say so in the log if it ended badly.
+
+    A failed transcode reaches the browser as a video that simply stops, so the
+    only place the reason can land is here.
+    """
     yield from iter(transcoder.process.stdout.readline, b"")
+    if transcoder.process.wait() != 0:
+        logger.warning(
+            "live video transcode exited with %s: %s",
+            transcoder.process.returncode,
+            transcoder.stderr_tail() or "no output on stderr",
+        )
 
 
 class UnifiedMediaAccessView(APIView):
