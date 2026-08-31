@@ -185,6 +185,7 @@ The cache costs somewhere between 10 and 20 MB per minute of video — how much 
 | `TRANSCODE_CACHE_MIN_FREE_GB` | `transcodeCacheMinFreeGb` | `2` | How much free space to leave alone on the volume, in GB. The cache never writes into this, and a conversion already running is abandoned if the free space drops into it. |
 | `TRANSCODE_CACHE_MAX_CONCURRENT` | `transcodeCacheMaxConcurrent` | `1` | How many conversions may be written at once. Each is an ffmpeg process, so raising this trades CPU for having more videos become seekable sooner. |
 | `TRANSCODE_CACHE_NICE` | `transcodeCacheNice` | `10` | How far the background conversion stands back from everything else, as a `nice` value. `0` turns the courtesy off. |
+| `TRANSCODE_LIVE_THREADS` | `transcodeLiveThreads` | half the cores | How many cores the live conversion may use. ffmpeg takes every one by default, which starves the interface, a running scan and every other viewer for a lead nobody sees. Raise it if a video stutters on slow hardware; `0` hands ffmpeg the whole machine. |
 
 When either ceiling is reached, the least recently played entries are deleted until the new one fits; if even that is not enough, the video simply is not cached and plays live as before. Nothing is ever served before its conversion has finished, so an interrupted one leaves no half-playable file behind.
 
