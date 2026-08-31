@@ -141,14 +141,28 @@ Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anyth
 | Variable | `.env` key | What turning it off stops |
 | --- | --- | --- |
 | `FEATURE_VIDEO` | `featureVideo` | Video files are no longer imported. A scan skips them the same way it skips a file it cannot read, so no `Photo` is created and no video thumbnail is generated. The motion video inside a "live photo" is not extracted either, so those stay ordinary still images. |
-| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. |
+| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. The face recognition service is not started, so its model is never loaded. |
 | `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** reports an error. |
-| `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. |
+| `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. Neither the captioning service nor the LLM service is started — the LLM is only ever used to write and polish captions, so it has nothing left to do. |
 | `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no requests go to your map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
-| `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. |
+| `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. The tagging service is not started, so the places365 model is never loaded. |
 | `FEATURE_PROCESS_EMBEDDED_MEDIA` | `featureProcessEmbeddedMedia` | The short video stored inside a "live photo" or motion photo is no longer extracted, so those files stay ordinary stills. `FEATURE_VIDEO` has to be on as well for extraction to happen. See [Feature Toggles](../user-guide/feature-toggles.md) for the one way this switch differs from the others. |
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
+
+#### The machine learning services follow the switches
+
+The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.
+
+| Switch | Service that stops being started |
+| --- | --- |
+| `FEATURE_FACE_DETECTION` | `face_recognition` |
+| `FEATURE_IMAGE_CAPTIONING` | `image_captioning`, `llm` |
+| `FEATURE_SCENE_CLASSIFICATION` | `tags` |
+
+The remaining services — `exif`, `thumbnail`, `ocr`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
+
+A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running.
 
 With the bundled Compose setup, set the lowerCamelCase keys in your `.env`:
 

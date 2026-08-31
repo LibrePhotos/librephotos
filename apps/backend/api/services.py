@@ -39,11 +39,49 @@ SERVICES = {
 
 HTTP_OK = 200
 
+# The feature flag each service serves; None means core scan/search, always on.
+#
+# llm is gated on captioning because captioning is its only consumer: port 8008
+# is reached from api.llm.generate_prompt and the Moondream branch of
+# api.image_captioning.generate_caption, and both are called only from
+# PhotoCaption's caption generation, which already stops when
+# FEATURE_IMAGE_CAPTIONING is off. If anything else ever calls generate_prompt
+# — chat, cluster naming — this has to go back to None.
+SERVICE_FEATURE_FLAGS = {
+    "image_similarity": None,
+    "thumbnail": None,
+    "face_recognition": "FEATURE_FACE_DETECTION",
+    "clip_embeddings": None,
+    "llm": "FEATURE_IMAGE_CAPTIONING",
+    "image_captioning": "FEATURE_IMAGE_CAPTIONING",
+    "exif": None,
+    "tags": "FEATURE_SCENE_CLASSIFICATION",
+    "ocr": None,
+}
+
+
+def is_service_enabled(service):
+    """Whether this deployment's feature flags call for the service to run.
+
+    A flag the settings module does not define counts as enabled, so an
+    unrecognised switch can never take a service away from a deployment that
+    had it before.
+    """
+    flag = SERVICE_FEATURE_FLAGS.get(service)
+    if flag is None:
+        return True
+    return bool(getattr(settings, flag, True))
+
 
 def check_services():
     for service in SERVICES.keys():
         if service in INCOMPATIBLE_SERVICES:
             logger.info(f"Skipping restart of incompatible service: {service}")
+            continue
+
+        if not is_service_enabled(service):
+            # Silent on purpose: this runs every minute, and startup already
+            # logged the reason once.
             continue
 
         if not is_healthy(service):
@@ -89,6 +127,14 @@ def _service_environment():
 
 
 def start_service(service):
+    if not is_service_enabled(service):
+        logger.info(
+            "Service '%s' not started: %s is disabled",
+            service,
+            SERVICE_FEATURE_FLAGS[service],
+        )
+        return False
+
     # Check system compatibility before attempting to start the service
     if not is_service_compatible(service):
         logger.error(f"Service '{service}' is not compatible with this system")
