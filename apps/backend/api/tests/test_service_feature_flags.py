@@ -9,7 +9,9 @@ from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase, override_settings
+from rest_framework.test import APIClient
 
+from api.models import User
 from api.services import (
     SERVICE_FEATURE_FLAGS,
     SERVICES,
@@ -17,6 +19,7 @@ from api.services import (
     is_service_enabled,
     start_service,
 )
+from api.tests.utils import create_password
 
 
 def spawned_services(popen_mock):
@@ -208,3 +211,84 @@ class CheckServicesTest(SimpleTestCase):
             ],
             logs.output,
         )
+
+
+class ServiceAdminApiTest(TestCase):
+    """The admin Services page has to tell "switched off" from "crashed".
+
+    Reporting a flag-disabled service as merely unhealthy sends an admin looking
+    for a fault that is not there, and offers a Start button whose 500 tells them
+    nothing about why.
+    """
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            "admin", "admin@test.com", create_password()
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin)
+
+    @patch("api.views.services.is_healthy", return_value=True)
+    def test_an_enabled_service_reports_its_health(self, _healthy):
+        response = self.client.get("/api/services/face_recognition/")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "service_name": "face_recognition",
+                "healthy": True,
+                "enabled": True,
+                "feature_flag": "FEATURE_FACE_DETECTION",
+            },
+            response.json(),
+        )
+
+    def test_a_core_service_names_no_flag(self):
+        with patch("api.views.services.is_healthy", return_value=True):
+            response = self.client.get("/api/services/thumbnail/")
+
+        self.assertIsNone(response.json()["feature_flag"])
+        self.assertTrue(response.json()["enabled"])
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    @patch("api.views.services.is_healthy", return_value=False)
+    def test_a_disabled_service_is_reported_as_disabled(self, healthy_mock):
+        response = self.client.get("/api/services/face_recognition/")
+
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(response.json()["enabled"])
+        self.assertEqual("FEATURE_FACE_DETECTION", response.json()["feature_flag"])
+        healthy_mock.assert_not_called()
+
+    @override_settings(FEATURE_IMAGE_CAPTIONING=False)
+    @patch("api.views.services.start_service")
+    def test_starting_a_disabled_service_is_a_conflict_naming_the_flag(
+        self, start_mock
+    ):
+        response = self.client.post("/api/services/llm/start/")
+
+        self.assertEqual(409, response.status_code)
+        self.assertEqual("FEATURE_IMAGE_CAPTIONING", response.json()["feature_flag"])
+        self.assertIn("FEATURE_IMAGE_CAPTIONING", response.json()["error"])
+        start_mock.assert_not_called()
+
+    @patch("api.views.services.start_service", return_value=True)
+    def test_starting_an_enabled_service_still_succeeds(self, _start):
+        response = self.client.post("/api/services/tags/start/")
+
+        self.assertEqual(200, response.status_code)
+
+    @patch("api.views.services.start_service", return_value=False)
+    def test_an_enabled_service_that_fails_to_start_is_still_a_server_error(
+        self, _start
+    ):
+        """409 is for the switch; a genuine failure must not be dressed up as one."""
+        response = self.client.post("/api/services/tags/start/")
+
+        self.assertEqual(500, response.status_code)
+
+    @override_settings(FEATURE_FACE_DETECTION=False)
+    def test_an_unknown_service_is_still_a_404(self):
+        response = self.client.post("/api/services/not_a_service/start/")
+
+        self.assertEqual(404, response.status_code)

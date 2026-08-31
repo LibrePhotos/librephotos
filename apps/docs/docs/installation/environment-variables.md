@@ -189,7 +189,7 @@ The backend runs its heavy models in separate sidecar processes, and a watchdog 
 
 The remaining services — `exif`, `thumbnail`, `ocr`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
 
-A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running.
+A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running. The Admin Area's **Services** list shows one as **Disabled** rather than as unhealthy, and offers no Start button for it.
 
 ### Cached video conversions
 
