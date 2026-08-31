@@ -91,7 +91,7 @@ Feature toggles are implemented as environment variables you would have to confi
 
 All of these default to on. See [Advanced docker-compose usage](../installation/environment-variables.md) for what turning each one off actually stops, and for the matching `.env` keys of the bundled Compose setup.
 
-Turning off face detection, image captioning or scene classification also keeps the matching machine learning service from starting, so its model is never loaded and never restarted by the watchdog. That is where the memory these switches save actually comes from.
+Turning off face detection, image captioning or scene classification also keeps the matching machine learning service from starting, so its model is never loaded and never restarted by the watchdog. That is where the memory these switches save actually comes from. (This part is not in a released image yet — it is on the `dev` branch and will appear in the next release; on 1.1.0 the switches stop the processing, but the services still start.)
 
 :::note Embedded media
 The **Embedded media** switch is checked only the first time a file is imported. Enabling it on a library that has already been scanned extracts nothing for the photos that are already there, not even with **Rescan All Photos**, which skips extraction for files it has already imported. Only files added afterwards are affected. Turning it off never removes clips that were already extracted; those stay on disk under `protected_media/embedded_media/`.

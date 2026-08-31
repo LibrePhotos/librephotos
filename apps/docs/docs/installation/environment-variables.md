@@ -150,20 +150,6 @@ Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anyth
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
 
-#### The machine learning services follow the switches
-
-The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.
-
-| Switch | Service that stops being started |
-| --- | --- |
-| `FEATURE_FACE_DETECTION` | `face_recognition` |
-| `FEATURE_IMAGE_CAPTIONING` | `image_captioning`, `llm` |
-| `FEATURE_SCENE_CLASSIFICATION` | `tags` |
-
-The remaining services — `exif`, `thumbnail`, `ocr`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
-
-A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running.
-
 With the bundled Compose setup, set the lowerCamelCase keys in your `.env`:
 
 ```bash
@@ -186,6 +172,24 @@ services:
 :::note
 `FEATURE_PROCESS_EMBEDDED_MEDIA` is checked only at the moment a file is first imported. Turning it on for a library that has already been scanned extracts nothing for the photos already there — not even with **Rescan All Photos** — so only files added afterwards are affected.
 :::
+
+#### The machine learning services follow the switches
+
+:::note
+This part is not in a released image yet. It is available on the `dev` branch and will appear in the next release; on 1.1.0 the switches stop the processing, but the services still start.
+:::
+
+The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.
+
+| Switch | Service that stops being started |
+| --- | --- |
+| `FEATURE_FACE_DETECTION` | `face_recognition` |
+| `FEATURE_IMAGE_CAPTIONING` | `image_captioning`, `llm` |
+| `FEATURE_SCENE_CLASSIFICATION` | `tags` |
+
+The remaining services — `exif`, `thumbnail`, `ocr`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
+
+A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running.
 
 ### Cached video conversions
 
