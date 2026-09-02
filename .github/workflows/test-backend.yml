@@ -11,6 +11,9 @@ on:
       - 'apps/backend/**'
       - '.github/workflows/test-backend.yml'
 
+permissions:
+  contents: read
+
 jobs:
   django:
     runs-on: ubuntu-latest
@@ -19,6 +22,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           # 3.11 here, but 3.14 in lint-backend.yml: ruff only parses the code

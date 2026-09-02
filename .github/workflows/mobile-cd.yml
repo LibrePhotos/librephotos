@@ -7,6 +7,10 @@ on:
       - 'apps/mobile/**'
       - '.github/workflows/mobile-cd.yml'
 
+# The rolling mobile release is created with the workflow token.
+permissions:
+  contents: write
+
 jobs:
   beta-distribution:
     runs-on: ubuntu-latest
@@ -15,11 +19,13 @@ jobs:
         working-directory: apps/mobile
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version-file: apps/mobile/.node-version
-          cache: yarn
-          cache-dependency-path: apps/mobile/yarn.lock
+          # No yarn cache on this job, it publishes the signed APK and a
+          # cache entry primed elsewhere must not feed a release build.
 
       - name: Install node modules
         run: yarn install
@@ -31,15 +37,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
+          # Ref-scoped, same reason as above.
+          key: ${{ runner.os }}-gradle-wrapper-${{ github.ref_name }}-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Cache Gradle Dependencies
         uses: actions/cache@v4
         with:
           path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-caches-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-caches-${{ github.ref_name }}-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-caches-
+            ${{ runner.os }}-gradle-caches-${{ github.ref_name }}-
 
       - name: Make Gradlew Executable
         run: cd android && chmod +x ./gradlew
@@ -49,7 +56,7 @@ jobs:
 
       - name: Sign App APK
         id: sign_apk
-        uses: r0adkll/sign-android-release@v1
+        uses: r0adkll/sign-android-release@dbeba6b98a60b0fd540c02443c7f428cdedf0e7f # v1.0.4
         with:
           releaseDirectory: apps/mobile/android/app/build/outputs/apk/release
           signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
@@ -72,12 +79,12 @@ jobs:
           path: librephotos-latest-signed.apk
 
       - name: Create APK Release
-        uses: marvinpinto/action-automatic-releases@latest
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: "mobile/latest"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: "mobile/latest"
           prerelease: true
           draft: false
-          title: "Latest Mobile Release"
+          name: "Latest Mobile Release"
           files: |
             librephotos-latest-signed.apk

@@ -12,6 +12,9 @@ on:
       - '.github/workflows/image-backend.yml'
       - '.github/workflows/_build-image.yml'
 
+permissions:
+  contents: read
+
 jobs:
   dev:
     if: github.event_name != 'release'
@@ -19,7 +22,9 @@ jobs:
     with:
       image: reallibrephotos/librephotos
       dockerfile: deploy/docker/backend/Dockerfile
-    secrets: inherit
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
@@ -28,4 +33,6 @@ jobs:
       image: reallibrephotos/librephotos
       dockerfile: deploy/docker/backend/Dockerfile
       release-tag: ${{ github.event.release.tag_name }}
-    secrets: inherit
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
