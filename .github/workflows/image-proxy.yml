@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
       - name: Set up Docker Buildx
@@ -35,14 +37,14 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: reallibrephotos/librephotos-proxy:dev
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
       - name: Set up Docker Buildx
