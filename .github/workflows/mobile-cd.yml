@@ -24,8 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: apps/mobile/.node-version
-          cache: yarn
-          cache-dependency-path: apps/mobile/yarn.lock
+          # No yarn cache on this job, it publishes the signed APK and a
+          # cache entry primed elsewhere must not feed a release build.
 
       - name: Install node modules
         run: yarn install
@@ -37,15 +37,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
+          # Ref-scoped, same reason as above.
+          key: ${{ runner.os }}-gradle-wrapper-${{ github.ref_name }}-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
 
       - name: Cache Gradle Dependencies
         uses: actions/cache@v4
         with:
           path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-caches-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-caches-${{ github.ref_name }}-${{ hashFiles('apps/mobile/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-caches-
+            ${{ runner.os }}-gradle-caches-${{ github.ref_name }}-
 
       - name: Make Gradlew Executable
         run: cd android && chmod +x ./gradlew
