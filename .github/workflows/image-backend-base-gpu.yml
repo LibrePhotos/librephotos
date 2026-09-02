@@ -7,6 +7,9 @@ on:
       - 'deploy/docker/backend-gpu/base/**'
       - '.github/workflows/image-backend-base-gpu.yml'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04

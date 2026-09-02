@@ -37,6 +37,9 @@ on:
       DOCKER_HUB_ACCESS_TOKEN:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   build-amd64:
     runs-on: ubuntu-24.04

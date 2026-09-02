@@ -11,6 +11,9 @@ on:
       - 'apps/backend/**'
       - '.github/workflows/lint-backend.yml'
 
+permissions:
+  contents: read
+
 jobs:
   ruff:
     runs-on: ubuntu-latest

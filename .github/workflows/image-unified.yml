@@ -12,6 +12,9 @@ on:
       - '.github/workflows/image-unified.yml'
       - '.github/workflows/_build-image.yml'
 
+permissions:
+  contents: read
+
 jobs:
   dev:
     if: github.event_name != 'release'

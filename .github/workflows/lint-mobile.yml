@@ -6,6 +6,9 @@ on:
       - 'apps/mobile/**'
       - '.github/workflows/lint-mobile.yml'
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest

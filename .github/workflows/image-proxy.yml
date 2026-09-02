@@ -9,6 +9,9 @@ on:
       - 'deploy/docker/proxy/**'
       - '.github/workflows/image-proxy.yml'
 
+permissions:
+  contents: read
+
 jobs:
   dev:
     if: github.event_name != 'release'

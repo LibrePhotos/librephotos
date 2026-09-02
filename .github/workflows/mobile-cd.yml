@@ -7,6 +7,10 @@ on:
       - 'apps/mobile/**'
       - '.github/workflows/mobile-cd.yml'
 
+# The rolling mobile release is created with the workflow token.
+permissions:
+  contents: write
+
 jobs:
   beta-distribution:
     runs-on: ubuntu-latest

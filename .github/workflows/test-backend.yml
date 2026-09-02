@@ -11,6 +11,9 @@ on:
       - 'apps/backend/**'
       - '.github/workflows/test-backend.yml'
 
+permissions:
+  contents: read
+
 jobs:
   django:
     runs-on: ubuntu-latest

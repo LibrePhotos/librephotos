@@ -8,6 +8,9 @@ on:
       - '.github/workflows/image-backend-base.yml'
       - '.github/workflows/_build-image.yml'
 
+permissions:
+  contents: read
+
 jobs:
   dev:
     uses: ./.github/workflows/_build-image.yml

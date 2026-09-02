@@ -7,6 +7,10 @@ on:
       - 'apps/docs/**'
       - '.github/workflows/docs.yml'
 
+# The gh-pages push uses the workflow token.
+permissions:
+  contents: write
+
 jobs:
   deploy:
     name: Deploy to GitHub Pages
