@@ -22,7 +22,9 @@ jobs:
       amd64-only: true
       build-args: |
         IMAGE_TAG=dev
-    secrets: inherit
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
   release:
     if: github.event_name == 'release' && github.event.action == 'created'
@@ -34,4 +36,6 @@ jobs:
       release-tag: ${{ github.event.release.tag_name }}
       build-args: |
         IMAGE_TAG=${{ github.event.release.tag_name }}
-    secrets: inherit
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
