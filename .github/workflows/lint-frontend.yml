@@ -26,6 +26,8 @@ jobs:
         working-directory: apps/frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version-file: apps/frontend/.nvmrc
