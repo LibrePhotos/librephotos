@@ -49,8 +49,20 @@ function removePhotosFromTag(name: string, numberOfPhotos: number) {
   });
 }
 
+function taggedPhotos(names: string[], numberOfPhotos: number) {
+  showNotification({
+    message: i18n.t("toasts.taggedphotos", {
+      tags: names.join(", "),
+      count: numberOfPhotos,
+    }),
+    title: i18n.t("toasts.taggedphotostitle"),
+    color: "teal",
+  });
+}
+
 export const tags = {
   addPhotosToTag,
+  taggedPhotos,
   createTag,
   deleteTag,
   mergeTags,

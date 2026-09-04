@@ -4,4 +4,5 @@ export * from "./useCreateTagMutation";
 export * from "./useRenameTagMutation";
 export * from "./useDeleteTagMutation";
 export * from "./useTagPhotosMutations";
+export * from "./useTagPhotosByNameMutation";
 export * from "./useMergeTagsMutation";

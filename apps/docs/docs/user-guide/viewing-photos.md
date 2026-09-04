@@ -135,6 +135,8 @@ Your own tags for the photo, shown as teal badges. This section always appears i
 
 These are not the same as the automatic **Tags** list SigLIP 2 adds under the caption: those come from the tagging model and are not editable here.
 
+To tag many photos in one go, select them in the grid and press **`t`** instead — see [Tagging photos](./albums.md#tagging-photos).
+
 Tags are not shown on public or shared album pages.
 
 ### Keywords
