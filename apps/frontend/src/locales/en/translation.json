@@ -1338,6 +1338,11 @@
       "title": "No places found",
       "description": "Photos with GPS location data will be automatically grouped by place."
     },
+    "tag": {
+      "title": "This tag has no photos",
+      "description": "The photos that carried it were deleted, or you have not tagged anything with it yet. Select photos anywhere and press t to tag them.",
+      "action": "Back to all tags"
+    },
     "things": {
       "title": "No things detected",
       "description": "Objects and scenes are detected automatically during photo scanning."

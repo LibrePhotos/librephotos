@@ -166,6 +166,8 @@ On the Albums page, open **Tags → View all**. The three-dot menu on any tag of
 Tags are per user: two accounts can each have a tag called `holiday` without seeing each other's.
 :::
 
+A tag outlives its photos. Trashing, hiding or deleting the last photo that carried a tag leaves the tag in place: it stays in the Tags list with a placeholder tile so you can still rename or delete it, and its own page tells you it is empty. That is deliberate — you may well want to create a tag before anything carries it, and deleting photos should never silently delete tags.
+
 :::caution
 A tag you add in LibrePhotos is not written back into the image file yet. A tag that *came* from a file's keywords stays in that file, but new tags live only in LibrePhotos' database.
 :::
