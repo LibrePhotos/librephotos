@@ -180,7 +180,9 @@ export function Description(props: Props) {
           <Stack>
             <Group>
               <Tags />
-              <Title order={4}>{t("lightbox.sidebar.tags", "Tags")}</Title>
+              {/* The tagging model's own output, not the user's tags -- both
+                  used to render as "Tags" in the same sidebar. */}
+              <Title order={4}>{t("lightbox.sidebar.autotags")}</Title>
             </Group>
             <Group>
               {photoDetail.captions_json.siglip2.tags.map((tag: string) => (
