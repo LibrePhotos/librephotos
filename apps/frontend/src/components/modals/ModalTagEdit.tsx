@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { BulkPhotoQuery } from "../../api_client/photos/types";
 import { useFetchTagsQuery, useTagPhotosByNameMutation } from "../../api_client/tags/hooks";
 import { notification } from "../../service/notifications";
+import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 import { Tile } from "../Tile";
 import classes from "./ModalTagEdit.module.css";
 
@@ -111,6 +112,8 @@ export function ModalTagEdit(props: Props) {
           searchValue={pendingTag}
           onSearchChange={setPendingTag}
           data={(allTags ?? []).map(tag => tag.name)}
+          filter={tagOptionsFilter}
+          limit={TAG_SUGGESTION_LIMIT}
           placeholder={t("modaltag.placeholder")}
           splitChars={[","]}
           clearable

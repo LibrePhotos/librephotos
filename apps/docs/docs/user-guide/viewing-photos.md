@@ -131,7 +131,7 @@ Tags from each model are stored independently, but the lightbox only shows tags 
 
 ### Tags
 
-Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
+Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions, the ones beginning with what you typed first — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
 
 These are not the same as the automatic **Tags** list SigLIP 2 adds under the caption: those come from the tagging model and are not editable here.
 

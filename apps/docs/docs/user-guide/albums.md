@@ -139,7 +139,7 @@ Anywhere you can select photos — the timeline, a search result, a person, plac
 
 1. Select the photos and videos you want to tag.
 2. Press **`t`**, or open the **plus menu** (＋) and click **Tags**.
-3. Type the tags, separating several with a comma. Tags you already use complete as you type; anything new is created for you.
+3. Type the tags, separating several with a comma. Suggestions narrow as you type — tags that *begin* with what you typed come first, so a letter or two is usually enough — and anything new is created for you.
 4. Click **Add tags** (or press Enter on an empty box).
 
 Every tag in the box is applied to every photo in the selection. Tagging is additive — it never removes a tag a photo already has.
