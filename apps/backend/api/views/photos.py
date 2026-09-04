@@ -14,6 +14,7 @@ from api.models import AlbumUser, File, Photo, User
 from api.models.photo_stack import PhotoStack
 from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
+from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
@@ -237,7 +238,12 @@ class SetPhotosDeleted(APIView):
                         f"Reset {len(stack_ids)} photo stacks to pending after restore"
                     )
 
+            # Snapshot the tags before the update, then refresh: a trashed
+            # photo drops out of its tags' counts (and a restored one comes
+            # back), and no signal fires for a plain UPDATE.
+            affected_tag_ids = tag_ids_for_photos(photos_qs)
             count = photos_qs.update(in_trashcan=val_deleted)
+            refresh_tag_photo_counts(affected_tag_ids)
 
             if val_deleted:
                 logger.info(
@@ -280,9 +286,12 @@ class SetPhotosDeleted(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            Photo.objects.filter(
+            updated_photos = Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
-            ).update(in_trashcan=val_deleted)
+            )
+            affected_tag_ids = tag_ids_for_photos(updated_photos)
+            updated_photos.update(in_trashcan=val_deleted)
+            refresh_tag_photo_counts(affected_tag_ids)
 
             # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
@@ -459,7 +468,11 @@ class SetPhotosHidden(APIView):
             # photos to prevent hiding/unhiding other users' public photos.
             photos_qs = photos_qs.filter(owner=request.user)
 
+            # Hiding takes a photo out of its tags' counts the same way
+            # trashing does; see SetPhotosDeleted above.
+            affected_tag_ids = tag_ids_for_photos(photos_qs)
             count = photos_qs.update(hidden=val_hidden)
+            refresh_tag_photo_counts(affected_tag_ids)
 
             if val_hidden:
                 logger.info(
@@ -501,9 +514,12 @@ class SetPhotosHidden(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            Photo.objects.filter(
+            updated_photos = Photo.objects.filter(
                 image_hash__in=photos_to_update, owner=request.user
-            ).update(hidden=val_hidden)
+            )
+            affected_tag_ids = tag_ids_for_photos(updated_photos)
+            updated_photos.update(hidden=val_hidden)
+            refresh_tag_photo_counts(affected_tag_ids)
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}

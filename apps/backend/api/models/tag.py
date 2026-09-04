@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Count, IntegerField, OuterRef, Subquery
+from django.db.models.functions import Coalesce
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
@@ -6,6 +8,12 @@ from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
 
 NAME_MAX_LENGTH = 512
+
+# The photos a tag counts: the same ones its album shows, so the tile's count
+# and the gallery behind it cannot disagree. Kept in one place because two
+# separate code paths compute the count and a drift between them would be
+# invisible until a user noticed the numbers were wrong.
+VISIBLE_PHOTO_FILTER = {"hidden": False, "in_trashcan": False, "removed": False}
 
 
 class Tag(models.Model):
@@ -38,12 +46,61 @@ def update_photo_count(sender, instance, action, reverse, model, pk_set, **kwarg
         return
     tags = Tag.objects.filter(pk__in=pk_set or []) if reverse else [instance]
     for tag in tags:
-        # The same photos the tag's album shows, so the tile's count and the
-        # gallery behind it cannot disagree.
-        tag.photo_count = tag.photos.filter(
-            hidden=False, in_trashcan=False, removed=False
-        ).count()
+        tag.photo_count = tag.photos.filter(**VISIBLE_PHOTO_FILTER).count()
         tag.save(update_fields=["photo_count"])
+
+
+def tag_ids_for_photos(photos):
+    """The ids of every tag holding one of ``photos``.
+
+    Snapshot these *before* deleting the photos: the through-rows go with them,
+    and afterwards there is nothing left to say which tags were affected.
+    """
+    return list(
+        Tag.objects.filter(photos__in=photos).values_list("pk", flat=True).distinct()
+    )
+
+
+def refresh_tag_photo_counts(tag_ids):
+    """Recompute ``photo_count`` for ``tag_ids``, in one statement.
+
+    The ``m2m_changed`` receiver above only fires when a photo is attached to
+    or detached from a tag. A photo that stops counting some other way --
+    trashed, hidden, or deleted outright, where the cascade drops the
+    through-row without sending the signal -- used to leave the stored count
+    behind, so an emptied tag showed "1 photo" over a placeholder tile.
+
+    Written as a set-based UPDATE rather than a ``save()`` per tag because
+    trashing a large selection can touch every tag in the library; this is the
+    same reasoning as the batched AlbumThing refresh in ``delete_missing_photos``
+    (#1848), which predates this model.
+    """
+    if not tag_ids:
+        return 0
+
+    visible_count = (
+        Tag.photos.through.objects.filter(
+            tag_id=OuterRef("pk"),
+            **{
+                f"photo__{field}": value
+                for field, value in VISIBLE_PHOTO_FILTER.items()
+            },
+        )
+        .values("tag_id")
+        .annotate(total=Count("pk"))
+        .values("total")
+    )
+    return Tag.objects.filter(pk__in=tag_ids).update(
+        photo_count=Coalesce(Subquery(visible_count, output_field=IntegerField()), 0)
+    )
+
+
+def refresh_tags_for_photos(photos):
+    """Refresh the counts of every tag holding one of ``photos``.
+
+    For a queryset whose photos are only changing visibility, not going away.
+    """
+    return refresh_tag_photo_counts(tag_ids_for_photos(photos))
 
 
 def get_tag(name, owner):
