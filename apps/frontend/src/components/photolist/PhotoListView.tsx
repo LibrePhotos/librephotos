@@ -13,7 +13,7 @@ import {
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
-import { useDebouncedCallback, useViewportSize } from "@mantine/hooks";
+import { useDebouncedCallback, useHotkeys, useViewportSize } from "@mantine/hooks";
 import { IconLink, IconSettings } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -36,6 +36,7 @@ import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox/Lightbox";
 import { AlbumCoverPickerModal } from "../modals/AlbumCoverPickerModal";
 import { AlbumEditModal } from "../modals/AlbumEdit/AlbumEditModal";
+import { ModalTagEdit } from "../modals/ModalTagEdit";
 import Pig from "../react-pig";
 import type { PigHandle } from "../react-pig";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
@@ -131,6 +132,7 @@ function PhotoListViewComponent({
   const { height } = useViewportSize();
   const pigRef = useRef<PigHandle>(null);
   const [modalAddToAlbumOpen, setModalAddToAlbumOpen] = useState(false);
+  const [modalTagOpen, setModalTagOpen] = useState(false);
   const [modalSharePhotosOpen, setModalSharePhotosOpen] = useState(false);
   const [modalAlbumShareOpen, setModalAlbumShareOpen] = useState(false);
   const [modalCoverPickerOpen, setModalCoverPickerOpen] = useState(false);
@@ -316,6 +318,23 @@ function PhotoListViewComponent({
     selectionStateRef.current = updatedState;
     setSelectionState(updatedState);
   };
+
+  // Tag the selection from the keyboard, the way Shotwell's Ctrl+T does. A
+  // bare "t" rather than a modifier because browsers reserve Ctrl+T for a new
+  // tab and a page cannot take it back -- and because the lightbox already
+  // binds bare f/h/p/i/z for the same kind of action. Mantine's useHotkeys
+  // ignores INPUT/TEXTAREA/SELECT, so this never fires from the search box.
+  useHotkeys([
+    [
+      "t",
+      () => {
+        const { selectMode, selectAllMode, selectedItems } = selectionStateRef.current;
+        if (!isPublic && (selectAllMode || (selectMode && selectedItems.length > 0))) {
+          setModalTagOpen(true);
+        }
+      },
+    ],
+  ]);
 
   // Clear any active selection when the media-type filter changes: the set of
   // photos on screen changes, so a carried-over selection (and its "N selected"
@@ -688,6 +707,7 @@ function PhotoListViewComponent({
                     onSharePhotos={() => setModalSharePhotosOpen(true)}
                     onShareAlbum={() => setModalAlbumShareOpen(true)}
                     onAddToAlbum={() => setModalAddToAlbumOpen(true)}
+                    onAddTags={() => setModalTagOpen(true)}
                     updateSelectionState={updateSelectionState}
                   />
                 )}
@@ -781,6 +801,24 @@ function PhotoListViewComponent({
           isOpen={modalAddToAlbumOpen}
           onRequestClose={() => {
             setModalAddToAlbumOpen(false);
+            updateSelectionState({
+              selectedItems: [],
+              selectMode: false,
+              selectAllMode: false,
+              selectAllQuery: undefined,
+            });
+          }}
+          selectedImages={selectionState.selectedItems}
+          selectAllMode={selectionState.selectAllMode}
+          selectAllQuery={selectionState.selectAllQuery}
+          totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
+        />
+      )}
+      {!isPublic && (
+        <ModalTagEdit
+          isOpen={modalTagOpen}
+          onRequestClose={() => {
+            setModalTagOpen(false);
             updateSelectionState({
               selectedItems: [],
               selectMode: false,

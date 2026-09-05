@@ -281,6 +281,16 @@
     "name": "Person name",
     "joined": "Joined"
   },
+  "modaltag": {
+    "title": "Add Tags",
+    "selectedimages": "Tag the selected {{count}} photo(s)",
+    "andmore": "and {{count}} more",
+    "label": "Tags",
+    "hint": "Separate several tags with commas. Existing tags autocomplete; new ones are created.",
+    "placeholder": "beach, holiday, 2024",
+    "add": "Add tags",
+    "savefailed": "The tags could not be saved. Nothing was changed."
+  },
   "topmenu": {
     "running": "Running",
     "available": "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles.",
@@ -475,7 +485,9 @@
     "nostackstomerge": "No stacks to merge",
     "stacksmerged": "Stacks merged successfully",
     "rotatecw": "Rotate 90° Clockwise",
-    "rotateccw": "Rotate 90° Counter-Clockwise"
+    "rotateccw": "Rotate 90° Counter-Clockwise",
+    "tag": "Tags",
+    "tagdescription": "Add tags to the selected photos (shortcut: t)"
   },
   "lightbox": {
     "sidebar": {
@@ -511,6 +523,7 @@
       "editKeywords": "Edit keywords",
       "addKeyword": "Add keyword…",
       "noKeywords": "No keywords",
+      "autotags": "Auto tags",
       "tags": "Tags",
       "editTags": "Edit tags",
       "addTag": "Add tag…",
@@ -1213,7 +1226,9 @@
     "captionupdate": "Update Caption",
     "scan_directory_required": "Scan directory not configured - contact administrator",
     "jobcancelled": "Job has been cancelled",
-    "jobcancelledtitle": "Job Cancelled"
+    "jobcancelledtitle": "Job Cancelled",
+    "taggedphotos": "Added {{tags}} to {{count}} photo(s)",
+    "taggedphotostitle": "Photos tagged"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -1322,6 +1337,11 @@
     "places": {
       "title": "No places found",
       "description": "Photos with GPS location data will be automatically grouped by place."
+    },
+    "tag": {
+      "title": "This tag has no photos",
+      "description": "The photos that carried it were deleted, or you have not tagged anything with it yet. Select photos anywhere and press t to tag them.",
+      "action": "Back to all tags"
     },
     "things": {
       "title": "No things detected",

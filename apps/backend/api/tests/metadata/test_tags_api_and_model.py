@@ -1,6 +1,7 @@
 """Tests for the Tag entity: the API, the EXIF keyword import and migration 0130."""
 
 from importlib import import_module
+from unittest.mock import patch
 
 from django.db import connection
 from django.test import TestCase
@@ -841,3 +842,156 @@ class Migration0130BackfillTest(TestCase):
         metadata.refresh_from_db()
         self.assertEqual(metadata.keywords, ["beach"])
         self.assertTrue(Photo.objects.filter(id=photo.id).exists())
+
+
+class TagSelectAllTest(TestCase):
+    """Tagging a whole view without the client enumerating every hash.
+
+    The dialog behind this sends the same ``select_all`` payload the bulk
+    favourite/hide/delete endpoints take, so a 150k-photo selection is one
+    request describing the photoset rather than 150k ids.
+    """
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.other_user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.photos = create_test_photos(number_of_photos=3, owner=self.user)
+        self.tag = Tag.objects.create(name="beach", owner=self.user)
+
+    def test_select_all_attaches_every_photo_in_the_view(self):
+        response = self.client.post(
+            f"/api/tags/{self.tag.id}/add/",
+            {"select_all": True, "query": {}},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["photo_count"], 3)
+        self.assertEqual(self.tag.photos.count(), 3)
+
+    def test_excluded_hashes_are_left_alone(self):
+        self.client.post(
+            f"/api/tags/{self.tag.id}/add/",
+            {
+                "select_all": True,
+                "query": {},
+                "excluded_hashes": [self.photos[0].image_hash],
+            },
+            format="json",
+        )
+
+        attached = set(self.tag.photos.values_list("id", flat=True))
+        self.assertEqual(attached, {self.photos[1].id, self.photos[2].id})
+
+    def test_the_query_narrows_what_gets_tagged(self):
+        video = create_test_photo(owner=self.user, video=True)
+
+        self.client.post(
+            f"/api/tags/{self.tag.id}/add/",
+            {"select_all": True, "query": {"video": True}},
+            format="json",
+        )
+
+        self.assertEqual(list(self.tag.photos.all()), [video])
+
+    def test_select_all_removes_as_well_as_adds(self):
+        self.tag.photos.add(*self.photos)
+
+        response = self.client.post(
+            f"/api/tags/{self.tag.id}/remove/",
+            {
+                "select_all": True,
+                "query": {},
+                "excluded_hashes": [self.photos[0].image_hash],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(self.tag.photos.all()), [self.photos[0]])
+
+    def test_select_all_cannot_reach_another_users_photos(self):
+        # build_photo_queryset drops the owner filter for a public photoset,
+        # so without the view's own owner guard this would hang the tag on
+        # someone else's photo (the shape of issue #1982).
+        theirs = create_test_photo(owner=self.other_user, public=True)
+        mine = create_test_photo(owner=self.user, public=True)
+
+        self.client.post(
+            f"/api/tags/{self.tag.id}/add/",
+            {"select_all": True, "query": {"public": True}},
+            format="json",
+        )
+
+        attached = set(self.tag.photos.values_list("id", flat=True))
+        self.assertIn(mine.id, attached)
+        self.assertNotIn(theirs.id, attached)
+
+    def test_a_selection_larger_than_one_batch_is_fully_linked(self):
+        with patch("api.views.tags.PHOTO_LINK_BATCH_SIZE", 2):
+            self.client.post(
+                f"/api/tags/{self.tag.id}/add/",
+                {"select_all": True, "query": {}},
+                format="json",
+            )
+
+        self.assertEqual(self.tag.photos.count(), 3)
+
+    def test_an_explicit_list_larger_than_one_batch_is_fully_linked(self):
+        with patch("api.views.tags.PHOTO_LINK_BATCH_SIZE", 2):
+            self.client.post(
+                f"/api/tags/{self.tag.id}/add/",
+                {"photos": [str(photo.id) for photo in self.photos]},
+                format="json",
+            )
+
+        self.assertEqual(self.tag.photos.count(), 3)
+
+    def test_a_select_all_over_an_empty_view_is_not_an_error(self):
+        Photo.objects.filter(owner=self.user).delete()
+
+        response = self.client.post(
+            f"/api/tags/{self.tag.id}/add/",
+            {"select_all": True, "query": {}},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.tag.photos.count(), 0)
+
+    def test_select_all_does_not_scale_its_query_count_with_the_photoset(self):
+        # One statement per batch, not per photo: the guard that keeps a
+        # library-wide tag from turning into 150k round trips.
+        with CaptureQueriesContext(connection) as queries:
+            self.client.post(
+                f"/api/tags/{self.tag.id}/add/",
+                {"select_all": True, "query": {}},
+                format="json",
+            )
+        for_three = len(queries.captured_queries)
+
+        create_test_photos(number_of_photos=5, owner=self.user)
+        other_tag = Tag.objects.create(name="holiday", owner=self.user)
+        with CaptureQueriesContext(connection) as queries:
+            self.client.post(
+                f"/api/tags/{other_tag.id}/add/",
+                {"select_all": True, "query": {}},
+                format="json",
+            )
+        for_eight = len(queries.captured_queries)
+
+        self.assertEqual(for_three, for_eight)
+
+    def test_another_users_tag_stays_out_of_reach_in_select_all_mode(self):
+        theirs = Tag.objects.create(name="theirs", owner=self.other_user)
+
+        response = self.client.post(
+            f"/api/tags/{theirs.id}/add/",
+            {"select_all": True, "query": {}},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(theirs.photos.count(), 0)

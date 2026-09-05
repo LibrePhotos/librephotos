@@ -1,0 +1,8 @@
+.tile {
+  object-fit: cover;
+  width: 40px;
+  height: 40px;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
