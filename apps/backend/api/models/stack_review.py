@@ -168,7 +168,16 @@ class StackReview(models.Model):
         # Trash others if requested
         if trash_others:
             other_photos = self.stack.photos.exclude(pk=kept_photo.pk)
+            # Trashing takes these photos out of their tags' counts, and a
+            # plain UPDATE fires no m2m signal to say so.
+            from api.models.tag import (
+                refresh_tag_photo_counts,
+                tag_ids_for_photos,
+            )
+
+            affected_tag_ids = tag_ids_for_photos(other_photos)
             self.trashed_count = other_photos.update(in_trashcan=True)
+            refresh_tag_photo_counts(affected_tag_ids)
 
         self.save()
         return self

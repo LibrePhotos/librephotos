@@ -10,6 +10,7 @@ from api import autoalbum
 from api.autoalbum import delete_missing_photos
 from api.models import AlbumDate, AlbumPlace, File, LongRunningJob, Photo
 from api.models.album_thing import AlbumThing
+from api.models.tag import Tag
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -299,3 +300,78 @@ class DeleteMissingPhotosBatchingTest(TestCase):
         lrj = LongRunningJob.objects.get(job_id=job_id)
         self.assertEqual(lrj.progress_target, 5)
         self.assertEqual(lrj.progress_current, 5)
+
+
+class DeleteMissingPhotosTagTest(TestCase):
+    """The same photo_count refresh, for the Tag model.
+
+    ``Tag`` arrived after the AlbumThing sweep above (#1930 vs #1848) and was
+    not wired into it, so deleting a library's missing photos left every tag
+    holding them with a stale count -- a tag whose only photo had gone still
+    read "1 photo" over a placeholder tile.
+    """
+
+    def _make_tag(self, owner, photos, name="beach"):
+        tag = Tag.objects.create(name=name, owner=owner)
+        tag.photos.add(*photos)
+        return tag
+
+    def test_photo_count_reflects_remaining_photos_after_deletion(self):
+        user = create_test_user()
+        kept = create_test_photo(owner=user)
+        # Survival of `kept` requires populated `files` and a `main_file`.
+        kept.files.add(kept.main_file)
+        missing = [create_test_photo(owner=user) for _ in range(3)]
+
+        tag = self._make_tag(user, [kept, *missing])
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        tag.refresh_from_db()
+        self.assertEqual(tag.photo_count, 1)
+        self.assertEqual(list(tag.photos.values_list("pk", flat=True)), [kept.pk])
+
+    def test_an_emptied_tag_survives_with_a_zero_count(self):
+        user = create_test_user()
+        missing = [create_test_photo(owner=user) for _ in range(2)]
+        tag = self._make_tag(user, missing)
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        tag.refresh_from_db()
+        self.assertEqual(tag.photo_count, 0)
+        self.assertTrue(Tag.objects.filter(pk=tag.pk).exists())
+
+    def test_tags_are_refreshed_once_not_once_per_photo(self):
+        user = create_test_user()
+        missing = [create_test_photo(owner=user) for _ in range(10)]
+        self._make_tag(user, missing)
+
+        with CaptureQueriesContext(connection) as queries:
+            delete_missing_photos(user, str(uuid.uuid4()))
+
+        tag_updates = [
+            query["sql"]
+            for query in queries.captured_queries
+            if query["sql"].strip().upper().startswith("UPDATE")
+            and "api_tag" in query["sql"]
+            and "photo_count" in query["sql"]
+        ]
+        self.assertEqual(len(tag_updates), 1)
+
+    def test_another_users_tag_is_left_alone(self):
+        user = create_test_user()
+        other_user = create_test_user()
+        missing = create_test_photo(owner=user)
+        theirs = create_test_photo(owner=other_user)
+        theirs.files.add(theirs.main_file)
+
+        mine = self._make_tag(user, [missing])
+        not_mine = self._make_tag(other_user, [theirs])
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        mine.refresh_from_db()
+        not_mine.refresh_from_db()
+        self.assertEqual(mine.photo_count, 0)
+        self.assertEqual(not_mine.photo_count, 1)
