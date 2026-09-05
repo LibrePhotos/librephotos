@@ -210,6 +210,22 @@ When either ceiling is reached, the least recently played entries are deleted un
 
 The files live under `protected_media/transcoded/`, named by image hash, and are deleted along with the photo. Deleting the directory by hand is safe at any time — it costs only the CPU to convert those videos again.
 
+### What a live conversion may take
+
+The conversion a viewer is waiting on is bounded too, and for a different reason than the cached copy. Left to itself ffmpeg uses every core and converts as fast as the hardware allows, so one person opening one video can starve the web UI, a running scan and every other user — while playback needs output only a little faster than real time. The extra throughput buys nothing: on a fast host it races through footage the viewer may never reach.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `TRANSCODE_LIVE_CPU_FRACTION` | `transcodeLiveCpuFraction` | `2` | Cap the conversion at 1/N of the machine's cores. `2` is half; `1` lets it use all of them. Never fewer than one core, whatever the number. The cap is close rather than exact — decoding, filtering and encoding are each held to it, but reading and muxing are not. |
+| `TRANSCODE_LIVE_READRATE` | `transcodeLiveReadrate` | `2` | Hold the conversion to this multiple of real time, so a minute of video takes about half a minute to convert. Set it to `0` to convert as fast as the host can. |
+| `TRANSCODE_LIVE_BURST_SECONDS` | `transcodeLiveBurstSeconds` | `30` | How much video to convert at full speed before the rate limit applies, so playback still starts instantly and the browser still has a buffer ahead of it. |
+
+Unlike the cached copy, the live conversion is **not** niced: somebody is watching it, so it should outrank the background work rather than yield to it.
+
+`TRANSCODE_LIVE_READRATE` and `TRANSCODE_LIVE_BURST_SECONDS` need a recent ffmpeg — `-readrate` arrived in ffmpeg 5.0 and `-readrate_initial_burst` in 6.1. The CPU image has both. **The GPU image does not**: it is built on Ubuntu 22.04, whose ffmpeg is 4.4, so on that image these two settings have no effect and only `TRANSCODE_LIVE_CPU_FRACTION` applies. The same goes for a host supplying its own older ffmpeg. Nothing has to be configured for that — the option is simply not passed, and the core cap still holds.
+
+`TRANSCODE_LIVE_CPU_FRACTION` is a divisor, so a **larger** number means fewer cores: `4` is stricter than `2`. Raising it, or lowering the readrate, makes a busy server more responsive while a video is playing; going the other way favours the person watching. If a video stutters on a slow machine, set `TRANSCODE_LIVE_CPU_FRACTION` to `1` first: a stutter means the conversion cannot keep ahead of playback, and it is the core cap that decides how fast it can go — the readrate is a ceiling it never reached. For scale, one core converts 1080p to 720p at about 1.5x real time, and two at about 2x, so a machine with few cores has little margin at 1080p and none to spare for a second viewer.
+
 ### Logging
 
 The backend writes its log files into the directory named by `BASE_LOGS`. `ownphotos.log` is the one to look at first; it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).
