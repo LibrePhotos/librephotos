@@ -476,9 +476,8 @@ class AddFaceView(APIView):
         if not photo_id:
             return self._error("photo is required")
         photo = (
-            Photo.objects.filter(
-                owner=request.user, **_get_photo_filter_kwargs(str(photo_id))
-            )
+            Photo.objects.owned_by(request.user)
+            .filter(**_get_photo_filter_kwargs(str(photo_id)))
             .select_related(
                 "owner", "thumbnail", "main_file", "metadata", "caption_instance"
             )

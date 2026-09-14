@@ -418,6 +418,24 @@ class CrossTenantWriteTest(TestCase):
                 "/api/deletefaces",
                 {"face_ids": [self.v_face.pk, self.v_face2.pk]},
             ),
+            (
+                "post",
+                "/api/addface",
+                {
+                    "person_name": "Mallory",
+                    "photo": str(self.v_pub.pk),
+                    "box": {"top": 0.1, "right": 0.5, "bottom": 0.5, "left": 0.1},
+                },
+            ),
+            (
+                "post",
+                "/api/addface",
+                {
+                    "person_name": "Mallory",
+                    "photo": self.v_priv.image_hash,
+                    "box": {"top": 0.1, "right": 0.5, "bottom": 0.5, "left": 0.1},
+                },
+            ),
             # stacks
             ("post", "/api/stacks/manual/", {"photo_hashes": self._hashes()}),
             (
