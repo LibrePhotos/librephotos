@@ -35,6 +35,12 @@ def _collect_photo_details(photos):
             places = geolocation["places"]
         timestamps.append(photo.exif_timestamp)
         for face in photo.faces.all():
+            # Most faces in a library are unnamed, and a deleted one should not
+            # name an album. Dereferencing face.person.name for those raised
+            # AttributeError, and _generate_title() catches every exception --
+            # so a single unnamed face silently cost the album its whole title.
+            if face.deleted or face.person is None:
+                continue
             people.append(face.person.name)
     return places, people, timestamps
 

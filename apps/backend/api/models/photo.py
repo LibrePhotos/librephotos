@@ -572,6 +572,7 @@ class Photo(models.Model):
         face.image.save(image_path, ContentFile(face_io.getvalue()))
         face_io.close()
         face.save()
+        return face
 
     def _retry_face_extraction(self, second_try):
         # When using multiple processes, then we can save at the same time, which leads to this error

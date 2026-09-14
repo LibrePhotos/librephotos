@@ -252,13 +252,20 @@ class GenerateTitleTestCase(TestCase):
             album.title, f"Monday Morning with {Person.UNKNOWN_PERSON_NAME}"
         )
 
-    def test_face_without_person_falls_back_to_exception_title(self):
-        """A face with ``person=None`` raises inside the loop -> fallback title."""
+    def test_face_without_person_is_skipped_instead_of_raising(self):
+        """A face with ``person=None`` is simply not a person to name.
+
+        This replaces a characterization test that pinned the opposite: the
+        loop dereferenced ``face.person.name``, the ``AttributeError`` was
+        swallowed by ``_generate_title``'s ``except Exception``, and the album
+        fell back to "Album from <date>". Since unnamed faces are the normal
+        case, that fallback was hitting most albums that contain any people.
+        """
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         photo = self.add_photo(album, exif_timestamp=utc(2022, 1, 3, 8, 0))
         create_test_face(photo=photo, person=None)
         album._generate_title()
-        self.assertEqual(album.title, "Album from 2022-01-03")
+        self.assertEqual(album.title, "Monday Morning")
 
     # ------------------------------------------------------------------
     # timestamp-span branches
