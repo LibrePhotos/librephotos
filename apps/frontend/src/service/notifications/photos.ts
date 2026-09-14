@@ -184,6 +184,14 @@ function copyPhotoToClipboardFailed() {
   });
 }
 
+function captionModelDownloading() {
+  showNotification({
+    message: i18n.t("toasts.captionmodeldownloading"),
+    title: i18n.t("toasts.captionupdate"),
+    color: "orange",
+  });
+}
+
 function scanDirectoryRequired() {
   showNotification({
     message: i18n.t("toasts.scan_directory_required"),
@@ -193,6 +201,7 @@ function scanDirectoryRequired() {
 }
 
 export const photos = {
+  captionModelDownloading,
   copyPhotoToClipboard,
   copyPhotoToClipboardFailed,
   deleteMissingPhotos,

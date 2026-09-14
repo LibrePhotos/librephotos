@@ -493,3 +493,37 @@ def do_all_models_exist():
         if not _model_target_exists(model_folder, model):
             return False
     return True
+
+
+def captioning_model_exists():
+    """Whether every file of the captioner is on disk.
+
+    A caption request that reaches the sidecar without them fails inside
+    ONNX Runtime; the caller checks here first and starts the download.
+    """
+    model_folder = Path(settings.MEDIA_ROOT) / "data_models"
+    return all(
+        _model_target_exists(model_folder, model)
+        for model in ML_MODELS
+        if model["type"] == MlTypes.CAPTIONING
+    )
+
+
+def start_model_download(user):
+    """Queue a Download Models job unless one is already running.
+
+    Returns True when a download is now running (just queued or already
+    underway), False when it could not be queued.
+    """
+    if LongRunningJob.objects.filter(
+        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, finished=False
+    ).exists():
+        return True
+    try:
+        from django_q.tasks import AsyncTask
+
+        AsyncTask(download_models, user).run()
+        return True
+    except Exception:
+        util.logger.exception("Failed to queue the model download")
+        return False
