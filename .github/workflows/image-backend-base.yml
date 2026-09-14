@@ -8,6 +8,9 @@ on:
       - '.github/workflows/image-backend-base.yml'
       - '.github/workflows/_build-image.yml'
 
+permissions:
+  contents: read
+
 jobs:
   dev:
     uses: ./.github/workflows/_build-image.yml
@@ -15,4 +18,6 @@ jobs:
       image: reallibrephotos/librephotos-base
       context: deploy/docker/backend/base
       dockerfile: deploy/docker/backend/base/Dockerfile
-    secrets: inherit
+    secrets:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
