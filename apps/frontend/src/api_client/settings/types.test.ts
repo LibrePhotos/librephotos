@@ -8,7 +8,7 @@ const siteSettingsResponse = {
   map_api_key: "",
   map_api_provider: "nominatim",
   map_tile_provider: "photoprism",
-  captioning_model: "florence2_base_int8",
+  captioning_model: "lfm2_vl_450m",
   llm_model: "None",
   tagging_model: "mobileclip_s2",
   ocr_model: "ppocrv6_small",

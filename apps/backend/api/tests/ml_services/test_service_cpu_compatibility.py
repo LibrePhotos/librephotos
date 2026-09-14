@@ -4,14 +4,26 @@ import unittest
 from unittest.mock import patch
 
 from api.services import (
+    SERVICE_CPU_REQUIREMENTS,
     check_cpu_features,
     has_required_cpu_features,
     _is_arm_architecture,
 )
 
+# No shipped sidecar needs specific CPU features today; the mechanism is
+# exercised with a stand-in entry.
+PROBE = {
+    "probe": {"required": ["avx", "sse4_2"], "recommended": ["avx2", "fma", "f16c"]}
+}
+
 
 class TestServiceCPUCompatibility(unittest.TestCase):
     """Test CPU feature detection and compatibility checks"""
+
+    def setUp(self):
+        p = patch.dict(SERVICE_CPU_REQUIREMENTS, PROBE)
+        p.start()
+        self.addCleanup(p.stop)
 
     # Constants for testing
     ARM_ARCHITECTURES = ["aarch64", "arm64", "armv7l", "armv8"]
@@ -63,9 +75,9 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         """Test that ARM architectures bypass x86-specific CPU checks"""
         mock_machine.return_value = "aarch64"
 
-        # LLM service has CPU requirements, but should be allowed on ARM
-        result = has_required_cpu_features("llm")
-        self.assertTrue(result, "LLM service should be compatible on ARM")
+        # A service with CPU requirements should be allowed on ARM
+        result = has_required_cpu_features("probe")
+        self.assertTrue(result, "Requirements should be waived on ARM")
 
     @patch("api.services.platform.machine")
     def test_has_required_cpu_features_no_requirements(self, mock_machine):
@@ -85,7 +97,7 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         mock_machine.return_value = "x86_64"
         mock_features.return_value = ["avx", "avx2", "sse4_2", "fma", "f16c"]
 
-        result = has_required_cpu_features("llm")
+        result = has_required_cpu_features("probe")
         self.assertTrue(result, "Should be compatible when all features present")
 
     @patch("api.services.platform.machine")
@@ -97,7 +109,7 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         mock_machine.return_value = "x86_64"
         mock_features.return_value = []  # No features available
 
-        result = has_required_cpu_features("llm")
+        result = has_required_cpu_features("probe")
         self.assertFalse(
             result, "Should be incompatible when required features missing"
         )
@@ -112,7 +124,7 @@ class TestServiceCPUCompatibility(unittest.TestCase):
         # Has required but not recommended
         mock_features.return_value = ["avx", "sse4_2"]
 
-        result = has_required_cpu_features("llm")
+        result = has_required_cpu_features("probe")
         self.assertTrue(
             result,
             "Should be compatible with required features even if missing recommended",

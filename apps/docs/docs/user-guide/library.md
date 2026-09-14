@@ -93,7 +93,6 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 | **thumbnail** | Thumbnail generation |
 | **face_recognition** | Face detection and recognition |
 | **clip_embeddings** | CLIP embedding computation |
-| **llm** | Large language model for captioning |
 | **image_captioning** | Image caption generation |
 | **exif** | EXIF metadata extraction |
 | **tags** | Photo tag generation (MobileCLIP-S2 or SigLIP 2 depending on your Tagging Model setting) |

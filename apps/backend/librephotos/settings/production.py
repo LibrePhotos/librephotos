@@ -231,20 +231,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("none", "None"),
-                ("florence2_base_int8", "Florence-2 Base (light, default)"),
-                ("florence2_base", "Florence-2 Base (most accurate)"),
-                ("moondream", "Moondream Visual LLM"),
-            ),
-        },
-    ],
-    "llm_model": [
-        "django.forms.fields.ChoiceField",
-        {
-            "widget": "django.forms.Select",
-            "choices": (
-                ("none", "None"),
-                ("mistral-7b-instruct-v0.2.Q5_K_M", "Mistral 7B Instruct v0.2 Q5 K M"),
-                ("moondream", "Moondream Visual LLM"),
+                ("lfm2_vl_450m", "LFM2.5-VL (default)"),
             ),
         },
     ],
@@ -263,7 +250,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         {
             "widget": "django.forms.Select",
             "choices": (
-                # Lowercase "none" mirrors the llm_model sibling; the "None"
+                # Lowercase "none" mirrors the captioning_model sibling; the "None"
                 # default in CONSTANCE_CONFIG still reads as unselected because
                 # _is_model_not_selected() lowercases before comparing.
                 ("none", "None"),
@@ -322,11 +309,10 @@ CONSTANCE_CONFIG = {
     ),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
     "CAPTIONING_MODEL": (
-        "florence2_base_int8",
+        "lfm2_vl_450m",
         "Captioning model",
         "captioning_model",
     ),
-    "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
     "TAGGING_MODEL": ("mobileclip_s2", "Tagging model", "tagging_model"),
     "OCR_MODEL": (
         "None",

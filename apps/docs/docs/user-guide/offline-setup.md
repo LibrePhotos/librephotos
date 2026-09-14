@@ -18,24 +18,19 @@ Manually download the necessary models from their respective URLs. Below is a li
    - Vision model: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/vision_model.onnx`
    - Text model: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx`
    - Tokenizer: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json`
-3. **florence2_base_int8** (Captioning — default model)
-   - `https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder_int8.onnx`
-   - `https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/embed_tokens_int8.onnx`
-   - `https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/encoder_model_int8.onnx`
-   - `https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/decoder_model_merged_int8.onnx`
-   - Tokenizer: `https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/tokenizer.json`
-4. **florence2_base** (Captioning) (optional — only if using the "most accurate" variant)
-   - The same four files without the `_int8` suffix, plus the same tokenizer.
-5. **mistral-7b-instruct-v0.2.Q5_K_M** (LLM) (optional)
-   - URL: `https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q5_K_M.gguf?download=true`
-6. **moondream** (Captioning / LLM) (optional)
-   - Text model: `https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-text-model-f16.gguf?download=true`
-   - Multimodal projector (mmproj): `https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-mmproj-f16.gguf?download=true`
-7. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
+3. **lfm2_vl_450m** (Captioning)
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx_data`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx_data`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx_data`
+   - Tokenizer: `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json`
+4. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
    - Vision model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx`
    - Text model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/text_model.onnx`
    - Tokenizer: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/tokenizer.model`
-8. **buffalo_sc** (Face recognition — default model)
+5. **buffalo_sc** (Face recognition — default model)
    - URL: `https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip`
    - Only download the model selected in **Site Settings → Face Recognition Model**. The other options use the same release, e.g. `buffalo_s.zip`, `buffalo_m.zip`, `buffalo_l.zip`, `antelopev2.zip`.
 
@@ -51,19 +46,11 @@ Once the models are downloaded, place them in the following directory:
 
 - **clip_vit_b32** files -> Place as `<MEDIA_ROOT>/data_models/clip_vit_b32/vision_model.onnx`, `.../text_model.onnx` and `.../tokenizer.json`
 - **mobileclip_s2** files -> Place as `<MEDIA_ROOT>/data_models/mobileclip_s2/vision_model.onnx`, `.../text_model.onnx` and `.../tokenizer.json`
-- **florence2_base_int8** files -> Place in `<MEDIA_ROOT>/data_models/florence2_base_int8/` **without** the `_int8` suffix: `vision_encoder.onnx`, `embed_tokens.onnx`, `encoder_model.onnx`, `decoder_model_merged.onnx` and `tokenizer.json`
-- **florence2_base** files -> Place in `<MEDIA_ROOT>/data_models/florence2_base/` under the same five names
-- **mistral-7b-instruct-v0.2.Q5_K_M.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/mistral-7b-instruct-v0.2.Q5_K_M.gguf`
-- **moondream2-text-model-f16.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/moondream2-text-model-f16.gguf`
-- **moondream2-mmproj-f16.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/moondream2-mmproj-f16.gguf`
+- **lfm2_vl_450m** files -> Place all seven in `<MEDIA_ROOT>/data_models/lfm2_vl_450m/` under their own names. The `.onnx_data` files hold the weights the small `.onnx` graphs point at, so the names must not change.
 - **siglip2 vision_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/vision_model.onnx`
 - **siglip2 text_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/text_model.onnx`
 - **siglip2 tokenizer.model** -> Place as `<MEDIA_ROOT>/data_models/siglip2/tokenizer.model`
 - **buffalo_sc.zip** -> Unpack into `<MEDIA_ROOT>/data_models/face_recognition/models/buffalo_sc/` (the folder should contain the `.onnx` files)
-
-:::note
-Moondream needs **both** files placed directly in `data_models/`. If only `moondream2-text-model-f16.gguf` is present, the LLM service fails to start with `Moondream mmproj file not found`.
-:::
 
 ### Step 3: Verify Model Placement
 
@@ -79,15 +66,14 @@ data_models/
     │   ├── vision_model.onnx
     │   ├── text_model.onnx
     │   └── tokenizer.json
-    ├── florence2_base_int8/
-    │   ├── vision_encoder.onnx
-    │   ├── embed_tokens.onnx
-    │   ├── encoder_model.onnx
-    │   ├── decoder_model_merged.onnx
+    ├── lfm2_vl_450m/
+    │   ├── vision_encoder_q4f16.onnx
+    │   ├── vision_encoder_q4f16.onnx_data
+    │   ├── embed_tokens_q4f16.onnx
+    │   ├── embed_tokens_q4f16.onnx_data
+    │   ├── decoder_model_merged_q4f16.onnx
+    │   ├── decoder_model_merged_q4f16.onnx_data
     │   └── tokenizer.json
-    ├── mistral-7b-instruct-v0.2.Q5_K_M.gguf
-    ├── moondream2-text-model-f16.gguf
-    ├── moondream2-mmproj-f16.gguf
     ├── siglip2/
     │   ├── vision_model.onnx
     │   ├── text_model.onnx

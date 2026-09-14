@@ -53,7 +53,7 @@ Quickly jump to any page in LibrePhotos:
 - Sharing, Faces Dashboard, Statistics — and its sub-pages Place Tree, Word Clouds, Timeline, Social Graph and Face Clusters
 - Settings, Profile, Library, Admin Area
 
-Settings and Profile also expose keyword shortcuts: typing something like `password`, `language`, `clustering`, `metadata` or `llm` surfaces entries such as Change Password, Change Language, Face Recognition Settings, Metadata Settings and AI & LLM Settings, each of which opens the matching Settings or Profile page.
+Settings and Profile also expose keyword shortcuts: typing something like `password`, `language`, `clustering`, `metadata` or `llm` surfaces entries such as Change Password, Change Language, Face Recognition Settings, Metadata Settings and Caption Context Settings, each of which opens the matching Settings or Profile page.
 
 #### Actions
 

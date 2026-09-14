@@ -8,7 +8,8 @@ export const SiteSettings = z.object({
   map_api_provider: z.string(),
   map_tile_provider: z.string(),
   captioning_model: z.string(),
-  llm_model: z.string(),
+  // Gone with the LLM; older servers still send it.
+  llm_model: z.string().optional(),
   tagging_model: z.string(),
   // Older backends do not know about OCR yet. Default it instead of requiring it, so that a
   // frontend running against such a backend still renders the rest of the settings page.

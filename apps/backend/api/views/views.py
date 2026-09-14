@@ -127,7 +127,8 @@ class SiteSettingsView(APIView):
         out["map_api_key"] = site_config.MAP_API_KEY
         out["map_tile_provider"] = site_config.MAP_TILE_PROVIDER
         out["captioning_model"] = site_config.CAPTIONING_MODEL
-        out["llm_model"] = site_config.LLM_MODEL
+        # There is no LLM any more; older mobile clients still expect the key.
+        out["llm_model"] = "None"
         out["tagging_model"] = site_config.TAGGING_MODEL
         out["ocr_model"] = site_config.OCR_MODEL
         out["face_recognition_model"] = site_config.FACE_RECOGNITION_MODEL
@@ -151,8 +152,6 @@ class SiteSettingsView(APIView):
             site_config.MAP_TILE_PROVIDER = request.data["map_tile_provider"]
         if "captioning_model" in request.data.keys():
             site_config.CAPTIONING_MODEL = request.data["captioning_model"]
-        if "llm_model" in request.data.keys():
-            site_config.LLM_MODEL = request.data["llm_model"]
         if "tagging_model" in request.data.keys():
             site_config.TAGGING_MODEL = request.data["tagging_model"]
         if "ocr_model" in request.data.keys():

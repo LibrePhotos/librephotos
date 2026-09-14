@@ -1,8 +1,7 @@
 """Characterization tests for PhotoCaption caption-generation (CRAP unit 22).
 
-Pins the *current* behavior of:
-  * ``PhotoCaption.generate_captions_im2txt``
-  * ``PhotoCaption._generate_captions_moondream``
+Pins the behavior of ``PhotoCaption.generate_captions_im2txt``: the guard
+clauses and the prompt the captioning sidecar is given.
 
 These are deliberately behavior-preserving snapshots taken before refactoring.
 Where current behavior looks like a bug it is still pinned, and flagged in a
@@ -52,7 +51,7 @@ class Im2txtGuardTest(TestCase):
         mock_generate_caption.assert_not_called()
         self.assertIsNone(self.caption.captions_json)
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_empty_thumbnail_big_returns_false(self, mock_generate_caption):
         thumb = self.photo.thumbnail
@@ -64,7 +63,7 @@ class Im2txtGuardTest(TestCase):
         self.assertFalse(caption.generate_captions_im2txt(commit=False))
         mock_generate_caption.assert_not_called()
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_unreadable_thumbnail_path_returns_false(self, mock_generate_caption):
         with patch(
@@ -86,34 +85,17 @@ class Im2txtGuardTest(TestCase):
         mock_generate_caption.assert_not_called()
         self.assertEqual(self.caption.captions_json, {})
 
-    @override_config(CAPTIONING_MODEL="moondream")
-    def test_moondream_model_delegates_and_returns_its_result(self):
-        with patch.object(
-            PhotoCaption, "_generate_captions_moondream", return_value="sentinel"
-        ) as mock_moondream:
-            result = self.caption.generate_captions_im2txt(commit=False)
-        self.assertEqual(result, "sentinel")
-        mock_moondream.assert_called_once_with(commit=False)
-
-    @override_config(CAPTIONING_MODEL="moondream")
-    def test_moondream_delegation_forwards_commit_true(self):
-        with patch.object(
-            PhotoCaption, "_generate_captions_moondream", return_value=True
-        ) as mock_moondream:
-            self.caption.generate_captions_im2txt(commit=True)
-        mock_moondream.assert_called_once_with(commit=True)
-
 
 @override_settings(FEATURE_IMAGE_CAPTIONING=True)
 class Im2txtGenerationTest(TestCase):
-    """The Florence-2 sidecar caption path with the LLM rewrite disabled."""
+    """The sidecar caption path with the LLM rewrite disabled."""
 
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_sidecar_happy_path_strips_markers_and_saves(self, mock_generate_caption):
         mock_generate_caption.return_value = "  <start> a photo of a cat <end>  "
@@ -123,22 +105,25 @@ class Im2txtGenerationTest(TestCase):
         self.assertTrue(result)
         self.assertEqual(mock_generate_caption.call_count, 1)
         kwargs = mock_generate_caption.call_args.kwargs
-        self.assertEqual(set(kwargs), {"image_path"})
+        self.assertEqual(set(kwargs), {"image_path", "prompt"})
         self.assertTrue(kwargs["image_path"].endswith(".webp"))
+        # Caption context is on by default; with nothing known about the
+        # photo (no named face, no place) only the base instruction remains.
+        self.assertEqual(kwargs["prompt"], "Write a short, natural image caption.")
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
         self.caption.refresh_from_db()
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
-    @override_config(CAPTIONING_MODEL="florence2_base", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
-    def test_fp32_variant_also_uses_the_sidecar(self, mock_generate_caption):
-        mock_generate_caption.return_value = "a florence caption"
+    def test_any_selected_model_uses_the_sidecar(self, mock_generate_caption):
+        mock_generate_caption.return_value = "a caption"
 
         self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
-        self.assertEqual(self.caption.captions_json["im2txt"], "a florence caption")
+        self.assertEqual(self.caption.captions_json["im2txt"], "a caption")
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_commit_false_does_not_persist_caption(self, mock_generate_caption):
         mock_generate_caption.return_value = "not persisted"
@@ -149,7 +134,7 @@ class Im2txtGenerationTest(TestCase):
         fresh = PhotoCaption.objects.get(pk=self.caption.pk)
         self.assertIsNone(fresh.captions_json)
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_existing_caption_keys_are_preserved(self, mock_generate_caption):
         self.caption.captions_json = {"user_caption": "mine", "im2txt": "old"}
@@ -161,7 +146,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertEqual(self.caption.captions_json["user_caption"], "mine")
         self.assertEqual(self.caption.captions_json["im2txt"], "new caption")
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_generate_caption_exception_returns_false(self, mock_generate_caption):
         mock_generate_caption.side_effect = RuntimeError("model exploded")
@@ -170,7 +155,7 @@ class Im2txtGenerationTest(TestCase):
         fresh = PhotoCaption.objects.get(pk=self.caption.pk)
         self.assertIsNone(fresh.captions_json)
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_non_string_caption_result_returns_false(self, mock_generate_caption):
         # ``.replace`` on a non-str blows up inside the try -> swallowed.
@@ -178,7 +163,7 @@ class Im2txtGenerationTest(TestCase):
 
         self.assertFalse(self.caption.generate_captions_im2txt(commit=False))
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
     @patch("api.models.photo_caption.generate_caption")
     def test_recreate_search_captions_is_invoked(self, mock_generate_caption):
         mock_generate_caption.return_value = "a photo of a cat"
@@ -192,232 +177,8 @@ class Im2txtGenerationTest(TestCase):
 
 
 @override_settings(FEATURE_IMAGE_CAPTIONING=True)
-class Im2txtLlmRewriteTest(TestCase):
-    """The LLM prompt-rewrite branch of generate_captions_im2txt."""
-
-    def setUp(self):
-        self.user = create_test_user()
-        self.user.llm_settings = _llm_settings(
-            enabled=True, add_person=True, add_location=True, add_keywords=True
-        )
-        self.user.save()
-        self.photo = create_test_photo(owner=self.user, search_location="Berlin")
-        self.caption = PhotoCaption.objects.create(photo=self.photo)
-        self.person = create_test_person(name="Anna")
-        create_test_face(photo=self.photo, person=self.person)
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    @patch("api.models.photo_caption.generate_caption")
-    def test_prompt_contains_caption_place_and_person(self, mock_caption, mock_prompt):
-        mock_caption.return_value = "a photo of a cat"
-        mock_prompt.return_value = "Anna's cat in Berlin"
-
-        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
-
-        prompt = mock_prompt.call_args.args[0]
-        self.assertIn(
-            "Q: Your task is to improve the following image caption: ", prompt
-        )
-        self.assertIn("a photo of a cat", prompt)
-        self.assertIn(" Place: Berlin", prompt)
-        self.assertIn(" Person: Anna", prompt)
-        self.assertIn(" and tags or keywords", prompt)
-        self.assertTrue(prompt.endswith(". \n A:"))
-        self.assertEqual(self.caption.captions_json["im2txt"], "Anna's cat in Berlin")
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    @patch("api.models.photo_caption.generate_caption")
-    def test_flags_off_omit_place_person_and_keywords(self, mock_caption, mock_prompt):
-        self.user.llm_settings = _llm_settings(enabled=True)
-        self.user.save()
-        mock_caption.return_value = "a photo of a cat"
-        mock_prompt.return_value = "rewritten"
-
-        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
-
-        prompt = mock_prompt.call_args.args[0]
-        self.assertNotIn("Place:", prompt)
-        self.assertNotIn("Person:", prompt)
-        self.assertNotIn("keywords", prompt)
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    @patch("api.models.photo_caption.generate_caption")
-    def test_llm_settings_disabled_skips_rewrite(self, mock_caption, mock_prompt):
-        self.user.llm_settings = _llm_settings(enabled=False)
-        self.user.save()
-        mock_caption.return_value = "a photo of a cat"
-
-        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
-        mock_prompt.assert_not_called()
-        self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    @patch("api.models.photo_caption.generate_caption")
-    def test_no_face_omits_person_but_keeps_place(self, mock_caption, mock_prompt):
-        from api.models import Face
-
-        Face.objects.filter(photo=self.photo).delete()
-        mock_caption.return_value = "a photo of a cat"
-        mock_prompt.return_value = "rewritten"
-
-        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
-        prompt = mock_prompt.call_args.args[0]
-        self.assertNotIn("Person:", prompt)
-        self.assertIn(" Place: Berlin", prompt)
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    @patch("api.models.photo_caption.generate_caption")
-    def test_missing_search_instance_returns_false(self, mock_caption, mock_prompt):
-        """BUG (pinned): with the LLM branch active and no PhotoSearch row,
-        ``self.photo.search_instance`` raises RelatedObjectDoesNotExist, which the
-        blanket ``except Exception`` swallows -> the whole captioning silently fails."""
-        photo = create_test_photo(owner=self.user)  # no search_location -> no row
-        caption = PhotoCaption.objects.create(photo=photo)
-        mock_caption.return_value = "a photo of a cat"
-        mock_prompt.return_value = "rewritten"
-
-        self.assertFalse(caption.generate_captions_im2txt(commit=False))
-        mock_prompt.assert_not_called()
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    @patch("api.models.photo_caption.generate_caption")
-    def test_generate_prompt_exception_returns_false(self, mock_caption, mock_prompt):
-        mock_caption.return_value = "a photo of a cat"
-        mock_prompt.side_effect = RuntimeError("llm down")
-
-        self.assertFalse(self.caption.generate_captions_im2txt(commit=True))
-        fresh = PhotoCaption.objects.get(pk=self.caption.pk)
-        self.assertIsNone(fresh.captions_json)
-
-
-@override_settings(FEATURE_IMAGE_CAPTIONING=True)
-class MoondreamTest(TestCase):
-    """_generate_captions_moondream, called directly."""
-
-    def setUp(self):
-        self.user = create_test_user()
-        self.photo = create_test_photo(owner=self.user)
-        self.caption = PhotoCaption.objects.create(photo=self.photo)
-
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_empty_thumbnail_big_returns_false(self, mock_prompt):
-        thumb = self.photo.thumbnail
-        thumb.thumbnail_big = ""
-        thumb.save()
-
-        caption = PhotoCaption.objects.get(pk=self.caption.pk)
-        self.assertFalse(caption._generate_captions_moondream(commit=False))
-        mock_prompt.assert_not_called()
-
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_unreadable_thumbnail_path_returns_false(self, mock_prompt):
-        with patch(
-            "django.db.models.fields.files.FieldFile.path",
-            new_callable=PropertyMock,
-            side_effect=ValueError("no path"),
-        ):
-            self.assertFalse(self.caption._generate_captions_moondream(commit=False))
-        mock_prompt.assert_not_called()
-
-    @override_config(LLM_MODEL="none")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_default_prompt_when_llm_model_none(self, mock_prompt):
-        mock_prompt.return_value = " <start>a cat<end> "
-
-        self.assertTrue(self.caption._generate_captions_moondream(commit=True))
-
-        kwargs = mock_prompt.call_args.kwargs
-        self.assertEqual(
-            kwargs["prompt"], "Describe this image in a short, natural image caption."
-        )
-        self.assertTrue(kwargs["image_path"].endswith(".webp"))
-        self.caption.refresh_from_db()
-        self.assertEqual(self.caption.captions_json["im2txt"], "a cat")
-
-    @override_config(LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_default_prompt_when_llm_settings_disabled(self, mock_prompt):
-        mock_prompt.return_value = "a cat"
-
-        self.assertTrue(self.caption._generate_captions_moondream(commit=False))
-        self.assertEqual(
-            mock_prompt.call_args.kwargs["prompt"],
-            "Describe this image in a short, natural image caption.",
-        )
-
-    @override_config(LLM_MODEL="none")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_commit_false_does_not_persist(self, mock_prompt):
-        mock_prompt.return_value = "a cat"
-
-        self.assertTrue(self.caption._generate_captions_moondream(commit=False))
-        self.assertEqual(self.caption.captions_json["im2txt"], "a cat")
-        self.assertIsNone(PhotoCaption.objects.get(pk=self.caption.pk).captions_json)
-
-    @override_config(LLM_MODEL="none")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_existing_keys_preserved(self, mock_prompt):
-        self.caption.captions_json = {"user_caption": "mine"}
-        self.caption.save()
-        mock_prompt.return_value = "a cat"
-
-        self.assertTrue(self.caption._generate_captions_moondream(commit=True))
-        self.caption.refresh_from_db()
-        self.assertEqual(self.caption.captions_json["user_caption"], "mine")
-        self.assertEqual(self.caption.captions_json["im2txt"], "a cat")
-
-    @override_config(LLM_MODEL="none")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_generate_prompt_exception_returns_false(self, mock_prompt):
-        mock_prompt.side_effect = RuntimeError("moondream down")
-
-        self.assertFalse(self.caption._generate_captions_moondream(commit=True))
-        self.assertIsNone(PhotoCaption.objects.get(pk=self.caption.pk).captions_json)
-
-    @override_config(LLM_MODEL="none")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_non_string_result_returns_false(self, mock_prompt):
-        mock_prompt.return_value = None
-
-        self.assertFalse(self.caption._generate_captions_moondream(commit=False))
-
-    @override_config(LLM_MODEL="none")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_recreate_search_captions_is_invoked(self, mock_prompt):
-        mock_prompt.return_value = "a cat"
-
-        self.assertTrue(self.caption._generate_captions_moondream(commit=True))
-
-        from api.models.photo_search import PhotoSearch
-
-        self.assertIn(
-            "a cat", PhotoSearch.objects.get(photo=self.photo).search_captions
-        )
-
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_unresolvable_username_returns_false(self, mock_prompt):
-        """The owner is re-fetched by ``username=self.photo.owner`` (a string
-        lookup, not the FK id). A stale in-memory username therefore makes the
-        lookup raise User.DoesNotExist, which the blanket except turns into
-        ``False``."""
-        from api.models import User
-
-        User.objects.filter(pk=self.user.pk).update(username="renamed-owner")
-        mock_prompt.return_value = "a cat"
-
-        self.assertFalse(self.caption._generate_captions_moondream(commit=False))
-        mock_prompt.assert_not_called()
-
-
-@override_settings(FEATURE_IMAGE_CAPTIONING=True)
-class MoondreamEnhancedPromptTest(TestCase):
-    """The enhanced-prompt branch of _generate_captions_moondream."""
+class CaptionPromptTest(TestCase):
+    """What the captioning sidecar is asked, given the user's caption settings."""
 
     def setUp(self):
         self.user = create_test_user()
@@ -429,14 +190,15 @@ class MoondreamEnhancedPromptTest(TestCase):
         self.caption = PhotoCaption.objects.create(photo=self.photo)
         create_test_face(photo=self.photo, person=create_test_person(name="Anna"))
 
-    @override_config(LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_full_enhanced_prompt(self, mock_prompt):
-        mock_prompt.return_value = "Anna in Berlin"
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_full_prompt_carries_person_place_and_keywords(self, mock_caption):
+        """Names and places reach the captioner directly."""
+        mock_caption.return_value = "Anna in Berlin"
 
-        self.assertTrue(self.caption._generate_captions_moondream(commit=False))
+        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
 
-        prompt = mock_prompt.call_args.kwargs["prompt"]
+        prompt = mock_caption.call_args.kwargs["prompt"]
         self.assertTrue(prompt.startswith("Write a short, natural image caption."))
         self.assertIn("The person in the photo is named Anna.", prompt)
         self.assertIn("Use the name 'Anna' directly in the caption", prompt)
@@ -444,55 +206,89 @@ class MoondreamEnhancedPromptTest(TestCase):
         self.assertIn("Include relevant tags and keywords.", prompt)
         self.assertEqual(self.caption.captions_json["im2txt"], "Anna in Berlin")
 
-    @override_config(LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_person_omitted_when_add_person_false(self, mock_prompt):
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_person_omitted_when_add_person_false(self, mock_caption):
         self.user.llm_settings = _llm_settings(enabled=True, add_location=True)
         self.user.save()
-        mock_prompt.return_value = "caption"
+        mock_caption.return_value = "caption"
 
-        self.assertTrue(self.caption._generate_captions_moondream(commit=False))
-        prompt = mock_prompt.call_args.kwargs["prompt"]
+        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
+        prompt = mock_caption.call_args.kwargs["prompt"]
         self.assertNotIn("Anna", prompt)
         self.assertIn("This photo was taken at Berlin.", prompt)
         self.assertNotIn("Include relevant tags", prompt)
 
-    @override_config(LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_place_omitted_when_no_face_and_no_flags(self, mock_prompt):
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_place_omitted_when_no_face_and_no_flags(self, mock_caption):
         from api.models import Face
 
         Face.objects.filter(photo=self.photo).delete()
         self.user.llm_settings = _llm_settings(enabled=True, add_person=True)
         self.user.save()
-        mock_prompt.return_value = "caption"
+        mock_caption.return_value = "caption"
 
-        self.assertTrue(self.caption._generate_captions_moondream(commit=False))
+        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
         self.assertEqual(
-            mock_prompt.call_args.kwargs["prompt"],
+            mock_caption.call_args.kwargs["prompt"],
             "Write a short, natural image caption.",
         )
 
-    @override_config(LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_missing_search_instance_returns_false(self, mock_prompt):
-        """BUG (pinned): same swallowed RelatedObjectDoesNotExist as im2txt."""
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_plain_prompt_when_caption_settings_disabled(self, mock_caption):
+        self.user.llm_settings = _llm_settings(enabled=False, add_person=True)
+        self.user.save()
+        mock_caption.return_value = "caption"
+
+        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
+        self.assertEqual(
+            mock_caption.call_args.kwargs["prompt"],
+            "Describe this image in a short, natural image caption.",
+        )
+
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_missing_search_instance_just_drops_the_place(self, mock_caption):
+        """A photo that has not been scanned yet has no PhotoSearch row; the
+        caption still happens, without a location."""
         photo = create_test_photo(owner=self.user)
+        create_test_face(photo=photo, person=create_test_person(name="Anna"))
         caption = PhotoCaption.objects.create(photo=photo)
-        mock_prompt.return_value = "caption"
+        mock_caption.return_value = "caption"
 
-        self.assertFalse(caption._generate_captions_moondream(commit=False))
-        mock_prompt.assert_not_called()
+        self.assertTrue(caption.generate_captions_im2txt(commit=False))
+        prompt = mock_caption.call_args.kwargs["prompt"]
+        self.assertIn("named Anna", prompt)
+        self.assertNotIn("This photo was taken at", prompt)
 
-    @override_config(LLM_MODEL="some-llm")
-    @patch("api.models.photo_caption.generate_prompt")
-    def test_face_without_person_returns_false(self, mock_prompt):
-        """BUG (pinned): a Face with no Person makes ``face.person.name`` raise."""
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_face_without_person_is_not_a_name(self, mock_caption):
+        """An unrecognised face contributes nothing; a named one elsewhere still does."""
         from api.models import Face
 
         Face.objects.filter(photo=self.photo).delete()
         create_test_face(photo=self.photo, person=None)
-        mock_prompt.return_value = "caption"
+        mock_caption.return_value = "caption"
 
-        self.assertFalse(self.caption._generate_captions_moondream(commit=False))
-        mock_prompt.assert_not_called()
+        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
+        prompt = mock_caption.call_args.kwargs["prompt"]
+        self.assertNotIn("named", prompt)
+        self.assertIn("This photo was taken at Berlin.", prompt)
+
+        create_test_face(photo=self.photo, person=create_test_person(name="Bo"))
+        self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
+        self.assertIn("named Bo", mock_caption.call_args.kwargs["prompt"])
+
+    @override_config(CAPTIONING_MODEL="lfm2_vl_450m")
+    @patch("api.models.photo_caption.generate_caption")
+    def test_unresolvable_username_returns_false(self, mock_caption):
+        from api.models import User
+
+        User.objects.filter(pk=self.user.pk).update(username="renamed")
+        mock_caption.return_value = "caption"
+
+        self.assertFalse(self.caption.generate_captions_im2txt(commit=False))
+        mock_caption.assert_not_called()

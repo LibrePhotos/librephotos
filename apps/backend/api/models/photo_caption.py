@@ -1,11 +1,11 @@
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
 
 import api.models
 from api import util
 from api.image_captioning import generate_caption
-from api.llm import generate_prompt
 from api.models.user import User
 
 
@@ -50,46 +50,40 @@ class PhotoCaption(models.Model):
             )
             return None
 
-    def _llm_caption_context(self, llm_settings):
-        """(person name, location, keywords flag) for prompting, or None if off"""
-        from constance import config as site_config
+    def _caption_context(self, llm_settings):
+        """(person name, location, keywords flag) for prompting, or None if off.
 
-        if str(site_config.LLM_MODEL).lower() == "none" or not llm_settings["enabled"]:
+        The user's caption-context switches (``llm_settings``, a historical
+        name) decide what the caption may know about the photo. The captioning
+        model takes that context in its prompt directly.
+        """
+        if not llm_settings["enabled"]:
             return None
 
-        face = api.models.Face.objects.filter(photo=self.photo).first()
-        person_name = face.person.name if face and llm_settings["add_person"] else None
+        person_name = None
+        if llm_settings["add_person"]:
+            face = (
+                api.models.Face.objects.filter(photo=self.photo, person__isnull=False)
+                .select_related("person")
+                .first()
+            )
+            person_name = face.person.name if face else None
 
-        search_instance = self.photo.search_instance
         location = None
-        if (
-            search_instance
-            and search_instance.search_location
-            and llm_settings["add_location"]
-        ):
-            location = search_instance.search_location
+        if llm_settings["add_location"]:
+            # A photo that has not been through the scan yet has no search row.
+            try:
+                search_instance = self.photo.search_instance
+            except ObjectDoesNotExist:
+                search_instance = None
+            if search_instance and search_instance.search_location:
+                location = search_instance.search_location
 
         return person_name, location, llm_settings["add_keywords"]
 
     @staticmethod
-    def _im2txt_llm_prompt(caption, context):
-        person_name, location, add_keywords = context
-        person = f" Person: {person_name}" if person_name is not None else ""
-        place = f" Place: {location}" if location is not None else ""
-        keywords = " and tags or keywords" if add_keywords else ""
-        return (
-            "Q: Your task is to improve the following image caption: "
-            + caption
-            + ". You also know the following information about the image:"
-            + place
-            + person
-            + ". Stick as closely as possible to the caption, while replacing generic information with information you know about the image. Only output the caption"
-            + keywords
-            + ". \n A:"
-        )
-
-    @staticmethod
-    def _moondream_prompt(context):
+    def _caption_prompt(context):
+        """The prompt for the vision-language captioner, with what we know."""
         if context is None:
             return "Describe this image in a short, natural image caption."
 
@@ -116,10 +110,11 @@ class PhotoCaption(models.Model):
             self.save()
 
     def generate_captions_im2txt(self, commit=True):
-        """Generate a caption for the photo with the site's captioning model.
+        """Generate a caption for the photo with the captioning sidecar.
 
-        The name is historical (im2txt was the first model); the caption comes
-        from whichever model CAPTIONING_MODEL selects.
+        The name is historical (im2txt was the first model). The prompt
+        carries the recognised person and the place when the user's caption
+        settings allow it.
         """
         if not settings.FEATURE_IMAGE_CAPTIONING:
             util.logger.info("Image captioning is disabled")
@@ -136,66 +131,24 @@ class PhotoCaption(models.Model):
         try:
             from constance import config as site_config
 
-            captioning_model = site_config.CAPTIONING_MODEL
-            if str(captioning_model).lower() == "none":
+            if str(site_config.CAPTIONING_MODEL).lower() == "none":
                 util.logger.info("Generating captions is disabled")
                 return False
 
-            if captioning_model == "moondream":
-                util.logger.info("Generating captions with Moondream")
-                return self._generate_captions_moondream(commit=commit)
-
-            util.logger.info(f"Generating captions with {captioning_model}")
-            caption = generate_caption(image_path=image_path)
-            caption = caption.replace("<start>", "").replace("<end>", "").strip()
-
             llm_settings = User.objects.get(username=self.photo.owner).llm_settings
-            context = self._llm_caption_context(llm_settings)
-            if context is not None:
-                prompt = self._im2txt_llm_prompt(caption, context)
-                util.logger.info(prompt)
-                caption = generate_prompt(prompt)
+            context = self._caption_context(llm_settings)
+            prompt = self._caption_prompt(context)
+            util.logger.info(f"Caption prompt: {prompt}")
+
+            caption = generate_caption(image_path=image_path, prompt=prompt)
+            caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             self._store_generated_caption(captions, caption, commit)
 
-            util.logger.info(
-                f"generated caption for image {image_path} with {captioning_model}: {caption}"
-            )
+            util.logger.info(f"generated caption for image {image_path}: {caption}")
             return True
         except Exception:
             util.logger.exception(f"could not generate caption for image {image_path}")
-            return False
-
-    def _generate_captions_moondream(self, commit=True):
-        """Generate captions using Moondream with enhanced prompt"""
-        image_path = self._resolve_thumbnail_path()
-        if image_path is None:
-            return False
-
-        if self.captions_json is None:
-            self.captions_json = {}
-        captions = self.captions_json
-
-        try:
-            util.logger.info("Generating Moondream captions")
-
-            llm_settings = User.objects.get(username=self.photo.owner).llm_settings
-            prompt = self._moondream_prompt(self._llm_caption_context(llm_settings))
-            util.logger.info(f"Moondream prompt: {prompt}")
-
-            caption = generate_prompt(image_path=image_path, prompt=prompt)
-            caption = caption.replace("<start>", "").replace("<end>", "").strip()
-
-            self._store_generated_caption(captions, caption, commit)
-
-            util.logger.info(
-                f"Generated Moondream captions for image {image_path}, caption: {caption}"
-            )
-            return True
-        except Exception:
-            util.logger.exception(
-                f"Could not generate Moondream captions for image {image_path}"
-            )
             return False
 
     def save_user_caption(self, caption, commit=True):

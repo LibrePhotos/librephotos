@@ -1,22 +1,17 @@
-"""Characterization tests for ``api.image_captioning.generate_caption``.
+"""Tests for ``api.image_captioning.generate_caption``.
 
-These pin the CURRENT behavior of the captioning HTTP client before it is
-refactored: which sidecar URL is called, the exact JSON payload, the timeout
-constant, and each of the error strings the Moondream branch swallows.
+The client is thin: one sidecar, one URL, an optional prompt. What is pinned
+is the exact payload, the timeout constant, and that errors propagate rather
+than being swallowed (the caller decides what a failed caption means).
 """
 
 from unittest.mock import MagicMock, patch
 
 import requests
-from constance.test import override_config
 from django.test import TestCase
 
 from api.http_timeouts import CAPTION, HEALTH_CHECK
-from api.image_captioning import generate_caption, unload_model
-
-MOONDREAM_URL = "http://localhost:8008/generate"
-SIDECAR_URL = "http://localhost:8007/generate-caption"
-DEFAULT_MOONDREAM_PROMPT = "Describe this image in a short, concise caption."
+from api.image_captioning import CAPTIONING_URL, generate_caption, unload_model
 
 
 def _response(status_code=201, json_data=None, text=""):
@@ -27,172 +22,48 @@ def _response(status_code=201, json_data=None, text=""):
     return response
 
 
-@override_config(CAPTIONING_MODEL="moondream")
-class GenerateCaptionMoondreamTest(TestCase):
-    """The ``CAPTIONING_MODEL == "moondream"`` branch."""
-
+class GenerateCaptionTest(TestCase):
     @patch("api.image_captioning.requests.post")
-    def test_happy_path_returns_response_field(self, mock_post):
-        mock_post.return_value = _response(json_data={"response": "a cat on a sofa"})
+    def test_happy_path_without_prompt(self, mock_post):
+        mock_post.return_value = _response(json_data={"caption": "a dog"})
 
         result = generate_caption("/data/img.jpg")
 
-        self.assertEqual(result, "a cat on a sofa")
+        self.assertEqual(result, "a dog")
         mock_post.assert_called_once_with(
-            MOONDREAM_URL,
-            json={
-                "image_path": "/data/img.jpg",
-                "prompt": DEFAULT_MOONDREAM_PROMPT,
-                "max_tokens": 256,
-            },
-            timeout=CAPTION,
+            CAPTIONING_URL, json={"image_path": "/data/img.jpg"}, timeout=CAPTION
         )
 
     @patch("api.image_captioning.requests.post")
-    def test_custom_prompt_overrides_default(self, mock_post):
-        mock_post.return_value = _response(json_data={"response": "ok"})
+    def test_prompt_is_forwarded(self, mock_post):
+        mock_post.return_value = _response(json_data={"caption": "Anna's dog"})
 
-        generate_caption("/data/img.jpg", prompt="What breed is this dog?")
+        generate_caption("/data/img.jpg", prompt="The person is named Anna.")
 
         self.assertEqual(
-            mock_post.call_args.kwargs["json"]["prompt"], "What breed is this dog?"
+            mock_post.call_args.kwargs["json"],
+            {"image_path": "/data/img.jpg", "prompt": "The person is named Anna."},
         )
 
     @patch("api.image_captioning.requests.post")
-    def test_empty_string_prompt_is_kept_as_is(self, mock_post):
-        """Only ``None`` triggers the default prompt, not falsiness."""
-        mock_post.return_value = _response(json_data={"response": "ok"})
+    def test_empty_prompt_is_still_sent(self, mock_post):
+        """Only ``None`` means "no prompt"; an empty string is the caller's choice."""
+        mock_post.return_value = _response(json_data={"caption": "x"})
 
         generate_caption("/data/img.jpg", prompt="")
 
         self.assertEqual(mock_post.call_args.kwargs["json"]["prompt"], "")
 
     @patch("api.image_captioning.requests.post")
-    def test_non_201_status_returns_service_unavailable(self, mock_post):
-        mock_post.return_value = _response(status_code=500, text="boom")
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(
-            result, "Error generating caption with Moondream: Service unavailable"
-        )
-
-    @patch("api.image_captioning.requests.post")
-    def test_status_200_is_also_treated_as_an_error(self, mock_post):
-        """Current code only accepts 201; a plain 200 is an error."""
-        mock_post.return_value = _response(status_code=200, json_data={"response": "x"})
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(
-            result, "Error generating caption with Moondream: Service unavailable"
-        )
-
-    @patch("api.image_captioning.requests.post")
-    def test_connection_error_returns_service_unavailable(self, mock_post):
-        mock_post.side_effect = requests.exceptions.ConnectionError("refused")
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(
-            result, "Error generating caption with Moondream: Service unavailable"
-        )
-
-    @patch("api.image_captioning.requests.post")
-    def test_timeout_returns_request_timeout_message(self, mock_post):
-        mock_post.side_effect = requests.exceptions.Timeout("slow")
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(
-            result, "Error generating caption with Moondream: Request timeout"
-        )
-
-    @patch("api.image_captioning.requests.post")
-    def test_generic_exception_returns_plain_error_message(self, mock_post):
-        mock_post.side_effect = ValueError("bad json")
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(result, "Error generating caption with Moondream")
-
-    @patch("api.image_captioning.requests.post")
-    def test_missing_response_key_falls_into_generic_handler(self, mock_post):
-        """A malformed payload raises KeyError inside the try -> generic message."""
-        mock_post.return_value = _response(json_data={"caption": "wrong key"})
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(result, "Error generating caption with Moondream")
-
-    @patch("api.image_captioning.requests.post")
-    def test_http_error_subclass_is_swallowed_as_generic(self, mock_post):
-        mock_post.side_effect = requests.exceptions.HTTPError("500")
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(result, "Error generating caption with Moondream")
-
-
-class GenerateCaptionSidecarBranchTest(TestCase):
-    """Every non-"moondream" model value goes to the 8007 sidecar, by name."""
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8")
-    @patch("api.image_captioning.requests.post")
-    def test_sidecar_happy_path_names_the_model(self, mock_post):
-        mock_post.return_value = _response(json_data={"caption": "a dog"})
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(result, "a dog")
-        mock_post.assert_called_once_with(
-            SIDECAR_URL,
-            json={"image_path": "/data/img.jpg", "model": "florence2_base_int8"},
-            timeout=CAPTION,
-        )
-
-    @override_config(CAPTIONING_MODEL="florence2_base")
-    @patch("api.image_captioning.requests.post")
-    def test_fp32_variant_is_forwarded_by_name(self, mock_post):
-        mock_post.return_value = _response(json_data={"caption": "a dog"})
-
-        generate_caption("/data/img.jpg")
-
-        self.assertEqual(mock_post.call_args.kwargs["json"]["model"], "florence2_base")
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8")
-    @patch("api.image_captioning.requests.post")
-    def test_prompt_is_ignored_on_sidecar_branch(self, mock_post):
-        mock_post.return_value = _response(json_data={"caption": "a dog"})
-
-        generate_caption("/data/img.jpg", prompt="ignore me")
-
-        self.assertNotIn("prompt", mock_post.call_args.kwargs["json"])
-
-    @override_config(CAPTIONING_MODEL="none")
-    @patch("api.image_captioning.requests.post")
-    def test_model_none_still_calls_the_sidecar(self, mock_post):
-        """generate_caption itself has no "no model" guard; callers gate it."""
-        mock_post.return_value = _response(json_data={"caption": "a dog"})
-
-        result = generate_caption("/data/img.jpg")
-
-        self.assertEqual(result, "a dog")
-        self.assertEqual(mock_post.call_args.args[0], SIDECAR_URL)
-
-    @override_config(CAPTIONING_MODEL="florence2_base_int8")
-    @patch("api.image_captioning.requests.post")
-    def test_connection_error_propagates_on_sidecar_branch(self, mock_post):
-        """Unlike Moondream, the sidecar branch has no try/except."""
+    def test_connection_error_propagates(self, mock_post):
         mock_post.side_effect = requests.exceptions.ConnectionError("refused")
 
         with self.assertRaises(requests.exceptions.ConnectionError):
             generate_caption("/data/img.jpg")
 
-    @override_config(CAPTIONING_MODEL="florence2_base_int8")
     @patch("api.image_captioning.requests.post")
     def test_missing_caption_key_raises_keyerror(self, mock_post):
-        mock_post.return_value = _response(json_data={"response": "wrong key"})
+        mock_post.return_value = _response(json_data={"error": "boom"})
 
         with self.assertRaises(KeyError):
             generate_caption("/data/img.jpg")

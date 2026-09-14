@@ -394,7 +394,7 @@ export function useSpotlightActions(query: string = "") {
         description: t("spotlight.nav.llmSettingsDesc"),
         leftSection: React.createElement(IconRobot, iconProps),
         onClick: () => navigate({ to: "/settings" }),
-        keywords: ["llm", "ai", "caption", "language model", "mistral"],
+        keywords: ["caption", "context", "ai", "names", "places", "llm"],
       },
       {
         id: "nav-profile-language",

@@ -24,22 +24,12 @@ const MAP_TILE_PROVIDERS = [
 ];
 
 const CAPTIONING_MODELS = [
-  { value: "florence2_base_int8", label: "Florence-2 Base (light, default)" },
-  { value: "florence2_base", label: "Florence-2 Base (most accurate)" },
-  { value: "moondream", label: "Moondream Visual LLM" },
+  { value: "lfm2_vl_450m", label: "LFM2.5-VL (default)" },
   { value: "none", label: "None" },
 ];
 
-// The fp32 Florence-2 needs about 2 GB of RAM while it captions; the light one about 0.6 GB.
-const RAM_HEAVY_CAPTIONING_MODEL = "florence2_base";
-const DEFAULT_CAPTIONING_MODEL = "florence2_base_int8";
+const DEFAULT_CAPTIONING_MODEL = "lfm2_vl_450m";
 const DEFAULT_TAGGING_MODEL = "mobileclip_s2";
-
-const LLM_MODELS = [
-  { value: "mistral-7b-instruct-v0.2.Q5_K_M", label: "Mistral 7B Instruct v0.2 Q5 K M" },
-  { value: "moondream", label: "Moondream Visual LLM" },
-  { value: "none", label: "None" },
-];
 
 const TAGGING_MODELS = [
   { value: "mobileclip_s2", label: "MobileCLIP-S2 (fast, default)" },
@@ -84,7 +74,6 @@ export function SiteSettings() {
   const [allowUpload, setAllowUpload] = useState(false);
   const [nextcloudEnabled, setNextcloudEnabled] = useState(false);
   const [captioningModel, setCaptioningModel] = useState(DEFAULT_CAPTIONING_MODEL);
-  const [llmModel, setLlmModel] = useState("none");
   const [taggingModel, setTaggingModel] = useState(DEFAULT_TAGGING_MODEL);
   const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
   // Restored when the user backs out of the OCR confirmation dialog.
@@ -97,19 +86,10 @@ export function SiteSettings() {
   const [opened, { open, close }] = useDisclosure(false);
 
   const saveSettingsWithValidation = (input: any) => {
-    if (input.captioning_model === RAM_HEAVY_CAPTIONING_MODEL) {
-      setWarning("captioning");
-      open();
-      return;
-    }
     saveSettings(input);
   };
 
   const dismissWarning = () => {
-    if (warning === "captioning") {
-      setCaptioningModel(DEFAULT_CAPTIONING_MODEL);
-      saveSettings({ captioning_model: DEFAULT_CAPTIONING_MODEL });
-    }
     if (warning === "ocr") {
       setOcrModel(previousOcrModel);
     }
@@ -117,9 +97,6 @@ export function SiteSettings() {
   };
 
   const confirmWarning = () => {
-    if (warning === "captioning") {
-      saveSettings({ captioning_model: captioningModel });
-    }
     if (warning === "ocr") {
       saveSettings({ ocr_model: ocrModel });
       setPreviousOcrModel(ocrModel);
@@ -137,7 +114,6 @@ export function SiteSettings() {
       setAllowUpload(settings.allow_upload);
       setNextcloudEnabled(settings.nextcloud_enabled);
       setCaptioningModel(settings.captioning_model);
-      setLlmModel(settings.llm_model);
       setTaggingModel(settings.tagging_model);
       setOcrModel(normalizeOcrModel(settings.ocr_model));
       setPreviousOcrModel(normalizeOcrModel(settings.ocr_model));
@@ -157,7 +133,9 @@ export function SiteSettings() {
         }
       >
         <Stack>
-          <Text>{warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.captioning_ram_warning")}</Text>
+          <Text>
+            {warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.heavyweight_process_warning")}
+          </Text>
           <Group>
             <Button onClick={dismissWarning}>{t("cancel")}</Button>
             <Button onClick={confirmWarning} color="red">
@@ -294,26 +272,6 @@ export function SiteSettings() {
                   const value = model ?? "";
                   saveSettingsWithValidation({ captioning_model: value });
                   setCaptioningModel(value);
-                }}
-              />
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <Stack gap={0}>
-                <Text>{t("sitesettings.llm_model_header")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("sitesettings.llm_model_description")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={4}>
-              <Select
-                searchable
-                data={LLM_MODELS}
-                value={llmModel}
-                onChange={model => {
-                  const value = model ?? "";
-                  saveSettingsWithValidation({ llm_model: value });
-                  setLlmModel(value);
                 }}
               />
             </Grid.Col>

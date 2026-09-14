@@ -91,9 +91,8 @@
 ### `service/` - Microservices
 - `clip_embeddings/` - CLIP ViT-B/32 (ONNX) embeddings for semantic search
 - `face_recognition/` - Face detection and recognition
-- `image_captioning/` - Image captioning (Florence-2, ONNX)
+- `image_captioning/` - Image captioning (LFM2.5-VL, ONNX; prompted with names and places)
 - `thumbnail/` - Thumbnail generation
-- `llm/` - LLM integration for chat features and Moondream captions
 - `tags/` - Zero-shot tagging (MobileCLIP-S2, SigLIP 2; ONNX)
 - `exif/` - EXIF metadata extraction
 

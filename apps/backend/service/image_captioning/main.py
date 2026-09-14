@@ -4,20 +4,11 @@ import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
-from florence2 import IMAGE_SIZE, LIGHT_IMAGE_SIZE, Florence2Captioner, model_dir_for
+from lfm2_vl import Lfm2VlCaptioner
 
 app = Flask(__name__)
 
-DEFAULT_MODEL = "florence2_base_int8"
-# Model name -> input size. The int8 variant is the light option and also
-# runs at the half-size input; the fp32 one is "most accurate" at full size.
-CAPTIONING_MODELS = {
-    "florence2_base_int8": LIGHT_IMAGE_SIZE,
-    "florence2_base": IMAGE_SIZE,
-}
-
 captioner = None
-captioner_model = None
 last_request_time = None
 
 
@@ -25,47 +16,43 @@ def log(message):
     print(f"image_captioning: {message}")
 
 
-def get_captioner(model):
-    """The loaded captioner for ``model``, swapping it out when the model changes."""
-    global captioner, captioner_model
-    if captioner is None or captioner_model != model:
-        if captioner is not None:
-            captioner.unload()
-        captioner = Florence2Captioner(model_dir_for(model), CAPTIONING_MODELS[model])
-        captioner_model = model
+def get_captioner():
+    global captioner
+    if captioner is None:
+        captioner = Lfm2VlCaptioner()
     return captioner
 
 
 @app.route("/generate-caption", methods=["POST"])
 def generate_caption():
+    """A caption for ``image_path``, steered by the optional ``prompt``."""
     global last_request_time
     last_request_time = time.time()
 
     try:
         data = request.get_json()
         image_path = data["image_path"]
-        model = data.get("model") or DEFAULT_MODEL
+        prompt = data.get("prompt")
     except Exception as e:
         print(str(e))
         return "", 400
 
-    if model not in CAPTIONING_MODELS:
-        return {"error": f"Unknown captioning model {model!r}"}, 400
-
     try:
-        return {"caption": get_captioner(model).caption(image_path)}, 201
+        return {"caption": get_captioner().caption(image_path, prompt)}, 201
     except Exception as e:
+        # A captioner that failed half-way through loading must not be reused.
+        global captioner
+        captioner = None
         log(f"error captioning {image_path}: {e}")
         return {"error": "Failed to generate caption"}, 500
 
 
 @app.route("/unload-model", methods=["GET"])
 def unload_model():
-    global captioner, captioner_model
+    global captioner
     if captioner is not None:
         captioner.unload()
     captioner = None
-    captioner_model = None
     return "", 200
 
 

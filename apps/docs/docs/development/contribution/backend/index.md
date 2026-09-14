@@ -73,9 +73,9 @@ You have your python model and want to somehow convert that to JSON. That's what
 
 ### Services
 
-Not everything runs inside Django. The heavy machine-learning work lives in standalone Flask processes that Django talks to over plain HTTP on localhost. Seven of them sit under `service/` — `thumbnail`, `face_recognition`, `clip_embeddings`, `image_captioning`, `llm`, `exif` and `tags` — and `image_similarity/` is a separate top-level folder. Each is served by a gevent `WSGIServer` on a fixed port; the ports are defined in the `SERVICES` dict in `api/services.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, clip_embeddings 8006, image_captioning 8007, llm 8008, exif 8010, tags 8011).
+Not everything runs inside Django. The heavy machine-learning work lives in standalone Flask processes that Django talks to over plain HTTP on localhost. Seven of them sit under `service/` — `thumbnail`, `face_recognition`, `clip_embeddings`, `image_captioning`, `exif`, `tags` and `ocr` — and `image_similarity/` is a separate top-level folder. Each is served by a gevent `WSGIServer` on a fixed port; the ports are defined in the `SERVICES` dict in `api/services.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, clip_embeddings 8006, image_captioning 8007, exif 8010, tags 8011, ocr 8012).
 
-You start them with `python manage.py start_service`, which also schedules `api.services.check_services` in django-q2 to poll each service's `/health` endpoint and restart any that have gone stale or died. The `llm` service additionally needs certain CPU features (`avx`, `sse4_2`) and is skipped on hardware that lacks them.
+You start them with `python manage.py start_service`, which also schedules `api.services.check_services` in django-q2 to poll each service's `/health` endpoint and restart any that have gone stale or died.
 
 Because these are separate processes, the `docker attach` + pdb trick above does not reach them — to debug a service, check its log under `/logs/` or add logging in the service's own `main.py`.
 
@@ -85,12 +85,11 @@ Every model runs on [ONNX Runtime](https://onnxruntime.ai/); there is no PyTorch
 
 #### Image Captioning
 
-Captions are generated on demand by the image captioning service (`service/image_captioning/`, port 8007). The model is chosen with the `Captioning Model` site setting (`florence2_base_int8` by default, or `none` to turn caption generation off):
+Captions are generated on demand by the image captioning service (`service/image_captioning/`, port 8007), which runs Liquid AI's LFM2.5-VL-450M as three ONNX graphs (SigLIP2 NaFlex vision encoder, token embedding, merged LFM2 decoder with its key/value and convolution caches), driven by `service/image_captioning/lfm2_vl.py` with greedy decoding. The `Captioning Model` site setting is `lfm2_vl_450m` or `none`; the model files are always downloaded so turning captioning on never waits.
 
-- **florence2_base_int8** / **florence2_base** — Microsoft's Florence-2 base (fine-tuned) as four ONNX graphs (vision encoder, token embedding, text encoder, merged decoder with KV cache), driven by `service/image_captioning/florence2.py` with greedy decoding. The request tells the service which variant to load; the two share the code and differ in the weights directory and the input size (384 px for the light int8 default, 768 px for fp32). Only those two sizes produce full sentences: the learned position grid lines up at the native size and its exact half, and other sizes degrade to fragments.
-- **moondream** — a visual LLM. This one does not go through the captioning service at all: `api/image_captioning.py` routes it to the `llm` service (port 8008).
+The request carries a prompt. `PhotoCaption.generate_captions_im2txt` builds it from the user's caption-context switches (`User.llm_settings`, a historical name): the recognised person's name and the geocoded place go into the prompt, and the model writes them into the caption itself. There is no separate LLM pass any more. Photos are always fed as one tile of at most 256 image tokens; see the module docstring for why.
 
-Whichever model runs, the caption is stored under the `"im2txt"` key in `PhotoCaption.captions_json`, and if an LLM is enabled it can post-process the caption before it is saved. For the user-facing comparison of these models, see the [image captioning guide](../../../user-guide/image-captioning.md).
+The caption is stored under the `"im2txt"` key in `PhotoCaption.captions_json`. For the user-facing comparison of these models, see the [image captioning guide](../../../user-guide/image-captioning.md).
 
 #### Face Recognition
 

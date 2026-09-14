@@ -1,9 +1,10 @@
-"""The 0138 data migration moves site settings off the retired PyTorch models.
+"""The 0138 data migration moves site settings off the retired models.
 
 Exercised through the migration module's functions with the live app
-registry: what matters is the mapping (Places365 -> MobileCLIP-S2, im2txt and
-BLIP -> Florence-2 int8), that other values are left alone, and that the
-retired taggers' AlbumThing rows are removed while everything else stays.
+registry: what matters is the mapping (Places365 -> MobileCLIP-S2, every
+retired captioner -> LFM2.5-VL, the LLM slot dropped), that other
+values are left alone, and that the retired taggers' AlbumThing rows are
+removed while everything else stays.
 """
 
 from importlib import import_module
@@ -36,21 +37,48 @@ class OnnxOnlyMigrationTest(TestCase):
 
         migration.forwards(apps, None)
 
-        self.assertEqual(_get("CAPTIONING_MODEL"), "florence2_base_int8")
+        self.assertEqual(_get("CAPTIONING_MODEL"), "lfm2_vl_450m")
         self.assertEqual(_get("TAGGING_MODEL"), "mobileclip_s2")
 
-    def test_im2txt_is_mapped_too(self):
-        _set("CAPTIONING_MODEL", "im2txt")
+    def test_every_retired_captioner_is_mapped(self):
+        for old in ("im2txt", "florence2_base", "florence2_base_int8", "moondream"):
+            _set("CAPTIONING_MODEL", old)
+            migration.forwards(apps, None)
+            self.assertEqual(_get("CAPTIONING_MODEL"), "lfm2_vl_450m", old)
+
+    def test_llm_model_key_is_dropped(self):
+        _set("LLM_MODEL", "mistral-7b-instruct-v0.2.Q5_K_M")
         migration.forwards(apps, None)
-        self.assertEqual(_get("CAPTIONING_MODEL"), "florence2_base_int8")
+        self.assertFalse(Constance.objects.filter(key="LLM_MODEL").exists())
+
+    def test_untouched_caption_settings_are_switched_on(self):
+        from api.models.user import User
+
+        untouched = self.user
+        untouched.llm_settings = dict(migration.OLD_DEFAULT_CAPTION_SETTINGS)
+        untouched.save()
+        customised = create_test_user()
+        customised.llm_settings = {
+            **migration.OLD_DEFAULT_CAPTION_SETTINGS,
+            "add_location": True,
+        }
+        customised.save()
+
+        migration.forwards(apps, None)
+
+        untouched = User.objects.get(pk=untouched.pk)
+        self.assertEqual(untouched.llm_settings, migration.NEW_DEFAULT_CAPTION_SETTINGS)
+        customised = User.objects.get(pk=customised.pk)
+        self.assertFalse(customised.llm_settings["enabled"])
+        self.assertTrue(customised.llm_settings["add_location"])
 
     def test_other_selections_are_left_alone(self):
-        _set("CAPTIONING_MODEL", "moondream")
+        _set("CAPTIONING_MODEL", "none")
         _set("TAGGING_MODEL", "siglip2")
 
         migration.forwards(apps, None)
 
-        self.assertEqual(_get("CAPTIONING_MODEL"), "moondream")
+        self.assertEqual(_get("CAPTIONING_MODEL"), "none")
         self.assertEqual(_get("TAGGING_MODEL"), "siglip2")
 
     def test_missing_keys_are_not_created(self):
@@ -76,7 +104,7 @@ class OnnxOnlyMigrationTest(TestCase):
         )
 
     def test_backwards_restores_the_old_selections(self):
-        _set("CAPTIONING_MODEL", "florence2_base_int8")
+        _set("CAPTIONING_MODEL", "lfm2_vl_450m")
         _set("TAGGING_MODEL", "mobileclip_s2")
 
         migration.backwards(apps, None)

@@ -51,10 +51,8 @@ psutil==7.2.2
 concurrent-log-handler==0.9.29
 
 # Tokenizers for the ONNX models: CLIP BPE (semantic search, MobileCLIP tags)
-# and BART BPE (Florence-2 captions). The Rust package alone, no transformers.
+# and the LFM2 tokenizer (captions). The Rust package alone, no transformers.
 tokenizers==0.22.2
-# Dependencies for mistral quantized and multimodal models like Moondream
-llama-cpp-python==0.3.34
 argon2-cffi==25.1.0
 # Dependencies for SigLIP 2 ONNX inference
 # On the GPU image (Python 3.10) the Dockerfile swaps this for

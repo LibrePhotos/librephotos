@@ -17,8 +17,6 @@ class MlTypes:
     CAPTIONING = "captioning"
     FACE_RECOGNITION = "face_recognition"
     CLIP = "clip"
-    LLM = "llm"
-    MOONDREAM = "moondream"
     TAGGING = "tagging"
     OCR = "ocr"
 
@@ -102,70 +100,50 @@ ML_MODELS = [
         "sha256": "d85a87f503f691807cd8bb97128bdf7a0660326cd9cd02657127fa978bab8b5e",
     },
     {
-        # Microsoft Florence-2 base (fine-tuned), ONNX export by onnx-community,
-        # fp32 at the full 768 px input: the most accurate captioner, about
-        # 2.2 GB of RAM while it runs.
-        "id": 6,
-        "name": "florence2_base",
-        "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder.onnx",
+        # Liquid AI's LFM2.5-VL-450M (ONNX export by onnx-community, 4-bit
+        # weights, fp16 activations): the captioner. A vision-language model,
+        # so the caption prompt can carry a person's name and the place. About
+        # 0.9 GB of RAM while it captions. Always kept available, so turning
+        # captioning on never waits for a download. The .onnx_data files are
+        # the weights the small .onnx graphs point at and must keep their
+        # names.
+        "id": 18,
+        "name": "lfm2_vl_450m",
+        "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx",
         "type": MlTypes.CAPTIONING,
         "unpack-command": None,
-        "target-dir": "florence2_base/vision_encoder.onnx",
-        "sha256": "d67258cdfdebfa21285dad9e7bd4bd99725236d0aaef9e474a1b24a6ec471351",
+        "target-dir": "lfm2_vl_450m/vision_encoder_q4f16.onnx",
+        "sha256": "3b3c649be161ac04196dccf17a6dacbbc5bba27d305dc76df541da971a04b938",
         "additional_files": [
             {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/embed_tokens.onnx",
-                "target": "florence2_base/embed_tokens.onnx",
-                "sha256": "90cae3deb6406938c676a35b5246db02b478c9cc8cf93508361be80c05babf95",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx_data",
+                "target": "lfm2_vl_450m/vision_encoder_q4f16.onnx_data",
+                "sha256": "22cafaabfa07020c4426962e2c71aff05fd53b63af971bbbcf094f5cf7c9af07",
             },
             {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/encoder_model.onnx",
-                "target": "florence2_base/encoder_model.onnx",
-                "sha256": "cb0bccc232c64290397f5e1235eb3e1fa6ccf8c5afed9216480ee4eed80737fc",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx",
+                "target": "lfm2_vl_450m/embed_tokens_q4f16.onnx",
+                "sha256": "8b0b2f8ce26a383d2064bac1949f0fee763dfc5625efa6b15166f6b115f23836",
             },
             {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/decoder_model_merged.onnx",
-                "target": "florence2_base/decoder_model_merged.onnx",
-                "sha256": "5207affad8815294233b8679ee9ecb614906f819a1890d95a01b9ca68c392a79",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx_data",
+                "target": "lfm2_vl_450m/embed_tokens_q4f16.onnx_data",
+                "sha256": "57b12507e5ad10435ae86ff73a7b2ea47119009d63706f3f843c4653b297152a",
             },
             {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/tokenizer.json",
-                "target": "florence2_base/tokenizer.json",
-                "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac",
-            },
-        ],
-    },
-    {
-        # The same Florence-2 base with int8 weights, run at a 384 px input by
-        # the captioning service: a quarter of the download and about 0.6 GB of
-        # RAM, the envelope im2txt used to have. The default.
-        "id": 17,
-        "name": "florence2_base_int8",
-        "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder_int8.onnx",
-        "type": MlTypes.CAPTIONING,
-        "unpack-command": None,
-        "target-dir": "florence2_base_int8/vision_encoder.onnx",
-        "sha256": "d7876c1ab0f7ec11998942ca189e99a775c5a4a912b813c7745d0f6fa9343487",
-        "additional_files": [
-            {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/embed_tokens_int8.onnx",
-                "target": "florence2_base_int8/embed_tokens.onnx",
-                "sha256": "6b2258db1c8ee9b160576ccde3cd3814d83a2edaed0dd1c6ca9ff3c38fa62214",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx",
+                "target": "lfm2_vl_450m/decoder_model_merged_q4f16.onnx",
+                "sha256": "7240383efa592695733484b1e4ec4c0474a652d445280c748baf10b51eceacb8",
             },
             {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/encoder_model_int8.onnx",
-                "target": "florence2_base_int8/encoder_model.onnx",
-                "sha256": "f4ad7a68f1fb875d3bcf735ea14a7021b7ba7e83baf7cf10289881b4ed6d9b855",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx_data",
+                "target": "lfm2_vl_450m/decoder_model_merged_q4f16.onnx_data",
+                "sha256": "a93e7fc1821e8aaefc33d30af4299411cf0490456d769795bd30db00cb38be95",
             },
             {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/decoder_model_merged_int8.onnx",
-                "target": "florence2_base_int8/decoder_model_merged.onnx",
-                "sha256": "f22f52f980c33df0efa15932c2f3db6d9d3595ce6387eca938b8cfe23dc4c641",
-            },
-            {
-                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/tokenizer.json",
-                "target": "florence2_base_int8/tokenizer.json",
-                "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json",
+                "target": "lfm2_vl_450m/tokenizer.json",
+                "sha256": "d3f7877aa8c9ce603604f2cf78c280c24d8b6087c24669610f3391bcd3f703cf",
             },
         ],
     },
@@ -177,15 +155,6 @@ ML_MODELS = [
         "unpack-command": "zip",
         "target-dir": "face_recognition/models/buffalo_m",
         "sha256": "d98264bd8f2dc75cbc2ddce2a14e636e02bb857b3051c234b737bf3b614edca9",
-    },
-    {
-        "id": 8,
-        "name": "mistral-7b-instruct-v0.2.Q5_K_M",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/mistral/mistral-7b-instruct-v0.2.Q5_K_M.gguf?download=true",
-        "type": MlTypes.LLM,
-        "unpack-command": None,
-        "target-dir": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
-        "sha256": "b85cdd596ddd76f3194047b9108a73c74d77ba04bef49255a50fc0cfbda83d32",
     },
     {
         "id": 11,
@@ -253,23 +222,6 @@ ML_MODELS = [
         "target-dir": "ocr/ppocrv6_medium",
         "sha256": "21232b79847cd56d5cae801d3364f95e508b40bb0ce159f31687e63c63959a0b",
     },
-    {
-        # Moondream 2 GGUF model for llama-cpp-python multimodal support
-        "id": 9,
-        "name": "moondream",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/moondream/moondream2-text-model-f16.gguf?download=true",
-        "type": MlTypes.MOONDREAM,
-        "unpack-command": None,
-        "target-dir": "moondream2-text-model-f16.gguf",
-        "sha256": "4e17e9107fb8781629b3c8ce177de57ffeae90fe14adcf7b99f0eef025889696",
-        "additional_files": [
-            {
-                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/moondream/moondream2-mmproj-f16.gguf?download=true",
-                "target": "moondream2-mmproj-f16.gguf",
-                "sha256": "4cc1cb3660d87ff56432ebeb7884ad35d67c48c7b9f6b2856f305e39c38eed8f",
-            }
-        ],
-    },
 ]
 
 
@@ -280,19 +232,11 @@ def _is_model_not_selected(value):
 def _is_model_selected(model):
     model_type = model["type"]
     if model_type == MlTypes.CAPTIONING:
-        return model["name"] == site_config.CAPTIONING_MODEL
+        # The one captioner is always kept available: it is small, and turning
+        # captioning on should never wait for a download.
+        return True
     if model_type == MlTypes.TAGGING:
         return model["name"] == site_config.TAGGING_MODEL
-    if model_type == MlTypes.LLM:
-        return not _is_model_not_selected(site_config.LLM_MODEL) and (
-            model["name"] == site_config.LLM_MODEL
-        )
-    if model_type == MlTypes.MOONDREAM:
-        # Moondream can be picked as the captioning model, as the LLM, or both.
-        return model["name"] in (
-            site_config.CAPTIONING_MODEL,
-            site_config.LLM_MODEL,
-        )
     if model_type == MlTypes.FACE_RECOGNITION:
         return model["name"] == site_config.FACE_RECOGNITION_MODEL
     if model_type == MlTypes.OCR:

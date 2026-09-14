@@ -59,13 +59,13 @@ The first time you play a video with this on, it is converted as it plays. A con
 
 Converted copies are kept under `protected_media/transcoded/` and cost somewhere between 10 and 20 MB per minute of video, depending on how much movement there is in it. The store is capped and prunes the videos you have not watched for longest; an administrator can change the ceiling, or turn the whole thing off, with [`TRANSCODE_CACHE_MAX_GB`](../../installation/environment-variables.md#cached-video-conversions).
 
-### Large Language Model Settings
+### Caption Context
 
-These switches enhance generated captions with the large language model an administrator selects in the Admin Area (`Large Language Model`). If that is set to `None`, the switches have no effect. All are off by default.
+These switches tell the captioning model what LibrePhotos already knows about a photo, so the caption can say who is in it and where it was taken. All are on by default.
 
-- `Enable Large Language Model For Captions` turns on LLM post-processing of image captions. Default `Off`
-- `Add Persons to the Captions` includes the name of a recognised person in the prompt so it can appear in the caption. Only available while the switch above is on. Default `Off`
-- `Add Locations to the Captions` includes the photo's location in the prompt. Only available while the switch above is on. Default `Off`
+- `Tell the captioning model what LibrePhotos knows about a photo` turns the context on. Default `On`
+- `Use the names of recognised people in captions` includes the name of a recognised person in the prompt so it can appear in the caption. Only available while the switch above is on. Default `On`
+- `Mention where the photo was taken in captions` includes the photo's geocoded location in the prompt. Only available while the switch above is on. Default `On`
 
 See [Image Captioning](../image-captioning.md) for the captioning model itself.
 
@@ -116,8 +116,7 @@ These are settings that apply to the whole instance. Besides the panels below, t
 - `Map Provider` Select which geocoding service converts GPS coordinates into place names. Options are Nominatim (free, no key required), Mapbox, MapTiler, OpenCage, and TomTom.
 - `API key for Map Provider` Only shown after you select a commercial provider (Mapbox, MapTiler, OpenCage, or TomTom), where it is required. It is not shown for Nominatim, which needs no key.
 - `Map Tiles` Where the map background is loaded from. Options are PhotoPrism (the default), OpenStreetMap, or None to hide maps entirely. Opening a map reveals the approximate location of your photos to the selected provider. This is separate from the map **provider** above, which only affects reverse geocoding.
-- `Captioning Model` Select which AI model to use for image captioning. See [Image Captioning](../image-captioning.md).
-- `Large Language Model` Select which LLM to use for enhanced captioning (None, Mistral, Moondream). When set to "None", no LLM models will be downloaded.
+- `Captioning Model` `LFM2.5-VL` (the default) or `None` to turn automatic captioning off. See [Image Captioning](../image-captioning.md).
 - `Tagging Model` Select which AI model to use for auto-tagging photos. Options:
   - **MobileCLIP-S2** — Apple's small vision-language model (default). Zero-shot classification against a curated vocabulary of 900+ real-world photo tags; about 125 ms per photo on a desktop CPU and a few hundred MB of RAM. Returns up to 10 tags.
   - **SigLIP 2** — Google's larger vision-language model using the same vocabulary. More accurate, about six times slower and roughly twice the RAM. Returns the top 10 most relevant tags.
