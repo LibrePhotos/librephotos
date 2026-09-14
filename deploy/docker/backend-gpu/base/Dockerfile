@@ -74,7 +74,13 @@ RUN git clone https://github.com/LibRaw/LibRaw && \
 
 # Build and install ImageMagick
 ARG IMAGEMAGICK_VERSION=7.1.1-41
-RUN curl -SL https://imagemagick.org/archive/releases/ImageMagick-${IMAGEMAGICK_VERSION}.tar.xz | tar -xJf- && \
+# Fetched from the GitHub tag rather than imagemagick.org/archive/releases:
+# that directory only keeps the latest few releases, so a pinned version
+# vanishes from it within months (7.1.1-40 did in 2026, breaking this build
+# with a 404 that arrived as an HTML page tar could not read). Git tags are
+# permanent, the tag archive carries the generated configure script, and
+# curl -f turns any future 404 into a loud failure instead of a puzzling one.
+RUN curl -fsSL https://github.com/ImageMagick/ImageMagick/archive/refs/tags/${IMAGEMAGICK_VERSION}.tar.gz | tar -xzf- && \
     cd ImageMagick-${IMAGEMAGICK_VERSION} && \
     ./configure --with-modules && \
     make install && \
@@ -125,8 +131,13 @@ RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.p
 
 # Install ExifTool
 WORKDIR /tmp/exiftool
-RUN curl -SL https://exiftool.org/Image-ExifTool-13.57.tar.gz | tar -xz && \
-    cd Image-ExifTool-13.57 && \
+ARG EXIFTOOL_VERSION=13.57
+# exiftool.org hosts only the current release, so a pinned version disappears
+# from it as soon as the next one ships (13.57 already has). The GitHub tag
+# archive is permanent; it unpacks as exiftool-<version> rather than
+# Image-ExifTool-<version>.
+RUN curl -fsSL https://github.com/exiftool/exiftool/archive/refs/tags/${EXIFTOOL_VERSION}.tar.gz | tar -xz && \
+    cd exiftool-${EXIFTOOL_VERSION} && \
     perl Makefile.PL && \
     make install && \
     rm -rf /tmp/exiftool
