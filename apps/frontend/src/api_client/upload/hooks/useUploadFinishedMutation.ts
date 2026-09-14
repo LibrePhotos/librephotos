@@ -13,6 +13,14 @@ type UploadFinishedOptions = {
   shouldInvalidate: boolean;
 };
 
+export const invalidateUploadQueries = () => {
+  queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
+};
+
 const uploadFinished = (options: UploadFinishedOptions) => fetchClient.post("/upload/complete/", options.formData);
 
 export const useUploadFinishedMutation = () =>
@@ -21,11 +29,7 @@ export const useUploadFinishedMutation = () =>
     onSuccess: (_data, variables) => {
       // Only invalidate queries if shouldInvalidate is true (i.e., this is the last file)
       if (variables.shouldInvalidate) {
-        queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
-        queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
-        queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
-        queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
-        queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
+        invalidateUploadQueries();
       }
     },
   });

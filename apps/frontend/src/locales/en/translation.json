@@ -1389,5 +1389,31 @@
     "photos": "Photos only",
     "videos": "Videos only",
     "screenshots": "Screenshots only"
+  },
+  "upload": {
+    "button": "Upload photos and videos",
+    "uploading": "Uploading…",
+    "complete": "Upload complete",
+    "processed": "{{finished}}/{{total}} processed",
+    "duplicates_one": "{{count}} duplicate",
+    "duplicates_other": "{{count}} duplicates",
+    "errors_one": "{{count}} error",
+    "errors_other": "{{count}} errors",
+    "expand": "Expand list",
+    "collapse": "Collapse list",
+    "close": "Close",
+    "still_running": "Upload still running",
+    "retry": "Retry",
+    "retry_failed_one": "Retry failed upload",
+    "retry_failed_other": "Retry {{count}} failed uploads",
+    "unknown_error": "Upload failed",
+    "status": {
+      "pending": "Waiting",
+      "hashing": "Checking file",
+      "uploading": "Uploading",
+      "done": "Done",
+      "duplicate": "Duplicate",
+      "error": "Error"
+    }
   }
 }
