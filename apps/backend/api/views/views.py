@@ -1003,6 +1003,15 @@ class UnifiedMediaAccessView(APIView):
             Q(share__expires_at__isnull=True) | Q(share__expires_at__gte=timezone.now())
         )
 
+    @staticmethod
+    def _vouching_albums(photo):
+        """Albums whose shares may grant access to ``photo``: its owner's only.
+
+        A photo that sits in someone else's album (GHSA-phvg-g65q-rhq3) must
+        not be served on the strength of that album's share.
+        """
+        return photo.albumuser_set.filter(owner_id=photo.owner_id)
+
     def _resolve_requester(self, jwt):
         """Return ``(user, token_valid)`` for the value of the ``jwt`` cookie.
 
@@ -1044,7 +1053,7 @@ class UnifiedMediaAccessView(APIView):
                 if p.shared_to.filter(id=user.id).exists():
                     return p
         for p in candidates:
-            if p.albumuser_set.filter(self._public_album_active_q()).exists():
+            if self._vouching_albums(p).filter(self._public_album_active_q()).exists():
                 return p
         return candidates[0]
 
@@ -1054,9 +1063,11 @@ class UnifiedMediaAccessView(APIView):
             return False
         if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
             return True
-        return photo.albumuser_set.filter(
-            self._public_album_active_q() | Q(shared_to=user)
-        ).exists()
+        return (
+            self._vouching_albums(photo)
+            .filter(self._public_album_active_q() | Q(shared_to=user))
+            .exists()
+        )
 
     @staticmethod
     def _is_uuid_format(value):
@@ -1167,9 +1178,11 @@ class UnifiedMediaAccessView(APIView):
         if album is None:
             return HttpResponse(status=404)
         try:
-            photo = album.photos.only(
-                "image_hash", "video", "main_file", "thumbnail"
-            ).get(image_hash=image_hash)
+            photo = (
+                album.photos.filter(owner_id=album.owner_id)
+                .only("image_hash", "video", "main_file", "thumbnail")
+                .get(image_hash=image_hash)
+            )
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
 
@@ -1198,7 +1211,7 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if photo.albumuser_set.filter(self._public_album_active_q()).exists():
+        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
             return self._generate_response(photo, path, fname, False, use_proxy)
 
         if not token_valid:
@@ -1216,7 +1229,7 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if photo.albumuser_set.filter(self._public_album_active_q()).exists():
+        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
             return self._generate_response_original(photo, use_proxy, False)
 
         if not token_valid:
@@ -1292,7 +1305,11 @@ class ZipListPhotosView_V2(APIView):
             if isinstance(excluded_hashes, str):
                 excluded_hashes = [excluded_hashes]
 
-            photos = build_photo_queryset(self.request.user, query_params)
+            # build_photo_queryset drops the owner filter for a public query,
+            # so re-scope before handing originals to the zip job.
+            photos = build_photo_queryset(self.request.user, query_params).filter(
+                owner=self.request.user
+            )
             if excluded_hashes:
                 photos = photos.exclude(image_hash__in=excluded_hashes)
         else:

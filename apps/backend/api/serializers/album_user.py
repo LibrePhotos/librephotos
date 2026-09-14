@@ -92,10 +92,25 @@ class AlbumUserSerializer(serializers.ModelSerializer):
         }
 
 
+class OwnedPhotoField(serializers.PrimaryKeyRelatedField):
+    """A photo id that must belong to the requesting user.
+
+    Resolving against ``Photo.objects.all()`` let any authenticated user place
+    another user's private photos in an album they own, and album membership
+    is what the media views trust when a share is enabled
+    (GHSA-phvg-g65q-rhq3). A foreign id is rejected exactly like an unknown one.
+    """
+
+    def get_queryset(self):
+        user = getattr(self.context.get("request"), "user", None)
+        if user is None or not user.is_authenticated:
+            return Photo.objects.none()
+        return Photo.objects.filter(owner=user)
+
+
 class AlbumUserEditSerializer(serializers.ModelSerializer):
-    photos = serializers.PrimaryKeyRelatedField(
-        many=True, read_only=False, queryset=Photo.objects.all()
-    )
+    photos = OwnedPhotoField(many=True, read_only=False)
+    cover_photo = OwnedPhotoField(required=False, allow_null=True)
     removedPhotos = serializers.ListField(
         child=serializers.CharField(max_length=100, default=""),
         write_only=True,
@@ -134,9 +149,11 @@ class AlbumUserEditSerializer(serializers.ModelSerializer):
         """Resolve the photos to add: the explicit list, or the select-all query."""
         if validated_data.get("select_all"):
             request = self.context.get("request")
+            # build_photo_queryset drops the owner filter for a public query;
+            # an album may only ever hold its owner's photos.
             photos = build_photo_queryset(
                 request.user, validated_data.get("query") or {}
-            )
+            ).filter(owner=request.user)
             excluded_hashes = validated_data.get("excluded_hashes") or []
             if excluded_hashes:
                 photos = photos.exclude(image_hash__in=excluded_hashes)
