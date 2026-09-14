@@ -86,6 +86,9 @@ export type LightboxControlsProps = {
   hasOcrText: boolean;
   showOcrText: boolean;
   toggleOcrText: () => void;
+  /** Copy the photo to the clipboard; absent when the page has no image clipboard or the item is a video. */
+  onCopyToClipboard?: () => void;
+  isCopyingToClipboard?: boolean;
 };
 
 export type ThumbnailNavigationProps = {

@@ -11,9 +11,11 @@ import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceM
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useRotatePhotosMutation } from "../../api_client/photos/hooks/useRotatePhotosMutation";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { ImagePreloader } from "./ImagePreloader";
 import {
+  COPY_KEY,
   NEXT_KEY,
   PLAY_PAUSE_KEY,
   PREVIOUS_KEY,
@@ -124,6 +126,14 @@ export function ContentViewer({
   }, [mainSrcHash]);
 
   const rotatePhotos = useRotatePhotosMutation();
+
+  // Copy to clipboard: a toolbar button and Ctrl/Cmd+C, for still photos on
+  // pages that have an image clipboard at all (secure contexts only).
+  const copyPhoto = useCopyPhotoToClipboard();
+  const canCopyPhoto = copyPhoto.supported && type === "photo";
+  const handleCopyPhoto = useCallback(() => {
+    if (canCopyPhoto) copyPhoto.copy({ imageHash: mainSrcHash, cacheKey: imageCacheKey });
+  }, [canCopyPhoto, copyPhoto.copy, mainSrcHash, imageCacheKey]);
 
   // Reset playing state when slide changes
   useEffect(() => {
@@ -336,6 +346,17 @@ export function ContentViewer({
     ["g", toggleFullscreen], // Toggle fullscreen mode
     ["s", toggleSlideshow], // Toggle slideshow mode
     ["t", () => hasOcrText && toggleOcrText()], // Toggle live text selection
+    [
+      COPY_KEY,
+      (event: KeyboardEvent) => {
+        // Selected text (live text, the sidebar) keeps the browser's own copy,
+        // which is why preventDefault is deferred until the photo is taken.
+        if (!canCopyPhoto || window.getSelection()?.toString()) return;
+        event.preventDefault();
+        handleCopyPhoto();
+      },
+      { preventDefault: false },
+    ],
   ]);
 
   const bind = useGesture({
@@ -422,6 +443,8 @@ export function ContentViewer({
               hasOcrText={hasOcrText}
               showOcrText={showOcrText}
               toggleOcrText={toggleOcrText}
+              onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
+              isCopyingToClipboard={copyPhoto.isCopying}
             />
 
             {/* Main photo/video with swipe navigation */}
