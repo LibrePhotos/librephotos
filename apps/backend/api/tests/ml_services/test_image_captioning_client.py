@@ -11,7 +11,12 @@ import requests
 from django.test import TestCase
 
 from api.http_timeouts import CAPTION, HEALTH_CHECK
-from api.image_captioning import CAPTIONING_URL, generate_caption, unload_model
+from api.image_captioning import (
+    CAPTIONING_URL,
+    CaptionError,
+    generate_caption,
+    unload_model,
+)
 
 
 def _response(status_code=201, json_data=None, text=""):
@@ -62,11 +67,50 @@ class GenerateCaptionTest(TestCase):
             generate_caption("/data/img.jpg")
 
     @patch("api.image_captioning.requests.post")
-    def test_missing_caption_key_raises_keyerror(self, mock_post):
-        mock_post.return_value = _response(json_data={"error": "boom"})
+    def test_sidecar_error_reply_raises_caption_error_with_its_message(self, mock_post):
+        """The sidecar's reason must reach the backend log, not a KeyError."""
+        mock_post.return_value = _response(
+            status_code=500,
+            json_data={"error": "NoSuchFile: vision_encoder_q4f16.onnx"},
+        )
 
-        with self.assertRaises(KeyError):
+        with self.assertRaises(CaptionError) as raised:
             generate_caption("/data/img.jpg")
+
+        self.assertEqual(
+            str(raised.exception),
+            "captioning sidecar returned HTTP 500: "
+            "NoSuchFile: vision_encoder_q4f16.onnx",
+        )
+
+    @patch("api.image_captioning.requests.post")
+    def test_success_status_without_caption_key_raises_caption_error(self, mock_post):
+        mock_post.return_value = _response(json_data={"something": "else"})
+
+        with self.assertRaises(CaptionError) as raised:
+            generate_caption("/data/img.jpg")
+
+        self.assertIn("HTTP 201", str(raised.exception))
+        self.assertIn("no caption in reply", str(raised.exception))
+
+    @patch("api.image_captioning.requests.post")
+    def test_non_json_error_reply_uses_the_body_text(self, mock_post):
+        """A 400 from a malformed request comes back as an empty body."""
+        response = _response(status_code=400, text="")
+        response.json.side_effect = ValueError("no json")
+        mock_post.return_value = response
+
+        with self.assertRaises(CaptionError) as raised:
+            generate_caption("/data/img.jpg")
+
+        self.assertEqual(
+            str(raised.exception),
+            "captioning sidecar returned HTTP 400: no caption in reply",
+        )
+
+    def test_caption_error_is_a_runtime_error(self):
+        """Callers that catch ``Exception`` keep working; nothing narrower breaks."""
+        self.assertTrue(issubclass(CaptionError, RuntimeError))
 
 
 class UnloadModelTest(TestCase):
