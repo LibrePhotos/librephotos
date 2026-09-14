@@ -39,11 +39,14 @@ def _io(name, shape):
 
 
 class FakeVision:
+    def __init__(self):
+        self.shapes = []
+
     def get_inputs(self):
-        return [_io("pixel_values", ["batch_size", 3, 768, 768])]
+        return [_io("pixel_values", ["batch_size", 3, "height", "width"])]
 
     def run(self, _o, feed):
-        assert feed["pixel_values"].shape == (1, 3, 768, 768)
+        self.shapes.append(feed["pixel_values"].shape)
         return [np.zeros((1, 5, HIDDEN), np.float32)]
 
 
@@ -135,6 +138,7 @@ class Florence2CaptionerTest(SimpleTestCase):
         self.addCleanup(self.tmp.cleanup)
         self.decoder = FakeDecoder([11, 12, 13])
         self.embed = FakeEmbed()
+        self.vision = FakeVision()
         self.tokenizer = FakeTokenizer()
 
         def make_session(path, providers=None):
@@ -142,7 +146,7 @@ class Florence2CaptionerTest(SimpleTestCase):
             self.assertTrue(path.startswith(self.tmp.name))
             name = os.path.basename(path)
             return {
-                "vision_encoder.onnx": FakeVision(),
+                "vision_encoder.onnx": self.vision,
                 "embed_tokens.onnx": self.embed,
                 "encoder_model.onnx": FakeEncoder(),
                 "decoder_model_merged.onnx": self.decoder,
@@ -161,8 +165,12 @@ class Florence2CaptionerTest(SimpleTestCase):
             p.start()
             self.addCleanup(p.stop)
 
-    def _caption(self, **kwargs):
-        captioner = Florence2Captioner(self.tmp.name)
+    def _caption(self, image_size=None, **kwargs):
+        captioner = (
+            Florence2Captioner(self.tmp.name)
+            if image_size is None
+            else Florence2Captioner(self.tmp.name, image_size)
+        )
         with patch.object(
             florence2_module.Image, "open", return_value=Image.new("RGB", (640, 480))
         ):
@@ -216,6 +224,14 @@ class Florence2CaptionerTest(SimpleTestCase):
         # First call embeds the prompt, then one call per decode step.
         self.assertEqual(self.embed.calls[0], [[0, 7, 8, 9, 2]])
         self.assertEqual(self.embed.calls[1:], [[[2]], [[11]], [[12]], [[13]]])
+
+    def test_default_input_is_768_and_image_size_is_honoured(self):
+        self._caption()
+        self.assertEqual(self.vision.shapes, [(1, 3, 768, 768)])
+
+        self.vision.shapes.clear()
+        self._caption(image_size=florence2_module.LIGHT_IMAGE_SIZE)
+        self.assertEqual(self.vision.shapes, [(1, 3, 384, 384)])
 
     def test_unload_forgets_the_sessions(self):
         captioner, _ = self._caption()

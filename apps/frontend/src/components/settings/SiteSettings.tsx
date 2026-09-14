@@ -24,13 +24,13 @@ const MAP_TILE_PROVIDERS = [
 ];
 
 const CAPTIONING_MODELS = [
-  { value: "florence2_base_int8", label: "Florence-2 Base (int8, lighter)" },
+  { value: "florence2_base_int8", label: "Florence-2 Base (light, default)" },
   { value: "florence2_base", label: "Florence-2 Base (most accurate)" },
   { value: "moondream", label: "Moondream Visual LLM" },
   { value: "none", label: "None" },
 ];
 
-// The fp32 Florence-2 needs about 2 GB of RAM while it captions; the int8 one about half.
+// The fp32 Florence-2 needs about 2 GB of RAM while it captions; the light one about 0.6 GB.
 const RAM_HEAVY_CAPTIONING_MODEL = "florence2_base";
 const DEFAULT_CAPTIONING_MODEL = "florence2_base_int8";
 const DEFAULT_TAGGING_MODEL = "mobileclip_s2";

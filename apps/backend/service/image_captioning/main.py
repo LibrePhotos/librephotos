@@ -4,12 +4,17 @@ import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
-from florence2 import Florence2Captioner, model_dir_for
+from florence2 import IMAGE_SIZE, LIGHT_IMAGE_SIZE, Florence2Captioner, model_dir_for
 
 app = Flask(__name__)
 
 DEFAULT_MODEL = "florence2_base_int8"
-CAPTIONING_MODELS = ("florence2_base", "florence2_base_int8")
+# Model name -> input size. The int8 variant is the light option and also
+# runs at the half-size input; the fp32 one is "most accurate" at full size.
+CAPTIONING_MODELS = {
+    "florence2_base_int8": LIGHT_IMAGE_SIZE,
+    "florence2_base": IMAGE_SIZE,
+}
 
 captioner = None
 captioner_model = None
@@ -26,7 +31,7 @@ def get_captioner(model):
     if captioner is None or captioner_model != model:
         if captioner is not None:
             captioner.unload()
-        captioner = Florence2Captioner(model_dir_for(model))
+        captioner = Florence2Captioner(model_dir_for(model), CAPTIONING_MODELS[model])
         captioner_model = model
     return captioner
 

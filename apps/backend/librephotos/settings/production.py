@@ -231,7 +231,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("none", "None"),
-                ("florence2_base_int8", "Florence-2 Base (int8, lighter)"),
+                ("florence2_base_int8", "Florence-2 Base (light, default)"),
                 ("florence2_base", "Florence-2 Base (most accurate)"),
                 ("moondream", "Moondream Visual LLM"),
             ),

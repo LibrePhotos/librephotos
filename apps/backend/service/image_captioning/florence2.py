@@ -14,6 +14,12 @@ carried along unchanged afterwards.
 
 Decoding is greedy. Beam search buys little for one-sentence captions and
 costs its width in decoder passes.
+
+The input size is the other knob. Florence-2 was trained at 768 x 768, and
+its vision encoder is three quarters of the cost of a caption; at 384 x 384
+(exactly half, so the learned position grid still lines up) it writes full
+sentences at a quarter of the encoder work and a third of the peak RAM. Other
+sizes degrade to one- or two-word fragments, so only these two are offered.
 """
 
 import os
@@ -29,6 +35,7 @@ MODELS_ROOT = os.path.join("/", "protected_media", "data_models")
 CAPTION_PROMPT = "What does the image describe?"
 
 IMAGE_SIZE = 768
+LIGHT_IMAGE_SIZE = 384
 IMAGE_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 IMAGE_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
@@ -69,8 +76,9 @@ def _cache_layout(decoder_session):
 
 
 class Florence2Captioner:
-    def __init__(self, model_dir):
+    def __init__(self, model_dir, image_size=IMAGE_SIZE):
         self.model_dir = model_dir
+        self.image_size = image_size
         self.sessions = None
         self.tokenizer = None
         self.is_loaded = False
@@ -108,7 +116,7 @@ class Florence2Captioner:
 
     def _encode(self, image_path):
         """Encoder hidden states and their attention mask for one photo."""
-        pixel_values = prepare_image(Image.open(image_path))
+        pixel_values = prepare_image(Image.open(image_path), self.image_size)
         image_features = self.sessions["vision"].run(
             None, {"pixel_values": pixel_values}
         )[0]

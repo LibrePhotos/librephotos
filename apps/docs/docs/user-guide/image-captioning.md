@@ -16,21 +16,21 @@ Click on your avatar in the top right and go to `Admin Area`. There is a setting
 
 Moondream is the exception: its files are only downloaded when `Moondream Visual LLM` is also selected as the `LLM Model`. If you set `Captioning Model` to Moondream while `LLM Model` is left at `None`, the model files are never fetched and captioning fails. To use Moondream, set **both** `Captioning Model` and `LLM Model` to `Moondream Visual LLM`.
 
-Selecting `Florence-2 Base (most accurate)` opens a confirmation dialog titled *Large RAM Size possible*, warning that the model needs about 2 GB of additional RAM while it captions. Click **Save** to apply it; clicking **Cancel** — or closing the dialog — resets the captioning model back to `Florence-2 Base (int8, lighter)`.
+Selecting `Florence-2 Base (most accurate)` opens a confirmation dialog titled *Large RAM Size possible*, warning that the model needs about 2 GB of additional RAM while it captions. Click **Save** to apply it; clicking **Cancel** — or closing the dialog — resets the captioning model back to `Florence-2 Base (light, default)`.
 
 ## What is the difference between the models?
 
-There are three captioning models to choose from — `Florence-2 Base (int8, lighter)`, `Florence-2 Base (most accurate)`, and `Moondream Visual LLM` — plus a `None` option that turns captioning off. When `None` is selected, no captioning model is downloaded.
+There are three captioning models to choose from — `Florence-2 Base (light, default)`, `Florence-2 Base (most accurate)`, and `Moondream Visual LLM` — plus a `None` option that turns captioning off. When `None` is selected, no captioning model is downloaded.
 
-All of them run on ONNX Runtime or llama.cpp; LibrePhotos no longer ships PyTorch. The earlier `im2txt` and `BLIP` models were retired with it, and an install that had one of them selected is moved to `Florence-2 Base (int8, lighter)` automatically.
+All of them run on ONNX Runtime or llama.cpp; LibrePhotos no longer ships PyTorch. The earlier `im2txt` and `BLIP` models were retired with it, and an install that had one of them selected is moved to `Florence-2 Base (light, default)` automatically.
 
-### Florence-2 Base (int8, lighter)
+### Florence-2 Base (light, default)
 
-Microsoft's [Florence-2](https://huggingface.co/microsoft/Florence-2-base-ft) writes one-sentence captions such as "A tall red and yellow pagoda tower next to a body of water." This is the default. Its weights are quantised to int8, which makes the download about 280 MB and keeps the model under about 1.5 GB of RAM while it captions. It is the faster of the two variants on recent CPUs (Intel Ice Lake, AMD Zen 4 and newer, and ARM), and somewhat slower than the fp32 variant on older ones.
+Microsoft's [Florence-2](https://huggingface.co/microsoft/Florence-2-base-ft) writes one-sentence captions such as "A pagoda type building with a lake in the background." This is the default. It uses int8 weights (a 280 MB download) and looks at the photo at 384 x 384 pixels, half the model's native size, which keeps it at about 0.6 GB of RAM while it captions, the same footprint the old im2txt model had, at a few seconds per photo on an older desktop CPU and under a second on a recent one.
 
 ### Florence-2 Base (most accurate)
 
-The same model with full-precision weights: about 1.1 GB to download and about 2 GB of extra RAM while it captions, for the best captions Florence-2 can give. On a host with 4 GB of RAM prefer the int8 variant.
+The same model with full-precision weights at its native 768 x 768 input: about 1.1 GB to download and about 2 GB of extra RAM while it captions, for the best captions Florence-2 can give, for example "A tall red and yellow pagoda tower next to a body of water." for the same photo. Roughly three times slower than the light option. On a host with 4 GB of RAM stay with the default.
 
 ### Moondream Visual LLM
 

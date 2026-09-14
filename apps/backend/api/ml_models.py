@@ -103,7 +103,8 @@ ML_MODELS = [
     },
     {
         # Microsoft Florence-2 base (fine-tuned), ONNX export by onnx-community,
-        # fp32: the most accurate captioner, about 2.2 GB of RAM while it runs.
+        # fp32 at the full 768 px input: the most accurate captioner, about
+        # 2.2 GB of RAM while it runs.
         "id": 6,
         "name": "florence2_base",
         "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder.onnx",
@@ -135,9 +136,9 @@ ML_MODELS = [
         ],
     },
     {
-        # The same Florence-2 base with int8 weights: a quarter of the download
-        # and about 1.4 GB of RAM. Faster than fp32 on CPUs with VNNI (Ice Lake,
-        # Zen 4 and newer), slower on older ones.
+        # The same Florence-2 base with int8 weights, run at a 384 px input by
+        # the captioning service: a quarter of the download and about 0.6 GB of
+        # RAM, the envelope im2txt used to have. The default.
         "id": 17,
         "name": "florence2_base_int8",
         "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder_int8.onnx",
