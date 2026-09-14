@@ -51,7 +51,31 @@ def _has_usable_coordinates(lat, lon):
     return not (float(lat) == 0.0 and float(lon) == 0.0)
 
 
-class VisiblePhotoManager(models.Manager):
+class PhotoQuerySet(models.QuerySet):
+    """The two per-user scopes every view and serializer goes through.
+
+    ``owned_by`` is the write scope and ``visible_to`` the read scope. Spell
+    ``owner=request.user`` here, once, rather than at each call site.
+    """
+
+    def owned_by(self, user):
+        """Photos ``user`` may mutate: their own, and nothing else."""
+        if user is None or not getattr(user, "is_authenticated", False):
+            return self.none()
+        return self.filter(owner=user)
+
+    def visible_to(self, user):
+        """Photos ``user`` may read: their own, shared directly to them, public.
+
+        Album shares are resolved by the media views, not here.
+        """
+        q = Q(public=True)
+        if user is not None and getattr(user, "is_authenticated", False):
+            q |= Q(owner=user) | Q(shared_to=user)
+        return self.filter(q)
+
+
+class VisiblePhotoManager(models.Manager.from_queryset(PhotoQuerySet)):
     def get_queryset(self):
         return (
             super()
@@ -159,7 +183,7 @@ class Photo(models.Model):
     # endpoint and is applied when regenerating thumbnails.
     local_orientation = models.IntegerField(default=1)
 
-    objects = models.Manager()
+    objects = PhotoQuerySet.as_manager()
     visible = VisiblePhotoManager()
 
     _loaded_values = {}
@@ -548,6 +572,7 @@ class Photo(models.Model):
         face.image.save(image_path, ContentFile(face_io.getvalue()))
         face_io.close()
         face.save()
+        return face
 
     def _retry_face_extraction(self, second_try):
         # When using multiple processes, then we can save at the same time, which leads to this error

@@ -95,6 +95,25 @@ class ZipListPhotosV2SelectAllTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self._queued_hashes(), {p.image_hash for p in mine})
 
+    def test_select_all_public_query_only_archives_own_photos(self):
+        # GHSA-phvg-g65q-rhq3: build_photo_queryset drops the owner filter for
+        # a public query, so the download must re-scope to the requester.
+        mine = create_test_photos(
+            number_of_photos=2, owner=self.user, size=100, public=True
+        )
+        create_test_photos(
+            number_of_photos=3, owner=self.other_user, size=100, public=True
+        )
+
+        response = self.client.post(
+            "/api/photos/download",
+            data={"select_all": True, "query": {"public": True}},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._queued_hashes(), {p.image_hash for p in mine})
+
     def test_select_all_respects_excluded_hashes(self):
         photos = create_test_photos(number_of_photos=4, owner=self.user, size=100)
         excluded = [photos[0].image_hash, photos[1].image_hash]

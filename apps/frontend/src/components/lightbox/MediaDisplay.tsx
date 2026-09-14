@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { serverAddress } from "../../api_client/apiClient";
+import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
 import type { PhotoOcrBlock } from "../../api_client/photos/types";
+import { FaceDrawLayer } from "./FaceDrawLayer";
 import { FaceOverlay } from "./FaceOverlay";
 import type { FaceLocationType } from "./lightbox.types";
 import { OcrTextOverlay } from "./OcrTextOverlay";
@@ -27,6 +29,10 @@ export type MediaDisplayProps = {
   onImageLoad?: () => void;
   ocrBlocks?: PhotoOcrBlock[];
   showOcrText?: boolean;
+  /** Marking a face the detector missed: the photo becomes a drawing surface. */
+  drawingFace?: boolean;
+  onFaceDrawn?: (box: NormalizedFaceBox) => void;
+  onCancelDrawFace?: () => void;
 };
 
 export function MediaDisplay({
@@ -50,6 +56,9 @@ export function MediaDisplay({
   onImageLoad,
   ocrBlocks,
   showOcrText = false,
+  drawingFace = false,
+  onFaceDrawn,
+  onCancelDrawFace,
 }: MediaDisplayProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   // Natural pixel size of the loaded image; drives the OCR overlay's aspect
@@ -176,7 +185,22 @@ export function MediaDisplay({
             <OcrTextOverlay blocks={ocrBlocks} aspectRatio={naturalSize.height / naturalSize.width} />
           </div>
         )}
-        {isMainContent && faceLocation && <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />}
+        {isMainContent && faceLocation && !drawingFace && (
+          <FaceOverlay faceLocation={faceLocation} imageDimensions={imageDimensions} />
+        )}
+        {isMainContent && drawingFace && onFaceDrawn && onCancelDrawFace && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              transition: mainTransition,
+              transform: mainTransform,
+              willChange: "transform",
+            }}
+          >
+            <FaceDrawLayer onCommit={onFaceDrawn} onCancel={onCancelDrawFace} />
+          </div>
+        )}
       </div>
     </div>
   );

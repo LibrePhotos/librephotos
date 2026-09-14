@@ -37,9 +37,7 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
     def get_queryset(self):
         ThroughModel = Photo.shared_to.through
 
-        user_photos = Photo.visible.filter(Q(owner=self.request.user.id)).only(
-            "image_hash"
-        )
+        user_photos = Photo.visible.owned_by(self.request.user).only("image_hash")
         qs = (
             ThroughModel.objects.filter(photo_id__in=user_photos)
             .prefetch_related(

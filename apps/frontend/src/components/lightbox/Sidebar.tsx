@@ -34,6 +34,11 @@ interface SidebarProps {
   closeSidepanel: () => void;
   setFaceLocation: (face: { face_id: number; face_url: string }) => void;
   onPhotoSelect?: (photoId: string) => void;
+  /** Marking a face the detector missed happens on the photo, which the viewer owns. */
+  onAddFaceRequest?: () => void;
+  onCancelAddFace?: () => void;
+  isDrawingFace?: boolean;
+  addFaceBlockedReason?: string;
 }
 
 interface SelectedFace {
@@ -73,6 +78,10 @@ export function Sidebar({
   setFaceLocation,
   id,
   onPhotoSelect,
+  onAddFaceRequest,
+  onCancelAddFace,
+  isDrawingFace,
+  addFaceBlockedReason,
 }: SidebarProps) {
   const [personEditOpen, setPersonEditOpen] = useState(false);
   const [selectedFaces, setSelectedFaces] = useState<SelectedFace[]>([]);
@@ -261,6 +270,10 @@ export function Sidebar({
           setFaceLocation={setFaceLocation}
           onPersonEdit={handlePersonEdit}
           notThisPerson={notThisPerson}
+          onAddFaceRequest={onAddFaceRequest}
+          onCancelAddFace={onCancelAddFace}
+          isDrawingFace={isDrawingFace}
+          addFaceBlockedReason={addFaceBlockedReason}
         />
         <Description photoDetail={photoDetail} isPublic={isPublic} />
         {/* Tags and keywords stay owner-only: public shares have no flag for them. */}

@@ -380,16 +380,17 @@ class PhotoStackStatsView(APIView):
 
         # Count photos in stacks (ManyToMany - photos with at least one valid organizational stack)
         photos_in_stacks = (
-            Photo.objects.filter(
-                owner=request.user, stacks__stack_type__in=all_stack_types
-            )
+            Photo.objects.owned_by(request.user)
+            .filter(stacks__stack_type__in=all_stack_types)
             .distinct()
             .count()
         )
 
-        total_photos = Photo.objects.filter(
-            owner=request.user, hidden=False, in_trashcan=False
-        ).count()
+        total_photos = (
+            Photo.objects.owned_by(request.user)
+            .filter(hidden=False, in_trashcan=False)
+            .count()
+        )
 
         return Response(
             {
@@ -419,7 +420,9 @@ class CreateManualStackView(APIView):
             )
 
         # Verify all photos exist and belong to user
-        photos = Photo.objects.filter(owner=request.user, image_hash__in=unique_hashes)
+        photos = Photo.objects.owned_by(request.user).filter(
+            image_hash__in=unique_hashes
+        )
 
         if photos.count() != len(unique_hashes):
             return Response(
@@ -486,7 +489,9 @@ class AddToStackView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        photos = Photo.objects.filter(owner=request.user, image_hash__in=photo_hashes)
+        photos = Photo.objects.owned_by(request.user).filter(
+            image_hash__in=photo_hashes
+        )
 
         added_count = 0
         for photo in photos:
@@ -524,7 +529,9 @@ class RemoveFromStackView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        photos = Photo.objects.filter(owner=request.user, image_hash__in=photo_hashes)
+        photos = Photo.objects.owned_by(request.user).filter(
+            image_hash__in=photo_hashes
+        )
 
         removed_count = 0
         for photo in photos:
@@ -579,7 +586,9 @@ class MergeStacksView(APIView):
         unique_hashes = list(dict.fromkeys(photo_hashes))  # Preserves order
 
         # Verify all photos exist and belong to user
-        photos = Photo.objects.filter(owner=request.user, image_hash__in=unique_hashes)
+        photos = Photo.objects.owned_by(request.user).filter(
+            image_hash__in=unique_hashes
+        )
 
         if photos.count() != len(unique_hashes):
             return Response(

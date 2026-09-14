@@ -28,6 +28,14 @@ type Props = Readonly<{
   onRequestClose: () => void;
   resetGroups?: () => void;
   selectedFaces: any[];
+  /**
+   * Takes over what picking a person does. The dialog is also used for a face
+   * that does not exist yet -- a box the user just drew -- where there is no
+   * face id to label and the caller creates the face instead.
+   */
+  onPersonChosen?: (personName: string) => void;
+  /** Replaces the "n selected" line when the dialog is not acting on a selection. */
+  prompt?: string;
 }>;
 
 type PersonRowProps = Readonly<{
@@ -69,7 +77,14 @@ function PersonRow({ person, onSelect }: PersonRowProps) {
   );
 }
 
-export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGroups = () => {} }: Props) {
+export function ModalPersonEdit({
+  isOpen,
+  onRequestClose,
+  selectedFaces,
+  resetGroups = () => {},
+  onPersonChosen,
+  prompt,
+}: Props) {
   const [newPersonName, setNewPersonName] = useState("");
   const matches = useMediaQuery("(min-width: 700px)");
   const { data: people } = useFetchPeopleAlbumsQuery();
@@ -94,10 +109,18 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
     return people?.map(person => person.name.toLowerCase().trim()).includes(name.toLowerCase().trim());
   }
 
-  function labelSelectedFacesAs(person: Person) {
-    setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: person.name });
+  function applyPersonName(personName: string) {
+    if (onPersonChosen) {
+      onPersonChosen(personName);
+    } else {
+      setFacesPersonLabel({ faceIds: selectedFaceIDs, personName });
+    }
     onRequestClose();
     setNewPersonName("");
+  }
+
+  function labelSelectedFacesAs(person: Person) {
+    applyPersonName(person.name);
   }
 
   return (
@@ -112,17 +135,20 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
     >
       <Stack>
         <Text c="dimmed">
-          {t("personedit.numberselected", {
-            number: selectedFaces.length,
-          })}
+          {prompt ??
+            t("personedit.numberselected", {
+              number: selectedFaces.length,
+            })}
         </Text>
-        <ScrollArea style={{ height: 50 }}>
-          <Group>
-            {selectedImageIDs.map(image => (
-              <Avatar key={`selected_image${image}`} size={40} src={`${serverAddress}${image}`} radius="xl" />
-            ))}
-          </Group>
-        </ScrollArea>
+        {selectedImageIDs.length > 0 && (
+          <ScrollArea style={{ height: 50 }}>
+            <Group>
+              {selectedImageIDs.map(image => (
+                <Avatar key={`selected_image${image}`} size={40} src={`${serverAddress}${image}`} radius="xl" />
+              ))}
+            </Group>
+          </ScrollArea>
+        )}
 
         <Divider />
         <Title order={5}>{t("personedit.newperson")}</Title>
@@ -139,12 +165,10 @@ export function ModalPersonEdit({ isOpen, onRequestClose, selectedFaces, resetGr
           />
           <Button
             onClick={() => {
-              setFacesPersonLabel({ faceIds: selectedFaceIDs, personName: newPersonName });
+              applyPersonName(newPersonName.trim());
               if (resetGroups) {
                 resetGroups();
               }
-              onRequestClose();
-              setNewPersonName("");
             }}
             disabled={personExist(newPersonName) || newPersonName.trim().length === 0}
             type="submit"

@@ -241,8 +241,13 @@ def get_count_stats(user):
     num_labeled_faces = Face.objects.filter(
         Q(person__isnull=False) & Q(photo__owner=user) & Q(photo__hidden=False)
     ).count()
+    # The faces the user has not labelled -- the complement of
+    # num_labeled_faces above, and what the face dashboard shows under its
+    # Inferred tab, where every branch pairs its cluster or classification
+    # guess with person=None. This read Q(person=True), which Django resolves
+    # as a primary key: it counted the faces of person number 1.
     num_inferred_faces = Face.objects.filter(
-        Q(person=True) & Q(photo__owner=user) & Q(photo__hidden=False)
+        Q(person__isnull=True) & Q(photo__owner=user) & Q(photo__hidden=False)
     ).count()
     num_people = (
         Person.objects.filter(

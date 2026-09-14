@@ -33,6 +33,22 @@ A face the clustering and classification have not matched to anyone is shown as 
 
 A row labelled **Unknown 001** (or a similar number) is a face that clustering grouped together with others like it, without anybody naming the group. That label is the group's name, not a person's, so there is nothing to confirm and no green check-person button — name such a row the same way you name a **Who is this?** one.
 
+## Add a face the scan missed
+
+The detector does not find every face. Someone turned away from the camera, a child, a face behind a hat or sunglasses, a face too small or too blurred — none of those get a face record, so there is nothing to label and the person never appears on the photo.
+
+Open the photo, then click the green person-plus button at the top of the **People** section of the sidebar. The photo dims and the pointer becomes a crosshair: drag a box around the face, and the **Label faces** dialog opens so you can pick an existing person or type a new name. Press **Escape**, or use the **Cancel** button in the sidebar, to leave without adding anything.
+
+A few things worth knowing:
+
+- **The face you add counts as your own labelling.** It is stored exactly like a face you named on the dashboard, and classification trains on it, so adding a few faces the detector missed also helps it recognise that person elsewhere. It never starts a cluster of its own.
+- **It is encoded straight away** by the face recognition service. If that service is unavailable, the face is still saved with its name — the next **Train faces** run gives it an embedding.
+- **You cannot draw a second face on top of one that already exists.** If the box you drag lands on a face that is already recorded, LibrePhotos says so and asks you to label that face instead. A face you _deleted_ does not block you, though: drawing a box there is you overruling the deletion.
+- **Zoom and pan are fine, rotation is not.** You can zoom in to draw a box around a small face. While the photo is turned, the button is disabled — the box could not be lined up with the photo reliably — so turn it back upright first.
+- **The photo needs a thumbnail.** Boxes are measured against the photo's big thumbnail, so a photo that has not been fully processed yet cannot take a face.
+
+If **Settings → Face Options → Write face tags to image files** is enabled, a face you add by hand is written into the photo (or its sidecar) as an XMP region just like any other, so the work is portable to other photo managers.
+
 ## Train faces
 
 If you click on the blue button (the barbell icon) in the face dashboard, or the **Train** button on the [Library page](./library.md) (avatar menu → **Library**, under **Faces & People**), the system will try to cluster unknown faces and will try to either match them to already known faces or create a new unknown person.

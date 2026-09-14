@@ -913,9 +913,8 @@ class TagSelectAllTest(TestCase):
         self.assertEqual(list(self.tag.photos.all()), [self.photos[0]])
 
     def test_select_all_cannot_reach_another_users_photos(self):
-        # build_photo_queryset drops the owner filter for a public photoset,
-        # so without the view's own owner guard this would hang the tag on
-        # someone else's photo (the shape of issue #1982).
+        # A public photoset must never let the tag reach someone else's
+        # photo (the shape of issue #1982).
         theirs = create_test_photo(owner=self.other_user, public=True)
         mine = create_test_photo(owner=self.user, public=True)
 

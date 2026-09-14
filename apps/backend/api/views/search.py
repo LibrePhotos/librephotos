@@ -1,4 +1,4 @@
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.response import Response
 
@@ -23,9 +23,7 @@ class SearchListViewSet(ListViewSet):
     ]
 
     def get_queryset(self):
-        return Photo.visible.filter(Q(owner=self.request.user)).order_by(
-            "-exif_timestamp"
-        )
+        return Photo.visible.owned_by(self.request.user).order_by("-exif_timestamp")
 
     @extend_schema(
         parameters=[
@@ -43,7 +41,7 @@ class SearchListViewSet(ListViewSet):
     def list(self, request):
         if request.user.semantic_search_topk == 0:
             queryset = self.filter_queryset(
-                Photo.visible.filter(Q(owner=self.request.user))
+                Photo.visible.owned_by(self.request.user)
                 .select_related("thumbnail", "search_instance", "main_file")
                 .prefetch_related(
                     Prefetch(
@@ -82,7 +80,7 @@ class SearchListViewSet(ListViewSet):
             return Response({"results": serializer.data})
         else:
             queryset = self.filter_queryset(
-                Photo.visible.filter(Q(owner=self.request.user))
+                Photo.visible.owned_by(self.request.user)
                 .select_related("thumbnail", "search_instance", "main_file")
                 .prefetch_related(
                     Prefetch(

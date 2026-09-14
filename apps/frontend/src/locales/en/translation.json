@@ -533,6 +533,14 @@
       "tagsSaveFailed": "The tags could not be saved. Please try again.",
       "save": "Save"
     },
+    "addface": {
+      "tooltip": "Add a face the scan missed",
+      "drawtitle": "Drag a box around the face",
+      "drawhint": "Drag across the photo to draw a box around the face, then say who it is. Press Escape to stop.",
+      "whoisit": "Who is in the box you drew?",
+      "nofaces": "No faces were found in this photo. If there is one, you can add it yourself.",
+      "rotated": "Turn the photo back upright to add a face"
+    },
     "controls": {
       "fullscreen": "Fullscreen (G)",
       "exitfullscreen": "Exit Fullscreen (G)",
