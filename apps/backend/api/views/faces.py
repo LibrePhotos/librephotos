@@ -284,8 +284,12 @@ class SetFacePersonLabel(APIView):
         # needs the caption, metadata and file rows. Fetching them lazily costs
         # several queries per face, which is what makes tagging a large
         # selection of faces run into the gateway timeout.
+        # Only the requester's own faces are loaded: a foreign face id must
+        # not come back serialized in ``not_updated`` (it carried the photo id
+        # and the face crop path of someone else's photo).
         faces = (
-            Face.objects.select_related(
+            Face.objects.filter(photo__owner=request.user)
+            .select_related(
                 "photo__owner",
                 "photo__main_file",
                 "photo__metadata",
@@ -306,17 +310,14 @@ class SetFacePersonLabel(APIView):
         relabeled_faces = []
         affected_person_ids = set()
         for face in faces.values():
-            if face.photo.owner == request.user:
-                if face.person_id is not None:
-                    affected_person_ids.add(face.person_id)
-                face.person = person
-                if not person:
-                    face.cluster_person = cluster_person
-                    face.classification_person = classification_person
-                relabeled_faces.append(face)
-                updated.append(FaceListSerializer(face).data)
-            else:
-                not_updated.append(FaceListSerializer(face).data)
+            if face.person_id is not None:
+                affected_person_ids.add(face.person_id)
+            face.person = person
+            if not person:
+                face.cluster_person = cluster_person
+                face.classification_person = classification_person
+            relabeled_faces.append(face)
+            updated.append(FaceListSerializer(face).data)
         Face.objects.bulk_update(
             relabeled_faces, ["person", "cluster_person", "classification_person"]
         )
@@ -405,17 +406,14 @@ class SetFacePersonLabel(APIView):
 class DeleteFaces(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        faces = Face.objects.in_bulk(data["face_ids"])
+        faces = Face.objects.filter(photo__owner=request.user).in_bulk(data["face_ids"])
 
         deleted = []
         not_deleted = []
         for face in faces.values():
-            if face.photo.owner == request.user:
-                deleted.append(face.image.url)
-                face.deleted = True
-                face.save()
-            else:
-                not_deleted.append(face.image.url)
+            deleted.append(face.image.url)
+            face.deleted = True
+            face.save()
 
         return Response(
             {

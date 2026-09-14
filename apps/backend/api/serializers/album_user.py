@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from api.models import AlbumUser, Photo
+from api.models import AlbumUser
+from api.serializers.fields import OwnedPhotoField
 from api.serializers.photos import GroupedPhotosSerializer
 from api.serializers.PhotosGroupedByDate import (
     filter_photos_by_media_type,
@@ -93,9 +94,8 @@ class AlbumUserSerializer(serializers.ModelSerializer):
 
 
 class AlbumUserEditSerializer(serializers.ModelSerializer):
-    photos = serializers.PrimaryKeyRelatedField(
-        many=True, read_only=False, queryset=Photo.objects.all()
-    )
+    photos = OwnedPhotoField(many=True, read_only=False)
+    cover_photo = OwnedPhotoField(required=False, allow_null=True)
     removedPhotos = serializers.ListField(
         child=serializers.CharField(max_length=100, default=""),
         write_only=True,

@@ -11,16 +11,19 @@ from api.models import Photo
 
 
 def build_photo_queryset(user, params: dict):
-    """Build a Photo queryset from filter parameters.
+    """The user's own photos matching a select_all ``query`` payload.
 
-    This function reuses the same filtering logic as AlbumDateListViewSet to ensure
-    consistency between what users see in the UI and what bulk operations affect.
+    This is the write scope behind every server-side "Select All" mutation
+    (trash, favorite, hide, share, tag, album, download), so it is always
+    bound to ``user``: no key in ``params`` can widen it to another user's
+    photos. Public browsing of other users' photos is a read concern and
+    lives in the timeline view, not here.
 
     Args:
         user: The authenticated user making the request
         params: Dictionary of filter parameters:
             - favorite: bool - Filter by favorite status (rating >= user.favorite_min_rating)
-            - public: bool - Filter by public photos only
+            - public: bool - Only the user's photos that are marked public
             - hidden: bool - Filter by hidden photos
             - in_trashcan: bool - Filter by trashed photos
             - video: bool - Filter by videos only
@@ -30,7 +33,6 @@ def build_photo_queryset(user, params: dict):
             - person: int - Filter by person ID (faces)
             - tag: int - Filter by tag ID
             - folder: str - Filter by folder path prefix
-            - username: str - Filter by owner username (for public photos)
             - show_all_stack_photos: bool - If True, show all photos in stacks (default: False)
 
     Returns:
@@ -38,19 +40,12 @@ def build_photo_queryset(user, params: dict):
     """
     filters = [Q(thumbnail__aspect_ratio__isnull=False)]
 
-    # Owner filter - default to current user unless viewing public photos
-    if not params.get("public"):
-        filters.append(Q(owner=user))
-
     # Favorite filter
     if params.get("favorite"):
         min_rating = user.favorite_min_rating
         filters.append(Q(rating__gte=min_rating))
 
-    # Public photos filter
     if params.get("public"):
-        if params.get("username"):
-            filters.append(Q(owner__username=params["username"]))
         filters.append(Q(public=True))
 
     # Hidden filter
@@ -97,4 +92,4 @@ def build_photo_queryset(user, params: dict):
     if not params.get("show_all_stack_photos"):
         filters.append(Q(stacks__isnull=True) | Q(primary_in_stack__isnull=False))
 
-    return Photo.objects.filter(*filters).distinct()
+    return Photo.objects.owned_by(user).filter(*filters).distinct()

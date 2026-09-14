@@ -74,16 +74,22 @@ class PersonSerializer(serializers.ModelSerializer):
             return "False"
         return obj.faces.first().photo.video
 
+    def _requester(self):
+        return getattr(self.context.get("request"), "user", None)
+
     def create(self, validated_data):
         name = validated_data.pop("name")
         if len(name.strip()) == 0:
             raise serializers.ValidationError("Name cannot be empty")
-        qs = Person.objects.filter(name=name)
+        owner = self._requester()
+        qs = Person.objects.filter(name=name, cluster_owner=owner)
         if qs.exists():
             return qs[0]
         else:
             new_person = Person()
             new_person.name = name
+            new_person.cluster_owner = owner
+            new_person.kind = Person.KIND_USER
             new_person.save()
             logger.info(f"created person {new_person.id}")
             return new_person
@@ -99,11 +105,12 @@ class PersonSerializer(serializers.ModelSerializer):
 
             # Backward compatibility:
             # older frontend paths send image_hash, newer paths send Photo UUID.
-            photo = Photo.objects.filter(image_hash=photo_ref).first()
+            own_photos = Photo.objects.owned_by(self._requester())
+            photo = own_photos.filter(image_hash=photo_ref).first()
 
             if photo is None:
                 try:
-                    photo = Photo.objects.filter(pk=photo_ref).first()
+                    photo = own_photos.filter(pk=photo_ref).first()
                 except (ValueError, TypeError, DjangoValidationError):
                     photo = None
 

@@ -32,6 +32,23 @@ class BuildPhotoQuerysetTest(TestCase):
         qs = build_photo_queryset(self.user1, {})
         self.assertEqual(qs.count(), 3)
 
+    def test_public_query_is_scoped_to_the_users_own_public_photos(self):
+        create_test_photos(number_of_photos=3, owner=self.user1, public=True)
+        create_test_photos(number_of_photos=2, owner=self.user1, public=False)
+        create_test_photos(number_of_photos=4, owner=self.user2, public=True)
+
+        qs = build_photo_queryset(self.user1, {"public": True})
+        self.assertEqual(qs.count(), 3)
+        self.assertEqual({p.owner_id for p in qs}, {self.user1.id})
+
+    def test_username_cannot_widen_the_scope(self):
+        create_test_photos(number_of_photos=2, owner=self.user2, public=True)
+
+        qs = build_photo_queryset(
+            self.user1, {"public": True, "username": self.user2.username}
+        )
+        self.assertEqual(qs.count(), 0)
+
     def test_filters_by_video(self):
         """Test filtering for videos only."""
         create_test_photos(number_of_photos=2, owner=self.user1, video=False)
