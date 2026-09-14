@@ -1,6 +1,8 @@
 captions_json = {
-    "places365": {
-        "attributes": [
+    "mobileclip_s2": {
+        "tags": [
+            "phone booth",
+            "ticket booth",
             "no horizon",
             "man made",
             "enclosed area",
@@ -10,8 +12,6 @@ captions_json = {
             "glass",
             "indoor lighting",
             "dry",
-        ],
-        "categories": ["phone booth", "ticket booth"],
-        "environment": "indoor",
+        ]
     }
 }

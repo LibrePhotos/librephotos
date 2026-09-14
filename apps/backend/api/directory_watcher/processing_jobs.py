@@ -135,7 +135,7 @@ def _untagged_photos(user):
 
 def generate_tags(user, job_id: UUID, full_scan=False):
     """
-    Generate image tags (Places365 captions) for photos.
+    Generate image tags with the active tagging model for photos.
 
     Args:
         user: The user whose photos to process

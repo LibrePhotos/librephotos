@@ -35,17 +35,34 @@ def _ocr_model(tier):
     raise AssertionError(f"OCR model {name} not found in ML_MODELS")
 
 
+LFM_FILES = (
+    "vision_encoder_q4f16.onnx",
+    "vision_encoder_q4f16.onnx_data",
+    "embed_tokens_q4f16.onnx",
+    "embed_tokens_q4f16.onnx_data",
+    "decoder_model_merged_q4f16.onnx",
+    "decoder_model_merged_q4f16.onnx_data",
+    "tokenizer.json",
+)
+
+
+def _create_captioner(model_root: Path):
+    (model_root / "lfm2_vl_450m").mkdir(parents=True, exist_ok=True)
+    for filename in LFM_FILES:
+        (model_root / "lfm2_vl_450m" / filename).write_bytes(b"model")
+
+
 class MlModelsTest(TestCase):
     def _create_required_models(self, model_root: Path):
-        (model_root / "im2txt").mkdir(parents=True)
-        (model_root / "clip-embeddings").mkdir(parents=True)
-        (model_root / "places365").mkdir(parents=True)
-        (model_root / "resnet18-5c106cde.pth").write_bytes(b"model")
+        for name in ("clip_vit_b32", "mobileclip_s2"):
+            (model_root / name).mkdir(parents=True)
+            for filename in ("vision_model.onnx", "text_model.onnx", "tokenizer.json"):
+                (model_root / name / filename).write_bytes(b"model")
+        _create_captioner(model_root)
 
     @override_config(
-        CAPTIONING_MODEL="im2txt",
-        LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        CAPTIONING_MODEL="lfm2_vl_450m",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_do_all_models_exist_only_requires_selected_face_model(self):
@@ -63,9 +80,8 @@ class MlModelsTest(TestCase):
                 self.assertTrue(do_all_models_exist())
 
     @override_config(
-        CAPTIONING_MODEL="im2txt",
-        LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        CAPTIONING_MODEL="lfm2_vl_450m",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_l",
     )
     def test_do_all_models_exist_requires_active_face_model(self):
@@ -258,7 +274,7 @@ class DownloadModelsJobTest(TestCase):
 
         def fake_download_model(model):
             attempted.append(model["name"])
-            if model["name"] == "places365":
+            if model["name"] == "mobileclip_s2":
                 raise requests.HTTPError("404 Error")
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -273,7 +289,7 @@ class DownloadModelsJobTest(TestCase):
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertTrue(job.failed)
         self.assertTrue(job.finished)
-        self.assertIn("places365", job.result["error"])
+        self.assertIn("mobileclip_s2", job.result["error"])
         self.assertEqual(len(ML_MODELS), job.progress_current)
 
     def test_job_completes_when_every_model_downloads(self):
@@ -340,15 +356,11 @@ class ModelSourceUrlTest(TestCase):
         mirror = "huggingface.co/derneuere/librephotos_models"
 
         siglip2 = self._model("siglip2")
-        moondream = self._model("moondream")
 
         expected_mirrored = [
-            self._model("mistral-7b-instruct-v0.2.Q5_K_M")["url"],
             siglip2["url"],
             siglip2["additional_files"][0]["url"],
             siglip2["additional_files"][1]["url"],
-            moondream["url"],
-            moondream["additional_files"][0]["url"],
         ]
 
         for url in expected_mirrored:
@@ -439,47 +451,30 @@ class MlModelSelectionTest(TestCase):
         return [model["name"] for model in _iter_required_models()]
 
     def _create_required_models(self, model_root: Path):
-        (model_root / "clip-embeddings").mkdir(parents=True)
-        (model_root / "places365").mkdir(parents=True)
-        (model_root / "resnet18-5c106cde.pth").write_bytes(b"model")
+        for name in ("clip_vit_b32", "mobileclip_s2"):
+            (model_root / name).mkdir(parents=True)
+            for filename in ("vision_model.onnx", "text_model.onnx", "tokenizer.json"):
+                (model_root / name / filename).write_bytes(b"model")
         selected_face_model = model_root / "face_recognition" / "models" / "buffalo_sc"
         selected_face_model.mkdir(parents=True)
         (selected_face_model / "w600k_mbf.onnx").write_bytes(b"model")
 
     @override_config(
-        CAPTIONING_MODEL="moondream",
-        LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        CAPTIONING_MODEL="none",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
-    def test_moondream_selected_as_captioning_model(self):
-        self.assertIn("moondream", self._selected_model_names())
-
-    @override_config(
-        CAPTIONING_MODEL="None",
-        LLM_MODEL="moondream",
-        TAGGING_MODEL="places365",
-        FACE_RECOGNITION_MODEL="buffalo_sc",
-    )
-    def test_moondream_selected_as_llm_model(self):
-        self.assertIn("moondream", self._selected_model_names())
-
-    @override_config(
-        CAPTIONING_MODEL="im2txt",
-        LLM_MODEL="None",
-        TAGGING_MODEL="places365",
-        FACE_RECOGNITION_MODEL="buffalo_sc",
-    )
-    def test_moondream_not_selected_when_unused(self):
+    def test_captioner_is_required_even_when_captioning_is_off(self):
+        """The one captioner is always kept available."""
+        self.assertIn("lfm2_vl_450m", self._selected_model_names())
         self.assertNotIn("moondream", self._selected_model_names())
 
     @override_config(
-        CAPTIONING_MODEL="moondream",
-        LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        CAPTIONING_MODEL="none",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
-    def test_do_all_models_exist_requires_moondream_for_captioning(self):
+    def test_do_all_models_exist_requires_every_captioner_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             media_root = Path(temp_dir) / "protected_media"
             model_root = media_root / "data_models"
@@ -487,7 +482,8 @@ class MlModelSelectionTest(TestCase):
 
             with override_settings(MEDIA_ROOT=str(media_root)):
                 self.assertFalse(do_all_models_exist())
-
-                (model_root / "moondream2-text-model-f16.gguf").write_bytes(b"model")
-                (model_root / "moondream2-mmproj-f16.gguf").write_bytes(b"model")
+                _create_captioner(model_root)
                 self.assertTrue(do_all_models_exist())
+                # Every file counts, the weights next to the graphs included.
+                (model_root / "lfm2_vl_450m" / "tokenizer.json").unlink()
+                self.assertFalse(do_all_models_exist())

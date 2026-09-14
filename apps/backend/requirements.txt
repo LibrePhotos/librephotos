@@ -34,7 +34,6 @@ pyvips==3.1.1
 # (see renovate.json) so it can't re-collapse the split; bump it manually.
 scikit-learn==1.9.0; python_version >= "3.11"
 scikit-learn==1.7.2; python_version < "3.11"
-sentence_transformers==5.7.0
 # timezonefinder: same py3.10 split as scikit-learn. 8.2.1+ require Python >= 3.11,
 # so the python_version < "3.11" pin must stay at 8.2.0 (last release supporting
 # py3.10) or the GPU build fails. Renovate is disabled for it (see renovate.json).
@@ -51,12 +50,9 @@ py-cpuinfo==9.0.0
 psutil==7.2.2
 concurrent-log-handler==0.9.29
 
-# Dependencies for blip
-timm==1.0.28
-# Dependencies for Moondream chat handler (llama-cpp-python multimodal)
-transformers==4.56.2
-# Dependencies for mistral quantized and multimodal models like Moondream
-llama-cpp-python==0.3.34
+# Tokenizers for the ONNX models: CLIP BPE (semantic search, MobileCLIP tags)
+# and the LFM2 tokenizer (captions). The Rust package alone, no transformers.
+tokenizers==0.22.2
 argon2-cffi==25.1.0
 # Dependencies for SigLIP 2 ONNX inference
 # On the GPU image (Python 3.10) the Dockerfile swaps this for

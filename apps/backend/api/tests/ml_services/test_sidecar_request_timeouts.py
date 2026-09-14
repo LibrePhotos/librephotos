@@ -125,34 +125,16 @@ class ServicesHealthCheckTimeoutTest(SimpleTestCase):
         )
 
 
-class CaptionAndLLMTimeoutTest(SimpleTestCase):
+class CaptionTimeoutTest(SimpleTestCase):
     @patch("api.image_captioning.requests.post")
-    def test_generate_caption_legacy_passes_timeout(self, mock_post):
-        # Forces the non-moondream path which uses port 8007.
+    def test_generate_caption_passes_timeout(self, mock_post):
         mock_post.return_value = _ok_response({"caption": "x"})
 
         from api.image_captioning import generate_caption
 
-        with patch("api.image_captioning.site_config") as mock_cfg:
-            mock_cfg.CAPTIONING_MODEL = "im2txt"
-            generate_caption("/tmp/photo.jpg")
+        generate_caption("/tmp/photo.jpg")
 
         _assert_finite_timeout(mock_post.call_args)
-
-    @patch("api.llm.requests.post")
-    def test_llm_generate_passes_timeout(self, mock_post):
-        response = _ok_response({"response": "hi"})
-        response.status_code = 201
-        mock_post.return_value = response
-
-        from api.llm import generate_prompt
-
-        with patch("api.llm.site_config") as mock_cfg:
-            mock_cfg.LLM_MODEL = "mistral-7b-instruct-v0.2.Q5_K_M"
-            generate_prompt("prompt")
-
-        _assert_finite_timeout(mock_post.call_args)
-        self.assertEqual(mock_post.call_args.kwargs["timeout"], http_timeouts.LLM_GEN)
 
 
 class TimeoutPolicyTest(SimpleTestCase):
@@ -168,7 +150,6 @@ class TimeoutPolicyTest(SimpleTestCase):
             "THUMBNAIL",
             "CLIP_EMBED",
             "CAPTION",
-            "LLM_GEN",
         ):
             value = getattr(http_timeouts, name)
             self.assertIsInstance(value, tuple, f"{name} must be a tuple")
@@ -190,7 +171,6 @@ class TimeoutPolicyTest(SimpleTestCase):
             "THUMBNAIL",
             "CLIP_EMBED",
             "CAPTION",
-            "LLM_GEN",
         ):
             connect, _ = getattr(http_timeouts, name)
             self.assertLessEqual(connect, 10, f"{name} connect timeout too generous")

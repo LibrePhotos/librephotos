@@ -125,7 +125,7 @@ Shows faces detected in the photo. You can:
 
 The AI-generated or manually entered caption for the photo. You can:
 
-- View auto-generated tags from the active tagging model, displayed as color-coded badges. SigLIP 2 shows a **Tags** list with green badges; Places365 shows a **Scene** block split into **Attributes** (blue badges) and **Categories** (teal badges)
+- View auto-generated tags from the active tagging model (MobileCLIP-S2 or SigLIP 2), displayed as green badges under **Tags**; click one to search for it
 - Edit the caption manually — type `#` to get autocomplete suggestions for thing album tags
 - Generate a new AI caption using the suggestion button
 - Use the **AI suggestion button** to quickly fill in a machine-generated caption

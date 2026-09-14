@@ -44,7 +44,7 @@ Here we save the thumbnails of all the faces, so that viewing them is faster.
 
 ### /data_models
 
-All the machine learning models live here: image captioning (im2txt, Blip, Moondream 2), the CLIP embeddings used for semantic search, scene and tag recognition (places365, SigLIP 2), the optional LLM (Mistral) and the InsightFace face recognition models. Rather than being baked into the image, they are downloaded by the "Download Models" job, or when you pick a new model in the `Admin Area` (for example the `Captioning Model` setting). Because of that, this folder only grows as you enable features, but it is usually by far the largest folder in `/protected_media` — several GB in total.
+All the machine learning models live here: the LFM2.5-VL captioning model, the CLIP model used for semantic search, tagging (MobileCLIP-S2, SigLIP 2) and the InsightFace face recognition models. Rather than being baked into the image, they are downloaded by the "Download Models" job, or when you pick a new model in the `Admin Area` (for example the `Captioning Model` setting). Because of that, this folder only grows as you enable features, but it is usually by far the largest folder in `/protected_media` — several GB in total.
 
 Deleting it is safe: the models are simply downloaded again the next time they are needed. If your server has no Internet access, see [Offline Usage](./offline-setup.md) for how to place the files by hand.
 

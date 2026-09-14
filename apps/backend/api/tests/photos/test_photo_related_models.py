@@ -198,14 +198,10 @@ class PhotoModelIntegrationTest(TestCase):
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=self.photo)
         caption_instance.save_user_caption(caption="My vacation photo")
 
-        # 2. Add places365 data directly
+        # 2. Add tags from the default tagging model directly
         caption_instance.captions_json = {
             "user_caption": "My vacation photo",
-            "places365": {
-                "categories": ["outdoor", "beach"],
-                "attributes": ["sunny", "natural"],
-                "environment": "outdoor",
-            },
+            "mobileclip_s2": {"tags": ["outdoor", "beach", "sunny", "natural"]},
         }
         caption_instance.save()
 

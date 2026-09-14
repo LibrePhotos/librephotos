@@ -10,26 +10,27 @@ To enable LibrePhotos to run its machine learning features offline, you can manu
 
 Manually download the necessary models from their respective URLs. Below is a list of models used by LibrePhotos, along with their download links:
 
-1. **im2txt** (Captioning)
-   - URL: `https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/im2txt.tar.gz`
-2. **clip-embeddings** (CLIP)
-   - URL: `https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/clip-embeddings.tar.gz`
-3. **places365** (Categories)
-   - URL: `https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz`
-4. **resnet18** (Categories)
-   - URL: `https://download.pytorch.org/models/resnet18-5c106cde.pth`
-5. **blip_base_capfilt_large** (Captioning) (optional)
-   - URL: `https://huggingface.co/derneuere/librephotos_models/resolve/main/blip_large.tar.gz?download=true`
-6. **mistral-7b-instruct-v0.2.Q5_K_M** (LLM) (optional)
-   - URL: `https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q5_K_M.gguf?download=true`
-7. **moondream** (Captioning / LLM) (optional)
-   - Text model: `https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-text-model-f16.gguf?download=true`
-   - Multimodal projector (mmproj): `https://huggingface.co/moondream/moondream-2b-2025-04-14-4bit/resolve/main/moondream2-mmproj-f16.gguf?download=true`
-8. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
+1. **clip_vit_b32** (Semantic search)
+   - Vision model: `https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model.onnx`
+   - Text model: `https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/text_model.onnx`
+   - Tokenizer: `https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json`
+2. **mobileclip_s2** (Tagging — default model)
+   - Vision model: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/vision_model.onnx`
+   - Text model: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx`
+   - Tokenizer: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json`
+3. **lfm2_vl_450m** (Captioning)
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx_data`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx_data`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx_data`
+   - Tokenizer: `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json`
+4. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
    - Vision model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx`
    - Text model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/text_model.onnx`
    - Tokenizer: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/tokenizer.model`
-9. **buffalo_sc** (Face recognition — default model)
+5. **buffalo_sc** (Face recognition — default model)
    - URL: `https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_sc.zip`
    - Only download the model selected in **Site Settings → Face Recognition Model**. The other options use the same release, e.g. `buffalo_s.zip`, `buffalo_m.zip`, `buffalo_l.zip`, `antelopev2.zip`.
 
@@ -43,26 +44,13 @@ Once the models are downloaded, place them in the following directory:
 
 `MEDIA_ROOT` is not something you set directly — it is derived from `BASE_DATA` (default `/`), so inside the container it is always `/protected_media`. On the host it is whichever directory you mounted to `/protected_media`. With the standard docker-compose install that is `${data}/protected_media`, which defaults to `./librephotos/data/protected_media/`, so the models go in `./librephotos/data/protected_media/data_models/`.
 
-- **im2txt.tar.gz** -> Unpack into `<MEDIA_ROOT>/data_models/im2txt/`
-- **clip-embeddings.tar.gz** -> Unpack into `<MEDIA_ROOT>/data_models/clip-embeddings/`
-- **places365.tar.gz** -> Unpack into `<MEDIA_ROOT>/data_models/places365/`
-- **resnet18-5c106cde.pth** -> Place directly as `<MEDIA_ROOT>/data_models/resnet18-5c106cde.pth`
-- **blip_large.tar.gz** -> Unpack into `<MEDIA_ROOT>/data_models/blip/`
-- **mistral-7b-instruct-v0.2.Q5_K_M.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/mistral-7b-instruct-v0.2.Q5_K_M.gguf`
-- **moondream2-text-model-f16.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/moondream2-text-model-f16.gguf`
-- **moondream2-mmproj-f16.gguf** -> Place directly as `<MEDIA_ROOT>/data_models/moondream2-mmproj-f16.gguf`
+- **clip_vit_b32** files -> Place as `<MEDIA_ROOT>/data_models/clip_vit_b32/vision_model.onnx`, `.../text_model.onnx` and `.../tokenizer.json`
+- **mobileclip_s2** files -> Place as `<MEDIA_ROOT>/data_models/mobileclip_s2/vision_model.onnx`, `.../text_model.onnx` and `.../tokenizer.json`
+- **lfm2_vl_450m** files -> Place all seven in `<MEDIA_ROOT>/data_models/lfm2_vl_450m/` under their own names. The `.onnx_data` files hold the weights the small `.onnx` graphs point at, so the names must not change.
 - **siglip2 vision_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/vision_model.onnx`
 - **siglip2 text_model.onnx** -> Place as `<MEDIA_ROOT>/data_models/siglip2/text_model.onnx`
 - **siglip2 tokenizer.model** -> Place as `<MEDIA_ROOT>/data_models/siglip2/tokenizer.model`
 - **buffalo_sc.zip** -> Unpack into `<MEDIA_ROOT>/data_models/face_recognition/models/buffalo_sc/` (the folder should contain the `.onnx` files)
-
-:::note
-Moondream needs **both** files placed directly in `data_models/`. If only `moondream2-text-model-f16.gguf` is present, the LLM service fails to start with `Moondream mmproj file not found`.
-:::
-
-:::note
-BLIP does not ship its text tokenizer inside `blip_large.tar.gz`. Loading the model always calls `BertTokenizer.from_pretrained("bert-base-uncased")`, which fetches from Hugging Face at runtime — this happens whether you place the model manually or let LibrePhotos download it from the Admin Area. While still online, set **Site Settings → Captioning Model** to *BLIP Base Capfilt Large* and generate one caption; the tokenizer is then cached under `/root/.cache/huggingface` inside the container, which the default compose file persists as `${data}/cache`. Preserve that `cache` directory when you move the install offline — a fresh or wiped `${data}/cache` makes the first offline BLIP caption fail.
-:::
 
 ### Step 3: Verify Model Placement
 
@@ -70,14 +58,22 @@ Ensure that all models are correctly placed and unpacked in their respective dir
 
 ```
 data_models/
-    ├── im2txt/
-    ├── clip-embeddings/
-    ├── places365/
-    ├── resnet18-5c106cde.pth
-    ├── blip/
-    ├── mistral-7b-instruct-v0.2.Q5_K_M.gguf
-    ├── moondream2-text-model-f16.gguf
-    ├── moondream2-mmproj-f16.gguf
+    ├── clip_vit_b32/
+    │   ├── vision_model.onnx
+    │   ├── text_model.onnx
+    │   └── tokenizer.json
+    ├── mobileclip_s2/
+    │   ├── vision_model.onnx
+    │   ├── text_model.onnx
+    │   └── tokenizer.json
+    ├── lfm2_vl_450m/
+    │   ├── vision_encoder_q4f16.onnx
+    │   ├── vision_encoder_q4f16.onnx_data
+    │   ├── embed_tokens_q4f16.onnx
+    │   ├── embed_tokens_q4f16.onnx_data
+    │   ├── decoder_model_merged_q4f16.onnx
+    │   ├── decoder_model_merged_q4f16.onnx_data
+    │   └── tokenizer.json
     ├── siglip2/
     │   ├── vision_model.onnx
     │   ├── text_model.onnx

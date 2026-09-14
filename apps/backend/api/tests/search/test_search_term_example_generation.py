@@ -40,13 +40,13 @@ class GetSearchTermExamples(TestCase):
                 5,
                 owner=self.admin,
                 geolocation_json={},
-                captions_json={"places365": None},
+                captions_json={"mobileclip_s2": None},
             )
             + create_test_photos_with_faces(
                 5,
                 owner=self.admin,
                 geolocation_json=expectations[0],
-                captions_json={"places365": None},
+                captions_json={"mobileclip_s2": None},
             )
         )
         self._original__random_random = random.random
@@ -142,10 +142,7 @@ class SearchTermExamplesTest(TestCase):
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "places365": {
-                "categories": ["outdoor", "nature"],
-                "attributes": ["sunny", "green"],
-            },
+            "mobileclip_s2": {"tags": ["outdoor", "nature", "sunny", "green"]},
             "im2txt": "A beautiful landscape",
             "user_caption": "My vacation photo",
         }
@@ -177,10 +174,7 @@ class SearchTermExamplesTest(TestCase):
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "places365": {
-                "categories": [],
-                "attributes": [],
-            },
+            "mobileclip_s2": {"tags": []},
             "im2txt": "",
             "user_caption": "",
         }
@@ -206,7 +200,7 @@ class SearchTermExamplesTest(TestCase):
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.captions_json = {
-            "places365": {"categories": ["outdoor"], "attributes": ["sunny"]}
+            "mobileclip_s2": {"tags": ["outdoor", "sunny"]}
         }
         caption_instance.save()
 

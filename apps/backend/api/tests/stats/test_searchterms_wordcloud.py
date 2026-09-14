@@ -15,15 +15,9 @@ from api.stats import get_searchterms_wordcloud
 from api.tests.utils import create_test_face, create_test_photo, create_test_user
 
 
-def _caps(categories=None, attributes=None, environment=None, extra=None):
-    places365 = {}
-    if categories is not None:
-        places365["categories"] = categories
-    if attributes is not None:
-        places365["attributes"] = attributes
-    if environment is not None:
-        places365["environment"] = environment
-    caps = {"places365": places365}
+def _caps(tags=None, extra=None, model="mobileclip_s2"):
+    """captions_json with the given tags stored under the tagging model's key."""
+    caps = {model: {"tags": tags} if tags is not None else {}}
     if extra:
         caps.update(extra)
     return caps
@@ -58,7 +52,7 @@ class SearchtermsWordcloudStructureTests(TestCase):
         self.assertEqual(out, {"captions": [], "people": [], "locations": []})
 
     def test_entries_are_label_and_log_count(self):
-        create_test_photo(owner=self.user, captions_json=_caps(categories=["beach"]))
+        create_test_photo(owner=self.user, captions_json=_caps(["beach"]))
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(len(out["captions"]), 1)
         entry = out["captions"][0]
@@ -73,14 +67,10 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    def test_categories_attributes_and_environment_all_counted(self):
+    def test_every_tag_is_counted(self):
         create_test_photo(
             owner=self.user,
-            captions_json=_caps(
-                categories=["beach", "ocean"],
-                attributes=["sunny"],
-                environment="outdoor",
-            ),
+            captions_json=_caps(["beach", "ocean", "sunny", "outdoor"]),
         )
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(
@@ -89,14 +79,10 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
 
     def test_counts_accumulate_across_photos_and_sort_desc(self):
         for _ in range(3):
-            create_test_photo(
-                owner=self.user, captions_json=_caps(categories=["beach"])
-            )
+            create_test_photo(owner=self.user, captions_json=_caps(["beach"]))
         for _ in range(2):
-            create_test_photo(
-                owner=self.user, captions_json=_caps(categories=["forest"])
-            )
-        create_test_photo(owner=self.user, captions_json=_caps(categories=["cave"]))
+            create_test_photo(owner=self.user, captions_json=_caps(["forest"]))
+        create_test_photo(owner=self.user, captions_json=_caps(["cave"]))
 
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(_labels(out["captions"]), ["beach", "forest", "cave"])
@@ -109,20 +95,16 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
         # No per-photo dedup for captions (unlike locations)
         create_test_photo(
             owner=self.user,
-            captions_json=_caps(categories=["beach", "beach"], attributes=["beach"]),
+            captions_json=_caps(["beach", "beach", "beach"]),
         )
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(_labels(out["captions"]), ["beach"])
         self.assertAlmostEqual(out["captions"][0]["y"], math.log(3))
 
     def test_ties_broken_by_first_seen_order(self):
-        # Both appear once; "alpha" is seen first within the same photo because
-        # categories are processed before attributes before environment.
+        # All appear once; the tag order within the photo decides.
         create_test_photo(
-            owner=self.user,
-            captions_json=_caps(
-                categories=["alpha"], attributes=["beta"], environment="gamma"
-            ),
+            owner=self.user, captions_json=_caps(["alpha", "beta", "gamma"])
         )
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(_labels(out["captions"]), ["alpha", "beta", "gamma"])
@@ -131,47 +113,37 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
         # empty string / None / 0 are skipped; other values are str()-ified
         create_test_photo(
             owner=self.user,
-            captions_json=_caps(categories=["", None, 0, 42], attributes=[False]),
+            captions_json=_caps(["", None, 0, 42, False]),
         )
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(_labels(out["captions"]), ["42"])
 
-    def test_non_list_categories_and_attributes_are_skipped(self):
-        create_test_photo(
-            owner=self.user,
-            captions_json=_caps(
-                categories="beach", attributes="sunny", environment="outdoor"
-            ),
-        )
+    def test_non_list_tags_are_skipped(self):
+        create_test_photo(owner=self.user, captions_json=_caps("beach"))
+        create_test_photo(owner=self.user, captions_json=_caps(["forest"]))
         out = get_searchterms_wordcloud(self.user)
-        self.assertEqual(_labels(out["captions"]), ["outdoor"])
+        self.assertEqual(_labels(out["captions"]), ["forest"])
 
-    def test_non_string_environment_is_skipped(self):
+    def test_only_the_active_tagging_model_counts(self):
         create_test_photo(
-            owner=self.user, captions_json=_caps(categories=["beach"], environment=7)
+            owner=self.user, captions_json=_caps(["beach"], model="siglip2")
         )
+        create_test_photo(owner=self.user, captions_json=_caps(["forest"]))
         out = get_searchterms_wordcloud(self.user)
-        self.assertEqual(_labels(out["captions"]), ["beach"])
+        self.assertEqual(_labels(out["captions"]), ["forest"])
 
-    def test_empty_string_environment_is_skipped(self):
-        create_test_photo(
-            owner=self.user, captions_json=_caps(categories=["beach"], environment="")
-        )
-        out = get_searchterms_wordcloud(self.user)
-        self.assertEqual(_labels(out["captions"]), ["beach"])
-
-    def test_missing_places365_key_yields_nothing(self):
+    def test_missing_tagging_model_key_yields_nothing(self):
         create_test_photo(owner=self.user, captions_json={"im2txt": "a dog"})
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(out["captions"], [])
 
     def test_malformed_captions_json_is_swallowed(self):
-        # places365 is not a dict -> AttributeError inside the try -> skipped
-        create_test_photo(owner=self.user, captions_json={"places365": "nope"})
+        # the tag result is not a dict -> skipped
+        create_test_photo(owner=self.user, captions_json={"mobileclip_s2": "nope"})
         # captions_json is a list -> .get() raises -> skipped
         create_test_photo(owner=self.user, captions_json=["not", "a", "dict"])
         # a good photo still contributes
-        create_test_photo(owner=self.user, captions_json=_caps(categories=["beach"]))
+        create_test_photo(owner=self.user, captions_json=_caps(["beach"]))
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(_labels(out["captions"]), ["beach"])
 
@@ -183,7 +155,7 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
     def test_captions_capped_at_100_labels(self):
         create_test_photo(
             owner=self.user,
-            captions_json=_caps(categories=[f"cat{i:03d}" for i in range(150)]),
+            captions_json=_caps([f"cat{i:03d}" for i in range(150)]),
         )
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(len(out["captions"]), 100)
@@ -193,8 +165,8 @@ class SearchtermsWordcloudCaptionsTests(TestCase):
 
     def test_captions_are_scoped_to_owner(self):
         other = create_test_user()
-        create_test_photo(owner=other, captions_json=_caps(categories=["beach"]))
-        create_test_photo(owner=self.user, captions_json=_caps(categories=["forest"]))
+        create_test_photo(owner=other, captions_json=_caps(["beach"]))
+        create_test_photo(owner=self.user, captions_json=_caps(["forest"]))
         out = get_searchterms_wordcloud(self.user)
         self.assertEqual(_labels(out["captions"]), ["forest"])
 
@@ -415,7 +387,7 @@ class SearchtermsWordcloudLocationsTests(TestCase):
         (which gets the running order_index).  A refactor that separates the
         two counters would change this ordering.
         """
-        create_test_photo(owner=self.user, captions_json=_caps(categories=["Berlin"]))
+        create_test_photo(owner=self.user, captions_json=_caps(["Berlin"]))
         # Paris photo created/streamed first, Berlin second
         create_test_photo(
             owner=self.user,
@@ -436,7 +408,7 @@ class SearchtermsWordcloudCombinedTests(TestCase):
         person = Person.objects.create(name="Alice", kind=Person.KIND_USER)
         photo = create_test_photo(
             owner=user,
-            captions_json=_caps(categories=["beach"], environment="outdoor"),
+            captions_json=_caps(["beach", "outdoor"]),
             geolocation_json=_geo(
                 [
                     {"place_type": ["place"], "text": "Berlin"},

@@ -30,7 +30,7 @@ In the **Scan Library** row, click **Scan** to scan your configured scan directo
 3. Creates thumbnails
 4. Extracts EXIF metadata
 5. Runs face detection
-6. Generates AI tags (Places365 or SigLIP 2, depending on your Tagging Model setting)
+6. Generates AI tags (MobileCLIP-S2 or SigLIP 2, depending on your Tagging Model setting)
 7. Performs reverse geocoding
 8. Calculates CLIP embeddings for semantic search
 
@@ -93,10 +93,9 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 | **thumbnail** | Thumbnail generation |
 | **face_recognition** | Face detection and recognition |
 | **clip_embeddings** | CLIP embedding computation |
-| **llm** | Large language model for captioning |
 | **image_captioning** | Image caption generation |
 | **exif** | EXIF metadata extraction |
-| **tags** | Photo tag generation (Places365 or SigLIP 2 depending on your Tagging Model setting) |
+| **tags** | Photo tag generation (MobileCLIP-S2 or SigLIP 2 depending on your Tagging Model setting) |
 
 For each service, you can:
 

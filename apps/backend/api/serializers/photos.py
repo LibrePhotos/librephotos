@@ -540,11 +540,8 @@ class PhotoSerializer(serializers.ModelSerializer):
         ):
             return obj.caption_instance.captions_json
         else:
-            emptyArray = {
-                "im2txt": "",
-                "places365": {"attributes": [], "categories": [], "environment": []},
-            }
-            return emptyArray
+            # Tags live under the active tagging model's key when present.
+            return {"im2txt": ""}
 
     def get_search_captions(self, obj) -> str:
         if hasattr(obj, "search_instance") and obj.search_instance:
@@ -974,10 +971,7 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
                 and len(obj.caption_instance.captions_json) > 0
             ):
                 return obj.caption_instance.captions_json
-        return {
-            "im2txt": "",
-            "places365": {"attributes": [], "categories": [], "environment": []},
-        }
+        return {"im2txt": ""}
 
     # People/faces - conditional
     def get_people(self, obj) -> list:

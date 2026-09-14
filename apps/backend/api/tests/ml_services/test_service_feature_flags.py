@@ -68,10 +68,8 @@ class ServiceFeatureFlagMappingTest(SimpleTestCase):
         self.assertFalse(is_service_enabled("tags"))
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
-    def test_captioning_takes_the_llm_service_with_it(self):
-        """Port 8008 is only ever reached from the captioning code paths."""
+    def test_image_captioning_follows_the_captioning_flag(self):
         self.assertFalse(is_service_enabled("image_captioning"))
-        self.assertFalse(is_service_enabled("llm"))
 
     def test_a_missing_setting_leaves_the_service_enabled(self):
         """An unrecognised switch must not take a service away."""
@@ -101,11 +99,11 @@ class StartServiceTest(SimpleTestCase):
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
     def test_the_refusal_is_logged_at_info(self, popen_mock, _compatible):
         with self.assertLogs("ownphotos", level="INFO") as logs:
-            start_service("llm")
+            start_service("image_captioning")
 
         self.assertTrue(
             any(
-                "llm" in line and "FEATURE_IMAGE_CAPTIONING" in line
+                "image_captioning" in line and "FEATURE_IMAGE_CAPTIONING" in line
                 for line in logs.output
             ),
             logs.output,
@@ -216,7 +214,7 @@ class CheckServicesTest(SimpleTestCase):
             [
                 line
                 for line in logs.output
-                if "FEATURE_IMAGE_CAPTIONING" in line or "'llm'" in line
+                if "FEATURE_IMAGE_CAPTIONING" in line or "'image_captioning'" in line
             ],
             logs.output,
         )
@@ -348,7 +346,7 @@ class ServiceAdminApiTest(TestCase):
     def test_starting_a_disabled_service_is_a_conflict_naming_the_flag(
         self, start_mock
     ):
-        response = self.client.post("/api/services/llm/start/")
+        response = self.client.post("/api/services/image_captioning/start/")
 
         self.assertEqual(409, response.status_code)
         self.assertEqual("FEATURE_IMAGE_CAPTIONING", response.json()["feature_flag"])

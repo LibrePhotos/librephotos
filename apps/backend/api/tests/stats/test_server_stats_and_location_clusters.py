@@ -9,6 +9,7 @@ including quirks (see the ``# QUIRK:`` comments), so that a later refactor
 can be checked for behavioral equivalence.
 """
 
+import subprocess
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -44,15 +45,15 @@ def _feature(text, center=None):
 
 
 class ServerStatsBaseTest(TestCase):
-    """Common patching: cpuinfo is slow, torch/cuda must never be probed."""
+    """Common patching: cpuinfo is slow, nvidia-smi must never be run."""
 
     def setUp(self):
         cpu_patch = patch("cpuinfo.get_cpu_info", return_value=dict(CPU_INFO))
         self.mock_cpu = cpu_patch.start()
         self.addCleanup(cpu_patch.stop)
-        cuda_patch = patch("torch.cuda.is_available", return_value=False)
-        cuda_patch.start()
-        self.addCleanup(cuda_patch.stop)
+        smi_patch = patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi"))
+        smi_patch.start()
+        self.addCleanup(smi_patch.stop)
 
 
 class GetServerStatsShapeTest(ServerStatsBaseTest):
@@ -105,24 +106,29 @@ class GetServerStatsShapeTest(ServerStatsBaseTest):
 
 
 class GetServerStatsGpuBranchTest(ServerStatsBaseTest):
-    def test_no_cuda_yields_empty_strings(self):
+    def test_no_nvidia_smi_yields_empty_strings(self):
         stats = get_server_stats()
         # QUIRK: the "no GPU" branch returns "" for gpu_memory_in_mb, not 0/None.
         self.assertEqual(stats["gpu_name"], "")
         self.assertEqual(stats["gpu_memory_in_mb"], "")
 
-    def test_cuda_available_reports_name_and_memory_in_mb(self):
-        class _Props:
-            total_memory = 8 * 1024 * 1024 * 1024
-
-        with (
-            patch("torch.cuda.is_available", return_value=True),
-            patch("torch.cuda.get_device_name", return_value="Fake GPU"),
-            patch("torch.cuda.get_device_properties", return_value=_Props()),
-        ):
+    def test_nvidia_smi_output_reports_name_and_memory_in_mb(self):
+        completed = subprocess.CompletedProcess(
+            args=["nvidia-smi"], returncode=0, stdout="Fake GPU, 8192\n", stderr=""
+        )
+        with patch("subprocess.run", return_value=completed):
             stats = get_server_stats()
         self.assertEqual(stats["gpu_name"], "Fake GPU")
         self.assertEqual(stats["gpu_memory_in_mb"], 8192)
+
+    def test_nvidia_smi_failure_yields_empty_strings(self):
+        with patch(
+            "subprocess.run",
+            side_effect=subprocess.CalledProcessError(returncode=9, cmd="nvidia-smi"),
+        ):
+            stats = get_server_stats()
+        self.assertEqual(stats["gpu_name"], "")
+        self.assertEqual(stats["gpu_memory_in_mb"], "")
 
 
 class GetServerStatsCpuCacheCoercionTest(ServerStatsBaseTest):
@@ -231,10 +237,13 @@ class GetServerStatsPerUserTest(ServerStatsBaseTest):
 
     def test_caption_counters(self):
         create_test_photo(
-            owner=self.user, captions_json={"user_caption": "hi", "places365": {}}
+            owner=self.user,
+            captions_json={"user_caption": "hi", "mobileclip_s2": {"tags": []}},
         )
         create_test_photo(owner=self.user, captions_json={"im2txt": "a dog"})
-        create_test_photo(owner=self.user, captions_json={"places365": {}})
+        create_test_photo(
+            owner=self.user, captions_json={"mobileclip_s2": {"tags": []}}
+        )
         create_test_photo(owner=self.user)
         entry = self._user_stats()
         self.assertEqual(entry["number_of_captions"], 1)
@@ -302,7 +311,7 @@ class GetServerStatsPerUserTest(ServerStatsBaseTest):
         place = AlbumPlace.objects.create(title="Berlin", owner=self.user)
         place.photos.add(photo, video)
         thing = AlbumThing.objects.create(
-            title="dog", thing_type="places365", owner=self.user
+            title="dog", thing_type="mobileclip_s2_tag", owner=self.user
         )
         thing.photos.add(photo)
         event = AlbumAuto.objects.create(

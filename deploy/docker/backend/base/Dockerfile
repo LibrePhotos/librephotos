@@ -110,5 +110,5 @@ RUN curl -fsSL https://github.com/exiftool/exiftool/archive/refs/tags/${EXIFTOOL
     make install && \
     rm -rf /tmp/exiftool
 
-# Install PyTorch (CPU version)
-RUN pip3 install --no-cache-dir --break-system-packages torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+# No PyTorch: every ML model LibrePhotos runs is served by ONNX Runtime, which
+# arrives with apps/backend/requirements.txt in the application image.

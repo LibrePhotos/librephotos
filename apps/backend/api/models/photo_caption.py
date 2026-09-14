@@ -1,12 +1,17 @@
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
 
 import api.models
 from api import util
 from api.image_captioning import generate_caption
-from api.llm import generate_prompt
 from api.models.user import User
+
+
+def tag_thing_type(tagging_model):
+    """The AlbumThing.thing_type a tagging model files its tags under."""
+    return f"{tagging_model}_tag"
 
 
 class PhotoCaption(models.Model):
@@ -45,46 +50,40 @@ class PhotoCaption(models.Model):
             )
             return None
 
-    def _llm_caption_context(self, llm_settings):
-        """(person name, location, keywords flag) for prompting, or None if off"""
-        from constance import config as site_config
+    def _caption_context(self, llm_settings):
+        """(person name, location, keywords flag) for prompting, or None if off.
 
-        if str(site_config.LLM_MODEL).lower() == "none" or not llm_settings["enabled"]:
+        The user's caption-context switches (``llm_settings``, a historical
+        name) decide what the caption may know about the photo. The captioning
+        model takes that context in its prompt directly.
+        """
+        if not llm_settings["enabled"]:
             return None
 
-        face = api.models.Face.objects.filter(photo=self.photo).first()
-        person_name = face.person.name if face and llm_settings["add_person"] else None
+        person_name = None
+        if llm_settings["add_person"]:
+            face = (
+                api.models.Face.objects.filter(photo=self.photo, person__isnull=False)
+                .select_related("person")
+                .first()
+            )
+            person_name = face.person.name if face else None
 
-        search_instance = self.photo.search_instance
         location = None
-        if (
-            search_instance
-            and search_instance.search_location
-            and llm_settings["add_location"]
-        ):
-            location = search_instance.search_location
+        if llm_settings["add_location"]:
+            # A photo that has not been through the scan yet has no search row.
+            try:
+                search_instance = self.photo.search_instance
+            except ObjectDoesNotExist:
+                search_instance = None
+            if search_instance and search_instance.search_location:
+                location = search_instance.search_location
 
         return person_name, location, llm_settings["add_keywords"]
 
     @staticmethod
-    def _im2txt_llm_prompt(caption, context):
-        person_name, location, add_keywords = context
-        person = f" Person: {person_name}" if person_name is not None else ""
-        place = f" Place: {location}" if location is not None else ""
-        keywords = " and tags or keywords" if add_keywords else ""
-        return (
-            "Q: Your task is to improve the following image caption: "
-            + caption
-            + ". You also know the following information about the image:"
-            + place
-            + person
-            + ". Stick as closely as possible to the caption, while replacing generic information with information you know about the image. Only output the caption"
-            + keywords
-            + ". \n A:"
-        )
-
-    @staticmethod
-    def _moondream_prompt(context):
+    def _caption_prompt(context):
+        """The prompt for the vision-language captioner, with what we know."""
         if context is None:
             return "Describe this image in a short, natural image caption."
 
@@ -101,6 +100,9 @@ class PhotoCaption(models.Model):
         return "Write a short, natural image caption." + person + place + keywords
 
     def _store_generated_caption(self, captions, caption, commit):
+        # Historical key: every generated caption, whichever model wrote it,
+        # lives under "im2txt" so the search index and the clients keep
+        # finding it.
         captions["im2txt"] = caption
         self.captions_json = captions
         self.recreate_search_captions()
@@ -108,12 +110,15 @@ class PhotoCaption(models.Model):
             self.save()
 
     def generate_captions_im2txt(self, commit=True):
-        """Generate im2txt captions for the photo"""
+        """Generate a caption for the photo with the captioning sidecar.
+
+        The name is historical (im2txt was the first model). The prompt
+        carries the recognised person and the place when the user's caption
+        settings allow it.
+        """
         if not settings.FEATURE_IMAGE_CAPTIONING:
             util.logger.info("Image captioning is disabled")
             return False
-
-        util.logger.info("Generating captions with Im2txt")
 
         image_path = self._resolve_thumbnail_path()
         if image_path is None:
@@ -130,64 +135,20 @@ class PhotoCaption(models.Model):
                 util.logger.info("Generating captions is disabled")
                 return False
 
-            if site_config.CAPTIONING_MODEL == "moondream":
-                util.logger.info("Generating captions with Moondream")
-                return self._generate_captions_moondream(commit=commit)
-
-            blip = site_config.CAPTIONING_MODEL == "blip_base_capfilt_large"
-
-            caption = generate_caption(image_path=image_path, blip=blip)
-            caption = caption.replace("<start>", "").replace("<end>", "").strip()
-
             llm_settings = User.objects.get(username=self.photo.owner).llm_settings
-            context = self._llm_caption_context(llm_settings)
-            if context is not None:
-                prompt = self._im2txt_llm_prompt(caption, context)
-                util.logger.info(prompt)
-                caption = generate_prompt(prompt)
+            context = self._caption_context(llm_settings)
+            prompt = self._caption_prompt(context)
+            util.logger.info(f"Caption prompt: {prompt}")
 
-            self._store_generated_caption(captions, caption, commit)
-
-            util.logger.info(
-                f"generated im2txt captions for image {image_path} with SiteConfig {site_config.CAPTIONING_MODEL} with Blip: {blip} caption: {caption}"
-            )
-            return True
-        except Exception:
-            util.logger.exception(
-                f"could not generate im2txt captions for image {image_path}"
-            )
-            return False
-
-    def _generate_captions_moondream(self, commit=True):
-        """Generate captions using Moondream with enhanced prompt"""
-        image_path = self._resolve_thumbnail_path()
-        if image_path is None:
-            return False
-
-        if self.captions_json is None:
-            self.captions_json = {}
-        captions = self.captions_json
-
-        try:
-            util.logger.info("Generating Moondream captions")
-
-            llm_settings = User.objects.get(username=self.photo.owner).llm_settings
-            prompt = self._moondream_prompt(self._llm_caption_context(llm_settings))
-            util.logger.info(f"Moondream prompt: {prompt}")
-
-            caption = generate_prompt(image_path=image_path, prompt=prompt)
+            caption = generate_caption(image_path=image_path, prompt=prompt)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             self._store_generated_caption(captions, caption, commit)
 
-            util.logger.info(
-                f"Generated Moondream captions for image {image_path}, caption: {caption}"
-            )
+            util.logger.info(f"generated caption for image {image_path}: {caption}")
             return True
         except Exception:
-            util.logger.exception(
-                f"Could not generate Moondream captions for image {image_path}"
-            )
+            util.logger.exception(f"could not generate caption for image {image_path}")
             return False
 
     def save_user_caption(self, caption, commit=True):
@@ -270,7 +231,7 @@ class PhotoCaption(models.Model):
         search_instance.save()
 
     def generate_tag_captions(self, commit=True):
-        """Generate tag captions using the active tagging model (Places365 or SigLIP 2).
+        """Generate tags with the active tagging model (MobileCLIP-S2 or SigLIP 2).
 
         Tags are stored per-model in captions_json and are never deleted when
         switching models -- only the active model's tags are generated / visible.
@@ -334,11 +295,7 @@ class PhotoCaption(models.Model):
             # Store under the model-specific key
             self.captions_json[tagging_model] = tags_result
             self.recreate_search_captions()
-
-            if tagging_model == "siglip2":
-                self._update_siglip2_album_things(tags_result)
-            else:
-                self._update_places365_album_things(tags_result)
+            self._update_tag_album_things(tags_result, tagging_model)
 
             if commit:
                 self.save()
@@ -350,28 +307,13 @@ class PhotoCaption(models.Model):
             )
             raise e
 
-    def _update_places365_album_things(self, res_places365):
-        """Create/update AlbumThing entries for Places365 tags."""
-        self._detach_photo_from_album_things(
-            ["places365_attribute", "places365_category"]
-        )
+    def _update_tag_album_things(self, tag_result, tagging_model):
+        """Replace this photo's AlbumThing memberships for one tagging model."""
+        thing_type = tag_thing_type(tagging_model)
+        tags = (tag_result or {}).get("tags", [])
 
-        if "attributes" in res_places365:
-            self._attach_photo_to_album_things(
-                res_places365["attributes"], "places365_attribute"
-            )
-
-        if "categories" in res_places365:
-            self._attach_photo_to_album_things(
-                res_places365["categories"], "places365_category"
-            )
-
-    def _update_siglip2_album_things(self, siglip2_result):
-        """Create/update AlbumThing entries for SigLIP 2 tags."""
-        tags = siglip2_result.get("tags", [])
-
-        self._detach_photo_from_album_things(["siglip2_tag"])
-        self._attach_photo_to_album_things(tags, "siglip2_tag")
+        self._detach_photo_from_album_things([thing_type])
+        self._attach_photo_to_album_things(tags, thing_type)
 
     # Backward-compatible alias
     def generate_places365_captions(self, commit=True):

@@ -157,7 +157,7 @@ class CrossTenantWriteTest(TestCase):
         )
         self.v_auto.photos.add(self.v_pub, self.v_priv)
         self.v_thing = AlbumThing.objects.create(
-            title="cat", thing_type="places365_attribute", owner=self.victim
+            title="cat", thing_type="mobileclip_s2_tag", owner=self.victim
         )
         self.v_thing.photos.add(self.v_pub, self.v_priv)
         self.v_place = AlbumPlace.objects.create(
@@ -417,6 +417,24 @@ class CrossTenantWriteTest(TestCase):
                 "post",
                 "/api/deletefaces",
                 {"face_ids": [self.v_face.pk, self.v_face2.pk]},
+            ),
+            (
+                "post",
+                "/api/addface",
+                {
+                    "person_name": "Mallory",
+                    "photo": str(self.v_pub.pk),
+                    "box": {"top": 0.1, "right": 0.5, "bottom": 0.5, "left": 0.1},
+                },
+            ),
+            (
+                "post",
+                "/api/addface",
+                {
+                    "person_name": "Mallory",
+                    "photo": self.v_priv.image_hash,
+                    "box": {"top": 0.1, "right": 0.5, "bottom": 0.5, "left": 0.1},
+                },
             ),
             # stacks
             ("post", "/api/stacks/manual/", {"photo_hashes": self._hashes()}),

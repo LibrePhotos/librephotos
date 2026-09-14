@@ -36,14 +36,10 @@ Three interactive word clouds generated from your photo library:
 | Cloud | Based on |
 |-------|----------|
 | **Places** | Place names from reverse geocoding (postcodes and points of interest are skipped) |
-| **Things** | Scene tags from the Places365 classifier — its scene categories, scene attributes and the indoor/outdoor label. The categories and attributes are also what populate your Things albums. |
+| **Things** | The auto-tags of the active Tagging Model (MobileCLIP-S2 or SigLIP 2). These are also what populate your Things albums. |
 | **People** | Names of recognized people in your photos |
 
 Each cloud shows at most the top 100 terms, and larger words appear more frequently in your library. **Click on any word** to search for photos matching that term.
-
-:::note
-The **Things** cloud is only populated when your photos are tagged with the Places365 model. With the SigLIP 2 tagging model its tags are stored differently, so this cloud stays empty.
-:::
 
 ## Social Graph
 

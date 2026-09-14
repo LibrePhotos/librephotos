@@ -17,7 +17,7 @@ Moreover, the utilization of pyvips as a Python interface facilitates seamless i
 
 ImageMagick's robust suite of tools empowers us to perform conversion of raw images on a wide array of file types. When coupled with the wand library, which provides a Pythonic interface to interact with ImageMagick, it's easy to maintain and extend.
 
-Because there are some compatibility issues between ImageMagick and PyTorch, this runs on a separate microservice.
+This runs on a separate microservice so that ImageMagick's memory use and occasional crashes on exotic files stay away from the API workers.
 
 ### FFmpeg (video)
 

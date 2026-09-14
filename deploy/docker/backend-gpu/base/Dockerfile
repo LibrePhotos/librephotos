@@ -127,7 +127,8 @@ RUN apt-get update && \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# No PyTorch: every ML model LibrePhotos runs is served by ONNX Runtime. The
+# application image swaps in onnxruntime-gpu (see deploy/docker/backend-gpu/Dockerfile).
 
 # Install ExifTool
 WORKDIR /tmp/exiftool

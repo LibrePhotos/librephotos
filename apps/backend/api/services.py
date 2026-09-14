@@ -16,13 +16,10 @@ from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 # Track services that should not be restarted due to system incompatibility
 INCOMPATIBLE_SERVICES = set()
 
-# CPU features required for different services
-SERVICE_CPU_REQUIREMENTS = {
-    "llm": {
-        "required": ["avx", "sse4_2"],  # Essential for llama.cpp
-        "recommended": ["avx2", "fma", "f16c"],  # Improve performance
-    }
-}
+# CPU features required for different services. Empty since the llama.cpp
+# based LLM service left; the check stays for the next sidecar that needs it, as
+# {"service": {"required": [...], "recommended": [...]}}.
+SERVICE_CPU_REQUIREMENTS = {}
 
 # Define all the services that can be started, with their respective ports
 SERVICES = {
@@ -30,7 +27,6 @@ SERVICES = {
     "thumbnail": 8003,
     "face_recognition": 8005,
     "clip_embeddings": 8006,
-    "llm": 8008,
     "image_captioning": 8007,
     "exif": 8010,
     "tags": 8011,
@@ -40,19 +36,11 @@ SERVICES = {
 HTTP_OK = 200
 
 # The feature flag each service serves; None means core scan/search, always on.
-#
-# llm is gated on captioning because captioning is its only consumer: port 8008
-# is reached from api.llm.generate_prompt and the Moondream branch of
-# api.image_captioning.generate_caption, and both are called only from
-# PhotoCaption's caption generation, which already stops when
-# FEATURE_IMAGE_CAPTIONING is off. If anything else ever calls generate_prompt
-# — chat, cluster naming — this has to go back to None.
 SERVICE_FEATURE_FLAGS = {
     "image_similarity": None,
     "thumbnail": None,
     "face_recognition": "FEATURE_FACE_DETECTION",
     "clip_embeddings": None,
-    "llm": "FEATURE_IMAGE_CAPTIONING",
     "image_captioning": "FEATURE_IMAGE_CAPTIONING",
     "exif": None,
     "tags": "FEATURE_SCENE_CLASSIFICATION",
@@ -272,7 +260,7 @@ def has_required_cpu_features(service):
     """Check if CPU has required features for a specific service
 
     On ARM architectures, x86-specific CPU checks are bypassed since those
-    instruction sets don't exist on ARM. Services like llama.cpp support ARM natively.
+    instruction sets don't exist on ARM.
     """
     if service not in SERVICE_CPU_REQUIREMENTS:
         return True  # No CPU requirements for this service

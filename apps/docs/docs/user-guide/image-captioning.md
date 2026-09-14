@@ -10,50 +10,20 @@ The goal of automatic image captioning is to understand the content of an image 
 
 To use the feature, open one of your own photos and click the information icon in the top bar to show the details panel. In the **Caption** section, click the pencil icon in the top-right corner of the caption box to start editing, then click the wand icon that appears in its place. Once a caption has been generated, it appears as a suggestion just above the caption box — click it to drop the text into the caption field, then press the green tick below the box to save it. (If a caption has already been generated for this photo, the suggestion appears as soon as you start editing.) The wand, cancel and tick controls are only shown while you are editing, and captions cannot be generated on publicly shared photos.
 
-## How do I change the model?
+## Which model writes the captions?
 
-Click on your avatar in the top right and go to `Admin Area`. There is a setting for `Captioning Model` where you can choose between the different models. After selecting `im2txt` or `BLIP Base Capfilt Large`, the model is downloaded and added to your `data_models` folder.
+Captions come from [LFM2.5-VL](https://huggingface.co/LiquidAI/LFM2.5-VL-450M), a small vision-language model from Liquid AI that runs on ONNX Runtime like every other model in LibrePhotos. It is always available: the files (about 320 MB) are fetched with the other models, and there is nothing to pick. The model needs about 0.9 GB of RAM while it captions and takes a few seconds per photo on an older desktop CPU, under a second on a recent one.
 
-Moondream is the exception: its files are only downloaded when `Moondream Visual LLM` is also selected as the `LLM Model`. If you set `Captioning Model` to Moondream while `LLM Model` is left at `None`, the model files are never fetched and captioning fails. To use Moondream, set **both** `Captioning Model` and `LLM Model` to `Moondream Visual LLM`.
+It writes one natural sentence, for example "A rocket is taking off from a launch pad at night, with two tall metal towers flanking the launch site." Because it is a vision-language model it also takes instructions, which is what the caption context settings below use.
 
-Selecting `BLIP Base Capfilt Large` opens a confirmation dialog titled *Large RAM Size possible*, warning that the model needs an additional 3 GB of RAM. Click **Save** to apply it; clicking **Cancel** — or closing the dialog — resets the captioning model back to `im2txt`.
+To turn automatic captioning off, set `Captioning Model` to `None` in the `Admin Area`; an administrator can also switch the feature off for the whole deployment with the `FEATURE_IMAGE_CAPTIONING` environment variable. The earlier captioning models (im2txt, BLIP, Florence-2 and Moondream) and the separate Mistral language model were retired; an install that had any of them selected is moved to LFM2.5-VL automatically.
 
-## What is the difference between the models?
+## Caption context: names and places
 
-There are three captioning models to choose from — `im2txt PyTorch`, `BLIP Base Capfilt Large`, and `Moondream Visual LLM` — plus a `None` option that turns captioning off. When `None` is selected, no captioning model is downloaded.
+A caption is better when it can say who is in the photo and where it was taken. LibrePhotos already knows both, from face recognition and reverse geocoding, and passes them to the captioning model in its prompt. Each user controls this in their own `Settings`, under **Caption Context**:
 
-### im2txt PyTorch
+- **Tell the captioning model what LibrePhotos knows about a photo** turns the context on. Default `On`.
+- **Use the names of recognised people in captions** adds the recognised, named person to the prompt. The model is asked to use the name directly, as a friend tagging a photo would ("Grace in a simple gray shirt, standing against a blue background"). Only has an effect when the photo has a recognised, named person. Default `On`.
+- **Mention where the photo was taken in captions** adds the photo's geocoded location. Only has an effect when the photo has one. Default `On`.
 
-This model serves as the default choice. It offers rapid results and represents the original implementation of the image captioning task. It uses the PyTorch deep learning framework and has been a reliable option for users seeking both speed and baseline performance.
-
-### BLIP Base Capfilt Large
-
-The next generation model "BLIP" excels in providing highly accurate image descriptions. However, it comes with a trade-off, as it operates at approximately 20 times slower speeds than "im2txt PyTorch." This deliberate sacrifice in speed is made to achieve superior descriptive accuracy, making "BLIP" an ideal choice for applications prioritizing precision over real-time processing. BLIP is also the most memory-hungry of these models: it needs roughly 3 GB of RAM on top of what LibrePhotos already uses, so it is a poor fit for a host with only 4 GB.
-
-### Moondream Visual LLM
-
-Moondream 2 is a multi-modal model (via llama-cpp-python) that can analyze both images and text together. It produces richer, more contextually aware captions compared to the other models and lays the groundwork for advanced features like visual queries. It requires more resources than the simpler models but produces the most detailed descriptions.
-
-:::warning Moondream requires two settings
-In `Admin Area`, set **both** `Captioning Model` **and** `LLM Model` to `Moondream Visual LLM`. The Moondream weights are downloaded based on the `LLM Model` setting, so leaving `LLM Model` at `None` means the files are never fetched and every caption generation fails.
-:::
-
-On x86/x64 systems Moondream additionally requires a CPU that reports the AVX and SSE4.2 instruction sets. If they are missing — including on virtual machines that mask CPU flags, such as Proxmox guests using the default `kvm64` CPU type — the backend's LLM service refuses to start and captioning fails with a "Service unavailable" error, with no automatic fallback to the other models. ARM systems (aarch64/arm64) are unaffected, as this check is skipped there.
-
-Users can choose a model based on their specific requirements, balancing the need for speed, accuracy, and the trade-offs associated with each implementation. It's recommended to consider the performance of your system and the desired performance characteristics when selecting the most suitable model.
-
-## Improving captions with an LLM
-
-The captioning models above produce a caption on their own, but LibrePhotos can optionally run that caption through a large language model to refine it. This is **off by default** and needs two separate opt-ins:
-
-- In `Admin Area`, an admin must set `LLM Model` to something other than `None` — either `Mistral 7B Instruct v0.2 Q5 K M` or `Moondream Visual LLM`. See [Settings](./settings/index.md#site-settings).
-- In their own `Settings`, under **Large Language Model Settings**, each user must turn on **Enable Large Language Model For Captions** (also off by default).
-
-Without both, the model descriptions above apply as written.
-
-Two further switches become available once the LLM is enabled — **Add Persons to the Captions** and **Add Locations to the Captions** (both greyed out until the enable switch is on). *Add Persons* only has an effect when the photo has a recognised, named person, and *Add Locations* only when the photo has a geocoded location.
-
-How the LLM is applied depends on the captioning model:
-
-- With **im2txt PyTorch** or **BLIP Base Capfilt Large**, the model generates a caption first and the LLM then rewrites it in a second pass.
-- With **Moondream Visual LLM**, there is no second pass — the caption prompt itself is rebuilt before generation, so the person and location hints steer the original output.
+With the context switched off, the model is simply asked to describe the photo.
