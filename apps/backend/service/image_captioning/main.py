@@ -43,8 +43,10 @@ def generate_caption():
         # A captioner that failed half-way through loading must not be reused.
         global captioner
         captioner = None
-        log(f"error captioning {image_path}: {e}")
-        return {"error": "Failed to generate caption"}, 500
+        log(f"error captioning {image_path}: {e!r}")
+        # The backend logs this message; it is the only place the reason
+        # for a failed caption is visible without the sidecar's stdout.
+        return {"error": f"{type(e).__name__}: {e}"}, 500
 
 
 @app.route("/unload-model", methods=["GET"])
