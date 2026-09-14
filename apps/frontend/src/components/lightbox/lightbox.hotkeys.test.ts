@@ -12,6 +12,8 @@
 import { getHotkeyHandler } from "@mantine/hooks";
 import { describe, expect, it, vi } from "vitest";
 import {
+  COPY_KEY,
+  copyKeyLabel,
   NEXT_KEY,
   PLAY_PAUSE_KEY,
   PREVIOUS_KEY,
@@ -22,13 +24,13 @@ import {
 } from "./lightbox.hotkeys";
 
 /** Does `binding` fire when the browser reports this keypress? */
-function fires(binding: string, key: string, { shift = false, ctrl = false } = {}) {
+function fires(binding: string, key: string, { shift = false, ctrl = false, meta = false } = {}) {
   const handler = vi.fn();
   getHotkeyHandler([[binding, handler]])({
     key,
     code: key === " " ? "Space" : key,
     altKey: false,
-    metaKey: false,
+    metaKey: meta,
     ctrlKey: ctrl,
     shiftKey: shift,
     preventDefault: () => {},
@@ -76,5 +78,24 @@ describe("lightbox hotkeys", () => {
     // can keep their job while Shift gains a new one.
     expect(fires(NEXT_KEY, "ArrowRight", { shift: true })).toBe(false);
     expect(fires(SEEK_FORWARD_KEY, "ArrowRight")).toBe(false);
+  });
+
+  it("copy answers to Ctrl+C on Windows and Linux and to Cmd+C on a Mac", () => {
+    expect(fires(COPY_KEY, "c", { ctrl: true })).toBe(true);
+    expect(fires(COPY_KEY, "c", { meta: true })).toBe(true);
+  });
+
+  it("a bare c does not copy, so typing in the lightbox stays safe", () => {
+    expect(fires(COPY_KEY, "c")).toBe(false);
+    expect(fires(COPY_KEY, "c", { shift: true, ctrl: true })).toBe(false);
+  });
+
+  it("the copy label names the modifier the platform actually uses", () => {
+    const platform = vi.spyOn(navigator, "platform", "get");
+    platform.mockReturnValue("Win32");
+    expect(copyKeyLabel()).toBe("Ctrl+C");
+    platform.mockReturnValue("MacIntel");
+    expect(copyKeyLabel()).toBe("⌘C");
+    platform.mockRestore();
   });
 });

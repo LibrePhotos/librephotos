@@ -26,3 +26,17 @@ export const SEEK_LONG_BACK_KEY = "ctrl+ArrowLeft";
 export const SEEK_LONG_FORWARD_KEY = "ctrl+ArrowRight";
 export const PREVIOUS_KEY = "ArrowLeft";
 export const NEXT_KEY = "ArrowRight";
+
+/**
+ * Copy the photo to the clipboard. "mod" is Ctrl on Windows and Linux and
+ * Cmd on macOS, the key people already press to copy. The handler steps
+ * aside when text is selected (live text, the sidebar) so the browser's own
+ * copy keeps working; see ContentViewer.
+ */
+export const COPY_KEY = "mod+c";
+
+/** How the copy shortcut is written in tooltips and docs on this platform. */
+export function copyKeyLabel(): string {
+  const isApple = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+  return isApple ? "⌘C" : "Ctrl+C";
+}
