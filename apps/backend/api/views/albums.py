@@ -76,9 +76,8 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     "faces__photo",
-                    queryset=Photo.objects.filter(
-                        Q(faces__photo__hidden=False) & Q(owner=self.request.user)
-                    )
+                    queryset=Photo.objects.owned_by(self.request.user)
+                    .filter(faces__photo__hidden=False)
                     .distinct()
                     .order_by("-exif_timestamp")
                     .only("image_hash", "exif_timestamp", "rating", "public", "hidden"),

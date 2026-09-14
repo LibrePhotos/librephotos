@@ -256,10 +256,11 @@ class BulkMetadataView(APIView):
             else:
                 hash_ids.append(pid)
 
-        photos = Photo.objects.filter(
-            Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids),
-            owner=request.user,
-        ).select_related("metadata")
+        photos = (
+            Photo.objects.owned_by(request.user)
+            .filter(Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids))
+            .select_related("metadata")
+        )
 
         results = {}
         for photo in photos:
@@ -338,9 +339,8 @@ class BulkMetadataView(APIView):
             else:
                 hash_ids.append(pid)
 
-        photos = Photo.objects.filter(
-            Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids),
-            owner=request.user,
+        photos = Photo.objects.owned_by(request.user).filter(
+            Q(pk__in=uuid_ids) | Q(image_hash__in=hash_ids)
         )
 
         updated_count = 0

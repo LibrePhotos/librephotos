@@ -47,21 +47,21 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                             .values("image")[:1]
                         ),
                         face_photo_url=Subquery(
-                            Photo.objects.filter(
+                            Photo.objects.owned_by(self.request.user)
+                            .filter(
                                 faces__person=OuterRef("pk"),
                                 hidden=False,
                                 in_trashcan=False,
-                                owner=self.request.user,
                             )
                             .order_by("added_on")
                             .values("image_hash")[:1]
                         ),
                         video=Subquery(
-                            Photo.objects.filter(
+                            Photo.objects.owned_by(self.request.user)
+                            .filter(
                                 faces__person=OuterRef("pk"),
                                 hidden=False,
                                 in_trashcan=False,
-                                owner=self.request.user,
                             )
                             .order_by("added_on")
                             .values("video")[:1]

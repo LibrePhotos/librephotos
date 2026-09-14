@@ -1290,7 +1290,7 @@ class ZipListPhotosView_V2(APIView):
             )
         include_stacked = bool(include_stacked)
 
-        photo_query = Photo.objects.filter(owner=self.request.user)
+        photo_query = Photo.objects.owned_by(self.request.user)
 
         # Two payload shapes are accepted, mirroring the other bulk mutations
         # (SetPhotosDeleted, SetFavoritePhotos, SetPhotosHidden, SetPhotosPublic):
@@ -1305,11 +1305,7 @@ class ZipListPhotosView_V2(APIView):
             if isinstance(excluded_hashes, str):
                 excluded_hashes = [excluded_hashes]
 
-            # build_photo_queryset drops the owner filter for a public query,
-            # so re-scope before handing originals to the zip job.
-            photos = build_photo_queryset(self.request.user, query_params).filter(
-                owner=self.request.user
-            )
+            photos = build_photo_queryset(self.request.user, query_params)
             if excluded_hashes:
                 photos = photos.exclude(image_hash__in=excluded_hashes)
         else:

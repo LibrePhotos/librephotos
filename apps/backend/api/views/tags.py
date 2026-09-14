@@ -126,8 +126,8 @@ class TagViewSet(viewsets.ModelViewSet):
                 hashes.add(filter_kwargs["image_hash"])
 
         photos = list(
-            Photo.objects.filter(
-                Q(pk__in=ids) | Q(image_hash__in=hashes), owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                Q(pk__in=ids) | Q(image_hash__in=hashes)
             )
         )
         resolved = {str(photo.pk) for photo in photos}
@@ -145,12 +145,6 @@ class TagViewSet(viewsets.ModelViewSet):
         photos = build_photo_queryset(
             request.user, query if isinstance(query, dict) else {}
         )
-        # build_photo_queryset does not scope to the requester when
-        # query.public is set, so bind the write target to the requester's own
-        # photos -- the same guard the bulk photo endpoints carry (issue
-        # #1982). Without it a public photoset would let one account hang its
-        # tags on another account's photos.
-        photos = photos.filter(owner=request.user)
         if excluded_hashes:
             photos = photos.exclude(image_hash__in=excluded_hashes)
         return photos
