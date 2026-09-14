@@ -164,9 +164,9 @@ class Lfm2VlCaptionerTest(SimpleTestCase):
             self.assertEqual(providers, ["CPUExecutionProvider"])
             self.assertTrue(path.startswith(self.tmp.name))
             return {
-                "vision_encoder_q4f16.onnx": self.vision,
-                "embed_tokens_q4f16.onnx": self.embed,
-                "decoder_model_merged_q4f16.onnx": self.decoder,
+                "vision_encoder_q4.onnx": self.vision,
+                "embed_tokens_q4.onnx": self.embed,
+                "decoder_model_merged_q4.onnx": self.decoder,
             }[os.path.basename(path)]
 
         for p in (

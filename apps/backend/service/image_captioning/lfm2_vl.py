@@ -32,9 +32,9 @@ MODEL_NAME = "lfm2_vl_450m"
 MODEL_DIR = os.path.join(MODELS_ROOT, MODEL_NAME)
 
 SESSION_FILES = {
-    "vision": "vision_encoder_q4f16.onnx",
-    "embed": "embed_tokens_q4f16.onnx",
-    "decoder": "decoder_model_merged_q4f16.onnx",
+    "vision": "vision_encoder_q4.onnx",
+    "embed": "embed_tokens_q4.onnx",
+    "decoder": "decoder_model_merged_q4.onnx",
 }
 
 PATCH_SIZE = 16
