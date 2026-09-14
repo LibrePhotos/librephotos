@@ -1235,6 +1235,7 @@
     "removefacestopersontitle": "Remove faces from person",
     "savecaptions": "Image caption updated",
     "captionupdate": "Update Caption",
+    "captionmodeldownloading": "The captioning model is being downloaded. Try again in a few minutes.",
     "scan_directory_required": "Scan directory not configured - contact administrator",
     "jobcancelled": "Job has been cancelled",
     "jobcancelledtitle": "Job Cancelled",

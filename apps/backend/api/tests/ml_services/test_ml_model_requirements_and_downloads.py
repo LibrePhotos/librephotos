@@ -12,6 +12,8 @@ from constance.test import override_config
 from django.test import TestCase, override_settings
 
 from api.ml_models import (
+    captioning_model_exists,
+    start_model_download,
     ML_MODELS,
     ModelChecksumError,
     MlTypes,
@@ -474,6 +476,43 @@ class MlModelSelectionTest(TestCase):
         TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
+    def test_captioning_model_exists_needs_every_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            model_root = Path(tmp) / "data_models"
+            with override_settings(MEDIA_ROOT=tmp):
+                self.assertFalse(captioning_model_exists())
+                _create_captioner(model_root)
+                self.assertTrue(captioning_model_exists())
+                (model_root / "lfm2_vl_450m" / LFM_FILES[-2]).unlink()
+                self.assertFalse(captioning_model_exists())
+
+    @patch("django_q.tasks.AsyncTask")
+    def test_start_model_download_queues_one_job(self, async_task):
+        user = create_test_user()
+
+        self.assertTrue(start_model_download(user))
+
+        async_task.assert_called_once()
+        self.assertIs(async_task.call_args.args[1], user)
+        async_task.return_value.run.assert_called_once_with()
+
+    @patch("django_q.tasks.AsyncTask")
+    def test_start_model_download_skips_when_one_is_running(self, async_task):
+        user = create_test_user()
+        LongRunningJob.create_job(
+            user=user, job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, start_now=True
+        )
+
+        self.assertTrue(start_model_download(user))
+
+        async_task.assert_not_called()
+
+    @patch("django_q.tasks.AsyncTask")
+    def test_start_model_download_reports_a_queue_failure(self, async_task):
+        async_task.return_value.run.side_effect = RuntimeError("broker down")
+
+        self.assertFalse(start_model_download(create_test_user()))
+
     def test_do_all_models_exist_requires_every_captioner_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             media_root = Path(temp_dir) / "protected_media"

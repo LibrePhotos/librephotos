@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, File, Photo, User
 from api.models.photo_stack import PhotoStack
 from api.models.person import Person
@@ -871,6 +872,20 @@ class GeneratePhotoCaption(APIView):
             return Response(
                 {"status": False, "message": "photo not found"},
                 status=404,
+            )
+
+        if not captioning_model_exists():
+            # The captioner is fetched with the other models, but a fresh
+            # install (or a model switch) can be asked for a caption before
+            # the download ran. Start it and tell the user to try again;
+            # a 200 so the client can read the reason.
+            start_model_download(request.user)
+            return Response(
+                {
+                    "status": False,
+                    "reason": "model_downloading",
+                    "message": "The captioning model is being downloaded. Try again in a few minutes.",
+                }
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
