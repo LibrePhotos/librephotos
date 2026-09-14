@@ -101,44 +101,46 @@ ML_MODELS = [
     },
     {
         # Liquid AI's LFM2.5-VL-450M (ONNX export by onnx-community, 4-bit
-        # weights, fp16 activations): the captioner. A vision-language model,
+        # weights, fp32 activations): the captioner. A vision-language model,
         # so the caption prompt can carry a person's name and the place. About
         # 0.9 GB of RAM while it captions. Always kept available, so turning
         # captioning on never waits for a download. The .onnx_data files are
         # the weights the small .onnx graphs point at and must keep their
-        # names.
+        # names. Not the q4f16 export: its FastGelu nodes run in float16,
+        # and not every ONNX Runtime CPU build has a float16 kernel for that
+        # (NOT_IMPLEMENTED at session creation; seen on an ARM64 host).
         "id": 18,
         "name": "lfm2_vl_450m",
-        "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx",
+        "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx",
         "type": MlTypes.CAPTIONING,
         "unpack-command": None,
-        "target-dir": "lfm2_vl_450m/vision_encoder_q4f16.onnx",
-        "sha256": "3b3c649be161ac04196dccf17a6dacbbc5bba27d305dc76df541da971a04b938",
+        "target-dir": "lfm2_vl_450m/vision_encoder_q4.onnx",
+        "sha256": "3457fe118939ecd52183660abafbbd32c810f41a0e8d1119a1f07ca2d4d9dcfc",
         "additional_files": [
             {
-                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx_data",
-                "target": "lfm2_vl_450m/vision_encoder_q4f16.onnx_data",
-                "sha256": "22cafaabfa07020c4426962e2c71aff05fd53b63af971bbbcf094f5cf7c9af07",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx_data",
+                "target": "lfm2_vl_450m/vision_encoder_q4.onnx_data",
+                "sha256": "03171ff302af006d2e5f55f9c09531d7938565626334809c94e6de54afc840b5",
             },
             {
-                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx",
-                "target": "lfm2_vl_450m/embed_tokens_q4f16.onnx",
-                "sha256": "8b0b2f8ce26a383d2064bac1949f0fee763dfc5625efa6b15166f6b115f23836",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx",
+                "target": "lfm2_vl_450m/embed_tokens_q4.onnx",
+                "sha256": "f0d663cbf75fc6a0c7b9669177335139b0c5a63575c6413037d48501eea0c4a5",
             },
             {
-                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx_data",
-                "target": "lfm2_vl_450m/embed_tokens_q4f16.onnx_data",
-                "sha256": "57b12507e5ad10435ae86ff73a7b2ea47119009d63706f3f843c4653b297152a",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx_data",
+                "target": "lfm2_vl_450m/embed_tokens_q4.onnx_data",
+                "sha256": "255994cbb7269ea24b43d3d57a7e64dcb54da69c77ea612f9c32af3dbb95158e",
             },
             {
-                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx",
-                "target": "lfm2_vl_450m/decoder_model_merged_q4f16.onnx",
-                "sha256": "7240383efa592695733484b1e4ec4c0474a652d445280c748baf10b51eceacb8",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx",
+                "target": "lfm2_vl_450m/decoder_model_merged_q4.onnx",
+                "sha256": "00b4c0ed1008194b6ed813e5d17724db122ef71e963197424022aaf93966515a",
             },
             {
-                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx_data",
-                "target": "lfm2_vl_450m/decoder_model_merged_q4f16.onnx_data",
-                "sha256": "a93e7fc1821e8aaefc33d30af4299411cf0490456d769795bd30db00cb38be95",
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx_data",
+                "target": "lfm2_vl_450m/decoder_model_merged_q4.onnx_data",
+                "sha256": "0440e6e97953a70705ef1901cb1267bc80cb69ae7d4ca25010891c5770e989d5",
             },
             {
                 "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json",

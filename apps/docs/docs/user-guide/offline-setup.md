@@ -19,12 +19,12 @@ Manually download the necessary models from their respective URLs. Below is a li
    - Text model: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx`
    - Tokenizer: `https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json`
 3. **lfm2_vl_450m** (Captioning)
-   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx`
-   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4f16.onnx_data`
-   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx`
-   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4f16.onnx_data`
-   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx`
-   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4f16.onnx_data`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx_data`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx_data`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx`
+   - `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx_data`
    - Tokenizer: `https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json`
 4. **siglip2** (Tagging) (optional — only if using SigLIP 2 tagging model)
    - Vision model: `https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX/resolve/main/onnx/vision_model.onnx`
@@ -67,12 +67,12 @@ data_models/
     │   ├── text_model.onnx
     │   └── tokenizer.json
     ├── lfm2_vl_450m/
-    │   ├── vision_encoder_q4f16.onnx
-    │   ├── vision_encoder_q4f16.onnx_data
-    │   ├── embed_tokens_q4f16.onnx
-    │   ├── embed_tokens_q4f16.onnx_data
-    │   ├── decoder_model_merged_q4f16.onnx
-    │   ├── decoder_model_merged_q4f16.onnx_data
+    │   ├── vision_encoder_q4.onnx
+    │   ├── vision_encoder_q4.onnx_data
+    │   ├── embed_tokens_q4.onnx
+    │   ├── embed_tokens_q4.onnx_data
+    │   ├── decoder_model_merged_q4.onnx
+    │   ├── decoder_model_merged_q4.onnx_data
     │   └── tokenizer.json
     ├── siglip2/
     │   ├── vision_model.onnx

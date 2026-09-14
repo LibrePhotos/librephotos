@@ -36,12 +36,12 @@ def _ocr_model(tier):
 
 
 LFM_FILES = (
-    "vision_encoder_q4f16.onnx",
-    "vision_encoder_q4f16.onnx_data",
-    "embed_tokens_q4f16.onnx",
-    "embed_tokens_q4f16.onnx_data",
-    "decoder_model_merged_q4f16.onnx",
-    "decoder_model_merged_q4f16.onnx_data",
+    "vision_encoder_q4.onnx",
+    "vision_encoder_q4.onnx_data",
+    "embed_tokens_q4.onnx",
+    "embed_tokens_q4.onnx_data",
+    "decoder_model_merged_q4.onnx",
+    "decoder_model_merged_q4.onnx_data",
     "tokenizer.json",
 )
 

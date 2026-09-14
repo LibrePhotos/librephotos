@@ -12,7 +12,7 @@ To use the feature, open one of your own photos and click the information icon i
 
 ## Which model writes the captions?
 
-Captions come from [LFM2.5-VL](https://huggingface.co/LiquidAI/LFM2.5-VL-450M), a small vision-language model from Liquid AI that runs on ONNX Runtime like every other model in LibrePhotos. It is always available: the files (about 320 MB) are fetched with the other models, and there is nothing to pick. The model needs about 0.9 GB of RAM while it captions and takes a few seconds per photo on an older desktop CPU, under a second on a recent one.
+Captions come from [LFM2.5-VL](https://huggingface.co/LiquidAI/LFM2.5-VL-450M), a small vision-language model from Liquid AI that runs on ONNX Runtime like every other model in LibrePhotos. It is always available: the files (about 370 MB) are fetched with the other models, and there is nothing to pick. The model needs about 0.9 GB of RAM while it captions and takes a few seconds per photo on an older desktop CPU, under a second on a recent one.
 
 It writes one natural sentence, for example "A rocket is taking off from a launch pad at night, with two tall metal towers flanking the launch site." Because it is a vision-language model it also takes instructions, which is what the caption context settings below use.
 
