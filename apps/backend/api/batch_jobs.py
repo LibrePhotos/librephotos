@@ -9,18 +9,6 @@ from api.models.photo import Photo
 from api.semantic_search import create_clip_embeddings
 
 
-def configure_torch_runtime():
-    import torch
-
-    if not torch.cuda.is_available():
-        num_threads = 1
-        torch.set_num_threads(num_threads)
-        os.environ["OMP_NUM_THREADS"] = str(num_threads)
-    else:
-        torch.multiprocessing.set_start_method("spawn", force=True)
-    util.logger.info(f"Using threads: {torch.get_num_threads()}")
-
-
 def photos_missing_clip_embeddings(user):
     return Photo.objects.filter(Q(owner=user) & Q(clip_embeddings__isnull=True))
 
@@ -40,6 +28,13 @@ def store_clip_embeddings(objs):
     imgs_emb, magnitudes = create_clip_embeddings(imgs)
 
     for obj, img_emb, magnitude in zip(objs, imgs_emb, magnitudes):
+        if img_emb is None:
+            # The sidecar could not read this thumbnail; leave the photo for
+            # a later run rather than storing somebody else's embedding.
+            util.logger.warning(
+                f"No CLIP embedding for {obj.image_hash}: unreadable thumbnail"
+            )
+            continue
         obj.clip_embeddings = img_emb.tolist()
         obj.clip_embeddings_magnitude = magnitude
         obj.save()
@@ -54,8 +49,6 @@ def batch_calculate_clip_embedding(user):
 
     count = photos_missing_clip_embeddings(user).count()
     lrj.update_progress(current=0, target=count)
-
-    configure_torch_runtime()
 
     BATCH_SIZE = 64
     done_count = 0

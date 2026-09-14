@@ -37,15 +37,24 @@ def _ocr_model(tier):
 
 class MlModelsTest(TestCase):
     def _create_required_models(self, model_root: Path):
-        (model_root / "im2txt").mkdir(parents=True)
-        (model_root / "clip-embeddings").mkdir(parents=True)
-        (model_root / "places365").mkdir(parents=True)
-        (model_root / "resnet18-5c106cde.pth").write_bytes(b"model")
+        for name in ("clip_vit_b32", "mobileclip_s2"):
+            (model_root / name).mkdir(parents=True)
+            for filename in ("vision_model.onnx", "text_model.onnx", "tokenizer.json"):
+                (model_root / name / filename).write_bytes(b"model")
+        (model_root / "florence2_base_int8").mkdir(parents=True)
+        for filename in (
+            "vision_encoder.onnx",
+            "embed_tokens.onnx",
+            "encoder_model.onnx",
+            "decoder_model_merged.onnx",
+            "tokenizer.json",
+        ):
+            (model_root / "florence2_base_int8" / filename).write_bytes(b"model")
 
     @override_config(
-        CAPTIONING_MODEL="im2txt",
+        CAPTIONING_MODEL="florence2_base_int8",
         LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_do_all_models_exist_only_requires_selected_face_model(self):
@@ -63,9 +72,9 @@ class MlModelsTest(TestCase):
                 self.assertTrue(do_all_models_exist())
 
     @override_config(
-        CAPTIONING_MODEL="im2txt",
+        CAPTIONING_MODEL="florence2_base_int8",
         LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_l",
     )
     def test_do_all_models_exist_requires_active_face_model(self):
@@ -258,7 +267,7 @@ class DownloadModelsJobTest(TestCase):
 
         def fake_download_model(model):
             attempted.append(model["name"])
-            if model["name"] == "places365":
+            if model["name"] == "mobileclip_s2":
                 raise requests.HTTPError("404 Error")
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -273,7 +282,7 @@ class DownloadModelsJobTest(TestCase):
         job = LongRunningJob.objects.get(job_type=LongRunningJob.JOB_DOWNLOAD_MODELS)
         self.assertTrue(job.failed)
         self.assertTrue(job.finished)
-        self.assertIn("places365", job.result["error"])
+        self.assertIn("mobileclip_s2", job.result["error"])
         self.assertEqual(len(ML_MODELS), job.progress_current)
 
     def test_job_completes_when_every_model_downloads(self):
@@ -439,9 +448,10 @@ class MlModelSelectionTest(TestCase):
         return [model["name"] for model in _iter_required_models()]
 
     def _create_required_models(self, model_root: Path):
-        (model_root / "clip-embeddings").mkdir(parents=True)
-        (model_root / "places365").mkdir(parents=True)
-        (model_root / "resnet18-5c106cde.pth").write_bytes(b"model")
+        for name in ("clip_vit_b32", "mobileclip_s2"):
+            (model_root / name).mkdir(parents=True)
+            for filename in ("vision_model.onnx", "text_model.onnx", "tokenizer.json"):
+                (model_root / name / filename).write_bytes(b"model")
         selected_face_model = model_root / "face_recognition" / "models" / "buffalo_sc"
         selected_face_model.mkdir(parents=True)
         (selected_face_model / "w600k_mbf.onnx").write_bytes(b"model")
@@ -449,7 +459,7 @@ class MlModelSelectionTest(TestCase):
     @override_config(
         CAPTIONING_MODEL="moondream",
         LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_moondream_selected_as_captioning_model(self):
@@ -458,16 +468,16 @@ class MlModelSelectionTest(TestCase):
     @override_config(
         CAPTIONING_MODEL="None",
         LLM_MODEL="moondream",
-        TAGGING_MODEL="places365",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_moondream_selected_as_llm_model(self):
         self.assertIn("moondream", self._selected_model_names())
 
     @override_config(
-        CAPTIONING_MODEL="im2txt",
+        CAPTIONING_MODEL="florence2_base_int8",
         LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_moondream_not_selected_when_unused(self):
@@ -476,7 +486,7 @@ class MlModelSelectionTest(TestCase):
     @override_config(
         CAPTIONING_MODEL="moondream",
         LLM_MODEL="None",
-        TAGGING_MODEL="places365",
+        TAGGING_MODEL="mobileclip_s2",
         FACE_RECOGNITION_MODEL="buffalo_sc",
     )
     def test_do_all_models_exist_requires_moondream_for_captioning(self):

@@ -23,8 +23,8 @@ import { Route as ProtectedScreenshotsRouteImport } from './routes/_protected/sc
 import { Route as ProtectedRecentRouteImport } from './routes/_protected/recent'
 import { Route as ProtectedProfileRouteImport } from './routes/_protected/profile'
 import { Route as ProtectedPhotosRouteImport } from './routes/_protected/photos'
-import { Route as ProtectedMemoriesRouteImport } from './routes/_protected/memories'
 import { Route as ProtectedNotimestampRouteImport } from './routes/_protected/notimestamp'
+import { Route as ProtectedMemoriesRouteImport } from './routes/_protected/memories'
 import { Route as ProtectedLibraryRouteImport } from './routes/_protected/library'
 import { Route as ProtectedHiddenRouteImport } from './routes/_protected/hidden'
 import { Route as ProtectedFavoritesRouteImport } from './routes/_protected/favorites'
@@ -136,14 +136,14 @@ const ProtectedPhotosRoute = ProtectedPhotosRouteImport.update({
   path: '/photos',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
-const ProtectedMemoriesRoute = ProtectedMemoriesRouteImport.update({
-  id: '/memories',
-  path: '/memories',
-  getParentRoute: () => ProtectedRouteRoute,
-} as any)
 const ProtectedNotimestampRoute = ProtectedNotimestampRouteImport.update({
   id: '/notimestamp',
   path: '/notimestamp',
+  getParentRoute: () => ProtectedRouteRoute,
+} as any)
+const ProtectedMemoriesRoute = ProtectedMemoriesRouteImport.update({
+  id: '/memories',
+  path: '/memories',
   getParentRoute: () => ProtectedRouteRoute,
 } as any)
 const ProtectedLibraryRoute = ProtectedLibraryRouteImport.update({
@@ -826,18 +826,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPhotosRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
-    '/_protected/memories': {
-      id: '/_protected/memories'
-      path: '/memories'
-      fullPath: '/memories'
-      preLoaderRoute: typeof ProtectedMemoriesRouteImport
-      parentRoute: typeof ProtectedRouteRoute
-    }
     '/_protected/notimestamp': {
       id: '/_protected/notimestamp'
       path: '/notimestamp'
       fullPath: '/notimestamp'
       preLoaderRoute: typeof ProtectedNotimestampRouteImport
+      parentRoute: typeof ProtectedRouteRoute
+    }
+    '/_protected/memories': {
+      id: '/_protected/memories'
+      path: '/memories'
+      fullPath: '/memories'
+      preLoaderRoute: typeof ProtectedMemoriesRouteImport
       parentRoute: typeof ProtectedRouteRoute
     }
     '/_protected/library': {

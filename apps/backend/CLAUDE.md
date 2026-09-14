@@ -74,7 +74,7 @@
 - **Target Python**: 3.11+
 - **Framework**: Django 5.x with Django REST Framework
 - **Async Jobs**: django-q2 with ORM broker
-- **ML Framework**: PyTorch for machine learning models
+- **ML Runtime**: ONNX Runtime for every model (no PyTorch); tokenizers via the `tokenizers` package
 
 ## Project Structure
 
@@ -89,12 +89,12 @@
 - `feature/` - Feature extraction utilities
 
 ### `service/` - Microservices
-- `clip_embeddings/` - CLIP model for semantic search
+- `clip_embeddings/` - CLIP ViT-B/32 (ONNX) embeddings for semantic search
 - `face_recognition/` - Face detection and recognition
-- `image_captioning/` - Image captioning (im2txt, BLIP)
+- `image_captioning/` - Image captioning (Florence-2, ONNX)
 - `thumbnail/` - Thumbnail generation
-- `llm/` - LLM integration for chat features
-- `tags/` - Tag extraction (places365)
+- `llm/` - LLM integration for chat features and Moondream captions
+- `tags/` - Zero-shot tagging (MobileCLIP-S2, SigLIP 2; ONNX)
 - `exif/` - EXIF metadata extraction
 
 ### `image_similarity/` - Similarity Search

@@ -24,11 +24,16 @@ const MAP_TILE_PROVIDERS = [
 ];
 
 const CAPTIONING_MODELS = [
-  { value: "im2txt", label: "im2txt PyTorch" },
-  { value: "blip_base_capfilt_large", label: "BLIP Base Capfilt Large" },
+  { value: "florence2_base_int8", label: "Florence-2 Base (int8, lighter)" },
+  { value: "florence2_base", label: "Florence-2 Base (most accurate)" },
   { value: "moondream", label: "Moondream Visual LLM" },
   { value: "none", label: "None" },
 ];
+
+// The fp32 Florence-2 needs about 2 GB of RAM while it captions; the int8 one about half.
+const RAM_HEAVY_CAPTIONING_MODEL = "florence2_base";
+const DEFAULT_CAPTIONING_MODEL = "florence2_base_int8";
+const DEFAULT_TAGGING_MODEL = "mobileclip_s2";
 
 const LLM_MODELS = [
   { value: "mistral-7b-instruct-v0.2.Q5_K_M", label: "Mistral 7B Instruct v0.2 Q5 K M" },
@@ -37,8 +42,8 @@ const LLM_MODELS = [
 ];
 
 const TAGGING_MODELS = [
-  { value: "places365", label: "Places365 Scene Recognition" },
-  { value: "siglip2", label: "SigLIP 2 (Real-world photo tags)" },
+  { value: "mobileclip_s2", label: "MobileCLIP-S2 (fast, default)" },
+  { value: "siglip2", label: "SigLIP 2 (most accurate)" },
 ];
 
 const OCR_MODELS = [
@@ -78,9 +83,9 @@ export function SiteSettings() {
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [nextcloudEnabled, setNextcloudEnabled] = useState(false);
-  const [captioningModel, setCaptioningModel] = useState("im2txt");
+  const [captioningModel, setCaptioningModel] = useState(DEFAULT_CAPTIONING_MODEL);
   const [llmModel, setLlmModel] = useState("none");
-  const [taggingModel, setTaggingModel] = useState("places365");
+  const [taggingModel, setTaggingModel] = useState(DEFAULT_TAGGING_MODEL);
   const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
   // Restored when the user backs out of the OCR confirmation dialog.
   const [previousOcrModel, setPreviousOcrModel] = useState(OCR_DISABLED);
@@ -92,8 +97,8 @@ export function SiteSettings() {
   const [opened, { open, close }] = useDisclosure(false);
 
   const saveSettingsWithValidation = (input: any) => {
-    if (input.captioning_model === "blip_base_capfilt_large") {
-      setWarning("blip");
+    if (input.captioning_model === RAM_HEAVY_CAPTIONING_MODEL) {
+      setWarning("captioning");
       open();
       return;
     }
@@ -101,9 +106,9 @@ export function SiteSettings() {
   };
 
   const dismissWarning = () => {
-    if (warning === "blip") {
-      setCaptioningModel("im2txt");
-      saveSettings({ captioning_model: "im2txt" });
+    if (warning === "captioning") {
+      setCaptioningModel(DEFAULT_CAPTIONING_MODEL);
+      saveSettings({ captioning_model: DEFAULT_CAPTIONING_MODEL });
     }
     if (warning === "ocr") {
       setOcrModel(previousOcrModel);
@@ -112,7 +117,7 @@ export function SiteSettings() {
   };
 
   const confirmWarning = () => {
-    if (warning === "blip") {
+    if (warning === "captioning") {
       saveSettings({ captioning_model: captioningModel });
     }
     if (warning === "ocr") {
@@ -152,7 +157,7 @@ export function SiteSettings() {
         }
       >
         <Stack>
-          <Text>{warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.blip_warning")}</Text>
+          <Text>{warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.captioning_ram_warning")}</Text>
           <Group>
             <Button onClick={dismissWarning}>{t("cancel")}</Button>
             <Button onClick={confirmWarning} color="red">
@@ -329,7 +334,7 @@ export function SiteSettings() {
                 data={TAGGING_MODELS}
                 value={taggingModel}
                 onChange={model => {
-                  const value = model ?? "places365";
+                  const value = model ?? DEFAULT_TAGGING_MODEL;
                   saveSettings({ tagging_model: value });
                   setTaggingModel(value);
                 }}

@@ -12,23 +12,25 @@ To use the feature, open one of your own photos and click the information icon i
 
 ## How do I change the model?
 
-Click on your avatar in the top right and go to `Admin Area`. There is a setting for `Captioning Model` where you can choose between the different models. After selecting `im2txt` or `BLIP Base Capfilt Large`, the model is downloaded and added to your `data_models` folder.
+Click on your avatar in the top right and go to `Admin Area`. There is a setting for `Captioning Model` where you can choose between the different models. After selecting one of the `Florence-2 Base` variants, the model is downloaded and added to your `data_models` folder.
 
 Moondream is the exception: its files are only downloaded when `Moondream Visual LLM` is also selected as the `LLM Model`. If you set `Captioning Model` to Moondream while `LLM Model` is left at `None`, the model files are never fetched and captioning fails. To use Moondream, set **both** `Captioning Model` and `LLM Model` to `Moondream Visual LLM`.
 
-Selecting `BLIP Base Capfilt Large` opens a confirmation dialog titled *Large RAM Size possible*, warning that the model needs an additional 3 GB of RAM. Click **Save** to apply it; clicking **Cancel** — or closing the dialog — resets the captioning model back to `im2txt`.
+Selecting `Florence-2 Base (most accurate)` opens a confirmation dialog titled *Large RAM Size possible*, warning that the model needs about 2 GB of additional RAM while it captions. Click **Save** to apply it; clicking **Cancel** — or closing the dialog — resets the captioning model back to `Florence-2 Base (int8, lighter)`.
 
 ## What is the difference between the models?
 
-There are three captioning models to choose from — `im2txt PyTorch`, `BLIP Base Capfilt Large`, and `Moondream Visual LLM` — plus a `None` option that turns captioning off. When `None` is selected, no captioning model is downloaded.
+There are three captioning models to choose from — `Florence-2 Base (int8, lighter)`, `Florence-2 Base (most accurate)`, and `Moondream Visual LLM` — plus a `None` option that turns captioning off. When `None` is selected, no captioning model is downloaded.
 
-### im2txt PyTorch
+All of them run on ONNX Runtime or llama.cpp; LibrePhotos no longer ships PyTorch. The earlier `im2txt` and `BLIP` models were retired with it, and an install that had one of them selected is moved to `Florence-2 Base (int8, lighter)` automatically.
 
-This model serves as the default choice. It offers rapid results and represents the original implementation of the image captioning task. It uses the PyTorch deep learning framework and has been a reliable option for users seeking both speed and baseline performance.
+### Florence-2 Base (int8, lighter)
 
-### BLIP Base Capfilt Large
+Microsoft's [Florence-2](https://huggingface.co/microsoft/Florence-2-base-ft) writes one-sentence captions such as "A tall red and yellow pagoda tower next to a body of water." This is the default. Its weights are quantised to int8, which makes the download about 280 MB and keeps the model under about 1.5 GB of RAM while it captions. It is the faster of the two variants on recent CPUs (Intel Ice Lake, AMD Zen 4 and newer, and ARM), and somewhat slower than the fp32 variant on older ones.
 
-The next generation model "BLIP" excels in providing highly accurate image descriptions. However, it comes with a trade-off, as it operates at approximately 20 times slower speeds than "im2txt PyTorch." This deliberate sacrifice in speed is made to achieve superior descriptive accuracy, making "BLIP" an ideal choice for applications prioritizing precision over real-time processing. BLIP is also the most memory-hungry of these models: it needs roughly 3 GB of RAM on top of what LibrePhotos already uses, so it is a poor fit for a host with only 4 GB.
+### Florence-2 Base (most accurate)
+
+The same model with full-precision weights: about 1.1 GB to download and about 2 GB of extra RAM while it captions, for the best captions Florence-2 can give. On a host with 4 GB of RAM prefer the int8 variant.
 
 ### Moondream Visual LLM
 
@@ -55,5 +57,5 @@ Two further switches become available once the LLM is enabled — **Add Persons 
 
 How the LLM is applied depends on the captioning model:
 
-- With **im2txt PyTorch** or **BLIP Base Capfilt Large**, the model generates a caption first and the LLM then rewrites it in a second pass.
+- With either **Florence-2 Base** variant, the model generates a caption first and the LLM then rewrites it in a second pass.
 - With **Moondream Visual LLM**, there is no second pass — the caption prompt itself is rebuilt before generation, so the person and location hints steer the original output.

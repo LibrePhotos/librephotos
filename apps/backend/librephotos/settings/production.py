@@ -26,11 +26,8 @@ DATA_ROOT = PHOTOS
 # if you run a rebuilt proxy whose nginx uses different ids.
 WEBSERVER_UID = int(os.environ.get("WEBSERVER_UID", "101"))
 WEBSERVER_GID = int(os.environ.get("WEBSERVER_GID", "101"))
-IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
-
-BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
-PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
-CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
+# CLIP ViT-B/32 (ONNX) for semantic search; see api/ml_models.py.
+CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip_vit_b32")
 
 # Videos in a container or codec the browser cannot decode are converted on the
 # fly for users who turn on "Always transcode videos". A live conversion has no
@@ -234,8 +231,8 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("none", "None"),
-                ("im2txt", "im2txt PyTorch Model"),
-                ("blip_base_capfilt_large", "BLIP Model"),
+                ("florence2_base_int8", "Florence-2 Base (int8, lighter)"),
+                ("florence2_base", "Florence-2 Base (most accurate)"),
                 ("moondream", "Moondream Visual LLM"),
             ),
         },
@@ -256,8 +253,8 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         {
             "widget": "django.forms.Select",
             "choices": (
-                ("places365", "Places365 Scene Recognition"),
-                ("siglip2", "SigLIP 2 (Real-world photo tags)"),
+                ("mobileclip_s2", "MobileCLIP-S2 (fast, default)"),
+                ("siglip2", "SigLIP 2 (most accurate)"),
             ),
         },
     ],
@@ -324,9 +321,13 @@ CONSTANCE_CONFIG = {
         "map_tile_provider",
     ),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
-    "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
+    "CAPTIONING_MODEL": (
+        "florence2_base_int8",
+        "Captioning model",
+        "captioning_model",
+    ),
     "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
-    "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
+    "TAGGING_MODEL": ("mobileclip_s2", "Tagging model", "tagging_model"),
     "OCR_MODEL": (
         "None",
         "OCR model. OCR extracts ALL readable text from photos into the database"

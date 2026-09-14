@@ -126,14 +126,36 @@ def _get_cpu_info():
 
 
 def _get_gpu_info():
-    import torch
+    """(name, total memory in MB) of the first NVIDIA GPU, or two empty strings.
 
-    if not torch.cuda.is_available():
+    Asks nvidia-smi, which the NVIDIA container toolkit mounts into a GPU
+    container; a machine without it, or without a GPU, reports nothing.
+    """
+    import subprocess
+
+    try:
+        output = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
         return "", ""
-    return (
-        torch.cuda.get_device_name(0),
-        calc_megabytes(torch.cuda.get_device_properties(0).total_memory),
-    )
+
+    first_line = output.strip().splitlines()[0] if output.strip() else ""
+    name, _, memory_mb = first_line.partition(",")
+    if not name:
+        return "", ""
+    try:
+        return name.strip(), int(float(memory_mb.strip()))
+    except ValueError:
+        return name.strip(), ""
 
 
 def _aggregate_stats(queryset, related, photo_filter=None):
@@ -360,17 +382,13 @@ class _LabelTally:
         )[:limit]
 
 
-def _places365_labels(captions_json):
-    places365 = (captions_json or {}).get("places365", {})
-    labels = []
-    for key in ("categories", "attributes"):
-        values = places365.get(key, [])
-        if isinstance(values, list):
-            labels.extend(str(value) for value in values if value)
-    environment = places365.get("environment")
-    if isinstance(environment, str) and environment:
-        labels.append(environment)
-    return labels
+def _tag_labels(captions_json, tagging_model):
+    """The active tagging model's tags for one photo, as word-cloud labels."""
+    tag_result = (captions_json or {}).get(tagging_model) or {}
+    values = tag_result.get("tags", []) if isinstance(tag_result, dict) else []
+    if not isinstance(values, list):
+        return []
+    return [str(value) for value in values if value]
 
 
 def _location_texts(geolocation_json):
@@ -401,7 +419,10 @@ def get_searchterms_wordcloud(user):
     # Python fallbacks (SQLite): stream and aggregate
     order_index = 0
 
-    # Captions: use Places365 categories, attributes and environment from captions_json
+    # Things: the active tagging model's tags from captions_json
+    from constance import config as site_config
+
+    tagging_model = site_config.TAGGING_MODEL
     captions = _LabelTally()
     captions_iter = (
         Photo.objects.filter(owner=user)
@@ -411,7 +432,7 @@ def get_searchterms_wordcloud(user):
     )
     for caps in captions_iter:
         try:
-            labels = _places365_labels(caps)
+            labels = _tag_labels(caps, tagging_model)
         except Exception:
             continue
         for label in labels:

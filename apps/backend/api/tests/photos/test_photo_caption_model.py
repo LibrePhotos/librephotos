@@ -54,21 +54,17 @@ class PhotoCaptionModelTest(TestCase):
         """Test that generate_tag_captions skips if active model tags already exist"""
         caption = PhotoCaption.objects.create(photo=self.photo)
 
-        # Pre-populate places365 data (the default tagging model)
+        # Pre-populate tags for the default tagging model
         caption.captions_json = {
-            "places365": {
-                "categories": ["outdoor", "landscape"],
-                "attributes": ["natural", "sunny"],
-                "environment": "outdoor",
-            }
+            "mobileclip_s2": {"tags": ["outdoor", "landscape", "natural", "sunny"]}
         }
         caption.save()
 
-        # Should return early since places365 tags already exist
+        # Should return early since the active model's tags already exist
         caption.generate_tag_captions(commit=True)
         caption.refresh_from_db()
 
-        self.assertIn("places365", caption.captions_json)
+        self.assertIn("mobileclip_s2", caption.captions_json)
 
     def test_recreate_search_captions_delegates_to_photo_search(self):
         """Test that recreate_search_captions delegates to PhotoSearch"""
@@ -118,17 +114,13 @@ class PhotoCaptionModelTest(TestCase):
             captions_json={
                 "user_caption": "My photo",
                 "im2txt": "a photo of a landscape",
-                "places365": {
-                    "categories": ["outdoor"],
-                    "attributes": ["natural"],
-                    "environment": "outdoor",
-                },
+                "mobileclip_s2": {"tags": ["outdoor", "natural"]},
             },
         )
 
         self.assertEqual(caption.captions_json["user_caption"], "My photo")
         self.assertEqual(caption.captions_json["im2txt"], "a photo of a landscape")
-        self.assertIn("categories", caption.captions_json["places365"])
+        self.assertIn("tags", caption.captions_json["mobileclip_s2"])
 
     def test_update_existing_captions(self):
         """Test updating existing captions"""

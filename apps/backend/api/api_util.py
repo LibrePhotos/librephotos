@@ -52,6 +52,9 @@ def path_to_dict(path, recurse=2):
 
 
 def get_search_term_examples(user):
+    from constance import config as site_config
+
+    tagging_model = site_config.TAGGING_MODEL
     default_search_terms = [
         "for people",
         "for places",
@@ -109,12 +112,10 @@ def get_search_term_examples(user):
                 f.person.name.split(" ")[0] if f.person else "" for f in faces
             ]
         terms_things = ""
-        if (
-            p.caption_instance
-            and p.caption_instance.captions_json
-            and p.caption_instance.captions_json.get("places365") is not None
-        ):
-            terms_things = p.caption_instance.captions_json["places365"]["categories"]
+        if p.caption_instance and p.caption_instance.captions_json:
+            tag_result = p.caption_instance.captions_json.get(tagging_model)
+            if tag_result is not None:
+                terms_things = tag_result.get("tags", [])
 
         terms = {
             "loc": terms_loc,

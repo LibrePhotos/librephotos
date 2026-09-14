@@ -4,11 +4,15 @@ import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
-from api.im2txt.sample import Im2txt
+from florence2 import Florence2Captioner, model_dir_for
 
 app = Flask(__name__)
 
-im2txt_instance = None
+DEFAULT_MODEL = "florence2_base_int8"
+CAPTIONING_MODELS = ("florence2_base", "florence2_base_int8")
+
+captioner = None
+captioner_model = None
 last_request_time = None
 
 
@@ -16,36 +20,47 @@ def log(message):
     print(f"image_captioning: {message}")
 
 
+def get_captioner(model):
+    """The loaded captioner for ``model``, swapping it out when the model changes."""
+    global captioner, captioner_model
+    if captioner is None or captioner_model != model:
+        if captioner is not None:
+            captioner.unload()
+        captioner = Florence2Captioner(model_dir_for(model))
+        captioner_model = model
+    return captioner
+
+
 @app.route("/generate-caption", methods=["POST"])
 def generate_caption():
     global last_request_time
-    # Update last request time
     last_request_time = time.time()
 
     try:
         data = request.get_json()
         image_path = data["image_path"]
-        onnx = data["onnx"]
-        blip = data["blip"]
+        model = data.get("model") or DEFAULT_MODEL
     except Exception as e:
         print(str(e))
         return "", 400
 
-    global im2txt_instance
+    if model not in CAPTIONING_MODELS:
+        return {"error": f"Unknown captioning model {model!r}"}, 400
 
-    if im2txt_instance is None:
-        im2txt_instance = Im2txt(blip=blip)
-
-    return {
-        "caption": im2txt_instance.generate_caption(image_path=image_path, onnx=onnx)
-    }, 201
+    try:
+        return {"caption": get_captioner(model).caption(image_path)}, 201
+    except Exception as e:
+        log(f"error captioning {image_path}: {e}")
+        return {"error": "Failed to generate caption"}, 500
 
 
 @app.route("/unload-model", methods=["GET"])
 def unload_model():
-    global im2txt_instance
-    im2txt_instance.unload_models()
-    im2txt_instance = None
+    global captioner, captioner_model
+    if captioner is not None:
+        captioner.unload()
+    captioner = None
+    captioner_model = None
     return "", 200
 
 

@@ -1,7 +1,7 @@
 """Tests for the ``PhotoSearch`` model.
 
 Covers creation and the one-to-one link to ``Photo``, ``recreate_search_captions``
-across every contributing source (places365, user caption, im2txt, faces, file
+across every contributing source (tags, user caption, im2txt, faces, file
 path, video type, camera/lens, IPTC keywords), ``update_search_location``, field
 defaults/indexes and cascade delete.  The ``PhotoSearchDirectAccessTest`` class
 at the bottom is the post-refactor smoke suite: it pins the reverse accessors
@@ -48,17 +48,12 @@ class PhotoSearchModelTest(TestCase):
                 photo=self.photo, search_captions="second search"
             )
 
-    def test_recreate_search_captions_with_places365(self):
-        """Test recreating search captions with places365 data"""
-        # Create PhotoCaption with places365 data
+    def test_recreate_search_captions_with_tags(self):
+        """Test recreating search captions with the active tagging model's tags"""
         PhotoCaption.objects.create(
             photo=self.photo,
             captions_json={
-                "places365": {
-                    "attributes": ["natural", "sunny"],
-                    "categories": ["outdoor", "landscape"],
-                    "environment": "outdoor",
-                }
+                "mobileclip_s2": {"tags": ["natural", "sunny", "outdoor", "landscape"]}
             },
         )
 
@@ -189,11 +184,7 @@ class PhotoSearchModelTest(TestCase):
             captions_json={
                 "user_caption": "My vacation",
                 "im2txt": "a beautiful landscape",
-                "places365": {
-                    "attributes": ["natural", "sunny"],
-                    "categories": ["outdoor"],
-                    "environment": "outdoor",
-                },
+                "mobileclip_s2": {"tags": ["natural", "sunny", "outdoor"]},
             },
         )
 
@@ -231,13 +222,11 @@ class PhotoSearchModelTest(TestCase):
         field = PhotoSearch._meta.get_field("search_location")
         self.assertTrue(field.db_index)
 
-    def test_empty_places365_handling(self):
-        """Test handling of empty places365 data"""
+    def test_empty_tags_handling(self):
+        """Test handling of an empty tag result from the active tagging model"""
         PhotoCaption.objects.create(
             photo=self.photo,
-            captions_json={
-                "places365": {"attributes": [], "categories": [], "environment": ""}
-            },
+            captions_json={"mobileclip_s2": {"tags": []}},
         )
 
         search = PhotoSearch.objects.create(photo=self.photo)

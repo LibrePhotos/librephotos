@@ -19,8 +19,9 @@ def create_clip_embeddings(imgs):
     imgs_emb = clip_embeddings["imgs_emb"]
     magnitudes = clip_embeddings["magnitudes"]
 
-    # Convert Python lists to NumPy arrays
-    imgs_emb = [np.array(enc) for enc in imgs_emb]
+    # One slot per requested image; the sidecar sends null for an image it
+    # could not read, and that slot stays None so positions keep lining up.
+    imgs_emb = [None if enc is None else np.array(enc) for enc in imgs_emb]
 
     return imgs_emb, magnitudes
 

@@ -38,11 +38,10 @@ def _generate_caption_moondream(image_path, prompt):
         return "Error generating caption with Moondream"
 
 
-def _generate_caption_sidecar(image_path, blip):
+def _generate_caption_sidecar(image_path, model):
     json_data = {
         "image_path": image_path,
-        "onnx": False,
-        "blip": blip,
+        "model": model,
     }
     caption_response = requests.post(
         "http://localhost:8007/generate-caption", json=json_data, timeout=CAPTION
@@ -51,11 +50,18 @@ def _generate_caption_sidecar(image_path, blip):
     return caption_response["caption"]
 
 
-def generate_caption(image_path, blip=False, prompt=None):
-    if site_config.CAPTIONING_MODEL == "moondream":
+def generate_caption(image_path, prompt=None):
+    """A caption for the photo from the site's captioning model.
+
+    Moondream goes through the LLM sidecar; every other model is one of the
+    Florence-2 variants served by the image captioning sidecar, which is told
+    which variant to load.
+    """
+    model = site_config.CAPTIONING_MODEL
+    if model == "moondream":
         return _generate_caption_moondream(image_path, prompt)
 
-    return _generate_caption_sidecar(image_path, blip)
+    return _generate_caption_sidecar(image_path, model)
 
 
 def unload_model():

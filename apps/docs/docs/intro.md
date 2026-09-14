@@ -44,7 +44,8 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 - **EXIF Support:** [ExifTool](https://github.com/exiftool/exiftool)
 - **Face detection:** [InsightFace](https://github.com/deepinsight/insightface) (SCRFD detector + ArcFace embeddings)
 - **Face classification/clusterization:** [scikit-learn](https://scikit-learn.org/) and [hdbscan](https://github.com/scikit-learn-contrib/hdbscan)
-- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt), [BLIP](https://github.com/salesforce/BLIP), and [Moondream 2](https://github.com/vikhyat/moondream)
-- **Scene classification / tagging:** [places365](http://places.csail.mit.edu/) (default) or [SigLIP 2](https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX), selectable in the admin site settings
-- **Semantic search:** [CLIP](https://huggingface.co/sentence-transformers/clip-ViT-B-32) via [sentence-transformers](https://www.sbert.net/), with embeddings indexed by [FAISS](https://github.com/facebookresearch/faiss) (also powers similar-photo suggestions)
+- **Image captioning:** [Florence-2](https://huggingface.co/onnx-community/Florence-2-base-ft) (default) or [Moondream 2](https://github.com/vikhyat/moondream)
+- **Scene classification / tagging:** [MobileCLIP-S2](https://huggingface.co/Xenova/mobileclip_s2) (default) or [SigLIP 2](https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX), selectable in the admin site settings
+- **Semantic search:** [CLIP ViT-B/32](https://huggingface.co/Xenova/clip-vit-base-patch32) with embeddings indexed by [FAISS](https://github.com/facebookresearch/faiss) (also powers similar-photo suggestions)
+- **ML runtime:** every model above runs on [ONNX Runtime](https://onnxruntime.ai/) (Moondream and Mistral on [llama.cpp](https://github.com/ggml-org/llama.cpp)); there is no PyTorch in the image
 - **Reverse geocoding:** [Nominatim](https://nominatim.openstreetmap.org/) (default) and other providers (Mapbox, MapTiler, OpenCage, TomTom)

@@ -11,7 +11,8 @@ SIGLIP2_TEXT_PATH = os.path.join(SIGLIP2_MODEL_DIR, "text_model.onnx")
 SIGLIP2_TOKENIZER_PATH = os.path.join(SIGLIP2_MODEL_DIR, "tokenizer.model")
 SIGLIP2_EMBEDDINGS_CACHE = os.path.join(SIGLIP2_MODEL_DIR, "tag_embeddings.npy")
 
-TAGS_FILE = os.path.join(os.path.dirname(__file__), "tags.txt")
+# The tag vocabulary is shared by every zero-shot tagger in service/tags.
+TAGS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tags.txt")
 
 TARGET_SIZE = 384
 IMAGE_MEAN = np.array([0.5, 0.5, 0.5], dtype=np.float32)

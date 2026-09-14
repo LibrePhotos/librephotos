@@ -55,7 +55,7 @@ class CaptionModelNoneTest(TestCase):
         self.assertFalse(result)
         mock_generate_caption.assert_not_called()
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_lowercase_none_llm_model_skips_im2txt_rewrite(
@@ -71,7 +71,7 @@ class CaptionModelNoneTest(TestCase):
         mock_generate_prompt.assert_not_called()
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="None")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="None")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_capitalized_none_llm_model_skips_im2txt_rewrite(
@@ -88,7 +88,8 @@ class CaptionModelNoneTest(TestCase):
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
     @override_config(
-        CAPTIONING_MODEL="im2txt", LLM_MODEL="mistral-7b-instruct-v0.2.Q5_K_M"
+        CAPTIONING_MODEL="florence2_base_int8",
+        LLM_MODEL="mistral-7b-instruct-v0.2.Q5_K_M",
     )
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")

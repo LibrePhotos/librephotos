@@ -148,7 +148,6 @@ thumbnails
 media
 samplephotos
 tags
-api/places365/model/
 Conv2d.patch
 Linear.patch
 Sequential.patch
@@ -158,12 +157,7 @@ ReLU.patch
 run_docker.sh
 logs/
 playground
-api/im2txt/data/
-api/im2txt/models/
-api/im2txt/png/
 *.ipynb
-api/im2txt/*.tar.gz
-api/places365/*.tar.gz
 *.db
 media*
 protected_media

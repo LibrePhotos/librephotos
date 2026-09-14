@@ -119,8 +119,8 @@ These are settings that apply to the whole instance. Besides the panels below, t
 - `Captioning Model` Select which AI model to use for image captioning. See [Image Captioning](../image-captioning.md).
 - `Large Language Model` Select which LLM to use for enhanced captioning (None, Mistral, Moondream). When set to "None", no LLM models will be downloaded.
 - `Tagging Model` Select which AI model to use for auto-tagging photos. Options:
-  - **Places365** — Scene recognition (default). Classifies photos into scene categories like "kitchen", "beach", "forest".
-  - **SigLIP 2** — Google's vision-language model using zero-shot classification against a curated vocabulary of 900+ real-world photo tags. Returns the top 10 most relevant tags.
+  - **MobileCLIP-S2** — Apple's small vision-language model (default). Zero-shot classification against a curated vocabulary of 900+ real-world photo tags; about 125 ms per photo on a desktop CPU and a few hundred MB of RAM. Returns up to 10 tags.
+  - **SigLIP 2** — Google's larger vision-language model using the same vocabulary. More accurate, about six times slower and roughly twice the RAM. Returns the top 10 most relevant tags.
   
   Switching models does not delete previously generated tags. Each model's tags are stored independently, so you can switch back and forth without rescanning.
 - `Face Recognition Model` Select which [InsightFace](https://github.com/deepinsight/insightface) model is used to detect and recognise faces. Options:

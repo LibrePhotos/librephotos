@@ -16,7 +16,6 @@ from api.models.long_running_job import LongRunningJob
 class MlTypes:
     CAPTIONING = "captioning"
     FACE_RECOGNITION = "face_recognition"
-    CATEGORIES = "categories"
     CLIP = "clip"
     LLM = "llm"
     MOONDREAM = "moondream"
@@ -34,40 +33,51 @@ class ModelChecksumError(Exception):
 
 ML_MODELS = [
     {
-        "id": 1,
-        "name": "im2txt",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/im2txt.tar.gz",
-        "type": MlTypes.CAPTIONING,
-        "unpack-command": "tar -zxC",
-        "target-dir": "im2txt",
-        "sha256": "980670c0365c0e32b5fecfc0907bfee4742bcd6a40e0d6ac5692c69bbd49ccc4",
-    },
-    {
+        # OpenAI CLIP ViT-B/32 for semantic search: the same weights the
+        # sentence-transformers clip-ViT-B-32 bundle used to wrap, exported to
+        # ONNX, so embeddings already in the database stay comparable.
         "id": 2,
-        "name": "clip-embeddings",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/clip-embeddings.tar.gz",
+        "name": "clip_vit_b32",
+        "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model.onnx",
         "type": MlTypes.CLIP,
-        "unpack-command": "tar -zxC",
-        "target-dir": "clip-embeddings",
-        "sha256": "3d2f66350b75127024603dfaff55d4b981461363072d9697aa88d472440ecb4e",
-    },
-    {
-        "id": 3,
-        "name": "places365",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz",
-        "type": MlTypes.CATEGORIES,
-        "unpack-command": "tar -zxC",
-        "target-dir": "places365",
-        "sha256": "27792ffcd1f6a4de7abebdea046dda0916f9cd12eba7bed7b5f51f120f91f0d8",
-    },
-    {
-        "id": 4,
-        "name": "resnet18",
-        "url": "https://download.pytorch.org/models/resnet18-5c106cde.pth",
-        "type": MlTypes.CATEGORIES,
         "unpack-command": None,
-        "target-dir": "resnet18-5c106cde.pth",
-        "sha256": "5c106cde386e87d4033832f2996f5493238eda96ccf559d1d62760c4de0613f8",
+        "target-dir": "clip_vit_b32/vision_model.onnx",
+        "sha256": "fd6e1402a588279d1723c7534d4bcba5bc0b14b47dfab0e46f8c47b8270d7d40",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/text_model.onnx",
+                "target": "clip_vit_b32/text_model.onnx",
+                "sha256": "3f6571f5bad13a97c469c1622e1cfc4d9aef78b79fdbfcff804ca357bfada8cc",
+            },
+            {
+                "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json",
+                "target": "clip_vit_b32/tokenizer.json",
+                "sha256": "f7f3b7af117d467b58374797691a6438d3e6b9e9cef800dfd5dced7f697a90cd",
+            },
+        ],
+    },
+    {
+        # Apple MobileCLIP-S2 (ONNX export by Xenova): the lightweight zero-shot
+        # tagger, about the cost of the old Places365 CNN.
+        "id": 3,
+        "name": "mobileclip_s2",
+        "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/vision_model.onnx",
+        "type": MlTypes.TAGGING,
+        "unpack-command": None,
+        "target-dir": "mobileclip_s2/vision_model.onnx",
+        "sha256": "d28b92d7a3a6ba99bd000cce5c91678c0e279dc934c887a3785908a811872a6c",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx",
+                "target": "mobileclip_s2/text_model.onnx",
+                "sha256": "ff82e945c6c652c51df687e10f102a8e43c87d37c9108ff692468be3732f3710",
+            },
+            {
+                "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json",
+                "target": "mobileclip_s2/tokenizer.json",
+                "sha256": "72ed5c96db5729294468543e4bc75fce14ca63f58e37300290189ba1c1e52b85",
+            },
+        ],
     },
     {
         # InsightFace buffalo_* and antelopev2 bundles are licensed for
@@ -92,13 +102,71 @@ ML_MODELS = [
         "sha256": "d85a87f503f691807cd8bb97128bdf7a0660326cd9cd02657127fa978bab8b5e",
     },
     {
+        # Microsoft Florence-2 base (fine-tuned), ONNX export by onnx-community,
+        # fp32: the most accurate captioner, about 2.2 GB of RAM while it runs.
         "id": 6,
-        "name": "blip_base_capfilt_large",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/blip_large.tar.gz?download=true",
+        "name": "florence2_base",
+        "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder.onnx",
         "type": MlTypes.CAPTIONING,
-        "unpack-command": "tar -zxC",
-        "target-dir": "blip",
-        "sha256": "7c730d83bfdf4def7e9cca070e88b89192e61b8b1e7b64179b182e03922179f8",
+        "unpack-command": None,
+        "target-dir": "florence2_base/vision_encoder.onnx",
+        "sha256": "d67258cdfdebfa21285dad9e7bd4bd99725236d0aaef9e474a1b24a6ec471351",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/embed_tokens.onnx",
+                "target": "florence2_base/embed_tokens.onnx",
+                "sha256": "90cae3deb6406938c676a35b5246db02b478c9cc8cf93508361be80c05babf95",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/encoder_model.onnx",
+                "target": "florence2_base/encoder_model.onnx",
+                "sha256": "cb0bccc232c64290397f5e1235eb3e1fa6ccf8c5afed9216480ee4eed80737fc",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/decoder_model_merged.onnx",
+                "target": "florence2_base/decoder_model_merged.onnx",
+                "sha256": "5207affad8815294233b8679ee9ecb614906f819a1890d95a01b9ca68c392a79",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/tokenizer.json",
+                "target": "florence2_base/tokenizer.json",
+                "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac",
+            },
+        ],
+    },
+    {
+        # The same Florence-2 base with int8 weights: a quarter of the download
+        # and about 1.4 GB of RAM. Faster than fp32 on CPUs with VNNI (Ice Lake,
+        # Zen 4 and newer), slower on older ones.
+        "id": 17,
+        "name": "florence2_base_int8",
+        "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/vision_encoder_int8.onnx",
+        "type": MlTypes.CAPTIONING,
+        "unpack-command": None,
+        "target-dir": "florence2_base_int8/vision_encoder.onnx",
+        "sha256": "d7876c1ab0f7ec11998942ca189e99a775c5a4a912b813c7745d0f6fa9343487",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/embed_tokens_int8.onnx",
+                "target": "florence2_base_int8/embed_tokens.onnx",
+                "sha256": "6b2258db1c8ee9b160576ccde3cd3814d83a2edaed0dd1c6ca9ff3c38fa62214",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/encoder_model_int8.onnx",
+                "target": "florence2_base_int8/encoder_model.onnx",
+                "sha256": "f4ad7a68f1fb875d3bcf735ea14a7021b7ba7e83baf7cf10289881b4ed6d9b855",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/onnx/decoder_model_merged_int8.onnx",
+                "target": "florence2_base_int8/decoder_model_merged.onnx",
+                "sha256": "f22f52f980c33df0efa15932c2f3db6d9d3595ce6387eca938b8cfe23dc4c641",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/Florence-2-base-ft/resolve/main/tokenizer.json",
+                "target": "florence2_base_int8/tokenizer.json",
+                "sha256": "d69dcdb2323e124ac4f800cb9863ddccea0d7bb11e16125e8df3bd60f2f8aeac",
+            },
+        ],
     },
     {
         "id": 10,

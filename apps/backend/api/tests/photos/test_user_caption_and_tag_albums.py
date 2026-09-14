@@ -1,5 +1,5 @@
 """Characterization tests for PhotoCaption.save_user_caption and
-PhotoCaption._update_places365_album_things.
+PhotoCaption._update_tag_album_things.
 
 These tests pin the CURRENT observed behavior before refactoring. They
 deliberately encode quirks (substring-based hashtag removal, silent
@@ -160,15 +160,15 @@ class SaveUserCaptionTest(TestCase):
         self.assertEqual(other_album.photos.count(), 1)
 
     def test_non_hashtag_album_types_untouched(self):
-        places_album = get_album_thing(
-            title="beach", owner=self.user, thing_type="places365_attribute"
+        tag_album = get_album_thing(
+            title="beach", owner=self.user, thing_type="mobileclip_s2_tag"
         )
-        places_album.photos.add(self.photo)
+        tag_album.photos.add(self.photo)
 
         self.caption.save_user_caption("no tags here", commit=True)
 
-        places_album.refresh_from_db()
-        self.assertEqual(places_album.photos.count(), 1)
+        tag_album.refresh_from_db()
+        self.assertEqual(tag_album.photos.count(), 1)
 
     # ---------- error branch ----------
 
@@ -192,72 +192,59 @@ class SaveUserCaptionTest(TestCase):
         self.assertIsNone(fresh.captions_json)
 
 
-class UpdatePlaces365AlbumThingsTest(TestCase):
+class UpdateTagAlbumThingsTest(TestCase):
+    """``_update_tag_album_things`` files the photo under ``<model>_tag`` albums."""
+
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    def _titles(self, thing_type):
+    def _titles(self, thing_type="mobileclip_s2_tag"):
         return set(
             AlbumThing.objects.filter(
                 thing_type=thing_type, owner=self.user, photos=self.photo
             ).values_list("title", flat=True)
         )
 
-    def test_creates_attribute_and_category_albums(self):
-        self.caption._update_places365_album_things(
-            {"attributes": ["natural", "sunny"], "categories": ["beach", "coast"]}
-        )
+    def _update(self, tags, model="mobileclip_s2"):
+        return self.caption._update_tag_album_things({"tags": tags}, model)
 
-        self.assertEqual(self._titles("places365_attribute"), {"natural", "sunny"})
-        self.assertEqual(self._titles("places365_category"), {"beach", "coast"})
+    def test_creates_one_album_per_tag_typed_by_model(self):
+        self._update(["beach", "coast"])
 
-    def test_missing_attributes_key_only_creates_categories(self):
-        self.caption._update_places365_album_things({"categories": ["beach"]})
+        self.assertEqual(self._titles(), {"beach", "coast"})
+        for thing in AlbumThing.objects.filter(owner=self.user):
+            self.assertEqual(thing.thing_type, "mobileclip_s2_tag")
 
-        self.assertEqual(self._titles("places365_attribute"), set())
-        self.assertEqual(self._titles("places365_category"), {"beach"})
+    def test_model_name_decides_the_thing_type(self):
+        self._update(["beach"], model="siglip2")
 
-    def test_missing_categories_key_only_creates_attributes(self):
-        self.caption._update_places365_album_things({"attributes": ["natural"]})
+        self.assertEqual(self._titles("siglip2_tag"), {"beach"})
+        self.assertEqual(self._titles("mobileclip_s2_tag"), set())
 
-        self.assertEqual(self._titles("places365_attribute"), {"natural"})
-        self.assertEqual(self._titles("places365_category"), set())
-
-    def test_empty_dict_creates_nothing(self):
-        self.caption._update_places365_album_things({})
-
-        self.assertEqual(AlbumThing.objects.count(), 0)
-
-    def test_empty_lists_create_nothing(self):
-        self.caption._update_places365_album_things(
-            {"attributes": [], "categories": []}
-        )
+    def test_missing_tags_key_and_empty_list_create_nothing(self):
+        self.caption._update_tag_album_things({}, "mobileclip_s2")
+        self.caption._update_tag_album_things(None, "mobileclip_s2")
+        self._update([])
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
     def test_old_associations_are_removed_before_adding_new_ones(self):
-        self.caption._update_places365_album_things(
-            {"attributes": ["natural"], "categories": ["beach"]}
-        )
-        self.caption._update_places365_album_things(
-            {"attributes": ["man_made"], "categories": ["street"]}
-        )
+        self._update(["natural", "beach"])
+        self._update(["man_made", "street"])
 
-        self.assertEqual(self._titles("places365_attribute"), {"man_made"})
-        self.assertEqual(self._titles("places365_category"), {"street"})
+        self.assertEqual(self._titles(), {"man_made", "street"})
         # The stale AlbumThing rows survive with zero photos.
         stale = AlbumThing.objects.get(title="natural", owner=self.user)
         self.assertEqual(stale.photos.count(), 0)
 
     def test_reapplying_same_tags_is_idempotent(self):
-        payload = {"attributes": ["natural"], "categories": ["beach"]}
-        self.caption._update_places365_album_things(payload)
-        self.caption._update_places365_album_things(payload)
+        self._update(["natural", "beach"])
+        self._update(["natural", "beach"])
 
         album = AlbumThing.objects.get(
-            title="natural", thing_type="places365_attribute", owner=self.user
+            title="natural", thing_type="mobileclip_s2_tag", owner=self.user
         )
         self.assertEqual(album.photos.count(), 1)
         self.assertEqual(
@@ -267,11 +254,11 @@ class UpdatePlaces365AlbumThingsTest(TestCase):
     def test_other_photos_keep_their_associations(self):
         other_photo = create_test_photo(owner=self.user)
         shared = get_album_thing(
-            title="natural", owner=self.user, thing_type="places365_attribute"
+            title="natural", owner=self.user, thing_type="mobileclip_s2_tag"
         )
         shared.photos.add(other_photo)
 
-        self.caption._update_places365_album_things({"attributes": ["man_made"]})
+        self._update(["man_made"])
 
         shared.refresh_from_db()
         self.assertEqual(list(shared.photos.all()), [other_photo])
@@ -279,16 +266,16 @@ class UpdatePlaces365AlbumThingsTest(TestCase):
     def test_other_owners_albums_untouched(self):
         other = create_test_user()
         foreign = get_album_thing(
-            title="natural", owner=other, thing_type="places365_attribute"
+            title="natural", owner=other, thing_type="mobileclip_s2_tag"
         )
         foreign.photos.add(self.photo)
 
-        self.caption._update_places365_album_things({"attributes": ["man_made"]})
+        self._update(["man_made"])
 
         foreign.refresh_from_db()
         self.assertEqual(foreign.photos.count(), 1)
 
-    def test_non_places365_album_types_untouched(self):
+    def test_other_album_types_untouched(self):
         hashtag_album = get_album_thing(
             title="#sun", owner=self.user, thing_type="hashtag_attribute"
         )
@@ -298,23 +285,12 @@ class UpdatePlaces365AlbumThingsTest(TestCase):
         )
         siglip_album.photos.add(self.photo)
 
-        self.caption._update_places365_album_things({"attributes": ["natural"]})
+        self._update(["natural"])
 
         hashtag_album.refresh_from_db()
         siglip_album.refresh_from_db()
         self.assertEqual(hashtag_album.photos.count(), 1)
         self.assertEqual(siglip_album.photos.count(), 1)
 
-    def test_same_title_in_attributes_and_categories_makes_two_albums(self):
-        self.caption._update_places365_album_things(
-            {"attributes": ["beach"], "categories": ["beach"]}
-        )
-
-        self.assertEqual(AlbumThing.objects.filter(title="beach").count(), 2)
-        self.assertEqual(self._titles("places365_attribute"), {"beach"})
-        self.assertEqual(self._titles("places365_category"), {"beach"})
-
     def test_returns_none(self):
-        self.assertIsNone(
-            self.caption._update_places365_album_things({"attributes": ["natural"]})
-        )
+        self.assertIsNone(self._update(["natural"]))

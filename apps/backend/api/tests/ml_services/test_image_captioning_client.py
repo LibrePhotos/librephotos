@@ -15,7 +15,7 @@ from api.http_timeouts import CAPTION, HEALTH_CHECK
 from api.image_captioning import generate_caption, unload_model
 
 MOONDREAM_URL = "http://localhost:8008/generate"
-IM2TXT_URL = "http://localhost:8007/generate-caption"
+SIDECAR_URL = "http://localhost:8007/generate-caption"
 DEFAULT_MOONDREAM_PROMPT = "Describe this image in a short, concise caption."
 
 
@@ -57,14 +57,6 @@ class GenerateCaptionMoondreamTest(TestCase):
         self.assertEqual(
             mock_post.call_args.kwargs["json"]["prompt"], "What breed is this dog?"
         )
-
-    @patch("api.image_captioning.requests.post")
-    def test_blip_flag_is_ignored_by_moondream_branch(self, mock_post):
-        mock_post.return_value = _response(json_data={"response": "ok"})
-
-        generate_caption("/data/img.jpg", blip=True)
-
-        self.assertNotIn("blip", mock_post.call_args.kwargs["json"])
 
     @patch("api.image_captioning.requests.post")
     def test_empty_string_prompt_is_kept_as_is(self, mock_post):
@@ -142,35 +134,35 @@ class GenerateCaptionMoondreamTest(TestCase):
         self.assertEqual(result, "Error generating caption with Moondream")
 
 
-class GenerateCaptionLegacyBranchTest(TestCase):
-    """Every non-"moondream" model value falls through to the 8007 sidecar."""
+class GenerateCaptionSidecarBranchTest(TestCase):
+    """Every non-"moondream" model value goes to the 8007 sidecar, by name."""
 
-    @override_config(CAPTIONING_MODEL="im2txt")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8")
     @patch("api.image_captioning.requests.post")
-    def test_im2txt_happy_path(self, mock_post):
+    def test_sidecar_happy_path_names_the_model(self, mock_post):
         mock_post.return_value = _response(json_data={"caption": "a dog"})
 
         result = generate_caption("/data/img.jpg")
 
         self.assertEqual(result, "a dog")
         mock_post.assert_called_once_with(
-            IM2TXT_URL,
-            json={"image_path": "/data/img.jpg", "onnx": False, "blip": False},
+            SIDECAR_URL,
+            json={"image_path": "/data/img.jpg", "model": "florence2_base_int8"},
             timeout=CAPTION,
         )
 
-    @override_config(CAPTIONING_MODEL="blip_base_capfilt_large")
+    @override_config(CAPTIONING_MODEL="florence2_base")
     @patch("api.image_captioning.requests.post")
-    def test_blip_flag_is_forwarded(self, mock_post):
+    def test_fp32_variant_is_forwarded_by_name(self, mock_post):
         mock_post.return_value = _response(json_data={"caption": "a dog"})
 
-        generate_caption("/data/img.jpg", blip=True)
+        generate_caption("/data/img.jpg")
 
-        self.assertEqual(mock_post.call_args.kwargs["json"]["blip"], True)
+        self.assertEqual(mock_post.call_args.kwargs["json"]["model"], "florence2_base")
 
-    @override_config(CAPTIONING_MODEL="im2txt")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8")
     @patch("api.image_captioning.requests.post")
-    def test_prompt_is_ignored_on_legacy_branch(self, mock_post):
+    def test_prompt_is_ignored_on_sidecar_branch(self, mock_post):
         mock_post.return_value = _response(json_data={"caption": "a dog"})
 
         generate_caption("/data/img.jpg", prompt="ignore me")
@@ -179,25 +171,25 @@ class GenerateCaptionLegacyBranchTest(TestCase):
 
     @override_config(CAPTIONING_MODEL="none")
     @patch("api.image_captioning.requests.post")
-    def test_model_none_still_calls_the_legacy_sidecar(self, mock_post):
+    def test_model_none_still_calls_the_sidecar(self, mock_post):
         """generate_caption itself has no "no model" guard; callers gate it."""
         mock_post.return_value = _response(json_data={"caption": "a dog"})
 
         result = generate_caption("/data/img.jpg")
 
         self.assertEqual(result, "a dog")
-        self.assertEqual(mock_post.call_args.args[0], IM2TXT_URL)
+        self.assertEqual(mock_post.call_args.args[0], SIDECAR_URL)
 
-    @override_config(CAPTIONING_MODEL="im2txt")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8")
     @patch("api.image_captioning.requests.post")
-    def test_connection_error_propagates_on_legacy_branch(self, mock_post):
-        """Unlike Moondream, the legacy branch has no try/except."""
+    def test_connection_error_propagates_on_sidecar_branch(self, mock_post):
+        """Unlike Moondream, the sidecar branch has no try/except."""
         mock_post.side_effect = requests.exceptions.ConnectionError("refused")
 
         with self.assertRaises(requests.exceptions.ConnectionError):
             generate_caption("/data/img.jpg")
 
-    @override_config(CAPTIONING_MODEL="im2txt")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8")
     @patch("api.image_captioning.requests.post")
     def test_missing_caption_key_raises_keyerror(self, mock_post):
         mock_post.return_value = _response(json_data={"response": "wrong key"})

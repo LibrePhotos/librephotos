@@ -157,7 +157,7 @@ class CrossTenantWriteTest(TestCase):
         )
         self.v_auto.photos.add(self.v_pub, self.v_priv)
         self.v_thing = AlbumThing.objects.create(
-            title="cat", thing_type="places365_attribute", owner=self.victim
+            title="cat", thing_type="mobileclip_s2_tag", owner=self.victim
         )
         self.v_thing.photos.add(self.v_pub, self.v_priv)
         self.v_place = AlbumPlace.objects.create(

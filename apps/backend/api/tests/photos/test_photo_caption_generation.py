@@ -52,7 +52,7 @@ class Im2txtGuardTest(TestCase):
         mock_generate_caption.assert_not_called()
         self.assertIsNone(self.caption.captions_json)
 
-    @override_config(CAPTIONING_MODEL="im2txt")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8")
     @patch("api.models.photo_caption.generate_caption")
     def test_empty_thumbnail_big_returns_false(self, mock_generate_caption):
         thumb = self.photo.thumbnail
@@ -64,7 +64,7 @@ class Im2txtGuardTest(TestCase):
         self.assertFalse(caption.generate_captions_im2txt(commit=False))
         mock_generate_caption.assert_not_called()
 
-    @override_config(CAPTIONING_MODEL="im2txt")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8")
     @patch("api.models.photo_caption.generate_caption")
     def test_unreadable_thumbnail_path_returns_false(self, mock_generate_caption):
         with patch(
@@ -106,16 +106,16 @@ class Im2txtGuardTest(TestCase):
 
 @override_settings(FEATURE_IMAGE_CAPTIONING=True)
 class Im2txtGenerationTest(TestCase):
-    """The im2txt / blip caption path with the LLM rewrite disabled."""
+    """The Florence-2 sidecar caption path with the LLM rewrite disabled."""
 
     def setUp(self):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_caption")
-    def test_im2txt_happy_path_strips_markers_and_saves(self, mock_generate_caption):
+    def test_sidecar_happy_path_strips_markers_and_saves(self, mock_generate_caption):
         mock_generate_caption.return_value = "  <start> a photo of a cat <end>  "
 
         result = self.caption.generate_captions_im2txt(commit=True)
@@ -123,22 +123,22 @@ class Im2txtGenerationTest(TestCase):
         self.assertTrue(result)
         self.assertEqual(mock_generate_caption.call_count, 1)
         kwargs = mock_generate_caption.call_args.kwargs
-        self.assertFalse(kwargs["blip"])
+        self.assertEqual(set(kwargs), {"image_path"})
         self.assertTrue(kwargs["image_path"].endswith(".webp"))
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
         self.caption.refresh_from_db()
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
-    @override_config(CAPTIONING_MODEL="blip_base_capfilt_large", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_caption")
-    def test_blip_model_sets_blip_flag(self, mock_generate_caption):
-        mock_generate_caption.return_value = "a blip caption"
+    def test_fp32_variant_also_uses_the_sidecar(self, mock_generate_caption):
+        mock_generate_caption.return_value = "a florence caption"
 
         self.assertTrue(self.caption.generate_captions_im2txt(commit=False))
-        self.assertTrue(mock_generate_caption.call_args.kwargs["blip"])
+        self.assertEqual(self.caption.captions_json["im2txt"], "a florence caption")
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_caption")
     def test_commit_false_does_not_persist_caption(self, mock_generate_caption):
         mock_generate_caption.return_value = "not persisted"
@@ -149,7 +149,7 @@ class Im2txtGenerationTest(TestCase):
         fresh = PhotoCaption.objects.get(pk=self.caption.pk)
         self.assertIsNone(fresh.captions_json)
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_caption")
     def test_existing_caption_keys_are_preserved(self, mock_generate_caption):
         self.caption.captions_json = {"user_caption": "mine", "im2txt": "old"}
@@ -161,7 +161,7 @@ class Im2txtGenerationTest(TestCase):
         self.assertEqual(self.caption.captions_json["user_caption"], "mine")
         self.assertEqual(self.caption.captions_json["im2txt"], "new caption")
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_caption")
     def test_generate_caption_exception_returns_false(self, mock_generate_caption):
         mock_generate_caption.side_effect = RuntimeError("model exploded")
@@ -170,7 +170,7 @@ class Im2txtGenerationTest(TestCase):
         fresh = PhotoCaption.objects.get(pk=self.caption.pk)
         self.assertIsNone(fresh.captions_json)
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_caption")
     def test_non_string_caption_result_returns_false(self, mock_generate_caption):
         # ``.replace`` on a non-str blows up inside the try -> swallowed.
@@ -178,7 +178,7 @@ class Im2txtGenerationTest(TestCase):
 
         self.assertFalse(self.caption.generate_captions_im2txt(commit=False))
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="none")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="none")
     @patch("api.models.photo_caption.generate_caption")
     def test_recreate_search_captions_is_invoked(self, mock_generate_caption):
         mock_generate_caption.return_value = "a photo of a cat"
@@ -206,7 +206,7 @@ class Im2txtLlmRewriteTest(TestCase):
         self.person = create_test_person(name="Anna")
         create_test_face(photo=self.photo, person=self.person)
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="some-llm")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_prompt_contains_caption_place_and_person(self, mock_caption, mock_prompt):
@@ -226,7 +226,7 @@ class Im2txtLlmRewriteTest(TestCase):
         self.assertTrue(prompt.endswith(". \n A:"))
         self.assertEqual(self.caption.captions_json["im2txt"], "Anna's cat in Berlin")
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="some-llm")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_flags_off_omit_place_person_and_keywords(self, mock_caption, mock_prompt):
@@ -242,7 +242,7 @@ class Im2txtLlmRewriteTest(TestCase):
         self.assertNotIn("Person:", prompt)
         self.assertNotIn("keywords", prompt)
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="some-llm")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_llm_settings_disabled_skips_rewrite(self, mock_caption, mock_prompt):
@@ -254,7 +254,7 @@ class Im2txtLlmRewriteTest(TestCase):
         mock_prompt.assert_not_called()
         self.assertEqual(self.caption.captions_json["im2txt"], "a photo of a cat")
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="some-llm")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_no_face_omits_person_but_keeps_place(self, mock_caption, mock_prompt):
@@ -269,7 +269,7 @@ class Im2txtLlmRewriteTest(TestCase):
         self.assertNotIn("Person:", prompt)
         self.assertIn(" Place: Berlin", prompt)
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="some-llm")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_missing_search_instance_returns_false(self, mock_caption, mock_prompt):
@@ -284,7 +284,7 @@ class Im2txtLlmRewriteTest(TestCase):
         self.assertFalse(caption.generate_captions_im2txt(commit=False))
         mock_prompt.assert_not_called()
 
-    @override_config(CAPTIONING_MODEL="im2txt", LLM_MODEL="some-llm")
+    @override_config(CAPTIONING_MODEL="florence2_base_int8", LLM_MODEL="some-llm")
     @patch("api.models.photo_caption.generate_prompt")
     @patch("api.models.photo_caption.generate_caption")
     def test_generate_prompt_exception_returns_false(self, mock_caption, mock_prompt):
