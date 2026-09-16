@@ -10,6 +10,7 @@ import os
 
 import pytz
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 
 from api import util
@@ -35,6 +36,84 @@ from api.directory_watcher.file_grouping import (
     select_main_file,
 )
 from api.directory_watcher.utils import update_scan_counter
+
+
+def _discard_thumbnails_for_hash(photo_hash: str) -> None:
+    """Delete the thumbnail files named after ``photo_hash``."""
+    for output_dir in (
+        "thumbnails_big",
+        "square_thumbnails",
+        "square_thumbnails_small",
+    ):
+        for extension in (".webp", ".mp4"):
+            thumbnail_path = os.path.join(
+                settings.MEDIA_ROOT, output_dir, photo_hash + extension
+            )
+            if os.path.exists(thumbnail_path):
+                try:
+                    os.remove(thumbnail_path)
+                except OSError:
+                    util.logger.warning(
+                        f"could not remove stale thumbnail {thumbnail_path}"
+                    )
+
+
+def reindex_replaced_file(user, path, hash_value) -> Photo | None:
+    """Re-point the rows of ``path`` at its new content after an in-place replace.
+
+    ``File.create`` matches on path alone, so a file swapped out for a
+    different picture under the same name keeps its old hash forever. Every
+    derived artefact is keyed on that hash - thumbnails are only generated
+    when no file named after it exists yet - so the library would keep showing
+    the picture that is no longer there.
+
+    The hash is the File primary key, so the row is recreated rather than
+    updated, keeping the Photo (and its id, albums and shares) intact.
+
+    Returns the Photo the replaced file is the main file of, if any.
+    """
+    existing = File.objects.filter(path=path).first()
+    if existing is None or existing.hash == hash_value:
+        return None
+
+    if File.objects.filter(hash=hash_value).exists():
+        util.logger.warning(
+            f"replaced file {path} matches an already indexed file, not re-indexing"
+        )
+        return None
+
+    old_hash = existing.hash
+    util.logger.info(f"file {path} was replaced, re-indexing as {hash_value}")
+
+    attached_photo_ids = set(
+        Photo.objects.filter(files=existing).values_list("pk", flat=True)
+    )
+    main_photo_ids = set(existing.main_photo.values_list("pk", flat=True))
+    photos = list(
+        Photo.objects.filter(pk__in=attached_photo_ids | main_photo_ids).distinct()
+    )
+
+    main_photo = None
+    with transaction.atomic():
+        existing.delete()
+
+        new_file = File()
+        new_file.path = path
+        new_file.hash = hash_value
+        new_file._find_out_type()
+
+        for photo in photos:
+            if photo.pk in attached_photo_ids:
+                photo.files.add(new_file)
+            if photo.pk in main_photo_ids:
+                photo.main_file = new_file
+                main_photo = photo
+            if photo.image_hash == old_hash:
+                _discard_thumbnails_for_hash(old_hash)
+                photo.image_hash = hash_value
+            photo.save()
+
+    return main_photo
 
 
 def create_file_record(user, path) -> File | None:
@@ -64,6 +143,8 @@ def create_file_record(user, path) -> File | None:
     if File.embedded_media.through.objects.filter(Q(to_file_id=hash_value)).exists():
         util.logger.warning(f"embedded content file found {path}")
         return None
+
+    reindex_replaced_file(user, path, hash_value)
 
     # Create the File record (File.create handles race conditions via unique path constraint)
     file = File.create(path, user)
@@ -262,6 +343,10 @@ def create_new_image(user, path) -> Photo | None:
     if is_metadata(path):
         _attach_metadata_sidecar(user, path)
         return None
+
+    replaced_photo = reindex_replaced_file(user, path, hash_value)
+    if replaced_photo:
+        return replaced_photo
 
     existing_photo = _adopt_as_variant(user, path)
     if existing_photo:
