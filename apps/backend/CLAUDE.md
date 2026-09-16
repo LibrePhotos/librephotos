@@ -36,7 +36,7 @@
    ```bash
    bash scripts/setup_test_env.sh
    ```
-   This installs `libvips-dev`, `libimage-exiftool-perl`, and all Python
+   This installs a compiler and perl, and all Python
    packages from `requirements.txt` and `requirements.dev.txt`.
 
 2. Run the tests using the SQLite in-memory settings and pointing the runtime
@@ -64,8 +64,8 @@
 **Natively on Windows (no Docker):** Python 3.11 and ffmpeg (`winget install Gyan.FFmpeg`,
 for video thumbnails and transcoding); everything else comes from pip. `requirements.txt`
 carries the Windows variants behind `sys_platform` markers; `insightface`, `timezonefinder`
-and `exiftool-bin` (the official ExifTool build, wrapped by `scripts/build_exiftool_wheel.py`)
-come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/windows-wheels.yml`
+and `exiftool-bin` (ExifTool wrapped by `scripts/build_exiftool_wheel.py`; a Perl variant
+serves Linux/macOS) come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/windows-wheels.yml`
 rebuilds them, `api/tests/infra/test_requirements_windows_wheels.py` keeps the versions in
 step).
 

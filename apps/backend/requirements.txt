@@ -30,6 +30,7 @@ stringzilla==5.1.1; sys_platform == "win32"
 # ExifTool wrapped by scripts/build_exiftool_wheel.py: the official .exe on Windows,
 # the Perl distribution elsewhere (needs a perl on PATH).
 exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-win_amd64.whl ; sys_platform == "win32"
+exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-any.whl ; sys_platform != "win32"
 psycopg[binary]==3.3.4
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2026.3.post1

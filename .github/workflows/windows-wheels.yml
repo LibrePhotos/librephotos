@@ -31,7 +31,7 @@ jobs:
           if not specs:
               sys.exit("no wheel URLs in requirements.txt")
           subprocess.run([sys.executable, "-m", "pip", "install", "-U", "pip", "wheel"], check=True)
-          for name, version in specs:
+          for name, version in dict.fromkeys(specs):
               if name == "exiftool-bin":
                   subprocess.run([sys.executable, "scripts/build_exiftool_wheel.py", version, "wheels"], check=True)
                   continue
