@@ -21,6 +21,14 @@ const config = {
   organizationName: "LibrePhotos",
   projectName: "librephotos",
 
+  headTags: [
+    { tagName: "link", attributes: { rel: "preconnect", href: "https://fonts.googleapis.com" } },
+    { tagName: "link", attributes: { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "anonymous" } },
+  ],
+  stylesheets: [
+    "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap",
+  ],
+
   onBrokenLinks: "throw",
   onBrokenMarkdownLinks: "warn",
 
@@ -57,12 +65,12 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Replace with your project's social card
       image: "img/logo-round.png",
+      colorMode: { respectPrefersColorScheme: true },
       navbar: {
         title: "LibrePhotos",
         logo: {
-          alt: "My Site Logo",
+          alt: "LibrePhotos logo",
           src: "img/logo-round.png",
         },
         items: [
@@ -80,9 +88,15 @@ const config = {
           },
           { to: "/blog", label: "Blog", position: "left" },
           {
-            href: "https://github.com/LibrePhotos",
+            href: "https://github.com/LibrePhotos/librephotos",
             label: "GitHub",
             position: "right",
+          },
+          {
+            href: "https://github.com/sponsors/derneuere",
+            label: "Sponsor",
+            position: "right",
+            className: "navbar__sponsor",
           },
         ],
       },
@@ -109,6 +123,14 @@ const config = {
               {
                 label: "Discord",
                 href: "https://discord.com/invite/xwRvtSDGWb",
+              },
+              {
+                label: "Sponsor on GitHub",
+                href: "https://github.com/sponsors/derneuere",
+              },
+              {
+                label: "Donate via PayPal",
+                href: "https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96",
               },
               {
                 label: "Development videos",
