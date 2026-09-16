@@ -10,6 +10,9 @@ on:
       tag:
         description: "Release tag to create or update, e.g. windows-wheels-2026.09.16"
         required: true
+  push:
+    branches: [backend/windows-dev-setup]
+    paths: [".github/workflows/prebuilt-wheels.yml"]
 
 permissions:
   contents: write
@@ -69,7 +72,7 @@ jobs:
         shell: bash
         working-directory: apps/backend
         run: |
-          specs=$(grep -oE '^[A-Za-z0-9_.-]+ @ [^ ]*-cp3[0-9]+-cp3[0-9]+-[^ ]*manylinux_2_28_${{ matrix.arch }}\.whl' requirements.txt \
+          specs=$(grep -oE '^[A-Za-z0-9_.-]+ @ [^ ]*-cp3[0-9]+-(cp3[0-9]+|abi3)-[^ ]*manylinux_2_28_${{ matrix.arch }}\.whl' requirements.txt \
             | sed -E 's|^([A-Za-z0-9_.-]+) @ .*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-(cp3[0-9]+)-.*|\1==\2 \3|' | sort -u || true)
           # First run, before requirements.txt points at these wheels: build the pinned
           # insightface for every CPython the images and CI use.

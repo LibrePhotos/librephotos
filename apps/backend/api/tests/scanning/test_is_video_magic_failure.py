@@ -100,6 +100,7 @@ def _ensure_stub_modules():
 
         mime_module = types.ModuleType("api.mime")
         mime_module.mime_type = lambda path: "application/octet-stream"
+        mime_module.sniffed_mime_type = lambda path: None
         mime_module.__spec__ = importlib.machinery.ModuleSpec("api.mime", loader=None)
 
         api_module.util = util_module
@@ -159,6 +160,8 @@ class TestIsVideo(unittest.TestCase):
 
     def test_is_video_returns_false_when_sniffing_raises(self):
         with patch.object(
-            self._file_module, "mime_type", side_effect=RuntimeError("unreadable")
+            self._file_module,
+            "sniffed_mime_type",
+            side_effect=RuntimeError("unreadable"),
         ):
             self.assertFalse(self._file_module.is_video("/tmp/test.mp4"))

@@ -17,7 +17,7 @@
       "enabled": false
     },
     {
-      "description": "insightface has no Windows wheel; requirements.txt pins a wheel built by the windows-wheels workflow next to the PyPI pin. Bump both by hand.",
+      "description": "insightface has no wheels on PyPI; requirements.txt pins wheels built by the prebuilt-wheels workflow next to the PyPI pin. Bump them together by hand and re-run the workflow.",
       "matchPackageNames": ["insightface"],
       "enabled": false
     },

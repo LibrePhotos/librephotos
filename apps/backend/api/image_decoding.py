@@ -12,6 +12,7 @@ import pyvips
 from PIL import Image, ImageOps
 
 pillow_heif.register_heif_opener()
+Image.MAX_IMAGE_PIXELS = None  # the user's own photos; 200 MP phone shots are real
 
 
 def _pillow_to_vips(path):
@@ -31,3 +32,17 @@ def thumbnail(path, height):
         return _pillow_to_vips(path).thumbnail_image(
             10000, height=height, size=pyvips.enums.Size.DOWN
         )
+
+
+def can_decode(path):
+    """Whether some loader recognises the file, from its header alone (no pixel decode)."""
+    try:
+        pyvips.Image.new_from_file(path)
+        return True
+    except pyvips.Error:
+        pass
+    try:
+        with Image.open(path):
+            return True
+    except Exception:
+        return False

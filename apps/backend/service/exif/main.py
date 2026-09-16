@@ -1,10 +1,14 @@
+import shutil
+
 import exiftool
 import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
-static_et = exiftool.ExifTool()
-static_struct_et = exiftool.ExifTool(common_args=["-struct"])
+# Absolute path: the exiftool-bin wheel is on PATH, but Windows searches System32 first.
+EXIFTOOL = shutil.which("exiftool") or "exiftool"
+static_et = exiftool.ExifTool(EXIFTOOL)
+static_struct_et = exiftool.ExifTool(EXIFTOOL, common_args=["-struct"])
 
 app = Flask(__name__)
 

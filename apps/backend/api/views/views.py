@@ -9,6 +9,7 @@ import jsonschema
 from constance import config as site_config
 from django.conf import settings
 
+from api import binaries
 from api.mime import mime_type
 from api.mail import email_is_configured
 from django.db.models import Q, Sum
@@ -568,7 +569,7 @@ def build_live_command(path):
     # mid-video, with the process still alive and the browser still waiting.
     # Rate limiting lengthens exactly that wall clock, which would have turned a
     # bug reachable only on long videos into one reachable on ordinary ones.
-    command = ["ffmpeg", "-nostdin", "-loglevel", "error", "-threads", threads]
+    command = [binaries.ffmpeg(), "-nostdin", "-loglevel", "error", "-threads", threads]
 
     # -threads does not govern the filter pool, which defaults to one thread per
     # core: on a many-core host the scale filter alone can spawn as many threads

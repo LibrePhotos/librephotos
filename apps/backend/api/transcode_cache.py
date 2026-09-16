@@ -36,6 +36,7 @@ import time
 
 from django.conf import settings
 
+from api import binaries
 from api import video_color
 
 logger = logging.getLogger(__name__)
@@ -251,7 +252,7 @@ def build_command(source, destination):
     # Without the binary the conversion still runs, just without the courtesy.
     prefix = [nice, "-n", str(niceness)] if nice and niceness else []
     command = prefix + [
-        "ffmpeg",
+        binaries.ffmpeg(),
         "-nostdin",
         "-loglevel",
         "error",

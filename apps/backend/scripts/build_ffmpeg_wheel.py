@@ -3,7 +3,7 @@
     python scripts/build_ffmpeg_wheel.py <autobuild-tag> <build-id> [out_dir]
     python scripts/build_ffmpeg_wheel.py autobuild-2026-09-15-13-18 ffmpeg-n9.0.1-30-g9258bacca5
 
-writes ffmpeg_bin-<ver>-py3-none-{win_amd64,manylinux_2_17_x86_64,manylinux_2_17_aarch64}.whl.
+writes ffmpeg_bin-<ver>-py3-none-{win_amd64,manylinux_2_28_x86_64,manylinux_2_28_aarch64}.whl.
 The package puts its bin/ on PATH when imported, and a .pth imports it at
 interpreter start. GPL: the wheel carries the build's LICENSE.txt and points at the
 release the binaries and their build scripts came from.
@@ -27,8 +27,9 @@ os.environ["PATH"] = str(Path(__file__).parent / "bin") + os.pathsep + os.enviro
 
 PLATFORMS = {
     "win64": ("py3-none-win_amd64", ".zip"),
-    "linux64": ("py3-none-manylinux_2_17_x86_64", ".tar.xz"),
-    "linuxarm64": ("py3-none-manylinux_2_17_aarch64", ".tar.xz"),
+    # libavcodec references GLIBC_2.28, so 2_28 is the honest floor.
+    "linux64": ("py3-none-manylinux_2_28_x86_64", ".tar.xz"),
+    "linuxarm64": ("py3-none-manylinux_2_28_aarch64", ".tar.xz"),
 }
 
 

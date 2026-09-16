@@ -224,7 +224,11 @@ class BuildLiveCommandTest(SimpleTestCase):
 
     def test_the_conversion_being_watched_is_not_niced(self):
         """Unlike the cached copy: somebody is waiting for this one."""
-        self.assertEqual(views.build_live_command("/x.mp4")[0], "ffmpeg")
+        self.assertTrue(
+            views.build_live_command("/x.mp4")[0].endswith(
+                ("ffmpeg", "ffmpeg.EXE", "ffmpeg.exe")
+            )
+        )
 
     def test_the_path_is_the_input(self):
         command = views.build_live_command("/library/clip.mkv")

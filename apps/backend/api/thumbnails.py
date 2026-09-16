@@ -5,7 +5,7 @@ import pyvips
 import requests
 from django.conf import settings
 
-from api import image_decoding, util, video_color
+from api import binaries, image_decoding, util, video_color
 from api.models.file import is_raw
 
 
@@ -125,7 +125,7 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
-            "ffmpeg",
+            binaries.ffmpeg(),
             "-i",
             input_path,
             "-to",
@@ -153,7 +153,7 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
-            "ffmpeg",
+            binaries.ffmpeg(),
             "-i",
             input_path,
             "-ss",
