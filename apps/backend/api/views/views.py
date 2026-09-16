@@ -40,7 +40,7 @@ from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
-from api import ffmpeg_budget, transcode_cache
+from api import ffmpeg_budget, transcode_cache, video_color
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
 
@@ -580,7 +580,7 @@ def build_live_command(path):
         if burst > 0 and ffmpeg_budget.supports("readrate_initial_burst"):
             command += ["-readrate_initial_burst", str(burst)]
 
-    return command + [
+    command += [
         "-i",
         path,
         # Again after the input: the first one capped the decoder, this caps the
@@ -593,16 +593,18 @@ def build_live_command(path):
         "ultrafast",
         "-movflags",
         "frag_keyframe+empty_moov",
-        "-filter:v",
-        # A ceiling, not a target: plain "scale=-2:720" enlarges anything
-        # shorter than 720 lines, and the phone clips that most often need
-        # converting are exactly that. Upscaling costs bandwidth and CPU to
-        # add nothing a viewer can see.
-        "scale=-2:'min(720,ih)'",
-        "-f",
-        "mp4",
-        "-",
     ]
+
+    # A ceiling, not a target: plain "scale=-2:720" enlarges anything shorter
+    # than 720 lines, and the phone clips that most often need converting are
+    # exactly that. Upscaling costs bandwidth and CPU to add nothing a viewer
+    # can see. An HDR source needs tonemapping after it, or the browser reads a
+    # PQ curve as bt709 and shows it washed out; see :mod:`api.video_color`.
+    video_filter = video_color.video_filter(path, "scale=-2:'min(720,ih)'")
+    if video_filter:
+        command += ["-filter:v", video_filter]
+
+    return command + ["-f", "mp4", "-"]
 
 
 class VideoTranscoder:
