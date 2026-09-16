@@ -85,6 +85,7 @@ export function SignupPage(): JSX.Element {
                   leftSection={<User />}
                   placeholder={t("login.usernameplaceholder")}
                   name="username"
+                  autoComplete="username"
                   {...form.getInputProps("username")}
                 />
                 <TextInput
@@ -92,6 +93,7 @@ export function SignupPage(): JSX.Element {
                   leftSection={<Mail />}
                   placeholder={t("settings.emailplaceholder")}
                   name="email"
+                  autoComplete="email"
                   {...form.getInputProps("email")}
                 />
                 <TextInput
@@ -99,6 +101,7 @@ export function SignupPage(): JSX.Element {
                   leftSection={<User />}
                   placeholder={t("settings.firstnameplaceholder")}
                   name="firstname"
+                  autoComplete="given-name"
                   {...form.getInputProps("first_name")}
                 />
                 <TextInput
@@ -106,12 +109,14 @@ export function SignupPage(): JSX.Element {
                   leftSection={<User />}
                   placeholder={t("settings.lastnameplaceholder")}
                   name="lastname"
+                  autoComplete="family-name"
                   {...form.getInputProps("last_name")}
                 />
                 <PasswordInput
                   leftSection={<Lock />}
                   placeholder={t("login.passwordplaceholder")}
                   name="password"
+                  autoComplete="new-password"
                   {...form.getInputProps("password")}
                 />
                 <PasswordInput
@@ -119,6 +124,7 @@ export function SignupPage(): JSX.Element {
                   leftSection={<Lock />}
                   placeholder={t("login.confirmpasswordplaceholder")}
                   name="passwordConfirm"
+                  autoComplete="new-password"
                   {...form.getInputProps("passwordConfirm")}
                 />
 
