@@ -73,10 +73,7 @@ jobs:
           # insightface for every CPython the images and CI use.
           if [ -z "$specs" ]; then
             pin=$(grep -oE '^insightface==[0-9][^ ;]*' requirements.txt | head -1)
-            specs=$(printf '%s cp310
-%s cp312
-%s cp314
-' "$pin" "$pin" "$pin")
+            specs=$(printf '%s cp310\n%s cp312\n%s cp314\n' "$pin" "$pin" "$pin")
           fi
           echo "$specs"
           mkdir -p wheels
