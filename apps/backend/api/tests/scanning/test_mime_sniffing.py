@@ -23,9 +23,10 @@ class SniffTests(unittest.TestCase):
 
     def test_mpeg_transport_stream_is_video(self):
         packet = b"\x47\x40\x00\x10" + b"\x00" * 184
-        self.assertEqual(
-            sniffed_mime_type(_write("clip.MTS", packet * 4)), "video/mp2t"
-        )
+        self.assertEqual(sniffed_mime_type(_write("clip.ts", packet * 4)), "video/mp2t")
+        # AVCHD / Blu-ray: a 4-byte timestamp before every packet (192-byte packets)
+        m2ts = (b"\x00\x00\x00\x00" + packet) * 4
+        self.assertEqual(sniffed_mime_type(_write("clip.MTS", m2ts)), "video/mp2t")
 
     def test_garbage_with_a_video_extension_is_not_video(self):
         self.assertIsNone(sniffed_mime_type(_write("fake.mp4", b"not a video at all")))
