@@ -1214,6 +1214,8 @@
     "fullocrscan": "Text extraction started for all photos",
     "updateuser": "{{username}}'s info updated",
     "updateusertitle": "Update user",
+    "updateusererror": "The user could not be updated. Please check the values you entered.",
+    "updateusererrortitle": "Could not update user",
     "deleteuser": "{{username}} deleted",
     "deleteusertitle": "Delete user",
     "jobfinished": "{{job}} finished.",

@@ -73,6 +73,27 @@ def assign_fields(instance, validated_data, fields):
             setattr(instance, field, validated_data.pop(field))
 
 
+def normalize_scan_directory(scan_directory):
+    """Return ``scan_directory`` as a usable absolute library root.
+
+    Returns ``None`` when nothing was supplied, so callers can leave the
+    stored value untouched. Raises ``ValidationError`` when the path escapes
+    ``settings.DATA_ROOT`` or does not exist on disk.
+    """
+    if not scan_directory:
+        return None
+
+    abs_scan_directory = os.path.abspath(scan_directory)
+
+    if not is_valid_path(abs_scan_directory, settings.DATA_ROOT):
+        raise ValidationError("Scan directory must be inside the data root.")
+
+    if not os.path.exists(abs_scan_directory):
+        raise ValidationError("Scan directory does not exist")
+
+    return abs_scan_directory
+
+
 class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
     public_photo_samples = serializers.SerializerMethodField()
@@ -160,6 +181,17 @@ class UserSerializer(serializers.ModelSerializer):
                 or validated_data["scan_directory"] == "initial"
             ):
                 validated_data.pop("scan_directory")
+            else:
+                # Creation must apply the same guard rails as an update,
+                # otherwise a user can be created pointing outside DATA_ROOT
+                # or at a directory that does not exist. See issue #492.
+                abs_scan_directory = normalize_scan_directory(
+                    validated_data["scan_directory"]
+                )
+                if abs_scan_directory is None:
+                    validated_data.pop("scan_directory")
+                else:
+                    validated_data["scan_directory"] = abs_scan_directory
         # make sure username is always lowercase
         if "username" in validated_data.keys():
             validated_data["username"] = validated_data["username"].lower()
@@ -352,16 +384,9 @@ class ManageUserSerializer(serializers.ModelSerializer):
         return instance
 
     def apply_scan_directory(self, instance: User, new_scan_directory):
-        if not new_scan_directory:  # Ensure it's not an empty string
+        abs_new_scan_directory = normalize_scan_directory(new_scan_directory)
+        if abs_new_scan_directory is None:
             return
-
-        abs_new_scan_directory = os.path.abspath(new_scan_directory)
-
-        if not is_valid_path(abs_new_scan_directory, settings.DATA_ROOT):
-            raise ValidationError("Scan directory must be inside the data root.")
-
-        if not os.path.exists(abs_new_scan_directory):
-            raise ValidationError("Scan directory does not exist")
 
         instance.scan_directory = abs_new_scan_directory
         logger.info(f"Updated scan directory for user {instance.scan_directory}")

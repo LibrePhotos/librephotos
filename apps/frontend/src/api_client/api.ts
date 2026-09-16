@@ -6,6 +6,26 @@ import { notification } from "../service/notifications";
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
 
+/**
+ * A failed response, carrying its status so callers can react to it. See issue #492.
+ *
+ * `serverMessage` is only set when the backend actually sent a human readable
+ * error; `message` falls back to an internal English string that must never be
+ * shown to a user.
+ */
+export class ApiError extends Error {
+  readonly status: number;
+
+  readonly serverMessage: string | null;
+
+  constructor(message: string, status: number, serverMessage: string | null = null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.serverMessage = serverMessage;
+  }
+}
+
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
   private static isTokenExpired(exp: number): boolean {
@@ -58,13 +78,34 @@ class FetchClient {
     return response;
   }
 
+  /** Pull a human readable message out of the DRF error body, if there is one. */
+  private static async extractErrorMessage(response: Response): Promise<string | null> {
+    try {
+      const data = await response.clone().json();
+      if (Array.isArray(data?.errors)) {
+        // Only the first one: in DEBUG the backend appends a long auth help
+        // paragraph as a second entry, which is not a user facing message.
+        const first = data.errors.map((error: { message?: string }) => error.message).find(Boolean);
+        if (first) {
+          return first;
+        }
+      }
+      if (typeof data?.detail === "string") {
+        return data.detail;
+      }
+    } catch {
+      // body was empty or not JSON, fall through to the generic message
+    }
+    return null;
+  }
+
   private static async handleError(response: Response, endpoint: string) {
     if (response.status === 500) {
       notification.requestFailed(
         `500 (Internal Server Error) for ${endpoint}`,
         "Something went wrong on the server. Please open up the network tab in your browser's developer tools and report this issue on GitHub."
       );
-      throw new Error("Internal Server Error");
+      throw new ApiError("Internal Server Error", 500);
     }
 
     if (response.status === 401) {
@@ -119,11 +160,11 @@ class FetchClient {
             notification.invalidToken();
           }
         }
-        throw new Error("Authentication failed");
+        throw new ApiError("Authentication failed", 401);
       }
       // On public pages, silently ignore 401 errors for authenticated-only endpoints
       // Return a response that will result in undefined/null data
-      throw new Error("Not authenticated (public page)");
+      throw new ApiError("Not authenticated (public page)", 401);
     }
   }
 
@@ -175,7 +216,8 @@ class FetchClient {
       // Handle other errors
       if (!response.ok) {
         await FetchClient.handleError(response, endpoint);
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const message = await FetchClient.extractErrorMessage(response);
+        throw new ApiError(message ?? `API error: ${response.status} ${response.statusText}`, response.status, message);
       }
 
       // Handle different response types

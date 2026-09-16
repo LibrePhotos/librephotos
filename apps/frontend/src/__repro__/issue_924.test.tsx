@@ -41,7 +41,10 @@ vi.mock("@tanstack/react-router", () => ({
   Navigate: () => null,
   useNavigate: () => () => {},
 }));
-vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: () => {} }) }));
+vi.mock("@tanstack/react-query", async importOriginal => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
+  useQueryClient: () => ({ invalidateQueries: () => {} }),
+}));
 vi.mock("../api_client/auth", () => ({
   useIsAuthenticatedQuery: () => ({ data: false }),
   useIsFirstTimeSetupQuery: () => ({ data: false, isLoading: false }),
