@@ -32,6 +32,8 @@ class WindowsWheelPinsTests(unittest.TestCase):
                     wheels[_norm(wheel.group(1))] = wheel.group(2)
         self.assertTrue(wheels, "expected at least one Windows wheel line")
         for name, version in wheels.items():
+            if name not in pins:
+                continue  # Windows-only package such as exiftool-bin
             self.assertIn(
                 version,
                 pins.get(name, set()),

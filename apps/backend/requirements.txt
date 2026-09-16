@@ -27,6 +27,9 @@ insightface==0.7.3; sys_platform != "win32"
 insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp311-cp311-win_amd64.whl ; sys_platform == "win32"
 # stringzilla (insightface -> albumentations -> albucore): 5.1.2 has no Windows wheel.
 stringzilla==5.1.1; sys_platform == "win32"
+# ExifTool for Windows (the official build wrapped by scripts/build_exiftool_wheel.py);
+# Linux images build it from source in the Dockerfile.
+exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-win_amd64.whl ; sys_platform == "win32"
 psycopg[binary]==3.3.4
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2026.3.post1

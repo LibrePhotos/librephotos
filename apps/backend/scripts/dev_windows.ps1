@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Run the native Windows dev stack: exif sidecar (:8010) + qcluster + uvicorn (:8000).
-    Needs a venv from requirements.txt (.venv or .venv-win) and exiftool on PATH; see
+    Needs a venv from requirements.txt (.venv or .venv-win) and ffmpeg on PATH; see
     CLAUDE.md. Frontend: VITE_BACKEND_URL in apps/frontend/.env.development, `yarn start`.
 .EXAMPLE
     ./scripts/dev_windows.ps1 -DataDir C:\librephotos-devdata
@@ -37,10 +37,8 @@ $env:BASE_DATA = $DataDir
 $env:BASE_LOGS = $LogsDir
 if (-not $env:SECRET_KEY) { $env:SECRET_KEY = "dev-secret-key" }
 
-$ExifDir = Join-Path $env:LOCALAPPDATA "Programs\ExifTool"
-if ((Test-Path $ExifDir) -and ($env:PATH -notlike "*$ExifDir*")) { $env:PATH = "$ExifDir;$env:PATH" }
-if (-not (Get-Command exiftool -ErrorAction SilentlyContinue)) {
-    Write-Warning "exiftool.exe not on PATH; photos will get no timestamps. winget install --id OliverBetz.ExifTool"
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+    Write-Warning "ffmpeg not on PATH; video thumbnails and transcoding will fail. winget install Gyan.FFmpeg"
 }
 
 Push-Location $BackendDir

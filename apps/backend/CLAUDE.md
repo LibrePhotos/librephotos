@@ -61,10 +61,11 @@
    The `test_sqlite` settings module (`librephotos/settings/test_sqlite.py`) uses
    an in-memory SQLite database so no PostgreSQL instance is required.
 
-**Natively on Windows (no Docker):** Python 3.11, plus `winget install OliverBetz.ExifTool
-ImageMagick.ImageMagick` (the inno DLL build, for Wand). `requirements.txt` carries the
-Windows variants behind `sys_platform` markers; `insightface` and `timezonefinder` come as
-wheels from the `windows-wheels-*` GitHub release (`.github/workflows/windows-wheels.yml`
+**Natively on Windows (no Docker):** Python 3.11 and ffmpeg (`winget install Gyan.FFmpeg`,
+for video thumbnails and transcoding); everything else comes from pip. `requirements.txt`
+carries the Windows variants behind `sys_platform` markers; `insightface`, `timezonefinder`
+and `exiftool-bin` (the official ExifTool build, wrapped by `scripts/build_exiftool_wheel.py`)
+come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/windows-wheels.yml`
 rebuilds them, `api/tests/infra/test_requirements_windows_wheels.py` keeps the versions in
 step).
 
