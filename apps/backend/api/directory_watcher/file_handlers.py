@@ -331,18 +331,10 @@ def _collect_file_records(user, file_paths: list[str]) -> list[File]:
 
 
 def _describe_failure(path, error: Exception) -> str:
-    """Render a per-file failure for the job result.
-
-    The path is part of the string on purpose: ``update_scan_counter``
-    de-duplicates the ``errors`` list by exact text, so without it every file
-    hitting the same I/O error (a dropped NFS mount reports one identical
-    "Stale file handle" for each file) would collapse into a single entry and
-    the user could not tell which photos are missing.
-    """
-    try:
-        return f"{path}: {error}"
-    except Exception:
-        return f"{path}: {type(error).__name__}"
+    # The path is part of the text because update_scan_counter de-duplicates
+    # the errors list by exact string, and one dropped mount reports the same
+    # errno for every file it swallowed.
+    return f"{path}: {error}"
 
 
 def _log_file_group_failure(job_id, file_paths, error: Exception):
@@ -394,8 +386,8 @@ def handle_file_group(user, file_paths: list[str], job_id):
             _process_photo(photo, photo.main_file.path, job_id, start)
 
     except Exception as e:
-        error = _describe_failure(", ".join(file_paths), e)
         _log_file_group_failure(job_id, file_paths, e)
+        error = _describe_failure(", ".join(file_paths), e)
     finally:
         update_scan_counter(job_id, failed=error is not None, error=error)
 

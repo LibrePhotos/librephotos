@@ -1,20 +1,5 @@
-"""Regression tests for issue #167 - a single unreadable file must not hide
-itself or derail the rest of the scan.
-
-The original 2021 report (an NFS mount where the scan stalled after one photo)
-was caused by the scan running inside the gunicorn web worker, which SIGABRTed
-on the worker timeout. That architecture is long gone - each file group is now
-its own django-q task - so the "scan aborts" half of the issue no longer
-reproduces.
-
-What does still bite the same user is the reporting half: an I/O error on one
-file (stale NFS handle, EACCES, a disappearing mount) is swallowed and only
-written to the log. The job's progress counter advances, the job finishes, and
-it reports unqualified success. ``update_scan_counter`` already knows how to
-record per-item failures (``failed=``/``error=``) and every job in
-``processing_jobs`` uses it, but the two scan file handlers do not - so the
-user is told the scan succeeded while photos are silently missing.
-"""
+"""Regression tests for issue #167: a file that errors mid-scan must not stop
+the rest of the batch, and must still be reported on the job."""
 
 import os
 import shutil
@@ -25,11 +10,7 @@ from unittest.mock import patch
 import pyvips
 from django.test import TestCase
 
-from api.directory_watcher.file_handlers import (
-    _process_photo,
-    handle_file_group,
-    handle_new_image,
-)
+from api.directory_watcher.file_handlers import handle_file_group, handle_new_image
 from api.models import LongRunningJob, Photo
 from api.tests.utils import create_test_user
 
@@ -74,7 +55,6 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
         def flaky_process(photo, path, job_id, start):
             if path == failing_path:
                 raise OSError(116, "Stale file handle")
-            return _process_photo(photo, path, job_id, start)
 
         with patch(f"{MODULE}._process_photo", side_effect=flaky_process):
             for path in paths:
@@ -101,7 +81,6 @@ class ScanSurvivesPerFileErrorsTests(TestCase):
         def flaky_process(photo, path, job_id, start):
             if path == failing_path:
                 raise OSError(116, "Stale file handle")
-            return _process_photo(photo, path, job_id, start)
 
         with patch(f"{MODULE}._process_photo", side_effect=flaky_process):
             for path in paths:
