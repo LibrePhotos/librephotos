@@ -33,6 +33,11 @@ class GroupedPersonPhotosSerializer(serializers.ModelSerializer):
         return res
 
 
+# Sentinel telling ``PersonSerializer`` that the queryset did not carry the
+# first-face annotations, so it has to look the face up itself.
+_UNANNOTATED = object()
+
+
 class PersonSerializer(serializers.ModelSerializer):
     face_url = serializers.SerializerMethodField()
     face_photo_url = serializers.SerializerMethodField()
@@ -53,26 +58,49 @@ class PersonSerializer(serializers.ModelSerializer):
             "cover_photo",
         )
 
+    def _first_face_value(self, obj, annotation, resolve):
+        """Value taken from the person's first face, without a query per person.
+
+        ``PersonViewSet`` annotates the values this serializer needs off the
+        first face, because otherwise every person costs an ``exists()``, a
+        ``first()`` and a photo fetch: eight extra round trips each, which is
+        what made the people page take seconds to show its first cover
+        (issue #618). Serializers instantiated on a plain (unannotated) person
+        still work, they just pay for the lookup.
+        """
+        value = getattr(obj, annotation, _UNANNOTATED)
+        if value is not _UNANNOTATED:
+            return value
+        face = obj.faces.first()
+        return resolve(face) if face else None
+
     def get_face_url(self, obj) -> str:
         if obj.cover_face:
             return "/media/" + obj.cover_face.image.name
-        if not obj.faces.exists():
-            return ""
-        return "/media/" + obj.faces.first().image.name
+        image = self._first_face_value(
+            obj, "first_face_image", lambda face: face.image.name
+        )
+        return "/media/" + image if image else ""
 
     def get_face_photo_url(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.image_hash
-        if not obj.faces.exists():
-            return ""
-        return obj.faces.first().photo.image_hash
+        image_hash = self._first_face_value(
+            obj,
+            "first_face_photo_hash",
+            lambda face: face.photo.image_hash if face.photo else None,
+        )
+        return image_hash or ""
 
     def get_video(self, obj) -> str:
         if obj.cover_photo:
             return obj.cover_photo.video
-        if not obj.faces.exists():
-            return "False"
-        return obj.faces.first().photo.video
+        video = self._first_face_value(
+            obj,
+            "first_face_photo_video",
+            lambda face: face.photo.video if face.photo else None,
+        )
+        return "False" if video is None else video
 
     def _requester(self):
         return getattr(self.context.get("request"), "user", None)

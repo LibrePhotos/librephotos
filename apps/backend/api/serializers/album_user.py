@@ -228,7 +228,15 @@ class AlbumUserListSerializer(serializers.ModelSerializer):
     def get_cover_photo(self, obj) -> PhotoSuperSimpleSerializer:
         if obj.cover_photo:
             return PhotoSuperSimpleSerializer(obj.cover_photo).data
-        return PhotoSuperSimpleSerializer(obj.photos.first()).data
+        # ``first_photos`` is the prefetched fallback cover (see
+        # ``with_album_user_list_relations``); fall back to a query when the
+        # serializer is used on a plain album.
+        first_photos = getattr(obj, "first_photos", None)
+        if first_photos is None:
+            return PhotoSuperSimpleSerializer(obj.photos.first()).data
+        return PhotoSuperSimpleSerializer(
+            first_photos[0] if first_photos else None
+        ).data
 
     def get_photo_count(self, obj) -> int:
         try:
