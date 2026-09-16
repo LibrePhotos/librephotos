@@ -170,7 +170,7 @@ def build_logging_config(
     handlers = {
         LOG_FILE_HANDLER_NAME: {
             # ConcurrentRotatingFileHandler rather than the stdlib
-            # RotatingFileHandler: gunicorn workers and django-q2 workers write
+            # RotatingFileHandler: uvicorn workers and django-q2 workers write
             # to this file at the same time, and plain rotation truncates it
             # under the other processes (bug #1765).
             "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",
