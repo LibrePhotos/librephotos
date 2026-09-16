@@ -8,6 +8,7 @@ import { useSignUpMutation } from "../../api_client/auth";
 import { useScanPhotosMutation } from "../../api_client/jobs";
 import { User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
+import { notification } from "../../service/notifications";
 import { EMAIL_REGEX } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
@@ -149,18 +150,20 @@ export function ModalUserEdit(props: Props) {
       newUserData.username = username;
     }
 
-    if (updateAndScan) {
-      updateUser(newUserData, {
-        onSuccess: () => {
-          if (newUserData.scan_directory) {
-            scanPhotos.mutate();
-          }
-        },
-      });
-    } else {
-      updateUser(newUserData);
-    }
-    closeModal();
+    // The modal must stay open when the backend rejects the save (for example
+    // a scan directory outside the data root), otherwise the failure is
+    // invisible and the old value silently stays in place. See issue #492.
+    updateUser(newUserData, {
+      onSuccess: () => {
+        if (updateAndScan && newUserData.scan_directory) {
+          scanPhotos.mutate();
+        }
+        closeModal();
+      },
+      onError: (error: unknown) => {
+        notification.updateUserError(error instanceof Error ? error.message : undefined);
+      },
+    });
   };
 
   const onPasswordValidate = (pass: string, valid: boolean) => {

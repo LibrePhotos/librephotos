@@ -9,6 +9,15 @@ function updateUser(username: string) {
   });
 }
 
+function updateUserError(message?: string) {
+  showNotification({
+    message: message || i18n.t("toasts.updateusererror"),
+    title: i18n.t("toasts.updateusererrortitle"),
+    color: "red",
+  });
+}
+
 export const user = {
   updateUser,
+  updateUserError,
 };

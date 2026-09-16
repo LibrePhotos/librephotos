@@ -41,6 +41,7 @@ import {
   useUpdateUserScanDirectoryMutation,
 } from "../api_client/user/hooks";
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
+import { notification } from "../service/notifications";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
 import { EMAIL_REGEX } from "../util/util";
@@ -326,6 +327,11 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
             }
             onComplete?.();
             navigate({ to: "/" });
+          },
+          // Without this the wizard just does nothing when the backend rejects
+          // the directory, leaving the admin stuck. See issue #492.
+          onError: (error: unknown) => {
+            notification.updateUserError(error instanceof Error ? error.message : undefined);
           },
         }
       );

@@ -6,6 +6,20 @@ import { notification } from "../service/notifications";
 const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL || "";
 const API_BASE_URL = PUBLIC_URL + "/api";
 
+/**
+ * A 4xx response that carries the message the backend actually sent, so callers
+ * can show it instead of failing silently. See issue #492.
+ */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
   private static isTokenExpired(exp: number): boolean {
@@ -56,6 +70,25 @@ class FetchClient {
       }
     }
     return response;
+  }
+
+  /** Pull a human readable message out of the DRF error body, if there is one. */
+  private static async extractErrorMessage(response: Response): Promise<string | null> {
+    try {
+      const data = await response.clone().json();
+      if (Array.isArray(data?.errors)) {
+        const messages = data.errors.map((error: { message?: string }) => error.message).filter(Boolean);
+        if (messages.length > 0) {
+          return messages.join(" ");
+        }
+      }
+      if (typeof data?.detail === "string") {
+        return data.detail;
+      }
+    } catch {
+      // body was empty or not JSON, fall through to the generic message
+    }
+    return null;
   }
 
   private static async handleError(response: Response, endpoint: string) {
@@ -175,7 +208,8 @@ class FetchClient {
       // Handle other errors
       if (!response.ok) {
         await FetchClient.handleError(response, endpoint);
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const message = await FetchClient.extractErrorMessage(response);
+        throw new ApiError(message ?? `API error: ${response.status} ${response.statusText}`, response.status);
       }
 
       // Handle different response types

@@ -44,3 +44,65 @@ class SetupDirectoryTestCase(TestCase):
         self.assertEqual(
             data["errors"][0]["message"], "Scan directory must be inside the data root."
         )
+
+
+class CreateUserScanDirectoryTestCase(TestCase):
+    """Creating a user must validate scan_directory the same way updating does.
+
+    Before the fix for #492, ``UserSerializer.create`` stored whatever an admin
+    sent, so a user could be created with a scan directory outside DATA_ROOT or
+    pointing at a directory that does not exist -- with no error at all.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_superuser(
+            "create_admin", "create_admin@test.com", create_password()
+        )
+        self.client.force_authenticate(user=self.admin)
+        os.makedirs(settings.DATA_ROOT, exist_ok=True)
+
+    def _create(self, username, scan_directory):
+        return self.client.post(
+            "/api/user/",
+            {
+                "username": username,
+                "password": create_password(),
+                "email": f"{username}@test.com",
+                "scan_directory": scan_directory,
+            },
+        )
+
+    def test_create_with_missing_scan_directory_is_rejected(self):
+        missing = os.path.join(settings.DATA_ROOT, "does-not-exist")
+        response = self._create("missingdir", missing)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["errors"][0]["message"], "Scan directory does not exist"
+        )
+        self.assertFalse(User.objects.filter(username="missingdir").exists())
+
+    def test_create_with_scan_directory_outside_data_root_is_rejected(self):
+        outside = os.path.abspath(os.path.join(settings.DATA_ROOT, "..", "elsewhere"))
+        response = self._create("outsidedir", outside)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["errors"][0]["message"],
+            "Scan directory must be inside the data root.",
+        )
+        self.assertFalse(User.objects.filter(username="outsidedir").exists())
+
+    def test_create_with_valid_scan_directory_is_accepted_and_normalized(self):
+        response = self._create("gooddir", settings.DATA_ROOT + os.sep)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            User.objects.get(username="gooddir").scan_directory,
+            os.path.abspath(settings.DATA_ROOT),
+        )
+
+    def test_create_with_initial_sentinel_still_works(self):
+        response = self._create("initialdir", "initial")
+        self.assertEqual(response.status_code, 201)
+        self.assertNotEqual(
+            User.objects.get(username="initialdir").scan_directory, "initial"
+        )
