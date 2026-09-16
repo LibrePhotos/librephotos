@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Run the native Windows dev stack: exif sidecar (:8010) + qcluster + uvicorn (:8000).
-    Needs a venv from requirements.txt (.venv or .venv-win) and ffmpeg on PATH; see
+    Needs a venv from requirements.txt (.venv or .venv-win); see
     CLAUDE.md. Frontend: VITE_BACKEND_URL in apps/frontend/.env.development, `yarn start`.
 .EXAMPLE
     ./scripts/dev_windows.ps1 -DataDir C:\librephotos-devdata
@@ -37,9 +37,6 @@ $env:BASE_DATA = $DataDir
 $env:BASE_LOGS = $LogsDir
 if (-not $env:SECRET_KEY) { $env:SECRET_KEY = "dev-secret-key" }
 
-if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
-    Write-Warning "ffmpeg not on PATH; video thumbnails and transcoding will fail. winget install Gyan.FFmpeg"
-}
 
 Push-Location $BackendDir
 $children = @()

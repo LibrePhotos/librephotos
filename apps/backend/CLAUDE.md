@@ -61,11 +61,11 @@
    The `test_sqlite` settings module (`librephotos/settings/test_sqlite.py`) uses
    an in-memory SQLite database so no PostgreSQL instance is required.
 
-**Natively on Windows (no Docker):** Python 3.11 and ffmpeg (`winget install Gyan.FFmpeg`,
-for video thumbnails and transcoding); everything else comes from pip. `requirements.txt`
-carries the Windows variants behind `sys_platform` markers; `insightface`, `timezonefinder`
-and `exiftool-bin` (ExifTool wrapped by `scripts/build_exiftool_wheel.py`; a Perl variant
-serves Linux/macOS) come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/prebuilt-wheels.yml`
+**Natively on Windows (no Docker):** Python 3.11; everything else comes from pip. `requirements.txt`
+carries the Windows variants behind `sys_platform` markers; `insightface`, `timezonefinder`,
+`exiftool-bin` (ExifTool wrapped by `scripts/build_exiftool_wheel.py`; a Perl variant
+serves Linux/macOS) and `ffmpeg-bin` (BtbN's GPL build, `scripts/build_ffmpeg_wheel.py`; macOS
+needs `brew install ffmpeg`) come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/prebuilt-wheels.yml`
 rebuilds them, including manylinux insightface wheels for the images and CI, `api/tests/infra/test_requirements_windows_wheels.py` keeps the versions in
 step).
 
@@ -80,8 +80,8 @@ $env:BASE_DATA = "$PWD\.testtmp"; $env:BASE_LOGS = "$PWD\.testtmp\logs"; $env:NO
 `dev_windows.ps1` uses `librephotos.settings.dev_windows` (SQLite on disk, Django serves
 media). Uploads only get dated/thumbnailed because `qcluster` and the exif sidecar run.
 ML sidecars are not started and their `FEATURE_*` flags default off there; set one to `1`
-and `python manage.py start_service <name>` after downloading the models. Known
-Windows-only test failures: `test_serving_permissions` (POSIX chmod/mounts).
+and `python manage.py start_service <name>` after downloading the models. The POSIX
+permission and mount tests in `test_serving_permissions` are skipped on Windows.
 
 Frontend against that backend: `cd apps/frontend`, copy `.env.development.example` to
 `.env.development`, set `VITE_BACKEND_URL=http://localhost:8000`, then `yarn install` and

@@ -96,7 +96,7 @@ docker exec -it backend python manage.py createsuperuser
 
 ## Native Windows Setup (no Docker)
 
-Requires Python 3.11, Node 22 and ffmpeg (`winget install Gyan.FFmpeg`); everything else comes from pip.
+Requires Python 3.11 and Node 22; everything else, ffmpeg included, comes from pip.
 
 ```powershell
 cd appsackend

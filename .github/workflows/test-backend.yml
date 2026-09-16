@@ -45,6 +45,16 @@ jobs:
           . .venv/bin/activate
           bash scripts/setup_test_env.sh
 
+      - name: ffmpeg comes from the wheel, not the runner
+        working-directory: apps/backend
+        run: |
+          sudo apt-get remove -y ffmpeg >/dev/null 2>&1 || true
+          sudo rm -f /usr/bin/ffmpeg /usr/bin/ffprobe
+          . .venv/bin/activate
+          which ffmpeg ffprobe
+          ffmpeg -hide_banner -f lavfi -i testsrc=duration=1:size=64x64:rate=5 -c:v libx264 -y /tmp/wheel-smoke.mp4
+          ffprobe -hide_banner -show_streams /tmp/wheel-smoke.mp4 | grep codec_name=h264
+
       - name: Run tests
         working-directory: apps/backend
         env:

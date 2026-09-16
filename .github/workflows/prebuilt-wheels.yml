@@ -3,7 +3,7 @@ name: prebuilt-wheels
 # Builds the wheels apps/backend/requirements.txt references by URL, for the
 # packages PyPI ships no wheel for on a platform we run on, and attaches them to
 # a GitHub release: insightface and timezonefinder for Windows, insightface as
-# manylinux wheels for the Docker images and CI, ExifTool for every platform.
+# manylinux wheels for the Docker images and CI, ExifTool and ffmpeg for every platform.
 on:
   workflow_dispatch:
     inputs:
@@ -34,10 +34,15 @@ jobs:
           import re, subprocess, sys
           specs = re.findall(r"^([A-Za-z0-9_.-]+) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-[^/]*win_amd64\.whl", open("requirements.txt").read(), re.M)
           specs += re.findall(r"^([A-Za-z0-9_.-]+) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-py3-none-any\.whl", open("requirements.txt").read(), re.M)
+          specs += re.findall(r"^(ffmpeg-bin) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-py3-none-manylinux[^ ]*\.whl", open("requirements.txt").read(), re.M)
           subprocess.run([sys.executable, "-m", "pip", "install", "-U", "pip", "wheel"], check=True)
           for name, version in dict.fromkeys(specs):
               if name == "exiftool-bin":
                   subprocess.run([sys.executable, "scripts/build_exiftool_wheel.py", version, "wheels"], check=True)
+                  continue
+              if name == "ffmpeg-bin":
+                  tag, build = re.search(r"^# ffmpeg-bin: (\S+) (\S+)", open("requirements.txt").read(), re.M).groups()
+                  subprocess.run([sys.executable, "scripts/build_ffmpeg_wheel.py", tag, build, "wheels"], check=True)
                   continue
               subprocess.run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-cache-dir", f"{name}=={version}", "-w", "wheels"], check=True)
       - name: Upload to the release

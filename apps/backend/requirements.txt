@@ -38,6 +38,12 @@ stringzilla==5.1.1; sys_platform == "win32"
 # the Perl distribution elsewhere (needs a perl on PATH).
 exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-win_amd64.whl ; sys_platform == "win32"
 exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-any.whl ; sys_platform != "win32"
+# ffmpeg + ffprobe from BtbN/FFmpeg-Builds (GPL shared build), wrapped by
+# scripts/build_ffmpeg_wheel.py. Other platforms need ffmpeg on PATH (brew install ffmpeg).
+# ffmpeg-bin: autobuild-2026-09-15-13-18 ffmpeg-n9.0.1-30-g9258bacca5
+ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-win_amd64.whl ; sys_platform == "win32"
+ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-manylinux_2_17_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
+ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-manylinux_2_17_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
 psycopg[binary]==3.3.4
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2026.3.post1
