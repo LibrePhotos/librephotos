@@ -22,10 +22,9 @@
  * defaults to `preload="auto"` fetched every clip in full, and nothing released
  * the media element when a tile scrolled out of the buffer and unmounted.
  */
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Tile from "../components/react-pig/components/Tile/Tile";
 
 const SERVER = "http://localhost:3000";
@@ -58,46 +57,53 @@ function videoItem(index: number) {
   };
 }
 
-// jsdom implements neither, and the unmount cleanup calls both.
-beforeAll(() => {
-  HTMLMediaElement.prototype.pause = () => {};
-  HTMLMediaElement.prototype.load = () => {};
-});
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let container: HTMLDivElement | null = null;
 let root: ReturnType<typeof createRoot> | null = null;
 
-function renderTiles(count: number) {
+function tileElements(count: number, scrollSpeed: string, activeTileUrl: string | null = null) {
+  return Array.from({ length: count }, (_, i) => videoItem(i)).map(item => (
+    <Tile
+      key={item.id}
+      item={item}
+      useLqip
+      containerWidth={1200}
+      containerOffsetTop={0}
+      getUrl={getUrl}
+      activeTileUrl={activeTileUrl}
+      handleClick={() => {}}
+      handleSelection={() => {}}
+      selected={false}
+      selectable={false}
+      windowHeight={900}
+      scrollSpeed={scrollSpeed}
+      settings={settings}
+    />
+  ));
+}
+
+function renderTiles(count: number, scrollSpeed = "slow", activeTileUrl: string | null = null) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  const items = Array.from({ length: count }, (_, i) => videoItem(i));
   act(() => {
-    root!.render(
-      <>
-        {items.map(item => (
-          <Tile
-            key={item.id}
-            item={item}
-            useLqip
-            containerWidth={1200}
-            containerOffsetTop={0}
-            getUrl={getUrl}
-            activeTileUrl={null}
-            handleClick={() => {}}
-            handleSelection={() => {}}
-            selected={false}
-            selectable={false}
-            windowHeight={900}
-            scrollSpeed="slow"
-            settings={settings}
-          />
-        ))}
-      </>
-    );
+    root!.render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
   });
   return container;
 }
+
+function rerenderTiles(count: number, scrollSpeed: string, activeTileUrl: string | null = null) {
+  act(() => {
+    root!.render(<>{tileElements(count, scrollSpeed, activeTileUrl)}</>);
+  });
+}
+
+// jsdom implements neither, and releasing a video calls both.
+beforeEach(() => {
+  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+});
 
 afterEach(() => {
   if (root && container) {
@@ -109,35 +115,56 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+function expectReleased(video: HTMLVideoElement) {
+  expect(video.pause).toHaveBeenCalled();
+  expect(video.getAttribute("src")).toBeNull();
+  expect(video.load).toHaveBeenCalled();
+}
+
 describe("issue 970: listing a huge amount of videos", () => {
   it("does not request an animated (mp4) thumbnail through an <img> element", () => {
-    const tiles = renderTiles(120);
+    const grid = renderTiles(120);
 
-    const imageSources = Array.from(tiles.querySelectorAll("img")).map(img => img.getAttribute("src") ?? "");
+    const imageSources = Array.from(grid.querySelectorAll("img")).map(img => img.getAttribute("src") ?? "");
     const animatedThroughImg = imageSources.filter(src => src.includes("/media/square_thumbnails"));
 
     expect(animatedThroughImg).toEqual([]);
   });
 
   it("tells the browser not to preload whole video clips", () => {
-    const tiles = renderTiles(120);
+    const grid = renderTiles(120);
 
-    const videos = Array.from(tiles.querySelectorAll("video"));
+    const videos = Array.from(grid.querySelectorAll("video"));
     expect(videos).toHaveLength(120);
     expect(videos.every(video => video.getAttribute("preload") === "metadata")).toBe(true);
   });
 
   it("releases the media element when a tile scrolls out of the buffer", () => {
-    const tiles = renderTiles(1);
-    const video = tiles.querySelector("video")!;
-    const pause = vi.spyOn(video, "pause");
-    const load = vi.spyOn(video, "load");
+    const video = renderTiles(1).querySelector("video")!;
 
     act(() => root!.unmount());
     root = null;
 
-    expect(pause).toHaveBeenCalled();
-    expect(video.getAttribute("src")).toBeNull();
-    expect(load).toHaveBeenCalled();
+    expectReleased(video);
+  });
+
+  it("releases the media element when scrolling gets too fast to render previews", () => {
+    const video = renderTiles(1).querySelector("video")!;
+
+    // The tile stays mounted, only the <video> inside it goes away.
+    rerenderTiles(1, "fast");
+
+    expect(container!.querySelector("video")).toBeNull();
+    expectReleased(video);
+  });
+
+  it("releases the media element when the expanded tile is dismissed", () => {
+    const expandedUrl = videoItem(0).url;
+    const video = renderTiles(1, "fast", expandedUrl).querySelector("video")!;
+
+    rerenderTiles(1, "fast");
+
+    expect(container!.querySelector("video")).toBeNull();
+    expectReleased(video);
   });
 });
