@@ -1,5 +1,5 @@
 # Stage 1: Build Stage
-FROM ubuntu:noble AS builder
+FROM ubuntu:resolute AS builder
 ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 
