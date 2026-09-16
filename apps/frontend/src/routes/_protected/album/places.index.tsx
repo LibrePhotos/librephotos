@@ -67,11 +67,18 @@ function AlbumPlace({ height }: Props) {
   const { width } = useViewportSize();
   const mapRef = useRef<MapRef>(null);
   const { t } = useTranslation();
-  const [visibleAlbums, setVisibleAlbums] = useState<PlaceAlbumList>([]);
+  // `null` means the map has not reported any bounds yet: it is still being created, its
+  // style never loaded, or map display is turned off altogether. Falling back to the full
+  // album list keeps the page from sitting empty until the user pans or zooms.
+  const [visibleAlbums, setVisibleAlbums] = useState<PlaceAlbumList | null>(null);
   const { data: albums, isFetching: isFetchingAlbums } = useFetchPlacesAlbumsQuery();
   const { data: locationClusters, isFetching: isFetchingLocationClusters } = useFetchLocationClustersQuery();
   const { mapStyle, mapsDisabled } = useMapStyle();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
+  const shownAlbums = useMemo(
+    () => visibleAlbums ?? _.sortBy(albums ?? [], ["geolocation_level", "photo_count"]),
+    [visibleAlbums, albums]
+  );
 
   // Convert locationClusters to GeoJSON FeatureCollection
   const geojsonData = useMemo(() => {
@@ -158,14 +165,14 @@ function AlbumPlace({ height }: Props) {
   }, [width, height, albums, locationClusters, updateVisibleAlbums]);
 
   function renderCell({ columnIndex, key, rowIndex, style }: any) {
-    if (!visibleAlbums || visibleAlbums.length === 0) {
+    if (shownAlbums.length === 0) {
       return null;
     }
     const index = rowIndex * entriesPerRow + columnIndex;
-    if (index >= visibleAlbums.length) {
+    if (index >= shownAlbums.length) {
       return <div key={key} style={style} />;
     }
-    const place = visibleAlbums[index];
+    const place = shownAlbums[index];
     return (
       <div key={key} style={style}>
         <div style={{ padding: 5 }}>
@@ -207,7 +214,7 @@ function AlbumPlace({ height }: Props) {
         title={t("places")}
         fetching={isFetchingLocationClusters || isFetchingAlbums}
         subtitle={t("placealbum.showingplaces", {
-          number: visibleAlbums.length,
+          number: shownAlbums.length,
         })}
       />
       {!isFetchingAlbums && !hasPlaces ? (
