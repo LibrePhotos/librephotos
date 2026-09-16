@@ -4,13 +4,27 @@ import os
 import magic
 import pyvips
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 
 from api import util
 
 # Most optimal value for performance/memory. Found here:
 # https://stackoverflow.com/questions/17731660/hashlib-optimal-size-of-chunks-to-be-used-in-md5-update
 BUFFER_SIZE = 65536
+
+# A File hash is an MD5 hex digest with the owner's user id appended, so the
+# same bytes hash differently for different users.
+MD5_HEX_LENGTH = 32
+
+
+def content_hash(hash_value: str) -> str:
+    """The content part of a File hash, without the trailing owner id."""
+    return hash_value[:MD5_HEX_LENGTH]
+
+
+def hash_owner_part(hash_value: str) -> str:
+    """The owner id a File hash was calculated for."""
+    return hash_value[MD5_HEX_LENGTH:]
 
 
 # To-Do: add owner to file
@@ -99,15 +113,66 @@ class File(models.Model):
             # Re-raise if we can't find the conflicting record
             raise
 
+    def rekey(self, new_hash: str) -> "File":
+        """Move this row onto ``new_hash``, carrying its relations across.
+
+        The hash is the primary key, so the row has to be recreated rather
+        than updated. Everything that pointed at the old row - the photos
+        holding it as a variant or as their main file, and its embedded media
+        links in both directions - is re-pointed at the new one.
+
+        This is hash bookkeeping only. Whether the picture itself changed, and
+        so whether anything derived from it has to be thrown away, is the
+        caller's decision.
+        """
+        from api.models.photo import Photo
+
+        if self.hash == new_hash:
+            return self
+
+        variant_of = set(Photo.objects.filter(files=self).values_list("pk", flat=True))
+        main_file_of = set(self.main_photo.values_list("pk", flat=True))
+        embedded = list(self.embedded_media.all())
+        embedded_in = list(File.objects.filter(embedded_media=self))
+
+        with transaction.atomic():
+            new_file = File(
+                hash=new_hash,
+                path=self.path,
+                type=detect_file_type(self.path),
+                missing=self.missing,
+            )
+            self.delete()
+            new_file.save()
+
+            if embedded:
+                new_file.embedded_media.add(*embedded)
+            for parent in embedded_in:
+                parent.embedded_media.add(new_file)
+
+            for photo in Photo.objects.filter(pk__in=variant_of | main_file_of):
+                if photo.pk in variant_of:
+                    photo.files.add(new_file)
+                if photo.pk in main_file_of:
+                    photo.main_file = new_file
+                    photo.save(save_metadata=False, update_fields=["main_file"])
+
+        return new_file
+
     def _find_out_type(self):
-        self.type = File.IMAGE
-        if is_raw(self.path):
-            self.type = File.RAW_FILE
-        if is_video(self.path):
-            self.type = File.VIDEO
-        if is_metadata(self.path):
-            self.type = File.METADATA_FILE
+        self.type = detect_file_type(self.path)
         self.save()
+
+
+def detect_file_type(path) -> int:
+    file_type = File.IMAGE
+    if is_raw(path):
+        file_type = File.RAW_FILE
+    if is_video(path):
+        file_type = File.VIDEO
+    if is_metadata(path):
+        file_type = File.METADATA_FILE
+    return file_type
 
 
 def is_video(path):

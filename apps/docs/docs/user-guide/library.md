@@ -40,6 +40,18 @@ To re-process all existing photos, open the dropdown next to **Scan** (the chevr
 AI *captions* are not generated during a scan — they are created per photo on demand. Open a photo, show the details panel, and use the wand icon in the **Caption** section. See [Image Captioning](./image-captioning.md).
 :::
 
+### Files replaced in place
+
+If you overwrite a file with a different picture but keep the same name, the next scan picks the change up and re-indexes it: the thumbnails are rebuilt from the new picture and the photo goes back into the queue for face detection, tags and geocoding. It keeps its album membership, its sharing and its link, so anything pointing at it still works.
+
+A file whose bytes changed while its picture stayed the same is only re-keyed internally. That covers a rating or a face tag LibrePhotos wrote into the original, and metadata another tool edited in place: nothing is regenerated and nothing you corrected by hand is lost.
+
+For a video, and for a photo you have rotated inside LibrePhotos, the two cannot be told apart. The scan takes the careful path there: the thumbnails are rebuilt once and the cached video conversion is dropped, but the faces you have named are kept and the photo stays where it is in the timeline.
+
+:::note
+The first scan after upgrading may re-key files LibrePhotos had previously written metadata into. That is bookkeeping with no visible change to your library, and it happens only once per file.
+:::
+
 ### Scan Progress
 
 Scan progress is shown in the [Job System](./job-system.md). The scan is split into smaller tasks, prioritizing thumbnail creation so photos appear in the UI quickly while heavier processing (faces, tags) happens in the background.
