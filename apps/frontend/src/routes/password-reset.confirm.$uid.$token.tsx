@@ -69,6 +69,7 @@ export function PasswordResetConfirmPage(): JSX.Element {
                   leftSection={<Lock />}
                   placeholder={t("passwordreset.newpasswordplaceholder")}
                   name="password"
+                  autoComplete="new-password"
                   {...form.getInputProps("password")}
                 />
                 <PasswordInput
@@ -76,6 +77,7 @@ export function PasswordResetConfirmPage(): JSX.Element {
                   leftSection={<Lock />}
                   placeholder={t("passwordreset.confirmpasswordplaceholder")}
                   name="passwordConfirm"
+                  autoComplete="new-password"
                   {...form.getInputProps("passwordConfirm")}
                 />
                 <Button
