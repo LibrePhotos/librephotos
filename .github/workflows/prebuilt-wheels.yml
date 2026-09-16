@@ -1,0 +1,96 @@
+name: prebuilt-wheels
+
+# Builds the wheels apps/backend/requirements.txt references by URL, for the
+# packages PyPI ships no wheel for on a platform we run on, and attaches them to
+# a GitHub release: insightface and timezonefinder for Windows, insightface as
+# manylinux wheels for the Docker images and CI, ExifTool for every platform.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create or update, e.g. windows-wheels-2026.09.16"
+        required: true
+  push:
+    branches: [backend/windows-dev-setup]
+    paths: [".github/workflows/prebuilt-wheels.yml"]
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ inputs.tag || 'windows-wheels-2026.09.16' }}
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build every win_amd64 wheel requirements.txt references by URL
+        shell: python
+        working-directory: apps/backend
+        run: |
+          import re, subprocess, sys
+          specs = re.findall(r"^([A-Za-z0-9_.-]+) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-[^/]*win_amd64\.whl", open("requirements.txt").read(), re.M)
+          specs += re.findall(r"^([A-Za-z0-9_.-]+) @ \S*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-py3-none-any\.whl", open("requirements.txt").read(), re.M)
+          subprocess.run([sys.executable, "-m", "pip", "install", "-U", "pip", "wheel"], check=True)
+          for name, version in dict.fromkeys(specs):
+              if name == "exiftool-bin":
+                  subprocess.run([sys.executable, "scripts/build_exiftool_wheel.py", version, "wheels"], check=True)
+                  continue
+              subprocess.run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-cache-dir", f"{name}=={version}", "-w", "wheels"], check=True)
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
+            --notes "Prebuilt wheels referenced by apps/backend/requirements.txt."
+          gh release upload "$TAG" apps/backend/wheels/*.whl --clobber
+
+  linux:
+    strategy:
+      matrix:
+        include:
+          - { runner: ubuntu-latest, arch: x86_64 }
+          - { runner: ubuntu-24.04-arm, arch: aarch64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build every manylinux_2_28_${{ matrix.arch }} wheel requirements.txt references by URL
+        shell: bash
+        working-directory: apps/backend
+        run: |
+          specs=$(grep -oE '^[A-Za-z0-9_.-]+ @ [^ ]*-cp3[0-9]+-cp3[0-9]+-manylinux_2_28_${{ matrix.arch }}\.whl' requirements.txt \
+            | sed -E 's|^([A-Za-z0-9_.-]+) @ .*/[A-Za-z0-9_.]+-([0-9][A-Za-z0-9_.!+]*)-(cp3[0-9]+)-.*|\1==\2 \3|' | sort -u)
+          # First run, before requirements.txt points at these wheels: build the pinned
+          # insightface for every CPython the images and CI use.
+          if [ -z "$specs" ]; then
+            pin=$(grep -oE '^insightface==[0-9][^ ;]*' requirements.txt | head -1)
+            specs=$(printf '%s cp310
+%s cp312
+%s cp314
+' "$pin" "$pin" "$pin")
+          fi
+          echo "$specs"
+          mkdir -p wheels
+          while read -r spec py; do
+            docker run --rm -v "$PWD/wheels:/wheels" quay.io/pypa/manylinux_2_28_${{ matrix.arch }} bash -c "
+              set -e
+              /opt/python/$py-$py/bin/pip wheel --no-deps --no-cache-dir '$spec' -w /tmp/raw
+              auditwheel repair /tmp/raw/*.whl -w /wheels"
+          done <<< "$specs"
+          ls -l wheels
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
+            --notes "Prebuilt wheels referenced by apps/backend/requirements.txt."
+          gh release upload "$TAG" apps/backend/wheels/*.whl --clobber
