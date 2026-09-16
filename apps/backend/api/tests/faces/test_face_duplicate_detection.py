@@ -1,9 +1,19 @@
 """Tests for duplicate face detection using IoU-based overlap checking."""
 
-from django.test import TestCase
+from unittest.mock import patch
 
-from api.admin import deduplicate_faces_function
-from api.models.photo import _overlaps_existing_face
+from django.contrib.admin.sites import AdminSite
+from django.contrib.messages.storage.cookie import CookieStorage
+from django.test import RequestFactory, TestCase
+from django_q.signals import pre_enqueue
+from django_q.signing import SignedPackage
+
+from api.admin import (
+    PhotoAdmin,
+    deduplicate_faces_by_photo_id,
+    deduplicate_faces_function,
+)
+from api.models.photo import Photo, _overlaps_existing_face
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -207,3 +217,84 @@ class DeduplicateFacesFunctionTest(TestCase):
         )
         deduplicate_faces_function([self.photo])
         self.assertEqual(self.photo.faces.count(), 2)
+
+
+class DeduplicateFacesAdminActionTest(TestCase):
+    """Tests for the PhotoAdmin.deduplicate_faces action."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.admin = PhotoAdmin(Photo, AdminSite())
+
+    def _make_request(self):
+        request = RequestFactory().post("/admin/api/photo/")
+        request.user = self.user
+        request._messages = CookieStorage(request)
+        return request
+
+    def _add_duplicate_faces(self, photo):
+        create_test_face(
+            photo=photo,
+            location_top=100,
+            location_right=300,
+            location_bottom=300,
+            location_left=100,
+        )
+        create_test_face(
+            photo=photo,
+            location_top=120,
+            location_right=320,
+            location_bottom=320,
+            location_left=120,
+        )
+
+    def _run_action(self):
+        captured = {}
+
+        def handler(sender, task, **kwargs):
+            captured["task"] = task
+
+        pre_enqueue.connect(handler)
+        try:
+            with (
+                patch("django_q.tasks.get_broker"),
+                patch("django_q.tasks.SignedPackage.dumps", return_value=""),
+            ):
+                self.admin.deduplicate_faces(self._make_request(), Photo.objects.all())
+        finally:
+            pre_enqueue.disconnect(handler)
+        return captured.get("task")
+
+    def test_payload_does_not_grow_with_the_number_of_selected_photos(self):
+        """The task payload must carry ids, not the pickled photo rows."""
+        self._add_duplicate_faces(create_test_photo(owner=self.user))
+        small = len(SignedPackage.dumps(self._run_action(), compressed=False))
+
+        for _ in range(20):
+            self._add_duplicate_faces(create_test_photo(owner=self.user))
+        large = len(SignedPackage.dumps(self._run_action(), compressed=False))
+
+        self.assertLess(large - small, 1000)
+
+    def test_action_enqueues_photo_ids(self):
+        photo = create_test_photo(owner=self.user)
+        self._add_duplicate_faces(photo)
+        task = self._run_action()
+        self.assertEqual(task["kwargs"], {"photo_ids": [photo.pk]})
+
+    def test_photos_without_duplicate_candidates_are_not_queued(self):
+        photo = create_test_photo(owner=self.user)
+        create_test_face(
+            photo=photo,
+            location_top=0,
+            location_right=100,
+            location_bottom=100,
+            location_left=0,
+        )
+        self.assertIsNone(self._run_action())
+
+    def test_deduplicate_faces_by_photo_id_removes_duplicates(self):
+        photo = create_test_photo(owner=self.user)
+        self._add_duplicate_faces(photo)
+        deduplicate_faces_by_photo_id([photo.pk])
+        self.assertEqual(photo.faces.count(), 1)

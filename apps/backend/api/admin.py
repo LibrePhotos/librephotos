@@ -1,4 +1,5 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.db.models import Count
 from django_q.tasks import AsyncTask
 
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
@@ -51,6 +52,15 @@ def deduplicate_faces_function(queryset):
             Face.objects.filter(id__in=to_delete).delete()
 
 
+DEDUPLICATE_FACES_CHUNK_SIZE = 500
+
+
+def deduplicate_faces_by_photo_id(photo_ids):
+    for start in range(0, len(photo_ids), DEDUPLICATE_FACES_CHUNK_SIZE):
+        chunk = photo_ids[start : start + DEDUPLICATE_FACES_CHUNK_SIZE]
+        deduplicate_faces_function(Photo.objects.filter(pk__in=chunk).only("id"))
+
+
 @admin.register(Face)
 class FaceAdmin(admin.ModelAdmin):
     list_display = (
@@ -79,10 +89,29 @@ class PhotoAdmin(admin.ModelAdmin):
     list_filter = ["owner"]
 
     def deduplicate_faces(self, request, queryset):
+        # Only ids are handed to the worker: django-q pickles the task payload,
+        # and pickling a QuerySet loads every selected row into that payload.
+        photo_ids = list(
+            queryset.annotate(face_count=Count("faces"))
+            .filter(face_count__gt=1)
+            .values_list("pk", flat=True)
+        )
+        if not photo_ids:
+            self.message_user(
+                request,
+                "None of the selected photos have more than one face.",
+                level=messages.WARNING,
+            )
+            return
         AsyncTask(
-            deduplicate_faces_function,
-            queryset=queryset,
+            deduplicate_faces_by_photo_id,
+            photo_ids=photo_ids,
         ).run()
+        self.message_user(
+            request,
+            f"Queued face deduplication for {len(photo_ids)} photo(s). "
+            "The background worker will process them shortly.",
+        )
 
 
 @admin.register(Thumbnail)
