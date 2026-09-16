@@ -32,8 +32,8 @@ https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2026.3.post1
 tzdata==2026.3
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
-# The images use the apt libvips (has JPEG XL, SVG, PDF); the bundled one in
-# pyvips-binary does not, so it is Windows-only.
+# The images use the apt libvips (has JPEG XL and PDF loaders); the bundled
+# one in pyvips-binary 8.18 does not, so it is Windows-only.
 pyvips==3.1.1; sys_platform != "win32"
 pyvips[binary]==3.1.1; sys_platform == "win32"
 pyvips-binary==8.18.6; sys_platform == "win32"
