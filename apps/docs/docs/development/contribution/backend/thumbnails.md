@@ -13,11 +13,11 @@ We process media files with different libraries to convert them to a widely comp
 By leveraging libvips' lightning-fast image processing capabilities and memory-efficient design, the conversion process becomes remarkably fast, ensuring optimal performance even with numerous images.
 Moreover, the utilization of pyvips as a Python interface facilitates seamless integration with the project
 
-### ImageMagick (RAW images)
+### LibRaw via rawpy (RAW images)
 
-ImageMagick's robust suite of tools empowers us to perform conversion of raw images on a wide array of file types. When coupled with the wand library, which provides a Pythonic interface to interact with ImageMagick, it's easy to maintain and extend.
+RAW files are decoded with LibRaw through [rawpy](https://github.com/letmaik/rawpy), which ships LibRaw in its wheel, and the result is resized and saved as WebP by pyvips.
 
-This runs on a separate microservice so that ImageMagick's memory use and occasional crashes on exotic files stay away from the API workers.
+This runs on a separate microservice so that a decoder crash on an exotic file stays away from the API workers.
 
 ### FFmpeg (video)
 

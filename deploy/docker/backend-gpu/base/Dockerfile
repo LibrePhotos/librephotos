@@ -60,31 +60,6 @@ RUN apt-get update && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-# Build and install LibRaw
-WORKDIR /tmp/builds
-RUN git clone https://github.com/LibRaw/LibRaw && \
-    cd LibRaw && \
-    autoreconf --install && \
-    ./configure && \
-    make && \
-    make install && \
-    rm -rf /tmp/builds/*
-
-# Build and install ImageMagick
-ARG IMAGEMAGICK_VERSION=7.1.1-41
-# Fetched from the GitHub tag rather than imagemagick.org/archive/releases:
-# that directory only keeps the latest few releases, so a pinned version
-# vanishes from it within months (7.1.1-40 did in 2026, breaking this build
-# with a 404 that arrived as an HTML page tar could not read). Git tags are
-# permanent, the tag archive carries the generated configure script, and
-# curl -f turns any future 404 into a loud failure instead of a puzzling one.
-RUN curl -fsSL https://github.com/ImageMagick/ImageMagick/archive/refs/tags/${IMAGEMAGICK_VERSION}.tar.gz | tar -xzf- && \
-    cd ImageMagick-${IMAGEMAGICK_VERSION} && \
-    ./configure --with-modules && \
-    make install && \
-    ldconfig /usr/local/lib && \
-    rm -rf /tmp/builds/*
-
 # Stage 2: Deployment Stage
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 ARG TARGETPLATFORM
@@ -140,8 +115,5 @@ RUN curl -fsSL https://github.com/exiftool/exiftool/archive/refs/tags/${EXIFTOOL
     rm -rf /tmp/exiftool
 
 # Copy only required components from the builder stage
-COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
-COPY --from=builder /usr/local/bin/magick /usr/local/bin
 # Update dynamic linker cache
 RUN ldconfig /usr/local/lib

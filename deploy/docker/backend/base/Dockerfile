@@ -21,7 +21,6 @@ RUN apt-get update && \
 		curl \
 		ffmpeg \
 		git \
-  		libltdl-dev \
 		libcfitsio-dev \ 
 		libexif-dev \
 		libexpat-dev \
@@ -56,8 +55,6 @@ RUN apt-get update && \
 		libopenslide-dev \
 		libopenexr-dev \
 		libmatio-dev \
-		libmagickcore-dev \
-		libmagickwand-dev \
 		libjxl-dev \
 		pkg-config \ 
 		libjxl-dev \
@@ -68,32 +65,6 @@ RUN apt-get update && \
         	libzip-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Build and install LibRaw
-WORKDIR /tmp/builds
-RUN git clone https://github.com/LibRaw/LibRaw && \
-    cd LibRaw && \
-    autoreconf --install && \
-    ./configure && \
-    make && \
-    make install && \
-    rm -rf /tmp/builds/*
-
-# Build and install ImageMagick
-WORKDIR /tmp/builds
-ARG IMAGEMAGICK_VERSION=7.1.1-40
-# Fetched from the GitHub tag rather than imagemagick.org/archive/releases:
-# that directory only keeps the latest few releases, so a pinned version
-# vanishes from it within months (7.1.1-40 did in 2026, breaking this build
-# with a 404 that arrived as an HTML page tar could not read). Git tags are
-# permanent, the tag archive carries the generated configure script, and
-# curl -f turns any future 404 into a loud failure instead of a puzzling one.
-RUN curl -fsSL https://github.com/ImageMagick/ImageMagick/archive/refs/tags/${IMAGEMAGICK_VERSION}.tar.gz | tar -xzf- && \
-	cd ImageMagick-${IMAGEMAGICK_VERSION} && \
-	./configure --with-modules && \
-	make install && \
-	ldconfig /usr/local/lib && \
-    rm -rf /tmp/builds/*
 
 # Install ExifTool
 WORKDIR /tmp/exiftool

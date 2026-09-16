@@ -76,7 +76,7 @@ docker compose logs -f backend
 
 ### Modifying the Backend Base Image
 
-The backend image is built in two tiers. `deploy/docker/backend/Dockerfile` starts `FROM reallibrephotos/librephotos-base:dev`, then only copies `apps/backend/` and pip-installs `requirements.txt`. All system-level dependencies — ffmpeg, libvips, ImageMagick, LibRaw, ExifTool — live in the separate `deploy/docker/backend/base/Dockerfile`. There is no PyTorch: the ML models run on ONNX Runtime, which is a plain pip package in `requirements.txt`.
+The backend image is built in two tiers. `deploy/docker/backend/Dockerfile` starts `FROM reallibrephotos/librephotos-base:dev`, then only copies `apps/backend/` and pip-installs `requirements.txt`. All system-level dependencies — ffmpeg, libvips, ExifTool — live in the separate `deploy/docker/backend/base/Dockerfile`. There is no PyTorch: the ML models run on ONNX Runtime, which is a plain pip package in `requirements.txt`.
 
 The base is **pulled, not built**: `docker compose build backend`, even with `--no-cache`, will not rebuild it. To test a change to the base locally, build and tag it yourself first, then rebuild the backend:
 

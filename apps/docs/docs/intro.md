@@ -39,7 +39,7 @@ Unlike commercial service that store your photos in the cloud and scan/index the
 ## What does it use?
 
 - **Image Conversion:** [libvips](https://github.com/libvips/libvips)
-- **RAW Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick)
+- **RAW Conversion:** [LibRaw](https://www.libraw.org/) via [rawpy](https://github.com/letmaik/rawpy)
 - **Video Conversion:** [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - **EXIF Support:** [ExifTool](https://github.com/exiftool/exiftool)
 - **Face detection:** [InsightFace](https://github.com/deepinsight/insightface) (SCRFD detector + ArcFace embeddings)
