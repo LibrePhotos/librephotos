@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { Photoset } from "../../photos/types";
-import { buildDateAlbumFilterParams } from "./useFetchDateAlbumsQuery";
+import { addTempElementsToGroups } from "../../../util/util";
+import { IncompleteDatePhotosGroup, Photoset, PigPhoto } from "../../photos/types";
+import {
+  buildDateAlbumFilterParams,
+  DATE_ALBUM_PAGE_SIZE,
+  hydrateGroupsFromCachedPages,
+} from "./useFetchDateAlbumsQuery";
 
 /**
  * `buildDateAlbumFilterParams` is the shared param-builder for the date-album
@@ -73,5 +78,57 @@ describe("buildDateAlbumFilterParams — mediaType toggle layered on a neutral s
     expect(buildDateAlbumFilterParams(Photoset.PERSON).is_screenshot).toBeUndefined();
     expect(buildDateAlbumFilterParams(Photoset.PERSON, "all").photo).toBeUndefined();
     expect(buildDateAlbumFilterParams(Photoset.PERSON, "all").video).toBeUndefined();
+  });
+});
+
+/**
+ * `hydrateGroupsFromCachedPages` re-applies the day pages the per-day query
+ * already loaded when the date-album list is refetched. Without it, every
+ * invalidation of the list (e.g. after an upload finished) replaced the
+ * loaded days with temp placeholders that nothing re-requested, leaving the
+ * timeline as bare date headers.
+ */
+function tempGroup(id: string, numberOfItems: number): IncompleteDatePhotosGroup {
+  const group = { id, date: id, location: "", incomplete: true, numberOfItems, items: [] } as IncompleteDatePhotosGroup;
+  addTempElementsToGroups([group]);
+  return group;
+}
+
+const photo = (id: string) => ({ id, aspectRatio: 1.5, isTemp: false }) as PigPhoto;
+
+describe("hydrateGroupsFromCachedPages", () => {
+  test("replaces placeholders of a loaded page and keeps the rest temp", () => {
+    const groups = [tempGroup("2026-08-05", 3), tempGroup("2026-06-17", 2)];
+
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "2026-08-05", page: 1, items: [photo("a"), photo("b")] }]);
+
+    expect(groups[0].items.map(i => i.id)).toEqual(["a", "b", "2"]);
+    expect(groups[0].items[2].isTemp).toBe(true);
+    expect(groups[1].items.every(i => i.isTemp)).toBe(true);
+  });
+
+  test("places later pages at their page offset", () => {
+    const groups = [tempGroup("d", DATE_ALBUM_PAGE_SIZE + 1)];
+
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "d", page: 2, items: [photo("last")] }]);
+
+    expect(groups[0].items[DATE_ALBUM_PAGE_SIZE].id).toBe("last");
+    expect(groups[0].items.slice(0, DATE_ALBUM_PAGE_SIZE).every(i => i.isTemp)).toBe(true);
+  });
+
+  test("does not grow a group past the server-reported count", () => {
+    const groups = [tempGroup("d", 1)];
+
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "d", page: 1, items: [photo("a"), photo("deleted")] }]);
+
+    expect(groups[0].items.map(i => i.id)).toEqual(["a"]);
+  });
+
+  test("ignores pages of days that are no longer in the list", () => {
+    const groups = [tempGroup("d", 1)];
+
+    hydrateGroupsFromCachedPages(groups, [{ albumDateId: "gone", page: 1, items: [photo("x")] }]);
+
+    expect(groups[0].items[0].isTemp).toBe(true);
   });
 });

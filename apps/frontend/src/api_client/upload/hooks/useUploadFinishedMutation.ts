@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
 import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
 import { RecentlyAddedPhotosQueryKeys } from "../../photos/hooks/useFetchRecentlyAddedPhotosQuery";
@@ -15,7 +16,12 @@ type UploadFinishedOptions = {
 
 export const invalidateUploadQueries = () => {
   queryClient.invalidateQueries({ queryKey: [...RecentlyAddedPhotosQueryKeys] });
+  // Both the day list and the per-day photo pages: refetching only the list
+  // replaced every day with temp placeholders that nothing re-requested (the
+  // grid had already asked for those pages), so the timeline turned into
+  // empty date headers after an upload.
   queryClient.invalidateQueries({ queryKey: [...DateAlbumsQueryKeys] });
+  queryClient.invalidateQueries({ queryKey: [...DateAlbumQueryKeys] });
   queryClient.invalidateQueries({ queryKey: [...CountStatsQueryKeys] });
   queryClient.invalidateQueries({ queryKey: [...PhotoMonthCountQueryKeys] });
   queryClient.invalidateQueries({ queryKey: [...StorageStatsQueryKeys] });
