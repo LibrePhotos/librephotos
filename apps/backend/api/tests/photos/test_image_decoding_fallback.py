@@ -55,6 +55,20 @@ class ImageDecodingFallbackTests(unittest.TestCase):
         with self.assertRaises(Exception):
             image_decoding.thumbnail(path, 100)
 
+    def test_absurd_dimensions_are_refused_from_the_header(self):
+        # A BMP header claiming 30000x30000 (900 MP) with no pixel data: refused at
+        # open time, so nothing is allocated for it.
+        import struct
+
+        path = os.path.join(self.dir, "bomb.bmp")
+        header = b"BM" + struct.pack("<IHHI", 54, 0, 0, 54)
+        header += struct.pack("<IiiHHIIiiII", 40, 30000, 30000, 1, 24, 0, 0, 0, 0, 0, 0)
+        with open(path, "wb") as handle:
+            handle.write(header)
+        with self.assertRaises(Image.DecompressionBombError):
+            image_decoding.thumbnail(path, 100)
+        self.assertFalse(image_decoding.can_decode(path))
+
     def test_is_valid_media_accepts_heic(self):
         self.assertTrue(is_valid_media(os.path.join(self.dir, "photo.heic"), user=None))
         self.assertFalse(

@@ -12,7 +12,11 @@ import pyvips
 from PIL import Image, ImageOps
 
 pillow_heif.register_heif_opener()
-Image.MAX_IMAGE_PIXELS = None  # the user's own photos; 200 MP phone shots are real
+# The Pillow path decodes the whole image into memory, so a crafted JPEG XL or BMP
+# declaring absurd dimensions must be refused from its header, before any allocation:
+# Pillow warns above this many pixels and raises DecompressionBombError above twice
+# it. 250 MP keeps every real camera (200 MP phones, medium format) well inside.
+Image.MAX_IMAGE_PIXELS = 250_000_000
 
 
 def _pillow_to_vips(path):
