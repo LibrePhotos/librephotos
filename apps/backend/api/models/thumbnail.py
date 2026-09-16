@@ -14,6 +14,27 @@ from api.thumbnails import (
 )
 from api.util import logger
 
+# Static thumbnails are webp; the animated ones videos get instead are mp4.
+STATIC_THUMBNAIL_DIRS = (
+    "thumbnails_big",
+    "square_thumbnails",
+    "square_thumbnails_small",
+)
+ANIMATED_THUMBNAIL_DIRS = ("square_thumbnails", "square_thumbnails_small")
+
+
+def delete_thumbnail_files(photo_hash: str) -> None:
+    """Remove every thumbnail file named after ``photo_hash``."""
+    named = [(d, ".webp") for d in STATIC_THUMBNAIL_DIRS]
+    named += [(d, ".mp4") for d in ANIMATED_THUMBNAIL_DIRS]
+    for output_dir, extension in named:
+        path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + extension)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                logger.warning(f"could not remove thumbnail {path}")
+
 
 class Thumbnail(models.Model):
     photo = models.OneToOneField(
@@ -117,23 +138,7 @@ class Thumbnail(models.Model):
         ``_generate_thumbnail``.  Should be called after updating
         ``Photo.local_orientation``.
         """
-        photo_hash = self.photo.image_hash
-
-        # Remove static (image) thumbnails
-        for output_dir in (
-            "thumbnails_big",
-            "square_thumbnails",
-            "square_thumbnails_small",
-        ):
-            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".webp")
-            if os.path.exists(path):
-                os.remove(path)
-
-        # Remove video thumbnails (animated MP4 clips)
-        for output_dir in ("square_thumbnails", "square_thumbnails_small"):
-            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".mp4")
-            if os.path.exists(path):
-                os.remove(path)
+        delete_thumbnail_files(self.photo.image_hash)
 
         self._generate_thumbnail()
         self._calculate_aspect_ratio()

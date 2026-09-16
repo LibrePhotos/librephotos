@@ -283,6 +283,30 @@ class Photo(models.Model):
 
         if tags_to_write:
             write_metadata(self.main_file.path, tags_to_write, use_sidecar=use_sidecar)
+            if not use_sidecar:
+                self._refresh_main_file_hash()
+
+    def _refresh_main_file_hash(self):
+        """Bring File.hash back in line after LibrePhotos rewrote the original.
+
+        Writing a rating, a timestamp or a face region into the media file
+        changes its bytes, so without this the next scan would see a file
+        whose content hash no longer matches and treat our own edit as the
+        user replacing the picture. This is hash bookkeeping only: the picture
+        is unchanged, so the image hash, thumbnails and faces stay as they are.
+        """
+        from api.models.file import calculate_hash
+
+        if not self.main_file:
+            return
+        try:
+            disk_hash = calculate_hash(self.owner, self.main_file.path)
+        except Exception:
+            logger.warning(f"could not re-hash {self.main_file.path} after writing it")
+            return
+        if disk_hash == self.main_file.hash:
+            return
+        self.main_file = self.main_file.rekey(disk_hash)
 
     def _find_album_place(self):
         return api.models.album_place.AlbumPlace.objects.filter(
@@ -768,11 +792,14 @@ class Photo(models.Model):
             delta_angle_cw=angle,
             flip_h=flip_horizontal,
         )
+        use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
         write_metadata(
             self.main_file.path,
             {Tags.ORIENTATION: combined},
-            use_sidecar=user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE,
+            use_sidecar=use_sidecar,
         )
+        if not use_sidecar:
+            self._refresh_main_file_hash()
 
     def _set_embedded_media(self, obj):
         return obj.main_file.embedded_media
