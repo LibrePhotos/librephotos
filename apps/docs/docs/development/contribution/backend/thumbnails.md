@@ -13,6 +13,8 @@ We process media files with different libraries to convert them to a widely comp
 By leveraging libvips' lightning-fast image processing capabilities and memory-efficient design, the conversion process becomes remarkably fast, ensuring optimal performance even with numerous images.
 Moreover, the utilization of pyvips as a Python interface facilitates seamless integration with the project
 
+libvips comes bundled with `pyvips-binary`; what that build cannot decode (HEIC, JPEG XL, BMP, JPEG 2000) is decoded by Pillow with `pillow-heif` and `pillow-jxl-plugin` and handed back to pyvips (`api/image_decoding.py`).
+
 ### LibRaw via rawpy (RAW images)
 
 RAW files are decoded with LibRaw through [rawpy](https://github.com/letmaik/rawpy), which ships LibRaw in its wheel, and the result is resized and saved as WebP by pyvips.

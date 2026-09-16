@@ -1,11 +1,10 @@
 import hashlib
 import os
 
-import pyvips
 from django.conf import settings
 from django.db import models
 
-from api import util
+from api import image_decoding, util
 from api.mime import mime_type
 
 # Most optimal value for performance/memory. Found here:
@@ -181,7 +180,7 @@ def is_valid_media(path, user) -> bool:
     if is_raw(path=path):
         return True
     try:
-        pyvips.Image.thumbnail(path, 10000, height=200, size=pyvips.enums.Size.DOWN)
+        image_decoding.thumbnail(path, 200)
         return True
     except Exception as e:
         util.logger.info(f"Could not handle {path}, because {str(e)}")

@@ -27,19 +27,20 @@ insightface==0.7.3; sys_platform != "win32"
 insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp311-cp311-win_amd64.whl ; sys_platform == "win32"
 # stringzilla (insightface -> albumentations -> albucore): 5.1.2 has no Windows wheel.
 stringzilla==5.1.1; sys_platform == "win32"
-# ExifTool for Windows (the official build wrapped by scripts/build_exiftool_wheel.py);
-# Linux images build it from source in the Dockerfile.
+# ExifTool wrapped by scripts/build_exiftool_wheel.py: the official .exe on Windows,
+# the Perl distribution elsewhere (needs a perl on PATH).
 exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-win_amd64.whl ; sys_platform == "win32"
 psycopg[binary]==3.3.4
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2026.3.post1
 tzdata==2026.3
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
-# The images use the apt libvips (has JPEG XL and PDF loaders); the bundled
-# one in pyvips-binary 8.18 does not, so it is Windows-only.
-pyvips==3.1.1; sys_platform != "win32"
-pyvips[binary]==3.1.1; sys_platform == "win32"
-pyvips-binary==8.18.6; sys_platform == "win32"
+# pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
+# loaders; api/image_decoding.py falls back to Pillow with these two plugins.
+pyvips[binary]==3.1.1
+pyvips-binary==8.18.6
+pillow-heif==1.7.0
+pillow-jxl-plugin==1.3.8
 # scikit-learn: the backend-gpu image runs Python 3.10 (CUDA/ubuntu22.04), but
 # scikit-learn 1.8.0+ require Python >= 3.11. Keep the python_version < "3.11"
 # pin at <= 1.7.2 or the GPU build fails. Renovate is disabled for this package
