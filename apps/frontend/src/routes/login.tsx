@@ -103,9 +103,6 @@ export function LoginPage(): JSX.Element {
 
             <form onSubmit={onSubmit}>
               <Stack>
-                {/* The autocomplete tokens are what lets a password manager recognize
-                    this pair as a sign-in and offer to remember it; without them the
-                    browser is left guessing at a form the SPA mounted after load. */}
                 <TextInput
                   required
                   leftSection={<User />}
