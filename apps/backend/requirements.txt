@@ -21,13 +21,22 @@ nltk==3.10.3
 markupsafe==3.0.3
 Pillow==12.3.0
 ImageHash==4.3.2
-insightface==0.7.3
-psycopg==3.3.4
+# insightface has no Windows wheel on PyPI; .github/workflows/windows-wheels.yml
+# builds one (Python 3.11). Bump both lines together (Renovate is off for it).
+insightface==0.7.3; sys_platform != "win32"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp311-cp311-win_amd64.whl ; sys_platform == "win32"
+# stringzilla (insightface -> albumentations -> albucore): 5.1.2 has no Windows wheel.
+stringzilla==5.1.1; sys_platform == "win32"
+psycopg[binary]==3.3.4
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2026.3.post1
 tzdata==2026.3
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
-pyvips==3.1.1
+# The images use the apt libvips (has JPEG XL, SVG, PDF); the bundled one in
+# pyvips-binary does not, so it is Windows-only.
+pyvips==3.1.1; sys_platform != "win32"
+pyvips[binary]==3.1.1; sys_platform == "win32"
+pyvips-binary==8.18.6; sys_platform == "win32"
 # scikit-learn: the backend-gpu image runs Python 3.10 (CUDA/ubuntu22.04), but
 # scikit-learn 1.8.0+ require Python >= 3.11. Keep the python_version < "3.11"
 # pin at <= 1.7.2 or the GPU build fails. Renovate is disabled for this package
@@ -37,8 +46,9 @@ scikit-learn==1.7.2; python_version < "3.11"
 # timezonefinder: same py3.10 split as scikit-learn. 8.2.1+ require Python >= 3.11,
 # so the python_version < "3.11" pin must stay at 8.2.0 (last release supporting
 # py3.10) or the GPU build fails. Renovate is disabled for it (see renovate.json).
-timezonefinder==8.2.4; python_version >= "3.11"
+timezonefinder==8.2.4; python_version >= "3.11" and sys_platform != "win32"
 timezonefinder==8.2.0; python_version < "3.11"
+timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/timezonefinder-8.2.4-cp311-cp311-win_amd64.whl ; sys_platform == "win32"
 tqdm==4.70.0
 gevent==25.9.1
 python-magic==0.4.27

@@ -41,7 +41,6 @@ RUN apt-get update && \
 		libopenexr-dev \ 
 		liborc-dev \
 		libpng-dev \
-		libpq-dev \
 		librsvg2-dev \
 		libsm6 \
 		libtiff5-dev \ 

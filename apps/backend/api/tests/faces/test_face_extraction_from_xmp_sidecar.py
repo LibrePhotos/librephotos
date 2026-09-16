@@ -1,7 +1,10 @@
 import os
+import shutil
+import tempfile
 import unittest
 
 import requests
+from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 from faker import Faker
@@ -34,32 +37,36 @@ class ReadFacesFromPhotosTest(TestCase):
         "EXIF metadata service at localhost:8010 is not available",
     )
     def test_reading_from_photo(self):
-        file = (
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            + "/fixtures/niaz.jpg"
+        fixtures = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fixtures"
         )
-
-        exif_file = (
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            + "/fixtures/niaz.xmp"
-        )
+        file = os.path.join(fixtures, "niaz.jpg")
+        exif_file = os.path.join(fixtures, "niaz.xmp")
 
         import uuid
 
         pk = uuid.uuid4()
         pk_str = str(pk)
-        os.system("cp " + file + " " + "/tmp/" + pk_str + ".jpg")
-        # copy exif file to photo and rename it to have the same name as the photo but with .xmp extension
-        os.system("cp " + exif_file + " " + "/tmp/" + pk_str + ".xmp")
+        # shutil + tempfile + MEDIA_ROOT rather than os.system("cp") into
+        # hardcoded /tmp and /protected_media: those are the container's paths,
+        # so on any other host this silently copied nothing (os.system swallows
+        # the failure) and the test blew up several frames later on a file that
+        # was never there.
+        scratch = tempfile.mkdtemp(prefix="librephotos-exif-test-")
+        self.addCleanup(shutil.rmtree, scratch, True)
+        photo_path = os.path.join(scratch, pk_str + ".jpg")
+        shutil.copyfile(file, photo_path)
+        # the sidecar has to sit next to the photo under the same basename
+        shutil.copyfile(exif_file, os.path.join(scratch, pk_str + ".xmp"))
         # we need a thumbnail in the thumbnails_big folder
-        os.system(
-            "cp " + file + " " + "/protected_media/thumbnails_big/" + pk_str + ".jpg"
-        )
+        thumbnails_big = os.path.join(settings.MEDIA_ROOT, "thumbnails_big")
+        os.makedirs(thumbnails_big, exist_ok=True)
+        shutil.copyfile(file, os.path.join(thumbnails_big, pk_str + ".jpg"))
 
         fake = Faker()
         image_hash = fake.md5()
         photo = Photo(pk=pk, image_hash=image_hash, owner=self.user1)
-        fileObject = File.create("/tmp/" + pk_str + ".jpg", self.user1)
+        fileObject = File.create(photo_path, self.user1)
         photo.main_file = fileObject
         photo.added_on = timezone.now()
         photo.save()

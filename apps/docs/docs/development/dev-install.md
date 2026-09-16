@@ -94,6 +94,28 @@ Create your admin account through the web interface or via command line:
 docker exec -it backend python manage.py createsuperuser
 ```
 
+## Native Windows Setup (no Docker)
+
+Requires Python 3.11, Node 22 and `winget install OliverBetz.ExifTool ImageMagick.ImageMagick`.
+
+```powershell
+cd appsackend
+py -3.11 -m venv .venv
+.\.venv\Scripts\pip install -r requirements.txt -r requirements.dev.txt
+.\scripts\dev_windows.ps1 -DataDir C:\librephotos-devdata   # API on http://localhost:8000
+```
+
+In a second shell:
+
+```powershell
+cd appsrontend
+Copy-Item .env.development.example .env.development   # then set VITE_BACKEND_URL=http://localhost:8000
+yarn install
+yarn start                                            # http://localhost:3000
+```
+
+Create a user with `python manage.py createadmin <user> <email>` in the backend venv. ML features (faces, captions, tags, semantic search) are off in this stack; see `apps/backend/CLAUDE.md`.
+
 ## Development Workflow
 
 ### Hot Reload

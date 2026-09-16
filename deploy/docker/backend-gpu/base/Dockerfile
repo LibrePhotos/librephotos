@@ -40,7 +40,6 @@ RUN apt-get update && \
 	libopenexr-dev \ 
 	liborc-dev \
 	libpng-dev \
-	libpq-dev \
 	librsvg2-dev \
 	libsm6 \
 	libtiff5-dev \ 
@@ -119,7 +118,6 @@ RUN apt-get update && \
     libtiff5-dev \
     libwebp-dev \
     libopenblas-dev \
-    libpq-dev \
     libxext6 \
     libxrender1 \
     libmagic1 \

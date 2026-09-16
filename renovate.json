@@ -17,6 +17,11 @@
       "enabled": false
     },
     {
+      "description": "insightface has no Windows wheel; requirements.txt pins a wheel built by the windows-wheels workflow next to the PyPI pin. Bump both by hand.",
+      "matchPackageNames": ["insightface"],
+      "enabled": false
+    },
+    {
       "matchFileNames": ["apps/backend/**"],
       "groupName": "backend dependencies",
       "addLabels": ["backend"]
