@@ -417,6 +417,7 @@
     "copied": "Copied",
     "copyLink": "Copy link",
     "openPublicLink": "Open public link",
+    "linkRotatesOnRevoke": "Turning public sharing off revokes this link for good. Turning it back on creates a new one.",
     "saveLinkSettings": "Save link settings",
     "saveLinkError": "Could not save link settings. Try a different URL.",
     "publicLinks": "Public Links",
@@ -920,6 +921,9 @@
     "running": "running",
     "waiting": "waiting",
     "failed": "Failed",
+    "partialfailure": "Completed with {{errorCount}} of {{total}} item(s) failed",
+    "partialfailurebadge": "Partial failure",
+    "faileditems": "Failed items",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
     "cancel": "Cancel"
   },

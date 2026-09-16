@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import PropTypes from "prop-types";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import getImageHeight from "../../utils/getImageHeight";
 import getTileMeasurements from "../../utils/getTileMeasurements";
 import styles from "./styles.module.css";
@@ -35,6 +35,31 @@ const Tile = React.memo(
         (item.type !== undefined && item.type.includes("video")));
     const [isFullSizeLoaded, setFullSizeLoaded] = useState(!!isVideo);
     const [videoFailed, setVideoFailed] = useState(false);
+    const videoNode = useRef(null);
+
+    // Deliberately never cleared: React detaches refs before it runs effect
+    // cleanups, so a plain ref would already be null by the time the cleanup
+    // below needs the element.
+    const holdVideoNode = useCallback(node => {
+      if (node) videoNode.current = node;
+    }, []);
+
+    // Unmounting a <video> does not free its media player or cancel the fetch
+    // still in flight; the browser holds both until the element is collected.
+    // Scrolling a library of hundreds of videos piles those up until the media
+    // element limit is hit and no further preview ever loads, which only a page
+    // reload recovers from. Hand the resource back explicitly instead.
+    useEffect(
+      () => () => {
+        const video = videoNode.current;
+        if (!video) return;
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      },
+      []
+    );
+
     const TopRightOverlay = toprightoverlay;
     const BottomLeftOverlay = bottomleftoverlay;
     const BottomRightOverlay = bottomrightoverlay;
@@ -94,7 +119,7 @@ const Tile = React.memo(
           top: 0,
         }}
       >
-        {useLqip && !isTemp && (
+        {useLqip && !isTemp && !isVideo && (
           // LQIP
           <img
             className={`${styles.pigImg} ${styles.pigThumbnail}${
@@ -131,10 +156,12 @@ const Tile = React.memo(
 
         {scrollSpeed === "slow" && isVideo && !isTemp && !videoFailed && (
           <video
+            ref={holdVideoNode}
             className={`${styles.pigImg} ${styles.pigThumbnail}${
               isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
             }`}
             src={getUrl(item.url, getImageHeight(containerWidth))}
+            preload="metadata"
             onCanPlay={() => setFullSizeLoaded(true)}
             onMouseOver={event => event.target.play()}
             onFocus={event => event.target.play()}
@@ -144,17 +171,6 @@ const Tile = React.memo(
             muted
             loop
             playsInline
-          />
-        )}
-
-        {scrollSpeed === "slow" && isVideo && !isTemp && videoFailed && (
-          <img
-            className={`${styles.pigImg} ${styles.pigThumbnail} ${styles.pigThumbnailLoaded}`}
-            src={getUrl(item.url, settings.thumbnailSize)}
-            loading="lazy"
-            width={item.style.width}
-            height={item.style.height}
-            alt=""
           />
         )}
 
@@ -168,6 +184,7 @@ const Tile = React.memo(
           <video
             className={styles.pigImg}
             src={getUrl(item.url, settings.expandedSize)}
+            preload="metadata"
             onMouseOver={event => event.target.play()}
             onFocus={event => event.target.play()}
             onMouseOut={event => event.target.pause()}
@@ -179,10 +196,6 @@ const Tile = React.memo(
           />
         )}
 
-        {isExpanded && isVideo && !isTemp && videoFailed && (
-          // fallback image when expanded video fails
-          <img className={styles.pigImg} src={getUrl(item.url, settings.expandedSize)} alt="" />
-        )}
         <div>
           <div className={styles.overlaysTopLeft}>
             {isSelectable && (

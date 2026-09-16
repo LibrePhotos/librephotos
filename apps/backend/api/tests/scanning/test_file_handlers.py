@@ -385,9 +385,10 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
         job.refresh_from_db()
         self.assertEqual(1, job.progress_current)
-        # The failure is only logged - update_scan_counter is called without
-        # failed/error, so the job is NOT marked as failed.
+        # The error is recorded on the job result, but one failure is below
+        # FAILURE_ERROR_FLOOR so the sticky failed flag stays off.
         self.assertFalse(job.failed)
+        self.assertEqual(1, (job.result or {}).get("error_count"))
 
     def test_scan_counter_is_incremented_when_group_has_no_valid_files(self):
         job = self._make_job(target=2)

@@ -298,6 +298,7 @@ def handle_new_image(user, path, job_id, photo=None):
     Note:
         This function is used when uploading a picture, because rescanning does not perform machine learning tasks.
     """
+    error = None
     try:
         start = datetime.datetime.now()
         if photo is None:
@@ -308,6 +309,7 @@ def handle_new_image(user, path, job_id, photo=None):
             _process_photo(photo, path, job_id, start)
 
     except Exception as e:
+        error = _describe_failure(path, e)
         try:
             util.logger.exception(
                 f"job {job_id}: could not load image {path}. reason: {str(e)}"
@@ -315,7 +317,7 @@ def handle_new_image(user, path, job_id, photo=None):
         except Exception:
             util.logger.exception(f"job {job_id}: could not load image {path}")
     finally:
-        update_scan_counter(job_id)
+        update_scan_counter(job_id, failed=error is not None, error=error)
 
 
 def _collect_file_records(user, file_paths: list[str]) -> list[File]:
@@ -326,6 +328,13 @@ def _collect_file_records(user, file_paths: list[str]) -> list[File]:
         if file:
             files.append(file)
     return files
+
+
+def _describe_failure(path, error: Exception) -> str:
+    # The path is part of the text because update_scan_counter de-duplicates
+    # the errors list by exact string, and one dropped mount reports the same
+    # errno for every file it swallowed.
+    return f"{path}: {error}"
 
 
 def _log_file_group_failure(job_id, file_paths, error: Exception):
@@ -349,6 +358,7 @@ def handle_file_group(user, file_paths: list[str], job_id):
         file_paths: List of file paths that share the same (directory, basename)
         job_id: Job ID for logging and progress tracking
     """
+    error = None
     try:
         start = datetime.datetime.now()
 
@@ -377,8 +387,9 @@ def handle_file_group(user, file_paths: list[str], job_id):
 
     except Exception as e:
         _log_file_group_failure(job_id, file_paths, e)
+        error = _describe_failure(", ".join(file_paths), e)
     finally:
-        update_scan_counter(job_id)
+        update_scan_counter(job_id, failed=error is not None, error=error)
 
 
 def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):

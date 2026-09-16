@@ -132,7 +132,7 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_bottom=600,
             location_left=500,
         )
-        deduplicate_faces_function([self.photo])
+        deduplicate_faces_function([self.photo.id])
         self.assertEqual(self.photo.faces.count(), 2)
 
     def test_duplicate_faces_removed(self):
@@ -151,7 +151,7 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_bottom=320,
             location_left=120,
         )
-        deduplicate_faces_function([self.photo])
+        deduplicate_faces_function([self.photo.id])
         self.assertEqual(self.photo.faces.count(), 1)
 
     def test_keeps_face_with_person_label(self):
@@ -175,7 +175,7 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_left=120,
             person=person,
         )
-        deduplicate_faces_function([self.photo])
+        deduplicate_faces_function([self.photo.id])
         remaining = list(self.photo.faces.all())
         self.assertEqual(len(remaining), 1)
         self.assertEqual(remaining[0].id, labeled.id)
@@ -205,5 +205,5 @@ class DeduplicateFacesFunctionTest(TestCase):
             location_bottom=800,
             location_left=600,
         )
-        deduplicate_faces_function([self.photo])
+        deduplicate_faces_function([self.photo.id])
         self.assertEqual(self.photo.faces.count(), 2)

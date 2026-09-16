@@ -5,7 +5,7 @@ import pyvips
 import requests
 from django.conf import settings
 
-from api import util
+from api import util, video_color
 from api.models.file import is_raw
 
 
@@ -138,8 +138,10 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
             "-crf",
             "20",
             "-an",
+            # Tonemapped when the source is HDR, or the gallery shows the same
+            # washed-out picture the player does. See :mod:`api.video_color`.
             "-filter:v",
-            f"scale=-2:{output_height}",
+            video_color.video_filter(input_path, f"scale=-2:{output_height}"),
             output,
         ]
 
@@ -161,8 +163,13 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
             "00:00:00.000",
             "-vframes",
             "1",
-            output,
         ]
+        # No resizing here, so there is a filter only when the source is HDR and
+        # the grabbed frame would otherwise be washed out.
+        tonemap = video_color.video_filter(input_path)
+        if tonemap:
+            command += ["-filter:v", tonemap]
+        command.append(output)
 
         with subprocess.Popen(command) as proc:
             proc.wait()

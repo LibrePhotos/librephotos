@@ -104,11 +104,15 @@ export function LoginPage(): JSX.Element {
 
             <form onSubmit={onSubmit}>
               <Stack>
+                {/* The autocomplete tokens are what lets a password manager recognize
+                    this pair as a sign-in and offer to remember it; without them the
+                    browser is left guessing at a form the SPA mounted after load. */}
                 <TextInput
                   required
                   leftSection={<User />}
                   placeholder={t("login.usernameplaceholder")}
                   name="username"
+                  autoComplete="username"
                   {...form.getInputProps("username")}
                 />
                 <PasswordInput
@@ -116,6 +120,7 @@ export function LoginPage(): JSX.Element {
                   leftSection={<Lock />}
                   placeholder={t("login.passwordplaceholder")}
                   name="password"
+                  autoComplete="current-password"
                   {...form.getInputProps("password")}
                 />
                 <Button variant="gradient" gradient={{ from: "#43cea2", to: "#185a9d" }} type="submit">
@@ -372,6 +377,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                         leftSection={<User />}
                         placeholder={t("login.usernameplaceholder")}
                         name="username"
+                        autoComplete="username"
                         {...form.getInputProps("username")}
                       />
                       <TextInput
@@ -379,6 +385,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                         leftSection={<Mail />}
                         placeholder={t("settings.emailplaceholder")}
                         name="email"
+                        autoComplete="email"
                         {...form.getInputProps("email")}
                       />
                       <Group grow>
@@ -387,13 +394,15 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                           leftSection={<User />}
                           placeholder={t("settings.firstnameplaceholder")}
                           name="firstname"
+                          autoComplete="given-name"
                           {...form.getInputProps("firstName")}
                         />
                         <TextInput
                           required
                           leftSection={<User />}
                           placeholder={t("settings.lastnameplaceholder")}
-                          name="firstname"
+                          name="lastname"
+                          autoComplete="family-name"
                           {...form.getInputProps("lastName")}
                         />
                       </Group>
@@ -402,6 +411,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                           leftSection={<Lock />}
                           placeholder={t("login.passwordplaceholder")}
                           name="password"
+                          autoComplete="new-password"
                           {...form.getInputProps("password")}
                         />
                         <PasswordInput
@@ -409,6 +419,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
                           leftSection={<Lock />}
                           placeholder={t("login.confirmpasswordplaceholder")}
                           name="passwordConfirm"
+                          autoComplete="new-password"
                           {...form.getInputProps("passwordConfirm")}
                         />
                       </Group>
