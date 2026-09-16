@@ -55,13 +55,14 @@ echo "Running backend server..."
 python manage.py qcluster 2>&1 | tee "$logs_dir/qcluster.log" &
 
 # WEB_CONCURRENCY uvicorn processes; recycle them every 50 requests when there is
-# more than one, so a recycled worker never takes the whole API down.
+# more than one, so a recycled worker never takes the whole API down. Not under
+# --reload: uvicorn then runs a single child that its reloader would not restart.
 args=(librephotos.asgi:application --host 0.0.0.0 --port 8001 --log-level info --workers "${WEB_CONCURRENCY:-1}")
-if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests 50); fi
 if [[ "$DEBUG" = 1 ]]; then
     echo "development backend starting"
     args+=(--reload)
 else
     echo "production backend starting"
+    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests 50); fi
 fi
 uvicorn "${args[@]}" 2>&1 | tee "$logs_dir/uvicorn_django.log"
