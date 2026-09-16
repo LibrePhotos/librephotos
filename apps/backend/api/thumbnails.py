@@ -107,10 +107,12 @@ def _render_thumbnail(input_path, output_height, complete_path, local_orientatio
 def render_big_thumbnail_to(input_path, output_path, local_orientation=1):
     """Render the big thumbnail of ``input_path`` to an arbitrary file.
 
-    Same image ``create_thumbnail`` would put in ``thumbnails_big``, but
-    written where the caller asks instead of under MEDIA_ROOT, for comparing a
-    file against what is already indexed.
+    Same image ``create_thumbnail`` would put in ``thumbnails_big``, RAW files
+    through the same service, but written where the caller asks instead of
+    under MEDIA_ROOT, for comparing a file against what is already indexed.
     """
+    if is_raw(input_path):
+        return _request_raw_thumbnail(input_path, 1080, output_path, local_orientation)
     return _render_thumbnail(input_path, 1080, output_path, local_orientation)
 
 

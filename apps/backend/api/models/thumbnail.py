@@ -142,6 +142,24 @@ class Thumbnail(models.Model):
 
         self._generate_thumbnail()
         self._calculate_aspect_ratio()
+        self._refresh_perceptual_hash()
+
+    def _refresh_perceptual_hash(self) -> None:
+        """Re-read the photo's perceptual hash from the thumbnail just built.
+
+        The scan compares this against the file on disk to tell a rewritten
+        file from a replaced one, so a stale value left behind by a rotation
+        would cost the photo its faces on the next scan.
+        """
+        from api.perceptual_hash import calculate_hash_from_thumbnail
+
+        if not self.thumbnail_big or not os.path.exists(self.thumbnail_big.path):
+            return
+        phash = calculate_hash_from_thumbnail(self.thumbnail_big.path)
+        if not phash:
+            return
+        self.photo.perceptual_hash = phash
+        self.photo.save(save_metadata=False, update_fields=["perceptual_hash"])
 
     def _calculate_aspect_ratio(self):
         try:

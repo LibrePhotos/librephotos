@@ -62,15 +62,20 @@ def _remove_file(path: str) -> None:
             util.logger.error(f"could not remove stale file {path}")
 
 
+# What a byte change costs the photos holding the file.
+SAME_PICTURE = "same_picture"  # bookkeeping only
+NEW_PICTURE = "new_picture"  # everything derived from the old one goes
+UNCOMPARABLE = "uncomparable"  # rebuild what is cheap, keep what was labelled
+
+
 def _rendered_perceptual_hash(path: str, local_orientation: int) -> str | None:
     """The perceptual hash of ``path`` as ``_process_photo`` would record it.
 
     ``Photo.perceptual_hash`` is taken from the big thumbnail rather than the
     original, so the candidate has to go through the same resize to be
-    comparable. Returns None when no comparison is possible, which the caller
-    reads as "assume the picture changed".
+    comparable. Returns None when no comparison is possible.
     """
-    if is_video(path) or is_raw(path):
+    if is_video(path):
         return None
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -82,26 +87,50 @@ def _rendered_perceptual_hash(path: str, local_orientation: int) -> str | None:
         return None
 
 
-def _picture_changed(photo: Photo | None, path: str) -> bool:
-    """Is the new content a different picture, or only different bytes?
+def _picture_verdict(photo: Photo | None, path: str) -> str:
+    """Did the picture change with the bytes, stay the same, or can't we tell?
 
     Rewriting a rating or a face region into the original changes the bytes
     while leaving the picture alone, and so does any other tool that edits the
-    metadata in place. Those must not cost the photo its thumbnails, faces and
-    place in the timeline, so the stored perceptual hash decides.
+    metadata in place. Those must not cost the photo its faces and its place in
+    the timeline, so the stored perceptual hash decides.
 
-    Videos and RAW files have no cheap perceptual hash here, and neither does a
-    photo that never got one, so those count as changed: re-deriving a picture
-    that in fact stayed the same is wasteful, but keeping a thumbnail of a
-    picture that is gone is the bug this is all about.
+    Videos have no cheap perceptual hash here, a photo that never got one has
+    nothing to compare against, and a photo the user has rotated in LibrePhotos
+    cannot be compared either: once the rotation has also been written into the
+    file, rendering it again applies the rotation twice, so the two sides
+    disagree about orientation rather than about the picture. Guessing either
+    way is wrong in those cases, so the two halves of the decision are split:
+    what is cheap to rebuild is rebuilt, and what a person may have corrected
+    by hand is kept.
     """
     stored = photo.perceptual_hash if photo else None
-    if not stored:
-        return True
+    if not stored or photo.local_orientation != 1:
+        return UNCOMPARABLE
     candidate = _rendered_perceptual_hash(path, photo.local_orientation)
     if candidate is None:
-        return True
-    return candidate != stored
+        return UNCOMPARABLE
+    return SAME_PICTURE if candidate == stored else NEW_PICTURE
+
+
+def _photo_to_compare(affected, user, old_hash) -> Photo | None:
+    """The photo whose perceptual hash answers for this file.
+
+    The scanning user's own row first. A file can be indexed by one user and
+    scanned into another's library later, so fall back to any other row that
+    actually has a hash to compare against rather than giving up on the
+    comparison and re-deriving for everyone.
+    """
+    scanned = affected.filter(owner=user, image_hash=old_hash).first()
+    if scanned and scanned.perceptual_hash:
+        return scanned
+    return (
+        affected.filter(image_hash=old_hash)
+        .exclude(perceptual_hash__isnull=True)
+        .exclude(perceptual_hash="")
+        .first()
+        or scanned
+    )
 
 
 def _discard_embedded_media(file: File) -> None:
@@ -149,15 +178,12 @@ def _discard_faces(photo: Photo) -> None:
         person._set_default_cover_photo()
 
 
-def _discard_derived_content(photo: Photo, old_hash: str) -> None:
-    """Throw away everything that still describes the picture that was replaced.
+def _discard_cheap_derived_content(photo: Photo, old_hash: str) -> None:
+    """Drop what the new bytes certainly invalidate and nothing else.
 
-    The thumbnails and the cached transcode are named after the old image hash
-    and the dominant colour was sampled from it, so none of them survives the
-    hash moving.
+    The cached transcode is named after the image hash and the dominant colour
+    was sampled from the picture; both are cheap to rebuild and wrong to keep.
     """
-    _discard_faces(photo)
-
     transcode_cache.discard(old_hash)
 
     thumbnail = getattr(photo, "thumbnail", None)
@@ -165,24 +191,34 @@ def _discard_derived_content(photo: Photo, old_hash: str) -> None:
         thumbnail.dominant_color = None
         thumbnail.save(update_fields=["dominant_color"])
 
+
+def _discard_derived_content(photo: Photo, old_hash: str) -> None:
+    """Throw away everything that still describes the picture that was replaced.
+
+    The thumbnails are named after the old image hash, so they go with it.
+    """
+    _discard_cheap_derived_content(photo, old_hash)
+    _discard_faces(photo)
+
     transaction.on_commit(partial(delete_thumbnail_files, old_hash))
 
 
 def _regenerate_thumbnails(photo: Photo) -> None:
-    """Rebuild a photo's thumbnails under its new image hash.
+    """Rebuild a photo's thumbnails, and with them its perceptual hash.
 
-    Every photo holding the replaced file needs this, not just the scanning
+    Every photo holding the changed file needs this, not just the scanning
     user's: File rows and thumbnail files are shared between users who scan
     the same directory, and the other user's copy would otherwise point at a
     thumbnail that has just been deleted.
     """
     try:
         thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
-        thumbnail._generate_thumbnail()
-        thumbnail._calculate_aspect_ratio()
+        thumbnail._regenerate_thumbnails()
     except Exception:
-        util.logger.exception(
-            f"could not regenerate thumbnails for photo {photo.image_hash}"
+        util.logger.warning(
+            f"could not regenerate thumbnails for photo {photo.pk} "
+            f"({photo.image_hash})",
+            exc_info=True,
         )
 
 
@@ -199,9 +235,10 @@ def reindex_replaced_file(user, path, hash_value) -> Photo | None:
     perceptual hash says the picture is the same (a metadata write, ours or
     anyone else's), this is pure bookkeeping: the File row moves onto the new
     hash and nothing else is touched. Only a picture that really changed costs
-    the photo its derived content.
+    the photo its derived content. When the two cannot be compared at all, the
+    thumbnails and the cached transcode are rebuilt but the faces stay.
 
-    The Photo rows survive with their ids, albums and shares either way.
+    The Photo rows survive with their ids, albums and shares in every case.
 
     Returns the Photo the changed file is the main file of, if any.
     """
@@ -224,29 +261,32 @@ def reindex_replaced_file(user, path, hash_value) -> Photo | None:
     old_hash = existing.hash
 
     # Every photo holding this file, whoever owns it: the File row and the
-    # thumbnail files are shared between users who scan the same directory.
-    photo_ids = set(
+    # thumbnail files are shared between users who scan the same directory. A
+    # deleted photo keeps its image_hash and its faces with no file attached,
+    # so it must not be swept in by the hash alone.
+    affected = (
         Photo.objects.filter(
-            Q(files=existing) | Q(main_file=existing) | Q(image_hash=old_hash)
-        ).values_list("pk", flat=True)
+            Q(files=existing)
+            | Q(main_file=existing)
+            | (Q(image_hash=old_hash) & Q(main_file__isnull=False))
+        )
+        .exclude(removed=True)
+        .distinct()
     )
+    photo_ids = set(affected.values_list("pk", flat=True))
     main_photo_ids = set(
         Photo.objects.filter(main_file=existing).values_list("pk", flat=True)
     )
-    scanned_photo = Photo.objects.filter(
-        pk__in=photo_ids, owner=user, image_hash=old_hash
-    ).first()
-    replaced = _picture_changed(scanned_photo, path)
 
-    if replaced:
-        util.logger.info(f"file {path} was replaced, re-indexing as {hash_value}")
-    else:
-        util.logger.info(f"content of {path} changed, re-keying as {hash_value}")
+    verdict = _picture_verdict(_photo_to_compare(affected, user, old_hash), path)
+    util.logger.info(
+        f"content of {path} changed ({verdict}), re-keying as {hash_value}"
+    )
 
     main_photo = None
-    rehashed_photo_ids = []
+    rebuild_photo_ids = []
     with transaction.atomic():
-        if replaced:
+        if verdict == NEW_PICTURE:
             _discard_embedded_media(existing)
         new_file = existing.rekey(hash_value)
 
@@ -255,21 +295,25 @@ def reindex_replaced_file(user, path, hash_value) -> Photo | None:
         for photo in Photo.objects.filter(pk__in=photo_ids):
             if photo.pk in main_photo_ids and photo.owner_id == user.id:
                 main_photo = photo
-            if not replaced or photo.image_hash != old_hash:
+            if verdict == SAME_PICTURE or photo.image_hash != old_hash:
+                continue
+            if verdict == UNCOMPARABLE:
+                # The picture may or may not have changed, so the thumbnails
+                # are rebuilt in place, under the image hash the face crops
+                # are named after, and nothing labelled is thrown away.
+                _discard_cheap_derived_content(photo, old_hash)
+                rebuild_photo_ids.append(photo.pk)
                 continue
             _discard_derived_content(photo, old_hash)
             photo.image_hash = hash_value
             photo.added_on = datetime.datetime.now().replace(tzinfo=pytz.utc)
             photo.save(save_metadata=False)
-            rehashed_photo_ids.append(photo.pk)
+            rebuild_photo_ids.append(photo.pk)
 
-    if not replaced:
-        return main_photo
-
-    for photo in Photo.objects.filter(pk__in=rehashed_photo_ids):
+    for photo in Photo.objects.filter(pk__in=rebuild_photo_ids):
         _regenerate_thumbnails(photo)
 
-    if main_photo:
+    if verdict == NEW_PICTURE and main_photo:
         _attach_embedded_motion_video(user, main_photo, new_file)
 
     return main_photo

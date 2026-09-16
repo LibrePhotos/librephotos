@@ -4,6 +4,7 @@ import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
 
+import pyvips
 from django.test import TestCase, override_settings
 from PIL import Image
 
@@ -11,6 +12,7 @@ from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
 )
+from api.thumbnails import _apply_local_orientation
 from api.models import File, Person, Photo, Thumbnail, User
 from api.models.file import calculate_hash, content_hash
 from api.perceptual_hash import calculate_hash_from_thumbnail
@@ -19,7 +21,7 @@ from api.tests.utils import create_test_face, create_test_person, create_test_us
 THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
 
 
-def _write_image(path, seed):
+def _write_image(path, seed, size=(256, 256)):
     """Write a picture whose perceptual hash depends on ``seed``.
 
     Blocks of colour rather than a flat fill: pHash reads the low frequencies
@@ -33,7 +35,7 @@ def _write_image(path, seed):
             for _ in range(8 * 8)
         ]
     )
-    blocks.resize((256, 256), Image.NEAREST).save(path, format="PNG")
+    blocks.resize(size, Image.NEAREST).save(path, format="PNG")
 
 
 class ReplacedFileTestCase(TestCase):
@@ -342,3 +344,134 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
         self.assertTrue(mock.called)
         rescanned = self._scan()
         self.assertEqual(file_hash, rescanned.main_file.hash)
+
+
+class RotationIsNotAReplacementTest(ReplacedFileTestCase):
+    """Rotating a photo rewrites the original under MEDIA_FILE. The file then
+    shows the picture the thumbnails already show, so the next scan must not
+    read it as a replacement."""
+
+    def setUp(self):
+        super().setUp()
+        self.user.save_metadata_to_disk = User.SaveMetadata.MEDIA_FILE
+        self.user.save()
+
+    def _exiftool_writing_the_orientation(self, photo):
+        """Stand in for exiftool writing Orientation into the media file.
+
+        The real thing writes a tag that pyvips applies when reading, so the
+        picture the file presents comes out rotated. Baking the same transform
+        into the pixels reproduces that without an exiftool binary, and it uses
+        the very transform the thumbnailer applies so the test cannot drift
+        from the orientation convention.
+        """
+
+        def write(path, tags, **kwargs):
+            image = pyvips.Image.new_from_file(path).copy_memory()
+            image = _apply_local_orientation(image, photo.local_orientation)
+            image.write_to_file(path)
+
+        return write
+
+    def _rotate(self, photo):
+        loaded = Photo.objects.get(pk=photo.pk)
+        with patch(
+            "api.models.photo.write_metadata",
+            side_effect=self._exiftool_writing_the_orientation(loaded),
+        ):
+            loaded.rotate(90)
+        return loaded
+
+    def test_rotating_a_photo_does_not_cost_it_its_faces(self):
+        _write_image(self.path, 1)
+        photo = self._index()
+        image_hash = photo.image_hash
+        added_on = Photo.objects.get(pk=photo.pk).added_on
+        create_test_face(photo=photo)
+        hash_before = photo.main_file.hash
+
+        self._rotate(photo)
+        self.assertNotEqual(hash_before, calculate_hash(self.user, self.path))
+
+        rescanned = self._scan()
+
+        self.assertEqual(photo.pk, rescanned.pk)
+        self.assertEqual(1, rescanned.faces.count())
+        self.assertEqual(image_hash, rescanned.image_hash)
+        self.assertEqual(added_on, rescanned.added_on)
+        self.assertEqual(calculate_hash(self.user, self.path), rescanned.main_file.hash)
+
+    def test_the_rescan_still_rebuilds_what_the_new_bytes_invalidate(self):
+        _write_image(self.path, 1, size=(256, 128))
+        photo = self._index()
+        photo.thumbnail.dominant_color = "[1,2,3]"
+        photo.thumbnail.save()
+
+        self._rotate(photo)
+        rescanned = self._scan()
+
+        self.assertIsNone(rescanned.thumbnail.dominant_color)
+        self.assertTrue(os.path.exists(self._thumbnail_path(rescanned.image_hash)))
+
+
+class RemovedPhotoIsNotSweptInTest(ReplacedFileTestCase):
+    """manual_delete leaves a photo with its image_hash and its faces but no
+    file. A replacement of a live photo with the same hash must not reach it."""
+
+    def test_a_removed_photo_keeps_its_faces(self):
+        _write_image(self.path, 1)
+        photo = self._index()
+        old_hash = photo.image_hash
+
+        removed = Photo(
+            image_hash=old_hash,
+            owner=self.user,
+            added_on=photo.added_on,
+            removed=True,
+            main_file=None,
+        )
+        removed.save()
+        create_test_face(photo=removed)
+
+        _write_image(self.path, 2)
+        rescanned = self._scan()
+
+        self.assertNotEqual(old_hash, rescanned.image_hash)
+        removed.refresh_from_db()
+        self.assertEqual(old_hash, removed.image_hash)
+        self.assertEqual(1, removed.faces.count())
+
+
+class UncomparableContentTest(ReplacedFileTestCase):
+    """A video has no perceptual hash to compare against here. Rebuilding its
+    thumbnails is cheap and safe; throwing away labelled faces is not."""
+
+    def test_a_video_keeps_its_faces_when_its_bytes_change(self):
+        _write_image(self.path, 1)
+        photo = self._index()
+        image_hash = photo.image_hash
+        added_on = Photo.objects.get(pk=photo.pk).added_on
+        person = create_test_person(cluster_owner=self.user)
+        create_test_face(photo=photo, person=person)
+        photo.thumbnail.dominant_color = "[1,2,3]"
+        photo.thumbnail.save()
+
+        _write_image(self.path, 2)
+        with (
+            patch("api.directory_watcher.file_handlers.is_video", return_value=True),
+            patch("api.transcode_cache.discard") as discard,
+        ):
+            rescanned = self._scan()
+
+        # Nothing a person may have corrected is thrown away ...
+        self.assertEqual(1, rescanned.faces.count())
+        self.assertEqual(image_hash, rescanned.image_hash)
+        self.assertEqual(added_on, rescanned.added_on)
+        # ... while what the new bytes certainly invalidate is rebuilt.
+        discard.assert_called_once_with(image_hash)
+        self.assertIsNone(rescanned.thumbnail.dominant_color)
+        self.assertEqual(calculate_hash(self.user, self.path), rescanned.main_file.hash)
+        self.assertEqual(
+            calculate_hash_from_thumbnail(self.path),
+            calculate_hash_from_thumbnail(self._thumbnail_path(image_hash)),
+        )
