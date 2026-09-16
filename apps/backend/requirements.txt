@@ -21,7 +21,7 @@ uvicorn[standard]==0.53.0
 a2wsgi==1.10.10
 hdbscan==0.8.44; sys_platform != "linux" or platform_machine != "aarch64" or python_version != "3.12"
 # No aarch64 wheel on PyPI; built by prebuilt-wheels.yml for the arm64 image (Python 3.12).
-hdbscan @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/hdbscan-0.8.44-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
+hdbscan @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/hdbscan-0.8.44-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
 nltk==3.10.3
 markupsafe==3.0.3
 Pillow==12.3.0
@@ -73,7 +73,7 @@ timezonefinder==8.2.4; python_version >= "3.11" and (sys_platform != "win32" or 
 timezonefinder==8.2.0; python_version < "3.11"
 timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/timezonefinder-8.2.4-cp311-cp311-win_amd64.whl ; sys_platform == "win32" and python_version == "3.11"
 # No aarch64 wheel on PyPI either; built by prebuilt-wheels.yml for the arm64 image (Python 3.12).
-timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/timezonefinder-8.2.4-cp312-abi3-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
+timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/timezonefinder-8.2.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
 tqdm==4.70.0
 gevent==25.9.1
 filetype==1.2.0

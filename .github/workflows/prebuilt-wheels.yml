@@ -10,9 +10,6 @@ on:
       tag:
         description: "Release tag to create or update, e.g. windows-wheels-2026.09.16"
         required: true
-  push:
-    branches: [backend/windows-dev-setup]
-    paths: [".github/workflows/prebuilt-wheels.yml"]
 
 permissions:
   contents: write

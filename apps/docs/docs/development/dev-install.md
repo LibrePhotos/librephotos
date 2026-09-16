@@ -99,7 +99,7 @@ docker exec -it backend python manage.py createsuperuser
 Requires Python 3.11 and Node 22; everything else, ffmpeg included, comes from pip.
 
 ```powershell
-cd appsackend
+cd apps\backend
 py -3.11 -m venv .venv
 .\.venv\Scripts\pip install -r requirements.txt -r requirements.dev.txt
 .\scripts\dev_windows.ps1 -DataDir C:\librephotos-devdata   # API on http://localhost:8000
@@ -108,7 +108,7 @@ py -3.11 -m venv .venv
 In a second shell:
 
 ```powershell
-cd appsrontend
+cd apps\frontend
 Copy-Item .env.development.example .env.development   # then set VITE_BACKEND_URL=http://localhost:8000
 yarn install
 yarn start                                            # http://localhost:3000
