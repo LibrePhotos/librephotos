@@ -19,17 +19,15 @@ if [ "$(id -u)" -ne 0 ]; then
         echo "WARNING: Not running as root and sudo is not available." >&2
         echo "         Skipping system package installation." >&2
         echo "         Please install these packages manually as root:" >&2
-        echo "           build-essential perl" >&2
+        echo "           perl" >&2
     fi
 fi
 
 if [ -n "$SUDO" ] || [ "$(id -u)" -eq 0 ]; then
     echo "==> Installing system dependencies..."
     $SUDO apt-get update -qq
-    # A compiler for insightface (no Linux wheel) and perl for the ExifTool wheel.
-    $SUDO apt-get install -y --no-install-recommends \
-        build-essential \
-        perl
+    # perl for the ExifTool wheel; everything else comes from pip.
+    $SUDO apt-get install -y --no-install-recommends perl
 fi
 
 echo "==> Installing Python dependencies..."

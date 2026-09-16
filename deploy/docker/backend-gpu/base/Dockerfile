@@ -5,16 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3-pip \
-        python3-dev \
-        build-essential \
-        ffmpeg \
-        perl \
-        curl \
-        libgomp1 \
-        libgl1 \
-        libglib2.0-0 && \
+    apt-get install -y --no-install-recommends python3-pip ffmpeg perl && \
     ln -s /usr/bin/python3 /usr/local/bin/python && \
     pip3 install --upgrade --ignore-installed pip && \
     apt-get clean && \

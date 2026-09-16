@@ -36,7 +36,7 @@
    ```bash
    bash scripts/setup_test_env.sh
    ```
-   This installs a compiler and perl, and all Python
+   This installs perl and all Python
    packages from `requirements.txt` and `requirements.dev.txt`.
 
 2. Run the tests using the SQLite in-memory settings and pointing the runtime
@@ -65,8 +65,8 @@
 for video thumbnails and transcoding); everything else comes from pip. `requirements.txt`
 carries the Windows variants behind `sys_platform` markers; `insightface`, `timezonefinder`
 and `exiftool-bin` (ExifTool wrapped by `scripts/build_exiftool_wheel.py`; a Perl variant
-serves Linux/macOS) come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/windows-wheels.yml`
-rebuilds them, `api/tests/infra/test_requirements_windows_wheels.py` keeps the versions in
+serves Linux/macOS) come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/prebuilt-wheels.yml`
+rebuilds them, including manylinux insightface wheels for the images and CI, `api/tests/infra/test_requirements_windows_wheels.py` keeps the versions in
 step).
 
 ```powershell

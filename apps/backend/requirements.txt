@@ -21,10 +21,17 @@ nltk==3.10.3
 markupsafe==3.0.3
 Pillow==12.3.0
 ImageHash==4.3.2
-# insightface has no Windows wheel on PyPI; .github/workflows/windows-wheels.yml
-# builds one (Python 3.11). Bump both lines together (Renovate is off for it).
-insightface==0.7.3; sys_platform != "win32"
+# insightface has no wheels on PyPI. .github/workflows/prebuilt-wheels.yml builds them for
+# Windows (3.11) and for the CPython versions the images and CI use on Linux; anything
+# else compiles the sdist. Bump every line together (Renovate is off for it).
+insightface==0.7.3; sys_platform != "win32" and (sys_platform != "linux" or platform_machine not in "x86_64 aarch64" or python_version not in "3.10 3.12 3.14")
 insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp311-cp311-win_amd64.whl ; sys_platform == "win32"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.10"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.10"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.12"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.14"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.14"
 # stringzilla (insightface -> albumentations -> albucore): 5.1.2 has no Windows wheel.
 stringzilla==5.1.1; sys_platform == "win32"
 # ExifTool wrapped by scripts/build_exiftool_wheel.py: the official .exe on Windows,
