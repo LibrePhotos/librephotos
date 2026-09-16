@@ -38,7 +38,7 @@ export const FacesQueryKeys = ["faces"] as const;
 
 export const useFetchFacesQuery = (params: PersonFaceListRequest) =>
   useQuery({
-    queryKey: [FacesQueryKeys, params],
+    queryKey: [...FacesQueryKeys, params],
     queryFn: () => fetchFaces(params),
     enabled: !!params,
   });
