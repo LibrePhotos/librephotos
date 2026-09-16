@@ -5,7 +5,7 @@ import pyvips
 import requests
 from django.conf import settings
 
-from api import util, video_color
+from api import binaries, image_decoding, util, video_color
 from api.models.file import is_raw
 
 
@@ -94,11 +94,8 @@ def _resize_big_thumbnail(output_height, complete_path, hash, file_type):
 
 
 def _render_thumbnail(input_path, output_height, complete_path, local_orientation):
-    x = pyvips.Image.thumbnail(
-        input_path, 10000, height=output_height, size=pyvips.enums.Size.DOWN
-    )
+    x = image_decoding.thumbnail(input_path, output_height)
     if local_orientation and local_orientation != 1:
-        x = x.copy_memory()
         x = _apply_local_orientation(x, local_orientation)
     x.write_to_file(complete_path, Q=95)
     return complete_path
@@ -140,7 +137,7 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
-            "ffmpeg",
+            binaries.ffmpeg(),
             "-i",
             input_path,
             "-to",
@@ -168,7 +165,7 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
-            "ffmpeg",
+            binaries.ffmpeg(),
             "-i",
             input_path,
             "-ss",

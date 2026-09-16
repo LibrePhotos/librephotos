@@ -58,7 +58,7 @@ The GPU image is only available for x86 architecture. ARM is not supported for t
 
 ### Limiting CPU and memory usage
 
-The backend container runs two things: **gunicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers, and by default there is **one worker per CPU core**.
+The backend container runs two things: **uvicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers, and by default there is **one worker per CPU core**.
 
 #### Start with the worker count, not a CPU limit
 
@@ -70,13 +70,7 @@ services:
     cpus: 0.8
 ```
 
-On its own this usually backfires. A `cpus:` limit throttles the container, but it does not change how many workers LibrePhotos starts — the worker pool is sized from the number of cores the *host* reports, which a `cpus:` limit does not change. You end up with just as many workers competing for a fraction of the CPU, and the first thing to break is the API: a request that takes longer than gunicorn's timeout gets its worker killed, and the backend log fills with
-
-```
-[ERROR] Worker (pid:113) was sent SIGKILL! Perhaps out of memory?
-```
-
-That message is gunicorn's generic text for a killed worker. On a CPU-capped host it almost always means the request was too slow, **not** that the machine ran out of memory.
+On its own this usually backfires. A `cpus:` limit throttles the container, but it does not change how many workers LibrePhotos starts — the worker pool is sized from the number of cores the *host* reports, which a `cpus:` limit does not change. You end up with just as many workers competing for a fraction of the CPU, and the API gets slow along with them.
 
 So set the worker count instead. In your `.env`:
 
@@ -89,13 +83,7 @@ This is the setting that actually gives resources back to the rest of the machin
 
 #### If you also want a hard cap
 
-Once the worker count is sensible, a container limit is a reasonable backstop. Raise the API timeout at the same time so throttled requests are not killed mid-flight:
-
-```bash
-workerConcurrency=1
-# Seconds before gunicorn kills a request (default 30)
-gunicornTimeout=120
-```
+Once the worker count is sensible, a container limit is a reasonable backstop:
 
 ```yaml
 services:

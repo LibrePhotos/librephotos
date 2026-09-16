@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.mime import mime_type
 from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, File, Photo, User
 from api.models.photo_stack import PhotoStack
@@ -61,10 +62,8 @@ def _get_owned_photo(image_hash, user):
 
 def _detect_content_type(path):
     """Return the MIME type of a file, falling back to a generic binary type."""
-    import magic
-
     try:
-        return magic.Magic(mime=True).from_file(path)
+        return mime_type(path)
     except Exception:
         return "application/octet-stream"
 

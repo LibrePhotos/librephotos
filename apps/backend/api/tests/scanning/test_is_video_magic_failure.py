@@ -43,20 +43,6 @@ def _ensure_stub_modules():
         sys.modules["django.db"] = django_db_module
         sys.modules["django.db.models"] = django_db_models_module
 
-    if "magic" not in sys.modules:
-        magic_module = types.ModuleType("magic")
-
-        class Magic:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            def from_file(self, path):
-                return "application/octet-stream"
-
-        magic_module.Magic = Magic
-        magic_module.__spec__ = importlib.machinery.ModuleSpec("magic", loader=None)
-        sys.modules["magic"] = magic_module
-
     if "pyvips" not in sys.modules:
         pyvips_module = types.ModuleType("pyvips")
 
@@ -112,12 +98,19 @@ def _ensure_stub_modules():
             "api.models", loader=None, is_package=True
         )
 
+        mime_module = types.ModuleType("api.mime")
+        mime_module.mime_type = lambda path: "application/octet-stream"
+        mime_module.sniffed_mime_type = lambda path: None
+        mime_module.__spec__ = importlib.machinery.ModuleSpec("api.mime", loader=None)
+
         api_module.util = util_module
         api_module.models = models_module
+        api_module.mime = mime_module
 
         sys.modules["api"] = api_module
         sys.modules["api.util"] = util_module
         sys.modules["api.models"] = models_module
+        sys.modules["api.mime"] = mime_module
 
     if "exiftool" not in sys.modules:
         exiftool_module = types.ModuleType("exiftool")
@@ -165,12 +158,10 @@ class TestIsVideo(unittest.TestCase):
         else:
             cls._file_module = _load_file_module()
 
-    def test_is_video_returns_false_when_magic_raises(self):
-        class FailingMagic:
-            def from_file(self, path):
-                raise RuntimeError("magic failure")
-
+    def test_is_video_returns_false_when_sniffing_raises(self):
         with patch.object(
-            self._file_module.magic, "Magic", return_value=FailingMagic()
+            self._file_module,
+            "sniffed_mime_type",
+            side_effect=RuntimeError("unreadable"),
         ):
             self.assertFalse(self._file_module.is_video("/tmp/test.mp4"))

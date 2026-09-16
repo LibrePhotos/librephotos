@@ -32,7 +32,7 @@ from .production import *  # noqa
 # re-read from the environment variable the entrypoint already checked.
 SERVE_FRONTEND = True
 
-# WhiteNoise serves the collected frontend build straight out of Gunicorn.
+# WhiteNoise serves the collected frontend build straight out of the app server.
 # BASE_DIR is /code/librephotos, so the build the Dockerfile drops in sits one
 # level up, at /code/frontend_build.
 STATIC_URL = "/static/"

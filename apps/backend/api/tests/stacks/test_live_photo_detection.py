@@ -121,27 +121,19 @@ class HasEmbeddedMotionVideoTestCase(TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    @patch("api.stacks.live_photo.magic.Magic")
-    def test_returns_false_for_non_jpeg(self, mock_magic_class):
+    @patch("api.stacks.live_photo.mime_type", return_value="image/png")
+    def test_returns_false_for_non_jpeg(self, _mime_type):
         """Should return False for non-JPEG files."""
-        mock_magic = MagicMock()
-        mock_magic.from_file.return_value = "image/png"
-        mock_magic_class.return_value = mock_magic
-
         result = has_embedded_motion_video("/some/path.png")
         self.assertFalse(result)
 
-    @patch("api.stacks.live_photo.magic.Magic")
+    @patch("api.stacks.live_photo.mime_type", return_value="image/jpeg")
     @patch("builtins.open")
     @patch("api.stacks.live_photo.mmap")
     def test_returns_true_for_google_motion_photo(
-        self, mock_mmap, mock_open, mock_magic_class
+        self, mock_mmap, mock_open, _mime_type
     ):
         """Should return True for Google Motion Photo."""
-        mock_magic = MagicMock()
-        mock_magic.from_file.return_value = "image/jpeg"
-        mock_magic_class.return_value = mock_magic
-
         # Mock file data with Google MP4 signature
         mock_data = b"JPEG" + b"\x00\x00\x00\x00" + b"ftypmp42"
         mock_mm = MagicMock()
@@ -160,10 +152,9 @@ class HasEmbeddedMotionVideoTestCase(TestCase):
             result = has_embedded_motion_video("/some/path.jpg")
             self.assertTrue(result)
 
-    @patch("api.stacks.live_photo.magic.Magic")
-    def test_returns_false_on_exception(self, mock_magic_class):
+    @patch("api.stacks.live_photo.mime_type", side_effect=Exception("File not found"))
+    def test_returns_false_on_exception(self, _mime_type):
         """Should return False and log warning on exception."""
-        mock_magic_class.side_effect = Exception("File not found")
 
         with patch("api.stacks.live_photo.logger") as mock_logger:
             result = has_embedded_motion_video("/nonexistent/path.jpg")

@@ -66,7 +66,6 @@ services:
       - MAPBOX_API_KEY=${mapApiKey:-}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - WORKER_CONCURRENCY=${workerConcurrency:-}
-      - GUNICORN_TIMEOUT=${gunicornTimeout:-30}
       - BASE_LOGS=${baseLogs:-/logs}
       - LOG_LEVEL=${logLevel:-INFO}
       - SKIP_PATTERNS=${skipPatterns:-}

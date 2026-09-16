@@ -28,6 +28,8 @@ import logging
 import shutil
 import subprocess
 
+from api import binaries
+
 from api import ffmpeg_budget
 
 logger = logging.getLogger(__name__)
@@ -71,7 +73,7 @@ def transfer_characteristics(path):
     try:
         output = subprocess.run(
             [
-                "ffprobe",
+                binaries.ffprobe(),
                 "-v",
                 "error",
                 "-select_streams",

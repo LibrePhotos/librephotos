@@ -1,12 +1,11 @@
 import hashlib
 import os
 
-import magic
-import pyvips
 from django.conf import settings
 from django.db import models, transaction
 
-from api import util
+from api import image_decoding, util
+from api.mime import sniffed_mime_type
 
 # Most optimal value for performance/memory. Found here:
 # https://stackoverflow.com/questions/17731660/hashlib-optimal-size-of-chunks-to-be-used-in-md5-update
@@ -177,9 +176,8 @@ def detect_file_type(path) -> int:
 
 def is_video(path):
     try:
-        mime = magic.Magic(mime=True)
-        filename = mime.from_file(path)
-        return filename.find("video") != -1
+        # Sniffed only: a corrupt file with a video extension must not become a video.
+        return (sniffed_mime_type(path) or "").find("video") != -1
     except Exception:
         util.logger.error(f"Error while checking if file is video: {path}")
         return False
@@ -248,8 +246,10 @@ def is_valid_media(path, user) -> bool:
     if is_raw(path=path):
         return True
     try:
-        pyvips.Image.thumbnail(path, 10000, height=200, size=pyvips.enums.Size.DOWN)
-        return True
+        if image_decoding.can_decode(path):
+            return True
+        util.logger.info(f"Could not handle {path}: no loader recognises it")
+        return False
     except Exception as e:
         util.logger.info(f"Could not handle {path}, because {str(e)}")
         return False

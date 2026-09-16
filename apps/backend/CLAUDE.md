@@ -13,7 +13,7 @@
 - **Custom Commands**: `python manage.py <command_name>` (see `api/management/commands/`)
 
 ### Running Services
-- **API Server (Gunicorn)**: Runs automatically in container
+- **API Server (uvicorn, ASGI)**: Runs automatically in container
 - **Background Jobs (django-q2)**: Runs automatically via `qcluster` command
 - **Image Similarity Service**: Flask app for semantic search
 - **Thumbnail Service**: Separate process for image processing
@@ -36,7 +36,7 @@
    ```bash
    bash scripts/setup_test_env.sh
    ```
-   This installs `libvips-dev`, `libimage-exiftool-perl`, `libmagic1`, and all Python
+   This installs perl and all Python
    packages from `requirements.txt` and `requirements.dev.txt`.
 
 2. Run the tests using the SQLite in-memory settings and pointing the runtime
@@ -60,6 +60,32 @@
 
    The `test_sqlite` settings module (`librephotos/settings/test_sqlite.py`) uses
    an in-memory SQLite database so no PostgreSQL instance is required.
+
+**Natively on Windows (no Docker):** Python 3.11; everything else comes from pip. `requirements.txt`
+carries the Windows variants behind `sys_platform` markers; `insightface`, `timezonefinder`,
+`exiftool-bin` (ExifTool wrapped by `scripts/build_exiftool_wheel.py`; a Perl variant
+serves Linux/macOS) and `ffmpeg-bin` (BtbN's GPL build, `scripts/build_ffmpeg_wheel.py`; macOS
+needs `brew install ffmpeg`) come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/prebuilt-wheels.yml`
+rebuilds them, including manylinux insightface wheels for the images and CI, `api/tests/infra/test_requirements_windows_wheels.py` keeps the versions in
+step).
+
+```powershell
+py -3.11 -m venv .venv; .\.venv\Scripts\pip install -r requirements.txt -r requirements.dev.txt
+$env:DJANGO_SETTINGS_MODULE = "librephotos.settings.test_sqlite"; $env:SECRET_KEY = "x"
+$env:BASE_DATA = "$PWD\.testtmp"; $env:BASE_LOGS = "$PWD\.testtmp\logs"; $env:NO_COVERAGE = "1"
+.\.venv\Scripts\python manage.py test api.tests
+.\scripts\dev_windows.ps1 -DataDir C:\devdata   # dev server: exif sidecar + qcluster + uvicorn :8000
+```
+
+`dev_windows.ps1` uses `librephotos.settings.dev_windows` (SQLite on disk, Django serves
+media). Uploads only get dated/thumbnailed because `qcluster` and the exif sidecar run.
+ML sidecars are not started and their `FEATURE_*` flags default off there; set one to `1`
+and `python manage.py start_service <name>` after downloading the models. The POSIX
+permission and mount tests in `test_serving_permissions` are skipped on Windows.
+
+Frontend against that backend: `cd apps/frontend`, copy `.env.development.example` to
+`.env.development`, set `VITE_BACKEND_URL=http://localhost:8000`, then `yarn install` and
+`yarn start` (Node 22). Vite proxies `/api` and `/media` so the app stays same-origin.
 
 ### Debugging
 - **PDB Breakpoint**: Add `import pdb; pdb.set_trace()` in code
@@ -114,7 +140,7 @@ Key environment variables (set in Docker or `.env`):
 - `SECRET_KEY` - Django secret key
 - `DB_*` - Database connection settings
 - `MAPBOX_API_KEY` - For map features
-- `WEB_CONCURRENCY` - Gunicorn worker count
+- `WEB_CONCURRENCY` - uvicorn worker count
 
 ## Common Patterns
 

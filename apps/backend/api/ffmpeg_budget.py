@@ -39,6 +39,8 @@ import os
 import shutil
 import subprocess
 
+from api import binaries
+
 logger = logging.getLogger(__name__)
 
 # Probed once per process: asking ffmpeg for its full help costs a subprocess and
@@ -100,7 +102,7 @@ def supports_filter(name):
 def _filters():
     global _filter_text
     if _filter_text is None:
-        _filter_text = _run(["ffmpeg", "-hide_banner", "-filters"])
+        _filter_text = _run([binaries.ffmpeg(), "-hide_banner", "-filters"])
     return _filter_text
 
 
@@ -112,7 +114,7 @@ def _full_help():
 
 
 def _read_full_help():
-    return _run(["ffmpeg", "-hide_banner", "-h", "full"])
+    return _run([binaries.ffmpeg(), "-hide_banner", "-h", "full"])
 
 
 def _run(command):

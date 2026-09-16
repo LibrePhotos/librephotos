@@ -65,7 +65,7 @@ class TransferProbeTest(SimpleTestCase):
         with mock.patch.object(video_color.subprocess, "run", run):
             video_color.transfer_characteristics("/v.mov")
         argv = run.call_args[0][0]
-        self.assertEqual(argv[0], "ffprobe")
+        self.assertTrue(argv[0].endswith(("ffprobe", "ffprobe.EXE", "ffprobe.exe")))
         self.assertIn("-select_streams", argv)
         self.assertEqual(argv[argv.index("-select_streams") + 1], "v:0")
         self.assertEqual(argv[-1], "/v.mov")

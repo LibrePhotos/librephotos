@@ -45,6 +45,23 @@ jobs:
           . .venv/bin/activate
           bash scripts/setup_test_env.sh
 
+      - name: ffmpeg comes from the wheel, not the runner
+        # The wheel's .pth puts ffmpeg on PATH inside Python processes, which is
+        # the only place the backend calls it from.
+        working-directory: apps/backend
+        run: |
+          sudo apt-get remove -y ffmpeg >/dev/null 2>&1 || true
+          sudo rm -f /usr/bin/ffmpeg /usr/bin/ffprobe
+          . .venv/bin/activate
+          python - <<'PY'
+          import shutil, subprocess
+          print("ffmpeg:", shutil.which("ffmpeg"), "ffprobe:", shutil.which("ffprobe"))
+          assert "ffmpeg_bin" in (shutil.which("ffmpeg") or ""), "ffmpeg not from the wheel"
+          subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=duration=1:size=64x64:rate=5", "-c:v", "libx264", "-y", "/tmp/wheel-smoke.mp4"], check=True)
+          out = subprocess.run(["ffprobe", "-hide_banner", "-v", "error", "-show_entries", "stream=codec_name", "-of", "default=nw=1", "/tmp/wheel-smoke.mp4"], check=True, capture_output=True, text=True).stdout
+          assert "codec_name=h264" in out, out
+          PY
+
       - name: Run tests
         working-directory: apps/backend
         env:

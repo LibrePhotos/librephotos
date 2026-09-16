@@ -18,7 +18,7 @@ Notable current behaviours pinned here:
   ``.filter(...).first()``; this branch is unreachable through the ORM in
   practice (the ``get`` is already scoped by owner) and is only reachable in
   tests by forcing the manager to raise.
-* Content-Type comes from ``python-magic`` and silently falls back to
+* Content-Type comes from ``api.mime.mime_type`` and silently falls back to
   ``application/octet-stream`` on *any* exception.
 * ``RotatePhotoView`` validates ``image_hash``/``angle`` before touching the
   DB, rejects videos, and turns any exception from ``Photo.rotate`` into a
@@ -77,8 +77,7 @@ class FileVariantDownloadViewTest(APITestCase):
     def test_serves_existing_variant_as_attachment(self):
         variant = self.make_variant()
 
-        with patch("magic.Magic") as magic_cls:
-            magic_cls.return_value.from_file.return_value = "image/x-canon-cr2"
+        with patch("api.views.photos.mime_type", return_value="image/x-canon-cr2"):
             response = self.call(self.photo.image_hash, variant.hash)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -88,10 +87,12 @@ class FileVariantDownloadViewTest(APITestCase):
         self.assertEqual(b"".join(response.streaming_content), b"raw-bytes")
         response.close()
 
-    def test_content_type_falls_back_to_octet_stream_when_magic_raises(self):
+    def test_content_type_falls_back_to_octet_stream_when_sniffing_raises(self):
         variant = self.make_variant(name="odd.bin")
 
-        with patch("magic.Magic", side_effect=RuntimeError("no libmagic")):
+        with patch(
+            "api.views.photos.mime_type", side_effect=RuntimeError("unreadable")
+        ):
             response = self.call(self.photo.image_hash, variant.hash)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -124,9 +125,8 @@ class FileVariantDownloadViewTest(APITestCase):
 
         with (
             patch.object(Photo.objects, "get", side_effect=raising_get),
-            patch("magic.Magic") as magic_cls,
+            patch("api.views.photos.mime_type", return_value="application/x-raw"),
         ):
-            magic_cls.return_value.from_file.return_value = "application/x-raw"
             response = self.call(self.photo.image_hash, variant.hash)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

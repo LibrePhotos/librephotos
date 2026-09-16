@@ -15,19 +15,51 @@ Flask==3.1.3
 Flask-Cors==6.0.5
 Flask-RESTful==0.3.10
 geopy==2.5.0
-gunicorn==25.3.0
-hdbscan==0.8.44
+uvicorn[standard]==0.53.0
+# Runs the WSGI app under uvicorn with real streaming; Django's ASGI handler would buffer
+# every sync StreamingHttpResponse/FileResponse.
+a2wsgi==1.10.10
+hdbscan==0.8.44; sys_platform != "linux" or platform_machine != "aarch64" or python_version != "3.12"
+# No aarch64 wheel on PyPI; built by prebuilt-wheels.yml for the arm64 image (Python 3.12).
+hdbscan @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/hdbscan-0.8.44-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
 nltk==3.10.3
 markupsafe==3.0.3
 Pillow==12.3.0
 ImageHash==4.3.2
-insightface==0.7.3
-psycopg==3.3.4
+# insightface has no wheels on PyPI. .github/workflows/prebuilt-wheels.yml builds them for
+# Windows (3.11) and for the CPython versions the images and CI use on Linux; anything
+# else compiles the sdist. Bump every line together (Renovate is off for it).
+insightface==0.7.3; (sys_platform != "win32" or python_version != "3.11") and (sys_platform != "linux" or platform_machine not in "x86_64 aarch64" or python_version not in "3.10 3.12 3.14")
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp311-cp311-win_amd64.whl ; sys_platform == "win32" and python_version == "3.11"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.10"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.10"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.12"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64" and python_version == "3.14"
+insightface @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/insightface-0.7.3-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.14"
+# stringzilla (insightface -> albumentations -> albucore): 5.1.2 has no Windows wheel.
+stringzilla==5.1.1; sys_platform == "win32"
+# ExifTool wrapped by scripts/build_exiftool_wheel.py: the official .exe on Windows,
+# the Perl distribution elsewhere (needs a perl on PATH).
+exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-win_amd64.whl ; sys_platform == "win32"
+exiftool-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/exiftool_bin-13.57-py3-none-any.whl ; sys_platform != "win32"
+# ffmpeg + ffprobe from BtbN/FFmpeg-Builds (GPL shared build), wrapped by
+# scripts/build_ffmpeg_wheel.py. Other platforms need ffmpeg on PATH (brew install ffmpeg).
+# ffmpeg-bin: autobuild-2026-09-15-13-18 ffmpeg-n9.0.1-30-g9258bacca5
+ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-win_amd64.whl ; sys_platform == "win32"
+ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
+ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
+psycopg[binary]==3.3.4
 https://github.com/owncloud/pyocclient/archive/master.zip
 pytz==2026.3.post1
 tzdata==2026.3
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
-pyvips==3.1.1
+# pyvips-binary bundles libvips, but without HEVC (HEIC), JPEG XL, BMP and JPEG 2000
+# loaders; api/image_decoding.py falls back to Pillow with these two plugins.
+pyvips[binary]==3.1.1
+pyvips-binary==8.18.6
+pillow-heif==1.7.0
+pillow-jxl-plugin==1.3.8
 # scikit-learn: the backend-gpu image runs Python 3.10 (CUDA/ubuntu22.04), but
 # scikit-learn 1.8.0+ require Python >= 3.11. Keep the python_version < "3.11"
 # pin at <= 1.7.2 or the GPU build fails. Renovate is disabled for this package
@@ -37,12 +69,15 @@ scikit-learn==1.7.2; python_version < "3.11"
 # timezonefinder: same py3.10 split as scikit-learn. 8.2.1+ require Python >= 3.11,
 # so the python_version < "3.11" pin must stay at 8.2.0 (last release supporting
 # py3.10) or the GPU build fails. Renovate is disabled for it (see renovate.json).
-timezonefinder==8.2.4; python_version >= "3.11"
+timezonefinder==8.2.4; python_version >= "3.11" and (sys_platform != "win32" or python_version != "3.11") and (sys_platform != "linux" or platform_machine != "aarch64" or python_version != "3.12")
 timezonefinder==8.2.0; python_version < "3.11"
+timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/timezonefinder-8.2.4-cp311-cp311-win_amd64.whl ; sys_platform == "win32" and python_version == "3.11"
+# No aarch64 wheel on PyPI either; built by prebuilt-wheels.yml for the arm64 image (Python 3.12).
+timezonefinder @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/timezonefinder-8.2.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64" and python_version == "3.12"
 tqdm==4.70.0
 gevent==25.9.1
-python-magic==0.4.27
-Wand==0.7.2
+filetype==1.2.0
+rawpy==0.27.1
 django-q2==1.11.0
 diskcache==5.6.3
 safetensors==0.8.0

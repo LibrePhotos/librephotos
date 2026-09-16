@@ -1,3 +1,5 @@
+import shutil
+
 import exiftool
 from django.db import migrations, models
 
@@ -9,7 +11,7 @@ class Migration(migrations.Migration):
 
     def forwards_func(apps, schema):
         Photo = apps.get_model("api", "Photo")
-        with exiftool.ExifTool() as et:
+        with exiftool.ExifTool(shutil.which("exiftool") or "exiftool") as et:
             for obj in Photo.objects.all():
                 if obj.thumbnail_big:
                     try:

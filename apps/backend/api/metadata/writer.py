@@ -2,12 +2,14 @@ import os
 
 import exiftool
 
+from api import binaries
+
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.util import logger
 
 
 def write_metadata(media_file, tags, use_sidecar=True):
-    et = exiftool.ExifTool()
+    et = exiftool.ExifTool(binaries.exiftool())
     terminate_et = False
     if not et.running:
         et.start()
