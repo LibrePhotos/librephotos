@@ -1,9 +1,27 @@
 import { motion } from "motion/react";
 import PropTypes from "prop-types";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import getImageHeight from "../../utils/getImageHeight";
 import getTileMeasurements from "../../utils/getTileMeasurements";
 import styles from "./styles.module.css";
+
+// Removing a <video> frees neither its media player nor the fetch in flight, so
+// scrolling a large video library exhausts the browser's media element budget.
+function useReleaseOnDetach() {
+  const node = useRef(null);
+  return useCallback(element => {
+    if (element) {
+      node.current = element;
+      return;
+    }
+    const video = node.current;
+    node.current = null;
+    if (!video) return;
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+  }, []);
+}
 
 const Tile = React.memo(
   ({
@@ -35,30 +53,8 @@ const Tile = React.memo(
         (item.type !== undefined && item.type.includes("video")));
     const [isFullSizeLoaded, setFullSizeLoaded] = useState(!!isVideo);
     const [videoFailed, setVideoFailed] = useState(false);
-    const videoNode = useRef(null);
-
-    // Deliberately never cleared: React detaches refs before it runs effect
-    // cleanups, so a plain ref would already be null by the time the cleanup
-    // below needs the element.
-    const holdVideoNode = useCallback(node => {
-      if (node) videoNode.current = node;
-    }, []);
-
-    // Unmounting a <video> does not free its media player or cancel the fetch
-    // still in flight; the browser holds both until the element is collected.
-    // Scrolling a library of hundreds of videos piles those up until the media
-    // element limit is hit and no further preview ever loads, which only a page
-    // reload recovers from. Hand the resource back explicitly instead.
-    useEffect(
-      () => () => {
-        const video = videoNode.current;
-        if (!video) return;
-        video.pause();
-        video.removeAttribute("src");
-        video.load();
-      },
-      []
-    );
+    const gridVideoRef = useReleaseOnDetach();
+    const expandedVideoRef = useReleaseOnDetach();
 
     const TopRightOverlay = toprightoverlay;
     const BottomLeftOverlay = bottomleftoverlay;
@@ -156,7 +152,7 @@ const Tile = React.memo(
 
         {scrollSpeed === "slow" && isVideo && !isTemp && !videoFailed && (
           <video
-            ref={holdVideoNode}
+            ref={gridVideoRef}
             className={`${styles.pigImg} ${styles.pigThumbnail}${
               isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
             }`}
@@ -182,6 +178,7 @@ const Tile = React.memo(
         {isExpanded && isVideo && !isTemp && !videoFailed && (
           // full size expanded video
           <video
+            ref={expandedVideoRef}
             className={styles.pigImg}
             src={getUrl(item.url, settings.expandedSize)}
             preload="metadata"
