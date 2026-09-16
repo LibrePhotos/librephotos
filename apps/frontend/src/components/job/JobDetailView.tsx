@@ -17,7 +17,7 @@ import {
   useMantineTheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconArrowLeft, IconBan, IconCheck, IconClock, IconRefresh } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconBan, IconCheck, IconClock, IconRefresh } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React from "react";
@@ -70,20 +70,40 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
     );
   }
 
+  const errorMessage = job.result?.error ? String(job.result.error) : null;
+  // Only a hard failure is red: a scan that errored on a minority of its files
+  // reports "partial_failure" and still sets result.error.
+  const hasError = job.failed || job.result?.status === "failed";
+  const isPartialFailure = !hasError && job.result?.status === "partial_failure";
+  const errorCount = job.result?.error_count != null ? Number(job.result.error_count) : 0;
+  const failedItems = Array.isArray(job.result?.errors) ? (job.result.errors as unknown[]).map(String) : [];
+
   const getStatusIcon = () => {
     if (job.finished) {
-      return job.failed ? <IconBan color="red" size={24} /> : <IconCheck color="green" size={24} />;
+      if (hasError) return <IconBan color="red" size={24} />;
+      if (isPartialFailure) return <IconAlertTriangle color="orange" size={24} />;
+      return <IconCheck color="green" size={24} />;
     }
     return job.started_at ? <IconRefresh color="yellow" size={24} /> : <IconClock color="blue" size={24} />;
   };
 
   const getStatusBadge = () => {
     if (job.finished) {
-      return job.failed ? (
-        <Badge color="red" size="lg">
-          Failed
-        </Badge>
-      ) : (
+      if (hasError) {
+        return (
+          <Badge color="red" size="lg">
+            {t("joblist.failed")}
+          </Badge>
+        );
+      }
+      if (isPartialFailure) {
+        return (
+          <Badge color="orange" size="lg">
+            {t("joblist.partialfailurebadge")}
+          </Badge>
+        );
+      }
+      return (
         <Badge color="green" size="lg">
           Completed
         </Badge>
@@ -99,9 +119,6 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
       </Badge>
     );
   };
-
-  const errorMessage = job.result?.error ? String(job.result.error) : null;
-  const hasError = job.failed || job.result?.status === "failed" || errorMessage;
 
   const formatDuration = (start: string | null, end: string | null) => {
     if (!start) return "N/A";
@@ -250,8 +267,33 @@ export function JobDetailView({ jobId, backTo }: IJobDetailView) {
             </Card>
           )}
 
+          {/* Partial failure: some items failed, the job as a whole did not */}
+          {isPartialFailure && (
+            <Card shadow="xs" padding="md" radius="md" style={{ border: "1px solid var(--mantine-color-orange-6)" }}>
+              <Title order={4} mb="md" c="orange">
+                {t("joblist.partialfailurebadge")}
+              </Title>
+              <Stack gap="sm">
+                <Text size="sm">{t("joblist.partialfailure", { errorCount, total: job.progress_target })}</Text>
+                {failedItems.length > 0 && (
+                  <Box>
+                    <Text fw={600} mb="xs">
+                      {t("joblist.faileditems")}
+                    </Text>
+                    <Code
+                      block
+                      style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "400px", overflow: "auto" }}
+                    >
+                      {failedItems.join("\n")}
+                    </Code>
+                  </Box>
+                )}
+              </Stack>
+            </Card>
+          )}
+
           {/* Result Data (if not an error) */}
-          {!hasError && job.result && (
+          {!hasError && !isPartialFailure && job.result && (
             <Card shadow="xs" padding="md" radius="md">
               <Title order={4} mb="md">
                 Result Data
