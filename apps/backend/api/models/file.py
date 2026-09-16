@@ -139,7 +139,7 @@ class File(models.Model):
             new_file = File(
                 hash=new_hash,
                 path=self.path,
-                type=self.type,
+                type=detect_file_type(self.path),
                 missing=self.missing,
             )
             self.delete()

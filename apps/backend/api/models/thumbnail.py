@@ -33,7 +33,7 @@ def delete_thumbnail_files(photo_hash: str) -> None:
             try:
                 os.remove(path)
             except OSError:
-                logger.warning(f"could not remove thumbnail {path}")
+                logger.error(f"could not remove thumbnail {path}")
 
 
 class Thumbnail(models.Model):

@@ -104,6 +104,16 @@ def _render_thumbnail(input_path, output_height, complete_path, local_orientatio
     return complete_path
 
 
+def render_big_thumbnail_to(input_path, output_path, local_orientation=1):
+    """Render the big thumbnail of ``input_path`` to an arbitrary file.
+
+    Same image ``create_thumbnail`` would put in ``thumbnails_big``, but
+    written where the caller asks instead of under MEDIA_ROOT, for comparing a
+    file against what is already indexed.
+    """
+    return _render_thumbnail(input_path, 1080, output_path, local_orientation)
+
+
 def create_thumbnail(
     input_path, output_height, output_path, hash, file_type, local_orientation=1
 ):
