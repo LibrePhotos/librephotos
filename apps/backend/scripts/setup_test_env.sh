@@ -20,7 +20,7 @@ if [ "$(id -u)" -ne 0 ]; then
         echo "         Skipping system package installation." >&2
         echo "         Please install these packages manually as root:" >&2
         echo "           build-essential cmake libboost-all-dev" >&2
-        echo "           libimage-exiftool-perl libmagic1 libvips-dev" >&2
+        echo "           libimage-exiftool-perl libvips-dev" >&2
     fi
 fi
 
@@ -32,7 +32,6 @@ if [ -n "$SUDO" ] || [ "$(id -u)" -eq 0 ]; then
         cmake \
         libboost-all-dev \
         libimage-exiftool-perl \
-        libmagic1 \
         libvips-dev
 fi
 

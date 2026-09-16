@@ -36,7 +36,6 @@ RUN apt-get update && \
 		libgomp1 \
 		liblapack-dev \
 		liblcms2-dev \
-		libmagic1 \
 		libopenblas-dev \
 		libopenexr-dev \ 
 		liborc-dev \

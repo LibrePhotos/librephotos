@@ -1,12 +1,12 @@
 import hashlib
 import os
 
-import magic
 import pyvips
 from django.conf import settings
 from django.db import models
 
 from api import util
+from api.mime import mime_type
 
 # Most optimal value for performance/memory. Found here:
 # https://stackoverflow.com/questions/17731660/hashlib-optimal-size-of-chunks-to-be-used-in-md5-update
@@ -112,9 +112,7 @@ class File(models.Model):
 
 def is_video(path):
     try:
-        mime = magic.Magic(mime=True)
-        filename = mime.from_file(path)
-        return filename.find("video") != -1
+        return mime_type(path).find("video") != -1
     except Exception:
         util.logger.error(f"Error while checking if file is video: {path}")
         return False

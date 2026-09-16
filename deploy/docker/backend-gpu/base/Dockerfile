@@ -35,7 +35,6 @@ RUN apt-get update && \
 	libjpeg-dev \
 	liblapack-dev \
 	liblcms2-dev \
-	libmagic1 \
 	libopenblas-dev \
 	libopenexr-dev \ 
 	liborc-dev \
@@ -120,7 +119,6 @@ RUN apt-get update && \
     libopenblas-dev \
     libxext6 \
     libxrender1 \
-    libmagic1 \
     libgomp1 \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -143,7 +141,6 @@ RUN curl -fsSL https://github.com/exiftool/exiftool/archive/refs/tags/${EXIFTOOL
 
 # Copy only required components from the builder stage
 COPY --from=builder /usr/local/lib/libMagick* /usr/local/lib/
-COPY --from=builder /usr/local/lib/libmagic* /usr/local/lib/
 COPY --from=builder /usr/local/lib/libraw* /usr/local/lib/
 COPY --from=builder /usr/local/bin/magick /usr/local/bin
 # Update dynamic linker cache

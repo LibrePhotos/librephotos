@@ -6,10 +6,10 @@ import uuid
 from urllib.parse import quote
 
 import jsonschema
-import magic
 from constance import config as site_config
 from django.conf import settings
 
+from api.mime import mime_type
 from api.mail import email_is_configured
 from django.db.models import Q, Sum
 from django.http import (
@@ -717,8 +717,7 @@ class UnifiedMediaAccessView(APIView):
 
     def _file_content_type(self, file_path):
         try:
-            mime = magic.Magic(mime=True)
-            return mime.from_file(file_path)
+            return mime_type(file_path)
         except Exception:
             return "application/octet-stream"
 
@@ -892,10 +891,8 @@ class UnifiedMediaAccessView(APIView):
         if photo.video:
             if transcode_videos:
                 return self._transcoded_video_response(photo, use_proxy=True)
-            mime = magic.Magic(mime=True)
-            filename = mime.from_file(photo.main_file.path)
             response = HttpResponse()
-            response["Content-Type"] = filename
+            response["Content-Type"] = mime_type(photo.main_file.path)
             response["X-Accel-Redirect"] = iri_to_uri(
                 photo.main_file.path.replace(settings.DATA_ROOT, "/original")
             )

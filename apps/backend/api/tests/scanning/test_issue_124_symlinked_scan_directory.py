@@ -68,7 +68,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from api.directory_watcher.utils import walk_directory
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
-# Minimal JPEG so python-magic/File.create classify the file as an image.
+# Minimal JPEG so MIME sniffing/File.create classify the file as an image.
 JPEG_BYTES = (
     b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
     b"\xff\xdb\x00\x43\x00" + bytes(64) + b"\xff\xd9"
