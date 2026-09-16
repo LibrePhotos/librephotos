@@ -385,7 +385,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
 
     def apply_scan_directory(self, instance: User, new_scan_directory):
         abs_new_scan_directory = normalize_scan_directory(new_scan_directory)
-        if abs_new_scan_directory is None:  # Ensure it's not an empty string
+        if abs_new_scan_directory is None:
             return
 
         instance.scan_directory = abs_new_scan_directory

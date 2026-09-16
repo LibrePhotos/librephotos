@@ -18,14 +18,23 @@ import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "../api_client/api";
 import { ModalUserEdit } from "../components/modals/ModalUserEdit";
 
 const stubs = vi.hoisted(() => ({
   updateUser: vi.fn(),
   updateUserError: vi.fn(),
-  // Mirrors what the backend answers for a scan directory outside DATA_ROOT.
-  backendError: new Error("Scan directory must be inside the data root."),
 }));
+
+// Mirrors what the backend answers for a scan directory outside DATA_ROOT.
+const backendError = new ApiError(
+  "Scan directory must be inside the data root.",
+  400,
+  "Scan directory must be inside the data root."
+);
+/** A 500 and a 401 already raise their own toast inside FetchClient. */
+const serverError = new ApiError("Internal Server Error", 500);
+const authError = new ApiError("Authentication failed", 401);
 
 vi.mock("../api_client/auth", () => ({ useSignUpMutation: () => ({ mutate: () => {} }) }));
 vi.mock("../api_client/jobs", () => ({ useScanPhotosMutation: () => ({ mutate: () => {} }) }));
@@ -111,18 +120,34 @@ describe("issue #492 - saving a rejected scan directory must not fail silently",
     document.body.innerHTML = "";
   });
 
-  it("keeps the modal open and reports the backend message when the save is rejected", () => {
+  function failWith(error: unknown) {
     stubs.updateUser.mockImplementation((_data: unknown, options: any) => {
-      options?.onError?.(stubs.backendError);
+      options?.onError?.(error);
     });
     const onRequestClose = vi.fn();
     renderModal(onRequestClose);
-
     submit();
+    return onRequestClose;
+  }
+
+  it("keeps the modal open and reports the backend message when the save is rejected", () => {
+    const onRequestClose = failWith(backendError);
 
     expect(stubs.updateUser).toHaveBeenCalledTimes(1);
     expect(stubs.updateUserError).toHaveBeenCalledWith("Scan directory must be inside the data root.");
     expect(onRequestClose).not.toHaveBeenCalled();
+  });
+
+  it("shows the generic message for a 500 rather than its untranslated internal string", () => {
+    failWith(serverError);
+
+    expect(stubs.updateUserError).toHaveBeenCalledWith(undefined);
+  });
+
+  it("stays quiet on a 401, which FetchClient already handled", () => {
+    failWith(authError);
+
+    expect(stubs.updateUserError).not.toHaveBeenCalled();
   });
 
   it("closes the modal once the save actually succeeded", () => {

@@ -103,6 +103,17 @@ class CreateUserScanDirectoryTestCase(TestCase):
     def test_create_with_initial_sentinel_still_works(self):
         response = self._create("initialdir", "initial")
         self.assertEqual(response.status_code, 201)
-        self.assertNotEqual(
-            User.objects.get(username="initialdir").scan_directory, "initial"
+        self.assertEqual(User.objects.get(username="initialdir").scan_directory, "")
+
+    def test_per_field_validation_error_is_a_clean_sentence(self):
+        """The custom exception handler used to ``str()`` the whole ErrorDetail
+        list, so the response carried its Python repr. Now that the frontend
+        shows these messages, they have to be readable."""
+        User.objects.create_user("taken", "taken@test.com", create_password())
+        response = self._create("taken", settings.DATA_ROOT)
+        self.assertEqual(response.status_code, 400)
+        errors = response.json()["errors"]
+        self.assertEqual(errors[0]["field"], "username")
+        self.assertEqual(
+            errors[0]["message"], "A user with that username already exists."
         )

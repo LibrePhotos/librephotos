@@ -56,7 +56,14 @@ def custom_exception_handler(exc, context):
 
         if isinstance(response.data, dict):
             for key, value in response.data.items():
-                error = {"field": key, "message": "".join(str(value))}
+                # DRF gives per-field errors as a list of ErrorDetail. str() on
+                # the list yields its repr, which used to leak into the response
+                # as "[ErrorDetail(string='...', code='unique')]".
+                if isinstance(value, (list, tuple)):
+                    message = " ".join(str(item) for item in value)
+                else:
+                    message = str(value)
+                error = {"field": key, "message": message}
                 customized_response["errors"].append(error)
         elif isinstance(response.data, list):
             # Handle ValidationError raised with a string (creates a list)

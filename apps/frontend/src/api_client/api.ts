@@ -7,16 +7,22 @@ const PUBLIC_URL = import.meta.env.VITE_PUBLIC_URL || import.meta.env.PUBLIC_URL
 const API_BASE_URL = PUBLIC_URL + "/api";
 
 /**
- * A 4xx response that carries the message the backend actually sent, so callers
- * can show it instead of failing silently. See issue #492.
+ * A failed response, carrying its status so callers can react to it. See issue #492.
+ *
+ * `serverMessage` is only set when the backend actually sent a human readable
+ * error; `message` falls back to an internal English string that must never be
+ * shown to a user.
  */
 export class ApiError extends Error {
   readonly status: number;
 
-  constructor(message: string, status: number) {
+  readonly serverMessage: string | null;
+
+  constructor(message: string, status: number, serverMessage: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.serverMessage = serverMessage;
   }
 }
 
@@ -77,9 +83,11 @@ class FetchClient {
     try {
       const data = await response.clone().json();
       if (Array.isArray(data?.errors)) {
-        const messages = data.errors.map((error: { message?: string }) => error.message).filter(Boolean);
-        if (messages.length > 0) {
-          return messages.join(" ");
+        // Only the first one: in DEBUG the backend appends a long auth help
+        // paragraph as a second entry, which is not a user facing message.
+        const first = data.errors.map((error: { message?: string }) => error.message).find(Boolean);
+        if (first) {
+          return first;
         }
       }
       if (typeof data?.detail === "string") {
@@ -97,7 +105,7 @@ class FetchClient {
         `500 (Internal Server Error) for ${endpoint}`,
         "Something went wrong on the server. Please open up the network tab in your browser's developer tools and report this issue on GitHub."
       );
-      throw new Error("Internal Server Error");
+      throw new ApiError("Internal Server Error", 500);
     }
 
     if (response.status === 401) {
@@ -152,11 +160,11 @@ class FetchClient {
             notification.invalidToken();
           }
         }
-        throw new Error("Authentication failed");
+        throw new ApiError("Authentication failed", 401);
       }
       // On public pages, silently ignore 401 errors for authenticated-only endpoints
       // Return a response that will result in undefined/null data
-      throw new Error("Not authenticated (public page)");
+      throw new ApiError("Not authenticated (public page)", 401);
     }
   }
 
@@ -209,7 +217,7 @@ class FetchClient {
       if (!response.ok) {
         await FetchClient.handleError(response, endpoint);
         const message = await FetchClient.extractErrorMessage(response);
-        throw new ApiError(message ?? `API error: ${response.status} ${response.statusText}`, response.status);
+        throw new ApiError(message ?? `API error: ${response.status} ${response.statusText}`, response.status, message);
       }
 
       // Handle different response types

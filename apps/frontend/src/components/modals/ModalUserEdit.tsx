@@ -8,7 +8,7 @@ import { useSignUpMutation } from "../../api_client/auth";
 import { useScanPhotosMutation } from "../../api_client/jobs";
 import { User } from "../../api_client/user";
 import { useManageUpdateUserMutation } from "../../api_client/user/hooks";
-import { notification } from "../../service/notifications";
+import { reportUserSaveError } from "../../util/apiErrors";
 import { EMAIL_REGEX } from "../../util/util";
 import { PasswordEntry } from "../settings/PasswordEntry";
 import { DirectoryPicker } from "../setup/DirectoryPicker";
@@ -31,10 +31,11 @@ export function ModalUserEdit(props: Props) {
   const [scanDirectoryPlaceholder, setScanDirectoryPlaceholder] = useState("");
   const { t } = useTranslation();
   const [closing, setClosing] = useState(false);
-  const { mutate: signup } = useSignUpMutation();
-  const { mutate: updateUser } = useManageUpdateUserMutation();
+  const { mutate: signup, isPending: isSigningUp } = useSignUpMutation();
+  const { mutate: updateUser, isPending: isUpdating } = useManageUpdateUserMutation();
   const scanPhotos = useScanPhotosMutation();
   const [isPathValid, setIsPathValid] = useState(true);
+  const isSaving = createNew ? isSigningUp : isUpdating;
 
   const validateUsername = (username: string) => {
     if (!username) {
@@ -128,14 +129,16 @@ export function ModalUserEdit(props: Props) {
 
     if (createNew) {
       if (userPassword && username) {
-        signup({
-          username: username.toLowerCase(),
-          password: userPassword,
-          email,
-          first_name: firstName,
-          last_name: lastName,
-        });
-        closeModal();
+        signup(
+          {
+            username: username.toLowerCase(),
+            password: userPassword,
+            email,
+            first_name: firstName,
+            last_name: lastName,
+          },
+          { onSuccess: () => closeModal(), onError: reportUserSaveError }
+        );
       }
       return;
     }
@@ -160,9 +163,7 @@ export function ModalUserEdit(props: Props) {
         }
         closeModal();
       },
-      onError: (error: unknown) => {
-        notification.updateUserError(error instanceof Error ? error.message : undefined);
-      },
+      onError: reportUserSaveError,
     });
   };
 
@@ -257,7 +258,9 @@ export function ModalUserEdit(props: Props) {
             {t("cancel")}
           </Button>
           <Space w="md" />
-          <Button type="submit">{t("save")}</Button>
+          <Button type="submit" loading={isSaving} disabled={isSaving}>
+            {t("save")}
+          </Button>
         </div>
       </form>
     </Modal>
