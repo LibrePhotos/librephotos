@@ -78,7 +78,7 @@ tqdm==4.70.0
 gevent==25.9.1
 filetype==1.2.0
 rawpy==0.27.1
-django-q2==1.11.0
+django-q2==1.11.1
 diskcache==5.6.3
 safetensors==0.8.0
 py-cpuinfo==9.0.0

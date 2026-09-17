@@ -140,9 +140,11 @@ def _service_environment():
     """Environment for the spawned service processes.
 
     They never load Django, so they configure their logging from BASE_LOGS and
-    LOG_LEVEL (see librephotos.logging_bootstrap). Popen without ``env`` would
-    pass on only the ambient environment, which does not carry a log location
-    set through a settings override rather than an environment variable.
+    LOG_LEVEL (see librephotos.logging_bootstrap) and find their models under
+    BASE_DATA/protected_media/data_models, the same root api.ml_models downloads
+    them to. Popen without ``env`` would pass on only the ambient environment,
+    which does not carry a location set through a settings override rather
+    than an environment variable.
 
     Their stdout is deliberately left alone. Handing a child an fd on the log
     file would pin it to that inode, so after the first rotation it would keep
@@ -150,6 +152,7 @@ def _service_environment():
     """
     return {
         **os.environ,
+        "BASE_DATA": settings.BASE_DATA,
         "BASE_LOGS": settings.LOGS_ROOT,
         "LOG_LEVEL": settings.LOGGING.get("root", {}).get("level", DEFAULT_LOG_LEVEL),
     }

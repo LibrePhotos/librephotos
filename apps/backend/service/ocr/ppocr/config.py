@@ -21,12 +21,17 @@ import os
 import numpy as np
 
 # Production install location.  Bundles ship to ``<models>/ocr/ppocrv6_<tier>``
-# under the protected media data_models root (mirrors service/tags/siglip2,
-# which hardcodes ``/protected_media/data_models/siglip2``).  Tests point
-# ``OCR_MODEL_DIR`` at the extracted test bundle instead.
+# under the protected media data_models root.  The sidecars never load Django,
+# so the data root comes in as BASE_DATA (see api.services._service_environment)
+# and, unset, this is the Docker layout under /.  Tests point ``OCR_MODEL_DIR``
+# at the extracted test bundle instead.
 MODEL_DIR_ENV = "OCR_MODEL_DIR"
 DEFAULT_MODEL_DIR = os.path.join(
-    os.sep, "protected_media", "data_models", "ocr", "ppocrv6_small"
+    os.environ.get("BASE_DATA", os.sep),
+    "protected_media",
+    "data_models",
+    "ocr",
+    "ppocrv6_small",
 )
 
 
