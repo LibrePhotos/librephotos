@@ -188,6 +188,9 @@ def nuitka_command(output_dir, jobs, version):
         "--python-flag=-u",
         "--enable-plugin=gevent",
         "--enable-plugin=matplotlib",
+        # `manage shell -c` passes -c through argv, which Nuitka's guard against
+        # a program re-running itself otherwise refuses.
+        "--no-deployment-flag=self-execution",
         # The Windows console stays: it is where the logs go and closing it is
         # how the whole application is stopped.
         "--windows-console-mode=force",

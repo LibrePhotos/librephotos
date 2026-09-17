@@ -37,8 +37,8 @@ BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUNDLED_BINARY_DIRS = (("exiftool_bin",), ("ffmpeg_bin", "bin"))
 
 # Management commands the Docker entrypoints run before the server, in order.
+# migrate is not among them: it runs in a child process first, see run_server.
 STARTUP_COMMANDS = (
-    ["migrate"],
     ["start_service", "all"],
     ["start_cleaning_service"],
     ["start_job_cleanup_service"],
@@ -261,6 +261,14 @@ def run_server(host, port, open_browser):
     import django
 
     _take_children_down_with_us()
+    # Migrate in a child before this process loads Django. On a first start
+    # the settings tables do not exist yet when api.apps.ready() reads the
+    # site settings, and in the compiled build that failed lookup leaves the
+    # constance config object unable to resolve any attribute for the rest of
+    # the process: every request then died with "'LazyConfig' object has no
+    # attribute ...". A process that only ever sees a migrated database never
+    # takes that path.
+    subprocess.run(child_command("manage", "migrate", "--noinput"), check=True)
     django.setup()
     for command in STARTUP_COMMANDS:
         run_manage(command)
