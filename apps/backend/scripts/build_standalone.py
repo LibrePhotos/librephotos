@@ -65,10 +65,13 @@ INCLUDE_PACKAGES = [
     "uvicorn",
     "a2wsgi",
     "psycopg",
-    # Named as strings in the settings (LOGGING, REST_FRAMEWORK).
+    # Named as strings in the settings (LOGGING, REST_FRAMEWORK), or loaded
+    # by name inside Django (PASSWORD_HASHERS' Argon2PasswordHasher).
     "concurrent_log_handler",
     "portalocker",
     "drf_spectacular",
+    "argon2",
+    "geographiclib",
 ]
 
 # Non-Python files those packages read: templates, locale, static files, data.
