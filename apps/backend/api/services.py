@@ -132,9 +132,32 @@ def is_healthy(service):
                 logger.info(f"Service {service} is stale and needs to be restarted")
                 return False
         return res.status_code == HTTP_OK
+    except requests.RequestException as e:
+        # The sidecars serve one request at a time, and a tag or embedding
+        # batch takes far longer than the health probe allows, so a probe that
+        # times out or is refused during a scan means "busy" as often as
+        # "dead". Restarting a busy sidecar fails the request it was serving
+        # and loses that photo's tags or embedding; a process that is still
+        # there is left alone, only one that has gone is restarted.
+        if _service_process_running(service):
+            logger.info(
+                f"Service {service} did not answer its health check but is running: {e}"
+            )
+            return True
+        logger.warning(f"Service {service} is not running: {e}")
+        return False
     except BaseException as e:
         logger.exception(f"Error checking health of {service}: {str(e)}")
         return False
+
+
+def _service_process_running(service):
+    import psutil
+
+    for process in psutil.process_iter(["pid", "cmdline"]):
+        if _is_service_process(process.info["cmdline"], service):
+            return True
+    return False
 
 
 def _service_environment():

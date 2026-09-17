@@ -189,6 +189,11 @@ Q_CLUSTER = {
     "orm": "default",
     "max_rss": 300000,
     "poll": 1,
+    # Schedules missed while the workers were busy (the minutely service
+    # check, during a scan) are skipped rather than run back to back once the
+    # queue drains: five service checks in the same second restart the same
+    # sidecar five times.
+    "catch_up": False,
 }
 
 # Number of background workers doing the heavy lifting (thumbnails, face
