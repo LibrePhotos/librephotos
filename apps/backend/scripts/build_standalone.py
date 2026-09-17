@@ -184,7 +184,8 @@ def nuitka_command(output_dir, jobs, version):
         "--product-name=LibrePhotos",
         f"--product-version={version}",
         "--file-description=LibrePhotos standalone server",
-        "--python-flag=no_docstrings",
+        # Docstrings stay: scikit-image edits its own __doc__ strings while it
+        # imports (skimage._shared.utils), and insightface needs that module.
         "--python-flag=-u",
         "--enable-plugin=gevent",
         "--enable-plugin=matplotlib",
