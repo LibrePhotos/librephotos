@@ -64,6 +64,10 @@ INCLUDE_PACKAGES = [
     "uvicorn",
     "a2wsgi",
     "psycopg",
+    # Named as strings in the settings (LOGGING, REST_FRAMEWORK).
+    "concurrent_log_handler",
+    "portalocker",
+    "drf_spectacular",
 ]
 
 # Non-Python files those packages read: templates, locale, static files, data.
@@ -80,12 +84,13 @@ INCLUDE_PACKAGE_DATA = [
 ]
 
 # Never useful in the binary, and some of them drag in whole test frameworks.
+# Only our own test packages are named: a wildcard like "*.test" also hits
+# werkzeug.test, which werkzeug imports at run time.
 NOFOLLOW = [
     "api.tests",
-    "*.tests",
-    "*.testing",
-    "*.test",
-    "django.test",
+    "nextcloud.tests",
+    "chunked_upload.tests",
+    "service.thumbnail.test",
     "pytest",
     "_pytest",
     "IPython",
@@ -101,6 +106,14 @@ BUNDLED_BINARY_DIRS = {
     "exiftool_bin": Path("exiftool_bin"),
     "ffmpeg_bin/bin": Path("ffmpeg_bin") / "bin",
 }
+
+# Source files that must exist on disk next to their compiled module: simplejwt's
+# 0011_linearizes_history migration lists its own directory for "000*.py" and
+# resolves __file__ strictly. Nuitka refuses .py files as data, so they are
+# copied in afterwards; the compiled modules still take precedence on import.
+SOURCE_FILES_ON_DISK = [
+    Path("rest_framework_simplejwt") / "token_blacklist" / "migrations",
+]
 
 
 def run(command, **kwargs):
@@ -229,6 +242,10 @@ def stage_runtime_files(dist, frontend_build, static):
         if not source_dir.is_dir():
             sys.exit(f"{source_dir} is missing; is requirements.txt installed?")
         copy_tree(source_dir, dist / target)
+    for directory in SOURCE_FILES_ON_DISK:
+        (dist / directory).mkdir(parents=True, exist_ok=True)
+        for source in (site_packages / directory).glob("*.py"):
+            shutil.copy(source, dist / directory / source.name)
     for name in ("LICENSE", "README.md"):
         shutil.copy(BACKEND / name, dist / name)
     (dist / "START_HERE.txt").write_text(

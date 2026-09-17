@@ -158,6 +158,97 @@ def _open_browser_when_up(url, timeout=120):
     webbrowser.open(url)
 
 
+def _take_children_down_with_us():
+    """Put this process in a Windows job that kills its descendants with it.
+
+    Closing the console, Task Manager and a crash all end this process without
+    running any cleanup, and the sidecars would live on holding their ports,
+    so the next start could not bind them. The job object is the one Windows
+    mechanism that follows the process tree regardless of how the root died.
+    """
+    if sys.platform != "win32":
+        return
+    import ctypes
+    from ctypes import wintypes
+
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
+    JobObjectExtendedLimitInformation = 9
+
+    class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("PerProcessUserTimeLimit", ctypes.c_int64),
+            ("PerJobUserTimeLimit", ctypes.c_int64),
+            ("LimitFlags", wintypes.DWORD),
+            ("MinimumWorkingSetSize", ctypes.c_size_t),
+            ("MaximumWorkingSetSize", ctypes.c_size_t),
+            ("ActiveProcessLimit", wintypes.DWORD),
+            ("Affinity", ctypes.c_size_t),
+            ("PriorityClass", wintypes.DWORD),
+            ("SchedulingClass", wintypes.DWORD),
+        ]
+
+    class IO_COUNTERS(ctypes.Structure):
+        _fields_ = [
+            (name, ctypes.c_uint64)
+            for name in (
+                "ReadOperationCount",
+                "WriteOperationCount",
+                "OtherOperationCount",
+                "ReadTransferCount",
+                "WriteTransferCount",
+                "OtherTransferCount",
+            )
+        ]
+
+    class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+        _fields_ = [
+            ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+            ("IoInfo", IO_COUNTERS),
+            ("ProcessMemoryLimit", ctypes.c_size_t),
+            ("JobMemoryLimit", ctypes.c_size_t),
+            ("PeakProcessMemoryUsed", ctypes.c_size_t),
+            ("PeakJobMemoryUsed", ctypes.c_size_t),
+        ]
+
+    # Explicit signatures: with ctypes' int defaults the (HANDLE)-1 pseudo
+    # handle of GetCurrentProcess is truncated to 32 bits and the assignment
+    # fails without a word.
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    kernel32.SetInformationJobObject.restype = wintypes.BOOL
+    kernel32.SetInformationJobObject.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
+    kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+
+    job = kernel32.CreateJobObjectW(None, None)
+    info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+    info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    if (
+        not job
+        or not kernel32.SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            ctypes.byref(info),
+            ctypes.sizeof(info),
+        )
+        or not kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess())
+    ):
+        print(
+            "Could not bind child processes to this one "
+            f"(Windows error {ctypes.get_last_error()}); "
+            "stop LibrePhotos with Ctrl-C so the sidecars are shut down too",
+            flush=True,
+        )
+    # The handle is deliberately never closed: closing it is what kills the job.
+
+
 def run_server(host, port, open_browser):
     """migrate, start the sidecars, the job cluster and the API server.
 
@@ -169,6 +260,7 @@ def run_server(host, port, open_browser):
     """
     import django
 
+    _take_children_down_with_us()
     django.setup()
     for command in STARTUP_COMMANDS:
         run_manage(command)
