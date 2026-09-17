@@ -18,6 +18,7 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+import time
 from pathlib import Path
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -220,7 +221,16 @@ def compile_binary(output_dir, jobs, version):
     built = output_dir / f"{ENTRY.stem}.dist"
     dist = output_dir / DIST_NAME
     shutil.rmtree(dist, ignore_errors=True)
-    built.rename(dist)
+    # Right after linking, the virus scanner still holds the new binary open
+    # for a moment and the rename is refused; it goes through a few seconds later.
+    for attempt in range(10):
+        try:
+            built.rename(dist)
+            break
+        except PermissionError:
+            if attempt == 9:
+                raise
+            time.sleep(3)
     return dist
 
 
