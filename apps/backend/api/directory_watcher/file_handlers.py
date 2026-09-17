@@ -652,16 +652,16 @@ def handle_file_group(user, file_paths: list[str], job_id):
 
         files = _collect_file_records(user, file_paths)
         if not files:
-            util.logger.warning(f"job {job_id}: No valid files in group: {file_paths}")
+            error = f"No valid files in group: {file_paths}"
+            util.logger.warning(f"job {job_id}: {error}")
             return
 
         # Group files into a Photo
         photo = group_files_into_photo(user, files, job_id)
 
         if not photo:
-            util.logger.warning(
-                f"job {job_id}: Could not create photo for files: {file_paths}"
-            )
+            error = f"Could not create photo for files: {file_paths}"
+            util.logger.warning(f"job {job_id}: {error}")
             return
 
         elapsed = (datetime.datetime.now() - start).total_seconds()
