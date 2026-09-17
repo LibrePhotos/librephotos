@@ -87,8 +87,12 @@ def health():
     return {"last_request_time": last_request_time}, 200
 
 
-if __name__ == "__main__":
+def serve():
     log("service starting")
     server = WSGIServer(("0.0.0.0", 8012), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
+
+
+if __name__ == "__main__":
+    serve()

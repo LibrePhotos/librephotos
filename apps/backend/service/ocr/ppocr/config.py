@@ -26,7 +26,11 @@ import numpy as np
 # ``OCR_MODEL_DIR`` at the extracted test bundle instead.
 MODEL_DIR_ENV = "OCR_MODEL_DIR"
 DEFAULT_MODEL_DIR = os.path.join(
-    os.sep, "protected_media", "data_models", "ocr", "ppocrv6_small"
+    os.environ.get("BASE_DATA", os.sep),
+    "protected_media",
+    "data_models",
+    "ocr",
+    "ppocrv6_small",
 )
 
 

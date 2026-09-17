@@ -23,8 +23,9 @@ import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
 
+# Under BASE_DATA like settings.MEDIA_ROOT (see service/face_recognition/main.py).
 MOBILECLIP_MODEL_DIR = os.path.join(
-    "/", "protected_media", "data_models", "mobileclip_s2"
+    os.environ.get("BASE_DATA", "/"), "protected_media", "data_models", "mobileclip_s2"
 )
 MOBILECLIP_VISION_PATH = os.path.join(MOBILECLIP_MODEL_DIR, "vision_model.onnx")
 MOBILECLIP_TEXT_PATH = os.path.join(MOBILECLIP_MODEL_DIR, "text_model.onnx")

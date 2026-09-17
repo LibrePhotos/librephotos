@@ -161,3 +161,11 @@ Key environment variables (set in Docker or `.env`):
 2. Create service wrapper in `service/<model_name>/`
 3. Integrate with API views as needed
 
+### Standalone build (Windows, Nuitka)
+
+`scripts/build_standalone.py --zip` (needs `requirements.standalone.txt`, MSVC, Node 22) compiles
+`librephotos_standalone.py` into `build/standalone/librephotos/librephotos.exe`: server, qcluster
+and every sidecar in one binary (`librephotos/standalone.py` dispatches on `run`/`manage`/`service`),
+settings `librephotos.settings.standalone` (SQLite + WhiteNoise under `%LOCALAPPDATA%\LibrePhotos`).
+Sidecars must expose `serve()`; their bare sibling imports are compiled as top-level modules via
+PYTHONPATH at build time. `.github/workflows/standalone-windows.yml` builds and uploads the zip.

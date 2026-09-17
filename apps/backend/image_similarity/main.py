@@ -70,11 +70,11 @@ api.add_resource(SearchIndex, "/search/")
 api.add_resource(Health, "/health/")
 
 
-def start_server():
+def serve():
     logger.info("Starting server")
     server = WSGIServer(("0.0.0.0", 8002), app)
     server.serve_forever()
 
 
 if __name__ == "__main__":
-    start_server()
+    serve()

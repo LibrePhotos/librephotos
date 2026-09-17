@@ -1,0 +1,77 @@
+name: standalone-windows
+
+# Compiles the backend and the frontend build into one self-contained Windows
+# program (apps/backend/scripts/build_standalone.py, Nuitka) and publishes the
+# zip as a workflow artifact, or attaches it to a release when a tag is given.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach the zip to (leave empty for an artifact only)"
+        required: false
+      version:
+        description: "Numeric X.Y.Z stamped into librephotos.exe"
+        required: false
+        default: "0.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: apps/frontend/yarn.lock
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            apps/backend/requirements.txt
+            apps/backend/requirements.standalone.txt
+      - name: Install the backend and the build tools
+        working-directory: apps/backend
+        run: |
+          python -m pip install -U pip wheel
+          pip install -r requirements.txt -r requirements.standalone.txt
+      # Nuitka caches compiled C for the dependencies it has seen before; the
+      # first run is a compile of everything, later runs mostly link.
+      - uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\Nuitka\Nuitka\Cache
+          key: nuitka-${{ runner.os }}-${{ hashFiles('apps/backend/requirements.txt', 'apps/backend/requirements.standalone.txt') }}
+          restore-keys: nuitka-${{ runner.os }}-
+      - name: Build
+        working-directory: apps/backend
+        run: python scripts/build_standalone.py --zip --version "${{ inputs.version || '0.0.0' }}"
+      - name: Smoke test
+        working-directory: apps/backend/build/standalone/librephotos
+        shell: bash
+        run: |
+          ./librephotos.exe --help
+          ./librephotos.exe --data-dir "$RUNNER_TEMP/librephotos" manage check
+          ./librephotos.exe --data-dir "$RUNNER_TEMP/librephotos" manage migrate --noinput | tail -3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: librephotos-windows-x64
+          path: apps/backend/build/standalone/librephotos-windows-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+      - name: Attach to the release
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \
+            --notes "Standalone Windows build; see the installation docs."
+          gh release upload "$TAG" apps/backend/build/standalone/librephotos-windows-x64.zip --clobber

@@ -12,6 +12,7 @@ from django.utils import timezone
 from api.models import Photo
 from api.util import logger
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
+from librephotos.standalone import standalone_executable
 
 # Track services that should not be restarted due to system incompatibility
 INCOMPATIBLE_SERVICES = set()
@@ -155,6 +156,36 @@ def _service_environment():
     }
 
 
+def _service_script(service):
+    if service == "image_similarity":
+        return "image_similarity/main.py"
+    return f"service/{service}/main.py"
+
+
+def _service_command(service):
+    """argv that starts the sidecar.
+
+    From source that is the script under the interpreter on PATH, as the
+    Docker images have always done. The standalone build has no interpreter:
+    the binary runs the sidecar itself (librephotos.standalone.run_service).
+    """
+    executable = standalone_executable()
+    if executable is not None:
+        return [executable, "service", service]
+    return ["python", _service_script(service)]
+
+
+def _is_service_process(cmdline, service):
+    """Whether a process command line is one _service_command would produce."""
+    if not cmdline or len(cmdline) < 2:
+        return False
+    if cmdline[-2:] == ["service", service]:
+        return True
+    script = cmdline[-1].replace("\\", "/")
+    interpreter = os.path.basename(cmdline[0]).lower()
+    return script.endswith(_service_script(service)) and "python" in interpreter
+
+
 def start_service(service):
     if not is_service_enabled(service):
         logger.info("Service '%s' not started: %s", service, disabled_reason(service))
@@ -165,52 +196,49 @@ def start_service(service):
         logger.error(f"Service '{service}' is not compatible with this system")
         return False
 
-    if service == "image_similarity":
-        subprocess.Popen(
-            ["python", "image_similarity/main.py"], env=_service_environment()
-        )
-    elif service in SERVICES.keys():
-        subprocess.Popen(
-            ["python", f"service/{service}/main.py"], env=_service_environment()
-        )
-    else:
+    if service not in SERVICES:
         logger.warning("Unknown service: %s", service)
         return False
+
+    subprocess.Popen(_service_command(service), env=_service_environment())
 
     logger.info(f"Service '{service}' started successfully")
     return True
 
 
 def stop_service(service):
+    """Kill every process running the sidecar.
+
+    psutil rather than `ps | grep | kill`: the standalone build runs on Windows,
+    where neither exists, and its sidecars are the binary itself, which no
+    "python" pattern would match.
+    """
+    import psutil
+
+    stopped = False
     try:
-        # Find the process ID (PID) of the service using `ps` and `grep`
-        ps_command = f"ps aux | grep '[p]ython.*{service}/main.py' | awk '{{print $2}}'"
-        result = subprocess.run(
-            ps_command,
-            shell=True,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
-        pids = result.stdout.decode().strip().split()
-
-        if not pids:
-            logger.warning("Service '%s' is not running", service)
-            return False
-
-        # Kill each process found
-        for pid in pids:
-            subprocess.run(["kill", "-9", pid], check=True)
-            logger.info(f"Service '{service}' with PID {pid} stopped successfully")
-
-        return True
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to stop service '{service}': {e.stderr.decode().strip()}")
-        return False
+        for process in psutil.process_iter(["pid", "cmdline"]):
+            if process.info["pid"] == os.getpid():
+                continue
+            if not _is_service_process(process.info["cmdline"], service):
+                continue
+            try:
+                process.kill()
+                stopped = True
+                logger.info(
+                    f"Service '{service}' with PID {process.info['pid']} stopped successfully"
+                )
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.Error as e:
+                logger.error(f"Failed to stop service '{service}': {e}")
     except Exception as e:
         logger.error(f"An error occurred while stopping service '{service}': {e}")
         return False
+
+    if not stopped:
+        logger.warning("Service '%s' is not running", service)
+    return stopped
 
 
 def _is_arm_architecture():

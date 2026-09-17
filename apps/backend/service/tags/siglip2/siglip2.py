@@ -5,7 +5,10 @@ import onnxruntime as ort
 import sentencepiece as spm
 from PIL import Image
 
-SIGLIP2_MODEL_DIR = os.path.join("/", "protected_media", "data_models", "siglip2")
+# Under BASE_DATA like settings.MEDIA_ROOT (see service/face_recognition/main.py).
+SIGLIP2_MODEL_DIR = os.path.join(
+    os.environ.get("BASE_DATA", "/"), "protected_media", "data_models", "siglip2"
+)
 SIGLIP2_VISION_PATH = os.path.join(SIGLIP2_MODEL_DIR, "vision_model.onnx")
 SIGLIP2_TEXT_PATH = os.path.join(SIGLIP2_MODEL_DIR, "text_model.onnx")
 SIGLIP2_TOKENIZER_PATH = os.path.join(SIGLIP2_MODEL_DIR, "tokenizer.model")

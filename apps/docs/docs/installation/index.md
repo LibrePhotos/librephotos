@@ -39,3 +39,4 @@ The traditional multi-container setup with separate nginx proxy. Choose this if 
 ## Platform-Specific Guides
 
 - [Unraid Installation](unraid.md) - For Unraid NAS systems
+- [Windows standalone](windows-standalone.md) - One folder with `librephotos.exe`, no Docker or Python (unreleased, built from `dev`)

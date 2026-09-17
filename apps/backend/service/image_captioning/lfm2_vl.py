@@ -27,7 +27,10 @@ import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
 
-MODELS_ROOT = os.path.join("/", "protected_media", "data_models")
+# Under BASE_DATA like settings.MEDIA_ROOT (see service/face_recognition/main.py).
+MODELS_ROOT = os.path.join(
+    os.environ.get("BASE_DATA", "/"), "protected_media", "data_models"
+)
 MODEL_NAME = "lfm2_vl_450m"
 MODEL_DIR = os.path.join(MODELS_ROOT, MODEL_NAME)
 

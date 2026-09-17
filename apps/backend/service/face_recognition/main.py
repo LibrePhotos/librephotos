@@ -1,3 +1,4 @@
+import os
 import time
 
 import gevent
@@ -11,7 +12,14 @@ app = Flask(__name__)
 last_request_time = None
 face_analysis_models = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
-FACE_MODEL_ROOT = "/protected_media/data_models/face_recognition"
+# Under BASE_DATA like settings.MEDIA_ROOT, so the standalone build (data in a
+# per-user directory) and the containers (BASE_DATA=/) agree on where models are.
+FACE_MODEL_ROOT = os.path.join(
+    os.environ.get("BASE_DATA", "/"),
+    "protected_media",
+    "data_models",
+    "face_recognition",
+)
 SUPPORTED_FACE_MODELS = {
     "antelopev2",
     "buffalo_l",
@@ -166,8 +174,12 @@ def health():
     return {"last_request_time": last_request_time}, 200
 
 
-if __name__ == "__main__":
+def serve():
     log("service starting")
     server = WSGIServer(("0.0.0.0", 8005), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
+
+
+if __name__ == "__main__":
+    serve()
