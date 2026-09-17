@@ -1,3 +1,4 @@
+import os
 import time
 
 import gevent
@@ -11,7 +12,14 @@ app = Flask(__name__)
 last_request_time = None
 face_analysis_models = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
-FACE_MODEL_ROOT = "/protected_media/data_models/face_recognition"
+# The sidecars never load Django, so the data root comes in as BASE_DATA (see
+# api.services._service_environment). Unset, this is the Docker layout under /.
+FACE_MODEL_ROOT = os.path.join(
+    os.environ.get("BASE_DATA", os.sep),
+    "protected_media",
+    "data_models",
+    "face_recognition",
+)
 SUPPORTED_FACE_MODELS = {
     "antelopev2",
     "buffalo_l",

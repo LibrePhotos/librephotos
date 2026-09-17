@@ -79,9 +79,16 @@ $env:BASE_DATA = "$PWD\.testtmp"; $env:BASE_LOGS = "$PWD\.testtmp\logs"; $env:NO
 
 `dev_windows.ps1` uses `librephotos.settings.dev_windows` (SQLite on disk, Django serves
 media). Uploads only get dated/thumbnailed because `qcluster` and the exif sidecar run.
+`qcluster` needs django-q2 >= 1.11.1: 1.11.0 asked for the `fork` multiprocessing context
+and died on Windows with `ValueError: cannot find context for 'fork'`, so no background job
+(scan, thumbnails, faces) ever ran natively; 1.11.1 falls back to `spawn` (django-q2#345).
 ML sidecars are not started and their `FEATURE_*` flags default off there; set one to `1`
-and `python manage.py start_service <name>` after downloading the models. The POSIX
-permission and mount tests in `test_serving_permissions` are skipped on Windows.
+and `python manage.py start_service <name>` after downloading the models. The sidecars
+never load Django and locate their models through `BASE_DATA` (`start_service` passes it
+along with `BASE_LOGS`), so they resolve to `$BASE_DATA\protected_media\data_models`,
+the same directory `api.ml_models` downloads into; unset, that is Docker's
+`/protected_media/data_models`. The POSIX permission and mount tests in
+`test_serving_permissions` are skipped on Windows.
 
 Frontend against that backend: `cd apps/frontend`, copy `.env.development.example` to
 `.env.development`, set `VITE_BACKEND_URL=http://localhost:8000`, then `yarn install` and

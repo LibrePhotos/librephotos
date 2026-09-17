@@ -294,12 +294,16 @@ class GenerateTitleTestCase(TestCase):
         self.assertEqual(album.title, "Weekend")
 
     def test_same_weekend_day_is_not_a_weekend(self):
-        """Both endpoints on the same weekday -> the Weekend rule is skipped."""
+        """Both endpoints on the same weekday -> the Weekend rule is skipped.
+
+        The weekday and time of day come from the earliest photo (a Saturday
+        morning), not from the album's Monday grouping key.
+        """
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         self.add_photo(album, exif_timestamp=utc(2022, 1, 8, 8, 0))
         self.add_photo(album, exif_timestamp=utc(2022, 1, 8, 20, 0))
         album._generate_title()
-        self.assertEqual(album.title, "Monday Morning")
+        self.assertEqual(album.title, "Saturday Morning")
 
     def test_long_weekend_span_still_reported_as_weekend(self):
         """A Sat->Sun span 8 days apart is >= 3 days but still labelled Weekend."""
