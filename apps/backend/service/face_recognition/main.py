@@ -12,10 +12,10 @@ app = Flask(__name__)
 last_request_time = None
 face_analysis_models = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
-# Under BASE_DATA like settings.MEDIA_ROOT, so the standalone build (data in a
-# per-user directory) and the containers (BASE_DATA=/) agree on where models are.
+# The sidecars never load Django, so the data root comes in as BASE_DATA (see
+# api.services._service_environment). Unset, this is the Docker layout under /.
 FACE_MODEL_ROOT = os.path.join(
-    os.environ.get("BASE_DATA", "/"),
+    os.environ.get("BASE_DATA", os.sep),
     "protected_media",
     "data_models",
     "face_recognition",

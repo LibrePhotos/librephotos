@@ -103,15 +103,23 @@ class AlbumAuto(models.Model):
 
     def _generate_title(self):
         try:
+            places, people, timestamps = _collect_photo_details(self.photos.all())
+
+            # ``timestamp`` is the grouping key generate_event_albums anchors
+            # the album on: the first photo's time minus 11h59, so that photos
+            # shortly before it still match the album. Read the weekday and
+            # time of day off the first photo itself, or every title lands
+            # about half a day early ("Friday Evening" for a Saturday morning
+            # at the beach). The key only stands in when the album is empty.
+            anchor = min(timestamps) if timestamps else self.timestamp
             weekday = ""
             time = ""
-            if self.timestamp:
-                weekday = util.weekdays[self.timestamp.isoweekday()]
-                time = _time_of_day(self.timestamp.hour)
+            if anchor:
+                weekday = util.weekdays[anchor.isoweekday()]
+                time = _time_of_day(anchor.hour)
 
             when = " ".join([weekday, time])
 
-            places, people, timestamps = _collect_photo_details(self.photos.all())
             loc = _describe_places(places)
             pep = _describe_people(people)
             when = _describe_span(timestamps, when)
