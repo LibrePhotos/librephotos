@@ -25,16 +25,26 @@ of the Docker deployments.
 
 1. Unzip `librephotos-windows-x64.zip` anywhere, for example `C:\Program Files\LibrePhotos` or a
    folder in your home directory.
-2. Double-click `librephotos.exe`. A console window opens and shows the log; after the first
-   migrations your browser opens `http://localhost:8000/`.
+2. Double-click `librephotos.exe`. No window opens: LibrePhotos runs in the background with an icon
+   in the notification area (the tray, bottom right), and after the first migrations your browser
+   opens `http://localhost:8000/`.
 3. Create the admin account on the first-time setup screen, then set the scan directory of your user
    (Admin area → Users) to the folder with your photos and start a scan.
 
 The models for face recognition, tagging, captions and semantic search are downloaded on the first
 scan, into the data directory below; that needs an internet connection once.
 
-Closing the console window stops LibrePhotos: the workers and the sidecars are child processes of it
-and go down with it.
+Right-click the tray icon for **Open LibrePhotos** (also a plain click), **Open data folder**,
+**Open logs** and **Quit LibrePhotos**. Quitting stops everything: the workers and the machine
+learning processes are children of `librephotos.exe` and go down with it, also when it is ended
+from Task Manager. Starting it a second time just opens the browser on the running instance. If it
+cannot start, a message box says why.
+
+Started from a terminal instead, it prints its log there and Ctrl-C stops it; `--no-tray` leaves the
+icon out. Without a terminal that output goes to `console.log` in the logs folder. Because
+`librephotos.exe` is a Windows GUI program, `cmd` and PowerShell do not wait for it: for commands
+whose output you want to read in order, use `start /wait librephotos.exe manage ...` in `cmd`, or pipe
+it (`librephotos.exe manage ... | more`).
 
 ### What the processes are
 

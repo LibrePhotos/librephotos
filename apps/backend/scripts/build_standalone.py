@@ -72,6 +72,8 @@ INCLUDE_PACKAGES = [
     "drf_spectacular",
     "argon2",
     "geographiclib",
+    # Picks its backend (pystray._win32) by name at import.
+    "pystray",
 ]
 
 # Non-Python files those packages read: templates, locale, static files, data.
@@ -192,9 +194,10 @@ def nuitka_command(output_dir, jobs, version):
         # `manage shell -c` passes -c through argv, which Nuitka's guard against
         # a program re-running itself otherwise refuses.
         "--no-deployment-flag=self-execution",
-        # The Windows console stays: it is where the logs go and closing it is
-        # how the whole application is stopped.
-        "--windows-console-mode=force",
+        # A Windows GUI program: a double-click opens no console window and
+        # the application lives in the notification area, while a start from
+        # a terminal or with redirected output still prints there.
+        "--windows-console-mode=attach",
     ]
     if jobs:
         command.append(f"--jobs={jobs}")

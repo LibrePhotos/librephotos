@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 from types import SimpleNamespace
+from unittest import skipUnless
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -349,3 +350,78 @@ class SidecarHostTest(SimpleTestCase):
         with patch.dict(os.environ, {"SERVICE_HOST": "0.0.0.0"}), patch("os.makedirs"):
             standalone.prepare_environment("/tmp/lp-data")
             self.assertEqual(os.environ["SERVICE_HOST"], "0.0.0.0")
+
+
+class BackgroundModeTest(SimpleTestCase):
+    """Without a console the binary lives in the notification area."""
+
+    def test_from_source_the_process_setup_changes_nothing(self):
+        before = subprocess.Popen.__init__
+        standalone.bootstrap_process()
+        self.assertIs(subprocess.Popen.__init__, before)
+
+    def test_output_bound_to_nul_counts_as_discarded(self):
+        with patch.object(sys, "stdout", SimpleNamespace(name="NUL:")):
+            self.assertTrue(standalone._output_is_discarded())
+        with patch.object(sys, "stdout", SimpleNamespace(name="<stdout>")):
+            self.assertFalse(standalone._output_is_discarded())
+
+    def test_no_tray_is_an_option_of_run(self):
+        self.assertFalse(standalone.parse_args([]).no_tray)
+        self.assertTrue(standalone.parse_args(["run", "--no-tray"]).no_tray)
+
+    def test_a_second_start_shows_the_running_instance(self):
+        with (
+            patch.object(standalone, "_already_running", return_value=True),
+            patch.object(standalone, "_take_children_down_with_us") as job,
+            patch("webbrowser.open") as browser,
+        ):
+            standalone.run_server("127.0.0.1", 8000, open_browser=True)
+        browser.assert_called_once_with("http://127.0.0.1:8000/")
+        job.assert_not_called()
+
+    def test_a_failed_start_is_reported_not_swallowed(self):
+        with (
+            patch.object(standalone, "prepare_environment"),
+            patch.object(standalone, "run_server", side_effect=RuntimeError("port")),
+            patch.object(standalone, "_report_failure") as report,
+            patch("traceback.print_exc"),
+            self.assertRaises(SystemExit) as raised,
+        ):
+            standalone.main(["run"])
+        self.assertEqual(raised.exception.code, 1)
+        self.assertIn("port", report.call_args.args[0])
+
+
+@skipUnless(sys.platform == "win32", "console windows are a Windows matter")
+class HideChildConsolesTest(SimpleTestCase):
+    def setUp(self):
+        self.calls = []
+
+        def recorder(popen, *args, **kwargs):
+            popen._child_created = False  # keeps Popen.__del__ quiet
+            self.calls.append(kwargs)
+
+        patcher = patch.object(subprocess.Popen, "__init__", recorder)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        standalone._hide_child_consoles()
+
+    def test_children_get_no_console_window(self):
+        subprocess.Popen(["ffmpeg"])
+        self.assertTrue(self.calls[0]["creationflags"] & subprocess.CREATE_NO_WINDOW)
+
+    def test_other_flags_are_kept(self):
+        subprocess.Popen(["ffmpeg"], creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+        flags = self.calls[0]["creationflags"]
+        self.assertTrue(flags & subprocess.CREATE_NEW_PROCESS_GROUP)
+        self.assertTrue(flags & subprocess.CREATE_NO_WINDOW)
+
+    def test_a_child_that_asks_for_its_own_console_keeps_it(self):
+        subprocess.Popen(["cmd"], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        self.assertEqual(self.calls[0]["creationflags"], subprocess.CREATE_NEW_CONSOLE)
+
+    def test_applying_it_twice_wraps_once(self):
+        wrapped = subprocess.Popen.__init__
+        standalone._hide_child_consoles()
+        self.assertIs(subprocess.Popen.__init__, wrapped)

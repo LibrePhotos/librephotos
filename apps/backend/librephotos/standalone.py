@@ -8,7 +8,8 @@ binaries. Nothing else is needed on the machine: no Python, no Docker, no
 proxy. The database is SQLite and everything the app writes goes under one
 per-user data directory.
 
-    librephotos.exe                     start everything and open the browser
+    librephotos.exe                     start everything and open the browser;
+                                        lives in the notification area (tray)
     librephotos.exe run --port 8000 --data-dir D:\\LibrePhotos --no-browser
     librephotos.exe manage <command>    any manage.py command, e.g. createadmin
     librephotos.exe service <name>      one sidecar (api.services starts these)
@@ -28,6 +29,10 @@ import webbrowser
 
 APP_DIR_NAME = "LibrePhotos"
 DEFAULT_PORT = 8000
+# Set by the root process when it runs without a console: where its own output
+# and that of every child goes instead (see bootstrap_process).
+CONSOLE_LOG_ENV = "LIBREPHOTOS_CONSOLE_LOG"
+CONSOLE_LOG_NAME = "console.log"
 SUBCOMMANDS = ("run", "manage", "service")
 BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -106,6 +111,71 @@ def named_executable(role):
     except OSError:
         return executable
     return target
+
+
+def _has_console_window():
+    if sys.platform != "win32":
+        return True
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32")
+    kernel32.GetConsoleWindow.restype = wintypes.HWND
+    return bool(kernel32.GetConsoleWindow())
+
+
+def _output_is_discarded():
+    """Started without a console and without redirection (a double-click from
+    Explorer, or a child of such a process): the binary is a Windows GUI
+    program, and Nuitka then binds stdout and stderr to NUL."""
+    return getattr(sys.stdout, "name", None) in (None, "NUL:", "nul")
+
+
+def _redirect_output(path, mode):
+    stream = open(path, mode, encoding="utf-8", errors="replace", buffering=1)  # noqa: SIM115
+    sys.stdout = sys.stderr = stream
+
+
+def _hide_child_consoles():
+    """Start child processes without a console window of their own.
+
+    A process that has no console gives every console program it starts a
+    brand-new, visible one: ffmpeg, ffprobe, git and perl would each flash a
+    black window over whatever the user is doing. There are a dozen call sites
+    and some are in third-party code, so the default is changed once here
+    rather than at each of them.
+    """
+    original = subprocess.Popen.__init__
+    if getattr(original, "_no_console_window", False):
+        return
+    own_console = subprocess.CREATE_NEW_CONSOLE | subprocess.DETACHED_PROCESS
+
+    def __init__(self, *args, **kwargs):
+        flags = kwargs.get("creationflags", 0)
+        if not flags & own_console:
+            kwargs["creationflags"] = flags | subprocess.CREATE_NO_WINDOW
+        original(self, *args, **kwargs)
+
+    __init__._no_console_window = True
+    subprocess.Popen.__init__ = __init__
+
+
+def bootstrap_process():
+    """Per-process setup of the compiled build.
+
+    librephotos_standalone.py calls this at import, which is the one place
+    that runs in every process: the root, the job cluster, each sidecar, and
+    django-q2's multiprocessing children (Nuitka runs the entry script again
+    there, as __parents_main__, without calling main()). From source, and on
+    other platforms, it does nothing.
+    """
+    if standalone_executable() is None or sys.platform != "win32":
+        return
+    if not _has_console_window():
+        _hide_child_consoles()
+    console_log = os.environ.get(CONSOLE_LOG_ENV)
+    if console_log and _output_is_discarded():
+        _redirect_output(console_log, "a")
 
 
 def install_root():
@@ -310,6 +380,80 @@ def _take_children_down_with_us():
     # The handle is deliberately never closed: closing it is what kills the job.
 
 
+def _already_running(url):
+    import requests
+
+    try:
+        return requests.get(f"{url}api/healthz", timeout=2).ok
+    except requests.RequestException:
+        return False
+
+
+def _tray_image():
+    from PIL import Image
+
+    candidates = (
+        os.path.join(install_root(), "frontend_build", "favicon.ico"),
+        os.path.join(BACKEND_ROOT, os.pardir, "frontend", "public", "favicon.ico"),
+    )
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return Image.open(candidate)
+    return Image.new("RGB", (64, 64), (30, 120, 200))
+
+
+def _start_tray(url, server):
+    """An icon in the notification area: the application's only surface once
+    there is no console window. Returns the icon, or None when it cannot be
+    shown (pystray missing, no desktop session); the server runs either way."""
+    try:
+        import pystray
+
+        def open_folder(path):
+            return lambda icon, item: os.startfile(path)
+
+        def quit_app(icon, item):
+            server.should_exit = True
+            icon.stop()
+
+        icon = pystray.Icon(
+            "librephotos",
+            _tray_image(),
+            f"LibrePhotos - {url}",
+            menu=pystray.Menu(
+                pystray.MenuItem(
+                    "Open LibrePhotos",
+                    lambda icon, item: webbrowser.open(url),
+                    default=True,
+                ),
+                pystray.MenuItem(
+                    "Open data folder", open_folder(os.environ["BASE_DATA"])
+                ),
+                pystray.MenuItem("Open logs", open_folder(os.environ["BASE_LOGS"])),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Quit LibrePhotos", quit_app),
+            ),
+        )
+        threading.Thread(target=icon.run, daemon=True, name="tray").start()
+        return icon
+    except Exception as error:
+        print(f"No notification area icon: {error!r}", flush=True)
+        return None
+
+
+def _report_failure(message):
+    """Say why the start failed. Without a console there is nowhere to read
+    it, and an application that silently does nothing is the worst outcome."""
+    print(message, flush=True)
+    if sys.platform == "win32" and not _has_console_window():
+        import ctypes
+
+        log = os.path.join(os.environ.get("BASE_LOGS", ""), CONSOLE_LOG_NAME)
+        ctypes.windll.user32.MessageBoxW(
+            None, f"{message}\n\nDetails: {log}", "LibrePhotos", 0x10
+        )
+
+
 def _set_console_title(title):
     if sys.platform == "win32":
         import ctypes
@@ -317,7 +461,7 @@ def _set_console_title(title):
         ctypes.windll.kernel32.SetConsoleTitleW(title)
 
 
-def run_server(host, port, open_browser):
+def run_server(host, port, open_browser, tray=True):
     """migrate, start the sidecars, the job cluster and the API server.
 
     The cluster is a child process (django-q2 forks workers of its own) so
@@ -327,6 +471,21 @@ def run_server(host, port, open_browser):
     enough for a desktop.
     """
     import django
+
+    shown_host = "localhost" if host in ("0.0.0.0", "::") else host
+    url = f"http://{shown_host}:{port}/"
+    if _already_running(url):
+        # A second double-click: show the instance that is there instead of
+        # failing on its port where nobody would see it.
+        print(f"LibrePhotos is already running at {url}", flush=True)
+        if open_browser:
+            webbrowser.open(url)
+        return
+
+    if standalone_executable() is not None and _output_is_discarded():
+        console_log = os.path.join(os.environ["BASE_LOGS"], CONSOLE_LOG_NAME)
+        _redirect_output(console_log, "w")
+        os.environ[CONSOLE_LOG_ENV] = console_log
 
     _take_children_down_with_us()
     # Migrate in a child before this process loads Django. On a first start
@@ -341,27 +500,35 @@ def run_server(host, port, open_browser):
     for command in STARTUP_COMMANDS:
         run_manage(command)
 
-    cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
-    try:
-        shown_host = "localhost" if host in ("0.0.0.0", "::") else host
-        url = f"http://{shown_host}:{port}/"
-        _set_console_title(f"LibrePhotos - {url} - close this window to stop")
-        print(f"LibrePhotos is starting at {url}", flush=True)
-        if open_browser:
-            threading.Thread(
-                target=_open_browser_when_up, args=(url,), daemon=True
-            ).start()
+    import uvicorn
 
-        import uvicorn
-
-        uvicorn.run(
+    # A Server rather than uvicorn.run(), so the tray's Quit can stop it.
+    server = uvicorn.Server(
+        uvicorn.Config(
             "librephotos.asgi:application",
             host=host,
             port=port,
             log_level="info",
             workers=1,
         )
+    )
+    cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
+    icon = None
+    try:
+        _set_console_title(f"LibrePhotos - {url} - close this window to stop")
+        print(f"LibrePhotos is starting at {url}", flush=True)
+        if tray and sys.platform == "win32":
+            icon = _start_tray(url, server)
+        if open_browser:
+            threading.Thread(
+                target=_open_browser_when_up, args=(url,), daemon=True
+            ).start()
+        server.run()
+        if not server.started:
+            raise RuntimeError(f"The server could not start on {host}:{port}")
     finally:
+        if icon is not None:
+            icon.stop()
         _shutdown(cluster)
 
 
@@ -398,6 +565,9 @@ def build_parser():
     run.add_argument("--host", default="127.0.0.1")
     run.add_argument("--port", type=int, default=DEFAULT_PORT)
     run.add_argument("--no-browser", action="store_true")
+    run.add_argument(
+        "--no-tray", action="store_true", help="no icon in the notification area"
+    )
 
     manage = sub.add_parser("manage", help="run a manage.py command")
     manage.add_argument("argv", nargs=argparse.REMAINDER)
@@ -424,4 +594,11 @@ def main(argv=None):
     elif args.command == "service":
         run_service(args.name)
     else:
-        run_server(args.host, args.port, not args.no_browser)
+        try:
+            run_server(args.host, args.port, not args.no_browser, not args.no_tray)
+        except Exception as error:
+            import traceback
+
+            traceback.print_exc()
+            _report_failure(f"LibrePhotos could not start: {error}")
+            raise SystemExit(1) from error
