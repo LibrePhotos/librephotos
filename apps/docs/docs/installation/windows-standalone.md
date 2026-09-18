@@ -53,6 +53,10 @@ librephotos.exe manage createadmin -u admin admin@example.com
 librephotos.exe manage <any manage.py command>
 ```
 
+Two background workers run the scan, thumbnail and machine learning jobs. That suits a single-user PC;
+set `WORKER_CONCURRENCY` before starting `librephotos.exe` to use more (each worker is a full copy of
+the backend, a few hundred MB of RAM).
+
 The [environment variables](environment-variables.md) of the Docker images work too, set in the
 console before starting `librephotos.exe`; the data directory options above only fill in `BASE_DATA`,
 `BASE_LOGS` and `PHOTOS` when they are not set. A default `SECRET_KEY` is generated and kept in the

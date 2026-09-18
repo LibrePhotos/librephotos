@@ -29,3 +29,12 @@ CSRF_TRUSTED_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+
+# One person's desktop. Left alone django-q2 starts a worker per CPU core, and
+# every worker is a full copy of the backend: a dozen processes and several GB
+# of RAM on an ordinary PC, all queueing behind sidecars that serve one request
+# at a time anyway. WORKER_CONCURRENCY still overrides it.
+Q_CLUSTER = {  # noqa: F405
+    **Q_CLUSTER,  # noqa: F405
+    "workers": int(os.environ.get("WORKER_CONCURRENCY", "2")),
+}

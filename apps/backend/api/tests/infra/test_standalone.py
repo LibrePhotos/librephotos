@@ -7,7 +7,9 @@ relies on is covered without a Nuitka build.
 """
 
 import os
+import subprocess
 import sys
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -217,3 +219,38 @@ class StopServiceTest(SimpleTestCase):
     def test_reports_a_service_that_is_not_running(self):
         with patch("psutil.process_iter", return_value=[]):
             self.assertFalse(services.stop_service("exif"))
+
+
+class WorkerDefaultTest(SimpleTestCase):
+    """The settings import has side effects (directories, secret key), so it is
+    read in a child process pointed at a scratch directory."""
+
+    def _workers(self, **extra_env):
+        with tempfile.TemporaryDirectory() as scratch:
+            env = {
+                **{k: v for k, v in os.environ.items() if k != "WORKER_CONCURRENCY"},
+                "BASE_DATA": scratch,
+                "BASE_LOGS": os.path.join(scratch, "logs"),
+                "SECRET_KEY": "test",
+                **extra_env,
+            }
+            output = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "from librephotos.settings import standalone as s;"
+                    "print('workers=%d' % s.Q_CLUSTER['workers'])",
+                ],
+                cwd=standalone.BACKEND_ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+        return int(output.rsplit("workers=", 1)[1])
+
+    def test_two_workers_unless_told_otherwise(self):
+        self.assertEqual(self._workers(), 2)
+
+    def test_worker_concurrency_still_overrides(self):
+        self.assertEqual(self._workers(WORKER_CONCURRENCY="5"), 5)
