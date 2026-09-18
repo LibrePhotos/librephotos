@@ -1,3 +1,4 @@
+import os
 import time
 
 import gevent
@@ -69,7 +70,9 @@ def health():
 
 def serve():
     log("service starting")
-    server = WSGIServer(("0.0.0.0", 8006), app)
+    # 0.0.0.0 inside the containers, as always; the standalone build sets
+    # SERVICE_HOST to loopback (librephotos.standalone.prepare_environment).
+    server = WSGIServer((os.environ.get("SERVICE_HOST", "0.0.0.0"), 8006), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
 

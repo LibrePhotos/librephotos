@@ -12,7 +12,7 @@ from django.utils import timezone
 from api.models import Photo
 from api.util import logger
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
-from librephotos.standalone import standalone_executable
+from librephotos.standalone import named_executable
 
 # Track services that should not be restarted due to system incompatibility
 INCOMPATIBLE_SERVICES = set()
@@ -195,7 +195,7 @@ def _service_command(service):
     Docker images have always done. The standalone build has no interpreter:
     the binary runs the sidecar itself (librephotos.standalone.run_service).
     """
-    executable = standalone_executable()
+    executable = named_executable(service)
     if executable is not None:
         return [executable, "service", service]
     return ["python", _service_script(service)]

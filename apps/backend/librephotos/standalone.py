@@ -36,6 +36,24 @@ BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # From source, the wheels' .pth files put the same directories on PATH.
 BUNDLED_BINARY_DIRS = (("exiftool_bin",), ("ffmpeg_bin", "bin"))
 
+# What each process is called. Windows shows the executable's file name in Task
+# Manager's Details tab, tasklist and Resource Monitor, and thirteen processes
+# all named librephotos.exe tell nobody which one is eating the CPU. The names
+# are NTFS hard links to the one binary, made on first use: no extra disk
+# space, and nothing a zip would have to carry ten times.
+PROCESS_NAMES = {
+    "jobs": "librephotos-jobs",
+    "worker": "librephotos-worker",
+    "thumbnail": "librephotos-thumbnails",
+    "exif": "librephotos-metadata",
+    "face_recognition": "librephotos-faces",
+    "clip_embeddings": "librephotos-search",
+    "image_similarity": "librephotos-similarity",
+    "image_captioning": "librephotos-captions",
+    "tags": "librephotos-tags",
+    "ocr": "librephotos-ocr",
+}
+
 # Management commands the Docker entrypoints run before the server, in order.
 # migrate is not among them: it runs in a child process first, see run_server.
 STARTUP_COMMANDS = (
@@ -58,6 +76,36 @@ def standalone_executable():
     if compiled is None or not getattr(compiled, "standalone", False):
         return None
     return os.path.abspath(getattr(compiled, "original_argv0", None) or sys.argv[0])
+
+
+def named_executable(role):
+    """The binary under the name PROCESS_NAMES gives the role, or the binary
+    itself when it has no name or the link cannot be made (read-only install
+    directory, a file system without hard links). None when running from source.
+
+    A link left over from a previous version still points at the old binary's
+    content after an update replaced librephotos.exe, so it is only trusted
+    while it is the same file.
+    """
+    executable = standalone_executable()
+    name = PROCESS_NAMES.get(role)
+    if executable is None or name is None:
+        return executable
+    target = os.path.join(
+        os.path.dirname(executable), name + os.path.splitext(executable)[1]
+    )
+    try:
+        if os.path.exists(target) and not os.path.samefile(target, executable):
+            os.remove(target)
+        if not os.path.exists(target):
+            os.link(executable, target)
+    except FileExistsError:
+        # Another process made it between the check and the link.
+        if not os.path.samefile(target, executable):
+            return executable
+    except OSError:
+        return executable
+    return target
 
 
 def install_root():
@@ -98,6 +146,10 @@ def prepare_environment(data_dir=None, photos_dir=None):
     photos = photos_dir or os.environ.get("PHOTOS") or os.path.expanduser("~")
     os.environ["PHOTOS"] = os.path.abspath(photos)
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "librephotos.settings.standalone")
+    # The sidecars are only ever reached from this machine and have no
+    # authentication. Loopback keeps them off the network, and spares the user
+    # a Windows Firewall prompt per executable name.
+    os.environ.setdefault("SERVICE_HOST", "127.0.0.1")
     os.makedirs(os.environ["BASE_LOGS"], exist_ok=True)
 
     root = install_root()
@@ -115,6 +167,14 @@ def run_manage(argv):
     """Run a manage.py command in this process."""
     from django.core.management import execute_from_command_line
 
+    if argv[:1] == ["qcluster"]:
+        # django-q2's guard, pusher, monitor and workers are multiprocessing
+        # children; spawn starts them from this executable path.
+        worker = named_executable("worker")
+        if worker is not None:
+            import multiprocessing
+
+            multiprocessing.set_executable(worker)
     execute_from_command_line(["manage.py", *argv])
 
 
@@ -135,9 +195,10 @@ def run_service(name):
     module.serve()
 
 
-def child_command(*args):
-    """argv that runs this program again with the given arguments."""
-    executable = standalone_executable()
+def child_command(*args, role=None):
+    """argv that runs this program again with the given arguments, under the
+    executable name of ``role`` (see PROCESS_NAMES) when compiled."""
+    executable = named_executable(role)
     if executable is None:
         script = os.path.join(BACKEND_ROOT, "librephotos_standalone.py")
         return [sys.executable, script, *args]
@@ -249,6 +310,13 @@ def _take_children_down_with_us():
     # The handle is deliberately never closed: closing it is what kills the job.
 
 
+def _set_console_title(title):
+    if sys.platform == "win32":
+        import ctypes
+
+        ctypes.windll.kernel32.SetConsoleTitleW(title)
+
+
 def run_server(host, port, open_browser):
     """migrate, start the sidecars, the job cluster and the API server.
 
@@ -273,10 +341,11 @@ def run_server(host, port, open_browser):
     for command in STARTUP_COMMANDS:
         run_manage(command)
 
-    cluster = subprocess.Popen(child_command("manage", "qcluster"))
+    cluster = subprocess.Popen(child_command("manage", "qcluster", role="jobs"))
     try:
         shown_host = "localhost" if host in ("0.0.0.0", "::") else host
         url = f"http://{shown_host}:{port}/"
+        _set_console_title(f"LibrePhotos - {url} - close this window to stop")
         print(f"LibrePhotos is starting at {url}", flush=True)
         if open_browser:
             threading.Thread(

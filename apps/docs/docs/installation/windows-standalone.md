@@ -36,6 +36,30 @@ scan, into the data directory below; that needs an internet connection once.
 Closing the console window stops LibrePhotos: the workers and the sidecars are child processes of it
 and go down with it.
 
+### What the processes are
+
+LibrePhotos runs as a handful of processes, each under its own name in Task Manager's **Details**
+tab, `tasklist` and Resource Monitor, so you can see which part is busy:
+
+| Process | What it does |
+|---|---|
+| `librephotos.exe` | The one you started: web server and API. Closing it stops all the others. |
+| `librephotos-jobs.exe` | Runs the background job queue (scans, thumbnails, machine learning jobs). |
+| `librephotos-worker.exe` | The job queue's workers and helpers; two workers by default. |
+| `librephotos-thumbnails.exe` | Thumbnails for RAW photos. |
+| `librephotos-metadata.exe` | Reads and writes EXIF/XMP metadata (ExifTool). |
+| `librephotos-faces.exe` | Face detection and recognition. |
+| `librephotos-search.exe` | Image and text embeddings for semantic search. |
+| `librephotos-similarity.exe` | The similar-photos index. |
+| `librephotos-tags.exe` | Automatic tags. |
+| `librephotos-captions.exe` | Image captions. |
+| `librephotos-ocr.exe` | Text recognition, once an OCR model is selected. |
+
+The extra names are hard links to `librephotos.exe` that are created next to it on the first start;
+they take no additional disk space. If the folder is read-only they cannot be created, and every
+process simply shows up as `librephotos.exe`. The machine learning processes only listen on
+`127.0.0.1`.
+
 ### Where things go
 
 | What | Where |

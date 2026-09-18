@@ -254,3 +254,98 @@ class WorkerDefaultTest(SimpleTestCase):
 
     def test_worker_concurrency_still_overrides(self):
         self.assertEqual(self._workers(WORKER_CONCURRENCY="5"), 5)
+
+
+class NamedExecutableTest(SimpleTestCase):
+    """Process names are hard links to the one binary, made on first use."""
+
+    def setUp(self):
+        self.root = tempfile.TemporaryDirectory()
+        self.addCleanup(self.root.cleanup)
+        self.exe = os.path.join(self.root.name, "librephotos.exe")
+        with open(self.exe, "wb") as handle:
+            handle.write(b"binary")
+        compiled = SimpleNamespace(standalone=True, original_argv0=self.exe)
+        patcher = patch.object(
+            sys.modules["__main__"], "__compiled__", compiled, create=True
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_none_from_source(self):
+        with patch.object(standalone, "standalone_executable", return_value=None):
+            self.assertIsNone(standalone.named_executable("tags"))
+
+    def test_links_the_binary_under_the_role_name(self):
+        named = standalone.named_executable("exif")
+        self.assertEqual(os.path.basename(named), "librephotos-metadata.exe")
+        self.assertTrue(os.path.samefile(named, self.exe))
+        # A second call reuses the link.
+        self.assertEqual(standalone.named_executable("exif"), named)
+
+    def test_a_role_without_a_name_is_the_binary_itself(self):
+        self.assertEqual(standalone.named_executable(None), os.path.abspath(self.exe))
+        self.assertEqual(
+            standalone.named_executable("nonsense"), os.path.abspath(self.exe)
+        )
+
+    def test_a_link_to_a_previous_version_is_replaced(self):
+        stale = os.path.join(self.root.name, "librephotos-tags.exe")
+        with open(stale, "wb") as handle:
+            handle.write(b"last version")
+        named = standalone.named_executable("tags")
+        self.assertEqual(named, stale)
+        self.assertTrue(os.path.samefile(named, self.exe))
+
+    def test_falls_back_to_the_binary_when_linking_fails(self):
+        with patch("os.link", side_effect=PermissionError("read-only")):
+            self.assertEqual(
+                standalone.named_executable("tags"), os.path.abspath(self.exe)
+            )
+
+    def test_every_sidecar_and_the_cluster_have_a_name(self):
+        named = set(standalone.PROCESS_NAMES)
+        self.assertEqual(named, set(services.SERVICES) | {"jobs", "worker"})
+        self.assertEqual(
+            len(set(standalone.PROCESS_NAMES.values())), len(standalone.PROCESS_NAMES)
+        )
+
+    def test_sidecars_start_under_their_name(self):
+        with (
+            patch("api.services.is_service_compatible", return_value=True),
+            patch("api.services.subprocess.Popen") as popen,
+        ):
+            services.start_service("face_recognition")
+        argv = popen.call_args.args[0]
+        self.assertEqual(os.path.basename(argv[0]), "librephotos-faces.exe")
+        self.assertEqual(argv[1:], ["service", "face_recognition"])
+
+    def test_the_cluster_spawns_its_children_under_the_worker_name(self):
+        with (
+            patch("multiprocessing.set_executable") as set_executable,
+            patch("django.core.management.execute_from_command_line"),
+        ):
+            standalone.run_manage(["qcluster"])
+        (path,), _ = set_executable.call_args
+        self.assertEqual(os.path.basename(path), "librephotos-worker.exe")
+
+    def test_other_commands_leave_multiprocessing_alone(self):
+        with (
+            patch("multiprocessing.set_executable") as set_executable,
+            patch("django.core.management.execute_from_command_line"),
+        ):
+            standalone.run_manage(["migrate"])
+        set_executable.assert_not_called()
+
+
+class SidecarHostTest(SimpleTestCase):
+    def test_sidecars_default_to_loopback(self):
+        with patch.dict(os.environ), patch("os.makedirs"):
+            os.environ.pop("SERVICE_HOST", None)
+            standalone.prepare_environment("/tmp/lp-data")
+            self.assertEqual(os.environ["SERVICE_HOST"], "127.0.0.1")
+
+    def test_an_explicit_host_wins(self):
+        with patch.dict(os.environ, {"SERVICE_HOST": "0.0.0.0"}), patch("os.makedirs"):
+            standalone.prepare_environment("/tmp/lp-data")
+            self.assertEqual(os.environ["SERVICE_HOST"], "0.0.0.0")
