@@ -77,7 +77,12 @@ def standalone_executable():
     that does not exist in the distribution, so anything that starts a child
     process (the sidecars, django-q2's workers) has to use the binary itself.
     """
-    compiled = getattr(sys.modules.get("__main__"), "__compiled__", None)
+    # This module's own marker, which Nuitka gives every compiled module, and
+    # not __main__'s: while a multiprocessing child is still importing the
+    # entry script, __main__ is multiprocessing's bootstrap, the check said
+    # "running from source", and bootstrap_process() skipped exactly the
+    # processes (django-q2's sentinel and workers) that needed it.
+    compiled = globals().get("__compiled__")
     if compiled is None or not getattr(compiled, "standalone", False):
         return None
     return os.path.abspath(getattr(compiled, "original_argv0", None) or sys.argv[0])
@@ -641,3 +646,10 @@ def main(argv=None):
             traceback.print_exc()
             _report_failure(f"LibrePhotos could not start: {error}")
             raise SystemExit(1) from error
+
+
+# Also at import, not only from the entry script: this module is imported in
+# every process of the binary, whatever multiprocessing does with __main__, and
+# the handles have to be in order before Django is imported. It does nothing
+# from source or on other platforms, and every step of it is safe to repeat.
+bootstrap_process()

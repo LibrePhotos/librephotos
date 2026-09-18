@@ -25,10 +25,8 @@ FAKE_COMPILED = SimpleNamespace(
 
 
 def as_compiled():
-    """Make __main__ look like the Nuitka standalone entry point."""
-    return patch.object(
-        sys.modules["__main__"], "__compiled__", FAKE_COMPILED, create=True
-    )
+    """Make librephotos.standalone look compiled by Nuitka in standalone mode."""
+    return patch.object(standalone, "__compiled__", FAKE_COMPILED, create=True)
 
 
 class StandaloneExecutableTest(SimpleTestCase):
@@ -44,9 +42,7 @@ class StandaloneExecutableTest(SimpleTestCase):
 
     def test_a_compiled_module_that_is_not_standalone_counts_as_source(self):
         not_standalone = SimpleNamespace(standalone=False, original_argv0="x")
-        with patch.object(
-            sys.modules["__main__"], "__compiled__", not_standalone, create=True
-        ):
+        with patch.object(standalone, "__compiled__", not_standalone, create=True):
             self.assertIsNone(standalone.standalone_executable())
 
     def test_child_command_runs_the_binary_or_the_script(self):
@@ -267,9 +263,7 @@ class NamedExecutableTest(SimpleTestCase):
         with open(self.exe, "wb") as handle:
             handle.write(b"binary")
         compiled = SimpleNamespace(standalone=True, original_argv0=self.exe)
-        patcher = patch.object(
-            sys.modules["__main__"], "__compiled__", compiled, create=True
-        )
+        patcher = patch.object(standalone, "__compiled__", compiled, create=True)
         patcher.start()
         self.addCleanup(patcher.stop)
 
