@@ -322,6 +322,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
     def test_no_valid_files_logs_warning_and_skips_processing(self):
         bad_path = _write_bytes(self.p("garbage.txt"), b"nope")
+        self._make_job()
 
         with patch(f"{MODULE}.util.logger") as logger:
             handle_file_group(self.user, [bad_path], self.job_id)
@@ -334,6 +335,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
     def test_metadata_only_group_creates_no_photo(self):
         xmp_path = _write_bytes(self.p("only.xmp"), b"<x:xmpmeta/>")
+        self._make_job()
 
         with patch(f"{MODULE}.util.logger") as logger:
             handle_file_group(self.user, [xmp_path], self.job_id)
