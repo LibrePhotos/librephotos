@@ -136,6 +136,44 @@ def _redirect_output(path, mode):
     sys.stdout = sys.stderr = stream
 
 
+def _repair_standard_handles():
+    """Point standard handles that are missing or invalid at NUL.
+
+    A Windows GUI process started without a console has no usable stdin,
+    stdout or stderr handle. Python only notices when a child's output is
+    captured: it then has to hand the child all three, duplicates its own for
+    the ones the caller left alone, and fails with "[WinError 6] The handle is
+    invalid". Django does exactly that at import (git log, for its version
+    string), so not even migrate ran; ffmpeg, ffprobe and ExifTool calls would
+    have been next. Valid handles - a console, a pipe, a file - are left as
+    they are.
+    """
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetStdHandle.restype = wintypes.HANDLE
+    kernel32.GetStdHandle.argtypes = [wintypes.DWORD]
+    kernel32.SetStdHandle.restype = wintypes.BOOL
+    kernel32.SetStdHandle.argtypes = [wintypes.DWORD, wintypes.HANDLE]
+    kernel32.GetFileType.restype = wintypes.DWORD
+    kernel32.GetFileType.argtypes = [wintypes.HANDLE]
+    file_type_unknown = 0
+
+    repaired = []
+    for name, number in (("stdin", -10), ("stdout", -11), ("stderr", -12)):
+        number &= 0xFFFFFFFF
+        handle = kernel32.GetStdHandle(number)
+        if handle and kernel32.GetFileType(handle) != file_type_unknown:
+            continue
+        # Never closed: the handle has to stay valid for the life of the process.
+        fd = os.open(os.devnull, os.O_RDONLY if name == "stdin" else os.O_WRONLY)
+        kernel32.SetStdHandle(number, msvcrt.get_osfhandle(fd))
+        repaired.append(name)
+    return repaired
+
+
 def _hide_child_consoles():
     """Start child processes without a console window of their own.
 
@@ -171,6 +209,7 @@ def bootstrap_process():
     """
     if standalone_executable() is None or sys.platform != "win32":
         return
+    _repair_standard_handles()
     if not _has_console_window():
         _hide_child_consoles()
     console_log = os.environ.get(CONSOLE_LOG_ENV)

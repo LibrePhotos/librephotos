@@ -425,3 +425,44 @@ class HideChildConsolesTest(SimpleTestCase):
         wrapped = subprocess.Popen.__init__
         standalone._hide_child_consoles()
         self.assertIs(subprocess.Popen.__init__, wrapped)
+
+
+@skipUnless(sys.platform == "win32", "standard handles are a Windows matter")
+class RepairStandardHandlesTest(SimpleTestCase):
+    """Without a console a GUI process has no valid standard handles, and
+    capturing a child's output then fails with WinError 6."""
+
+    STDIN = -10 & 0xFFFFFFFF
+
+    def setUp(self):
+        import ctypes
+        from ctypes import wintypes
+
+        self.kernel32 = ctypes.WinDLL("kernel32")
+        self.kernel32.GetStdHandle.restype = wintypes.HANDLE
+        self.kernel32.GetStdHandle.argtypes = [wintypes.DWORD]
+        self.kernel32.SetStdHandle.argtypes = [wintypes.DWORD, wintypes.HANDLE]
+        self.kernel32.GetFileType.restype = wintypes.DWORD
+        self.kernel32.GetFileType.argtypes = [wintypes.HANDLE]
+        original = self.kernel32.GetStdHandle(self.STDIN)
+        self.addCleanup(self.kernel32.SetStdHandle, self.STDIN, original)
+
+    def test_an_invalid_handle_is_replaced_and_output_can_be_captured(self):
+        self.kernel32.SetStdHandle(self.STDIN, 0xDEAD0)
+        self.assertEqual(self.kernel32.GetFileType(0xDEAD0), 0)
+
+        self.assertIn("stdin", standalone._repair_standard_handles())
+
+        handle = self.kernel32.GetStdHandle(self.STDIN)
+        self.assertNotEqual(self.kernel32.GetFileType(handle), 0)
+        done = subprocess.run(
+            ["cmd.exe", "/c", "echo hi"], capture_output=True, text=True, check=True
+        )
+        self.assertEqual(done.stdout.strip(), "hi")
+
+    def test_valid_handles_are_left_alone(self):
+        before = self.kernel32.GetStdHandle(self.STDIN)
+        if not before or self.kernel32.GetFileType(before) == 0:
+            self.skipTest("this runner has no valid stdin to begin with")
+        self.assertNotIn("stdin", standalone._repair_standard_handles())
+        self.assertEqual(self.kernel32.GetStdHandle(self.STDIN), before)
