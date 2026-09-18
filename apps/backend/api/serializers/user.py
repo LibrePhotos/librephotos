@@ -317,9 +317,15 @@ class SignupUserSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
+        # One INSERT, with the password already hashed. The row used to be
+        # saved first and hashed afterwards, so a failure in between (a missing
+        # hasher library did it) left an account behind that held the password
+        # in plain text, was not an admin, and blocked its username for good:
+        # first-time setup then answered every attempt with "already exists".
         should_be_superuser = not User.objects.filter(is_superuser=True).exists()
-        user = super().create(validated_data)
-        user.set_password(validated_data.pop("password"))
+        password = validated_data.pop("password")
+        user = User(**validated_data)
+        user.set_password(password)
         user.is_staff = should_be_superuser
         user.is_superuser = should_be_superuser
         user.save()

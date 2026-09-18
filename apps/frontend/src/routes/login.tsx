@@ -285,6 +285,9 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
               }
             );
           },
+          // A rejected sign-up (username taken, password refused) used to do
+          // nothing at all: the button re-enabled and the form said nothing.
+          onError: reportUserSaveError,
         }
       );
     }
