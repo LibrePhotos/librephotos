@@ -23,6 +23,31 @@ While the application saves metadata (e.g., tags, albums, facial recognition dat
 
 The separation will also not keep the photos "private" as the admin of the host system can see all the images.
 
+## Giving each user their own folder automatically
+
+*Unreleased — this is on `dev` and is not in a released version yet.*
+
+Admin Area → Site settings has an **Auto create user directory** switch, off by
+default. With it on, creating a user — from the admin panel, from self
+registration, or through single sign-on — also creates `/data/<username>` and
+assigns it as that user's scan directory, so you no longer have to make the
+folder on the host and assign it by hand for every account.
+
+Leave it off if your users are meant to share one library: on a shared install
+everybody points at the same folder, and a per-user folder is the wrong default.
+
+Three things it deliberately does not do:
+
+- It never overwrites a scan directory you typed on the create form. An
+  explicit path wins.
+- It never fails account creation. If `/data` is read-only, or the folder it
+  would pick overlaps a directory another user already scans, the account is
+  still created — just without a scan directory, the same state a
+  self-registered account starts in — and the reason is written to the backend
+  log. Assign a directory by hand afterwards.
+- It does not touch existing users. Only accounts created while the switch is
+  on get a folder.
+
 ## User Registration
 
 Click on your Avatar → Admin Area to the user registration setting.

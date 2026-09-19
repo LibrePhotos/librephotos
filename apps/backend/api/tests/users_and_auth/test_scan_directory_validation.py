@@ -117,3 +117,121 @@ class CreateUserScanDirectoryTestCase(TestCase):
         self.assertEqual(
             errors[0]["message"], "A user with that username already exists."
         )
+
+
+class OverlappingScanDirectoryTestCase(TestCase):
+    """A directory another user already scans must be rejected (#2034).
+
+    Two users could be PATCHed to the same path and both got 200. Every photo
+    has exactly one owner, so whichever scan runs second either skips the files
+    the first already owns or takes them over -- the outcome depends on scan
+    order rather than on anything the admin chose.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_superuser(
+            "overlap_admin", "overlap_admin@test.com", create_password()
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        self.owner = User.objects.create_user(
+            "overlap_owner", "overlap_owner@test.com", create_password()
+        )
+        self.other = User.objects.create_user(
+            "overlap_other", "overlap_other@test.com", create_password()
+        )
+
+        # abspath, because that is the form the serializer stores.
+        self.taken = os.path.abspath(os.path.join(settings.DATA_ROOT, "overlap-taken"))
+        self.child = os.path.join(self.taken, "inner")
+        self.free = os.path.abspath(os.path.join(settings.DATA_ROOT, "overlap-free"))
+        for path in (self.child, self.free):
+            os.makedirs(path, exist_ok=True)
+
+        self.owner.scan_directory = self.taken
+        self.owner.save()
+
+    def _patch(self, user, scan_directory):
+        return self.client.patch(
+            f"/api/manage/user/{user.id}/", {"scan_directory": scan_directory}
+        )
+
+    def _message(self, response):
+        return response.json()["errors"][0]["message"]
+
+    def test_the_same_directory_is_rejected(self):
+        response = self._patch(self.other, self.taken)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("overlap_owner", self._message(response))
+        self.other.refresh_from_db()
+        self.assertEqual(self.other.scan_directory, "")
+
+    def test_a_child_of_another_users_directory_is_rejected(self):
+        response = self._patch(self.other, self.child)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("overlap_owner", self._message(response))
+
+    def test_a_parent_of_another_users_directory_is_rejected(self):
+        # DATA_ROOT itself contains the owner's library.
+        response = self._patch(self.other, settings.DATA_ROOT)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("overlap_owner", self._message(response))
+
+    def test_a_sibling_directory_is_accepted(self):
+        # The guard must reject overlap, not merely a shared prefix.
+        response = self._patch(self.other, self.free)
+        self.assertEqual(response.status_code, 200)
+        self.other.refresh_from_db()
+        self.assertEqual(self.other.scan_directory, os.path.abspath(self.free))
+
+    def test_a_prefix_sibling_is_not_treated_as_a_child(self):
+        # "overlap-taken-2" starts with "overlap-taken" but is not inside it.
+        sibling = os.path.join(settings.DATA_ROOT, "overlap-taken-2")
+        os.makedirs(sibling, exist_ok=True)
+        response = self._patch(self.other, sibling)
+        self.assertEqual(response.status_code, 200)
+
+    def test_a_user_can_keep_its_own_directory(self):
+        # Re-sending the value already stored is not a conflict with itself.
+        response = self._patch(self.owner, self.taken)
+        self.assertEqual(response.status_code, 200)
+        self.owner.refresh_from_db()
+        self.assertEqual(self.owner.scan_directory, self.taken)
+
+    def test_a_stored_directory_with_a_trailing_separator_is_still_unchanged(self):
+        # A value stored before this check may not be canonical. Comparing the
+        # raw strings would call that a change and refuse the user's own path.
+        self.owner.scan_directory = self.taken + os.sep
+        self.owner.save()
+        response = self._patch(self.owner, self.taken)
+        self.assertEqual(response.status_code, 200)
+
+    def test_an_existing_overlap_does_not_lock_the_user_out(self):
+        # Installs that predate this check already overlap. Editing another
+        # field, or re-sending the same directory, must still work -- only a
+        # change to a conflicting directory is refused.
+        self.other.scan_directory = self.taken
+        self.other.save()
+
+        response = self.client.patch(
+            f"/api/manage/user/{self.other.id}/", {"first_name": "Still"}
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self._patch(self.other, self.taken)
+        self.assertEqual(response.status_code, 200)
+
+    def test_creating_a_user_on_a_taken_directory_is_rejected(self):
+        response = self.client.post(
+            "/api/user/",
+            {
+                "username": "overlap_new",
+                "password": create_password(),
+                "email": "overlap_new@test.com",
+                "scan_directory": self.child,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("overlap_owner", self._message(response))
+        self.assertFalse(User.objects.filter(username="overlap_new").exists())
