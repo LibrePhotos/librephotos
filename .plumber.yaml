@@ -1,0 +1,23 @@
+# Plumber overlay: inherits every control from the CLI's built-in
+# baseline, only the differences for this repo are written here.
+# Run 'plumber config resolve' to see the full effective config.
+extends: plumber:default
+version: '2.0'
+
+github:
+  controls:
+    githubActionMustComeFromAuthorizedSources:
+      # Keep the curated default list and trust the actions this repo
+      # already uses on top of it, all pinned by commit SHA.
+      includePlumberDefaults: true
+      trustedGithubActions:
+        - jlumbroso/free-disk-space
+        - peaceiris/actions-gh-pages
+        - r0adkll/sign-android-release
+        - softprops/action-gh-release
+
+    # Off for now: protecting dev is a repository setting only an admin
+    # can change, nothing in the tree can fix it. Worth turning back on
+    # once protection rules are set up.
+    branchMustBeProtected:
+      enabled: false
