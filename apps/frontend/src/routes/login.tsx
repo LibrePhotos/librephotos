@@ -41,7 +41,7 @@ import {
   useUpdateUserScanDirectoryMutation,
 } from "../api_client/user/hooks";
 import { DirectoryPicker } from "../components/setup/DirectoryPicker";
-import { reportUserSaveError } from "../util/apiErrors";
+import { reportSignupError, reportUserSaveError } from "../util/apiErrors";
 import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
 import { EMAIL_REGEX } from "../util/util";
@@ -287,7 +287,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
           },
           // A rejected sign-up (username taken, password refused) used to do
           // nothing at all: the button re-enabled and the form said nothing.
-          onError: reportUserSaveError,
+          onError: reportSignupError,
         }
       );
     }

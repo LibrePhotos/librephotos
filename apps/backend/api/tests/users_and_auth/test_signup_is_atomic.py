@@ -53,3 +53,57 @@ class SignupIsAtomicTest(TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertTrue(User.objects.get(username="admin").is_superuser)
+
+
+class AbandonedSignupTest(TestCase):
+    """Databases that already hold such a leftover have to get out of it
+    without anybody deleting rows by hand."""
+
+    def setUp(self):
+        self.client = APIClient()
+        # What the old code left behind: inserted, never hashed, not an admin.
+        self.leftover = User.objects.create(
+            username="admin", password="typed in plain text", email="old@example.com"
+        )
+
+    def test_first_time_setup_takes_the_leftover_over(self):
+        response = self.client.post("/api/user/", SIGNUP, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username="admin")
+        self.assertEqual(user.pk, self.leftover.pk)
+        self.assertEqual(User.objects.count(), 1)
+        self.assertTrue(user.is_superuser and user.is_staff)
+        self.assertTrue(user.check_password(SIGNUP["password"]))
+        self.assertEqual(user.email, SIGNUP["email"])
+
+    def test_first_time_setup_is_over_afterwards(self):
+        self.client.post("/api/user/", SIGNUP, format="json")
+
+        response = self.client.get("/api/firsttimesetup/")
+
+        self.assertFalse(response.json()["isFirstTimeSetup"])
+
+    def test_an_account_with_a_real_password_is_never_taken_over(self):
+        self.leftover.set_password("a real password")
+        self.leftover.save()
+
+        response = self.client.post("/api/user/", SIGNUP, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("already exists", str(response.json()))
+        self.assertTrue(
+            User.objects.get(username="admin").check_password("a real password")
+        )
+
+    def test_nothing_is_taken_over_once_an_admin_exists(self):
+        User.objects.create_superuser("boss", "boss@example.com", "boss password")
+        from constance.test import override_config
+
+        with override_config(ALLOW_REGISTRATION=True):
+            response = self.client.post("/api/user/", SIGNUP, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            User.objects.get(username="admin").password, "typed in plain text"
+        )

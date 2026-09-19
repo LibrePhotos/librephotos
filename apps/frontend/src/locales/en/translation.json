@@ -1216,6 +1216,8 @@
     "updateusertitle": "Update user",
     "updateusererror": "The user could not be updated. Please check the values you entered.",
     "updateusererrortitle": "Could not update user",
+    "signuperror": "The account could not be created. Please check the values you entered.",
+    "signuperrortitle": "Could not create the account",
     "deleteuser": "{{username}} deleted",
     "deleteusertitle": "Delete user",
     "jobfinished": "{{job}} finished.",
