@@ -1,4 +1,4 @@
-import { Card, Grid, Group, HoverCard, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Box, Card, Grid, Group, HoverCard, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import {
   IconArrowRight as ArrowRight,
   IconChartLine as ChartLine,
@@ -13,6 +13,23 @@ import { Link } from "@tanstack/react-router";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchCountStatsQuery } from "../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../api_client/stats/types";
+import { formatCompactCount } from "../util/formatCount";
+
+// Abbreviated on mobile (25123 -> 25.1K); the exact value shows on hover/tap.
+function Count({ value }: { value: number }) {
+  return (
+    <Tooltip label={value.toLocaleString()} events={{ hover: true, focus: true, touch: true }}>
+      <span>
+        <Box component="span" hiddenFrom="sm">
+          {formatCompactCount(value)}
+        </Box>
+        <Box component="span" visibleFrom="sm">
+          {value}
+        </Box>
+      </span>
+    </Tooltip>
+  );
+}
 
 export function CountStats() {
   const { t } = useTranslation();
@@ -31,10 +48,10 @@ export function CountStats() {
               </Text>
               <Group gap="xs" align="baseline">
                 <Title order={3} size="h4">
-                  {countStats.num_photos}
+                  <Count value={countStats.num_photos} />
                 </Title>
                 <Text c="dimmed" size="xs">
-                  / {countStats.num_albumdate} {t("days")}
+                  / <Count value={countStats.num_albumdate} /> {t("days")}
                 </Text>
               </Group>
             </div>
@@ -55,10 +72,10 @@ export function CountStats() {
                   </Text>
                   <Group gap="xs" align="baseline">
                     <Title order={3} size="h4">
-                      {countStats.num_people}
+                      <Count value={countStats.num_people} />
                     </Title>
                     <Text c="dimmed" size="xs">
-                      / {countStats.num_faces} {t("faces")}
+                      / <Count value={countStats.num_faces} /> {t("faces")}
                     </Text>
                   </Group>
                 </div>
@@ -109,7 +126,7 @@ export function CountStats() {
                 {t("events")}
               </Text>
               <Title order={3} size="h4">
-                {countStats.num_albumauto}
+                <Count value={countStats.num_albumauto} />
               </Title>
             </div>
           </Group>
