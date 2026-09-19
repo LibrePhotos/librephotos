@@ -17,7 +17,16 @@ function updateUserError(message?: string) {
   });
 }
 
+function signupError(message?: string) {
+  showNotification({
+    message: message || i18n.t("toasts.signuperror"),
+    title: i18n.t("toasts.signuperrortitle"),
+    color: "red",
+  });
+}
+
 export const user = {
   updateUser,
   updateUserError,
+  signupError,
 };

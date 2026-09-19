@@ -14,3 +14,11 @@ export function reportUserSaveError(error: unknown) {
   }
   notification.updateUserError(error instanceof ApiError ? (error.serverMessage ?? undefined) : undefined);
 }
+
+/** Report a rejected sign-up; same rules as `reportUserSaveError`. */
+export function reportSignupError(error: unknown) {
+  if (error instanceof ApiError && error.status === 401) {
+    return;
+  }
+  notification.signupError(error instanceof ApiError ? (error.serverMessage ?? undefined) : undefined);
+}

@@ -190,3 +190,6 @@ report_dynamo_export.sarif
 # Vim
 *.swp
 *.swo
+
+# Standalone build (scripts/build_standalone.py)
+frontend_build/

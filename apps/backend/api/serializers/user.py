@@ -2,6 +2,8 @@ import os
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import identify_hasher
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db.models import Q
 from django_q.tasks import Chain
 from rest_framework import serializers
@@ -292,11 +294,36 @@ class PublicUserSerializer(serializers.ModelSerializer):
             return None
 
 
+def is_abandoned_signup(user):
+    """Is this account the leftover of a first-time setup that failed halfway?
+
+    Sign-up used to insert the row before hashing its password, so a failing
+    hasher left an account that nobody can log in to (what it stores is not a
+    hash) but that keeps its username taken. Only while the instance has no
+    admin yet, where whoever signs up becomes the admin anyway, so taking the
+    row over gives nobody anything they could not already get.
+    """
+    if user.is_superuser or user.last_login is not None:
+        return False
+    if User.objects.filter(is_superuser=True).exists():
+        return False
+    try:
+        identify_hasher(user.password)
+    except ValueError:
+        return True
+    return False
+
+
 class SignupUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         extra_kwargs = {
-            "username": {"required": True},
+            # Uniqueness is checked in validate_username(), which knows about
+            # abandoned sign-ups; the model's own validator does not.
+            "username": {
+                "required": True,
+                "validators": [UnicodeUsernameValidator()],
+            },
             "password": {
                 "write_only": True,
                 "required": True,
@@ -316,10 +343,30 @@ class SignupUserSerializer(serializers.ModelSerializer):
             "is_superuser",
         )
 
+    def validate_username(self, value):
+        existing = User.objects.filter(username=value).first()
+        if existing is not None and not is_abandoned_signup(existing):
+            raise ValidationError(
+                User._meta.get_field("username").error_messages["unique"]
+            )
+        return value
+
     def create(self, validated_data):
+        # One INSERT, with the password already hashed. The row used to be
+        # saved first and hashed afterwards, so a failure in between (a missing
+        # hasher library did it) left an account behind that held the password
+        # in plain text, was not an admin, and blocked its username for good:
+        # first-time setup then answered every attempt with "already exists".
         should_be_superuser = not User.objects.filter(is_superuser=True).exists()
-        user = super().create(validated_data)
-        user.set_password(validated_data.pop("password"))
+        password = validated_data.pop("password")
+        # validate_username() only lets a taken name through for an abandoned
+        # sign-up, which is then completed instead of blocking setup for good.
+        user = User.objects.filter(username=validated_data["username"]).first()
+        if user is None:
+            user = User()
+        for field, value in validated_data.items():
+            setattr(user, field, value)
+        user.set_password(password)
         user.is_staff = should_be_superuser
         user.is_superuser = should_be_superuser
         user.save()

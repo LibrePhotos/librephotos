@@ -1,4 +1,5 @@
 import json
+import os
 
 from flask import Flask, jsonify, request
 from flask_restful import Api, Resource
@@ -70,11 +71,13 @@ api.add_resource(SearchIndex, "/search/")
 api.add_resource(Health, "/health/")
 
 
-def start_server():
+def serve():
     logger.info("Starting server")
-    server = WSGIServer(("0.0.0.0", 8002), app)
+    # 0.0.0.0 inside the containers, as always; the standalone build sets
+    # SERVICE_HOST to loopback (librephotos.standalone.prepare_environment).
+    server = WSGIServer((os.environ.get("SERVICE_HOST", "0.0.0.0"), 8002), app)
     server.serve_forever()
 
 
 if __name__ == "__main__":
-    start_server()
+    serve()
