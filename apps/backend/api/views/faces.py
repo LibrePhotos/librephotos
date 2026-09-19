@@ -173,6 +173,13 @@ class FaceIncompleteListViewSet(ListViewSet):
         min_confidence = float(self.request.query_params.get("min_confidence", 0))
 
         queryset = Person.objects.filter(cluster_owner=self.request.user)
+        # Every count below is scoped to the requester's own photos, because
+        # FaceListView scopes its rows the same way (`photo__owner`). Without
+        # it, a person shared with another user is counted across both
+        # libraries while the list returns only this user's faces, so the
+        # dashboard grid draws slots that can never be filled and the last page
+        # 404s with "Invalid page" (#2031). `cluster_owner` scopes the person,
+        # not its faces, so it does not cover this.
         if inferred:
             if analysis_method == "classification":
                 conditional_count = Count(
@@ -182,7 +189,8 @@ class FaceIncompleteListViewSet(ListViewSet):
                             & Q(classification_faces__person=None)
                             & Q(
                                 classification_faces__classification_probability__gte=min_confidence
-                            ),
+                            )
+                            & Q(classification_faces__photo__owner=self.request.user),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -194,7 +202,8 @@ class FaceIncompleteListViewSet(ListViewSet):
                         When(
                             Q(cluster_faces__deleted=False)
                             & Q(cluster_faces__person=None)
-                            & Q(cluster_faces__cluster_probability__gte=min_confidence),
+                            & Q(cluster_faces__cluster_probability__gte=min_confidence)
+                            & Q(cluster_faces__photo__owner=self.request.user),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -205,7 +214,8 @@ class FaceIncompleteListViewSet(ListViewSet):
             conditional_count = Count(
                 Case(
                     When(
-                        Q(faces__deleted=False),
+                        Q(faces__deleted=False)
+                        & Q(faces__photo__owner=self.request.user),
                         then=1,
                     ),
                     output_field=IntegerField(),
