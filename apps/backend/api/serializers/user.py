@@ -141,6 +141,53 @@ def normalize_scan_directory(scan_directory, user=None):
     return abs_scan_directory
 
 
+def auto_create_user_directory(user):
+    """Give ``user`` its own folder under ``DATA_ROOT``, when that is enabled.
+
+    Off unless the ``AUTO_CREATE_USER_DIRECTORY`` site setting is on, because
+    on a shared-library install every user is meant to point at the same
+    folder. A directory supplied on create is never overwritten -- an admin who
+    typed a path meant it (#2038).
+
+    Nothing here can fail user creation. A library mount is often read-only,
+    and an account with no scan directory is still a usable account: the user
+    sees an empty library and an admin can assign one later, which is exactly
+    the state a self-registered account is already in. So a failure is logged
+    and returned from, not raised.
+    """
+    from constance import config as site_config
+
+    if not site_config.AUTO_CREATE_USER_DIRECTORY or user.scan_directory:
+        return
+
+    candidate = os.path.join(settings.DATA_ROOT, user.username)
+    try:
+        os.makedirs(candidate, exist_ok=True)
+    except OSError as error:
+        logger.warning(
+            f"Could not create a data folder at {candidate} for user "
+            f"{user.username}: {error}. The account was created without a "
+            f"scan directory."
+        )
+        return
+
+    try:
+        # Through the same validation as an admin-supplied path, so the folder
+        # cannot end up outside DATA_ROOT or overlapping another user.
+        abs_scan_directory = normalize_scan_directory(candidate, user=user)
+    except ValidationError as error:
+        logger.warning(
+            f"Refusing {candidate} as the data folder for user "
+            f"{user.username}: {error}. The account was created without a "
+            f"scan directory."
+        )
+        return
+
+    user.scan_directory = abs_scan_directory
+    user.save(update_fields=["scan_directory"])
+    logger.info(f"Created data folder {abs_scan_directory} for user {user.username}")
+
+
 class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
     public_photo_samples = serializers.SerializerMethodField()
@@ -255,6 +302,7 @@ class UserSerializer(serializers.ModelSerializer):
         else:
             user = User.objects.create_user(**validated_data)
         logger.info(f"Created user {user.id}")
+        auto_create_user_directory(user)
         return user
 
     def update(self, instance, validated_data):
