@@ -1217,7 +1217,12 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
+        # ``Photo.public`` is what the lightbox's "Make public and copy link"
+        # action sets, and the link it copies points here. Serving only on an
+        # active album share meant that link always came back 403 (#2029).
+        if photo.public or self._vouching_albums(photo).filter(
+            self._public_album_active_q()
+        ).exists():
             return self._generate_response(photo, path, fname, False, use_proxy)
 
         if not token_valid:

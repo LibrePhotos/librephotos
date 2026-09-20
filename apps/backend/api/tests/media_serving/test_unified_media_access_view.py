@@ -351,6 +351,23 @@ class UnifiedThumbnailAccessTest(TestCase):
         response = _unified("thumbnails_big", self.photo.image_hash)
         self.assertEqual(response.status_code, 200)
 
+    def test_public_photo_is_served_anonymously(self):
+        """#2029: the lightbox "Make public and copy link" link must open.
+
+        The link points at the derived-media route, which previously consulted
+        only album shares, so ``Photo.public`` had no effect and a logged-out
+        visitor got 403.
+        """
+        self.photo.public = True
+        self.photo.save(update_fields=["public"])
+        response = _unified("thumbnails_big", self.photo.image_hash)
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_public_photo_still_403s_anonymously(self):
+        self.assertFalse(self.photo.public)
+        response = _unified("thumbnails_big", self.photo.image_hash)
+        self.assertEqual(response.status_code, 403)
+
     def test_duplicate_hash_resolves_in_favour_of_the_owner(self):
         twin = create_test_photo(owner=self.friend)
         twin_thumb = os.path.basename(twin.thumbnail.thumbnail_big.name)
