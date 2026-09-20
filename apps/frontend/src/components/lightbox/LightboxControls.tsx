@@ -23,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import { shareAddress } from "../../api_client/apiClient";
 import {
   useMarkPhotosDeletedMutation,
+  usePhotoShareMutation,
   useSetFavoritePhotosMutation,
   useSetPhotosHiddenMutation,
   useSetPhotosPublicMutation,
@@ -75,6 +76,7 @@ export function LightboxControls({
   // Mutations for photo actions
   const setPhotosHidden = useSetPhotosHiddenMutation();
   const setPhotosPublic = useSetPhotosPublicMutation();
+  const photoShare = usePhotoShareMutation();
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
 
@@ -95,14 +97,28 @@ export function LightboxControls({
     }
   }, [photoDetail, isPublic, setPhotosHidden]);
 
+  // A share link carries its own random slug, so it can be rotated or
+  // revoked later; the old thumbnails_big URL came from the file content and
+  // could never be withdrawn (issue #2028).
+  const togglePublicShare = useCallback(
+    async (imageHash: string, makePublic: boolean) => {
+      setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: makePublic });
+      const share = await photoShare.mutateAsync({
+        photoId: imageHash,
+        action: makePublic ? "enable" : "disable",
+      });
+      if (makePublic && share.url) {
+        copyToClipboard(`${shareAddress}${share.url}`);
+      }
+    },
+    [photoShare, setPhotosPublic]
+  );
+
   const handlePublicShortcut = useCallback(() => {
     if (photoDetail && !isPublic) {
-      const { image_hash: imageHash } = photoDetail;
-      const val = !photoDetail.public;
-      setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
-      copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
+      void togglePublicShare(photoDetail.image_hash, !photoDetail.public);
     }
-  }, [photoDetail, isPublic, setPhotosPublic]);
+  }, [photoDetail, isPublic, togglePublicShare]);
 
   const handleDeleteShortcut = useCallback(() => {
     if (photoDetail && !isPublic) {
@@ -312,10 +328,7 @@ export function LightboxControls({
                   color="gray"
                   size={28}
                   onClick={() => {
-                    const { image_hash: imageHash } = photoDetail;
-                    const val = !photoDetail.public;
-                    setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
-                    copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
+                    void togglePublicShare(photoDetail.image_hash, !photoDetail.public);
                   }}
                 >
                   <Globe size={18} color={photoDetail.public ? "green" : "grey"} />

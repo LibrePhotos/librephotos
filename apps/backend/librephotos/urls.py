@@ -50,6 +50,7 @@ from api.views import (
     photo_metadata,
     photos,
     public_albums,
+    public_photos,
     search,
     services,
     serving_diagnostics,
@@ -424,6 +425,14 @@ urlpatterns = [
     ),
     # Toggle album public flag
     re_path(r"^api/useralbum/makepublic", public_albums.SetUserAlbumPublic.as_view()),
+    # Public photo by share slug
+    re_path(
+        r"^api/public/photo/(?P<slug>[^/]+)/$",
+        public_photos.PublicPhotoBySlug.as_view(),
+    ),
+    # Create, rotate or revoke a photo share
+    re_path(r"^api/photo/share/list$", public_photos.PhotoShareList.as_view()),
+    re_path(r"^api/photo/share", public_photos.SetPhotoShare.as_view()),
     re_path(r"^api/timezones", timezone.TimeZoneView.as_view()),
     re_path(r"^api/geocode/search", geocode.GeocodeSearchView.as_view()),
     re_path(r"api/upload/complete/", upload.UploadPhotosChunkedComplete.as_view()),

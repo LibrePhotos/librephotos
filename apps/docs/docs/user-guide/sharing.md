@@ -110,6 +110,19 @@ Public photos appear under the **Photos** tab of your **Public Links** page, on 
 
 To reverse this, select the photos again and choose **"Make Private"** from the same menu.
 
+### Revocable Photo Links
+
+The **globe button** in the lightbox does something different from the bulk *Make Public* action above: it creates a *share link* for that one photo and copies it to your clipboard. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo.
+
+Because the slug is random, the link can be withdrawn:
+
+- **Replace link** mints a new slug. The previous URL stops working at once.
+- **Revoke** switches the share off and burns the slug, so anyone still holding that link gets a "not found" page. Sharing the photo again creates a brand-new link rather than reviving the old one.
+
+Your active photo links are listed under the **Photos** tab of your **Public Links** page, each with its own copy, replace and revoke buttons.
+
+Expiring links and password-protected links are not available for photo shares yet.
+
 :::caution
 Making a photo private stops it from being served through the public views, but it cannot retroactively invalidate a direct link that someone has already opened or saved a copy of the image from.
 :::

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useFetchSharedAlbumsByMeQuery } from "../../../api_client/albums/hooks";
 import { useFetchSharedPhotosByMeQuery } from "../../../api_client/photos/hooks";
 import { AlbumsSharedByMe } from "../../../components/sharing/AlbumsSharedByMe";
+import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
 import { PhotosSharedByMe } from "../../../components/sharing/PhotosSharedByMe";
 
 export const Route = createFileRoute("/_protected/sharing/byme/$tab")();
@@ -49,7 +50,10 @@ export function SharedByMe() {
         </Tabs.List>
 
         <Tabs.Panel value="photos" keepMounted={false}>
-          <PhotosSharedByMe />
+          <Stack gap="md" pt="md">
+            <PhotoSharesSection />
+            <PhotosSharedByMe />
+          </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="albums" keepMounted={false}>
