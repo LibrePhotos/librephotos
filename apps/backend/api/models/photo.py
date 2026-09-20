@@ -768,11 +768,36 @@ class Photo(models.Model):
             delta_angle_cw=angle,
             flip_h=flip_horizontal,
         )
+        use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
         write_metadata(
             self.main_file.path,
             {Tags.ORIENTATION: combined},
-            use_sidecar=user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE,
+            use_sidecar=use_sidecar,
         )
+
+        if not use_sidecar:
+            self._adopt_written_orientation(combined)
+
+    def _adopt_written_orientation(self, combined: int) -> None:
+        """Fold a media-file orientation write back into the DB.
+
+        Once the composed orientation lives in the file's own EXIF, the
+        renderer picks it up by itself. Leaving ``local_orientation`` set would
+        make every later thumbnail rebuild apply the rotation a second time,
+        and leaving ``PhotoMetadata.orientation`` at its pre-write value would
+        make the next rotate compose from a stale number.
+
+        Only for MEDIA_FILE: a sidecar leaves the image untouched, so its
+        rotation still has to come from ``local_orientation``.
+        """
+        if self.local_orientation != 1:
+            self.local_orientation = 1
+            self.save(save_metadata=False, update_fields=["local_orientation"])
+
+        metadata = getattr(self, "metadata", None)
+        if metadata is not None and metadata.orientation != combined:
+            metadata.orientation = combined
+            metadata.save(update_fields=["orientation"])
 
     def _set_embedded_media(self, obj):
         return obj.main_file.embedded_media

@@ -401,7 +401,14 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         self.assertEqual(added_on, rescanned.added_on)
         self.assertEqual(calculate_hash(self.user, self.path), rescanned.main_file.hash)
 
-    def test_the_rescan_still_rebuilds_what_the_new_bytes_invalidate(self):
+    def test_the_rescan_keeps_cheap_derived_content_for_a_rotation(self):
+        """#2050: a rotation write is recognised as the same picture.
+
+        The rotation now lands in the file's own EXIF and ``local_orientation``
+        goes back to 1, so rendering the file again reproduces the hash the
+        thumbnails were built from. The verdict is SAME_PICTURE rather than
+        UNCOMPARABLE, so nothing derived is thrown away and rebuilt.
+        """
         _write_image(self.path, 1, size=(256, 128))
         photo = self._index()
         photo.thumbnail.dominant_color = "[1,2,3]"
@@ -410,7 +417,7 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         self._rotate(photo)
         rescanned = self._scan()
 
-        self.assertIsNone(rescanned.thumbnail.dominant_color)
+        self.assertEqual("[1,2,3]", rescanned.thumbnail.dominant_color)
         self.assertTrue(os.path.exists(self._thumbnail_path(rescanned.image_hash)))
 
 

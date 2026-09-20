@@ -324,8 +324,11 @@ class RotateCharacterizationTest(TestCase):
     ):
         """The disk value is composed from the file's ORIGINAL exif
         orientation, so a photo shot rotated (exif 6) and rotated another 90
-        CW gets 3 on disk while ``local_orientation`` only reflects the
-        LibrePhotos-local delta (6).
+        CW gets 3 on disk.
+
+        Once that value is in the file, the DB adopts it (#2050): the file's
+        own EXIF now carries the whole rotation, so ``local_orientation`` goes
+        back to 1 and the stored exif orientation becomes what was written.
         """
         self.user.save_metadata_to_disk = User.SaveMetadata.MEDIA_FILE
         self.user.save()
@@ -335,8 +338,54 @@ class RotateCharacterizationTest(TestCase):
 
         photo.rotate(90)
 
-        self.assertEqual(photo.local_orientation, 6)
         self.assertEqual(list(write_metadata.call_args[0][1].values()), [3])
+        self.assertEqual(photo.local_orientation, 1)
+        photo.refresh_from_db()
+        self.assertEqual(photo.local_orientation, 1)
+        self.assertEqual(photo.metadata.orientation, 3)
+
+    @patch("api.models.photo.write_metadata")
+    @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
+    def test_media_file_rotate_does_not_stack_on_a_second_rotate(
+        self, regen, write_metadata
+    ):
+        """#2050: the second rotate composes from the value actually on disk.
+
+        Before the fix the second rotate composed from the stale stored exif
+        orientation, so it wrote the same value as the first one.
+        """
+        self.user.save_metadata_to_disk = User.SaveMetadata.MEDIA_FILE
+        self.user.save()
+        photo = create_test_photo(owner=self.user)
+        PhotoMetadata.objects.create(photo=photo, orientation=1)
+        photo.refresh_from_db()
+
+        photo.rotate(90)
+        self.assertEqual(list(write_metadata.call_args[0][1].values()), [6])
+
+        photo.rotate(90)
+        # 90 CW on top of exif 6 is 180, not 6 again.
+        self.assertEqual(list(write_metadata.call_args[0][1].values()), [3])
+        self.assertEqual(photo.local_orientation, 1)
+
+    @patch("api.models.photo.write_metadata")
+    @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
+    def test_sidecar_rotate_keeps_local_orientation(self, regen, write_metadata):
+        """A sidecar leaves the image bytes alone, so the renderer still needs
+        ``local_orientation`` to know about the rotation."""
+        self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
+        self.user.save()
+        photo = create_test_photo(owner=self.user)
+        PhotoMetadata.objects.create(photo=photo, orientation=1)
+        photo.refresh_from_db()
+
+        photo.rotate(90)
+
+        self.assertEqual(list(write_metadata.call_args[0][1].values()), [6])
+        self.assertEqual(photo.local_orientation, 6)
+        photo.refresh_from_db()
+        self.assertEqual(photo.local_orientation, 6)
+        self.assertEqual(photo.metadata.orientation, 1)
 
     @patch("api.models.photo.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
