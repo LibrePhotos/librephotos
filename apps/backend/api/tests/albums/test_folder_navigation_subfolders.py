@@ -303,6 +303,57 @@ class SubfoldersPaginationTests(SubfoldersTestBase):
         self.assertEqual(body["parent_path"], None)
 
 
+class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
+    """Regression tests for #2065.
+
+    A folder's photo count was built from ``path__startswith=<folder>``, which
+    also matches a sibling whose name merely starts with it, so ``test`` was
+    credited with everything under ``test2`` as well.
+    """
+
+    def test_sibling_with_shared_prefix_is_not_counted(self):
+        admin = create_test_user(is_admin=True)
+        _mkdirs(self.root, "test", "test2", "Karneval")
+        for i in range(3):
+            self.add_photo_in(admin, os.path.join(self.root, "test"), f"a{i}.jpg")
+        for i in range(2):
+            self.add_photo_in(admin, os.path.join(self.root, "test2"), f"b{i}.jpg")
+        self.add_photo_in(admin, os.path.join(self.root, "Karneval"), "c.jpg")
+
+        body = self.client_for(admin).get(URL).json()
+        counts = {f["name"]: f["photo_count"] for f in body["subfolders"]}
+
+        self.assertEqual(counts, {"test": 3, "test2": 2, "Karneval": 1})
+
+    def test_nested_photos_still_counted(self):
+        """The prefix must still match photos in deeper subdirectories."""
+        admin = create_test_user(is_admin=True)
+        _mkdirs(self.root, os.path.join("test", "inner"), "test2")
+        self.add_photo_in(admin, os.path.join(self.root, "test"), "top.jpg")
+        self.add_photo_in(admin, os.path.join(self.root, "test", "inner"), "deep.jpg")
+        self.add_photo_in(admin, os.path.join(self.root, "test2"), "other.jpg")
+
+        body = self.client_for(admin).get(URL).json()
+        counts = {f["name"]: f["photo_count"] for f in body["subfolders"]}
+
+        self.assertEqual(counts["test"], 2)
+        self.assertEqual(counts["test2"], 1)
+
+    def test_prefix_helper_uses_the_separator_of_the_stored_path(self):
+        from api.util import folder_path_prefix
+
+        # POSIX paths, as a Linux scan records them.
+        self.assertEqual(folder_path_prefix("/photos/test"), "/photos/test/")
+        self.assertEqual(folder_path_prefix("/photos/test/"), "/photos/test/")
+        # Windows paths, as a Windows scan records them.
+        win = r"C:\photos\test"
+        self.assertEqual(folder_path_prefix(win), win + "\\")
+        self.assertEqual(folder_path_prefix(win + "\\"), win + "\\")
+        # A backslash inside a POSIX file name is not a separator.
+        odd = r"/photos/we\ird"
+        self.assertEqual(folder_path_prefix(odd), odd + "/")
+
+
 class SubfoldersErrorHandlingTests(SubfoldersTestBase):
     def test_scandir_failure_returns_500(self):
         admin = create_test_user(is_admin=True)

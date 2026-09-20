@@ -92,6 +92,23 @@ def is_valid_path(path, root_path):
     return abs_path == abs_root or abs_path.startswith(abs_root + os.sep)
 
 
+def folder_path_prefix(folder_path):
+    """Return the prefix that matches files stored inside ``folder_path``.
+
+    A bare ``path__startswith=folder_path`` also matches a sibling whose name
+    merely starts with it, so ``/photos/test`` picks up ``/photos/test2`` as
+    well. Anchoring on the trailing separator keeps a folder to its own files,
+    while still matching anything nested below it.
+
+    The separator is taken from ``folder_path`` rather than from ``os.sep``:
+    these are paths recorded in the database by whichever host ran the scan,
+    so they need not use the separator of the host running the query.
+    """
+    stripped = folder_path.rstrip("/\\")
+    separator = "\\" if "\\" in stripped and "/" not in stripped else "/"
+    return stripped + separator
+
+
 def is_number(s):
     try:
         float(s)

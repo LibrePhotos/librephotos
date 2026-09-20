@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Count, Q
 
-from api.util import logger
+from api.util import folder_path_prefix, logger
 from api.models.photo import Photo
 
 PAGE_SIZE = 100
@@ -84,7 +84,9 @@ def _scan_folder_entries(base_path):
 def _photo_counts(user, entries):
     aggregates = {
         f"count_{idx}": Count(
-            "pk", filter=Q(files__path__startswith=folder_path), distinct=True
+            "pk",
+            filter=Q(files__path__startswith=folder_path_prefix(folder_path)),
+            distinct=True,
         )
         for idx, (_, folder_path, _) in enumerate(entries)
     }

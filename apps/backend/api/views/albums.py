@@ -40,7 +40,7 @@ from api.serializers.album_user import (
 )
 from api.serializers.person import GroupedPersonPhotosSerializer, PersonSerializer
 from api.serializers.photos import PhotoSummarySerializer
-from api.util import logger
+from api.util import folder_path_prefix, logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
     RegularResultsSetPagination,
@@ -510,7 +510,9 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
 
         filters = []
         if params.get("folder"):
-            filters.append(Q(files__path__startswith=params.get("folder")))
+            filters.append(
+                Q(files__path__startswith=folder_path_prefix(params.get("folder")))
+            )
         # Photos that are not stacked, or that are the primary photo of their stack.
         # Non-primary photos stay out of the timeline but remain reachable by
         # expanding the stack. Duplicates are handled via the Duplicate model.
@@ -632,7 +634,9 @@ class AlbumDateListViewSet(ListViewSet):
         # Filter by folder path if provided
         if self.request.query_params.get("folder"):
             folder_path = self.request.query_params.get("folder")
-            filter.append(Q(photos__files__path__startswith=folder_path))
+            filter.append(
+                Q(photos__files__path__startswith=folder_path_prefix(folder_path))
+            )
 
         if not self.request.user.is_anonymous and not self.request.query_params.get(
             "public"
