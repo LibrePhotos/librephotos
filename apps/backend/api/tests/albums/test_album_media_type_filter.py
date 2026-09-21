@@ -105,6 +105,29 @@ class AlbumMediaTypeFilterEndpointTest(TestCase):
         album.photos.add(self.photo1, self.photo2, self.video1)
         self._assert_filtering(f"/api/albums/user/{album.id}/")
 
+    def test_hiding_only_photo_does_not_hide_user_album(self):
+        """A user album remains visible when its only photo is hidden."""
+        album = AlbumUser.objects.create(title="My Album", owner=self.user)
+        album.photos.add(self.photo1)
+
+        response = self.client.post(
+            "/api/photosedit/hide",
+            {"image_hashes": [self.photo1.image_hash], "hidden": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get("/api/albums/user/list")
+
+        self.assertEqual(response.status_code, 200)
+
+        album_ids = {item["id"] for item in response.json()["results"]}
+        self.assertIn(str(album.id), album_ids)
+
+        album.refresh_from_db()
+        self.assertTrue(album.photos.filter(id=self.photo1.id).exists())
+
     def test_user_album_public(self):
         album = AlbumUser.objects.create(title="Shared Album", owner=self.user)
         album.photos.add(self.photo1, self.photo2, self.video1)
