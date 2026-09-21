@@ -145,6 +145,36 @@ class SyncPhotosCursorTest(TestCase):
         self.assertEqual(favs, {True, False})
 
 
+class SyncBulkTrashTest(TestCase):
+    """Resolving a duplicate group trashes photos with a queryset update,
+    which skips ``auto_now``; the feed must still carry the change."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_duplicate_resolve_and_revert_cross_the_cursor(self):
+        from api.models.duplicate import Duplicate
+
+        kept, other = create_test_photos(number_of_photos=2, owner=self.user)
+        group = Duplicate.objects.create(
+            owner=self.user, duplicate_type=Duplicate.DuplicateType.EXACT_COPY
+        )
+        group.photos.add(kept, other)
+        _, _, cursor = sync_pull(self.client, PHOTOS_URL)
+
+        group.resolve(kept)
+        items, _, cursor = sync_pull(self.client, PHOTOS_URL, cursor=cursor)
+        trashed = {i["id"]: i["in_trashcan"] for i in items}
+        self.assertEqual(trashed.get(str(other.id)), True)
+
+        group.revert()
+        items, _, _ = sync_pull(self.client, PHOTOS_URL, cursor=cursor)
+        restored = {i["id"]: i["in_trashcan"] for i in items}
+        self.assertEqual(restored.get(str(other.id)), False)
+
+
 class SyncTombstoneTest(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -347,9 +377,7 @@ class SyncCountsTest(TestCase):
         create_test_photos(number_of_photos=4, owner=self.user)
         AlbumUser.objects.create(title="A", owner=self.user)
         Tag.objects.create(name="t", owner=self.user)
-        Person.objects.create(
-            name="P", kind=Person.KIND_USER, cluster_owner=self.user
-        )
+        Person.objects.create(name="P", kind=Person.KIND_USER, cluster_owner=self.user)
 
         resp = self.client.get("/api/sync/counts/")
         data = resp.json()
@@ -370,7 +398,9 @@ class SyncOtherFeedsTest(TestCase):
 
         photos = create_test_photos(number_of_photos=2, owner=self.user)
         auto = AlbumAuto.objects.create(
-            title="Event", timestamp=timezone.now(), created_on=timezone.now(),
+            title="Event",
+            timestamp=timezone.now(),
+            created_on=timezone.now(),
             owner=self.user,
         )
         auto.photos.add(*photos)
@@ -401,7 +431,9 @@ class SyncOtherFeedsTest(TestCase):
 
         photos = create_test_photos(number_of_photos=3, owner=self.user)
         auto = AlbumAuto.objects.create(
-            title="Event", timestamp=timezone.now(), created_on=timezone.now(),
+            title="Event",
+            timestamp=timezone.now(),
+            created_on=timezone.now(),
             owner=self.user,
         )
         auto.photos.add(*photos)
@@ -433,8 +465,9 @@ class SyncConvergenceTest(TestCase):
     def _server_visible_ids_for_viewer(self):
         return set(
             str(pk)
-            for pk in Photo.objects.filter(shared_to=self.viewer)
-            .values_list("id", flat=True)
+            for pk in Photo.objects.filter(shared_to=self.viewer).values_list(
+                "id", flat=True
+            )
         )
 
     def _share(self, hashes, shared):
@@ -459,9 +492,7 @@ class SyncConvergenceTest(TestCase):
                 state[it["id"]] = it
             for tid in tombs:
                 state.pop(tid, None)
-            self.assertEqual(
-                set(state.keys()), self._server_visible_ids_for_viewer()
-            )
+            self.assertEqual(set(state.keys()), self._server_visible_ids_for_viewer())
 
         # 1. Create + share a batch.
         batch1 = create_test_photos(number_of_photos=6, owner=self.owner)
@@ -484,9 +515,7 @@ class SyncConvergenceTest(TestCase):
         apply_and_check()
 
         # Final convergence.
-        self.assertEqual(
-            set(state.keys()), self._server_visible_ids_for_viewer()
-        )
+        self.assertEqual(set(state.keys()), self._server_visible_ids_for_viewer())
 
 
 class DeviceTimestampFallbackTest(TestCase):
@@ -528,9 +557,7 @@ class DeviceTimestampFallbackTest(TestCase):
         )
 
         user = create_test_user()
-        existing = datetime.datetime(
-            2022, 8, 8, 8, 0, tzinfo=datetime.timezone.utc
-        )
+        existing = datetime.datetime(2022, 8, 8, 8, 0, tzinfo=datetime.timezone.utc)
         photo = create_test_photo(owner=user)
         Photo.objects.filter(pk=photo.pk).update(exif_timestamp=existing)
         photo.refresh_from_db()
