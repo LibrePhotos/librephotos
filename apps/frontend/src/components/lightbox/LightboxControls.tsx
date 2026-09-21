@@ -1,5 +1,6 @@
 import { ActionIcon, Divider, Group, Loader, RingProgress, Select, Tooltip } from "@mantine/core";
 import {
+  IconClipboard as Clipboard,
   IconEye as Eye,
   IconEyeOff as EyeOff,
   IconGlobe as Globe,
@@ -19,7 +20,7 @@ import {
 } from "@tabler/icons-react";
 import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { shareAddress } from "../../api_client/apiClient";
+import { serverAddress, shareAddress } from "../../api_client/apiClient";
 import {
   useMarkPhotosDeletedMutation,
   useSetFavoritePhotosMutation,
@@ -27,7 +28,8 @@ import {
   useSetPhotosPublicMutation,
 } from "../../api_client/photos/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { copyToClipboard } from "../../util/util";
+import { photos as photoNotifications } from "../../service/notifications/photos";
+import { copyImageToClipboard, copyToClipboard } from "../../util/util";
 import type { LightboxControlsProps } from "./lightbox.types";
 
 // Interval options for slideshow
@@ -107,25 +109,38 @@ export function LightboxControls({
     }
   }, [photoDetail, isPublic, markPhotosDeleted]);
 
+  const handleCopyToClipboard = useCallback(() => {
+    if (!photoDetail || type !== "photo") {
+      return;
+    }
+    const { image_hash: imageHash } = photoDetail;
+    copyImageToClipboard(`${serverAddress}/media/thumbnails_big/${imageHash}`)
+      .then(() => photoNotifications.copyImageToClipboardSucceeded())
+      .catch(() => photoNotifications.copyImageToClipboardFailed());
+  }, [photoDetail, type]);
+
   // Add event listeners for keyboard shortcuts
   useEffect(() => {
     const handleFavoriteEvent = () => handleFavoriteShortcut();
     const handleHideEvent = () => handleHideShortcut();
     const handlePublicEvent = () => handlePublicShortcut();
     const handleDeleteEvent = () => handleDeleteShortcut();
+    const handleCopyToClipboardEvent = () => handleCopyToClipboard();
 
     window.addEventListener("lightbox-favorite-shortcut", handleFavoriteEvent);
     window.addEventListener("lightbox-hide-shortcut", handleHideEvent);
     window.addEventListener("lightbox-public-shortcut", handlePublicEvent);
     window.addEventListener("lightbox-delete-shortcut", handleDeleteEvent);
+    window.addEventListener("lightbox-copy-to-clipboard-shortcut", handleCopyToClipboardEvent);
 
     return () => {
       window.removeEventListener("lightbox-favorite-shortcut", handleFavoriteEvent);
       window.removeEventListener("lightbox-hide-shortcut", handleHideEvent);
       window.removeEventListener("lightbox-public-shortcut", handlePublicEvent);
       window.removeEventListener("lightbox-delete-shortcut", handleDeleteEvent);
+      window.removeEventListener("lightbox-copy-to-clipboard-shortcut", handleCopyToClipboardEvent);
     };
-  }, [handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut, handleDeleteShortcut]);
+  }, [handleFavoriteShortcut, handleHideShortcut, handlePublicShortcut, handleDeleteShortcut, handleCopyToClipboard]);
 
   return (
     <Group gap="xs" justify="flex-end" align="center" style={{ background: "transparent" }}>
@@ -227,6 +242,19 @@ export function LightboxControls({
           <Tooltip label={t("lightbox.controls.zoom")} position="bottom" withArrow>
             <ActionIcon variant="subtle" color="gray" onClick={toggleZoom} size={28}>
               {isZoomed ? <ZoomOut size={18} /> : <ZoomIn size={18} />}
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {type === "photo" && photoDetail && (
+          <Tooltip label={t("lightbox.toolbar.copyToClipboard")} position="bottom" withArrow>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              onClick={handleCopyToClipboard}
+              size={28}
+              aria-label={t("lightbox.toolbar.copyToClipboard")}
+            >
+              <Clipboard size={18} />
             </ActionIcon>
           </Tooltip>
         )}

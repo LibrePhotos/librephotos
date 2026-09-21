@@ -20,6 +20,44 @@ export const copyToClipboard = (str: string) => {
   }
 };
 
+// Browsers only accept image/png (and a few others) as a clipboard image MIME type, so
+// WebP/JPEG source blobs are redrawn onto a canvas and re-encoded before being written.
+export async function copyImageToClipboard(imageUrl: string): Promise<void> {
+  const response = await fetch(imageUrl, { credentials: "include" });
+  const sourceBlob = await response.blob();
+
+  const pngBlob = await new Promise<Blob>((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(sourceBlob);
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not get canvas context"));
+        return;
+      }
+      ctx.drawImage(image, 0, 0);
+      canvas.toBlob(blob => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Could not convert image to PNG"));
+        }
+      }, "image/png");
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not load image"));
+    };
+    image.src = objectUrl;
+  });
+
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+}
+
 // TODO: Add ordinal suffix to day of month when implemented in luxon (NB, is it still valid?)
 export function formatDateForPhotoGroups(photoGroups: DatePhotosGroup[]): DatePhotosGroup[] {
   return photoGroups.map(photoGroup => {

@@ -63,6 +63,7 @@ The toolbar at the top provides quick actions. From left to right:
 - **Slideshow** - Start or stop an automatic slideshow. While it runs, a dropdown lets you choose the interval (3, 5, 10, 15 or 30 seconds).
 - **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos.
 - **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
+- **Copy to Clipboard** (clipboard icon) - Copy the current photo as a PNG image to your system clipboard, ready to paste into another app. Available for still photos only, not videos.
 - **Hide / Show** (eye icon) - Hide the photo from the main timeline, or unhide it.
 - **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark.
 - **Make public / Make private** (globe icon) - Toggle the photo's public visibility. Toggling in either direction also copies a link to the photo to your clipboard.
@@ -71,7 +72,7 @@ The toolbar at the top provides quick actions. From left to right:
 - **Toggle info panel** - Show or hide the photo details sidebar.
 - **Close** - Return to the gallery.
 
-The Hide, Favorite, Make public, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, info-panel and close buttons.
+The Hide, Favorite, Make public, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, copy-to-clipboard, fullscreen, info-panel and close buttons.
 
 There is no download or share button in the lightbox itself. To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
 
@@ -175,6 +176,7 @@ Click on any similar photo to view it directly.
 | `Escape` | Close photo viewer |
 | `Space` | Play / pause (videos only) |
 | `z` | Toggle zoom (still images only) |
+| `c` | Copy photo to clipboard as PNG (still images only) |
 | `i` | Toggle sidebar |
 | `f` | Toggle favorite |
 | `h` | Hide / unhide photo |

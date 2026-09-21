@@ -287,6 +287,15 @@ export function ContentViewer({
         }
       },
     ],
+    [
+      "c",
+      () => {
+        // Trigger copy-to-clipboard action if photo details are available
+        if (photoDetails && type === "photo") {
+          window.dispatchEvent(new CustomEvent("lightbox-copy-to-clipboard-shortcut"));
+        }
+      },
+    ],
     ["g", toggleFullscreen], // Toggle fullscreen mode
     ["s", toggleSlideshow], // Toggle slideshow mode
     ["t", () => hasOcrText && toggleOcrText()], // Toggle live text selection
