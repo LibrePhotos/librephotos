@@ -1,6 +1,6 @@
 import uuid
 
-from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
+from django.db.models import Count, Prefetch, Q
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, viewsets
@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.autoalbum import generate_event_albums, regenerate_event_titles
-from api.models import AlbumAuto, Face, Person, Photo
+from api.models import AlbumAuto, Person, Photo
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
@@ -32,40 +32,21 @@ class AlbumAutoViewSet(viewsets.ModelViewSet):
                 # photo, which costs a query each without this join (issue #619).
                 Prefetch("photos", queryset=Photo.visible.select_related("thumbnail")),
                 Prefetch("photos__faces"),
+                # No cover-face annotations here: `face_url`, `face_photo_url`
+                # and `video` are `SerializerMethodField`s on PersonSerializer,
+                # so DRF calls the getters and an annotation of the same name is
+                # never read. This view carried three such annotations and they
+                # had been dead for a while (#2047). The live ones live on
+                # PersonViewSet under names the serializer actually reads
+                # (`first_face_*`, #2042). They are not ported here because the
+                # semantics differ deliberately -- the dead ones excluded hidden
+                # and trashed photos and ordered by `added_on` -- so reviving
+                # them would change which face this page shows, which is a
+                # behaviour decision rather than a cleanup.
                 Prefetch(
                     "photos__faces__person",
                     queryset=Person.objects.all().annotate(
                         viewable_face_count=Count("faces"),
-                        face_url=Subquery(
-                            Face.objects.filter(
-                                person=OuterRef("pk"),
-                                photo__hidden=False,
-                                photo__in_trashcan=False,
-                                photo__owner=self.request.user,
-                            )
-                            .order_by("id")
-                            .values("image")[:1]
-                        ),
-                        face_photo_url=Subquery(
-                            Photo.objects.owned_by(self.request.user)
-                            .filter(
-                                faces__person=OuterRef("pk"),
-                                hidden=False,
-                                in_trashcan=False,
-                            )
-                            .order_by("added_on")
-                            .values("image_hash")[:1]
-                        ),
-                        video=Subquery(
-                            Photo.objects.owned_by(self.request.user)
-                            .filter(
-                                faces__person=OuterRef("pk"),
-                                hidden=False,
-                                in_trashcan=False,
-                            )
-                            .order_by("added_on")
-                            .values("video")[:1]
-                        ),
                     ),
                 ),
             )
