@@ -1,6 +1,6 @@
 # LibrePhotos Mobile v2
 
-The official LibrePhotos mobile app, rebuilt on **Expo (SDK 54, New
+The official LibrePhotos mobile app, rebuilt on **Expo (SDK 57, New
 Architecture)** with an **offline-first, device-mirrored** data model. It
 replaces the legacy `apps/mobile` (bare React Native 0.72 + NativeBase), which
 is frozen and removed in a follow-up once v2 ships on all channels.
@@ -184,7 +184,7 @@ fnm exec --using=22 -- npm.cmd ci        # or: npm install
 ### Run it
 
 Every native module the app uses is one **Expo Go** bundles, and the project
-is held at SDK 54 precisely so the App Store build of Expo Go can open it
+tracks the SDK the App Store build of Expo Go runs (57) so an iPhone can open it
 (see "Dependency constraints"). `expo-dev-client` is installed, so
 `expo start` defaults to dev-build mode — pass `--go` (or press `s` in the
 interactive prompt) for Expo Go:
@@ -254,23 +254,24 @@ migrations" check is just running this and confirming a clean `git status`.
 
 These are load-bearing — changing them breaks the build or tests:
 
-- **Expo SDK 54 is a ceiling, not a starting point.** The App Store build of
-  **Expo Go for iOS is capped at client 54.0.2**, and an Expo Go client can
-  only open projects on its own SDK. Moving to SDK 55+ therefore means the app
-  can no longer be opened on an iPhone with Expo Go at all — the only
-  alternative is an iOS [dev build](https://docs.expo.dev/develop/development-builds/introduction/),
-  which requires the **$99/yr Apple Developer Program** (declined). So: bump
-  the SDK only together with a decision about how iOS gets tested. Android has
-  no such constraint (Expo Go is sideloadable and dev builds are free), but the
+- **The SDK follows the App Store build of Expo Go for iOS** (currently
+  **SDK 57**). An Expo Go client only opens projects on its own SDK, and iOS
+  cannot sideload an older client, so when the App Store build moves, the app
+  has to move with it — and it must not run ahead of it either. The only other
+  way onto an iPhone is an iOS [dev build](https://docs.expo.dev/develop/development-builds/introduction/),
+  which requires the **$99/yr Apple Developer Program** (declined). History:
+  the app started on 57, dropped to 54 while the App Store client was capped
+  at 54.0.2, and returned to 57 once that client was updated. Android has no
+  such constraint (Expo Go is sideloadable and dev builds are free), but the
   SDK must stay a single number for both platforms. Take versions from Expo's
   own bundled-module list (`npx expo install --fix`), never by hand, and keep
   `npx expo install --check` clean.
-- **`expo-media-library` has no `/legacy` subpath on SDK 54** — its classic
-  `getAssetsAsync`/`getAlbumsAsync` API *is* the main entry, and the rewrite
-  sits behind `expo-media-library/next`. `expo-file-system` is the opposite:
-  the new API is the main entry and the app imports
-  `expo-file-system/legacy`. Both flip in later SDKs, so these two imports are
-  the first thing to re-check on any SDK bump.
+- **`expo-media-library` and `expo-file-system` are both imported from
+  `/legacy` on SDK 57.** The classic `getAssetsAsync`/`getAlbumsAsync` API
+  lives at `expo-media-library/legacy` (the un-suffixed exports throw at
+  runtime), and the app uses `expo-file-system/legacy` for the same reason.
+  On SDK 54 media-library's classic API was the main entry instead, so these
+  two imports are the first thing to re-check on any SDK move.
 - **zod v3**, not v4. `packages/api-client` pins `zod@^3` and its peer range is
   `^3.23.0`. The schemas rely on v3 semantics; do not bump to v4.
 - **Single `@types/react`**. React types must resolve to **one** copy across the
@@ -281,9 +282,9 @@ These are load-bearing — changing them breaks the build or tests:
   packages by absolute resolved path (via `require.resolve`) rather than by
   name so both jest projects load the same physical copy. Keep new mappings in
   that style.
-- **React is pinned to `19.1.0`** in `apps/mobile-v2` *and* at the workspace
-  root — the version Expo SDK 54 / react-native 0.81.5 ship with. `jest-expo@54`
-  depends on `react-test-renderer@19.1.0`, and jest-expo refuses to run unless
+- **React is pinned to `19.2.3`** in `apps/mobile-v2` *and* at the workspace
+  root — the version Expo SDK 57 / react-native 0.86 ship with. `jest-expo@57`
+  depends on `react-test-renderer@19.2.3`, and jest-expo refuses to run unless
   `react-test-renderer` matches `react` exactly — bumping React alone fails
   every `rn` suite with *"Incorrect version of react-test-renderer detected"*.
   Move `react`, `react-dom`, and `react-test-renderer` together, in both
@@ -303,7 +304,7 @@ These are load-bearing — changing them breaks the build or tests:
   auto-installs the root `expo-router`'s open-ended peers
   (`react-native-screens: *`, `react-native-safe-area-context: >= 5.4.0`) at
   their newest versions, which put a second copy of both next to the versions
-  SDK 54 bundles — expo-router would then resolve different screens/safe-area
+  SDK 57 bundles — expo-router would then resolve different screens/safe-area
   modules than the app. The overrides pin one copy of each.
 - **`babel-preset-expo` is a direct devDependency** even though `expo` already
   depends on it. It peer-depends back on `expo`, so npm resolves that cycle by

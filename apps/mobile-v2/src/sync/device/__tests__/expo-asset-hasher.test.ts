@@ -17,7 +17,7 @@ import type { AssetHashResult } from "../types";
 const mockGetAssetInfoAsync = jest.fn();
 const mockGetInfoAsync = jest.fn();
 
-jest.mock("expo-media-library", () => ({ getAssetInfoAsync: mockGetAssetInfoAsync }));
+jest.mock("expo-media-library/legacy", () => ({ getAssetInfoAsync: mockGetAssetInfoAsync }));
 jest.mock("expo-file-system/legacy", () => ({ getInfoAsync: mockGetInfoAsync }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

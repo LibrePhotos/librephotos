@@ -1,4 +1,7 @@
-import type { Href, Router } from "expo-router";
+import type { Href, useRouter } from "expo-router";
+
+/** expo-router stopped exporting the `Router` type in SDK 57. */
+type Router = ReturnType<typeof useRouter>;
 
 /** The slice of the expo-router `Router` a back button actually needs. */
 export type BackCapableRouter = Pick<Router, "back" | "replace"> & {

@@ -1,11 +1,10 @@
 /**
- * Real {@link MediaProvider} backed by expo-media-library (SDK 54 main entry —
- * the stable getAssetsAsync/getAlbumsAsync API; the rewritten API lives behind
- * `expo-media-library/next` here and only becomes the default in later SDKs).
- * App-only: imported solely by sync/run, never by the pure device-sync module
- * or the Node tests.
+ * Real {@link MediaProvider} backed by expo-media-library (SDK 57 `legacy`
+ * entry — the stable getAssetsAsync/getAlbumsAsync API; the un-suffixed exports
+ * throw at runtime in SDK 57). App-only: imported solely by sync/run, never by
+ * the pure device-sync module or the Node tests.
  */
-import * as MediaLibrary from "expo-media-library";
+import * as MediaLibrary from "expo-media-library/legacy";
 import type {
   LocalMediaType,
   MediaAlbum,

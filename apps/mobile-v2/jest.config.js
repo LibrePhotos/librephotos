@@ -41,6 +41,10 @@ module.exports = {
       displayName: "rn",
       preset: "jest-expo",
       setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+      // react-native-worklets (SDK 57 / reanimated 4.5) resolves its `.native`
+      // sources under jest-expo's platform extensions and then dies on the
+      // missing native module; its own resolver strips those extensions.
+      resolver: "react-native-worklets/jest/resolver",
       moduleNameMapper: RN_MODULE_NAME_MAPPER,
       modulePaths: ["<rootDir>/node_modules"],
       // DB + sync + mutation-core tests belong to the node project.

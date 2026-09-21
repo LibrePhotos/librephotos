@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { View, useWindowDimensions } from "react-native";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -107,7 +107,7 @@ export function PhotoViewerScreen() {
   const [renamingPerson, setRenamingPerson] = useState<People | null>(null);
   const [highlightedFace, setHighlightedFace] = useState<number | null>(null);
 
-  const listRef = useRef<React.ComponentRef<typeof FlashList<ViewerSlide>>>(null);
+  const listRef = useRef<FlashListRef<ViewerSlide>>(null);
   const ready = useAfterFirstPaint();
 
   // Pager context: a window of the timeline (mirror) *around* the tapped photo,

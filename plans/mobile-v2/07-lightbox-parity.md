@@ -292,7 +292,7 @@ have landed** — the status column records where each one lives.
 | 13 | Neighbour preloading (±2, into `expo-image`'s disk cache) | `PhotoViewerScreen.tsx` |
 | 14 | Make public (online-only) + copy link | `ViewerActionBar.tsx` |
 
-The one dependency added for all of it is `expo-video` (`~3.0.16`, the SDK 54
+The one dependency added for all of it is `expo-video` (`~57.0.4`, the SDK 57
 version), which Expo Go bundles. Nothing else needed a new package — the sheet,
 the map and the face overlay are all built on gesture-handler, reanimated and
 expo-image, which the app already had.

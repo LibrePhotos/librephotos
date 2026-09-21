@@ -154,7 +154,7 @@ function ActiveVideo({
         style={{ width, height }}
         contentFit="contain"
         nativeControls
-        allowsFullscreen
+        fullscreenOptions={{ enable: true }}
         allowsPictureInPicture={false}
       />
     </Pressable>
