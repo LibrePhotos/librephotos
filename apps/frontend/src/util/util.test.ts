@@ -1,7 +1,14 @@
 import type { DirTree } from "../api_client/dir-tree";
 import type { DatePhotosGroup } from "../api_client/photos/types";
 import i18n from "../i18n";
-import { EMAIL_REGEX, formatDateForPhotoGroups, fuzzyMatch, getAveragedCoordinates, mergeDirTree } from "./util";
+import {
+  copyImageToClipboard,
+  EMAIL_REGEX,
+  formatDateForPhotoGroups,
+  fuzzyMatch,
+  getAveragedCoordinates,
+  mergeDirTree,
+} from "./util";
 
 describe("email regex test", () => {
   test("good samples should match", () => {
@@ -243,5 +250,80 @@ describe("getAveragedCoordinates", () => {
       { id: "4", exif_gps_lat: 2, exif_gps_lon: 1 },
     ]);
     expect(actual).toEqual({ avgLat: 0.75, avgLon: 3.25 });
+  });
+});
+
+describe("copyImageToClipboard", () => {
+  const sourceBlob = new Blob(["source"], { type: "image/webp" });
+  const pngBlob = new Blob(["png"], { type: "image/png" });
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        blob: () => Promise.resolve(sourceBlob),
+      })
+    );
+    URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url");
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(callback => callback(pngBlob));
+    vi.stubGlobal(
+      "ClipboardItem",
+      class MockClipboardItem {
+        constructor(public items: Record<string, Blob>) {}
+      }
+    );
+    vi.stubGlobal("navigator", {
+      clipboard: { write: vi.fn().mockResolvedValue(undefined) },
+    });
+
+    class MockImage {
+      naturalWidth = 100;
+
+      naturalHeight = 50;
+
+      onload: (() => void) | null = null;
+
+      onerror: (() => void) | null = null;
+
+      set src(_value: string) {
+        this.onload?.();
+      }
+    }
+    vi.stubGlobal("Image", MockImage);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("fetches the image, converts it to PNG and writes it to the clipboard", async () => {
+    await copyImageToClipboard("https://example.com/media/thumbnails_big/abc");
+
+    expect(fetch).toHaveBeenCalledWith("https://example.com/media/thumbnails_big/abc", { credentials: "include" });
+    expect(navigator.clipboard.write).toHaveBeenCalledTimes(1);
+    const [clipboardItem] = (navigator.clipboard.write as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(clipboardItem.items).toEqual({ "image/png": pngBlob });
+  });
+
+  test("rejects when the image fails to load", async () => {
+    class FailingImage {
+      onload: (() => void) | null = null;
+
+      onerror: (() => void) | null = null;
+
+      set src(_value: string) {
+        this.onerror?.();
+      }
+    }
+    vi.stubGlobal("Image", FailingImage);
+
+    await expect(copyImageToClipboard("https://example.com/media/thumbnails_big/abc")).rejects.toThrow(
+      "Could not load image"
+    );
   });
 });
