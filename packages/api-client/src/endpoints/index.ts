@@ -210,7 +210,7 @@ export async function searchPhotos(
 /* ---- settings ---------------------------------------------------------- */
 
 export async function fetchSiteSettings(client: ApiClient): Promise<S.SiteSettings> {
-  const res = await client.get<unknown>("/site-settings");
+  const res = await client.get<unknown>("/sitesettings");
   return parseResponse(S.SiteSettings, res, "site settings");
 }
 
@@ -225,7 +225,7 @@ export async function updateUserPartial(
 
 /* ---- jobs -------------------------------------------------------------- */
 
-export async function fetchJobs(client: ApiClient, page = 0, pageSize = 20): Promise<S.JobsResponse> {
+export async function fetchJobs(client: ApiClient, page = 1, pageSize = 20): Promise<S.JobsResponse> {
   const res = await client.get<unknown>(`/jobs/${buildQuery({ page, page_size: pageSize })}`);
   return parseResponse(S.JobsResponse, res, "jobs");
 }
@@ -342,7 +342,7 @@ export type FaceListParams = {
 export async function fetchFaces(client: ApiClient, params: FaceListParams = {}): Promise<S.PersonFaceListResponse> {
   const query = buildQuery({
     person: params.person ?? 0,
-    page: params.page ?? 0,
+    page: params.page ?? 1,
     inferred: params.inferred ?? false,
     order_by: params.orderBy ?? "confidence",
     analysis_method: params.analysisMethod,

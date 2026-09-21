@@ -74,7 +74,7 @@ const PHOTO_DETAIL = {
 function onlineClient() {
   return makeMockClient(async (url) => {
     if (url.includes("/photos/hashA/")) return jsonResponse(PHOTO_DETAIL);
-    if (url.includes("/site-settings")) return jsonResponse({}, 404);
+    if (url.includes("/sitesettings")) return jsonResponse({}, 404);
     return jsonResponse({}, 404);
   });
 }

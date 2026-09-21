@@ -190,7 +190,7 @@ export function useJobsQuery(options?: { page?: number; pageSize?: number; refet
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.jobs(),
-    queryFn: () => endpoints.fetchJobs(client, options?.page ?? 0, options?.pageSize ?? 20),
+    queryFn: () => endpoints.fetchJobs(client, options?.page ?? 1, options?.pageSize ?? 20),
     refetchInterval: options?.refetchInterval,
   });
 }
@@ -251,7 +251,7 @@ export function useFacesQuery(
 ) {
   const client = useApiClient();
   return useQuery({
-    queryKey: queryKeys.faces(params.person ?? 0, params.inferred ?? false, params.page ?? 0),
+    queryKey: queryKeys.faces(params.person ?? 0, params.inferred ?? false, params.page ?? 1),
     queryFn: () => endpoints.fetchFaces(client, params),
     enabled,
   });
