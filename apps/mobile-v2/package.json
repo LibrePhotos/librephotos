@@ -3,7 +3,6 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
-    "@expo/ui": "~0.2.0-beta.9",
     "@expo/vector-icons": "^15.0.3",
     "@shopify/flash-list": "2.0.2",
     "@tanstack/react-query": "^5.101.4",
