@@ -29,16 +29,17 @@ FACE_CLASSIFY_COLUMNS = [
 ]
 
 
-def cluster_faces(user, inferred=True):
-    # Fetch distinct persons associated with the user's faces
+def build_person_color_map(user) -> dict:
+    """Map each person appearing in the user's faces to a palette color"""
     persons = [p.id for p in Person.objects.filter(faces__photo__owner=user).distinct()]
+    return dict(zip(persons, hex_palette(n_colors=len(persons))))
 
-    # Create a color mapping for each person
-    p2c = dict(zip(persons, hex_palette(n_colors=len(persons))))
 
+def collect_visualizable_faces(user, inferred: bool) -> tuple[list, list]:
+    """The user's non-deleted faces that carry an encoding, paired with those
+    encodings. Labeled faces are only included when inferred ones are wanted."""
     face_encoding = []
     faces_with_encoding = []
-    # Fetch faces that belong to the user and are not deleted
     faces = Face.objects.filter(Q(photo__owner=user) & Q(deleted=False))
     paginator = Paginator(faces, 5000)
 
@@ -48,36 +49,36 @@ def cluster_faces(user, inferred=True):
                 face_encoding.append(face.get_encoding_array())
                 faces_with_encoding.append(face)
 
-    # Return empty result if no faces with encodings
+    return face_encoding, faces_with_encoding
+
+
+def build_scatter_point(face: Face, vis, p2c: dict) -> dict:
+    person = face.person
+    person_id = person.id if person else UNKNOWN_CLUSTER_ID
+    return {
+        "person_id": person_id,
+        "person_name": person.name if person else "unknown",
+        "person_label_is_inferred": not person,
+        "color": p2c.get(person_id, "#000000"),
+        "face_url": face.image.url,
+        "value": {"x": vis[0], "y": vis[1], "size": vis[2]},
+    }
+
+
+def cluster_faces(user, inferred=True):
+    p2c = build_person_color_map(user)
+    face_encoding, faces_with_encoding = collect_visualizable_faces(user, inferred)
+
     if len(face_encoding) == 0:
         return {"status": True, "data": []}
 
-    # Perform PCA for dimensionality reduction
     pca = PCA(n_components=3)
     vis_all = pca.fit_transform(face_encoding)
 
-    res = []
-    for face, vis in zip(faces_with_encoding, vis_all):
-        person_id = face.person.id if face.person else UNKNOWN_CLUSTER_ID
-        person_name = face.person.name if face.person else "unknown"
-
-        # Ensure UNKNOWN_CLUSTER_ID is in p2c
-        if person_id not in p2c:
-            # Assign a default color if not found
-            color = "#000000"  # Default to black or any fallback color
-        else:
-            color = p2c[person_id]
-
-        res.append(
-            {
-                "person_id": person_id,
-                "person_name": person_name,
-                "person_label_is_inferred": not face.person,
-                "color": color,
-                "face_url": face.image.url,
-                "value": {"x": vis[0], "y": vis[1], "size": vis[2]},
-            }
-        )
+    res = [
+        build_scatter_point(face, vis, p2c)
+        for face, vis in zip(faces_with_encoding, vis_all)
+    ]
     return {"status": True, "data": res}
 
 
@@ -119,19 +120,12 @@ def cluster_all_faces(user, job_id) -> bool:
         return False
 
 
-def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
-    """Generate Cluster records for each different clustering of people
-    :param user: the current user
-    :param lrj: LongRunningJob to update, if needed
-    """
-    all_clusters: list[Cluster] = []
-    face: Face
-    logger.info("Creating clusters")
-
-    data = {
-        "all": {"encoding": [], "id": [], "person_id": [], "person_labeled": []},
-    }
+def collect_face_encodings(user: User) -> dict:
+    """Gather every usable encoding of the user's faces, keyed alongside its face id"""
+    encodings: list = []
+    ids: list[int] = []
     encoding_length: int | None = None
+    face: Face
     for face in Face.objects.filter(
         photo__owner=user, encoding__isnull=False
     ).prefetch_related("person"):
@@ -149,57 +143,61 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
                 encoding_length,
             )
             continue
-        data["all"]["encoding"].append(enc)
-        data["all"]["id"].append(face.id)
+        encodings.append(enc)
+        ids.append(face.id)
+    return {"encoding": encodings, "id": ids}
 
-    target_count = len(data["all"]["id"])
-    if target_count == 0:
-        return target_count
 
-    min_cluster_size = 2
-    # double cluster size for every 10x increase in target counts, if user has not set a valid min_cluster_size
-    if (
-        user.min_cluster_size == 0
-        or user.min_cluster_size is None
-        or user.min_cluster_size == 1
-    ):
-        if target_count > 1000:
-            min_cluster_size = 4
-        if target_count > 10000:
-            min_cluster_size = 8
-        if target_count > 100000:
-            min_cluster_size = 16
-    else:
-        min_cluster_size = user.min_cluster_size
+def resolve_min_cluster_size(user: User, target_count: int) -> int:
+    """Double the cluster size for every 10x increase in target counts, unless the
+    user has set a valid min_cluster_size"""
+    if user.min_cluster_size not in (0, 1, None):
+        return user.min_cluster_size
+    if target_count > 100000:
+        return 16
+    if target_count > 10000:
+        return 8
+    if target_count > 1000:
+        return 4
+    return 2
 
-    min_samples = 1
-    if user.min_samples > 0:
-        min_samples = user.min_samples
 
-    # creating HDBSCAN object for clustering the encodings with the metric "euclidean"
-    clt = HDBSCAN(
-        min_cluster_size=min_cluster_size,
-        min_samples=min_samples,
+def build_clusterer(user: User, target_count: int) -> HDBSCAN:
+    return HDBSCAN(
+        min_cluster_size=resolve_min_cluster_size(user, target_count),
+        min_samples=user.min_samples if user.min_samples > 0 else 1,
         cluster_selection_epsilon=user.cluster_selection_epsilon,
         metric="euclidean",
     )
+
+
+def group_indexes_by_label(labels: np.ndarray) -> dict[int, np.ndarray]:
+    return {label: np.where(labels == label)[0] for label in np.unique(labels)}
+
+
+def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
+    """Generate Cluster records for each different clustering of people
+    :param user: the current user
+    :param lrj: LongRunningJob to update, if needed
+    """
+    logger.info("Creating clusters")
+    data = collect_face_encodings(user)
+
+    target_count = len(data["id"])
+    if target_count == 0:
+        return target_count
+
+    clt = build_clusterer(user, target_count)
     logger.info("Before finding clusters")
-    # clustering the encodings
-    clt.fit(np.array(data["all"]["encoding"]))
+    clt.fit(np.array(data["encoding"]))
     logger.info("After finding clusters")
 
-    labelIDs = np.unique(clt.labels_)
-    labelID: np.intp
+    sortedIndexes = group_indexes_by_label(clt.labels_)
+    maxLen: int = len(str(len(sortedIndexes)))
+    all_clusters: list[Cluster] = []
     commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
     count: int = 0
-    maxLen: int = len(str(np.size(labelIDs)))
-    sortedIndexes: dict[int, np.ndarray] = dict()
     clusterCount: int = 0
-    clusterId: int
-
-    for labelID in labelIDs:
-        idxs = np.where(clt.labels_ == labelID)[0]
-        sortedIndexes[labelID] = idxs
 
     logger.info(f"Found {len(sortedIndexes)} clusters")
     for labelID in sorted(
@@ -210,17 +208,13 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             clusterId = clusterCount
         else:
             clusterId = labelID
-        face_array: list[Face] = []
-        face_id_list: list[int] = []
-        for i in sortedIndexes[labelID]:
-            count = count + 1
-            face_id = data["all"]["id"][i]
-            face_id_list.append(face_id)
+        face_id_list = [data["id"][i] for i in sortedIndexes[labelID]]
+        count = count + len(face_id_list)
         face_array = Face.objects.filter(
             Q(pk__in=face_id_list) & Q(encoding__isnull=False) & Q(deleted=False)
         )
-        new_clusters: list[Cluster] = ClusterManager.try_add_cluster(
-            user, clusterId, face_array, maxLen
+        all_clusters.extend(
+            ClusterManager.try_add_cluster(user, clusterId, face_array, maxLen)
         )
 
         if commit_time < datetime.datetime.now() and lrj is not None:
@@ -228,8 +222,6 @@ def create_all_clusters(user: User, lrj: LongRunningJob = None) -> int:
             lrj.progress_target = target_count
             lrj.save()
             commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-
-        all_clusters.extend(new_clusters)
 
     print(f"[INFO] Created {len(all_clusters)} clusters")
     return target_count
@@ -278,6 +270,136 @@ def filter_data(encodings, ids):
     return np.array(valid_encodings), np.array(valid_ids)
 
 
+def fit_mlp(encodings, ids) -> MLPClassifier:
+    return MLPClassifier(solver="adam", alpha=1e-5, random_state=1, max_iter=1000).fit(
+        encodings, ids
+    )
+
+
+def split_faces_by_label(user: User) -> tuple[dict, dict]:
+    """Sort the user's faces into person-labeled ones and unlabeled ones. Two dicts,
+    so that the known one can be thrown out once it is no longer used."""
+    data_known = {"encoding": [], "id": []}
+    data_unknown = {"encoding": [], "id": []}
+    face: Face
+    for face in Face.objects.filter(
+        Q(photo__owner=user)
+        & Q(encoding__isnull=False)
+        & ~Q(encoding="")
+        & Q(deleted=False)
+    ).prefetch_related("person"):
+        if not face.person:
+            data_unknown["encoding"].append(face.get_encoding_array())
+            data_unknown["id"].append(face.id)
+        else:
+            data_known["encoding"].append(face.get_encoding_array())
+            data_known["id"].append(face.person.id)
+    return data_known, data_unknown
+
+
+def add_cluster_centroids(user: User, data_known: dict) -> None:
+    """Pretend all unknown face clusters are known and add their mean encoding. This
+    allows us to predict the likelihood of other unknown faces belonging to those
+    simulated clusters. For the "Unknown - Other"-type cluster, we can still try to
+    predict the probability that the face can't be classified into another group,
+    i.e. that it should be classified that way"""
+    cluster: Cluster
+    for cluster in Cluster.objects.filter(owner=user):
+        if cluster.person and cluster.person.kind == Person.KIND_CLUSTER:
+            print(cluster.person)
+            data_known["encoding"].append(cluster.get_mean_encoding_array())
+            data_known["id"].append(cluster.person.id)
+
+
+def most_probable_class(classes, probabilities):
+    """The last class whose probability equals the highest one, and that probability"""
+    highest_probability = max(probabilities)
+    highest_class = 0
+    for i, target in enumerate(classes):
+        if highest_probability == probabilities[i]:
+            highest_class = target
+    return highest_class, highest_probability
+
+
+def assign_face_predictions(
+    face: Face,
+    cluster_probabilities,
+    classification_probabilities,
+    cluster_classifier,
+    classifier,
+    unknown_cluster,
+) -> None:
+    face.cluster_probability = 0.0
+    face.classification_probability = 0.0
+
+    classification_person = None
+    classification_probability = 0.0
+    if classifier:
+        classification_person, classification_probability = most_probable_class(
+            classifier.classes_, classification_probabilities
+        )
+
+    # Find the probability in the probability array corresponding to the person
+    # that we currently believe the face is, even a simulated "unknown" person
+    highest_probability_person, highest_probability = most_probable_class(
+        cluster_classifier.classes_, cluster_probabilities
+    )
+
+    if face.cluster != unknown_cluster:
+        face.cluster_person = Person.objects.get(id=highest_probability_person)
+        face.cluster_probability = highest_probability
+
+    if classification_person:
+        face.classification_person = Person.objects.get(id=classification_person)
+        face.classification_probability = classification_probability
+
+
+def classify_face_page(
+    user: User,
+    page_encodings: list,
+    page_id: list[int],
+    classifier,
+    cluster_classifier,
+    lrj: LongRunningJob,
+    target_count: int,
+) -> None:
+    pages_of_faces = Face.objects.filter(id__in=page_id).all()
+    pages_of_faces = sorted(pages_of_faces, key=lambda x: page_id.index(x.id))
+    face_encodings_unknown_np = np.array(page_encodings)
+    cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
+    if classifier:
+        classification_probs = classifier.predict_proba(face_encodings_unknown_np)
+    else:
+        classification_probs = [
+            [0.0] * len(cluster_classifier.classes_) for _ in cluster_probs
+        ]
+
+    commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+    face_stack = []
+    unknown_cluster: Cluster = get_unknown_cluster(user=user)
+
+    for idx, (face, cluster_probabilities, classification_probabilities) in enumerate(
+        zip(pages_of_faces, cluster_probs, classification_probs)
+    ):
+        assign_face_predictions(
+            face,
+            cluster_probabilities,
+            classification_probabilities,
+            cluster_classifier,
+            classifier,
+            unknown_cluster,
+        )
+        face_stack.append(face)
+        if commit_time < datetime.datetime.now():
+            lrj.update_progress(current=idx + 1, target=target_count)
+            commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
+        if len(face_stack) > 200:
+            bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+            face_stack = []
+
+    bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+
+
 def train_faces(user: User, job_id) -> bool:
     """Given existing Cluster records for all faces, determines the probability
     that unknown faces belong to those Clusters. It takes any known, labeled faces
@@ -294,53 +416,25 @@ def train_faces(user: User, job_id) -> bool:
     )
     lrj.update_progress(current=1, target=2)
     try:
-        # Use two array, so that the first one gets thrown out, if it is no longer used.
-        data_known = {"encoding": [], "id": []}
-        data_unknown = {"encoding": [], "id": []}
-        # First, sort all faces into known and unknown ones
-        face: Face
-        for face in Face.objects.filter(
-            Q(photo__owner=user)
-            & Q(encoding__isnull=False)
-            & ~Q(encoding="")
-            & Q(deleted=False)
-        ).prefetch_related("person"):
-            if not face.person:
-                data_unknown["encoding"].append(face.get_encoding_array())
-                data_unknown["id"].append(face.id)
-            else:
-                data_known["encoding"].append(face.get_encoding_array())
-                data_known["id"].append(face.person.id)
+        data_known, data_unknown = split_faces_by_label(user)
 
         if len(data_known["id"]) == 0:
             classifier = None
         else:
             logger.info("Before fitting")
-            classifier = MLPClassifier(
-                solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-            ).fit(np.array(data_known["encoding"]), np.array(data_known["id"]))
+            classifier = fit_mlp(
+                np.array(data_known["encoding"]), np.array(data_known["id"])
+            )
             logger.info("After fitting")
 
-        # Next, pretend all unknown face clusters are known and add their mean encoding. This allows us
-        # to predict the likelihood of other unknown faces belonging to those simulated clusters. For
-        # the "Unknown - Other"-type cluster, we can still try to predict the probability that the face
-        # can't be classified into another group, i.e. that it should be classified that way
-        cluster: Cluster
-        for cluster in Cluster.objects.filter(owner=user):
-            if cluster.person and cluster.person.kind == Person.KIND_CLUSTER:
-                print(cluster.person)
-                data_known["encoding"].append(cluster.get_mean_encoding_array())
-                data_known["id"].append(cluster.person.id)
-
+        add_cluster_centroids(user, data_known)
         filtered_encodings, filtered_ids = filter_data(
             data_known["encoding"], data_known["id"]
         )
 
         # Fit the classifier based on the "known" faces, including the simulated clusters
         logger.info("Before cluster fitting")
-        cluster_classifier = MLPClassifier(
-            solver="adam", alpha=1e-5, random_state=1, max_iter=1000
-        ).fit(filtered_encodings, filtered_ids)
+        cluster_classifier = fit_mlp(filtered_encodings, filtered_ids)
         logger.info("After cluster fitting")
 
         # Collect the probabilities for each unknown face. The probabilities returned
@@ -360,93 +454,16 @@ def train_faces(user: User, job_id) -> bool:
             return True
         logger.info(f"Number of Cluster: {target_count}")
 
-        # Hacky way to split arrays into smaller arrays
-        pages_encoding = [
-            data_unknown["encoding"][i : i + 100]
-            for i in range(0, len(data_unknown["encoding"]), 100)
-        ]
-        pages_id = [
-            data_unknown["id"][i : i + 100]
-            for i in range(0, len(data_unknown["encoding"]), 100)
-        ]
-        for idx, page in enumerate(pages_encoding):
-            page_id = pages_id[idx]
-            pages_of_faces = Face.objects.filter(id__in=page_id).all()
-            # sort pages of faces by id by page_id
-            pages_of_faces = sorted(pages_of_faces, key=lambda x: page_id.index(x.id))
-            face_encodings_unknown_np = np.array(page)
-            cluster_probs = cluster_classifier.predict_proba(face_encodings_unknown_np)
-            if classifier:
-                classification_probs = classifier.predict_proba(
-                    face_encodings_unknown_np
-                )
-            else:
-                classification_probs = []
-                while len(classification_probs) < len(cluster_probs):
-                    classification_probs.append(
-                        [0.0] * len(cluster_classifier.classes_)
-                    )
-
-            commit_time = datetime.datetime.now() + datetime.timedelta(seconds=5)
-            face_stack = []
-            unknown_cluster: Cluster = get_unknown_cluster(user=user)
-
-            for idx, (
-                face,
-                cluster_probabilities,
-                classification_probabilties,
-            ) in enumerate(zip(pages_of_faces, cluster_probs, classification_probs)):
-                face.cluster_probability = 0.0  # Cluster probability
-                face.classification_probability = 0.0  # Classification probability
-                classification_person = None
-                classification_probability = 0.0
-
-                highest_classification_probability = max(classification_probabilties)
-                highest_classification_person = 0
-
-                # Find the person with the highest probability for classification
-                if classifier:
-                    for i, target in enumerate(classifier.classes_):
-                        if (
-                            highest_classification_probability
-                            == classification_probabilties[i]
-                        ):
-                            highest_classification_person = target
-
-                    classification_person = highest_classification_person
-                    classification_probability = highest_classification_probability
-
-                # Find the probability in the probability array corresponding to the person
-                # that we currently believe the face is, even a simulated "unknown" person
-                highest_probability = max(cluster_probabilities)
-                highest_probability_person = 0
-                for i, target in enumerate(cluster_classifier.classes_):
-                    if highest_probability == cluster_probabilities[i]:
-                        highest_probability_person = target
-
-                if face.cluster != unknown_cluster:
-                    face.cluster_person = Person.objects.get(
-                        id=highest_probability_person
-                    )
-                    face.cluster_probability = highest_probability
-
-                if classification_person:
-                    face.classification_person = Person.objects.get(
-                        id=classification_person
-                    )
-                    face.classification_probability = classification_probability
-
-                face_stack.append(face)
-                if commit_time < datetime.datetime.now():
-                    lrj.update_progress(current=idx + 1, target=target_count)
-                    commit_time = datetime.datetime.now() + datetime.timedelta(
-                        seconds=5
-                    )
-                if len(face_stack) > 200:
-                    bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
-                    face_stack = []
-
-            bulk_update(face_stack, update_fields=FACE_CLASSIFY_COLUMNS)
+        for start in range(0, len(data_unknown["encoding"]), 100):
+            classify_face_page(
+                user,
+                data_unknown["encoding"][start : start + 100],
+                data_unknown["id"][start : start + 100],
+                classifier,
+                cluster_classifier,
+                lrj,
+                target_count,
+            )
 
         lrj.update_progress(current=target_count, target=target_count)
         lrj.complete()

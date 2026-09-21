@@ -7,6 +7,43 @@ from api.metadata.tags import Tags
 from api.util import is_number, logger
 
 
+ORIENTATION_TRANSFORMS = {
+    "Rotate 90 CW": lambda x, y, w, h: (1 - y, x, h, w),
+    "Mirror horizontal": lambda x, y, w, h: (1 - x, y, w, h),
+    "Rotate 180": lambda x, y, w, h: (1 - x, 1 - y, w, h),
+    "Mirror vertical": lambda x, y, w, h: (x, 1 - y, w, h),
+    "Mirror horizontal and rotate 270 CW": lambda x, y, w, h: (1 - y, x, h, w),
+    "Mirror horizontal and rotate 90 CW": lambda x, y, w, h: (y, 1 - x, h, w),
+    "Rotate 270 CW": lambda x, y, w, h: (y, 1 - x, h, w),
+}
+
+
+def has_normalized_area(area, applied_to_dimensions):
+    return (area and area.get("Unit") == "normalized") or (
+        applied_to_dimensions and applied_to_dimensions.get("Unit") == "pixel"
+    )
+
+
+def to_face_box(area, orientation, image_width, image_height):
+    values = [area.get(key) for key in ("X", "Y", "W", "H")]
+    if not all(is_number(value) for value in values):
+        return None
+
+    x, y, w, h = (float(value) for value in values)
+    transform = ORIENTATION_TRANSFORMS.get(orientation)
+    if transform:
+        x, y, w, h = transform(x, y, w, h)
+
+    half_width = (w * image_width) / 2
+    half_height = (h * image_height) / 2
+    return (
+        int((y * image_height) - half_height),
+        int((x * image_width) + half_width),
+        int((y * image_height) + half_height),
+        int((x * image_width) - half_width),
+    )
+
+
 def extract_from_exif(image_path, big_thumbnail_image_path):
     (region_info, orientation) = get_metadata(
         image_path,
@@ -22,70 +59,25 @@ def extract_from_exif(image_path, big_thumbnail_image_path):
     for region in region_info["RegionList"]:
         if region.get("Type") != "Face":
             continue
-        person_name = region.get("Name")
 
         area = region.get("Area")
-        applied_to_dimensions = region.get("AppliedToDimensions")
         big_thumbnail_image = np.array(PIL.Image.open(big_thumbnail_image_path))
-        if (area and area.get("Unit") == "normalized") or (
-            applied_to_dimensions and applied_to_dimensions.get("Unit") == "pixel"
-        ):
-            image_width = big_thumbnail_image.shape[1]
-            image_height = big_thumbnail_image.shape[0]
-            if (
-                not is_number(area.get("X"))
-                or not is_number(area.get("Y"))
-                or not is_number(area.get("W"))
-                or not is_number(area.get("H"))
-            ):
-                logger.info(
-                    f"Broken face area exif data! No numerical positional data. region_info: {region_info}"
-                )
-                continue
+        if not has_normalized_area(area, region.get("AppliedToDimensions")):
+            continue
 
-            correct_w = float(area.get("W"))
-            correct_h = float(area.get("H"))
-            correct_x = float(area.get("X"))
-            correct_y = float(area.get("Y"))
-            if orientation == "Rotate 90 CW":
-                temp_x = correct_x
-                correct_x = 1 - correct_y
-                correct_y = temp_x
-                correct_w, correct_h = correct_h, correct_w
-            elif orientation == "Mirror horizontal":
-                correct_x = 1 - correct_x
-            elif orientation == "Rotate 180":
-                correct_x = 1 - correct_x
-                correct_y = 1 - correct_y
-            elif orientation == "Mirror vertical":
-                correct_y = 1 - correct_y
-            elif orientation == "Mirror horizontal and rotate 270 CW":
-                temp_x = correct_x
-                correct_x = 1 - correct_y
-                correct_y = temp_x
-                correct_w, correct_h = correct_h, correct_w
-            elif orientation == "Mirror horizontal and rotate 90 CW":
-                temp_x = correct_x
-                correct_x = correct_y
-                correct_y = 1 - temp_x
-                correct_w, correct_h = correct_h, correct_w
-            elif orientation == "Rotate 270 CW":
-                temp_x = correct_x
-                correct_x = correct_y
-                correct_y = 1 - temp_x
-                correct_w, correct_h = correct_h, correct_w
+        box = to_face_box(
+            area,
+            orientation,
+            big_thumbnail_image.shape[1],
+            big_thumbnail_image.shape[0],
+        )
+        if box is None:
+            logger.info(
+                f"Broken face area exif data! No numerical positional data. region_info: {region_info}"
+            )
+            continue
 
-            # Calculate the half-width and half-height of the box
-            half_width = (correct_w * image_width) / 2
-            half_height = (correct_h * image_height) / 2
-
-            # Calculate the top, right, bottom, and left coordinates
-            top = int((correct_y * image_height) - half_height)
-            right = int((correct_x * image_width) + half_width)
-            bottom = int((correct_y * image_height) + half_height)
-            left = int((correct_x * image_width) - half_width)
-
-            face_locations.append((top, right, bottom, left, person_name))
+        face_locations.append((*box, region.get("Name")))
     return face_locations
 
 

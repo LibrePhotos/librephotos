@@ -150,25 +150,35 @@ def compute_resize(h, w, max_side, multiple):
 # --------------------------------------------------------------------------- #
 # Image loading
 # --------------------------------------------------------------------------- #
+def to_uint8(img):
+    """Coerce a decoded array to 8-bit samples (uint8 input passes through)."""
+    if img.dtype == np.uint16:
+        return (img.astype(np.float32) / 257.0).astype(np.uint8)
+    if img.dtype != np.uint8:
+        return np.clip(img, 0, 255).astype(np.uint8)
+    return img
+
+
+# Channel counts that cv2 can convert to BGR directly.
+_BGR_CONVERSIONS = {1: cv2.COLOR_GRAY2BGR, 4: cv2.COLOR_BGRA2BGR}
+
+
 def to_bgr_3channel(img):
     """Coerce any decoded array to 8-bit 3-channel BGR."""
-    if img.dtype == np.uint16:
-        img = (img.astype(np.float32) / 257.0).astype(np.uint8)
-    elif img.dtype != np.uint8:
-        img = np.clip(img, 0, 255).astype(np.uint8)
+    img = to_uint8(img)
 
     if img.ndim == 2:
         return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    if img.ndim == 3:
-        channels = img.shape[2]
-        if channels == 1:
-            return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        if channels == 4:
-            return cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-        if channels == 3:
-            return img
-        return np.ascontiguousarray(img[:, :, :3])
-    raise OCRDecodeError(f"unsupported image shape {img.shape}")
+    if img.ndim != 3:
+        raise OCRDecodeError(f"unsupported image shape {img.shape}")
+
+    channels = img.shape[2]
+    if channels == 3:
+        return img
+    conversion = _BGR_CONVERSIONS.get(channels)
+    if conversion is not None:
+        return cv2.cvtColor(img, conversion)
+    return np.ascontiguousarray(img[:, :, :3])
 
 
 def read_image(image_path, max_pixels=MAX_INPUT_PIXELS):
@@ -230,6 +240,35 @@ def normalize_image(img_bgr, config):
     return np.ascontiguousarray(x, dtype=np.float32)
 
 
+def quad_from_contour(contour, prob_map, config):
+    """Unclipped quad for one contour, or None if it fails a DB reject gate."""
+    points, sside = get_mini_boxes(contour)
+    if sside < MIN_BOX_SIDE:
+        return None
+
+    if box_score_fast(prob_map, points) < config.det_box_thresh:
+        return None
+
+    expanded = unclip(points, config.det_unclip_ratio)
+    if expanded is None or len(expanded) < 4:
+        return None
+
+    box, sside = get_mini_boxes(expanded.reshape(-1, 1, 2).astype(np.float32))
+    if sside < MIN_BOX_SIDE + 2:
+        return None
+
+    return order_points_clockwise(box)
+
+
+def rescale_quad(box, size, dest_size):
+    """Map a quad from (width, height) to (dest_width, dest_height), clipped."""
+    width, height = size
+    dest_width, dest_height = dest_size
+    box[:, 0] = np.clip(np.round(box[:, 0] / width * dest_width), 0, dest_width)
+    box[:, 1] = np.clip(np.round(box[:, 1] / height * dest_height), 0, dest_height)
+    return box.astype(np.int32)
+
+
 def boxes_from_bitmap(prob_map, config, dest_width, dest_height):
     """DBPostProcess: probability map -> list of quads in original coordinates.
 
@@ -240,31 +279,13 @@ def boxes_from_bitmap(prob_map, config, dest_width, dest_height):
     bitmap = (prob_map > config.det_thresh).astype(np.uint8)
 
     contours, _ = cv2.findContours(bitmap * 255, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    num_contours = min(len(contours), config.det_max_candidates)
+    num_contours = max(0, min(len(contours), config.det_max_candidates))
 
     boxes = []
-    for index in range(num_contours):
-        contour = contours[index]
-        points, sside = get_mini_boxes(contour)
-        if sside < MIN_BOX_SIDE:
-            continue
-
-        score = box_score_fast(prob_map, points)
-        if score < config.det_box_thresh:
-            continue
-
-        expanded = unclip(points, config.det_unclip_ratio)
-        if expanded is None or len(expanded) < 4:
-            continue
-
-        box, sside = get_mini_boxes(expanded.reshape(-1, 1, 2).astype(np.float32))
-        if sside < MIN_BOX_SIDE + 2:
-            continue
-
-        box = order_points_clockwise(box)
-        box[:, 0] = np.clip(np.round(box[:, 0] / width * dest_width), 0, dest_width)
-        box[:, 1] = np.clip(np.round(box[:, 1] / height * dest_height), 0, dest_height)
-        boxes.append(box.astype(np.int32))
+    for contour in contours[:num_contours]:
+        box = quad_from_contour(contour, prob_map, config)
+        if box is not None:
+            boxes.append(rescale_quad(box, (width, height), (dest_width, dest_height)))
 
     return boxes
 

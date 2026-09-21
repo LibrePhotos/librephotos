@@ -12,6 +12,7 @@ from api.models import (
     LongRunningJob,
     Photo,
 )
+from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.util import logger
 
 # Batch size for delete_missing_photos. The function snapshots a list of
@@ -232,11 +233,12 @@ def delete_missing_photos(user, job_id):
         # the original per-photo .remove() loops were pure overhead — cascade
         # on Photo.delete() handles the through-rows. Face.photo is
         # on_delete=CASCADE so Face rows (and their post_delete file cleanup)
-        # come along too. AlbumThing.photos.through has a receiver that
-        # maintains photo_count / cover_photos, but cascade bypasses the
-        # signal, so we snapshot affected AlbumThing ids per batch and run
-        # the refresh once after each batch completes.
+        # come along too. AlbumThing.photos.through and Tag.photos.through both
+        # have receivers that maintain photo_count / cover_photos, but cascade
+        # bypasses the signal, so we snapshot the affected ids per batch and
+        # run the refresh once after each batch completes.
         affected_album_thing_ids: set[int] = set()
+        affected_tag_ids: set[int] = set()
         for start in range(0, target, _DELETE_MISSING_BATCH_SIZE):
             batch_pks = missing_pks[start : start + _DELETE_MISSING_BATCH_SIZE]
             batch_qs = Photo.objects.filter(pk__in=batch_pks)
@@ -245,6 +247,7 @@ def delete_missing_photos(user, job_id):
                     "id", flat=True
                 )
             )
+            affected_tag_ids.update(tag_ids_for_photos(batch_qs))
             batch_qs.delete()
             lrj.update_progress(current=start + len(batch_pks), target=target)
 
@@ -252,6 +255,8 @@ def delete_missing_photos(user, job_id):
             album_thing.photo_count = album_thing.photos.filter(hidden=False).count()
             album_thing.save(update_fields=["photo_count"])
             album_thing.update_default_cover_photo()
+
+        refresh_tag_photo_counts(affected_tag_ids)
 
         # File.hash is composed as `md5 + str(user.id)` (see api/models/file.py),
         # so the user-owned subset of missing files is identified by that suffix.

@@ -23,6 +23,8 @@ export type ContentViewerProps = {
   isPublic: boolean;
   publicAlbumSlug?: string;
   onPhotoSelect?: (photoId: string) => void;
+  /** Start playing as a slideshow instead of waiting for the "s" hotkey. */
+  startSlideshow?: boolean;
 };
 
 export type LightBoxProps = {
@@ -32,6 +34,8 @@ export type LightBoxProps = {
   onCloseRequest: () => void;
   onChangedIndex: (currentIndex?: number) => void;
   selectedImage: string;
+  /** Start playing as a slideshow instead of waiting for the "s" hotkey. */
+  startSlideshow?: boolean;
 };
 
 export type ImageDimensions = {
@@ -82,6 +86,9 @@ export type LightboxControlsProps = {
   hasOcrText: boolean;
   showOcrText: boolean;
   toggleOcrText: () => void;
+  /** Copy the photo to the clipboard; absent when the page has no image clipboard or the item is a video. */
+  onCopyToClipboard?: () => void;
+  isCopyingToClipboard?: boolean;
 };
 
 export type ThumbnailNavigationProps = {

@@ -430,14 +430,17 @@ class DuplicateStatsView(APIView):
 
         # Count photos in duplicate groups
         photos_in_duplicates = (
-            Photo.objects.filter(owner=request.user, duplicates__isnull=False)
+            Photo.objects.owned_by(request.user)
+            .filter(duplicates__isnull=False)
             .distinct()
             .count()
         )
 
-        total_photos = Photo.objects.filter(
-            owner=request.user, hidden=False, in_trashcan=False
-        ).count()
+        total_photos = (
+            Photo.objects.owned_by(request.user)
+            .filter(hidden=False, in_trashcan=False)
+            .count()
+        )
 
         return Response(
             {

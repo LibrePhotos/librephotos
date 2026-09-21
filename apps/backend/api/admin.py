@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.contrib import admin
 from django_q.tasks import AsyncTask
 
@@ -19,10 +21,31 @@ from .models import (
 )
 
 
-def deduplicate_faces_function(queryset):
-    for photo in queryset:
-        faces = list(Face.objects.filter(photo=photo))
-        to_delete = set()
+# Photo ids are handed to django_q, which pickles them into the broker
+# payload, so a selection is split into chunks of this size to keep any
+# single payload small.
+DEDUPLICATE_FACES_CHUNK_SIZE = 500
+
+
+def deduplicate_faces_function(photo_ids):
+    faces_by_photo = defaultdict(list)
+    # `encoding` holds a face vector per row, so it is deliberately left out.
+    for face in (
+        Face.objects.filter(photo_id__in=photo_ids)
+        .only(
+            "photo_id",
+            "person_id",
+            "location_top",
+            "location_bottom",
+            "location_left",
+            "location_right",
+        )
+        .order_by("id")
+    ):
+        faces_by_photo[face.photo_id].append(face)
+
+    to_delete = set()
+    for faces in faces_by_photo.values():
         for i, face_a in enumerate(faces):
             if face_a.id in to_delete:
                 continue
@@ -42,13 +65,14 @@ def deduplicate_faces_function(queryset):
                 if iou >= FACE_OVERLAP_IOU_THRESHOLD:
                     # Keep the face that has a person label; if both or
                     # neither have one, keep the first.
-                    if face_b.person and not face_a.person:
+                    if face_b.person_id and not face_a.person_id:
                         to_delete.add(face_a.id)
                         break  # face_a is going away, skip its remaining comparisons
                     else:
                         to_delete.add(face_b.id)
-        if to_delete:
-            Face.objects.filter(id__in=to_delete).delete()
+
+    if to_delete:
+        Face.objects.filter(id__in=to_delete).delete()
 
 
 @admin.register(Face)
@@ -78,11 +102,21 @@ class PhotoAdmin(admin.ModelAdmin):
     ]
     list_filter = ["owner"]
 
+    @admin.action(description="Deduplicate faces")
     def deduplicate_faces(self, request, queryset):
-        AsyncTask(
-            deduplicate_faces_function,
-            queryset=queryset,
-        ).run()
+        # Only the ids travel to the worker. Passing the queryset itself would
+        # make django_q pickle every selected row into the broker payload, in
+        # this request thread, which defeats the point of the async task.
+        photo_ids = list(queryset.values_list("id", flat=True))
+        for start in range(0, len(photo_ids), DEDUPLICATE_FACES_CHUNK_SIZE):
+            AsyncTask(
+                deduplicate_faces_function,
+                photo_ids[start : start + DEDUPLICATE_FACES_CHUNK_SIZE],
+            ).run()
+        self.message_user(
+            request,
+            f"Queued face deduplication for {len(photo_ids)} photo(s).",
+        )
 
 
 @admin.register(Thumbnail)

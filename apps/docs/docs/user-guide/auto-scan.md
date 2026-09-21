@@ -1,7 +1,7 @@
 ---
 title: "🤖 Auto scan all folders"
 description: "How to auto scan all folders"
-sidebar_position: 11
+sidebar_position: 12
 ---
 
 ## Auto scan all folders

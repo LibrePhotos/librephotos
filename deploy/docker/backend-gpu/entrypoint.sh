@@ -55,16 +55,15 @@ echo "Running backend server..."
 
 python manage.py qcluster 2>&1 | tee "$logs_dir/qcluster.log" &
 
-# A request that outruns this is killed with SIGKILL and gunicorn's generic
-# "Perhaps out of memory?" message, which is misleading: on a CPU-capped host
-# the worker is usually just starved, not out of memory. Raise it if you limit
-# the container's CPU. Gunicorn's own default is 30.
-GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-30}"
-
+# WEB_CONCURRENCY uvicorn processes; recycle them every 50 requests when there is
+# more than one, so a recycled worker never takes the whole API down. Not under
+# --reload: uvicorn then runs a single child that its reloader would not restart.
+args=(librephotos.asgi:application --host 0.0.0.0 --port 8001 --log-level info --workers "${WEB_CONCURRENCY:-1}")
 if [[ "$DEBUG" = 1 ]]; then
     echo "development backend starting"
-    gunicorn --worker-class=gevent --max-requests 50 --timeout "$GUNICORN_TIMEOUT" --reload --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee "$logs_dir/gunicorn_django.log"
+    args+=(--reload)
 else
     echo "production backend starting"
-    gunicorn --worker-class=gevent --max-requests 50 --timeout "$GUNICORN_TIMEOUT" --bind 0.0.0.0:8001 --log-level=info librephotos.wsgi 2>&1 | tee "$logs_dir/gunicorn_django.log"
+    if [[ "${WEB_CONCURRENCY:-1}" -gt 1 ]]; then args+=(--limit-max-requests 50); fi
 fi
+uvicorn "${args[@]}" 2>&1 | tee "$logs_dir/uvicorn_django.log"

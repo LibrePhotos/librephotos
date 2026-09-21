@@ -9,7 +9,11 @@ export const useJobsQuery = (params: JobRequest, options?: { pollingInterval?: n
   useQuery({
     queryKey: [...JobsQueryKeys, params],
     queryFn: async () => {
-      const response = await fetchClient.get(`/jobs/?page_size=${params.pageSize ?? 10}&page=${params.page ?? 0}`);
+      // Sent only when narrowing, so the admin list's request is unchanged.
+      const mine = params.mine ? "&mine=true" : "";
+      const response = await fetchClient.get(
+        `/jobs/?page_size=${params.pageSize ?? 10}&page=${params.page ?? 0}${mine}`
+      );
       return parseWithNotification(JobsResponse, response, "Failed to parse jobs response");
     },
     refetchInterval: options?.pollingInterval,

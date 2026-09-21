@@ -45,13 +45,16 @@ from api.views import (
     geocode,
     health,
     jobs,
+    memories,
     password_reset,
     photo_metadata,
     photos,
     public_albums,
     search,
     services,
+    serving_diagnostics,
     sharing,
+    sso,
     stacks,
     sync,
     tags,
@@ -237,6 +240,7 @@ urlpatterns = [
     re_path(r"^api/firsttimesetup", user.IsFirstTimeSetupView.as_view()),
     re_path(r"^api/dirtree", user.RootPathTreeView.as_view()),
     re_path(r"^api/labelfaces", faces.SetFacePersonLabel.as_view()),
+    re_path(r"^api/addface", faces.AddFaceView.as_view()),
     re_path(r"^api/deletefaces", faces.DeleteFaces.as_view()),
     re_path(r"^api/savemetadata", photos.SaveMetadataView.as_view()),
     re_path(r"^api/photosedit/delete", photos.DeletePhotos.as_view()),
@@ -344,6 +348,7 @@ urlpatterns = [
         photos.SetMainFileView.as_view(),
         name="set_main_file",
     ),
+    re_path(r"^api/memories/?$", memories.MemoriesView.as_view()),
     re_path(r"^api/searchtermexamples", views.SearchTermExamples.as_view()),
     re_path(r"^api/locationsunburst", dataviz.LocationSunburst.as_view()),
     re_path(r"^api/locationtimeline", dataviz.LocationTimeline.as_view()),
@@ -363,6 +368,24 @@ urlpatterns = [
     re_path(r"^api/auth/token/obtain/$", CustomTokenObtainPairView.as_view()),
     re_path(r"^api/auth/token/refresh/$", CustomTokenRefreshView.as_view()),
     re_path(r"^api/auth/token/blacklist/", TokenBlacklistView.as_view()),
+    # OIDC / SSO. allauth drives the redirect/callback under /api/accounts/...;
+    # sso_finish is the JWT bridge it lands on; sso/config feeds the login screen.
+    re_path(r"^api/auth/sso/finish/?$", sso.sso_finish),
+    re_path(r"^api/auth/sso/config/?$", sso.SSOConfigView.as_view()),
+    # These two shadow allauth's own oidc login/callback views (same paths) so the
+    # flow runs against LibrePhotosOIDCAdapter, which knows the public callback
+    # URL. Deliberately listed before the allauth include: URL resolution takes
+    # the first pattern that matches the path, while reverse() still finds
+    # allauth's identically-shaped named patterns below, so both agree.
+    re_path(
+        r"^api/accounts/oidc/(?P<provider_id>[^/]+)/login/$",
+        sso.oidc_login,
+    ),
+    re_path(
+        r"^api/accounts/oidc/(?P<provider_id>[^/]+)/login/callback/$",
+        sso.oidc_callback,
+    ),
+    re_path(r"^api/accounts/", include("allauth.urls")),
     re_path(
         r"^api/auth/password/reset/$",
         password_reset.PasswordResetView.as_view(),
@@ -370,6 +393,11 @@ urlpatterns = [
     re_path(
         r"^api/auth/password/reset/confirm/$",
         password_reset.PasswordResetConfirmView.as_view(),
+    ),
+    re_path(
+        r"^api/media/diagnostics/(?P<fname>[^/]+)/$",
+        serving_diagnostics.MediaPermissionDiagnosticsView.as_view(),
+        name="media-diagnostics",
     ),
     re_path(
         r"^media/(?P<path>.*)/(?P<fname>.*)",

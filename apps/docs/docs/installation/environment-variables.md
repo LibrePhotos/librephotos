@@ -58,7 +58,7 @@ The GPU image is only available for x86 architecture. ARM is not supported for t
 
 ### Limiting CPU and memory usage
 
-The backend container runs two things: **gunicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers, and by default there is **one worker per CPU core**.
+The backend container runs two things: **uvicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers, and by default there is **one worker per CPU core**.
 
 #### Start with the worker count, not a CPU limit
 
@@ -70,13 +70,7 @@ services:
     cpus: 0.8
 ```
 
-On its own this usually backfires. A `cpus:` limit throttles the container, but it does not change how many workers LibrePhotos starts — the worker pool is sized from the number of cores the *host* reports, which a `cpus:` limit does not change. You end up with just as many workers competing for a fraction of the CPU, and the first thing to break is the API: a request that takes longer than gunicorn's timeout gets its worker killed, and the backend log fills with
-
-```
-[ERROR] Worker (pid:113) was sent SIGKILL! Perhaps out of memory?
-```
-
-That message is gunicorn's generic text for a killed worker. On a CPU-capped host it almost always means the request was too slow, **not** that the machine ran out of memory.
+On its own this usually backfires. A `cpus:` limit throttles the container, but it does not change how many workers LibrePhotos starts — the worker pool is sized from the number of cores the *host* reports, which a `cpus:` limit does not change. You end up with just as many workers competing for a fraction of the CPU, and the API gets slow along with them.
 
 So set the worker count instead. In your `.env`:
 
@@ -89,13 +83,7 @@ This is the setting that actually gives resources back to the rest of the machin
 
 #### If you also want a hard cap
 
-Once the worker count is sensible, a container limit is a reasonable backstop. Raise the API timeout at the same time so throttled requests are not killed mid-flight:
-
-```bash
-workerConcurrency=1
-# Seconds before gunicorn kills a request (default 30)
-gunicornTimeout=120
-```
+Once the worker count is sensible, a container limit is a reasonable backstop:
 
 ```yaml
 services:
@@ -141,11 +129,11 @@ Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anyth
 | Variable | `.env` key | What turning it off stops |
 | --- | --- | --- |
 | `FEATURE_VIDEO` | `featureVideo` | Video files are no longer imported. A scan skips them the same way it skips a file it cannot read, so no `Photo` is created and no video thumbnail is generated. The motion video inside a "live photo" is not extracted either, so those stay ordinary still images. |
-| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. |
+| `FEATURE_FACE_DETECTION` | `featureFaceDetection` | No faces are extracted from photos, neither during a scan nor when you upload one. The face scan is left out of the scan pipeline and **Scan faces** in the UI reports an error instead of starting a job. The face recognition service is not started, so its model is never loaded. |
 | `FEATURE_FACE_CLUSTER` | `featureFaceCluster` | Faces are still detected, but never grouped into people to label. Clustering is skipped at the end of a face scan and **Train faces** reports an error. |
-| `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. |
+| `FEATURE_IMAGE_CAPTIONING` | `featureImageCaptioning` | No automatic captions are generated, neither during a scan nor from the "Generate caption" button on a photo. Captions you typed yourself are unaffected. The captioning service is not started. |
 | `FEATURE_REVERSE_GEOCODING` | `featureReverseGeocoding` | GPS coordinates are no longer turned into place names, so no requests go to your map provider. Photos keep their coordinates and still show up on the map of an album and of a single photo, but without a place name they do not appear on the Places page, get no Places album, and cannot be searched by place. Searching for a place in the search bar still works. |
-| `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. |
+| `FEATURE_SCENE_CLASSIFICATION` | `featureSceneClassification` | Photos are no longer tagged by what is in them (beach, kitchen, sunset, ...), so the "Things" albums stay empty for new photos. The tagging service is not started, so no tagging model is ever loaded. |
 | `FEATURE_PROCESS_EMBEDDED_MEDIA` | `featureProcessEmbeddedMedia` | The short video stored inside a "live photo" or motion photo is no longer extracted, so those files stay ordinary stills. `FEATURE_VIDEO` has to be on as well for extraction to happen. See [Feature Toggles](../user-guide/feature-toggles.md) for the one way this switch differs from the others. |
 
 Turning a feature off never deletes anything that was already generated - the existing captions, faces and place names stay in the database and remain visible. Turning it back on picks up where the scan left off.
@@ -173,6 +161,59 @@ services:
 `FEATURE_PROCESS_EMBEDDED_MEDIA` is checked only at the moment a file is first imported. Turning it on for a library that has already been scanned extracts nothing for the photos already there — not even with **Rescan All Photos** — so only files added afterwards are affected.
 :::
 
+#### The machine learning services follow the switches
+
+:::note
+This part is not in a released image yet. It is available on the `dev` branch and will appear in the next release; on 1.1.0 the switches stop the processing, but the services still start.
+:::
+
+The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.
+
+| Switch | Service that stops being started |
+| --- | --- |
+| `FEATURE_FACE_DETECTION` | `face_recognition` |
+| `FEATURE_IMAGE_CAPTIONING` | `image_captioning` |
+| `FEATURE_SCENE_CLASSIFICATION` | `tags` |
+
+The remaining services — `exif`, `thumbnail`, `clip_embeddings` and `image_similarity` — carry the scanning and search that the rest of LibrePhotos is built on, so they have no switch and always run. The other feature flags (`FEATURE_VIDEO`, `FEATURE_FACE_CLUSTER`, `FEATURE_REVERSE_GEOCODING`, `FEATURE_PROCESS_EMBEDDED_MEDIA`) gate work that happens inside the backend itself and have no service of their own to stop.
+
+`ocr` has no environment variable either, but it is not always on: it follows the **OCR model** choice in Site Settings, which ships with nothing selected. The service starts once a model is picked, and stops being started if the choice is set back to none — the watchdog re-reads the setting every minute, so neither direction needs a restart. A configuration the backend cannot read counts as a model being selected, so a database that is still starting can never take the service away.
+
+A skipped service is named once in the backend log at startup, so `docker logs backend` tells you why something is not running. The Admin Area's **Services** list shows one as **Disabled** rather than as unhealthy, and offers no Start button for it.
+
+### Cached video conversions
+
+A user who turns on **Always transcode videos** (Settings → Experimental) has videos in containers or codecs their browser cannot decode converted as they play. A conversion happening live has no known length, so it carries no `Content-Length` and no `Accept-Ranges`, and it cannot be sought at all — no duration, no scrub bar, no skipping. The same conversion is therefore written to a file once, and every later play of that video is served from the file instead, as an ordinary seekable mp4. The first play still streams live and starts exactly as quickly as it does today: the copy is written **after** that stream ends, never alongside it, because the live conversion has to keep ahead of playback and would lose a share of the machine to a second ffmpeg. The copy is also niced and limited to half the cores, so playback, thumbnails and a running scan all outrank it.
+
+The cache costs somewhere between 10 and 20 MB per minute of video — how much movement there is in the footage decides where in that range it lands — and only for the videos somebody actually opens with that setting on. If nobody turns it on, nothing is ever written.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `TRANSCODE_CACHE_MAX_GB` | `transcodeCacheMaxGb` | `10` | How large the cache may grow, in GB. Roughly an hour of video per GB. Set it to `0` to switch caching off entirely and keep only the live streaming. |
+| `TRANSCODE_CACHE_MIN_FREE_GB` | `transcodeCacheMinFreeGb` | `2` | How much free space to leave alone on the volume, in GB. The cache never writes into this, and a conversion already running is abandoned if the free space drops into it. |
+| `TRANSCODE_CACHE_MAX_CONCURRENT` | `transcodeCacheMaxConcurrent` | `1` | How many conversions may be written at once. Each is an ffmpeg process, so raising this trades CPU for having more videos become seekable sooner. |
+| `TRANSCODE_CACHE_NICE` | `transcodeCacheNice` | `10` | How far the background conversion stands back from everything else, as a `nice` value. `0` turns the courtesy off. |
+
+When either ceiling is reached, the least recently played entries are deleted until the new one fits; if even that is not enough, the video simply is not cached and plays live as before. Nothing is ever served before its conversion has finished, so an interrupted one leaves no half-playable file behind.
+
+The files live under `protected_media/transcoded/`, named by image hash, and are deleted along with the photo. Deleting the directory by hand is safe at any time — it costs only the CPU to convert those videos again.
+
+### What a live conversion may take
+
+The conversion a viewer is waiting on is bounded too, and for a different reason than the cached copy. Left to itself ffmpeg uses every core and converts as fast as the hardware allows, so one person opening one video can starve the web UI, a running scan and every other user — while playback needs output only a little faster than real time. The extra throughput buys nothing: on a fast host it races through footage the viewer may never reach.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `TRANSCODE_LIVE_CPU_FRACTION` | `transcodeLiveCpuFraction` | `2` | Cap the conversion at 1/N of the machine's cores. `2` is half; `1` lets it use all of them. Never fewer than one core, whatever the number. The cap is close rather than exact — decoding, filtering and encoding are each held to it, but reading and muxing are not. |
+| `TRANSCODE_LIVE_READRATE` | `transcodeLiveReadrate` | `2` | Hold the conversion to this multiple of real time, so a minute of video takes about half a minute to convert. Set it to `0` to convert as fast as the host can. |
+| `TRANSCODE_LIVE_BURST_SECONDS` | `transcodeLiveBurstSeconds` | `30` | How much video to convert at full speed before the rate limit applies, so playback still starts instantly and the browser still has a buffer ahead of it. |
+
+Unlike the cached copy, the live conversion is **not** niced: somebody is watching it, so it should outrank the background work rather than yield to it.
+
+`TRANSCODE_LIVE_READRATE` and `TRANSCODE_LIVE_BURST_SECONDS` need a recent ffmpeg — `-readrate` arrived in ffmpeg 5.0 and `-readrate_initial_burst` in 6.1. The CPU image has both. **The GPU image does not**: it is built on Ubuntu 22.04, whose ffmpeg is 4.4, so on that image these two settings have no effect and only `TRANSCODE_LIVE_CPU_FRACTION` applies. The same goes for a host supplying its own older ffmpeg. Nothing has to be configured for that — the option is simply not passed, and the core cap still holds.
+
+`TRANSCODE_LIVE_CPU_FRACTION` is a divisor, so a **larger** number means fewer cores: `4` is stricter than `2`. Raising it, or lowering the readrate, makes a busy server more responsive while a video is playing; going the other way favours the person watching. If a video stutters on a slow machine, set `TRANSCODE_LIVE_CPU_FRACTION` to `1` first: a stutter means the conversion cannot keep ahead of playback, and it is the core cap that decides how fast it can go — the readrate is a ceiling it never reached. For scale, one core converts 1080p to 720p at about 1.5x real time, and two at about 2x, so a machine with few cores has little margin at 1080p and none to spare for a second viewer.
+
 ### Logging
 
 The backend writes its log files into the directory named by `BASE_LOGS`. `ownphotos.log` is the one to look at first; it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).
@@ -199,6 +240,17 @@ services:
 :::warning
 `secret.key` lives in `BASE_LOGS`, next to the log files. Zipping that whole folder for a bug report hands out your Django secret key, which is what every session and token on your instance is signed with. Attach `ownphotos.log` by itself instead. Deleting `secret.key` is not a fix either - it logs every user out and the passwords have to be reset.
 :::
+
+### Telling LibrePhotos its own public address
+
+`FRONTEND_BASE_URL` is the URL your users actually browse to, for example `https://photos.example.com` (no trailing slash). Leave it unset and LibrePhotos falls back to the origin each request appears to have arrived on.
+
+That fallback is wrong behind the bundled proxy, which forwards `/api/` to the backend with the `Host` header rewritten to `backend` — a name that only resolves inside the Docker network. The rewrite is deliberate (it means Django's host validation passes whatever domain you use), but it does mean the backend cannot work out its own public address on its own.
+
+So set this whenever LibrePhotos has to hand a URL to something outside the container:
+
+- **Password-reset emails** — the link in the email. Without it the fallback can produce a link pointing at `http://backend/...`, which no mail recipient can open.
+- **Single sign-on** — the OAuth `redirect_uri` sent to your identity provider, which the browser has to follow and the provider has to recognise. SSO refuses to start rather than send a broken one, so this is effectively required for [OIDC](../user-guide/settings/single-sign-on.md).
 
 ### Hosting under a sub-path (subdirectory)
 

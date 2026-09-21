@@ -63,6 +63,7 @@ The toolbar at the top provides quick actions. From left to right:
 - **Slideshow** - Start or stop an automatic slideshow. While it runs, a dropdown lets you choose the interval (3, 5, 10, 15 or 30 seconds).
 - **Zoom in / Zoom out** - Magnify the image. Available for still photos only, not videos.
 - **Fullscreen** - Enter or leave fullscreen mode for distraction-free viewing.
+- **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
 - **Hide / Show** (eye icon) - Hide the photo from the main timeline, or unhide it.
 - **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark.
 - **Make public / Make private** (globe icon) - Toggle the photo's public visibility. Toggling in either direction also copies a link to the photo to your clipboard.
@@ -71,9 +72,11 @@ The toolbar at the top provides quick actions. From left to right:
 - **Toggle info panel** - Show or hide the photo details sidebar.
 - **Close** - Return to the gallery.
 
-The Hide, Favorite, Make public, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, info-panel and close buttons.
+The Hide, Favorite, Make public, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
 
 There is no download or share button in the lightbox itself. To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
+
+To put a single photo on the clipboard, open it and press the **Copy to clipboard** button or `Ctrl` + `c` (`⌘` + `c` on macOS). The browser's own right-click menu on the picture offers **Copy image** as well.
 
 ### Rotating Photos
 
@@ -122,7 +125,7 @@ Shows faces detected in the photo. You can:
 
 The AI-generated or manually entered caption for the photo. You can:
 
-- View auto-generated tags from the active tagging model, displayed as color-coded badges. SigLIP 2 shows a **Tags** list with green badges; Places365 shows a **Scene** block split into **Attributes** (blue badges) and **Categories** (teal badges)
+- View auto-generated tags from the active tagging model (MobileCLIP-S2 or SigLIP 2), displayed as green badges under **Tags**; click one to search for it
 - Edit the caption manually — type `#` to get autocomplete suggestions for thing album tags
 - Generate a new AI caption using the suggestion button
 - Use the **AI suggestion button** to quickly fill in a machine-generated caption
@@ -131,9 +134,11 @@ Tags from each model are stored independently, but the lightbox only shows tags 
 
 ### Tags
 
-Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
+Your own tags for the photo, shown as teal badges. This section always appears in the sidebar when you are signed in, showing **No tags** when none are set. Click the pencil button to open an editor where you can add or remove tags — separate entries with a comma, and existing tags are offered as autocomplete suggestions, the ones beginning with what you typed first — then use the check to save or the X to cancel. Click a tag badge to open that tag's album.
 
-These are not the same as the automatic **Tags** list SigLIP 2 adds under the caption: those come from the tagging model and are not editable here.
+These are not the same as the **Auto tags** list SigLIP 2 adds under the caption: those come from the tagging model and are not editable here.
+
+To tag many photos in one go, select them in the grid and press **`t`** instead — see [Tagging photos](./albums.md#tagging-photos).
 
 Tags are not shown on public or shared album pages.
 
@@ -168,6 +173,8 @@ Click on any similar photo to view it directly.
 | Key | Action |
 |-----|--------|
 | `←` / `→` | Previous / Next photo |
+| `Shift` + `←` / `→` | Jump back / forward 10 seconds (videos only) |
+| `Ctrl` + `←` / `→` | Jump back / forward 1 minute (videos only) |
 | `Escape` | Close photo viewer |
 | `Space` | Play / pause (videos only) |
 | `z` | Toggle zoom (still images only) |
@@ -178,6 +185,14 @@ Click on any similar photo to view it directly.
 | `d` | Move photo to trash |
 | `g` | Toggle fullscreen |
 | `s` | Start / stop slideshow |
+| `Ctrl` + `c` (`⌘` + `c` on macOS) | Copy the photo to the clipboard (still images only; when text is selected, the browser copies the text instead) |
 
 The `f`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on public (unauthenticated) album pages.
 
+### Seeking in Videos
+
+`Space` starts and pauses a video. Holding `Shift` with the arrow keys jumps ten seconds back or forward, and holding `Ctrl` instead jumps a full minute — the same split VLC makes between a short and a long jump. The plain arrow keys keep moving between photos even while a video is playing, so skipping through a clip never costs you your place in the album. Each jump is confirmed on screen — the player's own control bar stays hidden when you drive it from the keyboard, so there would otherwise be nothing to see.
+
+On macOS, `Ctrl` with the arrow keys is claimed by Mission Control for switching between desktops, so the one-minute jump may not reach the page there; `Shift` is unaffected.
+
+Seeking is unavailable while a video is still being converted for playback, which happens when you have **Always transcode videos** turned on in your settings. For as long as that conversion is running the browser is never told how long the video is or how to jump within it, so the player says so rather than ignoring the key.

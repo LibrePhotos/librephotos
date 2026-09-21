@@ -31,9 +31,21 @@ class LongRunningJobViewSet(viewsets.ModelViewSet):
             ),
         ).order_by("-started_at")
         user = self.request.user
-        if user.is_authenticated and (user.is_staff or user.is_superuser):
-            return qs
-        return qs.filter(started_by=user)
+        own_jobs = qs.filter(started_by=user)
+
+        if not (user.is_authenticated and (user.is_staff or user.is_superuser)):
+            # Non-staff are always confined to their own jobs. ?mine is not read
+            # on this path on purpose: the parameter may only ever narrow a
+            # queryset, never widen one, so no value of it — ?mine=false
+            # included — can lift this restriction.
+            return own_jobs
+
+        # Staff see everything by default. The per-user jobs view (#1909) is the
+        # same list narrowed to the caller, which staff opt into explicitly so
+        # that "My Jobs" means the same thing for every role.
+        if self.request.query_params.get("mine", "").lower() == "true":
+            return own_jobs
+        return qs
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):

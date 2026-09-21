@@ -1,5 +1,6 @@
-import { Button, Indicator, Popover, Progress, Stack, Text } from "@mantine/core";
+import { Anchor, Button, Indicator, Popover, Progress, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { useNavigate } from "@tanstack/react-router";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCancelJobMutation } from "../../api_client/jobs/hooks";
@@ -46,6 +47,7 @@ export function WorkerIndicator() {
   const [opened, { toggle, close }] = useDisclosure(false);
   const [workerColor, setWorkerColor] = useState("red");
   const { workerRunningJob, currentData } = useWorkerStatus();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setWorkerColor(currentData?.queue_can_accept_job ? "green" : "red");
@@ -62,11 +64,25 @@ export function WorkerIndicator() {
       </Popover.Target>
 
       <Popover.Dropdown>
-        {currentData?.queue_can_accept_job ? (
-          <Text size="sm">{t("topmenu.available")}</Text>
-        ) : (
-          <WorkerRunningJob workerRunningJob={workerRunningJob} />
-        )}
+        <Stack gap="xs">
+          {currentData?.queue_can_accept_job ? (
+            <Text size="sm">{t("topmenu.available")}</Text>
+          ) : (
+            <WorkerRunningJob workerRunningJob={workerRunningJob} />
+          )}
+          {/* The popover only ever shows the one active job — link out to the full
+              per-user list so job history and failures are reachable from here. */}
+          <Anchor
+            size="xs"
+            ta="center"
+            onClick={() => {
+              close();
+              navigate({ to: "/jobs" });
+            }}
+          >
+            {t("topmenu.viewalljobs")}
+          </Anchor>
+        </Stack>
       </Popover.Dropdown>
     </Popover>
   );

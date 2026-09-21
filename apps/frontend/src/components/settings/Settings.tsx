@@ -293,7 +293,7 @@ export function Settings() {
         <Card shadow="md">
           <Stack>
             <Title order={4} mb={16}>
-              <Trans i18nKey="settings.llm">Large Language Model Settings</Trans>
+              <Trans i18nKey="settings.llm">Caption Context</Trans>
             </Title>
             <Switch
               label={t("settings.enablellm")}

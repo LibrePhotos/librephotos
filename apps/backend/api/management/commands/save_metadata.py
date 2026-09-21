@@ -36,19 +36,16 @@ class Command(BaseCommand):
             help="Only show what would be written, don't actually write",
         )
 
-    def handle(self, *args, **options):
-        metadata_types = options["types"]
-        use_sidecar = not options["media_file"]
-
+    def select_photos(self, username, metadata_types):
         photos = Photo.objects.all()
 
-        if options["user"]:
+        if username:
             try:
-                user = User.objects.get(username=options["user"])
-                photos = photos.filter(owner=user)
+                user = User.objects.get(username=username)
             except User.DoesNotExist:
-                self.stderr.write(f"User '{options['user']}' not found")
-                return
+                self.stderr.write(f"User '{username}' not found")
+                return None
+            photos = photos.filter(owner=user)
 
         # When only writing face tags, filter to photos with any (non-deleted) faces
         if metadata_types == ["face_tags"]:
@@ -56,13 +53,9 @@ class Command(BaseCommand):
                 faces__deleted=False,
             ).distinct()
 
-        total = photos.count()
-        self.stdout.write(f"Found {total} photos to process (types: {metadata_types})")
+        return photos
 
-        if options["dry_run"]:
-            self.stdout.write("Dry run — no files will be modified")
-            return
-
+    def write_photos(self, photos, total, use_sidecar, metadata_types):
         written = 0
         errors = 0
         for i, photo in enumerate(photos.iterator(), 1):
@@ -79,6 +72,26 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"Progress: {i}/{total} ({written} written, {errors} errors)"
                 )
+
+        return written, errors
+
+    def handle(self, *args, **options):
+        metadata_types = options["types"]
+
+        photos = self.select_photos(options["user"], metadata_types)
+        if photos is None:
+            return
+
+        total = photos.count()
+        self.stdout.write(f"Found {total} photos to process (types: {metadata_types})")
+
+        if options["dry_run"]:
+            self.stdout.write("Dry run — no files will be modified")
+            return
+
+        written, errors = self.write_photos(
+            photos, total, not options["media_file"], metadata_types
+        )
 
         self.stdout.write(
             self.style.SUCCESS(

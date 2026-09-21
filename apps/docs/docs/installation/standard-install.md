@@ -65,7 +65,7 @@ docker compose up -d
 
 :::note
 
-`docker compose pull` only downloads newer container images. `docker-compose.yml` is a tracked file in the repository and gains new settings over time. Recent versions, for example, added the lines that pass `workerConcurrency`, `gunicornTimeout` and `frontendBaseUrl` from your `.env` through to the backend, and changed the database volume path for Postgres v18+. If your `docker-compose.yml` predates those changes, setting the matching variables in `.env` has no effect until you `git pull`.
+`docker compose pull` only downloads newer container images. `docker-compose.yml` is a tracked file in the repository and gains new settings over time. Recent versions, for example, added the lines that pass `workerConcurrency` and `frontendBaseUrl` from your `.env` through to the backend, and changed the database volume path for Postgres v18+. If your `docker-compose.yml` predates those changes, setting the matching variables in `.env` has no effect until you `git pull`.
 
 Your `.env` is not tracked by git, so `git pull` will not touch your settings. After updating, compare it against the shipped `librephotos.env` to pick up any newly documented variables.
 

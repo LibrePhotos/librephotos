@@ -5,4 +5,5 @@ export * from "./useConfirmPasswordResetMutation";
 export * from "./useLogoutMutation";
 export * from "./useIsFirstTimeSetupQuery";
 export * from "./useIsAuthenticatedQuery";
+export * from "./useSsoConfigQuery";
 export * from "./useAccessToken";

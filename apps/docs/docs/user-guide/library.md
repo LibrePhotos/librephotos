@@ -1,7 +1,7 @@
 ---
 title: "📚 Library Management"
 description: "Scanning, Nextcloud integration, services, and server management"
-sidebar_position: 10
+sidebar_position: 11
 ---
 
 The **Library** page is your central hub for managing your photo library. Access it by clicking on your avatar (top right) and selecting **Library**, or via the spotlight search (`Ctrl+K` → "Library").
@@ -30,7 +30,7 @@ In the **Scan Library** row, click **Scan** to scan your configured scan directo
 3. Creates thumbnails
 4. Extracts EXIF metadata
 5. Runs face detection
-6. Generates AI tags (Places365 or SigLIP 2, depending on your Tagging Model setting)
+6. Generates AI tags (MobileCLIP-S2 or SigLIP 2, depending on your Tagging Model setting)
 7. Performs reverse geocoding
 8. Calculates CLIP embeddings for semantic search
 
@@ -38,6 +38,18 @@ To re-process all existing photos, open the dropdown next to **Scan** (the chevr
 
 :::note
 AI *captions* are not generated during a scan — they are created per photo on demand. Open a photo, show the details panel, and use the wand icon in the **Caption** section. See [Image Captioning](./image-captioning.md).
+:::
+
+### Files replaced in place
+
+If you overwrite a file with a different picture but keep the same name, the next scan picks the change up and re-indexes it: the thumbnails are rebuilt from the new picture and the photo goes back into the queue for face detection, tags and geocoding. It keeps its album membership, its sharing and its link, so anything pointing at it still works.
+
+A file whose bytes changed while its picture stayed the same is only re-keyed internally. That covers a rating or a face tag LibrePhotos wrote into the original, and metadata another tool edited in place: nothing is regenerated and nothing you corrected by hand is lost.
+
+For a video, and for a photo you have rotated inside LibrePhotos, the two cannot be told apart. The scan takes the careful path there: the thumbnails are rebuilt once and the cached video conversion is dropped, but the faces you have named are kept and the photo stays where it is in the timeline.
+
+:::note
+The first scan after upgrading may re-key files LibrePhotos had previously written metadata into. That is bookkeeping with no visible change to your library, and it happens only once per file.
 :::
 
 ### Scan Progress
@@ -93,10 +105,9 @@ LibrePhotos runs several background ML services. Administrators can monitor and 
 | **thumbnail** | Thumbnail generation |
 | **face_recognition** | Face detection and recognition |
 | **clip_embeddings** | CLIP embedding computation |
-| **llm** | Large language model for captioning |
 | **image_captioning** | Image caption generation |
 | **exif** | EXIF metadata extraction |
-| **tags** | Photo tag generation (Places365 or SigLIP 2 depending on your Tagging Model setting) |
+| **tags** | Photo tag generation (MobileCLIP-S2 or SigLIP 2 depending on your Tagging Model setting) |
 
 For each service, you can:
 

@@ -1,7 +1,7 @@
 ---
 title: "🔍 Duplicate Detection"
 description: "Find and manage duplicate photos in your library"
-sidebar_position: 14
+sidebar_position: 15
 ---
 
 LibrePhotos can detect duplicate photos in your library using both exact file matching and visual similarity analysis. This helps you reclaim storage space and keep your library clean.

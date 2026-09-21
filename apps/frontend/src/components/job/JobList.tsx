@@ -13,15 +13,29 @@ import { JobDuration } from "./JobDuration";
 import { JobIndicator } from "./JobIndicator";
 import { JobProgress } from "./JobProgress";
 
-export function JobList() {
+type IJobList = Readonly<{
+  /**
+   * Which surface this list is rendered on: the admin area's global list, or a
+   * single user's own jobs at /jobs (issue #1909).
+   *
+   * These travel as one prop rather than separate flags because they are not
+   * independent — asking the backend to narrow the list is what makes dropping
+   * the "Started By" column correct. Set apart, they could be combined into a
+   * list that hides whose jobs it is showing.
+   */
+  variant?: "admin" | "mine";
+}>;
+
+export function JobList({ variant = "admin" }: IJobList) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const matches = useMediaQuery("(min-width: 700px)");
   const [jobCount, setJobCount] = useState(0);
   const [activePage, setActivePage] = useState(1);
   const [pageSize] = useState(10);
+  const mine = variant === "mine";
 
-  const { data: jobs, isLoading } = useJobsQuery({ page: activePage, pageSize }, { pollingInterval: 2000 });
+  const { data: jobs, isLoading } = useJobsQuery({ page: activePage, pageSize, mine }, { pollingInterval: 2000 });
 
   useEffect(() => {
     if (!jobs) {
@@ -33,7 +47,7 @@ export function JobList() {
   return (
     <Card shadow="md">
       <Title order={3} mb={20}>
-        {t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
+        {mine ? t("jobs.myjobs") : t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
       </Title>
       <Alert icon={<AlertCircle />} title="Removing entries" mb={20}>
         {t("joblist.removeexplanation")}
@@ -49,7 +63,7 @@ export function JobList() {
                 <Table.Th> {t("joblist.queued")}</Table.Th>
                 <Table.Th> {t("joblist.started")}</Table.Th>
                 <Table.Th> {t("joblist.duration")}</Table.Th>
-                <Table.Th> {t("joblist.startedby")}</Table.Th>
+                {!mine && <Table.Th> {t("joblist.startedby")}</Table.Th>}
               </>
             )}
             <Table.Th> {t("joblist.cancel")}</Table.Th>
@@ -67,7 +81,7 @@ export function JobList() {
                 if (target.closest("button") || target.closest('[role="button"]')) {
                   return;
                 }
-                navigate({ to: `/admin/job/${job.id}` });
+                navigate({ to: `${mine ? "/jobs" : "/admin/job"}/${job.id}` });
               }}
             >
               <Table.Td>
@@ -102,7 +116,7 @@ export function JobList() {
                 finishedAt={job.finished_at}
                 startedAt={job.started_at}
               />
-              {matches && <Table.Td>{job.started_by.username}</Table.Td>}
+              {matches && !mine && <Table.Td>{job.started_by.username}</Table.Td>}
               <Table.Td onClick={e => e.stopPropagation()}>
                 <CancelJobButton job={job} />
               </Table.Td>

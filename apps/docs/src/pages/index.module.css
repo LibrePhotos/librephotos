@@ -1,23 +1,444 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
+/* Landing page. Tokens live in src/css/custom.css (--lp-*). */
 
-.heroBanner {
-  padding: 4rem 0;
-  text-align: center;
+.hero {
   position: relative;
   overflow: hidden;
+  background: var(--lp-ink);
+  color: var(--lp-on-ink);
+  padding-block: 4.5rem 3.5rem;
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
+.motif {
+  position: absolute;
+  right: -9rem;
+  top: -11rem;
+  width: 44rem;
+  height: 44rem;
+  color: var(--lp-on-ink);
+  opacity: 0.07;
+  pointer-events: none;
+}
+
+.heroInner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 3rem;
+  align-items: center;
+}
+
+.heroCopy {
+  max-width: 34rem;
+}
+
+.eyebrow {
+  margin: 0 0 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-on-ink-muted);
+}
+
+.title {
+  font-family: var(--lp-display-font);
+  font-weight: 700;
+  font-size: clamp(2.25rem, 1.4rem + 2.6vw, 3.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0 0 1.25rem;
+}
+
+.lead {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--lp-on-ink-soft);
+  margin: 0 0 2rem;
+  max-width: 32rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.primaryButton {
+  background: var(--lp-accent);
+  border-color: var(--lp-accent);
+  color: #fff;
+}
+
+.primaryButton:hover {
+  background: var(--lp-accent-strong);
+  border-color: var(--lp-accent-strong);
+  color: #fff;
+}
+
+.ghostButton {
+  background: transparent;
+  border-color: var(--lp-on-ink-line);
+  color: var(--lp-on-ink);
+}
+
+.ghostButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--lp-on-ink);
+  color: var(--lp-on-ink);
+}
+
+.heroNote {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--lp-on-ink-muted);
+}
+
+.heroNoteLink {
+  color: var(--lp-on-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.heroArt {
+  min-width: 0;
+}
+
+.browserFrame {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #0f0f12;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.8);
+  transform: perspective(1600px) rotateY(-4deg);
+}
+
+.browserBar {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  background: #1a1a1f;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.browserBar span {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.browserFrame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+.onInk {
+  color: var(--lp-on-ink-soft);
+}
+
+
+/* Sections */
+
+.section {
+  padding-block: 4rem;
+}
+
+.sectionTinted {
+  background: var(--lp-surface);
+}
+
+.sectionHead {
+  max-width: 40rem;
+  margin-bottom: 2.25rem;
+}
+
+.h2 {
+  font-family: var(--lp-display-font);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 1.2rem + 1.2vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  margin: 0 0 0.6rem;
+}
+
+.h3 {
+  font-family: var(--lp-display-font);
+  font-weight: 700;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+.sectionLead {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+/* Start here */
+
+.pathGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.pathCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--lp-line);
+  border-radius: 10px;
+  background: var(--ifm-background-color);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.pathCard p {
+  margin: 0 0 1rem;
+  color: var(--ifm-color-emphasis-700);
+  line-height: 1.55;
+}
+
+.pathCard:hover,
+.pathCard:focus-visible {
+  color: inherit;
+  text-decoration: none;
+  border-color: var(--lp-accent);
+  transform: translateY(-2px);
+}
+
+.pathCta {
+  margin-top: auto;
+  font-weight: 600;
+  color: var(--lp-accent);
+}
+
+/* Features */
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem 2.5rem;
+}
+
+.feature {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.feature:hover,
+.feature:focus-visible {
+  color: inherit;
+  text-decoration: none;
+}
+
+.feature:hover .h3 {
+  color: var(--lp-accent);
+}
+
+.feature p {
+  margin: 0;
+  color: var(--ifm-color-emphasis-700);
+  line-height: 1.55;
+}
+
+.featureIcon {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.9rem;
+  border-radius: 8px;
+  background: var(--lp-ink);
+  color: var(--lp-on-ink);
+}
+
+.featureIcon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+/* Built on */
+
+.builtOn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 2rem;
+  align-items: start;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--lp-line);
+}
+
+.builtOnTitle {
+  margin: 0;
+}
+
+.toolList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--lp-line);
+  border-radius: 999px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.tool:hover {
+  border-color: var(--lp-accent);
+  color: inherit;
+  text-decoration: none;
+}
+
+.toolName {
+  font-weight: 600;
+}
+
+.toolRole {
+  color: var(--ifm-color-emphasis-600);
+  font-size: 0.85rem;
+}
+
+/* Community */
+
+.community {
+  background: var(--lp-ink);
+  color: var(--lp-on-ink);
+  padding-block: 4rem;
+}
+
+.communityInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: center;
+}
+
+.community .sectionLead {
+  color: var(--lp-on-ink-soft);
+}
+
+.communityList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.communityLink {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--lp-line);
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.communityLink:hover,
+.communityLink:focus-visible {
+  border-color: var(--lp-accent);
+  color: inherit;
+  text-decoration: none;
+}
+
+.communityTitle {
+  font-family: var(--lp-display-font);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.communityBody {
+  font-size: 0.9rem;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.builtOn + .builtOn {
+  margin-top: 2.5rem;
+}
+
+/* Responsive */
+
+@media (max-width: 996px) {
+  .hero {
+    padding-block: 3rem 2.5rem;
+  }
+
+  .heroInner {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .heroCopy {
+    max-width: none;
+  }
+
+  .motif {
+    width: 30rem;
+    height: 30rem;
+    right: -12rem;
+    top: -8rem;
+  }
+
+  .pathGrid,
+  .featureGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .builtOn,
+  .communityInner {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .browserFrame {
+    transform: none;
   }
 }
 
-.buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+@media (max-width: 600px) {
+  .pathGrid,
+  .featureGrid,
+  .communityList {
+    grid-template-columns: 1fr;
+  }
+
+  .actions .primaryButton,
+  .actions .ghostButton {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pathCard {
+    transition: none;
+  }
+
+  .pathCard:hover {
+    transform: none;
+  }
 }

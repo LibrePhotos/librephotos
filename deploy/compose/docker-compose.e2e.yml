@@ -112,7 +112,7 @@ services:
       - ALLOW_UPLOAD=${allowUpload:-true}
       - DEBUG=1
     healthcheck:
-      test: curl -fsS localhost:8001/api/healthz
+      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/healthz')"
       interval: 5s
       timeout: 5s
       retries: 24

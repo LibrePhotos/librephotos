@@ -41,6 +41,34 @@ def text_area_fraction(boxes, image_height, image_width):
     return float(min(1.0, total / image_area))
 
 
+def build_blocks(boxes, recognized, min_confidence):
+    """Pair boxes with their recognition results, dropping low-quality ones.
+
+    A block survives only if the recognizer was confident enough and the text
+    still has at least ``MIN_BLOCK_CHARS`` characters once stripped.
+    """
+    blocks = []
+    for box, (text, confidence) in zip(boxes, recognized):
+        stripped = text.strip()
+        if confidence < min_confidence or len(stripped) < MIN_BLOCK_CHARS:
+            continue
+        blocks.append(
+            {
+                "text": stripped,
+                "box": box.tolist(),
+                "confidence": confidence,
+            }
+        )
+    return blocks
+
+
+def mean_confidence(blocks):
+    """Average recognition confidence over ``blocks``, 0.0 when there are none."""
+    if not blocks:
+        return 0.0
+    return float(np.mean([block["confidence"] for block in blocks]))
+
+
 def reading_order_sort(blocks, row_tolerance=None):
     """Order blocks top-to-bottom, then left-to-right within a row.
 
@@ -174,32 +202,13 @@ class PPOCREngine:
         crops = [get_rotate_crop_image(image, box) for box in boxes]
         recognized = self.recognizer.recognize(crops)
 
-        candidate_blocks = []
-        for box, (text, confidence) in zip(boxes, recognized):
-            stripped = text.strip()
-            if confidence < min_confidence or len(stripped) < MIN_BLOCK_CHARS:
-                continue
-            candidate_blocks.append(
-                {
-                    "text": stripped,
-                    "box": box.tolist(),
-                    "confidence": confidence,
-                }
-            )
-
-        ordered = reading_order_sort(candidate_blocks)
-        full_text = "\n".join(block["text"] for block in ordered)
-        mean_confidence = (
-            float(np.mean([block["confidence"] for block in ordered]))
-            if ordered
-            else 0.0
-        )
+        ordered = reading_order_sort(build_blocks(boxes, recognized, min_confidence))
 
         return {
-            "text": full_text,
+            "text": "\n".join(block["text"] for block in ordered),
             "blocks": ordered,
             "text_area_fraction": area_fraction,
-            "mean_confidence": mean_confidence,
+            "mean_confidence": mean_confidence(ordered),
             # Dimensions of the image the boxes are expressed in, so callers can
             # normalize block geometry without re-reading the file.
             "image_width": width,

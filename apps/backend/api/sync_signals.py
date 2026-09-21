@@ -184,9 +184,7 @@ def _photo_share_handler(sender, instance, action, reverse, model, pk_set, **kwa
         else:
             _bump_photo_ids(list(pk_set or []))
             for photo_pk in list(pk_set or []):
-                clear_tombstones(
-                    DeletionLog.ENTITY_PHOTO, [photo_pk], [instance.pk]
-                )
+                clear_tombstones(DeletionLog.ENTITY_PHOTO, [photo_pk], [instance.pk])
     elif action == "pre_clear" and not reverse:
         instance._sync_cleared_share_ids = list(
             instance.shared_to.values_list("id", flat=True)
@@ -199,9 +197,7 @@ def _photo_share_handler(sender, instance, action, reverse, model, pk_set, **kwa
     elif action == "post_remove":
         if not reverse:
             _bump_photo_ids([instance.pk])
-            _write_tombstones(
-                DeletionLog.ENTITY_PHOTO, instance.pk, list(pk_set or [])
-            )
+            _write_tombstones(DeletionLog.ENTITY_PHOTO, instance.pk, list(pk_set or []))
         else:
             _bump_photo_ids(list(pk_set or []))
             for photo_pk in list(pk_set or []):
@@ -214,9 +210,7 @@ def _photo_share_handler(sender, instance, action, reverse, model, pk_set, **kwa
 def _capture_viewers(sender, instance, **kwargs):
     """Snapshot shared_to before a delete cascades the through rows away."""
     try:
-        instance._sync_viewer_ids = set(
-            instance.shared_to.values_list("id", flat=True)
-        )
+        instance._sync_viewer_ids = set(instance.shared_to.values_list("id", flat=True))
     except Exception:
         instance._sync_viewer_ids = set()
 

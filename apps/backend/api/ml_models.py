@@ -16,10 +16,7 @@ from api.models.long_running_job import LongRunningJob
 class MlTypes:
     CAPTIONING = "captioning"
     FACE_RECOGNITION = "face_recognition"
-    CATEGORIES = "categories"
     CLIP = "clip"
-    LLM = "llm"
-    MOONDREAM = "moondream"
     TAGGING = "tagging"
     OCR = "ocr"
 
@@ -34,40 +31,51 @@ class ModelChecksumError(Exception):
 
 ML_MODELS = [
     {
-        "id": 1,
-        "name": "im2txt",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/im2txt.tar.gz",
-        "type": MlTypes.CAPTIONING,
-        "unpack-command": "tar -zxC",
-        "target-dir": "im2txt",
-        "sha256": "980670c0365c0e32b5fecfc0907bfee4742bcd6a40e0d6ac5692c69bbd49ccc4",
-    },
-    {
+        # OpenAI CLIP ViT-B/32 for semantic search: the same weights the
+        # sentence-transformers clip-ViT-B-32 bundle used to wrap, exported to
+        # ONNX, so embeddings already in the database stay comparable.
         "id": 2,
-        "name": "clip-embeddings",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/clip-embeddings.tar.gz",
+        "name": "clip_vit_b32",
+        "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/vision_model.onnx",
         "type": MlTypes.CLIP,
-        "unpack-command": "tar -zxC",
-        "target-dir": "clip-embeddings",
-        "sha256": "3d2f66350b75127024603dfaff55d4b981461363072d9697aa88d472440ecb4e",
-    },
-    {
-        "id": 3,
-        "name": "places365",
-        "url": "https://github.com/LibrePhotos/librephotos-docker/releases/download/0.1/places365.tar.gz",
-        "type": MlTypes.CATEGORIES,
-        "unpack-command": "tar -zxC",
-        "target-dir": "places365",
-        "sha256": "27792ffcd1f6a4de7abebdea046dda0916f9cd12eba7bed7b5f51f120f91f0d8",
-    },
-    {
-        "id": 4,
-        "name": "resnet18",
-        "url": "https://download.pytorch.org/models/resnet18-5c106cde.pth",
-        "type": MlTypes.CATEGORIES,
         "unpack-command": None,
-        "target-dir": "resnet18-5c106cde.pth",
-        "sha256": "5c106cde386e87d4033832f2996f5493238eda96ccf559d1d62760c4de0613f8",
+        "target-dir": "clip_vit_b32/vision_model.onnx",
+        "sha256": "fd6e1402a588279d1723c7534d4bcba5bc0b14b47dfab0e46f8c47b8270d7d40",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/onnx/text_model.onnx",
+                "target": "clip_vit_b32/text_model.onnx",
+                "sha256": "3f6571f5bad13a97c469c1622e1cfc4d9aef78b79fdbfcff804ca357bfada8cc",
+            },
+            {
+                "url": "https://huggingface.co/Xenova/clip-vit-base-patch32/resolve/main/tokenizer.json",
+                "target": "clip_vit_b32/tokenizer.json",
+                "sha256": "f7f3b7af117d467b58374797691a6438d3e6b9e9cef800dfd5dced7f697a90cd",
+            },
+        ],
+    },
+    {
+        # Apple MobileCLIP-S2 (ONNX export by Xenova): the lightweight zero-shot
+        # tagger, about the cost of the old Places365 CNN.
+        "id": 3,
+        "name": "mobileclip_s2",
+        "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/vision_model.onnx",
+        "type": MlTypes.TAGGING,
+        "unpack-command": None,
+        "target-dir": "mobileclip_s2/vision_model.onnx",
+        "sha256": "d28b92d7a3a6ba99bd000cce5c91678c0e279dc934c887a3785908a811872a6c",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/onnx/text_model.onnx",
+                "target": "mobileclip_s2/text_model.onnx",
+                "sha256": "ff82e945c6c652c51df687e10f102a8e43c87d37c9108ff692468be3732f3710",
+            },
+            {
+                "url": "https://huggingface.co/Xenova/mobileclip_s2/resolve/main/tokenizer.json",
+                "target": "mobileclip_s2/tokenizer.json",
+                "sha256": "72ed5c96db5729294468543e4bc75fce14ca63f58e37300290189ba1c1e52b85",
+            },
+        ],
     },
     {
         # InsightFace buffalo_* and antelopev2 bundles are licensed for
@@ -92,13 +100,54 @@ ML_MODELS = [
         "sha256": "d85a87f503f691807cd8bb97128bdf7a0660326cd9cd02657127fa978bab8b5e",
     },
     {
-        "id": 6,
-        "name": "blip_base_capfilt_large",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/blip_large.tar.gz?download=true",
+        # Liquid AI's LFM2.5-VL-450M (ONNX export by onnx-community, 4-bit
+        # weights, fp32 activations): the captioner. A vision-language model,
+        # so the caption prompt can carry a person's name and the place. About
+        # 0.9 GB of RAM while it captions. Always kept available, so turning
+        # captioning on never waits for a download. The .onnx_data files are
+        # the weights the small .onnx graphs point at and must keep their
+        # names. Not the q4f16 export: its FastGelu nodes run in float16,
+        # and not every ONNX Runtime CPU build has a float16 kernel for that
+        # (NOT_IMPLEMENTED at session creation; seen on an ARM64 host).
+        "id": 18,
+        "name": "lfm2_vl_450m",
+        "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx",
         "type": MlTypes.CAPTIONING,
-        "unpack-command": "tar -zxC",
-        "target-dir": "blip",
-        "sha256": "7c730d83bfdf4def7e9cca070e88b89192e61b8b1e7b64179b182e03922179f8",
+        "unpack-command": None,
+        "target-dir": "lfm2_vl_450m/vision_encoder_q4.onnx",
+        "sha256": "3457fe118939ecd52183660abafbbd32c810f41a0e8d1119a1f07ca2d4d9dcfc",
+        "additional_files": [
+            {
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/vision_encoder_q4.onnx_data",
+                "target": "lfm2_vl_450m/vision_encoder_q4.onnx_data",
+                "sha256": "03171ff302af006d2e5f55f9c09531d7938565626334809c94e6de54afc840b5",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx",
+                "target": "lfm2_vl_450m/embed_tokens_q4.onnx",
+                "sha256": "f0d663cbf75fc6a0c7b9669177335139b0c5a63575c6413037d48501eea0c4a5",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/embed_tokens_q4.onnx_data",
+                "target": "lfm2_vl_450m/embed_tokens_q4.onnx_data",
+                "sha256": "255994cbb7269ea24b43d3d57a7e64dcb54da69c77ea612f9c32af3dbb95158e",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx",
+                "target": "lfm2_vl_450m/decoder_model_merged_q4.onnx",
+                "sha256": "00b4c0ed1008194b6ed813e5d17724db122ef71e963197424022aaf93966515a",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/onnx/decoder_model_merged_q4.onnx_data",
+                "target": "lfm2_vl_450m/decoder_model_merged_q4.onnx_data",
+                "sha256": "0440e6e97953a70705ef1901cb1267bc80cb69ae7d4ca25010891c5770e989d5",
+            },
+            {
+                "url": "https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX/resolve/main/tokenizer.json",
+                "target": "lfm2_vl_450m/tokenizer.json",
+                "sha256": "d3f7877aa8c9ce603604f2cf78c280c24d8b6087c24669610f3391bcd3f703cf",
+            },
+        ],
     },
     {
         "id": 10,
@@ -108,15 +157,6 @@ ML_MODELS = [
         "unpack-command": "zip",
         "target-dir": "face_recognition/models/buffalo_m",
         "sha256": "d98264bd8f2dc75cbc2ddce2a14e636e02bb857b3051c234b737bf3b614edca9",
-    },
-    {
-        "id": 8,
-        "name": "mistral-7b-instruct-v0.2.Q5_K_M",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/mistral/mistral-7b-instruct-v0.2.Q5_K_M.gguf?download=true",
-        "type": MlTypes.LLM,
-        "unpack-command": None,
-        "target-dir": "mistral-7b-instruct-v0.2.Q5_K_M.gguf",
-        "sha256": "b85cdd596ddd76f3194047b9108a73c74d77ba04bef49255a50fc0cfbda83d32",
     },
     {
         "id": 11,
@@ -184,23 +224,6 @@ ML_MODELS = [
         "target-dir": "ocr/ppocrv6_medium",
         "sha256": "21232b79847cd56d5cae801d3364f95e508b40bb0ce159f31687e63c63959a0b",
     },
-    {
-        # Moondream 2 GGUF model for llama-cpp-python multimodal support
-        "id": 9,
-        "name": "moondream",
-        "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/moondream/moondream2-text-model-f16.gguf?download=true",
-        "type": MlTypes.MOONDREAM,
-        "unpack-command": None,
-        "target-dir": "moondream2-text-model-f16.gguf",
-        "sha256": "4e17e9107fb8781629b3c8ce177de57ffeae90fe14adcf7b99f0eef025889696",
-        "additional_files": [
-            {
-                "url": "https://huggingface.co/derneuere/librephotos_models/resolve/main/moondream/moondream2-mmproj-f16.gguf?download=true",
-                "target": "moondream2-mmproj-f16.gguf",
-                "sha256": "4cc1cb3660d87ff56432ebeb7884ad35d67c48c7b9f6b2856f305e39c38eed8f",
-            }
-        ],
-    },
 ]
 
 
@@ -211,19 +234,11 @@ def _is_model_not_selected(value):
 def _is_model_selected(model):
     model_type = model["type"]
     if model_type == MlTypes.CAPTIONING:
-        return model["name"] == site_config.CAPTIONING_MODEL
+        # The one captioner is always kept available: it is small, and turning
+        # captioning on should never wait for a download.
+        return True
     if model_type == MlTypes.TAGGING:
         return model["name"] == site_config.TAGGING_MODEL
-    if model_type == MlTypes.LLM:
-        return not _is_model_not_selected(site_config.LLM_MODEL) and (
-            model["name"] == site_config.LLM_MODEL
-        )
-    if model_type == MlTypes.MOONDREAM:
-        # Moondream can be picked as the captioning model, as the LLM, or both.
-        return model["name"] in (
-            site_config.CAPTIONING_MODEL,
-            site_config.LLM_MODEL,
-        )
     if model_type == MlTypes.FACE_RECOGNITION:
         return model["name"] == site_config.FACE_RECOGNITION_MODEL
     if model_type == MlTypes.OCR:
@@ -313,16 +328,74 @@ def download_model(model):
             # left behind is never useful and would only be re-read next run.
             Path(target_path).unlink(missing_ok=True)
 
-    if model.get("additional_files"):
-        for additional_file in model["additional_files"]:
-            additional_target = model_folder / additional_file["target"]
-            if not additional_target.exists():
-                _download_file(
-                    additional_file["url"],
-                    additional_target,
-                    f"{model['name']} ({additional_file['target']})",
-                    additional_file.get("sha256"),
-                )
+    _download_missing_additional_files(model_folder, model)
+
+
+def _download_missing_additional_files(model_folder, model):
+    for additional_file in model.get("additional_files") or []:
+        additional_target = model_folder / additional_file["target"]
+        if additional_target.exists():
+            continue
+        _download_file(
+            additional_file["url"],
+            additional_target,
+            f"{model['name']} ({additional_file['target']})",
+            additional_file.get("sha256"),
+        )
+
+
+def _log_download_progress(
+    model_name, current_progress, total_size, previous_percentage
+):
+    if total_size <= 0:
+        return previous_percentage
+    percentage = math.floor((current_progress / total_size) * 100)
+    if percentage != previous_percentage:
+        util.logger.info(
+            f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
+        )
+    return percentage
+
+
+def _stream_to_partial(response, partial_path, model_name, hasher):
+    total_size = int(response.headers.get("content-length", 0))
+    block_size = 1024
+    current_progress = 0
+    previous_percentage = -1
+
+    with open(partial_path, "wb") as target_file:
+        for chunk in response.iter_content(chunk_size=block_size):
+            if not chunk:
+                continue
+            target_file.write(chunk)
+            if hasher is not None:
+                hasher.update(chunk)
+            current_progress += len(chunk)
+            previous_percentage = _log_download_progress(
+                model_name, current_progress, total_size, previous_percentage
+            )
+
+    return current_progress, total_size
+
+
+def _verify_checksum(hasher, expected_sha256, model_name, url):
+    if hasher is None:
+        util.logger.debug(f"No sha256 pin for {model_name}; skipping verification")
+        return
+
+    actual_sha256 = hasher.hexdigest()
+    expected = expected_sha256.lower()
+    if actual_sha256 == expected:
+        return
+
+    # Named file plus both digests so the operator can tell a corrupted
+    # download from a stale pin at a glance.
+    message = (
+        f"Checksum mismatch for {model_name} from {url}: "
+        f"expected sha256 {expected}, got {actual_sha256}"
+    )
+    util.logger.error(message)
+    raise ModelChecksumError(message)
 
 
 def _download_file(url, target_path, model_name, expected_sha256=None):
@@ -354,29 +427,9 @@ def _download_file(url, target_path, model_name, expected_sha256=None):
             # not found" page gets written out as if it were the model.
             response.raise_for_status()
 
-            total_size = int(response.headers.get("content-length", 0))
-            block_size = 1024
-            current_progress = 0
-            previous_percentage = -1
-
-            with open(partial_path, "wb") as target_file:
-                for chunk in response.iter_content(chunk_size=block_size):
-                    if chunk:
-                        target_file.write(chunk)
-                        if hasher is not None:
-                            hasher.update(chunk)
-                        current_progress += len(chunk)
-
-                        if total_size > 0:
-                            percentage = math.floor(
-                                (current_progress / total_size) * 100
-                            )
-
-                            if percentage != previous_percentage:
-                                util.logger.info(
-                                    f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
-                                )
-                                previous_percentage = percentage
+            current_progress, total_size = _stream_to_partial(
+                response, partial_path, model_name, hasher
+            )
 
             # content-length describes the encoded body, so it only bounds the
             # bytes we wrote when requests did not decompress on the fly.
@@ -391,22 +444,7 @@ def _download_file(url, target_path, model_name, expected_sha256=None):
                 f"{total_size} bytes from {url}"
             )
 
-        if hasher is not None:
-            actual_sha256 = hasher.hexdigest()
-            expected = expected_sha256.lower()
-            if actual_sha256 != expected:
-                # Named file plus both digests so the operator can tell a
-                # corrupted download from a stale pin at a glance.
-                util.logger.error(
-                    f"Checksum mismatch for {model_name} from {url}: "
-                    f"expected sha256 {expected}, got {actual_sha256}"
-                )
-                raise ModelChecksumError(
-                    f"Checksum mismatch for {model_name} from {url}: "
-                    f"expected sha256 {expected}, got {actual_sha256}"
-                )
-        else:
-            util.logger.debug(f"No sha256 pin for {model_name}; skipping verification")
+        _verify_checksum(hasher, expected_sha256, model_name, url)
 
         if total_size == 0:
             util.logger.info(
@@ -455,3 +493,37 @@ def do_all_models_exist():
         if not _model_target_exists(model_folder, model):
             return False
     return True
+
+
+def captioning_model_exists():
+    """Whether every file of the captioner is on disk.
+
+    A caption request that reaches the sidecar without them fails inside
+    ONNX Runtime; the caller checks here first and starts the download.
+    """
+    model_folder = Path(settings.MEDIA_ROOT) / "data_models"
+    return all(
+        _model_target_exists(model_folder, model)
+        for model in ML_MODELS
+        if model["type"] == MlTypes.CAPTIONING
+    )
+
+
+def start_model_download(user):
+    """Queue a Download Models job unless one is already running.
+
+    Returns True when a download is now running (just queued or already
+    underway), False when it could not be queued.
+    """
+    if LongRunningJob.objects.filter(
+        job_type=LongRunningJob.JOB_DOWNLOAD_MODELS, finished=False
+    ).exists():
+        return True
+    try:
+        from django_q.tasks import AsyncTask
+
+        AsyncTask(download_models, user).run()
+        return True
+    except Exception:
+        util.logger.exception("Failed to queue the model download")
+        return False

@@ -38,22 +38,12 @@ class PhotoSearch(models.Model):
         if hasattr(self.photo, "caption_instance") and self.photo.caption_instance:
             captions_json = self.photo.caption_instance.captions_json
             if captions_json:
-                # Index tags from the active tagging model only
+                # Index tags from the active tagging model only. Every tagger
+                # stores {"tags": [...]} under its own key.
                 tagging_model = site_config.TAGGING_MODEL
-
-                if tagging_model == "siglip2":
-                    siglip2_data = captions_json.get("siglip2", {})
-                    siglip2_tags = siglip2_data.get("tags", [])
-                    if siglip2_tags:
-                        search_captions += " ".join(siglip2_tags) + " "
-                else:
-                    places365_captions = captions_json.get("places365", {})
-                    attributes = places365_captions.get("attributes", [])
-                    search_captions += " ".join(attributes) + " "
-                    categories = places365_captions.get("categories", [])
-                    search_captions += " ".join(categories) + " "
-                    environment = places365_captions.get("environment", "")
-                    search_captions += environment + " "
+                tags = (captions_json.get(tagging_model) or {}).get("tags", [])
+                if tags:
+                    search_captions += " ".join(tags) + " "
 
                 user_caption = captions_json.get("user_caption", "")
                 if user_caption:

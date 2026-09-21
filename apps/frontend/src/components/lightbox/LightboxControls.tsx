@@ -1,5 +1,6 @@
 import { ActionIcon, Divider, Group, Loader, RingProgress, Select, Tooltip } from "@mantine/core";
 import {
+  IconCopy as Copy,
   IconEye as Eye,
   IconEyeOff as EyeOff,
   IconGlobe as Globe,
@@ -28,6 +29,7 @@ import {
 } from "../../api_client/photos/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { copyToClipboard } from "../../util/util";
+import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 
 // Interval options for slideshow
@@ -61,6 +63,8 @@ export function LightboxControls({
   hasOcrText,
   showOcrText,
   toggleOcrText,
+  onCopyToClipboard,
+  isCopyingToClipboard = false,
 }: LightboxControlsProps) {
   const { t } = useTranslation();
 
@@ -227,6 +231,20 @@ export function LightboxControls({
           <Tooltip label={t("lightbox.controls.zoom")} position="bottom" withArrow>
             <ActionIcon variant="subtle" color="gray" onClick={toggleZoom} size={28}>
               {isZoomed ? <ZoomOut size={18} /> : <ZoomIn size={18} />}
+            </ActionIcon>
+          </Tooltip>
+        )}
+        {onCopyToClipboard && (
+          <Tooltip label={t("lightbox.controls.copy", { shortcut: copyKeyLabel() })} position="bottom" withArrow>
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              onClick={onCopyToClipboard}
+              loading={isCopyingToClipboard}
+              size={28}
+              aria-label={t("lightbox.controls.copy", { shortcut: copyKeyLabel() })}
+            >
+              <Copy size={18} />
             </ActionIcon>
           </Tooltip>
         )}

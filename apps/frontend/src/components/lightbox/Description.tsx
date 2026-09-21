@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Group, Stack, Title, Tooltip } from "@mantine/core";
 import { RichTextEditor } from "@mantine/tiptap";
 import "@mantine/tiptap/styles.css";
 import { IconCheck, IconEdit, IconX, IconNote as Note, IconTags as Tags, IconWand as Wand } from "@tabler/icons-react";
@@ -28,10 +28,12 @@ export function Description(props: Props) {
   const { t } = useTranslation();
   const { data: thingAlbums } = useFetchThingsAlbumsQuery();
   const { data: siteSettings } = useGetSettingsQuery();
-  const taggingModel = siteSettings?.tagging_model ?? "places365";
+  const taggingModel = siteSettings?.tagging_model ?? "mobileclip_s2";
   const navigate = useNavigate();
 
   const { photoDetail, isPublic } = props;
+  // Every tagging model stores { tags: string[] } under its own key.
+  const autoTags: string[] | undefined = photoDetail.captions_json?.[taggingModel]?.tags;
 
   const [editMode, setEditMode] = useState(false);
   const [imageCaption, setImageCaption] = useState<string | null>(null);
@@ -176,59 +178,24 @@ export function Description(props: Props) {
             </Tooltip>
           </Group>
         )}
-        {taggingModel === "siglip2" && photoDetail.captions_json.siglip2 && photoDetail.captions_json.siglip2.tags && (
+        {autoTags && autoTags.length > 0 && (
           <Stack>
             <Group>
               <Tags />
-              <Title order={4}>{t("lightbox.sidebar.tags", "Tags")}</Title>
+              {/* The tagging model's own output, not the user's tags -- both
+                  used to render as "Tags" in the same sidebar. */}
+              <Title order={4}>{t("lightbox.sidebar.autotags")}</Title>
             </Group>
             <Group>
-              {photoDetail.captions_json.siglip2.tags.map((tag: string) => (
+              {autoTags.map((tag: string) => (
                 <Badge
-                  key={`lightbox_siglip2_label_${photoDetail.image_hash}_${tag}`}
+                  key={`lightbox_autotag_${photoDetail.image_hash}_${tag}`}
                   color="green"
                   onClick={() => {
                     navigate({ to: `/search/${tag}` });
                   }}
                 >
                   {tag}
-                </Badge>
-              ))}
-            </Group>
-          </Stack>
-        )}
-        {taggingModel === "places365" && photoDetail.captions_json.places365 && (
-          <Stack>
-            <Group>
-              <Tags />
-              <Title order={4}>{t("lightbox.sidebar.scene")}</Title>
-            </Group>
-            <Text fw={700}>{t("lightbox.sidebar.attributes")}</Text>
-            <Group>
-              {photoDetail.captions_json.places365.attributes.map(nc => (
-                <Badge
-                  key={`lightbox_attribute_label_${photoDetail.image_hash}_${nc}`}
-                  color="blue"
-                  onClick={() => {
-                    navigate({ to: `/search/${nc}` });
-                  }}
-                >
-                  {nc}
-                </Badge>
-              ))}
-            </Group>
-
-            <Text fw={700}>{t("lightbox.sidebar.categories")}</Text>
-            <Group>
-              {photoDetail.captions_json.places365.categories.map(nc => (
-                <Badge
-                  key={`lightbox_category_label_${photoDetail.image_hash}_${nc}`}
-                  color="teal"
-                  onClick={() => {
-                    navigate({ to: `/search/${nc}` });
-                  }}
-                >
-                  {nc}
                 </Badge>
               ))}
             </Group>

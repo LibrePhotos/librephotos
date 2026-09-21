@@ -101,10 +101,7 @@ class BaseSyncView(APIView):
             return qs
         return qs.filter(
             Q(last_modified__gt=cursor_dt)
-            | (
-                Q(last_modified=cursor_dt)
-                & Q(**{f"{self.pk_field}__gt": cursor_pk})
-            )
+            | (Q(last_modified=cursor_dt) & Q(**{f"{self.pk_field}__gt": cursor_pk}))
         )
 
     def get_tombstones(self, user, cursor_dt):
@@ -175,9 +172,7 @@ class SyncPhotosView(BaseSyncView):
     values_fields = PHOTO_VALUES + ("has_motion",)
 
     def scoped_queryset(self, user):
-        return Photo.objects.filter(
-            Q(owner=user) | Q(shared_to=user)
-        ).distinct()
+        return Photo.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
     def annotate(self, qs):
         motion = File.objects.filter(
@@ -211,17 +206,15 @@ class SyncUserAlbumsView(BaseSyncView):
     values_fields = USER_ALBUM_VALUES
 
     def scoped_queryset(self, user):
-        return AlbumUser.objects.filter(
-            Q(owner=user) | Q(shared_to=user)
-        ).distinct()
+        return AlbumUser.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
     def serialize_page(self, rows, user):
         ids = [r["id"] for r in rows]
         membership = defaultdict(list)
         through = AlbumUser.photos.through
-        for aid, pid in through.objects.filter(
-            albumuser_id__in=ids
-        ).values_list("albumuser_id", "photo_id"):
+        for aid, pid in through.objects.filter(albumuser_id__in=ids).values_list(
+            "albumuser_id", "photo_id"
+        ):
             membership[aid].append(str(pid))
         shared_ids = set(
             AlbumUser.shared_to.through.objects.filter(
@@ -242,17 +235,15 @@ class SyncAutoAlbumsView(BaseSyncView):
     values_fields = AUTO_ALBUM_VALUES
 
     def scoped_queryset(self, user):
-        return AlbumAuto.objects.filter(
-            Q(owner=user) | Q(shared_to=user)
-        ).distinct()
+        return AlbumAuto.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
     def serialize_page(self, rows, user):
         ids = [r["id"] for r in rows]
         membership = defaultdict(list)
         through = AlbumAuto.photos.through
-        for aid, pid in through.objects.filter(
-            albumauto_id__in=ids
-        ).values_list("albumauto_id", "photo_id"):
+        for aid, pid in through.objects.filter(albumauto_id__in=ids).values_list(
+            "albumauto_id", "photo_id"
+        ):
             membership[aid].append(pid)
         # Cover = first member's image_hash. One query for the whole page.
         first_photo = {aid: pids[0] for aid, pids in membership.items() if pids}
@@ -265,9 +256,7 @@ class SyncAutoAlbumsView(BaseSyncView):
         for r in rows:
             pids = membership[r["id"]]
             cover = hash_by_id.get(first_photo.get(r["id"]))
-            out.append(
-                serialize_auto_album_row(r, [str(p) for p in pids], cover)
-            )
+            out.append(serialize_auto_album_row(r, [str(p) for p in pids], cover))
         return out
 
 
@@ -279,17 +268,15 @@ class SyncThingAlbumsView(BaseSyncView):
     values_fields = ("id", "title", "photo_count", "last_modified")
 
     def scoped_queryset(self, user):
-        return AlbumThing.objects.filter(
-            Q(owner=user) | Q(shared_to=user)
-        ).distinct()
+        return AlbumThing.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
     def serialize_page(self, rows, user):
         ids = [r["id"] for r in rows]
         covers = defaultdict(list)
         through = AlbumThing.cover_photos.through
-        for aid, phash in through.objects.filter(
-            albumthing_id__in=ids
-        ).values_list("albumthing_id", "photo__image_hash"):
+        for aid, phash in through.objects.filter(albumthing_id__in=ids).values_list(
+            "albumthing_id", "photo__image_hash"
+        ):
             if phash:
                 covers[aid].append(phash)
         return [serialize_named_album_row(r, covers[r["id"]]) for r in rows]
@@ -300,9 +287,7 @@ class SyncPlaceAlbumsView(BaseSyncView):
     values_fields = ("id", "title", "geolocation_level", "last_modified")
 
     def scoped_queryset(self, user):
-        return AlbumPlace.objects.filter(
-            Q(owner=user) | Q(shared_to=user)
-        ).distinct()
+        return AlbumPlace.objects.filter(Q(owner=user) | Q(shared_to=user)).distinct()
 
     def serialize_page(self, rows, user):
         # AlbumPlace has no stored photo_count column; count membership for the
@@ -334,9 +319,7 @@ class SyncTagAlbumsView(BaseSyncView):
         return Tag.objects.filter(owner=user)
 
     def _materialize(self, qs, limit):
-        rows = list(
-            qs.values("id", "name", "photo_count", "last_modified")[:limit]
-        )
+        rows = list(qs.values("id", "name", "photo_count", "last_modified")[:limit])
         for r in rows:
             r["title"] = r.pop("name")
         return rows
@@ -356,9 +339,9 @@ class SyncSharingView(BaseSyncView):
         ids = set()
         # People I share my photos/albums with.
         ids.update(
-            Photo.shared_to.through.objects.filter(
-                photo__owner=user
-            ).values_list("user_id", flat=True)
+            Photo.shared_to.through.objects.filter(photo__owner=user).values_list(
+                "user_id", flat=True
+            )
         )
         for through, owner_lookup in (
             (AlbumUser.shared_to.through, "albumuser__owner"),
@@ -377,9 +360,7 @@ class SyncSharingView(BaseSyncView):
         )
         for model in (AlbumUser, AlbumAuto, AlbumThing, AlbumPlace):
             ids.update(
-                model.objects.filter(shared_to=user).values_list(
-                    "owner_id", flat=True
-                )
+                model.objects.filter(shared_to=user).values_list("owner_id", flat=True)
             )
         ids.discard(user.id)
         return ids

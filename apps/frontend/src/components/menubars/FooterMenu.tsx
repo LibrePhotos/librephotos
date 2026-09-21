@@ -2,6 +2,7 @@ import { ActionIcon, Avatar, Divider, Flex, Menu, useMantineColorScheme } from "
 import {
   IconAdjustments as Adjustments,
   IconBook as Book,
+  IconListDetails as ListDetails,
   IconLogout as Logout,
   IconMoon as Moon,
   IconSettings as Settings,
@@ -112,6 +113,10 @@ export function FooterMenu(): JSX.Element {
 
           <Menu.Item leftSection={<Settings />} onClick={() => navigate({ to: "/settings" })}>
             {t("topmenu.settings")}
+          </Menu.Item>
+
+          <Menu.Item leftSection={<ListDetails />} onClick={() => navigate({ to: "/jobs" })}>
+            {t("topmenu.jobs")}
           </Menu.Item>
 
           {user && user.is_superuser && <Menu.Divider />}

@@ -12,6 +12,7 @@ import {
   useRemovePhotosFromTagMutation,
 } from "../../api_client/tags/hooks";
 import { notification } from "../../service/notifications";
+import { TAG_SUGGESTION_LIMIT, tagOptionsFilter } from "../../util/tagOptionsFilter";
 
 interface TagsSectionProps {
   photoDetail: PhotoType;
@@ -101,6 +102,8 @@ export function TagsSection({ photoDetail }: TagsSectionProps) {
           value={draftTags}
           onChange={setDraftTags}
           data={(allTags ?? []).map(tag => tag.name)}
+          filter={tagOptionsFilter}
+          limit={TAG_SUGGESTION_LIMIT}
           placeholder={t("lightbox.sidebar.addTag")}
           splitChars={[","]}
           clearable

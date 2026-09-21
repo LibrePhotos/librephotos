@@ -3,7 +3,15 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from api.services import SERVICES, is_healthy, start_service, stop_service
+from api.services import (
+    SERVICE_FEATURE_FLAGS,
+    SERVICES,
+    disabled_reason,
+    is_healthy,
+    is_service_enabled,
+    start_service,
+    stop_service,
+)
 
 
 class ServiceViewSet(viewsets.ViewSet):
@@ -21,8 +29,18 @@ class ServiceViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        healthy = is_healthy(service_name)
-        return Response({"service_name": service_name, "healthy": healthy})
+        enabled = is_service_enabled(service_name)
+        # A switched-off service is not probed, for the same reason the watchdog
+        # does not probe it: nothing is listening, and every probe costs a
+        # connection refusal and a stack trace in the log.
+        return Response(
+            {
+                "service_name": service_name,
+                "healthy": is_healthy(service_name) if enabled else False,
+                "enabled": enabled,
+                "feature_flag": SERVICE_FEATURE_FLAGS.get(service_name),
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def start(self, request, pk=None):
@@ -32,6 +50,18 @@ class ServiceViewSet(viewsets.ViewSet):
             return Response(
                 {"error": f"Service {service_name} not found"},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not is_service_enabled(service_name):
+            return Response(
+                {
+                    "error": (
+                        f"Service {service_name} is not started: "
+                        f"{disabled_reason(service_name)}"
+                    ),
+                    "feature_flag": SERVICE_FEATURE_FLAGS.get(service_name),
+                },
+                status=status.HTTP_409_CONFLICT,
             )
 
         start_result = start_service(service_name)

@@ -22,6 +22,7 @@ deploy/
 - **Always specify the app path.** `apps/backend/manage.py`, not `manage.py`.
 - **Cross-app PRs are fine**, e.g. a backend API change plus the frontend client update. Keep them scoped to the single feature.
 - **CI is path-filtered.** Touching `apps/frontend/` only runs the frontend pipeline. Touching `apps/backend/` and `deploy/docker/backend/` runs backend lint plus the backend image build.
+- **Document every feature.** A user-facing feature, setting, or env var is not done until the same PR documents it in `apps/docs/` (user guide and/or the environment-variables page). Docs deploy from `dev`, so also note when a feature is unreleased to avoid confusion like #1979.
 
 ## Commands (summary — see per-app CLAUDE.md for details)
 

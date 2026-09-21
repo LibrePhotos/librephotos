@@ -5,15 +5,31 @@ import { useFullscreen, useHotkeys } from "@mantine/hooks";
 import { useGesture } from "@use-gesture/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useAddFaceMutation } from "../../api_client/faces";
+import type { NormalizedFaceBox } from "../../api_client/faces/hooks/useAddFaceMutation";
 import { useFetchPhotoDetailsQuery } from "../../api_client/photos/hooks";
 import { useRotatePhotosMutation } from "../../api_client/photos/hooks/useRotatePhotosMutation";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { useCopyPhotoToClipboard } from "../../hooks/useCopyPhotoToClipboard";
+import { ModalPersonEdit } from "../modals/ModalPersonEdit";
 import { ImagePreloader } from "./ImagePreloader";
+import {
+  COPY_KEY,
+  NEXT_KEY,
+  PLAY_PAUSE_KEY,
+  PREVIOUS_KEY,
+  SEEK_BACK_KEY,
+  SEEK_FORWARD_KEY,
+  SEEK_LONG_BACK_KEY,
+  SEEK_LONG_FORWARD_KEY,
+} from "./lightbox.hotkeys";
 import type { ContentViewerProps, FaceLocationType } from "./lightbox.types";
 import { LightboxControls } from "./LightboxControls";
 import { MediaDisplay } from "./MediaDisplay";
 import { Sidebar } from "./Sidebar";
 import { ThumbnailNavigation } from "./ThumbnailNavigation";
+import { requestLightboxSeek, SEEK_LONG_STEP_SECONDS, SEEK_STEP_SECONDS } from "./VideoPlayer";
 
 export function ContentViewer({
   mainSrc,
@@ -30,6 +46,7 @@ export function ContentViewer({
   isPublic,
   publicAlbumSlug,
   onPhotoSelect,
+  startSlideshow = false,
 }: ContentViewerProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
@@ -42,6 +59,10 @@ export function ContentViewer({
   const [imageCacheKey, setImageCacheKey] = useState(0);
   // "Live text": overlay selectable OCR text on the photo
   const [showOcrText, setShowOcrText] = useState(false);
+  // Marking a face the detector missed: first the user drags a box over the
+  // photo, then names whoever is in it.
+  const [isDrawingFace, setIsDrawingFace] = useState(false);
+  const [drawnFaceBox, setDrawnFaceBox] = useState<NormalizedFaceBox | null>(null);
   // Tracks whether we should skip the rotation CSS transition on next render
   // (used to silently reset angle to 0 once the server-rotated image has loaded)
   const [suppressRotationTransition, setSuppressRotationTransition] = useState(false);
@@ -49,7 +70,7 @@ export function ContentViewer({
   const pendingRotationReset = useRef(false);
 
   // Slideshow state
-  const [isSlideshowActive, setIsSlideshowActive] = useState(false);
+  const [isSlideshowActive, setIsSlideshowActive] = useState(startSlideshow);
   const [localSlideshowInterval, setLocalSlideshowInterval] = useState<number | null>(null);
   const [slideshowProgress, setSlideshowProgress] = useState(0);
 
@@ -65,8 +86,54 @@ export function ContentViewer({
   // Use image_hash for API calls since backend still uses image_hash for lookup
   // Skip this query on public pages since we don't have authenticated access to photo details
   const { data: photoDetails, isLoading: isPhotoDetailsLoading } = useFetchPhotoDetailsQuery(mainSrcHash, isPublic);
+  const { t } = useTranslation();
+  const { mutate: addFace } = useAddFaceMutation();
+
+  // A drawn box is read against the layer's on-screen rect, which stays right
+  // through zoom and pan but not through rotation: the rect of a rotated
+  // rectangle is its bounding box, so the fractions would not line up.
+  const isRotated = rotationAngle % 360 !== 0;
+  const addFaceBlockedReason = isRotated ? t("lightbox.addface.rotated") : undefined;
+
+  const startDrawingFace = useCallback(() => {
+    setFaceLocation(null);
+    setIsDrawingFace(true);
+  }, []);
+
+  const cancelDrawingFace = useCallback(() => {
+    setIsDrawingFace(false);
+    setDrawnFaceBox(null);
+  }, []);
+
+  const handleFaceDrawn = useCallback((box: NormalizedFaceBox) => {
+    setIsDrawingFace(false);
+    setDrawnFaceBox(box);
+  }, []);
+
+  const handleFacePersonChosen = useCallback(
+    (personName: string) => {
+      if (!drawnFaceBox || !mainSrcHash) return;
+      addFace({ photo: mainSrcHash, personName, box: drawnFaceBox });
+      setDrawnFaceBox(null);
+    },
+    [addFace, drawnFaceBox, mainSrcHash]
+  );
+
+  // Leaving the photo mid-drag would otherwise land the box on the next one.
+  useEffect(() => {
+    setIsDrawingFace(false);
+    setDrawnFaceBox(null);
+  }, [mainSrcHash]);
 
   const rotatePhotos = useRotatePhotosMutation();
+
+  // Copy to clipboard: a toolbar button and Ctrl/Cmd+C, for still photos on
+  // pages that have an image clipboard at all (secure contexts only).
+  const copyPhoto = useCopyPhotoToClipboard();
+  const canCopyPhoto = copyPhoto.supported && type === "photo";
+  const handleCopyPhoto = useCallback(() => {
+    if (canCopyPhoto) copyPhoto.copy({ imageHash: mainSrcHash, cacheKey: imageCacheKey });
+  }, [canCopyPhoto, copyPhoto.copy, mainSrcHash, imageCacheKey]);
 
   // Reset playing state when slide changes
   useEffect(() => {
@@ -219,10 +286,23 @@ export function ContentViewer({
 
   // Add keyboard navigation using Mantine's useHotkeys
   useHotkeys([
-    ["ArrowLeft", () => prevSrc && onMovePrevRequest()],
-    ["ArrowRight", () => nextSrc && onMoveNextRequest()],
+    [PREVIOUS_KEY, () => prevSrc && onMovePrevRequest()],
+    [NEXT_KEY, () => nextSrc && onMoveNextRequest()],
+    // Seeking is added alongside the arrows rather than taking them over. A
+    // focused <video> would seek with the bare arrow keys, but these hotkeys
+    // are bound on `document` and Mantine's ignore list covers only INPUT,
+    // TEXTAREA and SELECT -- so the arrows reach navigation from inside the
+    // player too, and whether a key seeks or navigates would otherwise depend
+    // on the invisible question of whether the user had clicked the video
+    // first. Google Photos and Apple Photos likewise keep the arrows on
+    // navigation. Mantine matches modifiers exactly, so these do not fire the
+    // two bindings above.
+    [SEEK_BACK_KEY, () => requestLightboxSeek(-SEEK_STEP_SECONDS)],
+    [SEEK_FORWARD_KEY, () => requestLightboxSeek(SEEK_STEP_SECONDS)],
+    [SEEK_LONG_BACK_KEY, () => requestLightboxSeek(-SEEK_LONG_STEP_SECONDS)],
+    [SEEK_LONG_FORWARD_KEY, () => requestLightboxSeek(SEEK_LONG_STEP_SECONDS)],
     ["Escape", handleClose],
-    [" ", () => type === "video" && setPlaying(prev => !prev)],
+    [PLAY_PAUSE_KEY, () => type === "video" && setPlaying(prev => !prev)],
     ["z", () => type === "photo" && toggleZoom()],
     ["i", () => setLightBoxSidebarShow(prev => !prev)], // Toggle info panel
     // Additional shortcuts for photo actions handled by lightbox controls
@@ -266,6 +346,17 @@ export function ContentViewer({
     ["g", toggleFullscreen], // Toggle fullscreen mode
     ["s", toggleSlideshow], // Toggle slideshow mode
     ["t", () => hasOcrText && toggleOcrText()], // Toggle live text selection
+    [
+      COPY_KEY,
+      (event: KeyboardEvent) => {
+        // Selected text (live text, the sidebar) keeps the browser's own copy,
+        // which is why preventDefault is deferred until the photo is taken.
+        if (!canCopyPhoto || window.getSelection()?.toString()) return;
+        event.preventDefault();
+        handleCopyPhoto();
+      },
+      { preventDefault: false },
+    ],
   ]);
 
   const bind = useGesture({
@@ -352,6 +443,8 @@ export function ContentViewer({
               hasOcrText={hasOcrText}
               showOcrText={showOcrText}
               toggleOcrText={toggleOcrText}
+              onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
+              isCopyingToClipboard={copyPhoto.isCopying}
             />
 
             {/* Main photo/video with swipe navigation */}
@@ -427,6 +520,9 @@ export function ContentViewer({
                         onImageLoad={handleImageLoad}
                         ocrBlocks={ocrBlocks ?? undefined}
                         showOcrText={showOcrText}
+                        drawingFace={isDrawingFace}
+                        onFaceDrawn={handleFaceDrawn}
+                        onCancelDrawFace={cancelDrawingFace}
                         {...(photoDetails ? { photoDetails } : {})}
                       />
                     </motion.div>
@@ -473,8 +569,19 @@ export function ContentViewer({
               publicAlbumSlug={publicAlbumSlug}
               setFaceLocation={setFaceLocation}
               onPhotoSelect={onPhotoSelect}
+              onAddFaceRequest={type === "photo" ? startDrawingFace : undefined}
+              onCancelAddFace={cancelDrawingFace}
+              isDrawingFace={isDrawingFace}
+              addFaceBlockedReason={addFaceBlockedReason}
             />
           )}
+          <ModalPersonEdit
+            isOpen={!!drawnFaceBox}
+            onRequestClose={cancelDrawingFace}
+            selectedFaces={[]}
+            prompt={t("lightbox.addface.whoisit")}
+            onPersonChosen={handleFacePersonChosen}
+          />
         </Modal.Body>
       </Modal.Content>
     </Modal.Root>

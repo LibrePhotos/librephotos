@@ -2,6 +2,7 @@ import { ActionIcon, Avatar, Menu } from "@mantine/core";
 import {
   IconAdjustments as Adjustments,
   IconBook as Book,
+  IconListDetails as ListDetails,
   IconLogout as Logout,
   IconSettings as Settings,
   IconUser as User,
@@ -49,6 +50,10 @@ export function ProfileButton(): React.ReactNode {
 
         <Menu.Item leftSection={<Settings />} onClick={() => navigate({ to: "/settings" })}>
           {t("topmenu.settings")}
+        </Menu.Item>
+
+        <Menu.Item leftSection={<ListDetails />} onClick={() => navigate({ to: "/jobs" })}>
+          {t("topmenu.jobs")}
         </Menu.Item>
 
         {user && user.is_superuser && <Menu.Divider />}

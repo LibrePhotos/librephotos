@@ -235,10 +235,10 @@
     "cluster_selection_epsilon_help": "Determines which clusters get merged. A higher value means more clusters will be merged.",
     "save_face_tags_to_disk": "Write face tags to image files",
     "save_face_tags_to_disk_help": "When enabled, face labels are written as XMP MWG-RS region tags to your image files (or sidecar files) whenever you label a face. This makes face data portable across photo management software like Lightroom, Digikam, and XnView.",
-    "llm": "Large Language Model Settings",
-    "enablellm": "Enable Large Language Model For Captions",
-    "addperson": "Add Persons to the Captions",
-    "addlocation": "Add Locations to the Captions"
+    "llm": "Caption Context",
+    "enablellm": "Tell the captioning model what LibrePhotos knows about a photo",
+    "addperson": "Use the names of recognised people in captions",
+    "addlocation": "Mention where the photo was taken in captions"
   },
   "modalalbum": {
     "title": "Add to Album",
@@ -281,6 +281,16 @@
     "name": "Person name",
     "joined": "Joined"
   },
+  "modaltag": {
+    "title": "Add Tags",
+    "selectedimages": "Tag the selected {{count}} photo(s)",
+    "andmore": "and {{count}} more",
+    "label": "Tags",
+    "hint": "Separate several tags with commas. Existing tags autocomplete; new ones are created.",
+    "placeholder": "beach, holiday, 2024",
+    "add": "Add tags",
+    "savefailed": "The tags could not be saved. Nothing was changed."
+  },
   "topmenu": {
     "running": "Running",
     "available": "Worker available! You can start scanning more photos, infer face labels, auto create event albums, or regenerate auto event album titles.",
@@ -290,7 +300,13 @@
     "settings": "Settings",
     "profile": "Profile",
     "library": "Library",
-    "adminarea": "Admin Area"
+    "adminarea": "Admin Area",
+    "jobs": "My Jobs",
+    "viewalljobs": "View all jobs"
+  },
+  "jobs": {
+    "header": "My Jobs",
+    "myjobs": "Your recent jobs"
   },
   "metadata": "Metadata Options",
   "defaulttimezone": "Default timezone",
@@ -313,6 +329,7 @@
     "videos": "Videos",
     "screenshots": "Screenshots",
     "albums": "Albums",
+    "memories": "Memories",
     "people": "People",
     "places": "Places",
     "things": "Things",
@@ -334,6 +351,21 @@
     "publicphotos": "Public photos",
     "youshared": "You shared",
     "sharedwithyou": "Shared with you"
+  },
+  "memories": {
+    "title": "Memories",
+    "subtitle": "Photos you took on this day in earlier years",
+    "yearsago_one": "{{count}} year ago",
+    "yearsago_other": "{{count}} years ago",
+    "photocount_one": "{{count}} photo",
+    "photocount_other": "{{count}} photos",
+    "play": "Play this memory",
+    "playall": "Play all",
+    "tiles": "Tiles",
+    "gallery": "Gallery",
+    "capped": "showing the first {{count}} photos of each year",
+    "emptytitle": "No memories yet",
+    "emptydescription": "Memories show up once your library reaches back further than a year. Try again on another day, or scan more photos."
   },
   "explore": {
     "title": "Explore Albums",
@@ -385,6 +417,7 @@
     "copied": "Copied",
     "copyLink": "Copy link",
     "openPublicLink": "Open public link",
+    "linkRotatesOnRevoke": "Turning public sharing off revokes this link for good. Turning it back on creates a new one.",
     "saveLinkSettings": "Save link settings",
     "saveLinkError": "Could not save link settings. Try a different URL.",
     "publicLinks": "Public Links",
@@ -453,7 +486,9 @@
     "nostackstomerge": "No stacks to merge",
     "stacksmerged": "Stacks merged successfully",
     "rotatecw": "Rotate 90° Clockwise",
-    "rotateccw": "Rotate 90° Counter-Clockwise"
+    "rotateccw": "Rotate 90° Counter-Clockwise",
+    "tag": "Tags",
+    "tagdescription": "Add tags to the selected photos (shortcut: t)"
   },
   "lightbox": {
     "sidebar": {
@@ -463,6 +498,8 @@
       "location": "Location",
       "caption": "Caption",
       "people": "People",
+      "unnamedface": "Who is this?",
+      "nameface": "Name this face",
       "submit": "Submit",
       "generate": "Generate",
       "cancel": "Cancel",
@@ -489,12 +526,21 @@
       "editKeywords": "Edit keywords",
       "addKeyword": "Add keyword…",
       "noKeywords": "No keywords",
+      "autotags": "Auto tags",
       "tags": "Tags",
       "editTags": "Edit tags",
       "addTag": "Add tag…",
       "noTags": "No tags",
       "tagsSaveFailed": "The tags could not be saved. Please try again.",
       "save": "Save"
+    },
+    "addface": {
+      "tooltip": "Add a face the scan missed",
+      "drawtitle": "Drag a box around the face",
+      "drawhint": "Drag across the photo to draw a box around the face, then say who it is. Press Escape to stop.",
+      "whoisit": "Who is in the box you drew?",
+      "nofaces": "No faces were found in this photo. If there is one, you can add it yourself.",
+      "rotated": "Turn the photo back upright to add a face"
     },
     "controls": {
       "fullscreen": "Fullscreen (G)",
@@ -504,7 +550,8 @@
       "slideshow": "Slideshow (S)",
       "stopslideshow": "Stop Slideshow (S)",
       "livetext": "Select text in photo (T)",
-      "livetextoff": "Stop selecting text (T)"
+      "livetextoff": "Stop selecting text (T)",
+      "copy": "Copy photo to clipboard ({{shortcut}})"
     },
     "toolbar": {
       "pauseVideo": "Pause video (Space)",
@@ -520,6 +567,41 @@
       "deletePhoto": "Delete photo (D)",
       "rotateCW": "Rotate 90° clockwise",
       "rotateCCW": "Rotate 90° counter-clockwise"
+    },
+    "video": {
+      "seekunavailable": "Seeking is not available while this video is being converted"
+    },
+    "videoerror": {
+      "retry": "Retry",
+      "checking": "Checking what went wrong…",
+      "unknowntitle": "Video Unavailable",
+      "unknown": "The video could not be loaded. It may be missing, unsupported, or unavailable.",
+      "formattitle": "This video cannot be played in your browser",
+      "format": "The file arrived intact, so this is a format your browser cannot decode. Turning on \"Always transcode videos\" in your settings will convert it as it plays.",
+      "missingtitle": "This file is no longer on disk",
+      "missing": "The library still lists this video, but the file itself is gone - moved, renamed or deleted since the last scan.",
+      "permissiontitle": "The server cannot read this file",
+      "permissionuser": "The video is in your library, but the server was refused access to the file on disk. That is a permissions problem on the server, not a problem with the video - please ask your administrator to look into it.",
+      "permissionadmin": "The web server was refused access to the file on disk. Originals are served straight from the library by the web server, which runs as a far less privileged user than the scanner - so a video that was indexed and thumbnailed correctly can still be impossible to play.",
+      "servertitle": "The server could not deliver this video",
+      "server": "The server answered with an error ({{status}}). The backend log will say why.",
+      "sessiontitle": "Your session has expired",
+      "session": "Sign in again to keep watching.",
+      "diagnosticstitle": "What we checked",
+      "blockeddirectory": "The web server cannot enter this directory:",
+      "blockedfile": "The web server cannot read this file:",
+      "modeandowner": "mode {{mode}}, owned by {{uid}}:{{gid}}",
+      "webserverids": "The web server reads files as {{uid}}:{{gid}}.",
+      "filesystem": "This path is on a {{type}} filesystem mounted at {{point}}.",
+      "remedychmod": "It is a local filesystem, so the mode bits are the fix: give the web server read access along the whole path with chmod o+rX (directories need o+x, files o+r).",
+      "remedymountoptions": "On this filesystem the permissions come from the mount, not from the files - chmod will look like it worked and change nothing. Set uid=, gid=, file_mode=, dir_mode= (or umask=, fmask=, dmask=) in the mount options or the fstab entry instead.",
+      "remedymountdeeper": "What is closed is the library root itself, or something above it. Rather than opening up a directory that has good reason to stay private, mount the photo folders directly into the data root.",
+      "remedyreadonly": "This mount is read-only, so any permission change will fail until it is remounted read-write.",
+      "remedynetworkfs": "This is a network filesystem, so permissions are decided on the machine that exports it - a local chmod may be squashed or ignored.",
+      "remedylabels": "The mode bits along this path already let the web server read the file, so permissions are not the problem. Look instead at SELinux or AppArmor labelling (a bind mount may need :z or :Z), a container runtime that remaps user ids, or a rebuilt proxy image whose web server does not run as the ids above.",
+      "copy": "Copy this report",
+      "copied": "Copied",
+      "copyheading": "LibrePhotos - this video could not be played"
     }
   },
   "exif": {
@@ -661,7 +743,16 @@
     "erroremail": "Enter a valid email address.",
     "tagline": "A comfy place for your photos.",
     "firsttimesetup": "First time setup",
-    "setupdatadirectory": "Choose your scan directory"
+    "setupdatadirectory": "Choose your scan directory",
+    "sso": {
+      "divider": "or",
+      "button": "Sign in with SSO",
+      "errorsignupdisabled": "That account is not known to LibrePhotos. Ask an administrator to create it, or to allow sign-ups over SSO.",
+      "erroremailnotverified": "Your identity provider has not verified that email address, so it cannot be used to sign in.",
+      "errornotauthenticated": "The sign-in did not complete. Please try again.",
+      "errorpublicurlnotconfigured": "Single sign-on is not fully configured: the administrator needs to set this server's public URL (FRONTEND_BASE_URL).",
+      "errorunknown": "Single sign-on failed. Please try again or use your password."
+    }
   },
   "passwordreset": {
     "forgotpassword": "Forgot your password?",
@@ -718,6 +809,7 @@
     "nav": {
       "photos": "Go to Photos",
       "albums": "Go to Albums",
+      "memories": "Go to Memories",
       "people": "Go to People",
       "places": "Go to Places",
       "things": "Go to Things",
@@ -750,8 +842,8 @@
       "metadataSettingsDesc": "Sync to disk, timezone, favorites",
       "faceSettings": "Face Recognition Settings",
       "faceSettingsDesc": "Recognition model, clustering options",
-      "llmSettings": "AI & LLM Settings",
-      "llmSettingsDesc": "Caption generation, language model",
+      "llmSettings": "Caption Context Settings",
+      "llmSettingsDesc": "Who and where appears in generated captions",
       "changeLanguage": "Change Language",
       "changeLanguageDesc": "Change the interface language",
       "changePassword": "Change Password",
@@ -780,6 +872,9 @@
     "actions": "Actions",
     "healthy": "Healthy",
     "unhealthy": "Unhealthy",
+    "disabled": "Disabled",
+    "disabled_by": "Switched off by {{flag}}. Set {{flag}}=true and restart to run this service.",
+    "disabled_hint": "Switched off in the site settings — select a model to run this service.",
     "start": "Start",
     "stop": "Stop",
     "refresh": "Refresh health status"
@@ -826,6 +921,9 @@
     "running": "running",
     "waiting": "waiting",
     "failed": "Failed",
+    "partialfailure": "Completed with {{errorCount}} of {{total}} item(s) failed",
+    "partialfailurebadge": "Partial failure",
+    "faileditems": "Failed items",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
     "cancel": "Cancel"
   },
@@ -867,11 +965,8 @@
     "heavyweight": "Increase the number of picture-scanning workers beyond 1, but be prepared to use 800 MB memory for each additional one.",
     "captioning_model_header": "Captioning Model",
     "captioning_model_description": "Select a model for generating image captions.",
-    "llm_model_header": "Large Language Model",
-    "llm_model_description": "Select a model for postprocessing a caption with an large language model.",
     "ram_warning_header": "Large RAM Size possible",
     "heavyweight_process_warning": "Setting the number of heavyweight processes to more than 3 will likely require more than 16GB of RAM. Please consider this before proceeding.",
-    "blip_warning": "This feature needs an additional 3GBs of RAM to work properly. Please consider this before proceeding.",
     "face_recognition_model_header": "Face Recognition Model",
     "face_recognition_model_description": "Select the InsightFace model pack used for face recognition. Larger models are more accurate but require more resources.",
     "ocr_model_header": "Text Recognition (OCR) Model",
@@ -1043,6 +1138,9 @@
   "deletefaceexplanation": "This action will permanently delete the faces and all its associated data. This action cannot be undone.",
   "deletealbumexplanation": "This action will permanently delete the album. This action cannot be undone.",
   "toasts": {
+    "copyphototitle": "Copy to clipboard",
+    "copyphoto": "The photo was copied to the clipboard.",
+    "copyphotofailed": "The photo could not be copied. Your browser may have blocked clipboard access.",
     "downloadstart": "Download started",
     "downloaderror": "Error while downloading",
     "downloadcomplete": "Files downloaded successfully",
@@ -1116,6 +1214,10 @@
     "fullocrscan": "Text extraction started for all photos",
     "updateuser": "{{username}}'s info updated",
     "updateusertitle": "Update user",
+    "updateusererror": "The user could not be updated. Please check the values you entered.",
+    "updateusererrortitle": "Could not update user",
+    "signuperror": "The account could not be created. Please check the values you entered.",
+    "signuperrortitle": "Could not create the account",
     "deleteuser": "{{username}} deleted",
     "deleteusertitle": "Delete user",
     "jobfinished": "{{job}} finished.",
@@ -1141,9 +1243,12 @@
     "removefacestopersontitle": "Remove faces from person",
     "savecaptions": "Image caption updated",
     "captionupdate": "Update Caption",
+    "captionmodeldownloading": "The captioning model is being downloaded. Try again in a few minutes.",
     "scan_directory_required": "Scan directory not configured - contact administrator",
     "jobcancelled": "Job has been cancelled",
-    "jobcancelledtitle": "Job Cancelled"
+    "jobcancelledtitle": "Job Cancelled",
+    "taggedphotos": "Added {{tags}} to {{count}} photo(s)",
+    "taggedphotostitle": "Photos tagged"
   },
   "rules": {
     "1": "Local time from DATE_TIME_ORIGINAL Exif tag",
@@ -1253,6 +1358,11 @@
       "title": "No places found",
       "description": "Photos with GPS location data will be automatically grouped by place."
     },
+    "tag": {
+      "title": "This tag has no photos",
+      "description": "The photos that carried it were deleted, or you have not tagged anything with it yet. Select photos anywhere and press t to tag them.",
+      "action": "Back to all tags"
+    },
     "things": {
       "title": "No things detected",
       "description": "Objects and scenes are detected automatically during photo scanning."
@@ -1299,5 +1409,31 @@
     "photos": "Photos only",
     "videos": "Videos only",
     "screenshots": "Screenshots only"
+  },
+  "upload": {
+    "button": "Upload photos and videos",
+    "uploading": "Uploading…",
+    "complete": "Upload complete",
+    "processed": "{{finished}}/{{total}} processed",
+    "duplicates_one": "{{count}} duplicate",
+    "duplicates_other": "{{count}} duplicates",
+    "errors_one": "{{count}} error",
+    "errors_other": "{{count}} errors",
+    "expand": "Expand list",
+    "collapse": "Collapse list",
+    "close": "Close",
+    "still_running": "Upload still running",
+    "retry": "Retry",
+    "retry_failed_one": "Retry failed upload",
+    "retry_failed_other": "Retry {{count}} failed uploads",
+    "unknown_error": "Upload failed",
+    "status": {
+      "pending": "Waiting",
+      "hashing": "Checking file",
+      "uploading": "Uploading",
+      "done": "Done",
+      "duplicate": "Duplicate",
+      "error": "Error"
+    }
   }
 }

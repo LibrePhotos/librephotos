@@ -58,7 +58,7 @@ Step-by-step installation instructions are available in our [documentation](http
 - **Framework:** [Django 5](https://www.djangoproject.com/) with [Django REST Framework](https://www.django-rest-framework.org/)
 - **Database:** [PostgreSQL](https://www.postgresql.org/)
 - **Task Queue:** [Django-Q2](https://github.com/django-q2/django-q2)
-- **Image Conversion:** [ImageMagick](https://github.com/ImageMagick/ImageMagick)
+- **RAW Conversion:** [LibRaw](https://www.libraw.org/) via [rawpy](https://github.com/letmaik/rawpy)
 - **Video Conversion:** [FFmpeg](https://github.com/FFmpeg/FFmpeg)
 - **Exif Support:** [ExifTool](https://github.com/exiftool/exiftool)
 
@@ -74,10 +74,12 @@ Step-by-step installation instructions are available in our [documentation](http
 
 ### Machine Learning
 
-- **Face detection:** [face_recognition](https://github.com/ageitgey/face_recognition)
+- **Face detection:** [InsightFace](https://github.com/deepinsight/insightface)
 - **Face classification/clustering:** [scikit-learn](https://scikit-learn.org/) and [hdbscan](https://github.com/scikit-learn-contrib/hdbscan)
-- **Image captioning:** [im2txt](https://github.com/HughKu/Im2txt)
-- **Scene classification:** [places365](http://places.csail.mit.edu/)
+- **Image captioning:** [LFM2.5-VL](https://huggingface.co/onnx-community/LFM2.5-VL-450M-ONNX), prompted with the recognised people and the place
+- **Tagging:** [MobileCLIP-S2](https://huggingface.co/Xenova/mobileclip_s2) or [SigLIP 2](https://huggingface.co/onnx-community/siglip2-base-patch16-384-ONNX)
+- **Semantic search:** [CLIP ViT-B/32](https://huggingface.co/Xenova/clip-vit-base-patch32) with [FAISS](https://github.com/facebookresearch/faiss)
+- **ML runtime:** [ONNX Runtime](https://onnxruntime.ai/) for every model, no PyTorch
 - **Reverse geocoding:** [geopy](https://github.com/geopy/geopy)
 
 ### Infrastructure

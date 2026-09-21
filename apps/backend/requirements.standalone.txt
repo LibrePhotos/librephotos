@@ -1,0 +1,9 @@
+# On top of requirements.txt: what scripts/build_standalone.py needs to turn the
+# backend into a self-contained binary. Nuitka compiles it; WhiteNoise serves
+# the frontend build from the binary the way the unified image does.
+nuitka==4.2.1
+ordered-set==4.1.0
+zstandard==0.25.0
+whitenoise==6.12.0
+# Notification area (tray) icon of the standalone build.
+pystray==0.19.5

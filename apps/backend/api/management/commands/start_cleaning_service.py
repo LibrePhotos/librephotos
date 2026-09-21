@@ -18,9 +18,7 @@ class Command(BaseCommand):
             )
         # Mobile-v2 tombstone pruning (doc 04 §2): drop DeletionLog rows past
         # the 90-day sync horizon so the table cannot grow without bound.
-        if not Schedule.objects.filter(
-            func="api.services.prune_deletion_log"
-        ).exists():
+        if not Schedule.objects.filter(func="api.services.prune_deletion_log").exists():
             schedule(
                 "api.services.prune_deletion_log",
                 schedule_type=Schedule.DAILY,

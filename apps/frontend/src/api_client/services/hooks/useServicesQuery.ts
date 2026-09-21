@@ -19,14 +19,13 @@ export const useServicesHealthQuery = (serviceNames: string[], options?: { enabl
   useQuery({
     queryKey: [...ServiceHealthQueryKeys, serviceNames],
     queryFn: async () => {
-      const results: Record<string, boolean> = {};
+      const results: Record<string, ServiceHealthResponse> = {};
       const healthChecks = serviceNames.map(async name => {
         try {
           const response = await fetchClient.get(`/services/${name}/`);
-          const parsed = parseWithNotification(ServiceHealthResponse, response, `Failed to parse health for ${name}`);
-          results[name] = parsed.healthy;
+          results[name] = parseWithNotification(ServiceHealthResponse, response, `Failed to parse health for ${name}`);
         } catch {
-          results[name] = false;
+          results[name] = { service_name: name, healthy: false, enabled: true, feature_flag: null };
         }
       });
       await Promise.all(healthChecks);

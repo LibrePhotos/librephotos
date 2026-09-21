@@ -4,8 +4,6 @@ from django.conf import settings
 from django.db import models
 from PIL import Image
 
-from api.metadata.reader import get_metadata
-from api.metadata.tags import Tags
 from api.models.photo import Photo
 from api.thumbnails import (
     create_animated_thumbnail,
@@ -15,6 +13,27 @@ from api.thumbnails import (
     does_video_thumbnail_exist,
 )
 from api.util import logger
+
+# Static thumbnails are webp; the animated ones videos get instead are mp4.
+STATIC_THUMBNAIL_DIRS = (
+    "thumbnails_big",
+    "square_thumbnails",
+    "square_thumbnails_small",
+)
+ANIMATED_THUMBNAIL_DIRS = ("square_thumbnails", "square_thumbnails_small")
+
+
+def delete_thumbnail_files(photo_hash: str) -> None:
+    """Remove every thumbnail file named after ``photo_hash``."""
+    named = [(d, ".webp") for d in STATIC_THUMBNAIL_DIRS]
+    named += [(d, ".mp4") for d in ANIMATED_THUMBNAIL_DIRS]
+    for output_dir, extension in named:
+        path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + extension)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                logger.error(f"could not remove thumbnail {path}")
 
 
 class Thumbnail(models.Model):
@@ -119,39 +138,44 @@ class Thumbnail(models.Model):
         ``_generate_thumbnail``.  Should be called after updating
         ``Photo.local_orientation``.
         """
-        photo_hash = self.photo.image_hash
-
-        # Remove static (image) thumbnails
-        for output_dir in (
-            "thumbnails_big",
-            "square_thumbnails",
-            "square_thumbnails_small",
-        ):
-            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".webp")
-            if os.path.exists(path):
-                os.remove(path)
-
-        # Remove video thumbnails (animated MP4 clips)
-        for output_dir in ("square_thumbnails", "square_thumbnails_small"):
-            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".mp4")
-            if os.path.exists(path):
-                os.remove(path)
+        delete_thumbnail_files(self.photo.image_hash)
 
         self._generate_thumbnail()
         self._calculate_aspect_ratio()
+        self._refresh_perceptual_hash()
+
+    def _refresh_perceptual_hash(self) -> None:
+        """Re-read the photo's perceptual hash from the thumbnail just built.
+
+        The scan compares this against the file on disk to tell a rewritten
+        file from a replaced one, so a stale value left behind by a rotation
+        would cost the photo its faces on the next scan.
+        """
+        from api.perceptual_hash import calculate_hash_from_thumbnail
+
+        if not self.thumbnail_big or not os.path.exists(self.thumbnail_big.path):
+            return
+        phash = calculate_hash_from_thumbnail(self.thumbnail_big.path)
+        if not phash:
+            return
+        self.photo.perceptual_hash = phash
+        self.photo.save(save_metadata=False, update_fields=["perceptual_hash"])
 
     def _calculate_aspect_ratio(self):
         try:
-            # Relies on big thumbnail for correct aspect ratio
-            height, width = get_metadata(
-                self.thumbnail_big.path,
-                tags=[Tags.IMAGE_HEIGHT, Tags.IMAGE_WIDTH],
-                try_sidecar=False,
-            )
+            # Relies on big thumbnail for correct aspect ratio. The thumbnail is
+            # a file we generated ourselves, so read its dimensions directly
+            # instead of asking the exif service: a photo without an aspect
+            # ratio is filtered out of every grid view, and that must not hinge
+            # on a sidecar being reachable.
+            if not self.thumbnail_big:
+                logger.warning(
+                    f"no big thumbnail for photo {self.photo_id}; skipping aspect ratio"
+                )
+                return
+            with Image.open(self.thumbnail_big.path) as img:
+                width, height = img.size
             if not height or not width:
-                # Dimensions unavailable (e.g. the exif sidecar was unreachable).
-                # Skip rather than abort the whole photo pipeline — a missing
-                # aspect ratio is backfilled by a later scan.
                 logger.warning(
                     f"missing dimensions for image {self.thumbnail_big.path}; "
                     "skipping aspect ratio"

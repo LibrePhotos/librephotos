@@ -24,21 +24,16 @@ const MAP_TILE_PROVIDERS = [
 ];
 
 const CAPTIONING_MODELS = [
-  { value: "im2txt", label: "im2txt PyTorch" },
-  { value: "blip_base_capfilt_large", label: "BLIP Base Capfilt Large" },
-  { value: "moondream", label: "Moondream Visual LLM" },
+  { value: "lfm2_vl_450m", label: "LFM2.5-VL (default)" },
   { value: "none", label: "None" },
 ];
 
-const LLM_MODELS = [
-  { value: "mistral-7b-instruct-v0.2.Q5_K_M", label: "Mistral 7B Instruct v0.2 Q5 K M" },
-  { value: "moondream", label: "Moondream Visual LLM" },
-  { value: "none", label: "None" },
-];
+const DEFAULT_CAPTIONING_MODEL = "lfm2_vl_450m";
+const DEFAULT_TAGGING_MODEL = "mobileclip_s2";
 
 const TAGGING_MODELS = [
-  { value: "places365", label: "Places365 Scene Recognition" },
-  { value: "siglip2", label: "SigLIP 2 (Real-world photo tags)" },
+  { value: "mobileclip_s2", label: "MobileCLIP-S2 (fast, default)" },
+  { value: "siglip2", label: "SigLIP 2 (most accurate)" },
 ];
 
 const OCR_MODELS = [
@@ -78,9 +73,8 @@ export function SiteSettings() {
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [nextcloudEnabled, setNextcloudEnabled] = useState(false);
-  const [captioningModel, setCaptioningModel] = useState("im2txt");
-  const [llmModel, setLlmModel] = useState("none");
-  const [taggingModel, setTaggingModel] = useState("places365");
+  const [captioningModel, setCaptioningModel] = useState(DEFAULT_CAPTIONING_MODEL);
+  const [taggingModel, setTaggingModel] = useState(DEFAULT_TAGGING_MODEL);
   const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
   // Restored when the user backs out of the OCR confirmation dialog.
   const [previousOcrModel, setPreviousOcrModel] = useState(OCR_DISABLED);
@@ -92,19 +86,10 @@ export function SiteSettings() {
   const [opened, { open, close }] = useDisclosure(false);
 
   const saveSettingsWithValidation = (input: any) => {
-    if (input.captioning_model === "blip_base_capfilt_large") {
-      setWarning("blip");
-      open();
-      return;
-    }
     saveSettings(input);
   };
 
   const dismissWarning = () => {
-    if (warning === "blip") {
-      setCaptioningModel("im2txt");
-      saveSettings({ captioning_model: "im2txt" });
-    }
     if (warning === "ocr") {
       setOcrModel(previousOcrModel);
     }
@@ -112,9 +97,6 @@ export function SiteSettings() {
   };
 
   const confirmWarning = () => {
-    if (warning === "blip") {
-      saveSettings({ captioning_model: captioningModel });
-    }
     if (warning === "ocr") {
       saveSettings({ ocr_model: ocrModel });
       setPreviousOcrModel(ocrModel);
@@ -132,7 +114,6 @@ export function SiteSettings() {
       setAllowUpload(settings.allow_upload);
       setNextcloudEnabled(settings.nextcloud_enabled);
       setCaptioningModel(settings.captioning_model);
-      setLlmModel(settings.llm_model);
       setTaggingModel(settings.tagging_model);
       setOcrModel(normalizeOcrModel(settings.ocr_model));
       setPreviousOcrModel(normalizeOcrModel(settings.ocr_model));
@@ -152,7 +133,9 @@ export function SiteSettings() {
         }
       >
         <Stack>
-          <Text>{warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.blip_warning")}</Text>
+          <Text>
+            {warning === "ocr" ? t("sitesettings.ocr_warning") : t("sitesettings.heavyweight_process_warning")}
+          </Text>
           <Group>
             <Button onClick={dismissWarning}>{t("cancel")}</Button>
             <Button onClick={confirmWarning} color="red">
@@ -294,26 +277,6 @@ export function SiteSettings() {
             </Grid.Col>
             <Grid.Col span={8}>
               <Stack gap={0}>
-                <Text>{t("sitesettings.llm_model_header")}</Text>
-                <Text fz="sm" c="dimmed">
-                  {t("sitesettings.llm_model_description")}
-                </Text>
-              </Stack>
-            </Grid.Col>
-            <Grid.Col span={4}>
-              <Select
-                searchable
-                data={LLM_MODELS}
-                value={llmModel}
-                onChange={model => {
-                  const value = model ?? "";
-                  saveSettingsWithValidation({ llm_model: value });
-                  setLlmModel(value);
-                }}
-              />
-            </Grid.Col>
-            <Grid.Col span={8}>
-              <Stack gap={0}>
                 <Text>{t("sitesettings.tagging_model_header", "Tagging Model")}</Text>
                 <Text fz="sm" c="dimmed">
                   {t(
@@ -329,7 +292,7 @@ export function SiteSettings() {
                 data={TAGGING_MODELS}
                 value={taggingModel}
                 onChange={model => {
-                  const value = model ?? "places365";
+                  const value = model ?? DEFAULT_TAGGING_MODEL;
                   saveSettings({ tagging_model: value });
                   setTaggingModel(value);
                 }}

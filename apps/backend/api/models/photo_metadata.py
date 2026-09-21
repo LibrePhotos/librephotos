@@ -24,6 +24,76 @@ from api.metadata.tags import Tags
 from api.models.tag import link_tags_from_keywords
 from api.models.user import User, get_deleted_user
 
+# The value names below line up positionally with EXIF_TAGS: get_metadata returns
+# one value per requested tag, in the order the tags were asked for.
+EXIF_VALUE_NAMES = (
+    "size",
+    "fstop",
+    "focal_length",
+    "iso",
+    "shutter_speed",
+    "camera",
+    "lens",
+    "width",
+    "height",
+    "focal_length_35mm",
+    "subject_distance",
+    "digital_zoom_ratio",
+    "video_length",
+    "rating",
+    "subsec_time_original",
+    "image_number",
+    "xmp_subject",
+    "iptc_keywords",
+)
+
+EXIF_TAGS = [
+    Tags.FILE_SIZE,
+    Tags.FSTOP,
+    Tags.FOCAL_LENGTH,
+    Tags.ISO,
+    Tags.EXPOSURE_TIME,
+    Tags.CAMERA,
+    Tags.LENS,
+    Tags.IMAGE_WIDTH,
+    Tags.IMAGE_HEIGHT,
+    Tags.FOCAL_LENGTH_35MM,
+    Tags.SUBJECT_DISTANCE,
+    Tags.DIGITAL_ZOOM_RATIO,
+    Tags.QUICKTIME_DURATION,
+    Tags.RATING,
+    Tags.SUBSEC_TIME_ORIGINAL,
+    Tags.IMAGE_NUMBER,
+    Tags.SUBJECT,
+    Tags.IPTC_KEYWORDS,
+]
+
+
+def _assign_nonzero_number(target, field, value):
+    if value and isinstance(value, numbers.Number):
+        setattr(target, field, value)
+
+
+def _assign_number(target, field, value):
+    if value is not None and isinstance(value, numbers.Number):
+        setattr(target, field, value)
+
+
+def _assign_string(target, field, value):
+    if value and isinstance(value, str):
+        setattr(target, field, value)
+
+
+def _merge_keywords(*values):
+    """Merge XMP:Subject / IPTC:Keywords entries, deduplicated and sorted."""
+    merged = set()
+    for value in values:
+        if isinstance(value, list):
+            merged.update(value)
+        elif isinstance(value, str) and value:
+            merged.add(value)
+    return sorted(merged)
+
 
 class MetadataFile(models.Model):
     """
@@ -305,114 +375,21 @@ class PhotoMetadata(models.Model):
         if not photo.main_file:
             return None
 
-        (
-            size,
-            fstop,
-            focal_length,
-            iso,
-            shutter_speed,
-            camera,
-            lens,
-            width,
-            height,
-            focalLength35Equivalent,
-            subjectDistance,
-            digitalZoomRatio,
-            video_length,
-            rating,
-            subsec_time_original,
-            image_number,
-            xmp_subject,
-            iptc_keywords,
-        ) = get_metadata(  # noqa: E501
-            photo.main_file.path,
-            tags=[
-                Tags.FILE_SIZE,
-                Tags.FSTOP,
-                Tags.FOCAL_LENGTH,
-                Tags.ISO,
-                Tags.EXPOSURE_TIME,
-                Tags.CAMERA,
-                Tags.LENS,
-                Tags.IMAGE_WIDTH,
-                Tags.IMAGE_HEIGHT,
-                Tags.FOCAL_LENGTH_35MM,
-                Tags.SUBJECT_DISTANCE,
-                Tags.DIGITAL_ZOOM_RATIO,
-                Tags.QUICKTIME_DURATION,
-                Tags.RATING,
-                Tags.SUBSEC_TIME_ORIGINAL,
-                Tags.IMAGE_NUMBER,
-                Tags.SUBJECT,
-                Tags.IPTC_KEYWORDS,
-            ],
-            try_sidecar=True,
+        values = dict(
+            zip(
+                EXIF_VALUE_NAMES,
+                get_metadata(photo.main_file.path, tags=EXIF_TAGS, try_sidecar=True),
+            )
         )
 
-        # Fields still on Photo model
-        if size and isinstance(size, numbers.Number):
-            photo.size = size
-        if video_length and isinstance(video_length, numbers.Number):
-            photo.video_length = video_length
-        if rating is not None and isinstance(rating, numbers.Number):
-            photo.rating = rating
-
-        # Burst/sequence detection fields
-        if subsec_time_original:
-            # SubSecTimeOriginal is typically a string like "123" representing milliseconds
-            photo.exif_timestamp_subsec = str(subsec_time_original)[:10]
-        if image_number is not None and isinstance(image_number, numbers.Number):
-            photo.image_sequence_number = int(image_number)
-
+        cls._apply_to_photo(photo, values)
         if commit:
             photo.save()
 
-        # Store metadata in PhotoMetadata model
         metadata, created = cls.objects.get_or_create(
             photo=photo, defaults={"source": cls.Source.EMBEDDED}
         )
-
-        if fstop and isinstance(fstop, numbers.Number):
-            metadata.aperture = fstop
-        if focal_length and isinstance(focal_length, numbers.Number):
-            metadata.focal_length = focal_length
-        if iso and isinstance(iso, numbers.Number):
-            metadata.iso = iso
-        if shutter_speed and isinstance(shutter_speed, numbers.Number):
-            metadata.shutter_speed = str(
-                Fraction(shutter_speed).limit_denominator(1000)
-            )
-        if camera and isinstance(camera, str):
-            metadata.camera_model = camera
-        if lens and isinstance(lens, str):
-            metadata.lens_model = lens
-        if width and isinstance(width, numbers.Number):
-            metadata.width = width
-        if height and isinstance(height, numbers.Number):
-            metadata.height = height
-        if focalLength35Equivalent and isinstance(
-            focalLength35Equivalent, numbers.Number
-        ):
-            metadata.focal_length_35mm = focalLength35Equivalent
-        if rating is not None and isinstance(rating, numbers.Number):
-            metadata.rating = rating
-        if subsec_time_original:
-            metadata.date_taken_subsec = str(subsec_time_original)[:10]
-
-        # Merge keywords from XMP:Subject and IPTC:Keywords (deduplicated)
-        merged_keywords = set()
-        if xmp_subject:
-            if isinstance(xmp_subject, list):
-                merged_keywords.update(xmp_subject)
-            elif isinstance(xmp_subject, str):
-                merged_keywords.add(xmp_subject)
-        if iptc_keywords:
-            if isinstance(iptc_keywords, list):
-                merged_keywords.update(iptc_keywords)
-            elif isinstance(iptc_keywords, str):
-                merged_keywords.add(iptc_keywords)
-        if merged_keywords:
-            metadata.keywords = sorted(merged_keywords)
+        cls._apply_to_metadata(metadata, values)
 
         if commit:
             metadata.save()
@@ -420,6 +397,54 @@ class PhotoMetadata(models.Model):
             link_tags_from_keywords(photo, metadata.keywords)
 
         return metadata
+
+    @staticmethod
+    def _apply_to_photo(photo, values):
+        """Update the Photo fields that are still stored outside PhotoMetadata."""
+        _assign_nonzero_number(photo, "size", values["size"])
+        _assign_nonzero_number(photo, "video_length", values["video_length"])
+        _assign_number(photo, "rating", values["rating"])
+
+        # Burst/sequence detection fields
+        subsec_time_original = values["subsec_time_original"]
+        if subsec_time_original:
+            # SubSecTimeOriginal is typically a string like "123" representing milliseconds
+            photo.exif_timestamp_subsec = str(subsec_time_original)[:10]
+
+        image_number = values["image_number"]
+        if image_number is not None and isinstance(image_number, numbers.Number):
+            photo.image_sequence_number = int(image_number)
+
+    @staticmethod
+    def _apply_to_metadata(metadata, values):
+        """Populate the PhotoMetadata columns from the extracted EXIF values."""
+        for field, name in (
+            ("aperture", "fstop"),
+            ("focal_length", "focal_length"),
+            ("iso", "iso"),
+            ("width", "width"),
+            ("height", "height"),
+            ("focal_length_35mm", "focal_length_35mm"),
+        ):
+            _assign_nonzero_number(metadata, field, values[name])
+
+        _assign_string(metadata, "camera_model", values["camera"])
+        _assign_string(metadata, "lens_model", values["lens"])
+        _assign_number(metadata, "rating", values["rating"])
+
+        shutter_speed = values["shutter_speed"]
+        if shutter_speed and isinstance(shutter_speed, numbers.Number):
+            metadata.shutter_speed = str(
+                Fraction(shutter_speed).limit_denominator(1000)
+            )
+
+        subsec_time_original = values["subsec_time_original"]
+        if subsec_time_original:
+            metadata.date_taken_subsec = str(subsec_time_original)[:10]
+
+        keywords = _merge_keywords(values["xmp_subject"], values["iptc_keywords"])
+        if keywords:
+            metadata.keywords = keywords
 
 
 class MetadataEdit(models.Model):

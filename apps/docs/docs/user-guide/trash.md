@@ -1,7 +1,7 @@
 ---
 title: "🗑️ Trash"
 description: "A overview on how Trash works"
-sidebar_position: 16
+sidebar_position: 17
 ---
 
 ### Deleting images

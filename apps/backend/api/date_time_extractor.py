@@ -311,23 +311,16 @@ class TimeExtractionRule:
         determining the timezone, and the second element - the timezone itself.
         """
         if description == "gps_timezonefinder":
-            if not _check_gps_ok(gps_lat, gps_lon):
-                return (False, None)
-            from timezonefinder import TimezoneFinder
-
-            tzfinder = TimezoneFinder()
-            tz_name = tzfinder.timezone_at(lng=gps_lon, lat=gps_lat)
-            return (True, pytz.timezone(tz_name)) if tz_name else (False, None)
-        elif description == "user_default":
+            return _get_gps_tz(gps_lat, gps_lon)
+        if description == "user_default":
             return (True, pytz.timezone(user_default_tz))
-        elif description == "server_local":
+        if description == "server_local":
             return (True, None)
-        elif description.lower() == "utc":
+        if description.lower() == "utc":
             return (True, pytz.utc)
-        elif description.startswith("name:"):
+        if description.startswith("name:"):
             return (True, pytz.timezone(description[5:]))
-        else:
-            raise ValueError(f"Unknown tz description {description}")
+        raise ValueError(f"Unknown tz description {description}")
 
     def _transform_tz(self, dt, gps_lat, gps_lon, user_default_tz):
         if not dt:
@@ -384,6 +377,15 @@ class TimeExtractionRule:
         else:
             raise ValueError(f"Unknown file_property {file_property}")
         return self._transform_tz(dt, gps_lat, gps_lon, user_default_tz)
+
+
+def _get_gps_tz(lat, lon):
+    if not _check_gps_ok(lat, lon):
+        return (False, None)
+    from timezonefinder import TimezoneFinder
+
+    tz_name = TimezoneFinder().timezone_at(lng=lon, lat=lat)
+    return (True, pytz.timezone(tz_name)) if tz_name else (False, None)
 
 
 def _check_gps_ok(lat, lon):

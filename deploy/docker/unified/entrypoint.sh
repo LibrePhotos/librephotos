@@ -40,7 +40,7 @@ if echo "$SERVE_FRONTEND" | grep -qiE '^(true|1|yes|on)$'; then
     # changes; this used to be a `cp` of a second, hand-maintained copy of
     # production.py over the real one, which drifted and broke /api/sitesettings.
     # manage.py and wsgi.py both use os.environ.setdefault, so exporting here
-    # wins for every python invocation below, for gunicorn, and for the ML
+    # wins for every python invocation below, for uvicorn, and for the ML
     # services those spawn.
     export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-librephotos.settings.production_noproxy}"
 
@@ -113,6 +113,5 @@ python manage.py qcluster 2>&1 | tee "$logs_dir/qcluster.log" &
 if [ "$DEBUG" = "1" ]; then
     python manage.py runserver 0.0.0.0:8001
 else
-    # Production server with gunicorn
-    gunicorn --bind 0.0.0.0:8001 --workers ${WEB_CONCURRENCY:-4} --timeout 3600 --max-requests 2000 --max-requests-jitter 50 librephotos.wsgi:application
+    uvicorn librephotos.asgi:application --host 0.0.0.0 --port 8001 --workers "${WEB_CONCURRENCY:-4}" --limit-max-requests 2000
 fi 

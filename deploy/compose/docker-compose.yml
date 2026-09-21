@@ -66,7 +66,6 @@ services:
       - MAPBOX_API_KEY=${mapApiKey:-}
       - WEB_CONCURRENCY=${gunniWorkers:-1}
       - WORKER_CONCURRENCY=${workerConcurrency:-}
-      - GUNICORN_TIMEOUT=${gunicornTimeout:-30}
       - BASE_LOGS=${baseLogs:-/logs}
       - LOG_LEVEL=${logLevel:-INFO}
       - SKIP_PATTERNS=${skipPatterns:-}
@@ -81,6 +80,13 @@ services:
       - FEATURE_REVERSE_GEOCODING=${featureReverseGeocoding:-true}
       - FEATURE_SCENE_CLASSIFICATION=${featureSceneClassification:-true}
       - FEATURE_PROCESS_EMBEDDED_MEDIA=${featureProcessEmbeddedMedia:-true}
+      - TRANSCODE_CACHE_MAX_GB=${transcodeCacheMaxGb:-10}
+      - TRANSCODE_CACHE_MIN_FREE_GB=${transcodeCacheMinFreeGb:-2}
+      - TRANSCODE_CACHE_MAX_CONCURRENT=${transcodeCacheMaxConcurrent:-1}
+      - TRANSCODE_CACHE_NICE=${transcodeCacheNice:-10}
+      - TRANSCODE_LIVE_CPU_FRACTION=${transcodeLiveCpuFraction:-2}
+      - TRANSCODE_LIVE_READRATE=${transcodeLiveReadrate:-2}
+      - TRANSCODE_LIVE_BURST_SECONDS=${transcodeLiveBurstSeconds:-30}
       - DEBUG=0
     depends_on:
       db:

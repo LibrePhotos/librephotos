@@ -28,6 +28,20 @@ export const Token = z.object({
   nextcloud_username: z.string().nullable().optional(),
 });
 
+export const SsoProvider = z.object({
+  id: z.string(),
+  name: z.string(),
+  login_url: z.string(),
+});
+
+export const SsoConfigSchema = z.object({
+  enabled: z.boolean(),
+  label: z.string(),
+  providers: SsoProvider.array(),
+});
+
+export type SsoConfig = z.infer<typeof SsoConfigSchema>;
+
 export const AuthState = z.object({
   access: Token.nullable(),
   refresh: Token.nullable(),

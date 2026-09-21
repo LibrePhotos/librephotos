@@ -60,3 +60,20 @@ export type MergeTagsParams = {
   sourceId: number;
   sourceName: string;
 };
+
+/** A select-all payload: the query behind the photoset, minus what was unchecked. */
+export type TagSelectAllFields = {
+  select_all: true;
+  query: Record<string, unknown>;
+  excluded_hashes: string[];
+};
+
+export type TagPhotosByNameParams = {
+  /** Tag names as typed, comma-separated entry already split. */
+  names: string[];
+  /** Explicit photo ids or image hashes. Ignored when selectAll is given. */
+  photos?: string[];
+  selectAll?: TagSelectAllFields;
+  /** How many photos the caller believes it is tagging, for the toast. */
+  photoCount: number;
+};

@@ -11,10 +11,13 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.mime import mime_type
+from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, File, Photo, User
 from api.models.photo_stack import PhotoStack
 from api.models.person import Person
 from api.models.photo_caption import PhotoCaption
+from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
 from api.permissions import IsOwnerOrReadOnly, IsPhotoOrAlbumSharedTo
 from api.serializers.album_user import AlbumUserListSerializer
 from api.serializers.photos import (
@@ -48,6 +51,24 @@ def _get_photo_filter_kwargs(lookup_value):
     return {"image_hash": lookup_value}
 
 
+def _get_owned_photo(image_hash, user):
+    """Return the user's photo for ``image_hash``, or None if there is none."""
+    try:
+        return Photo.objects.owned_by(user).get(image_hash=image_hash)
+    except Photo.DoesNotExist:
+        return None
+    except Photo.MultipleObjectsReturned:
+        return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
+
+
+def _detect_content_type(path):
+    """Return the MIME type of a file, falling back to a generic binary type."""
+    try:
+        return mime_type(path)
+    except Exception:
+        return "application/octet-stream"
+
+
 class RecentlyAddedPhotoListViewSet(ListViewSet):
     serializer_class = PhotoSummarySerializer
     pagination_class = HugeResultsSetPagination
@@ -72,9 +93,9 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         )
 
         queryset = (
-            Photo.visible.filter(
-                Q(owner=self.request.user)
-                & Q(thumbnail__aspect_ratio__isnull=False)
+            Photo.visible.owned_by(self.request.user)
+            .filter(
+                Q(thumbnail__aspect_ratio__isnull=False)
                 & Q(added_on__date=latest_date.date())
             )
             .select_related("thumbnail", "search_instance", "main_file")
@@ -122,7 +143,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
     def _get_latest_photo(self):
         if not hasattr(self, "_latest_photo"):
             self._latest_photo = (
-                Photo.visible.filter(Q(owner=self.request.user))
+                Photo.visible.owned_by(self.request.user)
                 .only("added_on")
                 .order_by("-added_on")
                 .first()
@@ -142,7 +163,8 @@ class NoTimestampPhotoViewSet(ListViewSet):
 
     def get_queryset(self):
         return (
-            Photo.visible.filter(Q(exif_timestamp=None) & Q(owner=self.request.user))
+            Photo.visible.owned_by(self.request.user)
+            .filter(exif_timestamp=None)
             .select_related("thumbnail", "search_instance", "main_file")
             .prefetch_related(
                 Prefetch(
@@ -214,9 +236,14 @@ class SetPhotosDeleted(APIView):
                         f"Reset {len(stack_ids)} photo stacks to pending after restore"
                     )
 
+            # Snapshot the tags before the update, then refresh: a trashed
+            # photo drops out of its tags' counts (and a restored one comes
+            # back), and no signal fires for a plain UPDATE.
+            affected_tag_ids = tag_ids_for_photos(photos_qs)
             count = photos_qs.update(
                 in_trashcan=val_deleted, last_modified=timezone.now()
             )
+            refresh_tag_photo_counts(affected_tag_ids)
 
             if val_deleted:
                 logger.info(
@@ -234,7 +261,8 @@ class SetPhotosDeleted(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related("owner", "thumbnail", "main_file")
             .prefetch_related(
                 "files", "faces__person", "shared_to", "main_file__embedded_media"
@@ -259,9 +287,12 @@ class SetPhotosDeleted(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            Photo.objects.filter(
-                image_hash__in=photos_to_update, owner=request.user
-            ).update(in_trashcan=val_deleted, last_modified=timezone.now())
+            updated_photos = Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_update
+            )
+            affected_tag_ids = tag_ids_for_photos(updated_photos)
+            updated_photos.update(in_trashcan=val_deleted, last_modified=timezone.now())
+            refresh_tag_photo_counts(affected_tag_ids)
 
             # If restoring from trash, reset stacks to pending for re-evaluation
             if not val_deleted:
@@ -349,7 +380,8 @@ class SetPhotosFavorite(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related(
                 "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
             )
@@ -378,13 +410,13 @@ class SetPhotosFavorite(APIView):
 
         # Bulk update in separate queries for different rating values
         if photos_to_favorite:
-            Photo.objects.filter(
-                image_hash__in=photos_to_favorite, owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_favorite
             ).update(rating=user.favorite_min_rating, last_modified=timezone.now())
 
         if photos_to_unfavorite:
-            Photo.objects.filter(
-                image_hash__in=photos_to_unfavorite, owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_unfavorite
             ).update(rating=0, last_modified=timezone.now())
 
         # Handle missing photos
@@ -429,7 +461,11 @@ class SetPhotosHidden(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
+            # Hiding takes a photo out of its tags' counts the same way
+            # trashing does; see SetPhotosDeleted above.
+            affected_tag_ids = tag_ids_for_photos(photos_qs)
             count = photos_qs.update(hidden=val_hidden, last_modified=timezone.now())
+            refresh_tag_photo_counts(affected_tag_ids)
 
             if val_hidden:
                 logger.info(
@@ -447,7 +483,8 @@ class SetPhotosHidden(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related(
                 "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
             )
@@ -471,9 +508,12 @@ class SetPhotosHidden(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            Photo.objects.filter(
-                image_hash__in=photos_to_update, owner=request.user
-            ).update(hidden=val_hidden, last_modified=timezone.now())
+            updated_photos = Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_update
+            )
+            affected_tag_ids = tag_ids_for_photos(updated_photos)
+            updated_photos.update(hidden=val_hidden, last_modified=timezone.now())
+            refresh_tag_photo_counts(affected_tag_ids)
 
         # Handle missing photos
         found_hashes = {photo.image_hash for photo in photos}
@@ -593,27 +633,12 @@ class PhotoViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        if self.request.user.is_anonymous:
-            return (
-                Photo.visible.filter(Q(public=True))
-                .prefetch_related("stacks")
-                .order_by("-exif_timestamp")
-            )
-        else:
-            # Include photos that are:
-            # 1. Owned by the user
-            # 2. Shared directly with the user
-            # 3. Public (for retrieve access)
-            # Note: Photos in shared albums are handled by the permission class
-            return (
-                Photo.visible.filter(
-                    Q(owner=self.request.user)
-                    | Q(shared_to=self.request.user)
-                    | Q(public=True)
-                )
-                .prefetch_related("stacks")
-                .order_by("-exif_timestamp")
-            )
+        # Photos in shared albums are handled by the permission class.
+        return (
+            Photo.visible.visible_to(self.request.user)
+            .prefetch_related("stacks")
+            .order_by("-exif_timestamp")
+        )
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
@@ -627,7 +652,7 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return Photo.visible.filter(Q(owner=self.request.user))
+        return Photo.visible.owned_by(self.request.user)
 
     def get_object(self):
         """
@@ -704,9 +729,11 @@ class SetPhotosShared(APIView):
         # own, matching the sibling SetPhotos* endpoints. Without this, an authenticated
         # user could add an arbitrary target_user_id to the shared_to of someone else's
         # private photos (cross-user IDOR). See issue #1860.
-        photos = Photo.objects.filter(
-            image_hash__in=image_hashes, owner=request.user
-        ).only("id", "image_hash")
+        photos = (
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
+            .only("id", "image_hash")
+        )
         photo_ids = [photo.id for photo in photos]
 
         # This endpoint writes the Photo.shared_to through table directly
@@ -808,7 +835,8 @@ class SetPhotosPublic(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related(
                 "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
             )
@@ -832,8 +860,8 @@ class SetPhotosPublic(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            Photo.objects.filter(
-                image_hash__in=photos_to_update, owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_update
             ).update(public=val_public, last_modified=timezone.now())
 
         # Handle missing photos
@@ -876,11 +904,27 @@ class GeneratePhotoCaption(APIView):
         data = dict(request.data)
         image_hash = data["image_hash"]
 
-        photo = Photo.objects.filter(image_hash=image_hash, owner=request.user).first()
+        photo = (
+            Photo.objects.owned_by(request.user).filter(image_hash=image_hash).first()
+        )
         if photo is None:
             return Response(
                 {"status": False, "message": "photo not found"},
                 status=404,
+            )
+
+        if not captioning_model_exists():
+            # The captioner is fetched with the other models, but a fresh
+            # install (or a model switch) can be asked for a caption before
+            # the download ran. Start it and tell the user to try again;
+            # a 200 so the client can read the reason.
+            start_model_download(request.user)
+            return Response(
+                {
+                    "status": False,
+                    "reason": "model_downloading",
+                    "message": "The captioning model is being downloaded. Try again in a few minutes.",
+                }
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
@@ -906,7 +950,9 @@ class SavePhotoCaption(APIView):
         image_hash = data["image_hash"]
         caption = data["caption"]
 
-        photo = Photo.objects.filter(image_hash=image_hash, owner=request.user).first()
+        photo = (
+            Photo.objects.owned_by(request.user).filter(image_hash=image_hash).first()
+        )
         if photo is None:
             return Response(
                 {"status": False, "message": "photo not found"},
@@ -1014,67 +1060,41 @@ class FileVariantDownloadView(APIView):
     )
     def get(self, request, image_hash, file_hash):
         """Download a specific file variant by hash."""
-        import magic
         import os
         from django.http import FileResponse
 
-        # Find the photo
-        try:
-            photo = Photo.objects.get(
-                image_hash=image_hash,
-                owner=request.user,
-            )
-        except Photo.DoesNotExist:
+        photo = _get_owned_photo(image_hash, request.user)
+        if not photo:
             return Response(
                 {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        except Photo.MultipleObjectsReturned:
-            # Multiple photos with same hash - get the one owned by user
-            photo = Photo.objects.filter(
-                image_hash=image_hash,
-                owner=request.user,
-            ).first()
-            if not photo:
-                return Response(
-                    {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
-                )
 
-        # Find the requested file variant
         file_variant = photo.files.filter(hash=file_hash).first()
         if not file_variant:
             return Response(
                 {"error": "File variant not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Check file exists
         if not os.path.exists(file_variant.path):
             return Response(
                 {"error": "File not found on disk"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # Serve the file
         try:
             response = FileResponse(
                 open(file_variant.path, "rb"),
                 as_attachment=True,
                 filename=os.path.basename(file_variant.path),
             )
-
-            # Set content type
-            try:
-                mime = magic.Magic(mime=True)
-                response["Content-Type"] = mime.from_file(file_variant.path)
-            except Exception:
-                response["Content-Type"] = "application/octet-stream"
-
-            return response
-
         except (FileNotFoundError, PermissionError) as e:
             logger.error(f"Error serving file {file_variant.path}: {e}")
             return Response(
                 {"error": "Could not read file"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+        response["Content-Type"] = _detect_content_type(file_variant.path)
+        return response
 
 
 class SetMainFileView(APIView):
@@ -1085,6 +1105,15 @@ class SetMainFileView(APIView):
     Useful when a photo has multiple variants (RAW, JPEG, etc.).
     """
 
+    @staticmethod
+    def _get_owned_photo(image_hash, user):
+        try:
+            return Photo.objects.get(image_hash=image_hash, owner=user)
+        except Photo.DoesNotExist:
+            return None
+        except Photo.MultipleObjectsReturned:
+            return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
+
     def post(self, request, image_hash):
         """Set the main file for a photo."""
         file_hash = request.data.get("file_hash")
@@ -1094,25 +1123,11 @@ class SetMainFileView(APIView):
                 {"error": "file_hash is required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Find the photo
-        try:
-            photo = Photo.objects.get(
-                image_hash=image_hash,
-                owner=request.user,
-            )
-        except Photo.DoesNotExist:
+        photo = self._get_owned_photo(image_hash, request.user)
+        if not photo:
             return Response(
                 {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
             )
-        except Photo.MultipleObjectsReturned:
-            photo = Photo.objects.filter(
-                image_hash=image_hash,
-                owner=request.user,
-            ).first()
-            if not photo:
-                return Response(
-                    {"error": "Photo not found"}, status=status.HTTP_404_NOT_FOUND
-                )
 
         # Find the requested file variant
         file_variant = photo.files.filter(hash=file_hash).first()
@@ -1148,7 +1163,7 @@ class SaveMetadataView(APIView):
             request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
         )
 
-        photos = Photo.objects.filter(owner=request.user)
+        photos = Photo.objects.owned_by(request.user)
 
         # When writing face tags, only include photos that have labeled faces
         if "face_tags" in metadata_types and metadata_types == ["face_tags"]:
@@ -1172,6 +1187,38 @@ class SaveMetadataView(APIView):
                 )
 
         return Response({"status": True, "written": written, "errors": errors})
+
+
+def _rotation_error(message, status_code=status.HTTP_400_BAD_REQUEST):
+    return Response({"status": False, "message": message}, status=status_code)
+
+
+def _parse_rotation_angle(raw_angle):
+    """Return ``(angle, error_message)`` for a requested rotation angle."""
+    try:
+        angle = int(raw_angle)
+    except (TypeError, ValueError):
+        return None, "angle must be an integer"
+
+    if angle % 90 != 0:
+        return None, "angle must be a multiple of 90 degrees"
+
+    return angle, None
+
+
+def _get_rotatable_photo(image_hash, user):
+    """Return ``(photo, error_response)`` for a photo that may be rotated."""
+    try:
+        photo = Photo.objects.select_related("thumbnail", "main_file", "owner").get(
+            image_hash=image_hash, owner=user
+        )
+    except Photo.DoesNotExist:
+        return None, _rotation_error("photo not found", status.HTTP_404_NOT_FOUND)
+
+    if photo.video:
+        return None, _rotation_error("rotation is not supported for videos")
+
+    return photo, None
 
 
 class RotatePhotoView(APIView):
@@ -1205,52 +1252,25 @@ class RotatePhotoView(APIView):
 
     def post(self, request, format=None):
         image_hash = request.data.get("image_hash")
-        angle = request.data.get("angle", 0)
         flip_horizontal = bool(request.data.get("flip_horizontal", False))
 
         if not image_hash:
-            return Response(
-                {"status": False, "message": "image_hash is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return _rotation_error("image_hash is required")
 
-        try:
-            angle = int(angle)
-        except (TypeError, ValueError):
-            return Response(
-                {"status": False, "message": "angle must be an integer"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        angle, angle_error = _parse_rotation_angle(request.data.get("angle", 0))
+        if angle_error:
+            return _rotation_error(angle_error)
 
-        if angle % 90 != 0:
-            return Response(
-                {"status": False, "message": "angle must be a multiple of 90 degrees"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            photo = Photo.objects.select_related("thumbnail", "main_file", "owner").get(
-                image_hash=image_hash, owner=request.user
-            )
-        except Photo.DoesNotExist:
-            return Response(
-                {"status": False, "message": "photo not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if photo.video:
-            return Response(
-                {"status": False, "message": "rotation is not supported for videos"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        photo, photo_error = _get_rotatable_photo(image_hash, request.user)
+        if photo_error:
+            return photo_error
 
         try:
             photo.rotate(angle=angle, flip_horizontal=flip_horizontal)
         except Exception:
             logger.exception(f"Failed to rotate photo {image_hash}")
-            return Response(
-                {"status": False, "message": "failed to rotate photo"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            return _rotation_error(
+                "failed to rotate photo", status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         # Refresh from DB to get updated last_modified

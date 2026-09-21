@@ -114,6 +114,17 @@ def _select_groups_to_process(
     return groups_to_process
 
 
+def _last_finished_scan(user):
+    """Most recent finished photo scan for ``user``, used as the change baseline."""
+    return (
+        LongRunningJob.objects.filter(finished=True)
+        .filter(job_type=LongRunningJob.JOB_SCAN_PHOTOS)
+        .filter(started_by=user)
+        .order_by("-finished_at")
+        .first()
+    )
+
+
 def wait_for_group_and_process_metadata(
     group_id: str,
     metadata_paths: list[str],
@@ -195,13 +206,7 @@ def wait_for_group_and_process_metadata(
         )
         return
 
-    last_scan = (
-        LongRunningJob.objects.filter(finished=True)
-        .filter(job_type=LongRunningJob.JOB_SCAN_PHOTOS)
-        .filter(started_by=user)
-        .order_by("-finished_at")
-        .first()
-    )
+    last_scan = _last_finished_scan(user)
 
     for path in metadata_paths:
         try:
@@ -233,6 +238,147 @@ def photo_scanner(user, last_scan, full_scan, path, job_id):
         AsyncTask(handle_new_image, user, path, job_id).run()
     else:
         update_scan_counter(job_id)
+
+
+def backfill_missing_aspect_ratios(user):
+    """Recalculate aspect ratios for photos that have a thumbnail but no ratio.
+
+    Every grid view filters on ``thumbnail__aspect_ratio__isnull=False``, so a
+    photo without one is invisible in the UI with no other symptom — the library
+    just looks short. Returns the number of photos still missing an aspect ratio
+    after this pass, and logs a warning when that number is non-zero.
+    """
+    photos_with_missing_aspect_ratio = Photo.objects.filter(
+        Q(owner=user.id)
+        & Q(thumbnail__isnull=False)
+        & Q(thumbnail__thumbnail_big__isnull=False)
+        & Q(thumbnail__aspect_ratio__isnull=True)
+    )
+    if not photos_with_missing_aspect_ratio.exists():
+        return 0
+
+    util.logger.info(
+        f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios"
+    )
+    for photo in photos_with_missing_aspect_ratio:
+        try:
+            thumbnail = getattr(photo, "thumbnail", None)
+            if thumbnail and isinstance(thumbnail, Thumbnail):
+                thumbnail._calculate_aspect_ratio()
+        except Exception as e:
+            util.logger.exception(
+                f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
+            )
+
+    # ``.all()`` re-queries: iterating above cached the pre-repair rows.
+    still_missing = photos_with_missing_aspect_ratio.all().count()
+    if still_missing:
+        util.logger.warning(
+            f"{still_missing} photos still have no aspect ratio after the repair "
+            "pass; they will not appear in the timeline or album views until it "
+            "can be calculated"
+        )
+    return still_missing
+
+
+def _discover_scan_paths(scan_directory, scan_files):
+    """Collect every candidate file path, either from an explicit list or a walk."""
+    photo_list = []
+    if scan_files:
+        walk_files(scan_files, photo_list)
+    else:
+        walk_directory(scan_directory, photo_list)
+    return photo_list
+
+
+def _partition_scan_paths(photo_list):
+    """Split discovered paths into (directory, basename) file groups and metadata.
+
+    Grouping RAW+JPEG variants together is what lets Phase 2 create one Photo per
+    group; metadata files are held back because they need their parent photo to
+    exist first.
+    """
+    file_groups: dict[tuple[str, str], list[str]] = defaultdict(list)
+    metadata_paths: list[str] = []
+    for path in photo_list:
+        if is_metadata(path):
+            metadata_paths.append(path)
+        else:
+            file_groups[get_file_grouping_key(path)].append(path)
+    return file_groups, metadata_paths
+
+
+def _known_paths(batch_paths):
+    return set(
+        Photo.objects.filter(files__path__in=batch_paths).values_list(
+            "files__path", flat=True
+        )
+    )
+
+
+def _queue_scan_work(
+    user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
+):
+    """Queue the image groups, then arrange for the metadata files to follow them."""
+    image_group_id = str(uuid.uuid4())
+    for _, paths in groups_to_process:
+        AsyncTask(
+            handle_file_group,
+            user,
+            paths,
+            job_id,
+            group=image_group_id,
+        ).run()
+
+    if not metadata_paths:
+        return
+
+    if not groups_to_process:
+        util.logger.info(
+            f"No images to process, processing {len(metadata_paths)} metadata files directly"
+        )
+        for path in metadata_paths:
+            photo_scanner(user, last_scan, full_scan, path, job_id)
+        return
+
+    util.logger.info(
+        f"Scheduling sentinel to process {len(metadata_paths)} metadata files after {len(groups_to_process)} image groups"
+    )
+    AsyncTask(
+        wait_for_group_and_process_metadata,
+        image_group_id,
+        metadata_paths,
+        user.id,
+        full_scan,
+        job_id,
+        len(groups_to_process),
+        attempt=1,
+        max_attempts=2,
+    ).run()
+
+
+def _queue_followup_jobs(user, full_scan, scan_directory, scan_files):
+    """Queue the jobs that run once the scan itself has been dispatched."""
+    # if the scan type is not the default user scan directory, or if it is specified as only scanning
+    # specific files, there is no need to rescan fully for missing photos.
+    if full_scan or (scan_directory == user.scan_directory and not scan_files):
+        AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
+
+    # Run repair job to fix any previously ungrouped file variants
+    # This handles race conditions from previous scans and incremental adds
+    AsyncTask(repair_ungrouped_file_variants, user, uuid.uuid4()).run()
+
+    if settings.FEATURE_SCENE_CLASSIFICATION:
+        AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
+    if settings.FEATURE_REVERSE_GEOCODING:
+        AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
+
+    # The scan faces job will have issues if the embeddings haven't been generated before it runs
+    chain = Chain()
+    chain.append(batch_calculate_clip_embedding, user)
+    if settings.FEATURE_FACE_DETECTION:
+        chain.append(scan_faces, user, uuid.uuid4(), full_scan)
+    chain.run()
 
 
 def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
@@ -276,33 +422,13 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
     try:
         if scan_directory == "":
             scan_directory = user.scan_directory
-        photo_list = []
-        if scan_files:
-            walk_files(scan_files, photo_list)
-        else:
-            walk_directory(scan_directory, photo_list)
+        photo_list = _discover_scan_paths(scan_directory, scan_files)
         files_found = len(photo_list)
-        last_scan = (
-            LongRunningJob.objects.filter(finished=True)
-            .filter(job_type=1)
-            .filter(started_by=user)
-            .order_by("-finished_at")
-            .first()
-        )
+        last_scan = _last_finished_scan(user)
 
         # === PHASE 1: Group files by (directory, basename) ===
         # This ensures RAW+JPEG pairs are processed together, eliminating race conditions
-        file_groups: dict[tuple[str, str], list[str]] = defaultdict(list)
-        metadata_paths: list[str] = []
-
-        for path in photo_list:
-            if is_metadata(path):
-                # Metadata files are processed after their parent photos exist
-                metadata_paths.append(path)
-            else:
-                # Group by (directory, basename_lowercase)
-                group_key = get_file_grouping_key(path)
-                file_groups[group_key].append(path)
+        file_groups, metadata_paths = _partition_scan_paths(photo_list)
 
         # Determine which groups need processing.
         #
@@ -316,15 +442,8 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         # at once would be O(library) and, on top of the already-resident
         # ``file_groups``, could spike RAM on very large collections in
         # constrained-RAM environments (e.g. ~725 MB at 5M photos vs <2 MB here).
-        def known_paths_for(batch_paths):
-            return set(
-                Photo.objects.filter(files__path__in=batch_paths).values_list(
-                    "files__path", flat=True
-                )
-            )
-
         groups_to_process = _select_groups_to_process(
-            list(file_groups.items()), known_paths_for, full_scan, last_scan
+            list(file_groups.items()), _known_paths, full_scan, last_scan
         )
 
         # Progress target is number of groups (not individual files)
@@ -340,41 +459,9 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         # === PHASE 2: Process each file group ===
         # Process groups sequentially to avoid race conditions
         # Each group creates one Photo with all file variants
-        image_group_id = str(uuid.uuid4())
-
-        for group_key, paths in groups_to_process:
-            AsyncTask(
-                handle_file_group,
-                user,
-                paths,
-                job_id,
-                group=image_group_id,
-            ).run()
-
-        # If there are only metadata files (no image groups queued), process metadata now
-        if not groups_to_process and metadata_paths:
-            util.logger.info(
-                f"No images to process, processing {len(metadata_paths)} metadata files directly"
-            )
-            for path in metadata_paths:
-                photo_scanner(user, last_scan, full_scan, path, job_id)
-
-        # If there are images and metadata, enqueue a sentinel task that waits for the image group
-        if groups_to_process and metadata_paths:
-            util.logger.info(
-                f"Scheduling sentinel to process {len(metadata_paths)} metadata files after {len(groups_to_process)} image groups"
-            )
-            AsyncTask(
-                wait_for_group_and_process_metadata,
-                image_group_id,
-                metadata_paths,
-                user.id,
-                full_scan,
-                job_id,
-                len(groups_to_process),
-                attempt=1,
-                max_attempts=2,
-            ).run()
+        _queue_scan_work(
+            user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
+        )
 
         util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
 
@@ -387,46 +474,9 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         util.logger.info("Finished updating album things")
 
         # Check for photos with missing aspect ratios but existing thumbnails
-        photos_with_missing_aspect_ratio = Photo.objects.filter(
-            Q(owner=user.id)
-            & Q(thumbnail__isnull=False)
-            & Q(thumbnail__thumbnail_big__isnull=False)
-            & Q(thumbnail__aspect_ratio__isnull=True)
-        )
-        if photos_with_missing_aspect_ratio.exists():
-            util.logger.info(
-                f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios"
-            )
-            for photo in photos_with_missing_aspect_ratio:
-                try:
-                    thumbnail = getattr(photo, "thumbnail", None)
-                    if thumbnail and isinstance(thumbnail, Thumbnail):
-                        thumbnail._calculate_aspect_ratio()
-                except Exception as e:
-                    util.logger.exception(
-                        f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
-                    )
+        backfill_missing_aspect_ratios(user)
 
-        # if the scan type is not the default user scan directory, or if it is specified as only scanning
-        # specific files, there is no need to rescan fully for missing photos.
-        if full_scan or (scan_directory == user.scan_directory and not scan_files):
-            AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
-
-        # Run repair job to fix any previously ungrouped file variants
-        # This handles race conditions from previous scans and incremental adds
-        AsyncTask(repair_ungrouped_file_variants, user, uuid.uuid4()).run()
-
-        if settings.FEATURE_SCENE_CLASSIFICATION:
-            AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
-        if settings.FEATURE_REVERSE_GEOCODING:
-            AsyncTask(add_geolocation, user, uuid.uuid4(), full_scan).run()
-
-        # The scan faces job will have issues if the embeddings haven't been generated before it runs
-        chain = Chain()
-        chain.append(batch_calculate_clip_embedding, user)
-        if settings.FEATURE_FACE_DETECTION:
-            chain.append(scan_faces, user, uuid.uuid4(), full_scan)
-        chain.run()
+        _queue_followup_jobs(user, full_scan, scan_directory, scan_files)
 
     except Exception as e:
         util.logger.exception("An error occurred: ")

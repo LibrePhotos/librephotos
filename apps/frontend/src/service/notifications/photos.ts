@@ -168,6 +168,30 @@ function deleteMissingPhotos() {
   });
 }
 
+function copyPhotoToClipboard() {
+  showNotification({
+    message: i18n.t("toasts.copyphoto"),
+    title: i18n.t("toasts.copyphototitle"),
+    color: "teal",
+  });
+}
+
+function copyPhotoToClipboardFailed() {
+  showNotification({
+    message: i18n.t("toasts.copyphotofailed"),
+    title: i18n.t("toasts.copyphototitle"),
+    color: "red",
+  });
+}
+
+function captionModelDownloading() {
+  showNotification({
+    message: i18n.t("toasts.captionmodeldownloading"),
+    title: i18n.t("toasts.captionupdate"),
+    color: "orange",
+  });
+}
+
 function scanDirectoryRequired() {
   showNotification({
     message: i18n.t("toasts.scan_directory_required"),
@@ -177,6 +201,9 @@ function scanDirectoryRequired() {
 }
 
 export const photos = {
+  captionModelDownloading,
+  copyPhotoToClipboard,
+  copyPhotoToClipboardFailed,
   deleteMissingPhotos,
   downloadCompleted,
   downloadFailed,

@@ -1,7 +1,7 @@
 ---
 title: "🔗 Sharing"
 description: "Share photos and albums with other users or publicly via links"
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 LibrePhotos offers multiple ways to share your photos and albums — with other users on your instance, or publicly with anyone via a link.
@@ -49,6 +49,12 @@ You can create a public link for any user album, making it accessible to anyone 
 4. A unique URL slug is generated automatically
 
 The public album is accessible at `https://your-instance/public/s/{slug}`.
+
+### Revoking a Public Link
+
+Toggle **"Public sharing"** off again and the link stops working immediately. The slug is burned at the same time, so turning public sharing back on generates a brand-new URL rather than reviving the old one. Anyone who still holds the withdrawn link, including someone you shared it with by mistake, keeps getting a "not found" page.
+
+This also means a custom slug is not kept across a revoke: set it again after re-enabling the link if you want it back.
 
 ### Configuring Public Link Settings
 

@@ -1,4 +1,4 @@
-import { ActionIcon, Group, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   IconAlbum as Album,
   IconDotsVertical as DotsVertical,
@@ -16,6 +16,7 @@ import {
   IconShare as Share,
   IconStar as Star,
   IconStarOff as StarOff,
+  IconTag as Tag,
   IconTrash as Trash,
 } from "@tabler/icons-react";
 import { useLocation } from "@tanstack/react-router";
@@ -51,6 +52,7 @@ type Props = {
   setAlbumCover: (actionType: string, photoId?: string) => void;
   onShareAlbum: () => void;
   onAddToAlbum: () => void;
+  onAddTags: () => void;
   title: string;
   albumID?: number | string;
   ownerUsername?: string;
@@ -82,6 +84,7 @@ export function SelectionActions(props: Readonly<Props>) {
     setAlbumCover,
     albumID,
     onAddToAlbum,
+    onAddTags,
   } = props;
 
   // Helper to reset selection state after action
@@ -184,6 +187,21 @@ export function SelectionActions(props: Readonly<Props>) {
           <Menu.Item leftSection={<Album />} onClick={() => hasSelection && onAddToAlbum()}>
             {" Album"}
           </Menu.Item>
+
+          <Tooltip label={t("selectionactions.tagdescription")} position="left">
+            <Menu.Item
+              leftSection={<Tag />}
+              rightSection={
+                <Text size="xs" c="dimmed">
+                  t
+                </Text>
+              }
+              disabled={!hasSelection}
+              onClick={() => hasSelection && onAddTags()}
+            >
+              {t("selectionactions.tag")}
+            </Menu.Item>
+          </Tooltip>
         </Menu.Dropdown>
       </Menu>
 

@@ -72,6 +72,7 @@ export function AlbumPersonGallery(): JSX.Element {
       updateGroups={getAlbums}
       selectable
       mediaType={mediaType}
+      albumID={id}
       photosetQuery={{ person: id ? +id : undefined, ...mediaTypeToBulkQuery(mediaType) }}
     />
   );

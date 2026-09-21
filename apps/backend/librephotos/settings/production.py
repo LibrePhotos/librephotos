@@ -16,11 +16,57 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DATA, "protected_media")
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DATA_ROOT = PHOTOS
-IM2TXT_ROOT = os.path.join(MEDIA_ROOT, "data_models", "im2txt")
 
-BLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "blip")
-PLACES365_ROOT = os.path.join(MEDIA_ROOT, "data_models", "places365", "model")
-CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip-embeddings")
+# Serving an original file is nginx's job: the backend authorizes the request
+# and hands off with X-Accel-Redirect. nginx's workers run as uid/gid 101 in the
+# stock proxy image ("user nginx;" in its nginx.conf) while the backend runs as
+# root, so the two disagree about which files are readable and a library the
+# scanner indexed fine can still 403 on playback. The media diagnostics use
+# these to explain such a failure instead of guessing at it; override them only
+# if you run a rebuilt proxy whose nginx uses different ids.
+WEBSERVER_UID = int(os.environ.get("WEBSERVER_UID", "101"))
+WEBSERVER_GID = int(os.environ.get("WEBSERVER_GID", "101"))
+# CLIP ViT-B/32 (ONNX) for semantic search; see api/ml_models.py.
+CLIP_ROOT = os.path.join(MEDIA_ROOT, "data_models", "clip_vit_b32")
+
+# Videos in a container or codec the browser cannot decode are converted on the
+# fly for users who turn on "Always transcode videos". A live conversion has no
+# known length, so it cannot be sought at all; the same conversion is therefore
+# written to a file in the background and later plays are served from that,
+# seekable. See api/transcode_cache.py.
+#
+# The cache is bounded twice over: it never grows past TRANSCODE_CACHE_MAX_GB,
+# and it never eats into the last TRANSCODE_CACHE_MIN_FREE_GB of the volume,
+# which is shared with the thumbnails and (in the default layout) the database.
+# Set the size to 0 to switch caching off and keep only the live streaming.
+TRANSCODE_CACHE_ROOT = os.path.join(MEDIA_ROOT, "transcoded")
+TRANSCODE_CACHE_MAX_GB = float(os.environ.get("TRANSCODE_CACHE_MAX_GB", "10"))
+TRANSCODE_CACHE_MIN_FREE_GB = float(os.environ.get("TRANSCODE_CACHE_MIN_FREE_GB", "2"))
+TRANSCODE_CACHE_MAX_CONCURRENT = int(
+    os.environ.get("TRANSCODE_CACHE_MAX_CONCURRENT", "1")
+)
+# How far the background conversion stands back from everything else. It is
+# niced and given half the cores, because playback, thumbnails and the scan all
+# matter more than a copy nobody is waiting for.
+TRANSCODE_CACHE_NICE = int(os.environ.get("TRANSCODE_CACHE_NICE", "10"))
+
+# What the *live* conversion -- the one a viewer is waiting on -- is allowed to
+# take. Left alone ffmpeg uses every core and converts as fast as the hardware
+# permits, so one person opening one video can starve the web UI, the scan
+# workers and everybody else. Playback needs output a little faster than real
+# time and nothing more.
+#
+# Cores are capped to 1/N of the machine, and the conversion is held to
+# TRANSCODE_LIVE_READRATE times real time after an initial burst of
+# TRANSCODE_LIVE_BURST_SECONDS, which keeps the start instant and gives the
+# browser a buffer. Set the readrate to 0 to convert as fast as the host can.
+TRANSCODE_LIVE_CPU_FRACTION = max(
+    1, int(os.environ.get("TRANSCODE_LIVE_CPU_FRACTION", "2"))
+)
+TRANSCODE_LIVE_READRATE = float(os.environ.get("TRANSCODE_LIVE_READRATE", "2"))
+TRANSCODE_LIVE_BURST_SECONDS = float(
+    os.environ.get("TRANSCODE_LIVE_BURST_SECONDS", "30")
+)
 LOGS_ROOT = BASE_LOGS
 # Create the directory before anything in this module writes to it. secret.key
 # lives in there too and is written some 40 lines further down, so an install
@@ -109,6 +155,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.postgres",
+    # django.contrib.sites is required by allauth (SocialApp is tied to a Site).
+    "django.contrib.sites",
     "api",
     "nextcloud",
     "rest_framework",
@@ -119,7 +167,18 @@ INSTALLED_APPS = [
     "constance",
     "constance.backends.database",
     "django_q",
+    # OIDC / SSO via django-allauth. The generic openid_connect provider handles
+    # any standards-compliant IdP (Keycloak, Authentik, Authelia, Zitadel, Google,
+    # Azure, ...). Provider credentials live in the DB (admin-editable SocialApp),
+    # not the environment. See api/adapters.py for the login/linking policy and
+    # api/views/sso.py for the JWT bridge.
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.openid_connect",
 ]
+
+SITE_ID = 1
 
 Q_CLUSTER = {
     "name": "DjangORM",
@@ -130,6 +189,11 @@ Q_CLUSTER = {
     "orm": "default",
     "max_rss": 300000,
     "poll": 1,
+    # Schedules missed while the workers were busy (the minutely service
+    # check, during a scan) are skipped rather than run back to back once the
+    # queue drains: five service checks in the same second restart the same
+    # sidecar five times.
+    "catch_up": False,
 }
 
 # Number of background workers doing the heavy lifting (thumbnails, face
@@ -172,20 +236,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
             "widget": "django.forms.Select",
             "choices": (
                 ("none", "None"),
-                ("im2txt", "im2txt PyTorch Model"),
-                ("blip_base_capfilt_large", "BLIP Model"),
-                ("moondream", "Moondream Visual LLM"),
-            ),
-        },
-    ],
-    "llm_model": [
-        "django.forms.fields.ChoiceField",
-        {
-            "widget": "django.forms.Select",
-            "choices": (
-                ("none", "None"),
-                ("mistral-7b-instruct-v0.2.Q5_K_M", "Mistral 7B Instruct v0.2 Q5 K M"),
-                ("moondream", "Moondream Visual LLM"),
+                ("lfm2_vl_450m", "LFM2.5-VL (default)"),
             ),
         },
     ],
@@ -194,8 +245,8 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         {
             "widget": "django.forms.Select",
             "choices": (
-                ("places365", "Places365 Scene Recognition"),
-                ("siglip2", "SigLIP 2 (Real-world photo tags)"),
+                ("mobileclip_s2", "MobileCLIP-S2 (fast, default)"),
+                ("siglip2", "SigLIP 2 (most accurate)"),
             ),
         },
     ],
@@ -204,7 +255,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         {
             "widget": "django.forms.Select",
             "choices": (
-                # Lowercase "none" mirrors the llm_model sibling; the "None"
+                # Lowercase "none" mirrors the captioning_model sibling; the "None"
                 # default in CONSTANCE_CONFIG still reads as unselected because
                 # _is_model_not_selected() lowercases before comparing.
                 ("none", "None"),
@@ -262,9 +313,12 @@ CONSTANCE_CONFIG = {
         "map_tile_provider",
     ),
     "IMAGE_DIRS": ("/data", "Image dirs list (serialized json)", str),
-    "CAPTIONING_MODEL": ("im2txt", "Captioning model", "captioning_model"),
-    "LLM_MODEL": ("None", "Large Language Model", "llm_model"),
-    "TAGGING_MODEL": ("places365", "Tagging model", "tagging_model"),
+    "CAPTIONING_MODEL": (
+        "lfm2_vl_450m",
+        "Captioning model",
+        "captioning_model",
+    ),
+    "TAGGING_MODEL": ("mobileclip_s2", "Tagging model", "tagging_model"),
     "OCR_MODEL": (
         "None",
         "OCR model. OCR extracts ALL readable text from photos into the database"
@@ -287,6 +341,27 @@ CONSTANCE_CONFIG = {
         "Number of rotated log files to keep (default 10)",
         int,
     ),
+    "OIDC_ENABLED": (
+        False,
+        "Show a single-sign-on (SSO) button on the login screen. Requires a "
+        "configured OpenID Connect provider (Admin → Social Applications) and, "
+        "for provisioning new users, a configured email provider (Site Settings "
+        "→ Email) so the identity provider's email can be trusted.",
+        bool,
+    ),
+    "OIDC_BUTTON_LABEL": (
+        "Sign in with SSO",
+        "Text shown on the single-sign-on button on the login screen",
+        str,
+    ),
+    "OIDC_ALLOW_SIGNUP": (
+        False,
+        "Allow a first-time SSO login to create a new LibrePhotos account. When "
+        "off, SSO only logs in users that already exist (admin-provisioned). "
+        "Auto-creation additionally requires a configured email provider so the "
+        "identity provider's verified-email claim can be trusted.",
+        bool,
+    ),
 }
 
 INTERNAL_IPS = ("127.0.0.1", "localhost")
@@ -305,6 +380,10 @@ CORS_ALLOW_HEADERS = (
     "x-csrftoken",
     "x-requested-with",
 )
+# The media endpoints mark their own 403s so the frontend can tell "your
+# session expired" apart from "the web server cannot read this file"; a
+# split-origin dev setup can only read that header if it is exposed.
+CORS_EXPOSE_HEADERS = ("x-media-error",)
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
@@ -335,6 +414,17 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "api.middleware.FingerPrintMiddleware",
+    # Required by allauth (>=0.56): rebuilds request state for the account flow.
+    "allauth.account.middleware.AccountMiddleware",
+]
+
+# allauth adds its authentication backend alongside the default ModelBackend so
+# that regular username/password login keeps working (hybrid login — the
+# maintainer's call on #401). ModelBackend stays first so password auth is
+# unaffected.
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 TEMPLATES = [
@@ -440,3 +530,48 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # Base URL of the frontend, used to build the link in the password-reset email.
 # Falls back to the request's own origin when not set (see PasswordResetView).
 FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "")
+
+# ---------------------------------------------------------------------------
+# django-allauth (OIDC / SSO) — see api/adapters.py and api/views/sso.py
+# ---------------------------------------------------------------------------
+# LibrePhotos authenticates with JWT, not sessions. allauth runs the OIDC
+# redirect/callback dance server-side (establishing a short-lived Django
+# session); LOGIN_REDIRECT_URL then hands off to the JWT bridge, which mints the
+# same simplejwt access/refresh the password login issues, sets the cookies
+# identically, and redirects into the SPA — so nothing downstream can tell an
+# SSO login from a password login.
+LOGIN_REDIRECT_URL = "/api/auth/sso/finish/"
+
+# All login/linking/provisioning policy lives in the adapter (stable API across
+# allauth versions, and able to read runtime state such as EmailConfig and the
+# OIDC_* Constance flags). Keep the declarative settings minimal.
+SOCIALACCOUNT_ADAPTER = "api.adapters.SSOSocialAccountAdapter"
+ACCOUNT_ADAPTER = "api.adapters.NoLocalSignupAccountAdapter"
+
+# We never drive password signup/login or verification emails through allauth —
+# LibrePhotos keeps its own login and (separately) its own password reset. Trust
+# the IdP's verified-email claim; the adapter enforces it explicitly.
+ACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+
+# The SPA button click is the deliberate user action, so redirect straight to the
+# IdP on GET rather than rendering allauth's HTML interstitial (we ship no
+# allauth templates).
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# We only need the identity to mint our own JWT; don't persist the IdP's tokens.
+SOCIALACCOUNT_STORE_TOKENS = False
+
+# Keep allauth to brokering OIDC and nothing else. Without this, including
+# allauth.urls also mounts allauth's own session-based account views: a second
+# login form, a signup form, and — worst — a second password-reset flow that
+# would bypass the throttling and address-enumeration protections on
+# LibrePhotos' own reset endpoint. This drops those routes (signup, password
+# reset/change/set, email management) while leaving account_login/logout
+# resolvable, so allauth's internal reverse() calls still work, and it refuses
+# non-GET requests to the login view it does keep.
+#
+# Note this disables *allauth's* local authentication, not LibrePhotos': the
+# username/password login is our own simplejwt endpoint and is untouched, so
+# hybrid login still works as the maintainer asked.
+SOCIALACCOUNT_ONLY = True

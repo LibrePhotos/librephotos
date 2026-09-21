@@ -120,6 +120,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv*/
 env/
 venv/
 ENV/
@@ -179,7 +180,7 @@ api/im2txt/png/
 *.ipynb
 api/im2txt/*.tar.gz
 *.db
-media*
+/media*
 protected_media
 report_dynamo_export.sarif
 
@@ -189,3 +190,6 @@ report_dynamo_export.sarif
 # Vim
 *.swp
 *.swo
+
+# Standalone build (scripts/build_standalone.py)
+frontend_build/

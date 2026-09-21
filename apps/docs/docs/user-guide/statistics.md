@@ -1,7 +1,7 @@
 ---
 title: "📊 Statistics & Data Visualization"
 description: "Explore your photo library through interactive visualizations"
-sidebar_position: 9
+sidebar_position: 10
 ---
 
 LibrePhotos includes a **Statistics** section with several interactive visualizations that help you explore patterns in your photo library. It is not in the main sidebar — open it from the **Statistics / Explore charts** card at the top of the **Library** page (reach the Library page from the avatar menu in the top-right corner → **Library**), or press `Ctrl+K` (`Cmd+K` on macOS) and search for "Statistics". You can also go straight to `/statistics`. The section opens on the **Place Tree** view, and a tab bar at the top lets you switch between the five views.
@@ -36,14 +36,10 @@ Three interactive word clouds generated from your photo library:
 | Cloud | Based on |
 |-------|----------|
 | **Places** | Place names from reverse geocoding (postcodes and points of interest are skipped) |
-| **Things** | Scene tags from the Places365 classifier — its scene categories, scene attributes and the indoor/outdoor label. The categories and attributes are also what populate your Things albums. |
+| **Things** | The auto-tags of the active Tagging Model (MobileCLIP-S2 or SigLIP 2). These are also what populate your Things albums. |
 | **People** | Names of recognized people in your photos |
 
 Each cloud shows at most the top 100 terms, and larger words appear more frequently in your library. **Click on any word** to search for photos matching that term.
-
-:::note
-The **Things** cloud is only populated when your photos are tagged with the Places365 model. With the SigLIP 2 tagging model its tags are stored differently, so this cloud stays empty.
-:::
 
 ## Social Graph
 

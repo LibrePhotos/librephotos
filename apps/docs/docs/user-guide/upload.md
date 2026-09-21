@@ -1,7 +1,7 @@
 ---
 title: " ⬆ Upload"
 description: "How to upload photos to LibrePhotos"
-sidebar_position: 12
+sidebar_position: 13
 ---
 
 ![](../../static/img/upload-image.png)

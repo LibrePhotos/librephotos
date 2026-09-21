@@ -6,6 +6,7 @@ from api.serializers.photos import (
     PhotoSummarySerializer,
     SharedFromMePhotoThroughSerializer,
 )
+from api.views.albums import with_album_user_list_relations
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
 
@@ -37,9 +38,7 @@ class SharedFromMePhotoSuperSimpleListViewSet(ListViewSet):
     def get_queryset(self):
         ThroughModel = Photo.shared_to.through
 
-        user_photos = Photo.visible.filter(Q(owner=self.request.user.id)).only(
-            "image_hash"
-        )
+        user_photos = Photo.visible.owned_by(self.request.user).only("image_hash")
         qs = (
             ThroughModel.objects.filter(photo_id__in=user_photos)
             .prefetch_related(
@@ -68,9 +67,11 @@ class SharedToMeAlbumUserListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return AlbumUser.objects.filter(
-            shared_to__id__exact=self.request.user.id
-        ).order_by("id")
+        return with_album_user_list_relations(
+            AlbumUser.objects.filter(
+                shared_to__id__exact=self.request.user.id
+            ).order_by("id")
+        )
 
 
 class SharedFromMeAlbumUserListViewSet(ListViewSet):
@@ -78,7 +79,7 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
     pagination_class = HugeResultsSetPagination
 
     def get_queryset(self):
-        return (
+        return with_album_user_list_relations(
             AlbumUser.objects.annotate(shared_to_count=Count("shared_to"))
             .filter(shared_to_count__gt=0)
             .filter(owner=self.request.user.id)

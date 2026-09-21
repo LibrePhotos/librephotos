@@ -16,7 +16,13 @@ from api.serializers.tag import (
 )
 from api.views.albums import _with_photo_summary_relations
 from api.views.pagination import StandardResultsSetPagination
+from api.views.photo_filters import build_photo_queryset
 from api.views.photos import _get_photo_filter_kwargs
+
+# A select-all tag edit can cover a whole library, so the links are written in
+# batches instead of one statement over every row. Small selections still take
+# a single pass, so nothing changes for a handful of photos.
+PHOTO_LINK_BATCH_SIZE = 2000
 
 
 class TagViewSet(viewsets.ModelViewSet):
@@ -92,12 +98,20 @@ class TagViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     def _resolve_photos(self, request):
-        """Resolve the request's photo ids/hashes to photos the user owns.
+        """Resolve the request's photos to the ones the user owns.
+
+        Either an explicit list of ids/hashes, or ``select_all=True`` plus the
+        ``query`` describing the photoset on screen -- the same payload the
+        bulk favourite/hide/delete endpoints take, so tagging a whole filtered
+        view does not depend on the client enumerating every hash first.
 
         An id the requester does not own is a 404 rather than a silent no-op:
         answering 200 for an empty queryset had the UI report a save that never
         happened.
         """
+        if request.data.get("select_all"):
+            return self._select_all_photos(request)
+
         identifiers = request.data.get("photos")
         if not isinstance(identifiers, list) or not identifiers:
             return None
@@ -112,8 +126,8 @@ class TagViewSet(viewsets.ModelViewSet):
                 hashes.add(filter_kwargs["image_hash"])
 
         photos = list(
-            Photo.objects.filter(
-                Q(pk__in=ids) | Q(image_hash__in=hashes), owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                Q(pk__in=ids) | Q(image_hash__in=hashes)
             )
         )
         resolved = {str(photo.pk) for photo in photos}
@@ -122,6 +136,41 @@ class TagViewSet(viewsets.ModelViewSet):
             raise NotFound("Unknown photo")
 
         return photos
+
+    def _select_all_photos(self, request):
+        """The photos behind a ``select_all`` payload, as a lazy queryset."""
+        query = request.data.get("query")
+        excluded_hashes = request.data.get("excluded_hashes") or []
+
+        photos = build_photo_queryset(
+            request.user, query if isinstance(query, dict) else {}
+        )
+        if excluded_hashes:
+            photos = photos.exclude(image_hash__in=excluded_hashes)
+        return photos
+
+    @staticmethod
+    def _link_photos(relation_method, photos):
+        """Add or remove ``photos`` on a tag's m2m, a batch at a time.
+
+        Takes primary keys rather than instances so a select-all edit never
+        loads the whole photoset into memory.
+        """
+        if isinstance(photos, list):
+            pks = [photo.pk for photo in photos]
+        else:
+            pks = photos.values_list("pk", flat=True).iterator(
+                chunk_size=PHOTO_LINK_BATCH_SIZE
+            )
+
+        batch = []
+        for pk in pks:
+            batch.append(pk)
+            if len(batch) == PHOTO_LINK_BATCH_SIZE:
+                relation_method(*batch)
+                batch = []
+        if batch:
+            relation_method(*batch)
 
     @extend_schema(
         parameters=[OpenApiParameter("photo", OpenApiTypes.STR)],
@@ -140,7 +189,11 @@ class TagViewSet(viewsets.ModelViewSet):
         return Response({"results": serializer.data})
 
     @extend_schema(
-        description="Attach photos to this tag.",
+        description=(
+            "Attach photos to this tag: either an explicit `photos` list of "
+            "ids/image hashes, or `select_all: true` with the `query` "
+            "describing the photoset on screen and optional `excluded_hashes`."
+        ),
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="add")
@@ -152,11 +205,14 @@ class TagViewSet(viewsets.ModelViewSet):
                 {"error": "No photos provided"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        tag.photos.add(*photos)
+        self._link_photos(tag.photos.add, photos)
         return Response(TagSerializer(tag).data)
 
     @extend_schema(
-        description="Detach photos from this tag.",
+        description=(
+            "Detach photos from this tag. Takes the same explicit `photos` "
+            "list or `select_all` payload as the add action."
+        ),
         responses={200: TagSerializer},
     )
     @action(detail=True, methods=["post"], url_path="remove")
@@ -168,7 +224,7 @@ class TagViewSet(viewsets.ModelViewSet):
                 {"error": "No photos provided"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        tag.photos.remove(*photos)
+        self._link_photos(tag.photos.remove, photos)
         return Response(TagSerializer(tag).data)
 
     @extend_schema(
