@@ -4,9 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Count
 
-from api.util import folder_path_prefix, logger
+from api.util import folder_path_q, logger
 from api.models.photo import Photo
 
 PAGE_SIZE = 100
@@ -85,7 +85,7 @@ def _photo_counts(user, entries):
     aggregates = {
         f"count_{idx}": Count(
             "pk",
-            filter=Q(files__path__startswith=folder_path_prefix(folder_path)),
+            filter=folder_path_q("files__path", folder_path),
             distinct=True,
         )
         for idx, (_, folder_path, _) in enumerate(entries)

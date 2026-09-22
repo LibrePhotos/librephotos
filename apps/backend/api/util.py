@@ -1,6 +1,9 @@
 import logging
 import os
 import os.path
+import re
+
+from django.db.models import Q
 
 from librephotos.logging_bootstrap import (
     DEFAULT_LOG_BACKUP_COUNT,
@@ -92,21 +95,39 @@ def is_valid_path(path, root_path):
     return abs_path == abs_root or abs_path.startswith(abs_root + os.sep)
 
 
-def folder_path_prefix(folder_path):
-    """Return the prefix that matches files stored inside ``folder_path``.
+#: A drive-letter path (``C:\x``, ``C:/x``, ``C:``) or a UNC path (``\\host\share``).
+_WINDOWS_PATH = re.compile(r"^(?:[A-Za-z]:(?:[\\/]|$)|\\\\)")
+
+
+def folder_path_prefixes(folder_path):
+    r"""Return the prefixes that match files stored inside ``folder_path``.
 
     A bare ``path__startswith=folder_path`` also matches a sibling whose name
     merely starts with it, so ``/photos/test`` picks up ``/photos/test2`` as
-    well. Anchoring on the trailing separator keeps a folder to its own files,
+    well. Anchoring on a trailing separator keeps a folder to its own files,
     while still matching anything nested below it.
 
-    The separator is taken from ``folder_path`` rather than from ``os.sep``:
-    these are paths recorded in the database by whichever host ran the scan,
-    so they need not use the separator of the host running the query.
+    These are paths recorded in the database by whichever host ran the scan,
+    so the separator comes from the path rather than from ``os.sep``. A POSIX
+    path only ever uses ``/`` (a backslash there is part of a file name). A
+    Windows path can mix both, as in ``C:/data\test``, because
+    ``os.path.join`` adds a backslash to whatever the configured root used, so
+    a child may follow either separator.
     """
     stripped = folder_path.rstrip("/\\")
-    separator = "\\" if "\\" in stripped and "/" not in stripped else "/"
-    return stripped + separator
+    if _WINDOWS_PATH.match(folder_path) or (
+        "\\" in stripped and not stripped.startswith("/")
+    ):
+        return (stripped + "\\", stripped + "/")
+    return (stripped + "/",)
+
+
+def folder_path_q(lookup, folder_path):
+    """``Q`` matching ``<lookup>__startswith`` any prefix of ``folder_path``."""
+    query = Q()
+    for prefix in folder_path_prefixes(folder_path):
+        query |= Q(**{f"{lookup}__startswith": prefix})
+    return query
 
 
 def is_number(s):

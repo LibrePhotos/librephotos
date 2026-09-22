@@ -340,18 +340,61 @@ class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
         self.assertEqual(counts["test2"], 1)
 
     def test_prefix_helper_uses_the_separator_of_the_stored_path(self):
-        from api.util import folder_path_prefix
+        from api.util import folder_path_prefixes
 
         # POSIX paths, as a Linux scan records them.
-        self.assertEqual(folder_path_prefix("/photos/test"), "/photos/test/")
-        self.assertEqual(folder_path_prefix("/photos/test/"), "/photos/test/")
-        # Windows paths, as a Windows scan records them.
-        win = r"C:\photos\test"
-        self.assertEqual(folder_path_prefix(win), win + "\\")
-        self.assertEqual(folder_path_prefix(win + "\\"), win + "\\")
+        self.assertEqual(folder_path_prefixes("/photos/test"), ("/photos/test/",))
+        self.assertEqual(folder_path_prefixes("/photos/test/"), ("/photos/test/",))
         # A backslash inside a POSIX file name is not a separator.
         odd = r"/photos/we\ird"
-        self.assertEqual(folder_path_prefix(odd), odd + "/")
+        self.assertEqual(folder_path_prefixes(odd), (odd + "/",))
+        # Windows paths, as a Windows scan records them. A child can follow
+        # either separator, so both are matched.
+        win = r"C:\photos\test"
+        self.assertEqual(folder_path_prefixes(win), (win + "\\", win + "/"))
+        self.assertEqual(folder_path_prefixes(win + "\\"), (win + "\\", win + "/"))
+        # A root configured with forward slashes, joined by os.path.join (#2066).
+        mixed = r"C:/data\test"
+        self.assertEqual(folder_path_prefixes(mixed), (mixed + "\\", mixed + "/"))
+        self.assertEqual(
+            folder_path_prefixes("C:/data/test"), ("C:/data/test\\", "C:/data/test/")
+        )
+        # UNC shares are Windows paths too.
+        unc = r"\\nas\photos"
+        self.assertEqual(folder_path_prefixes(unc), (unc + "\\", unc + "/"))
+
+    def test_windows_paths_with_mixed_separators_are_counted(self):
+        r"""``C:/data\test`` must count its own files and not ``test2``'s (#2066).
+
+        The rows are written directly, because the endpoint builds its folder
+        paths with the separator of the host running the tests.
+        """
+        from api.models import Photo
+        from api.util import folder_path_q
+
+        admin = create_test_user(is_admin=True)
+        for path in (
+            r"C:/data\test\a.jpg",
+            r"C:/data\test\inner\b.jpg",
+            r"C:/data\test/c.jpg",
+            r"C:/data\test2\d.jpg",
+        ):
+            photo = create_test_photo(owner=admin)
+            photo.files.add(
+                File.objects.create(hash=uuid.uuid4().hex, path=path, type=File.IMAGE)
+            )
+
+        def count(folder):
+            return (
+                Photo.objects.filter(folder_path_q("files__path", folder))
+                .distinct()
+                .count()
+            )
+
+        self.assertEqual(count(r"C:/data\test"), 3)
+        self.assertEqual(count("C:/data\\test\\"), 3)
+        self.assertEqual(count(r"C:/data\test2"), 1)
+        self.assertEqual(count("C:/data"), 4)
 
 
 class SubfoldersErrorHandlingTests(SubfoldersTestBase):

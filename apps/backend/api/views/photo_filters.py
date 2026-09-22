@@ -8,7 +8,7 @@ enabling server-side "Select All" operations without sending individual photo ID
 from django.db.models import Q
 
 from api.models import Photo
-from api.util import folder_path_prefix
+from api.util import folder_path_q
 
 
 def build_photo_queryset(user, params: dict):
@@ -83,9 +83,7 @@ def build_photo_queryset(user, params: dict):
 
     # Folder path filter
     if params.get("folder"):
-        filters.append(
-            Q(files__path__startswith=folder_path_prefix(params["folder"]))
-        )
+        filters.append(folder_path_q("files__path", params["folder"]))
 
     # Stack filtering: Show photos that are either:
     # 1. Not in any stack, OR
