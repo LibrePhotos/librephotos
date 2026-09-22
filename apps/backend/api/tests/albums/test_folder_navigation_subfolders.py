@@ -120,16 +120,44 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(resp.json(), {"error": "Scan directory does not exist"})
 
-    def test_prefix_matching_is_string_based_not_path_based(self):
-        """Known quirk: the guard uses ``str.startswith``, so a sibling
-        directory whose name merely *starts with* the scan directory name is
-        considered inside it."""
+    def test_sibling_sharing_the_scan_directory_prefix_is_refused(self):
+        """The guard compares path components, not strings: a sibling whose
+        name merely *starts with* the scan directory name is outside it."""
         _mkdirs(self.root, "scan", "scan-evil")
         user = create_test_user(scan_directory=os.path.join(self.root, "scan"))
         resp = self.client_for(user).get(
             URL, {"path": os.path.join(self.root, "scan-evil")}
         )
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_dot_dot_out_of_the_scan_directory_is_refused(self):
+        _mkdirs(self.root, "scan", "other")
+        scan_dir = os.path.join(self.root, "scan")
+        user = create_test_user(scan_directory=scan_dir)
+        resp = self.client_for(user).get(
+            URL, {"path": os.path.join(scan_dir, "..", "other")}
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_subfolder_and_scan_directory_itself_are_still_allowed(self):
+        _mkdirs(self.root, os.path.join("scan", "inner"))
+        scan_dir = os.path.join(self.root, "scan")
+        user = create_test_user(scan_directory=scan_dir)
+        client = self.client_for(user)
+        self.assertEqual(client.get(URL, {"path": scan_dir}).status_code, 200)
+        self.assertEqual(
+            client.get(URL, {"path": os.path.join(scan_dir, "inner")}).status_code,
+            200,
+        )
+
+    def test_admin_sibling_sharing_the_data_root_prefix_is_refused(self):
+        sibling = self.root + "-evil"
+        os.makedirs(sibling)
+        self.addCleanup(shutil.rmtree, sibling, ignore_errors=True)
+        admin = create_test_user(is_admin=True)
+        resp = self.client_for(admin).get(URL, {"path": sibling})
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.json(), {"error": "Access denied"})
 
 
 class SubfoldersListingTests(SubfoldersTestBase):
