@@ -45,6 +45,7 @@ EXIF_VALUE_NAMES = (
     "image_number",
     "xmp_subject",
     "iptc_keywords",
+    "xmp_description",
 )
 
 EXIF_TAGS = [
@@ -66,6 +67,7 @@ EXIF_TAGS = [
     Tags.IMAGE_NUMBER,
     Tags.SUBJECT,
     Tags.IPTC_KEYWORDS,
+    Tags.DESCRIPTION,
 ]
 
 
@@ -395,6 +397,7 @@ class PhotoMetadata(models.Model):
             metadata.save()
             # "Import tags from EXIF": the keywords read above also become Tag rows.
             link_tags_from_keywords(photo, metadata.keywords)
+            cls._apply_description_to_caption(photo, values["xmp_description"])
 
         return metadata
 
@@ -445,6 +448,34 @@ class PhotoMetadata(models.Model):
         keywords = _merge_keywords(values["xmp_subject"], values["iptc_keywords"])
         if keywords:
             metadata.keywords = keywords
+
+        _assign_string(metadata, "caption", values["xmp_description"])
+
+    @staticmethod
+    def _apply_description_to_caption(photo, description):
+        """Seed the lightbox caption from a sidecar/embedded description.
+
+        ``PhotoMetadata.caption`` is the structured, re-extracted-on-every-scan
+        field; the caption a user actually sees and edits in the lightbox lives
+        in ``PhotoCaption.captions_json["user_caption"]`` instead (see
+        ``PhotoCaption.save_user_caption``). A description is only ever written
+        there once, the first time one is found: a rescan must not clobber a
+        caption the user has since typed over it by hand.
+        """
+        if not description:
+            return
+
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, _ = PhotoCaption.objects.get_or_create(photo=photo)
+        if (caption_instance.captions_json or {}).get("user_caption"):
+            return
+
+        if caption_instance.captions_json is None:
+            caption_instance.captions_json = {}
+        caption_instance.captions_json["user_caption"] = description
+        caption_instance.recreate_search_captions()
+        caption_instance.save()
 
 
 class MetadataEdit(models.Model):

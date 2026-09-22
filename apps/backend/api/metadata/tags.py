@@ -30,6 +30,9 @@ class Tags:
     REGION_INFO_WRITE = "XMP-mwg-rs:RegionInfo"
     SUBJECT = "XMP:Subject"
     IPTC_KEYWORDS = "IPTC:Keywords"
+    # The x-default entry of the dc:description lang-alt. Embedded or
+    # sidecar, ExifTool always resolves the lang-alt down to one string.
+    DESCRIPTION = "XMP:Description"
     ROTATION = "QuickTime:Rotation"
     ORIENTATION = "EXIF:Orientation"
 
