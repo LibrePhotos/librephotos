@@ -25,6 +25,7 @@ from django.utils import timezone
 from api.models import File, Photo
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
+from api.models.photo_search import PhotoSearch
 from api.models.thumbnail import Thumbnail
 from api.tests.utils import create_test_user
 
@@ -147,6 +148,13 @@ class XMPDescriptionIntegrationTest(TestCase):
         self.assertEqual(
             caption_instance.captions_json["user_caption"], "what the user typed"
         )
+
+    def test_description_is_searchable(self):
+        """Seeding the caption also indexes it, so the text is searchable."""
+        self._extract_with_real_exiftool()
+
+        search = PhotoSearch.objects.get(photo=self.photo)
+        self.assertIn("Neil Armstrong", search.search_captions)
 
     def test_keywords_still_extracted_alongside_the_description(self):
         """Adding the description tag must not disturb the keyword merge."""
