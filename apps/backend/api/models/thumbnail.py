@@ -2,6 +2,7 @@ import os
 
 from django.conf import settings
 from django.db import models
+from django.dispatch import receiver
 from PIL import Image
 
 from api.models.photo import Photo
@@ -187,3 +188,15 @@ class Thumbnail(models.Model):
             self.save()
         except Exception:
             logger.info(f"Cannot calculate dominant color {self} object")
+
+
+@receiver(models.signals.post_delete, sender=Thumbnail)
+def auto_delete_files_on_delete(sender, instance, **kwargs):
+    for field_name in (
+        "thumbnail_big",
+        "square_thumbnail",
+        "square_thumbnail_small",
+    ):
+        field_file = getattr(instance, field_name)
+        if field_file and field_file.name:
+            field_file.storage.delete(field_file.name)

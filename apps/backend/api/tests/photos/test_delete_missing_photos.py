@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import patch
 
+from django.core.files.base import ContentFile
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -8,7 +9,7 @@ from rest_framework.test import APIClient
 
 from api import autoalbum
 from api.autoalbum import delete_missing_photos
-from api.models import AlbumDate, AlbumPlace, File, LongRunningJob, Photo
+from api.models import AlbumDate, AlbumPlace, File, LongRunningJob, Photo, Thumbnail
 from api.models.album_thing import AlbumThing
 from api.models.tag import Tag
 from api.tests.utils import create_test_photo, create_test_user
@@ -42,6 +43,34 @@ class DeleteMissingPhotosAsyncTaskTest(TestCase):
         self.assertEqual(args[1], self.user)
         self.assertEqual(str(args[2]), data["job_id"])
         async_task_cls.return_value.run.assert_called_once_with()
+
+
+class DeleteMissingPhotosThumbnailCleanupTest(TestCase):
+    def test_deleting_missing_photo_removes_thumbnail_files(self):
+        user = create_test_user()
+        photo = create_test_photo(owner=user)
+        thumbnail = photo.thumbnail
+        field_names = (
+            "thumbnail_big",
+            "square_thumbnail",
+            "square_thumbnail_small",
+        )
+
+        paths = []
+        for field_name in field_names:
+            field_file = getattr(thumbnail, field_name)
+            field_file.name = field_file.storage.save(
+                field_file.name, ContentFile(b"thumbnail")
+            )
+            paths.append((field_file.storage, field_file.name))
+        thumbnail.save(update_fields=list(field_names))
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        self.assertFalse(Photo.objects.filter(pk=photo.pk).exists())
+        self.assertFalse(Thumbnail.objects.filter(pk=photo.pk).exists())
+        for storage, path in paths:
+            self.assertFalse(storage.exists(path))
 
 
 class DeleteMissingPhotosCorrectnessTest(TestCase):
