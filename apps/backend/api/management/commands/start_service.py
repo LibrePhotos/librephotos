@@ -19,10 +19,7 @@ class Command(BaseCommand):
             "service",
             type=str,
             help="The service to start",
-            choices=[
-                SERVICES.keys(),
-                "all",
-            ],
+            choices=[*SERVICES, "all"],
         )
 
     def handle(self, *args, **kwargs):

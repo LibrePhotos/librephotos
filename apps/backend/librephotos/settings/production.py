@@ -1,6 +1,8 @@
 import datetime
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
 from librephotos.logging_bootstrap import (
     build_logging_config,
     ensure_logs_root,
@@ -73,7 +75,6 @@ LOGS_ROOT = BASE_LOGS
 # without a /logs volume used to die on that open() with a FileNotFoundError
 # that never mentioned logs. Fail here instead, naming the path.
 ensure_logs_root(LOGS_ROOT)
-DEMO_SITE = os.environ.get("DEMO_SITE", "False") != "False"
 
 # Matplotlib comes along with insightface, which the face recognition service
 # imports. Left to itself it keeps its font cache under $HOME, and when the home
@@ -99,12 +100,46 @@ SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 
 
-def _env_flag(name, default=True):
-    """Read an on/off switch from the environment (true/1/yes/on, any case)."""
+def _env_flag(name, default=True, empty=False):
+    """Read an on/off switch from the environment (true/1/yes/on, any case).
+
+    Unset means ``default``. A blank value means ``empty``, which is off unless
+    a caller says otherwise: ``FEATURE_X=`` switches a feature off. Any other
+    value is off.
+    """
     value = os.environ.get(name)
     if value is None:
         return default
-    return value.strip().lower() in ("true", "1", "yes", "on")
+    value = value.strip()
+    if not value:
+        return empty
+    return value.lower() in ("true", "1", "yes", "on")
+
+
+def _env_int(name, default):
+    """Read a whole number from the environment; unset or blank means ``default``."""
+    value = os.environ.get(name, "").strip()
+    if not value:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        raise ImproperlyConfigured(
+            f"{name} must be a whole number, got {value!r}"
+        ) from None
+
+
+def _env_list(name, default=()):
+    """Read a comma-separated list from the environment, dropping blank entries."""
+    value = os.environ.get(name)
+    if value is None:
+        return list(default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+# Demo mode ignores password changes (see api/serializers/user.py), so it is
+# strictly opt-in: DEMO_SITE=false, 0 or an empty value all leave it off.
+DEMO_SITE = _env_flag("DEMO_SITE", default=False)
 
 
 # analyze files to detect embedded media (e.g. in motion photos)
@@ -286,7 +321,8 @@ CONSTANCE_ADDITIONAL_FIELDS = {
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
     "ALLOW_UPLOAD": (
-        os.environ.get("ALLOW_UPLOAD", "True") not in ("false", "False", "0", "f"),
+        # A blank ALLOW_UPLOAD has always meant "on", like leaving it unset.
+        _env_flag("ALLOW_UPLOAD", default=True, empty=True),
         "Allow uploading files",
         bool,
     ),
@@ -451,12 +487,21 @@ TEMPLATES = [
     },
 ]
 
+# DB_PASS used to fall back to the password shipped in librephotos.env without a
+# word. Every bundled deployment (Compose, the unified image docs, Kubernetes)
+# passes DB_PASS, but a hand-written setup that never did still connects with
+# this value, so it stays as the fallback rather than breaking those installs on
+# upgrade. The librephotos.W001 system check (api/checks.py) says so whenever
+# PostgreSQL is actually used with it, which `migrate` prints on every start.
+INSECURE_DEFAULT_DB_PASSWORD = "AaAa1234"
+DB_PASS_FROM_ENV = "DB_PASS" in os.environ
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("DB_NAME", "db"),
         "USER": os.environ.get("DB_USER", "docker"),
-        "PASSWORD": os.environ.get("DB_PASS", "AaAa1234"),
+        "PASSWORD": os.environ.get("DB_PASS", INSECURE_DEFAULT_DB_PASSWORD),
         "HOST": os.environ.get("DB_HOST", "db"),
         "PORT": os.environ.get("DB_PORT", "5432"),
         # Using persistent connections instead of pooling due to Django 5.2 pooling bugs
@@ -496,11 +541,12 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+# The split dev setup's frontend, plus the operator's own origins as a
+# comma-separated list (each with its scheme, e.g. https://photos.example.com).
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
+    *_env_list("CSRF_TRUSTED_ORIGINS"),
 ]
-if os.environ.get("CSRF_TRUSTED_ORIGINS"):
-    CSRF_TRUSTED_ORIGINS.append(os.environ.get("CSRF_TRUSTED_ORIGINS"))
 
 # The whole log configuration lives in librephotos/logging_bootstrap.py so the
 # non-Django processes can share it. LOG_LEVEL and LOG_TO_CONSOLE are read from
@@ -517,7 +563,7 @@ LOGGING = build_logging_config(
 CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
-DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
+DEFAULT_FAVORITE_MIN_RATING = _env_int("DEFAULT_FAVORITE_MIN_RATING", 4)
 # 127.0.0.1, not localhost: see api/sidecars.py.
 IMAGE_SIMILARITY_SERVER = "http://127.0.0.1:8002"
 

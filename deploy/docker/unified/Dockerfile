@@ -48,6 +48,12 @@ COPY apps/backend/ /code/
 COPY --from=frontend-builder /frontend/dist /code/frontend_build/
 RUN mkdir -p /code/static
 
+# The commit this image was built from, reported by /api/imagetag/ (the image
+# ships without .git). Declared last so a new commit does not invalidate the
+# dependency layers above.
+ARG GIT_HASH
+ENV GIT_HASH=${GIT_HASH}
+
 # The no-proxy settings module ships with the backend source above, as
 # librephotos/settings/production_noproxy.py.
 COPY deploy/docker/unified/entrypoint.sh /entrypoint.sh

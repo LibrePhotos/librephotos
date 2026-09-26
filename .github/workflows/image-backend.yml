@@ -23,6 +23,9 @@ jobs:
       image: reallibrephotos/librephotos
       dockerfile: deploy/docker/backend/Dockerfile
       base-image: reallibrephotos/librephotos-base
+      build-args: |
+        IMAGE_TAG=dev
+        GIT_HASH=${{ github.sha }}
     secrets:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
@@ -35,6 +38,9 @@ jobs:
       dockerfile: deploy/docker/backend/Dockerfile
       base-image: reallibrephotos/librephotos-base
       release-tag: ${{ github.event.release.tag_name }}
+      build-args: |
+        IMAGE_TAG=${{ github.event.release.tag_name }}
+        GIT_HASH=${{ github.sha }}
     secrets:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

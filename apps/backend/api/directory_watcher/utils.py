@@ -59,25 +59,29 @@ def should_skip(path, skip_list=None):
     return any(pattern in path for pattern in skip_list)
 
 
-if os.name == "Windows":
+# os.name is "nt" on Windows. The old check compared it with "Windows", which is
+# never true, so the hidden-attribute branch below was dead code.
+_IS_WINDOWS = os.name == "nt"
 
-    def is_hidden(path):
-        """Check if a file is hidden (Windows version)."""
-        name = os.path.basename(os.path.abspath(path))
-        return name.startswith(".") or _has_hidden_attribute(path)
 
-    def _has_hidden_attribute(path):
-        """Check if file has Windows hidden attribute."""
-        try:
-            return bool(os.stat(path).st_file_attributes & stat.FILE_ATTRIBUTE_HIDDEN)
-        except Exception:
-            return False
+def is_hidden(path):
+    """Check if a file is hidden.
 
-else:
+    A dot-file is hidden everywhere; on Windows so is anything carrying the
+    hidden attribute (desktop.ini, Thumbs.db, files hidden in Explorer).
+    """
+    if os.path.basename(os.path.abspath(path)).startswith("."):
+        return True
+    return _IS_WINDOWS and _has_hidden_attribute(path)
 
-    def is_hidden(path):
-        """Check if a file is hidden (Unix version - starts with dot)."""
-        return os.path.basename(path).startswith(".")
+
+def _has_hidden_attribute(path):
+    """Check if file has the Windows hidden attribute."""
+    try:
+        attributes = os.stat(path).st_file_attributes
+    except (OSError, AttributeError):
+        return False
+    return bool(attributes & stat.FILE_ATTRIBUTE_HIDDEN)
 
 
 def walk_directory(directory, callback):
