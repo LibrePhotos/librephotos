@@ -1,7 +1,7 @@
 """How much of the machine an ffmpeg conversion is allowed to take.
 
 Two conversions run in this codebase and they want opposite things. The live
-one (:class:`api.views.views.VideoTranscoder`) has somebody watching it, so it
+one (:class:`api.views.media.VideoTranscoder`) has somebody watching it, so it
 must stay ahead of playback and must not be niced behind anything. The cached
 one (:mod:`api.transcode_cache`) has nobody waiting, so it stands back. What
 they share is that ffmpeg, left alone, helps itself to the whole host: no

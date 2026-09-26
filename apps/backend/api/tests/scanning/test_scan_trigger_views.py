@@ -2,9 +2,9 @@
 
 Pins the CURRENT behaviour of:
 
-* ``api.views.views.ScanPhotosView._scan_photos`` (reached via both GET and
+* ``api.views.scan_triggers.ScanPhotosView._scan_photos`` (reached via both GET and
   POST on ``/api/scanphotos``)
-* ``api.views.views.SelectiveScanPhotosView.get``
+* ``api.views.scan_triggers.SelectiveScanPhotosView.get``
 
 The two bodies are near-identical copies; the only difference is the
 directory handed to ``scan_photos``: the plain view passes
@@ -13,7 +13,7 @@ directory handed to ``scan_photos``: the plain view passes
 
 Nothing heavy runs: ``Chain``, ``scan_photos``, ``do_all_models_exist`` and
 ``download_models`` are all patched at their import site in
-``api.views.views``, so no django-q broker, no filesystem walking and no model
+``api.views.scan_triggers``, so no django-q broker, no filesystem walking and no model
 downloads happen.
 """
 
@@ -26,9 +26,9 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from api.tests.utils import create_test_user
-from api.views.views import ScanPhotosView, SelectiveScanPhotosView
+from api.views.scan_triggers import ScanPhotosView, SelectiveScanPhotosView
 
-MODULE = "api.views.views"
+MODULE = "api.views.scan_triggers"
 
 NO_DIR_MESSAGE = (
     "Scan failed: No scan directory configured. Please contact your "

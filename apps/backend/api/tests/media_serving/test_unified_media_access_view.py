@@ -1,6 +1,6 @@
 """Characterization tests for the media-serving views (unit 38).
 
-These pin the *current* behaviour of ``api.views.views.UnifiedMediaAccessView.get``,
+These pin the *current* behaviour of ``api.views.media.UnifiedMediaAccessView.get``,
 the big dispatcher that routes ``/media/<path>/<fname>`` to zip, avatar,
 embedded-media, public-album and photo/thumbnail handling, in both proxy
 (``X-Accel-Redirect``) and direct-serving modes.
@@ -18,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.models import AlbumUser, File
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import ONE_PIXEL_PNG, create_test_photo, create_test_user
-from api.views.views import UnifiedMediaAccessView
+from api.views.media import UnifiedMediaAccessView
 
 factory = APIRequestFactory()
 
@@ -535,8 +535,8 @@ class UnifiedTranscodeBranchTest(TestCase):
 
         with (
             mock.patch("api.transcode_cache.cached_path", return_value=None),
-            mock.patch("api.views.views.VideoTranscoder") as transcoder,
-            mock.patch("api.views.views.gen", return_value=iter([b"abc"])),
+            mock.patch("api.views.media.VideoTranscoder") as transcoder,
+            mock.patch("api.views.media.gen", return_value=iter([b"abc"])),
             mock.patch("api.transcode_cache.ensure_cached") as ensure_cached,
         ):
             response = _unified("photos", self.video.image_hash, user=self.owner)

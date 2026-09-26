@@ -11,7 +11,7 @@ from api.models import AlbumAuto, Person, Photo
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import StandardResultsSetPagination
-from api.views.views import start_job
+from api.views.scan_triggers import start_job
 
 
 # TODO: This is a fetches with too many queries. We need to optimize this.

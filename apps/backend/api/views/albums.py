@@ -34,6 +34,7 @@ from api.serializers.album_thing import (
     GroupedThingPhotosSerializer,
 )
 from api.serializers.album_user import (
+    AlbumUserEditSerializer,
     AlbumUserListSerializer,
     AlbumUserPublicSerializer,
     AlbumUserSerializer,
@@ -718,3 +719,27 @@ class AlbumDateListViewSet(ListViewSet):
     def list(self, *args, **kwargs):
         serializer = IncompleteAlbumDateSerializer(self.get_queryset(), many=True)
         return Response({"results": serializer.data})
+
+
+class AlbumUserEditViewSet(viewsets.ModelViewSet):
+    serializer_class = AlbumUserEditSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def retrieve(self, *args, **kwargs):
+        return super().retrieve(*args, **kwargs)
+
+    def list(self, *args, **kwargs):
+        return super().list(*args, **kwargs)
+
+    def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return AlbumUser.objects.none()
+        return AlbumUser.objects.filter(owner=self.request.user).order_by("title")
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            self.permission_classes = (IsAuthenticated,)
+        else:
+            self.permission_classes = (IsAuthenticated,)
+
+        return super().get_permissions()
