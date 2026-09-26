@@ -68,19 +68,22 @@ NEW_PICTURE = "new_picture"  # everything derived from the old one goes
 UNCOMPARABLE = "uncomparable"  # rebuild what is cheap, keep what was labelled
 
 
-def _rendered_perceptual_hash(path: str, local_orientation: int) -> str | None:
+def _rendered_perceptual_hash(
+    path: str, local_orientation: int, legacy: bool = False
+) -> str | None:
     """The perceptual hash of ``path`` as ``_process_photo`` would record it.
 
     ``Photo.perceptual_hash`` is taken from the big thumbnail rather than the
     original, so the candidate has to go through the same resize to be
-    comparable. Returns None when no comparison is possible.
+    comparable. ``legacy`` renders it as older releases did. Returns None when
+    no comparison is possible.
     """
     if is_video(path):
         return None
     try:
         with tempfile.TemporaryDirectory() as tmp:
             rendered = os.path.join(tmp, "candidate.webp")
-            render_big_thumbnail_to(path, rendered, local_orientation)
+            render_big_thumbnail_to(path, rendered, local_orientation, legacy)
             return calculate_perceptual_hash(rendered)
     except Exception:
         util.logger.exception(f"could not render {path} to compare it with the index")
@@ -110,9 +113,16 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
     if not stored:
         return UNCOMPARABLE
     candidate = _rendered_perceptual_hash(path, photo.local_orientation)
-    if candidate is None:
+    if candidate == stored:
+        return SAME_PICTURE
+    # The photo may have been indexed before thumbnails were rendered the way
+    # they are now, and a hash taken from that render flips a few bits.
+    legacy = _rendered_perceptual_hash(path, photo.local_orientation, legacy=True)
+    if legacy == stored:
+        return SAME_PICTURE
+    if candidate is None or legacy is None:
         return UNCOMPARABLE
-    return SAME_PICTURE if candidate == stored else NEW_PICTURE
+    return NEW_PICTURE
 
 
 def _photo_to_compare(affected, user, old_hash) -> Photo | None:
@@ -352,7 +362,7 @@ def create_file_record(user, path) -> File | None:
     reindex_replaced_file(user, path, hash_value)
 
     # Create the File record (File.create handles race conditions via unique path constraint)
-    file = File.create(path, user)
+    file = File.create(path, user, hash_value)
     return file
 
 

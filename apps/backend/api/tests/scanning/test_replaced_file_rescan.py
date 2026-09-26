@@ -482,3 +482,64 @@ class UncomparableContentTest(ReplacedFileTestCase):
             calculate_hash_from_thumbnail(self.path),
             calculate_hash_from_thumbnail(self._thumbnail_path(image_hash)),
         )
+
+
+class PictureVerdictAcrossRenderVersionsTest(ReplacedFileTestCase):
+    """A photo indexed by an older release carries the hash of that release's
+    render. Its bytes changing must not read as a new picture only because the
+    thumbnails are rendered differently now (embedded RAW previews, WebP
+    effort 2), or the photo would lose its faces to a metadata write."""
+
+    def _verdict(self, current, legacy):
+        from api.directory_watcher import file_handlers
+
+        photo = MagicMock(perceptual_hash="stored", local_orientation=1)
+        renders = []
+
+        def render(path, local_orientation, legacy=False):
+            renders.append(legacy)
+            return legacy_hash if legacy else current
+
+        legacy_hash = legacy
+        with patch.object(
+            file_handlers, "_rendered_perceptual_hash", side_effect=render
+        ):
+            return file_handlers._picture_verdict(photo, self.path), renders
+
+    def test_current_render_matching_needs_no_legacy_render(self):
+        from api.directory_watcher.file_handlers import SAME_PICTURE
+
+        self.assertEqual(self._verdict("stored", "other"), (SAME_PICTURE, [False]))
+
+    def test_legacy_render_matching_is_the_same_picture(self):
+        from api.directory_watcher.file_handlers import SAME_PICTURE
+
+        self.assertEqual(
+            self._verdict("changed", "stored"), (SAME_PICTURE, [False, True])
+        )
+
+    def test_neither_render_matching_is_a_new_picture(self):
+        from api.directory_watcher.file_handlers import NEW_PICTURE
+
+        self.assertEqual(self._verdict("a", "b")[0], NEW_PICTURE)
+
+    def test_a_render_that_failed_cannot_decide(self):
+        # e.g. the RAW service is down for the legacy render
+        from api.directory_watcher.file_handlers import UNCOMPARABLE
+
+        self.assertEqual(self._verdict("changed", None)[0], UNCOMPARABLE)
+        self.assertEqual(self._verdict(None, "changed")[0], UNCOMPARABLE)
+
+    def test_legacy_render_of_a_png_is_libwebps_default_effort(self):
+        from api.directory_watcher.file_handlers import _rendered_perceptual_hash
+        from api.perceptual_hash import calculate_perceptual_hash
+
+        _write_image(self.path, 7, size=(1600, 1200))
+        legacy_file = os.path.join(self.tmpdir, "legacy.webp")
+        image = pyvips.Image.thumbnail(self.path, 10000, height=1080, size="down")
+        image.write_to_file(legacy_file, Q=95)
+
+        self.assertEqual(
+            _rendered_perceptual_hash(self.path, 1, legacy=True),
+            calculate_perceptual_hash(legacy_file),
+        )

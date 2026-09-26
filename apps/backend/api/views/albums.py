@@ -116,7 +116,13 @@ class PersonViewSet(viewsets.ModelViewSet):
         # People without an explicit cover fall back to their first face.
         # Resolving that in the serializer costs eight queries per person, so
         # the values are pulled in with the page instead (issue #618).
-        first_face = Face.objects.filter(person=OuterRef("pk")).order_by("id")
+        # Scoped to the requester's own photos, following the owned_by /
+        # visible_to convention (#2031). `cluster_owner` scopes the person, not
+        # its faces, so without this a face attached from another user's photo
+        # would put that photo's image hash in this user's people list (#2047).
+        first_face = Face.objects.filter(
+            person=OuterRef("pk"), photo__owner=self.request.user
+        ).order_by("id")
         qs = (
             Person.objects.filter(
                 Q(kind=Person.KIND_USER) & Q(cluster_owner=self.request.user)
