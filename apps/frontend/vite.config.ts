@@ -1,6 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
 export default defineConfig(({ mode }) => {
@@ -41,6 +41,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: "jsdom",
       setupFiles: "./src/setupTests.ts",
+      // e2e/ is the Playwright suite, run by its own runner against a live stack.
+      exclude: [...configDefaults.exclude, "e2e/**"],
       css: true,
       reporters: ["verbose"],
       coverage: {

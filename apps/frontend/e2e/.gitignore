@@ -1,3 +1,4 @@
 node_modules/
-test/screenshots/
-test/support/i18n.json
+playwright-report/
+test-results/
+.auth/
