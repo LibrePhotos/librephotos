@@ -116,7 +116,7 @@ Frontend against that backend: `cd apps/frontend`, copy `.env.development.exampl
 - `views/` - API endpoints using Django REST Framework
 - `serializers/` - JSON serialization for models
 - `management/commands/` - CLI commands (`python manage.py <cmd>`)
-- `migrations/` - Database migrations
+- `migrations/` - Database migrations. 0001-0100 are squashed into `0001_squashed_0100` (keep its `replaces`; depend on it, not on the old names); `api.checks.check_squashed_migration_history` stops `migrate` on pre-2026w10 databases
 - `tests/` - Test suite
 - `geocode/` - Reverse geocoding functionality
 - `feature/` - Feature extraction utilities
