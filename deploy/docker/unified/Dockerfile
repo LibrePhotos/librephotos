@@ -27,8 +27,8 @@ ENV IMAGE_TAG ${IMAGE_TAG}
 
 WORKDIR /code
 
-# Install backend
-COPY apps/backend/ /code/
+# Install backend requirements first, so a source-only change reuses these layers
+COPY apps/backend/requirements*.txt /code/
 RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
 
 # Install additional packages for frontend serving
@@ -41,6 +41,8 @@ RUN if [ "$MLVALIDATION" = 1 ] ; then \
   apt-get update && apt-get install default-jre -y; \
   pip install --break-system-packages -r requirements.mlval.txt; \
   fi
+
+COPY apps/backend/ /code/
 
 # Copy frontend build to Django static directory
 COPY --from=frontend-builder /frontend/dist /code/frontend_build/

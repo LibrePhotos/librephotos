@@ -11,7 +11,8 @@ ENV IMAGE_TAG ${IMAGE_TAG}
 
 WORKDIR /code
 # Build context is the monorepo root; source lives under apps/backend/.
-COPY apps/backend/ /code/
+# Requirements go in first, so a source-only change reuses the install layers.
+COPY apps/backend/requirements*.txt /code/
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt && \
   python - <<'PY'
 from importlib import metadata
@@ -46,12 +47,13 @@ if "CUDAExecutionProvider" not in providers:
     )
 PY
 RUN if [ "$DEBUG" = 1 ] ; then \
-  pip install -r requirements.dev.txt; \
+  pip install --break-system-packages -r requirements.dev.txt; \
   fi
 RUN if [ "$MLVALIDATION" = 1 ] ; then \
   apt-get update && apt-get install default-jre -y; \
   pip install --break-system-packages -r requirements.mlval.txt; \
   fi
+COPY apps/backend/ /code/
 EXPOSE 8001
 
 COPY deploy/docker/backend-gpu/entrypoint.sh /entrypoint.sh
