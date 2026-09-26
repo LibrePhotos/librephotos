@@ -23,8 +23,9 @@ from django.utils import timezone
 
 from api.directory_watcher import scan_jobs
 from api.directory_watcher.scan_jobs import scan_photos
-from api.models import LongRunningJob
-from api.tests.utils import create_test_user
+from api.directory_watcher.utils import update_scan_counter
+from api.models import LongRunningJob, Photo
+from api.tests.utils import create_test_photo, create_test_user
 
 
 class TaskRecorder:
@@ -89,10 +90,13 @@ class ScanPhotosCharacterizationBase(TestCase):
         walk_directory_side_effect=None,
         job_id=None,
         flags=None,
+        finish_work=False,
     ):
         """Run ``scan_photos`` with every external effect recorded/mocked.
 
         ``walk_result`` is the list of paths the walker appends to ``photo_list``.
+        ``finish_work`` then reports every queued unit of work as done, the way
+        the ``handle_file_group`` workers would, so the job reaches its target.
         Returns a dict with the recorder handles used by the assertions.
         """
         walk_result = walk_result or []
@@ -143,6 +147,8 @@ class ScanPhotosCharacterizationBase(TestCase):
                     scan_directory=scan_directory,
                     scan_files=scan_files,
                 )
+                if finish_work:
+                    self.finish_queued_work(job_id)
 
         return {
             "tasks": recorder,
@@ -156,6 +162,14 @@ class ScanPhotosCharacterizationBase(TestCase):
 
     def job(self, job_id=None):
         return LongRunningJob.objects.get(job_id=job_id or self.job_id)
+
+    def finish_queued_work(self, job_id=None, units=None):
+        """Report ``units`` (default: all remaining) queued items as done."""
+        job = self.job(job_id)
+        if units is None:
+            units = job.progress_target - job.progress_current
+        for _ in range(units):
+            update_scan_counter(job.job_id)
 
 
 class WalkerSelectionTest(ScanPhotosCharacterizationBase):
@@ -351,16 +365,20 @@ class LastScanBaselineTest(ScanPhotosCharacterizationBase):
 
 class FollowUpTasksTest(ScanPhotosCharacterizationBase):
     def test_scan_missing_photos_queued_for_default_directory_scan(self):
-        res = self.run_scan(walk_result=["/p/a.jpg"])
+        res = self.run_scan(walk_result=["/p/a.jpg"], finish_work=True)
         self.assertEqual(len(res["tasks"].find(scan_jobs.scan_missing_photos)), 1)
 
     def test_scan_missing_photos_skipped_for_custom_directory(self):
         other = os.path.join(self.media_root.name, "other")
-        res = self.run_scan(walk_result=["/p/a.jpg"], scan_directory=other)
+        res = self.run_scan(
+            walk_result=["/p/a.jpg"], scan_directory=other, finish_work=True
+        )
         self.assertEqual(res["tasks"].find(scan_jobs.scan_missing_photos), [])
 
     def test_scan_missing_photos_skipped_when_scanning_specific_files(self):
-        res = self.run_scan(walk_result=["/p/a.jpg"], scan_files=["/p/a.jpg"])
+        res = self.run_scan(
+            walk_result=["/p/a.jpg"], scan_files=["/p/a.jpg"], finish_work=True
+        )
         self.assertEqual(res["tasks"].find(scan_jobs.scan_missing_photos), [])
 
     def test_full_scan_always_queues_scan_missing_photos(self):
@@ -370,6 +388,7 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
             scan_directory=other,
             scan_files=["/p/a.jpg"],
             full_scan=True,
+            finish_work=True,
         )
         self.assertEqual(len(res["tasks"].find(scan_jobs.scan_missing_photos)), 1)
 
@@ -377,10 +396,10 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         res = self.run_scan(walk_result=[])
         repair = res["tasks"].find(scan_jobs.repair_ungrouped_file_variants)
         self.assertEqual(len(repair), 1)
-        self.assertIs(repair[0][1][0], self.user)
+        self.assertEqual(repair[0][1][0], self.user)
 
     def test_feature_flags_off_skip_optional_jobs(self):
-        res = self.run_scan(walk_result=["/p/a.jpg"])
+        res = self.run_scan(walk_result=["/p/a.jpg"], finish_work=True)
         self.assertEqual(res["tasks"].find(scan_jobs.generate_tags), [])
         self.assertEqual(res["tasks"].find(scan_jobs.add_geolocation), [])
         chain_funcs = [entry[0] for entry in res["chain"].appended]
@@ -391,6 +410,7 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         res = self.run_scan(
             walk_result=["/p/a.jpg"],
             full_scan=True,
+            finish_work=True,
             flags={
                 "FEATURE_SCENE_CLASSIFICATION": True,
                 "FEATURE_REVERSE_GEOCODING": True,
@@ -402,7 +422,7 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         self.assertEqual(len(tags), 1)
         self.assertEqual(len(geo), 1)
         # (user, job_uuid, full_scan)
-        self.assertIs(tags[0][1][0], self.user)
+        self.assertEqual(tags[0][1][0], self.user)
         self.assertTrue(tags[0][1][2])
         chain_funcs = [entry[0] for entry in res["chain"].appended]
         self.assertEqual(
@@ -417,6 +437,78 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
             [entry[0] for entry in res["chain"].appended],
             [scan_jobs.batch_calculate_clip_embedding],
         )
+
+    # ---- follow-ups wait for the scan's own work ----------------------
+
+    def _followups(self, res):
+        return res["tasks"].find(scan_jobs.scan_missing_photos) + res["tasks"].find(
+            scan_jobs.repair_ungrouped_file_variants
+        )
+
+    def test_followups_are_not_queued_while_scan_work_is_pending(self):
+        """Follow-up jobs snapshot their work up front, so they must start
+        only after every photo of this scan has been ingested."""
+        res = self.run_scan(walk_result=["/p/a.jpg", "/p/b.jpg"])
+        self.assertEqual(len(res["tasks"].find(scan_jobs.handle_file_group)), 2)
+        self.assertEqual(self._followups(res), [])
+        self.assertIsNone(res["chain"])
+
+    def test_followups_are_queued_when_the_last_group_completes(self):
+        recorder = TaskRecorder(self.tasks)
+        self.run_scan(walk_result=["/p/a.jpg", "/p/b.jpg"])
+        with (
+            override_settings(
+                FEATURE_SCENE_CLASSIFICATION=False,
+                FEATURE_REVERSE_GEOCODING=False,
+                FEATURE_FACE_DETECTION=False,
+            ),
+            patch.object(scan_jobs, "AsyncTask", recorder),
+            patch.object(scan_jobs, "Chain", ChainRecorder),
+        ):
+            self.finish_queued_work(units=1)
+            self.assertEqual(recorder.find(scan_jobs.scan_missing_photos), [])
+            self.assertIsNone(ChainRecorder.last)
+
+            self.finish_queued_work(units=1)
+            self.assertEqual(len(recorder.find(scan_jobs.scan_missing_photos)), 1)
+            self.assertEqual(
+                len(recorder.find(scan_jobs.repair_ungrouped_file_variants)), 1
+            )
+            self.assertTrue(ChainRecorder.last.ran)
+
+            # A straggler past the target must not queue them a second time.
+            update_scan_counter(self.job_id)
+            self.assertEqual(len(recorder.find(scan_jobs.scan_missing_photos)), 1)
+
+        self.assertTrue(self.job().finished)
+        self.assertNotIn("followups", self.job().result or {})
+
+    def test_cancelled_scan_queues_no_followups(self):
+        res = self.run_scan(walk_result=["/p/a.jpg"])
+        self.job().cancel()
+        with patch.object(scan_jobs, "AsyncTask", TaskRecorder(self.tasks)):
+            self.finish_queued_work(units=1)
+        self.assertEqual(self._followups(res), [])
+
+    def test_added_photo_count_is_scoped_to_the_scanning_user(self):
+        other_user = create_test_user()
+        self.run_scan(walk_result=["/p/a.jpg", "/p/b.jpg"])
+        # While the scan runs, this user gains two photos and another user's
+        # concurrent scan adds three.
+        for _ in range(2):
+            create_test_photo(owner=self.user)
+        for _ in range(3):
+            create_test_photo(owner=other_user)
+        self.assertEqual(Photo.objects.count(), 5)
+
+        with (
+            patch.object(scan_jobs, "AsyncTask", TaskRecorder(self.tasks)),
+            patch.object(scan_jobs, "Chain", ChainRecorder),
+            self.assertLogs("ownphotos", level="INFO") as logs,
+        ):
+            self.finish_queued_work()
+
+        self.assertIn("Added 2 photos", "\n".join(logs.output))
 
 
 class FailureHandlingTest(ScanPhotosCharacterizationBase):

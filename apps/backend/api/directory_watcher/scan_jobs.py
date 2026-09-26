@@ -15,8 +15,7 @@ import pytz
 from django import db
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import F, Q
-from django.utils import timezone
+from django.db.models import Q
 from django_q.tasks import AsyncTask, Chain
 
 from api import util
@@ -34,9 +33,11 @@ from api.directory_watcher.processing_jobs import (
 )
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.utils import (
+    finish_job_if_complete,
     walk_directory,
     walk_files,
     is_job_cancelled,
+    update_job_result,
     update_scan_counter,
 )
 
@@ -357,11 +358,58 @@ def _queue_scan_work(
     ).run()
 
 
-def _queue_followup_jobs(user, full_scan, scan_directory, scan_files):
-    """Queue the jobs that run once the scan itself has been dispatched."""
-    # if the scan type is not the default user scan directory, or if it is specified as only scanning
-    # specific files, there is no need to rescan fully for missing photos.
-    if full_scan or (scan_directory == user.scan_directory and not scan_files):
+# Key in the scan job's ``result`` holding what its follow-ups need. The scan
+# job only finishes in whichever worker completes its last file group, long
+# after ``scan_photos`` has returned, so this is how that worker learns them.
+_FOLLOWUPS_KEY = "followups"
+
+
+def _remember_followups(lrj, user, full_scan, scan_directory, scan_files):
+    """Store what the follow-up jobs need; call before any scan work is queued."""
+    result = dict(lrj.result) if isinstance(lrj.result, dict) else {}
+    result[_FOLLOWUPS_KEY] = {
+        "full_scan": bool(full_scan),
+        # if the scan type is not the default user scan directory, or if it is
+        # specified as only scanning specific files, there is no need to rescan
+        # fully for missing photos.
+        "scan_missing_photos": bool(
+            full_scan or (scan_directory == user.scan_directory and not scan_files)
+        ),
+        "photo_count_before": Photo.objects.owned_by(user).count(),
+    }
+    lrj.set_result(result)
+
+
+def queue_scan_followups(job_id):
+    """Queue a finished scan's follow-up jobs.
+
+    Called once, by whoever finished the scan job (see
+    ``utils.finish_job_if_complete``): the follow-ups work out what to do when
+    they start, so starting them while photos were still being ingested left
+    those photos for the next scan.
+    """
+    options = {}
+
+    def take_options(result, job):
+        options.clear()
+        options.update(result.pop(_FOLLOWUPS_KEY, None) or {})
+
+    job = update_job_result(job_id, take_options)
+    if job is None or not options:
+        return
+    user = job.started_by
+
+    added_photo_count = (
+        Photo.objects.owned_by(user).count() - options["photo_count_before"]
+    )
+    util.logger.info(f"Added {added_photo_count} photos")
+
+    _queue_followup_jobs(user, options["full_scan"], options["scan_missing_photos"])
+
+
+def _queue_followup_jobs(user, full_scan, scan_missing):
+    """Queue the jobs that run once the scan's own work is done."""
+    if scan_missing:
         AsyncTask(scan_missing_photos, user, uuid.uuid4()).run()
 
     # Run repair job to fix any previously ungrouped file variants
@@ -417,7 +465,6 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         job_type=LongRunningJob.JOB_SCAN_PHOTOS,
         job_id=job_id,
     )
-    photo_count_before = Photo.objects.count()
 
     try:
         if scan_directory == "":
@@ -449,6 +496,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         # Progress target is number of groups (not individual files)
         # Each group = one Photo with potentially multiple file variants
         total_groups = len(groups_to_process) + len(metadata_paths)
+        _remember_followups(lrj, user, full_scan, scan_directory, scan_files)
         lrj.update_progress(current=0, target=total_groups)
         db.connections.close_all()
 
@@ -465,25 +513,20 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
 
         util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
 
-        # If no files were queued for processing (empty directory or all files already processed),
-        # mark the job as finished immediately since progress_current will equal progress_target (both 0)
-        LongRunningJob.objects.filter(
-            job_id=job_id, progress_current=F("progress_target")
-        ).update(finished=True, finished_at=timezone.now())
+        # If no files were queued for processing (empty directory or all files
+        # already processed) no worker will ever finish the job, so finish it
+        # here; that also queues the follow-up jobs. Otherwise the worker that
+        # completes the last queued item does both.
+        finish_job_if_complete(job_id)
 
         util.logger.info("Finished updating album things")
 
         # Check for photos with missing aspect ratios but existing thumbnails
         backfill_missing_aspect_ratios(user)
 
-        _queue_followup_jobs(user, full_scan, scan_directory, scan_files)
-
     except Exception as e:
         util.logger.exception("An error occurred: ")
         lrj.fail(error=e)
-
-    added_photo_count = Photo.objects.count() - photo_count_before
-    util.logger.info(f"Added {added_photo_count} photos")
 
 
 def scan_missing_photos(user, job_id: UUID):
