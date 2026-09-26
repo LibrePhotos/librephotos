@@ -34,17 +34,23 @@ def _exceeds_failure_threshold(error_count: int, target: int) -> bool:
     return error_count > threshold
 
 
-def should_skip(path):
-    """Check if a path should be skipped based on configured patterns."""
-    if not site_config.SKIP_PATTERNS:
-        return False
-
+def _skip_patterns():
+    """Parse the ``SKIP_PATTERNS`` site setting (one DB read)."""
     skip_patterns = site_config.SKIP_PATTERNS
-    skip_list = skip_patterns.split(",")
-    skip_list = map(str.strip, skip_list)
+    if not skip_patterns:
+        return []
+    return [pattern.strip() for pattern in skip_patterns.split(",")]
 
-    res = [ele for ele in skip_list if (ele in path)]
-    return bool(res)
+
+def should_skip(path, skip_list=None):
+    """Check if a path should be skipped based on configured patterns.
+
+    ``skip_list`` is the parsed setting; a directory walk passes it in so the
+    setting is read once per walk instead of once per entry.
+    """
+    if skip_list is None:
+        skip_list = _skip_patterns()
+    return any(pattern in path for pattern in skip_list)
 
 
 if os.name == "Windows":
@@ -76,24 +82,49 @@ def walk_directory(directory, callback):
     - or contain - a link to a mounted share. An entry that is neither a real
     directory nor a real file (a dangling link, a socket, a fifo) is skipped:
     handing it to the photo pipeline only produces an unopenable path that
-    fails the whole scan job.
+    fails the whole scan job. A link back to a directory that is already being
+    walked (a symlink loop) is skipped too, or the walk would never end.
 
     Args:
         directory: Directory to scan
         callback: List to append file paths to
     """
-    for file in os.scandir(directory):
-        fpath = os.path.join(directory, file)
-        if is_hidden(fpath) or should_skip(fpath):
-            continue
-        if os.path.isdir(fpath):
-            walk_directory(fpath, callback)
-        elif os.path.isfile(fpath):
-            callback.append(fpath)
-        else:
-            util.logger.warning(
-                f"skipping {fpath}: neither a file nor a directory (broken symlink?)"
-            )
+    _walk_directory(directory, callback, _skip_patterns(), set())
+
+
+def _directory_identity(path):
+    """Identify a directory by what it resolves to, not by the path taken to it."""
+    st = os.stat(path)
+    if st.st_ino:
+        return (st.st_dev, st.st_ino)
+    # Some network filesystems report no inode numbers.
+    return os.path.normcase(os.path.realpath(path))
+
+
+def _walk_directory(directory, callback, skip_list, ancestors):
+    identity = _directory_identity(directory)
+    if identity in ancestors:
+        util.logger.warning(
+            f"skipping {directory}: symlink loop back to a directory already "
+            "being scanned"
+        )
+        return
+    ancestors.add(identity)
+    try:
+        for file in os.scandir(directory):
+            fpath = os.path.join(directory, file)
+            if is_hidden(fpath) or should_skip(fpath, skip_list):
+                continue
+            if os.path.isdir(fpath):
+                _walk_directory(fpath, callback, skip_list, ancestors)
+            elif os.path.isfile(fpath):
+                callback.append(fpath)
+            else:
+                util.logger.warning(
+                    f"skipping {fpath}: neither a file nor a directory (broken symlink?)"
+                )
+    finally:
+        ancestors.discard(identity)
 
 
 def walk_files(scan_files, callback):
