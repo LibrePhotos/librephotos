@@ -144,8 +144,6 @@ class Photo(models.Model):
     objects = PhotoQuerySet.as_manager()
     visible = VisiblePhotoManager()
 
-    _loaded_values = {}
-
     class Meta:
         indexes = [
             # Keyset pagination for the delta-sync photo feed (doc 04 §3):
@@ -174,14 +172,17 @@ class Photo(models.Model):
         """Set clip embeddings, automatically handling storage format"""
         self.clip_embeddings = embeddings if embeddings else None
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The row as loaded from the database, which save() diffs against to
+        # find the fields to write to disk. Per instance: from_db() fills it,
+        # and an instance built in memory has nothing to diff against.
+        self._loaded_values = {}
+
     @classmethod
     def from_db(cls, db, field_names, values):
         instance = super().from_db(db, field_names, values)
-
-        # save original values, when model is loaded from database,
-        # in a separate attribute on the model
         instance._loaded_values = dict(zip(field_names, values))
-
         return instance
 
     def save(
