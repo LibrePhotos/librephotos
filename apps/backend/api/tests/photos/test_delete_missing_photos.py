@@ -1,14 +1,15 @@
 import uuid
 from unittest.mock import patch
 
-from django.db import connection
-from django.test import TestCase
+from django.core.files.base import ContentFile
+from django.db import connection, transaction
+from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from api import autoalbum
 from api.autoalbum import delete_missing_photos
-from api.models import AlbumDate, AlbumPlace, File, LongRunningJob, Photo
+from api.models import AlbumDate, AlbumPlace, File, LongRunningJob, Photo, Thumbnail
 from api.models.album_thing import AlbumThing
 from api.models.tag import Tag
 from api.tests.utils import create_test_photo, create_test_user
@@ -42,6 +43,112 @@ class DeleteMissingPhotosAsyncTaskTest(TestCase):
         self.assertEqual(args[1], self.user)
         self.assertEqual(str(args[2]), data["job_id"])
         async_task_cls.return_value.run.assert_called_once_with()
+
+
+_THUMBNAIL_FIELDS = ("thumbnail_big", "square_thumbnail", "square_thumbnail_small")
+
+
+class DeleteMissingPhotosThumbnailCleanupTest(TransactionTestCase):
+    """Guards the Thumbnail post_delete receiver that removes orphaned files.
+
+    TransactionTestCase so on_commit callbacks fire when the delete's own
+    transaction commits, as they do in the job, instead of never (TestCase).
+    Thumbnail files are named by image_hash and can be shared, so only files no
+    remaining row references may go, and only once the delete has committed.
+    """
+
+    def _write_thumbnail_files(self, photo):
+        thumbnail = photo.thumbnail
+        paths = []
+        for field_name in _THUMBNAIL_FIELDS:
+            field_file = getattr(thumbnail, field_name)
+            field_file.name = field_file.storage.save(
+                field_file.name, ContentFile(b"thumbnail")
+            )
+            paths.append((field_file.storage, field_file.name))
+            self.addCleanup(field_file.storage.delete, field_file.name)
+        thumbnail.save(update_fields=list(_THUMBNAIL_FIELDS))
+        return paths
+
+    def test_deleting_missing_photo_removes_thumbnail_files(self):
+        user = create_test_user()
+        photo = create_test_photo(owner=user)
+        paths = self._write_thumbnail_files(photo)
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        self.assertFalse(Photo.objects.filter(pk=photo.pk).exists())
+        self.assertFalse(Thumbnail.objects.filter(pk=photo.pk).exists())
+        for storage, path in paths:
+            self.assertFalse(storage.exists(path))
+
+    def test_thumbnail_files_shared_with_another_photo_are_kept(self):
+        user = create_test_user()
+        other_user = create_test_user()
+        photo = create_test_photo(owner=user)
+        paths = self._write_thumbnail_files(photo)
+        # Same image_hash for another user, pointing at the same files.
+        other = create_test_photo(owner=other_user)
+        Photo.objects.filter(pk=other.pk).update(image_hash=photo.image_hash)
+        Thumbnail.objects.filter(pk=other.pk).update(
+            **{name: path for name, (_, path) in zip(_THUMBNAIL_FIELDS, paths)}
+        )
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        self.assertFalse(Photo.objects.filter(pk=photo.pk).exists())
+        self.assertTrue(Thumbnail.objects.filter(pk=other.pk).exists())
+        for storage, path in paths:
+            self.assertTrue(storage.exists(path))
+
+    def test_thumbnail_files_kept_while_photo_with_same_hash_remains(self):
+        # A Photo whose Thumbnail row is not saved yet (mid-scan) still claims
+        # the files through its image_hash.
+        user = create_test_user()
+        photo = create_test_photo(owner=user)
+        paths = self._write_thumbnail_files(photo)
+        other = create_test_photo(owner=create_test_user())
+        Photo.objects.filter(pk=other.pk).update(image_hash=photo.image_hash)
+        Thumbnail.objects.filter(pk=other.pk).delete()
+
+        delete_missing_photos(user, str(uuid.uuid4()))
+
+        for storage, path in paths:
+            self.assertTrue(storage.exists(path))
+
+    def test_rolled_back_delete_keeps_thumbnail_files(self):
+        user = create_test_user()
+        photo = create_test_photo(owner=user)
+        photo_pk = photo.pk  # delete() clears photo.pk even when rolled back
+        paths = self._write_thumbnail_files(photo)
+
+        with self.assertRaises(RuntimeError):
+            with transaction.atomic():
+                photo.delete()
+                raise RuntimeError("roll back")
+
+        self.assertTrue(Thumbnail.objects.filter(pk=photo_pk).exists())
+        for storage, path in paths:
+            self.assertTrue(storage.exists(path))
+
+    def test_storage_error_does_not_fail_the_delete(self):
+        user = create_test_user()
+        photo = create_test_photo(owner=user)
+        paths = self._write_thumbnail_files(photo)
+        job_id = str(uuid.uuid4())
+
+        with patch(
+            "api.models.thumbnail.os.remove",
+            side_effect=[PermissionError("denied"), None, None],
+        ) as remove:
+            delete_missing_photos(user, job_id)
+
+        # Every file was attempted despite the first one failing.
+        self.assertEqual(remove.call_count, len(paths))
+        self.assertFalse(Photo.objects.filter(pk=photo.pk).exists())
+        lrj = LongRunningJob.objects.get(job_id=job_id)
+        self.assertTrue(lrj.finished)
+        self.assertFalse(lrj.failed)
 
 
 class DeleteMissingPhotosCorrectnessTest(TestCase):

@@ -296,6 +296,14 @@ CONSTANCE_CONFIG = {
         "Enable the Nextcloud integration",
         bool,
     ),
+    "AUTO_CREATE_USER_DIRECTORY": (
+        False,
+        "Give each new user their own folder under the data root and set it as"
+        " their scan directory. Needs the admin's own scan directory to be a"
+        " subfolder, not the data root itself, since scan directories of"
+        " different users cannot overlap.",
+        bool,
+    ),
     "SKIP_PATTERNS": (
         os.environ.get("SKIP_PATTERNS", ""),
         "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",
@@ -510,7 +518,8 @@ CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
-IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
+# 127.0.0.1, not localhost: see api/sidecars.py.
+IMAGE_SIMILARITY_SERVER = "http://127.0.0.1:8002"
 
 # Email / SMTP configuration.
 #

@@ -1,4 +1,16 @@
-import { Card, Grid, Group, HoverCard, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import {
+  Box,
+  Card,
+  Grid,
+  Group,
+  HoverCard,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+  UnstyledButton,
+  VisuallyHidden,
+} from "@mantine/core";
 import {
   IconArrowRight as ArrowRight,
   IconChartLine as ChartLine,
@@ -13,6 +25,50 @@ import { Link } from "@tanstack/react-router";
 import { Trans, useTranslation } from "react-i18next";
 import { useFetchCountStatsQuery } from "../api_client/stats/hooks";
 import { COUNT_STATS_DEFAULTS } from "../api_client/stats/types";
+import { i18nResolvedLanguage } from "../i18n";
+import { formatCompactCount, formatCount } from "../util/formatCount";
+
+// Below the `sm` breakpoint large counts are abbreviated (25123 -> "25.1K" in en) and
+// the exact value is shown in a tooltip on hover, tap or keyboard focus. From `sm` up
+// there is room for the full number, so it is shown directly without a tooltip.
+// Screen readers always get the exact value via the visually hidden text.
+// Pass `withTooltip={false}` inside another popover target (e.g. a HoverCard) so the
+// two do not open together.
+function Count({ value, withTooltip = true }: { value: number; withTooltip?: boolean }) {
+  // Subscribe to language changes so the numbers are re-formatted for the new locale.
+  useTranslation();
+  const locale = i18nResolvedLanguage();
+  const full = formatCount(value, locale);
+  const compact = formatCompactCount(value, locale);
+
+  if (compact === full) {
+    return full;
+  }
+
+  const compactWithFullForScreenReaders = (
+    <>
+      <span aria-hidden="true">{compact}</span>
+      <VisuallyHidden>{full}</VisuallyHidden>
+    </>
+  );
+
+  return (
+    <>
+      <Box component="span" visibleFrom="sm">
+        {full}
+      </Box>
+      <Box component="span" hiddenFrom="sm">
+        {withTooltip ? (
+          <Tooltip label={full} events={{ hover: true, focus: true, touch: true }}>
+            <span tabIndex={0}>{compactWithFullForScreenReaders}</span>
+          </Tooltip>
+        ) : (
+          compactWithFullForScreenReaders
+        )}
+      </Box>
+    </>
+  );
+}
 
 export function CountStats() {
   const { t } = useTranslation();
@@ -31,10 +87,10 @@ export function CountStats() {
               </Text>
               <Group gap="xs" align="baseline">
                 <Title order={3} size="h4">
-                  {countStats.num_photos}
+                  <Count value={countStats.num_photos} />
                 </Title>
                 <Text c="dimmed" size="xs">
-                  / {countStats.num_albumdate} {t("days")}
+                  / <Count value={countStats.num_albumdate} /> {t("days")}
                 </Text>
               </Group>
             </div>
@@ -42,7 +98,7 @@ export function CountStats() {
         </Card>
       </Grid.Col>
 
-      {/* People & Faces combined */}
+      {/* People & Faces combined. No count tooltips here: the card is already a HoverCard target. */}
       <Grid.Col span={{ base: 6, sm: 6, md: 3 }}>
         <HoverCard width={200} shadow="md" withinPortal withArrow>
           <HoverCard.Target>
@@ -55,10 +111,10 @@ export function CountStats() {
                   </Text>
                   <Group gap="xs" align="baseline">
                     <Title order={3} size="h4">
-                      {countStats.num_people}
+                      <Count value={countStats.num_people} withTooltip={false} />
                     </Title>
                     <Text c="dimmed" size="xs">
-                      / {countStats.num_faces} {t("faces")}
+                      / <Count value={countStats.num_faces} withTooltip={false} /> {t("faces")}
                     </Text>
                   </Group>
                 </div>
@@ -109,7 +165,7 @@ export function CountStats() {
                 {t("events")}
               </Text>
               <Title order={3} size="h4">
-                {countStats.num_albumauto}
+                <Count value={countStats.num_albumauto} />
               </Title>
             </div>
           </Group>

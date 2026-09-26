@@ -7,6 +7,7 @@ import api.models
 from api import util
 from api.image_captioning import generate_caption
 from api.models.user import User
+from api.sidecars import sidecar_url
 
 
 def tag_thing_type(tagging_model):
@@ -158,25 +159,37 @@ class PhotoCaption(models.Model):
             return False
 
         try:
-            caption = caption.replace("<start>", "").replace("<end>", "").strip()
-
-            if self.captions_json is None:
-                self.captions_json = {}
-            self.captions_json["user_caption"] = caption
-            self.recreate_search_captions()
-
-            if commit:
-                self.save()
-
+            caption = self.apply_user_caption(caption, commit=commit)
             util.logger.info(
                 f"saved captions for image {image_path}. caption: {caption}. captions_json: {self.captions_json}."
             )
-
-            self._sync_hashtag_album_things(caption)
             return True
         except Exception:
             util.logger.exception(f"could not save captions for image {image_path}")
             return False
+
+    def apply_user_caption(self, caption, commit=True):
+        """Set ``user_caption`` and everything that hangs off it.
+
+        The single code path for the lightbox caption, whether the user typed it
+        (``save_user_caption``) or it was imported from the file's description
+        (``PhotoMetadata.extract_exif_data``): either way it is reindexed for
+        search and its #hashtags are synced to hashtag albums. Unlike
+        ``save_user_caption`` it needs no thumbnail and does not swallow
+        errors. Returns the caption as stored.
+        """
+        caption = caption.replace("<start>", "").replace("<end>", "").strip()
+
+        if self.captions_json is None:
+            self.captions_json = {}
+        self.captions_json["user_caption"] = caption
+        self.recreate_search_captions()
+
+        if commit:
+            self.save()
+
+        self._sync_hashtag_album_things(caption)
+        return caption
 
     def _photo_album_things(self, thing_types):
         """AlbumThings of the given types that own this photo, for this owner"""
@@ -267,7 +280,7 @@ class PhotoCaption(models.Model):
                 "tagging_model": tagging_model,
             }
             response = requests.post(
-                "http://localhost:8011/generate-tags", json=json_data, timeout=TAGS
+                sidecar_url(8011, "/generate-tags"), json=json_data, timeout=TAGS
             )
 
             if not response.ok:

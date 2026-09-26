@@ -1,13 +1,15 @@
 import os
+from functools import partial
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+from django.dispatch import receiver
 from PIL import Image
 
 from api.models.photo import Photo
 from api.thumbnails import (
     create_animated_thumbnail,
-    create_thumbnail,
+    create_static_thumbnails,
     create_thumbnail_for_video,
     does_static_thumbnail_exist,
     does_video_thumbnail_exist,
@@ -51,35 +53,27 @@ class Thumbnail(models.Model):
             # Use photo.image_hash for thumbnail paths for frontend compatibility
             photo_hash = self.photo.image_hash
             local_orientation = getattr(self.photo, "local_orientation", 1) or 1
-            if not does_static_thumbnail_exist("thumbnails_big", photo_hash):
-                if not self.photo.video:
-                    create_thumbnail(
+            if not self.photo.video:
+                missing = [
+                    output_path
+                    for output_path in STATIC_THUMBNAIL_DIRS
+                    if not does_static_thumbnail_exist(output_path, photo_hash)
+                ]
+                if missing:
+                    create_static_thumbnails(
                         input_path=self.photo.main_file.path,
-                        output_height=1080,
-                        output_path="thumbnails_big",
                         hash=photo_hash,
-                        file_type=".webp",
+                        output_paths=missing,
                         local_orientation=local_orientation,
                     )
-                else:
-                    create_thumbnail_for_video(
-                        input_path=self.photo.main_file.path,
-                        output_path="thumbnails_big",
-                        hash=photo_hash,
-                        file_type=".webp",
-                    )
-
-            if not self.photo.video and not does_static_thumbnail_exist(
-                "square_thumbnails", photo_hash
-            ):
-                create_thumbnail(
+            elif not does_static_thumbnail_exist("thumbnails_big", photo_hash):
+                create_thumbnail_for_video(
                     input_path=self.photo.main_file.path,
-                    output_height=500,
-                    output_path="square_thumbnails",
+                    output_path="thumbnails_big",
                     hash=photo_hash,
                     file_type=".webp",
-                    local_orientation=local_orientation,
                 )
+
             if self.photo.video and not does_video_thumbnail_exist(
                 "square_thumbnails", photo_hash
             ):
@@ -91,17 +85,6 @@ class Thumbnail(models.Model):
                     file_type=".mp4",
                 )
 
-            if not self.photo.video and not does_static_thumbnail_exist(
-                "square_thumbnails_small", photo_hash
-            ):
-                create_thumbnail(
-                    input_path=self.photo.main_file.path,
-                    output_height=250,
-                    output_path="square_thumbnails_small",
-                    hash=photo_hash,
-                    file_type=".webp",
-                    local_orientation=local_orientation,
-                )
             if self.photo.video and not does_video_thumbnail_exist(
                 "square_thumbnails_small", photo_hash
             ):
@@ -210,3 +193,49 @@ class Thumbnail(models.Model):
             self.save()
         except Exception:
             logger.info(f"Cannot calculate dominant color {self} object")
+
+
+def _delete_orphaned_thumbnail_files(file_names):
+    """Delete the thumbnail files of a deleted Thumbnail nothing else uses.
+
+    Thumbnail files are named by ``image_hash`` and are not owned by a single
+    row: a removed Photo keeps its image_hash, and a re-added file with the
+    same hash reuses the existing files instead of regenerating them. A Photo
+    whose Thumbnail row is not saved yet (mid-scan) picks them up too, so any
+    remaining Photo with the hash keeps the files, as does any Thumbnail row
+    still pointing at one of them.
+    """
+    if Thumbnail.objects.filter(
+        models.Q(thumbnail_big__in=file_names)
+        | models.Q(square_thumbnail__in=file_names)
+        | models.Q(square_thumbnail_small__in=file_names)
+    ).exists():
+        return
+    photo_hashes = {os.path.splitext(os.path.basename(n))[0] for n in file_names}
+    for photo_hash in photo_hashes:
+        if not Photo.objects.filter(image_hash=photo_hash).exists():
+            # Swallows OSError per file, so an unremovable file never fails
+            # the job that deleted the rows.
+            delete_thumbnail_files(photo_hash)
+
+
+@receiver(models.signals.post_delete, sender=Thumbnail)
+def delete_orphaned_thumbnail_files(sender, instance, using, **kwargs):
+    """Remove a deleted Thumbnail's files once nothing else references them.
+
+    Deferred to on_commit so a rolled-back delete keeps its files, and so the
+    "still referenced?" check sees the committed state of the whole delete.
+    """
+    file_names = [
+        field_file.name
+        for field_file in (
+            instance.thumbnail_big,
+            instance.square_thumbnail,
+            instance.square_thumbnail_small,
+        )
+        if field_file and field_file.name
+    ]
+    if file_names:
+        transaction.on_commit(
+            partial(_delete_orphaned_thumbnail_files, file_names), using=using
+        )

@@ -158,15 +158,18 @@ def create_face_locations():
     try:
         image = np.array(Image.open(source).convert("RGB"))
         face_analysis = _get_face_analysis(model_name)
-        face_locations = [
-            _to_face_location(face.bbox) for face in face_analysis.get(image)
-        ]
+        faces = face_analysis.get(image)
+        face_locations = [_to_face_location(face.bbox) for face in faces]
+        # get() has already run recognition on every face it found. Handing
+        # the embeddings back saves a /face-encodings call per face, each of
+        # which ran detection and recognition over the whole picture again.
+        face_encodings = [face.embedding.tolist() for face in faces]
     except Exception as exc:
         log(f"error creating face_locations for {source}: {exc}")
         return {"error": str(exc)}, 500
 
     log(f"created face_location={face_locations}")
-    return {"face_locations": face_locations}, 201
+    return {"face_locations": face_locations, "encodings": face_encodings}, 201
 
 
 @app.route("/health", methods=["GET"])

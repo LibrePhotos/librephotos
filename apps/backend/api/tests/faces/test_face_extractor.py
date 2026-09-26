@@ -10,11 +10,11 @@ from api import face_extractor
 class FaceExtractorTest(TestCase):
     """Test face extraction functionality."""
 
-    @patch("api.face_extractor.get_face_locations")
-    def test_extract_from_face_service_handles_exception(self, mock_get_face_locations):
+    @patch("api.face_extractor.detect_faces")
+    def test_extract_from_face_service_handles_exception(self, mock_detect_faces):
         """Test that extract_from_face_service returns empty list on exception."""
-        # Setup: make get_face_locations raise an exception
-        mock_get_face_locations.side_effect = Exception("Test exception")
+        # Setup: make detect_faces raise an exception
+        mock_detect_faces.side_effect = Exception("Test exception")
 
         # Call the function
         result = face_extractor.extract_from_face_service(
@@ -25,12 +25,14 @@ class FaceExtractorTest(TestCase):
         # Verify that it returns an empty list instead of raising UnboundLocalError
         self.assertEqual(result, [])
 
-    @patch("api.face_extractor.get_face_locations")
-    def test_extract_from_face_service_success(self, mock_get_face_locations):
+    @patch("api.face_extractor.detect_faces")
+    def test_extract_from_face_service_success(self, mock_detect_faces):
         """Test that extract_from_face_service works correctly on success."""
-        # Setup: make get_face_locations return some face locations
-        mock_face_locations = [(10, 20, 30, 40), (50, 60, 70, 80)]
-        mock_get_face_locations.return_value = mock_face_locations
+        # Setup: make detect_faces return some faces, one without an encoding
+        mock_detect_faces.return_value = [
+            ((10, 20, 30, 40), "encoding-1"),
+            ((50, 60, 70, 80), None),
+        ]
 
         # Call the function
         result = face_extractor.extract_from_face_service(
@@ -38,9 +40,13 @@ class FaceExtractorTest(TestCase):
             big_thumbnail_path="/path/to/thumbnail.jpg",
         )
 
-        # Verify that it returns face locations with None appended
-        expected = [(10, 20, 30, 40, None), (50, 60, 70, 80, None)]
+        # Locations, no person name, and the encoding the service computed
+        expected = [
+            (10, 20, 30, 40, None, "encoding-1"),
+            (50, 60, 70, 80, None, None),
+        ]
         self.assertEqual(result, expected)
+        mock_detect_faces.assert_called_once_with("/path/to/thumbnail.jpg")
 
     @patch("api.face_extractor.extract_from_exif")
     @patch("api.face_extractor.extract_from_face_service")

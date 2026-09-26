@@ -16,6 +16,8 @@ export const SiteSettings = z.object({
   ocr_model: z.string().default("none"),
   face_recognition_model: z.string(),
   nextcloud_enabled: z.boolean().default(false),
+  // Older backends do not have the setting; they never create user folders.
+  auto_create_user_directory: z.boolean().default(false),
   email_configured: z.boolean().optional(),
 });
 

@@ -129,4 +129,10 @@ class SSOSocialAccountAdapter(DefaultSocialAccountAdapter):
             user.is_superuser = False
             user.is_staff = False
             user.save(update_fields=["is_superuser", "is_staff"])
+        # Imported here rather than at module level: this module is named by
+        # SOCIALACCOUNT_ADAPTER and is imported while allauth is still setting
+        # up, before the serializer layer is safe to pull in.
+        from api.serializers.user import auto_create_user_directory
+
+        auto_create_user_directory(user)
         return user

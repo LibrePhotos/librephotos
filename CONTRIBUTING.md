@@ -2,6 +2,9 @@
 
 Thanks for your interest in contributing! This is a monorepo — contributions to any of the apps or to the deployment tooling live in this single repository. Open issues and pull requests here, not against the archived `librephotos-frontend`, `librephotos-docker`, `librephotos.docs`, or `librephotos-mobile` repositories.
 
+> **Found a security vulnerability?** Do not open an issue for it — see
+> [SECURITY.md](SECURITY.md) for how to report it privately.
+
 ## Where to start
 
 | You want to work on… | Go to |

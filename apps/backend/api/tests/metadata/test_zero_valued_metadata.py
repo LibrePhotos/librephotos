@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-from api.models.photo_metadata import PhotoMetadata
+from api.models.photo_metadata import EXIF_VALUE_NAMES, PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -59,8 +59,8 @@ class ZeroRatingAndImageNumberTestCase(TestCase):
 
     def test_zero_rating_and_image_number_are_kept(self):
         """rating == 0 and ImageNumber == 0 must be recorded, not dropped."""
-        # 18-element tuple matching the tags requested in extract_exif_data.
-        mock_values = [None] * 18
+        # One slot per tag requested in extract_exif_data.
+        mock_values = [None] * len(EXIF_VALUE_NAMES)
         mock_values[13] = 0  # RATING (explicit 0 stars)
         mock_values[15] = 0  # IMAGE_NUMBER (first frame of a burst)
 

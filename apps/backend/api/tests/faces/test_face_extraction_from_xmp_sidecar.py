@@ -14,7 +14,7 @@ from api.models import File, Person, Photo
 from api.tests.utils import create_test_user
 
 
-EXIF_SERVICE_URL = "http://localhost:8010/"
+EXIF_SERVICE_URL = "http://127.0.0.1:8010/"
 
 
 def _exif_service_available():
@@ -34,7 +34,7 @@ class ReadFacesFromPhotosTest(TestCase):
 
     @unittest.skipUnless(
         _exif_service_available(),
-        "EXIF metadata service at localhost:8010 is not available",
+        "EXIF metadata service at 127.0.0.1:8010 is not available",
     )
     def test_reading_from_photo(self):
         fixtures = os.path.join(

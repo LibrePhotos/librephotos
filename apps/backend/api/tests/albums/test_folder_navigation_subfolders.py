@@ -120,16 +120,60 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(resp.json(), {"error": "Scan directory does not exist"})
 
-    def test_prefix_matching_is_string_based_not_path_based(self):
-        """Known quirk: the guard uses ``str.startswith``, so a sibling
-        directory whose name merely *starts with* the scan directory name is
-        considered inside it."""
+    def test_sibling_sharing_the_scan_directory_prefix_is_refused(self):
+        """The guard compares path components, not strings: a sibling whose
+        name merely *starts with* the scan directory name is outside it."""
         _mkdirs(self.root, "scan", "scan-evil")
         user = create_test_user(scan_directory=os.path.join(self.root, "scan"))
         resp = self.client_for(user).get(
             URL, {"path": os.path.join(self.root, "scan-evil")}
         )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_dot_dot_out_of_the_scan_directory_is_refused(self):
+        _mkdirs(self.root, "scan", "other")
+        scan_dir = os.path.join(self.root, "scan")
+        user = create_test_user(scan_directory=scan_dir)
+        resp = self.client_for(user).get(
+            URL, {"path": os.path.join(scan_dir, "..", "other")}
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_subfolder_and_scan_directory_itself_are_still_allowed(self):
+        _mkdirs(self.root, os.path.join("scan", "inner"))
+        scan_dir = os.path.join(self.root, "scan")
+        user = create_test_user(scan_directory=scan_dir)
+        client = self.client_for(user)
+        self.assertEqual(client.get(URL, {"path": scan_dir}).status_code, 200)
+        self.assertEqual(
+            client.get(URL, {"path": os.path.join(scan_dir, "inner")}).status_code,
+            200,
+        )
+
+    def test_scan_directory_at_the_filesystem_root_admits_its_subfolders(self):
+        # "/" (or a drive root such as D:\ in the Windows standalone build)
+        # already ends in a separator; it must not become "//" and refuse
+        # every child.
+        fs_root = os.path.splitdrive(self.root)[0] + os.sep
+        user = create_test_user(scan_directory=fs_root)
+        resp = self.client_for(user).get(URL, {"path": self.root})
         self.assertEqual(resp.status_code, 200)
+
+    def test_data_root_at_the_filesystem_root_admits_admin_subfolders(self):
+        fs_root = os.path.splitdrive(self.root)[0] + os.sep
+        admin = create_test_user(is_admin=True)
+        with override_settings(DATA_ROOT=fs_root):
+            resp = self.client_for(admin).get(URL, {"path": self.root})
+        self.assertEqual(resp.status_code, 200)
+
+    def test_admin_sibling_sharing_the_data_root_prefix_is_refused(self):
+        sibling = self.root + "-evil"
+        os.makedirs(sibling)
+        self.addCleanup(shutil.rmtree, sibling, ignore_errors=True)
+        admin = create_test_user(is_admin=True)
+        resp = self.client_for(admin).get(URL, {"path": sibling})
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(resp.json(), {"error": "Access denied"})
 
 
 class SubfoldersListingTests(SubfoldersTestBase):
@@ -301,6 +345,100 @@ class SubfoldersPaginationTests(SubfoldersTestBase):
         self.assertFalse(body["pagination"]["has_next"])
         self.assertTrue(body["pagination"]["has_previous"])
         self.assertEqual(body["parent_path"], None)
+
+
+class SubfoldersSiblingPrefixTests(SubfoldersTestBase):
+    """Regression tests for #2065.
+
+    A folder's photo count was built from ``path__startswith=<folder>``, which
+    also matches a sibling whose name merely starts with it, so ``test`` was
+    credited with everything under ``test2`` as well.
+    """
+
+    def test_sibling_with_shared_prefix_is_not_counted(self):
+        admin = create_test_user(is_admin=True)
+        _mkdirs(self.root, "test", "test2", "Karneval")
+        for i in range(3):
+            self.add_photo_in(admin, os.path.join(self.root, "test"), f"a{i}.jpg")
+        for i in range(2):
+            self.add_photo_in(admin, os.path.join(self.root, "test2"), f"b{i}.jpg")
+        self.add_photo_in(admin, os.path.join(self.root, "Karneval"), "c.jpg")
+
+        body = self.client_for(admin).get(URL).json()
+        counts = {f["name"]: f["photo_count"] for f in body["subfolders"]}
+
+        self.assertEqual(counts, {"test": 3, "test2": 2, "Karneval": 1})
+
+    def test_nested_photos_still_counted(self):
+        """The prefix must still match photos in deeper subdirectories."""
+        admin = create_test_user(is_admin=True)
+        _mkdirs(self.root, os.path.join("test", "inner"), "test2")
+        self.add_photo_in(admin, os.path.join(self.root, "test"), "top.jpg")
+        self.add_photo_in(admin, os.path.join(self.root, "test", "inner"), "deep.jpg")
+        self.add_photo_in(admin, os.path.join(self.root, "test2"), "other.jpg")
+
+        body = self.client_for(admin).get(URL).json()
+        counts = {f["name"]: f["photo_count"] for f in body["subfolders"]}
+
+        self.assertEqual(counts["test"], 2)
+        self.assertEqual(counts["test2"], 1)
+
+    def test_prefix_helper_uses_the_separator_of_the_stored_path(self):
+        from api.util import folder_path_prefixes
+
+        # POSIX paths, as a Linux scan records them.
+        self.assertEqual(folder_path_prefixes("/photos/test"), ("/photos/test/",))
+        self.assertEqual(folder_path_prefixes("/photos/test/"), ("/photos/test/",))
+        # A backslash inside a POSIX file name is not a separator.
+        odd = r"/photos/we\ird"
+        self.assertEqual(folder_path_prefixes(odd), (odd + "/",))
+        # Windows paths, as a Windows scan records them. A child can follow
+        # either separator, so both are matched.
+        win = r"C:\photos\test"
+        self.assertEqual(folder_path_prefixes(win), (win + "\\", win + "/"))
+        self.assertEqual(folder_path_prefixes(win + "\\"), (win + "\\", win + "/"))
+        # A root configured with forward slashes, joined by os.path.join (#2066).
+        mixed = r"C:/data\test"
+        self.assertEqual(folder_path_prefixes(mixed), (mixed + "\\", mixed + "/"))
+        self.assertEqual(
+            folder_path_prefixes("C:/data/test"), ("C:/data/test\\", "C:/data/test/")
+        )
+        # UNC shares are Windows paths too.
+        unc = r"\\nas\photos"
+        self.assertEqual(folder_path_prefixes(unc), (unc + "\\", unc + "/"))
+
+    def test_windows_paths_with_mixed_separators_are_counted(self):
+        r"""``C:/data\test`` must count its own files and not ``test2``'s (#2066).
+
+        The rows are written directly, because the endpoint builds its folder
+        paths with the separator of the host running the tests.
+        """
+        from api.models import Photo
+        from api.util import folder_path_q
+
+        admin = create_test_user(is_admin=True)
+        for path in (
+            r"C:/data\test\a.jpg",
+            r"C:/data\test\inner\b.jpg",
+            r"C:/data\test/c.jpg",
+            r"C:/data\test2\d.jpg",
+        ):
+            photo = create_test_photo(owner=admin)
+            photo.files.add(
+                File.objects.create(hash=uuid.uuid4().hex, path=path, type=File.IMAGE)
+            )
+
+        def count(folder):
+            return (
+                Photo.objects.filter(folder_path_q("files__path", folder))
+                .distinct()
+                .count()
+            )
+
+        self.assertEqual(count(r"C:/data\test"), 3)
+        self.assertEqual(count("C:/data\\test\\"), 3)
+        self.assertEqual(count(r"C:/data\test2"), 1)
+        self.assertEqual(count("C:/data"), 4)
 
 
 class SubfoldersErrorHandlingTests(SubfoldersTestBase):

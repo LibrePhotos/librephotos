@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 import numpy as np
 import requests
 from constance import config as site_config
+from api.sidecars import sidecar_url
 
 # The face-recognition sidecar can transiently drop the connection while a scan
 # saturates the box (RemoteDisconnected → requests.ConnectionError), or time out.
@@ -125,9 +126,7 @@ def get_face_encodings(image_path, known_face_locations):
         "face_locations": known_face_locations,
         "model_name": site_config.FACE_RECOGNITION_MODEL,
     }
-    face_encoding = _post_to_face_service(
-        "http://localhost:8005/face-encodings", payload
-    )
+    face_encoding = _post_to_face_service(sidecar_url(8005, "/face-encodings"), payload)
 
     face_encodings_list = face_encoding["encodings"]
     face_encodings = [np.array(enc) for enc in face_encodings_list]
@@ -135,12 +134,26 @@ def get_face_encodings(image_path, known_face_locations):
     return face_encodings
 
 
-def get_face_locations(image_path):
+def detect_faces(image_path):
+    """Every face in the picture: [(location, encoding)], encoding None if not sent.
+
+    The sidecar computes the encodings while detecting; a sidecar from before
+    it sent them leaves them to ``Face.generate_encoding``.
+    """
     payload = {
         "source": image_path,
         "model_name": site_config.FACE_RECOGNITION_MODEL,
     }
-    face_locations = _post_to_face_service(
-        "http://localhost:8005/face-locations", payload
-    )
-    return face_locations["face_locations"]
+    response = _post_to_face_service(sidecar_url(8005, "/face-locations"), payload)
+    locations = response["face_locations"]
+    encodings = response.get("encodings") or []
+    if len(encodings) != len(locations):
+        encodings = [None] * len(locations)
+    return [
+        (location, None if encoding is None else np.array(encoding))
+        for location, encoding in zip(locations, encodings)
+    ]
+
+
+def get_face_locations(image_path):
+    return [location for location, _ in detect_faces(image_path)]

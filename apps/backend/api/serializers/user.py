@@ -75,12 +75,70 @@ def assign_fields(instance, validated_data, fields):
             setattr(instance, field, validated_data.pop(field))
 
 
-def normalize_scan_directory(scan_directory):
+def comparable_path(path):
+    """Spell ``path`` the way the filesystem tells directories apart.
+
+    ``realpath`` folds a symlink onto its target, so a link into another
+    user's library is seen for what it is. ``normcase`` folds case and
+    separators on Windows, where ``C:\\Data\\alice`` and ``c:/data/alice``
+    are the same directory; it is a no-op on POSIX. Neither needs the path to
+    exist: ``realpath`` resolves as much of it as it can.
+    """
+    return os.path.normcase(os.path.realpath(path))
+
+
+def directories_overlap(one, other):
+    """True when two directories are the same or one contains the other."""
+    one, other = comparable_path(one), comparable_path(other)
+    return is_valid_path(one, other) or is_valid_path(other, one)
+
+
+def reject_overlap_with_another_user(abs_scan_directory, user):
+    """Refuse a library root that another user already scans.
+
+    A photo has exactly one owner, so two users pointed at overlapping trees
+    give an outcome that depends on which scan runs first: the second either
+    skips the files the first already owns, or takes them over. Equal, parent
+    and child paths all have that problem, so all three are rejected (#2034).
+
+    Leaving the directory as it is never conflicts, even when it already
+    overlaps -- an install that predates this check has to stay editable,
+    rather than having every other field on that user locked behind a
+    directory the admin may not want to move.
+    """
+    # Compare normalised forms: a directory stored before this check, or by an
+    # older version, may carry a trailing separator or a non-canonical
+    # spelling, and a raw string compare would read that as a change and lock
+    # the user out of its own directory.
+    if user is not None and user.scan_directory:
+        if comparable_path(abs_scan_directory) == comparable_path(user.scan_directory):
+            return
+
+    others = User.objects.exclude(scan_directory="")
+    if user is not None and user.pk is not None:
+        others = others.exclude(pk=user.pk)
+
+    for other in others.only("pk", "username", "scan_directory").iterator():
+        if directories_overlap(abs_scan_directory, other.scan_directory):
+            raise ValidationError(
+                f"Scan directory overlaps the library of user "
+                f"'{other.username}' ({other.scan_directory}). Every photo has "
+                f"exactly one owner, so two users cannot scan the same files."
+            )
+
+
+def normalize_scan_directory(scan_directory, user=None):
     """Return ``scan_directory`` as a usable absolute library root.
 
     Returns ``None`` when nothing was supplied, so callers can leave the
     stored value untouched. Raises ``ValidationError`` when the path escapes
-    ``settings.DATA_ROOT`` or does not exist on disk.
+    ``settings.DATA_ROOT``, does not exist on disk, or overlaps another
+    user's library.
+
+    ``user`` is the account the directory is being set on, so that its own
+    current directory is not read as a conflict with itself. Leave it out when
+    creating a user, where there is no account yet and every other user's
+    directory is somebody else's.
     """
     if not scan_directory:
         return None
@@ -93,7 +151,88 @@ def normalize_scan_directory(scan_directory):
     if not os.path.exists(abs_scan_directory):
         raise ValidationError("Scan directory does not exist")
 
+    reject_overlap_with_another_user(abs_scan_directory, user)
+
     return abs_scan_directory
+
+
+def auto_create_user_directory(user, claim_existing=False):
+    """Give ``user`` its own folder under ``DATA_ROOT``, when that is enabled.
+
+    Off unless the ``AUTO_CREATE_USER_DIRECTORY`` site setting is on. A
+    directory supplied on create is never overwritten -- an admin who typed a
+    path meant it (#2038).
+
+    The folder is ``DATA_ROOT/<username>``. Everything that can refuse it is
+    checked before anything is created, so a refusal leaves nothing behind:
+
+    - the username has to name a direct child of ``DATA_ROOT`` (``.`` and
+      ``..`` do not);
+    - it must not overlap another user's scan directory (#2034). On the
+      default layout, where the admin scans ``DATA_ROOT`` itself, every
+      candidate overlaps, so the feature needs the admin on a subfolder;
+    - a folder that already exists is only taken over when
+      ``claim_existing`` is set. That is for an admin creating the account,
+      who can see what is in it. A self-registered or SSO user must not be
+      able to claim a folder just by picking its name as a username -- an
+      account called ``family`` would otherwise get ``DATA_ROOT/family``.
+
+    Nothing here can fail user creation. A library mount is often read-only,
+    and an account with no scan directory is still a usable account: the user
+    sees an empty library and an admin can assign one later. So every refusal
+    is logged and returned from, not raised.
+    """
+    from constance import config as site_config
+
+    if not site_config.AUTO_CREATE_USER_DIRECTORY or user.scan_directory:
+        return
+
+    def refuse(reason):
+        logger.warning(
+            f"Not creating a data folder for user {user.username}: {reason}. "
+            f"The account was created without a scan directory; assign one "
+            f"in the Admin Area."
+        )
+
+    data_root = os.path.abspath(settings.DATA_ROOT)
+    candidate = os.path.abspath(os.path.join(data_root, user.username))
+    if os.path.dirname(candidate) != data_root:
+        refuse(f"the username does not name a folder directly inside {data_root}")
+        return
+
+    try:
+        reject_overlap_with_another_user(candidate, user)
+    except ValidationError as error:
+        refuse(f"{candidate} is not available. {' '.join(error.detail)}")
+        return
+
+    if os.path.lexists(candidate):
+        if not claim_existing:
+            refuse(
+                f"{candidate} already exists and may hold someone else's photos, "
+                f"so it is not handed to a self-registered or single sign-on "
+                f"account"
+            )
+            return
+        if not os.path.isdir(candidate):
+            refuse(f"{candidate} exists but is not a directory")
+            return
+    else:
+        try:
+            # No exist_ok: if the folder appeared since the check above, it is
+            # not ours to claim.
+            os.makedirs(candidate)
+        except FileExistsError:
+            if not claim_existing:
+                refuse(f"{candidate} was created by something else meanwhile")
+                return
+        except OSError as error:
+            refuse(f"could not create {candidate}: {error}")
+            return
+
+    user.scan_directory = candidate
+    user.save(update_fields=["scan_directory"])
+    logger.info(f"Assigned data folder {candidate} to user {user.username}")
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -210,6 +349,9 @@ class UserSerializer(serializers.ModelSerializer):
         else:
             user = User.objects.create_user(**validated_data)
         logger.info(f"Created user {user.id}")
+        # Only an admin gets here (anonymous sign-up uses SignupUserSerializer),
+        # so an existing folder of that name is theirs to hand out.
+        auto_create_user_directory(user, claim_existing=True)
         return user
 
     def update(self, instance, validated_data):
@@ -370,6 +512,7 @@ class SignupUserSerializer(serializers.ModelSerializer):
         user.is_staff = should_be_superuser
         user.is_superuser = should_be_superuser
         user.save()
+        auto_create_user_directory(user)
         return user
 
 
@@ -431,7 +574,9 @@ class ManageUserSerializer(serializers.ModelSerializer):
         return instance
 
     def apply_scan_directory(self, instance: User, new_scan_directory):
-        abs_new_scan_directory = normalize_scan_directory(new_scan_directory)
+        abs_new_scan_directory = normalize_scan_directory(
+            new_scan_directory, user=instance
+        )
         if abs_new_scan_directory is None:
             return
 

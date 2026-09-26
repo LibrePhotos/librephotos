@@ -9,6 +9,7 @@ binary so that class of bug fails loudly.
 """
 
 import datetime
+import re
 import os
 import shutil
 import subprocess
@@ -147,6 +148,46 @@ class ExifToolTagNameTest(SimpleTestCase):
         self.assertEqual("", read_tag(sidecar, Tags.DATE_TIME_ORIGINAL))
         # ... while the XMP tag we do use is readable from the same sidecar.
         self.assertEqual(TIMESTAMP_EXIFTOOL, read_tag(sidecar, Tags.DATE_CREATED))
+
+
+def _known_names(group):
+    """Tag names ExifTool knows in ``group`` (any group when None), lower-cased."""
+    # Bytes: the listings hold descriptions in many languages, which the
+    # Windows console code page cannot decode.
+    args = ["-list"] if group is None else ["-listx", f"-{group}:All"]
+    listing = subprocess.run([EXIFTOOL, *args], capture_output=True).stdout
+    listing = listing.decode("utf-8", "replace")
+    if group is None:
+        return {name.lower() for name in listing.split()}
+    return {name.lower() for name in re.findall(r"<tag [^>]*name='([^']+)'", listing)}
+
+
+@unittest.skipUnless(EXIFTOOL, "exiftool binary not available")
+class ExifToolReadTagNameTest(SimpleTestCase):
+    """Every tag name LibrePhotos reads must be one ExifTool knows.
+
+    Reading an unknown name is not an error: ExifTool just returns nothing.
+    ``Tags.ISO`` was ``"EXIF:ISOSpeedRatings"`` and ``Tags.FOCAL_LENGTH_35MM``
+    ``"EXIF:FocalLengthIn35mmFilm"`` (the EXIF spec's names for what ExifTool
+    calls ``ISO`` and ``FocalLengthIn35mmFormat``), so no photo ever got either.
+    """
+
+    def test_every_tag_constant_names_a_known_tag(self):
+        known = {}
+        for attribute, tag in vars(Tags).items():
+            if not attribute.isupper():
+                continue
+            group, _, name = tag.rpartition(":")
+            group = group or None
+            # "Name-*" is ExifTool's lang-alt wildcard; the tag itself must exist.
+            name = name.removesuffix("-*")
+            if group not in known:
+                known[group] = _known_names(group)
+            with self.subTest(tag=tag):
+                self.assertTrue(
+                    name.lower() in known[group],
+                    f"ExifTool has no tag {name!r} in {group or 'any group'}",
+                )
 
 
 @unittest.skipUnless(EXIFTOOL, "exiftool binary not available")

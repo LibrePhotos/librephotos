@@ -38,7 +38,9 @@ This is where you tell LibrePhotos where your photos are stored:
 
    You can change this later under your avatar (top right) > `Library`.
 
-2. **Scan Directory** – Select or type the path to your photos folder. If you haven't modified the default `docker-compose.yml`, this should be `/data`, which corresponds to the folder you configured as `scanDirectory` in your `.env` file.
+2. **Scan Directory** – Select or type the path to your photos folder. If you haven't modified the default `docker-compose.yml`, your photos are under `/data`, which corresponds to the folder you configured as `scanDirectory` in your `.env` file.
+
+   If you will be the only user, `/data` itself is fine. If you plan to add more users later, pick a subfolder for yourself instead, for example `/data/admin` (create it on the host first). Scan directories of different users cannot overlap, so once your account scans `/data` itself, no other user can be given a folder under it. See [Managing users](./managing-users.md).
 
    The directory picker shows a visual tree of available folders that you can click to select, or you can type the path directly.
 
@@ -57,6 +59,7 @@ The basic idea is this:
 - For scanning photos that reside in the local file system
   - Only the admin user can change the "scan directory" of the users, including that of the admin themselves.
   - Normal users cannot change their own "scan directory"
+  - Each user needs a scan directory of their own: it cannot be the same as, inside, or above another user's scan directory. To show the same photos to several users, [share them](./sharing.md) instead.
   - Only the admin can find the page to control this - under the user icon (top right) > `Admin Area`
 - For scanning photos that reside in external Nextcloud instances
   - Any user can change their own Nextcloud endpoint, and choose a top level directory in the Nextcloud account.

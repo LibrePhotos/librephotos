@@ -73,6 +73,7 @@ export function SiteSettings() {
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [allowUpload, setAllowUpload] = useState(false);
   const [nextcloudEnabled, setNextcloudEnabled] = useState(false);
+  const [autoCreateUserDirectory, setAutoCreateUserDirectory] = useState(false);
   const [captioningModel, setCaptioningModel] = useState(DEFAULT_CAPTIONING_MODEL);
   const [taggingModel, setTaggingModel] = useState(DEFAULT_TAGGING_MODEL);
   const [ocrModel, setOcrModel] = useState(OCR_DISABLED);
@@ -113,6 +114,7 @@ export function SiteSettings() {
       setAllowRegistration(settings.allow_registration);
       setAllowUpload(settings.allow_upload);
       setNextcloudEnabled(settings.nextcloud_enabled);
+      setAutoCreateUserDirectory(settings.auto_create_user_directory ?? false);
       setCaptioningModel(settings.captioning_model);
       setTaggingModel(settings.tagging_model);
       setOcrModel(normalizeOcrModel(settings.ocr_model));
@@ -165,6 +167,12 @@ export function SiteSettings() {
             label={t("sitesettings.headernextcloud")}
             onChange={() => saveSettings({ nextcloud_enabled: !nextcloudEnabled })}
             checked={nextcloudEnabled}
+          />
+          <Switch
+            label={t("sitesettings.headerautocreateuserdirectory")}
+            description={t("sitesettings.autocreateuserdirectory")}
+            onChange={() => saveSettings({ auto_create_user_directory: !autoCreateUserDirectory })}
+            checked={autoCreateUserDirectory}
           />
 
           <Grid justify="flex-end">

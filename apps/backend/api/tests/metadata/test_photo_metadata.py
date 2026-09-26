@@ -19,7 +19,12 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from api.models.photo_metadata import MetadataEdit, MetadataFile, PhotoMetadata
+from api.models.photo_metadata import (
+    EXIF_VALUE_NAMES,
+    MetadataEdit,
+    MetadataFile,
+    PhotoMetadata,
+)
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -215,32 +220,32 @@ class PhotoMetadataModelTestCase(TestCase):
         metadata.refresh_from_db()
         self.assertEqual(metadata.keywords, keywords)
 
+    def _extract(self, **named_values):
+        """Run extract_exif_data with get_metadata mocked, values by name.
+
+        Built from EXIF_VALUE_NAMES, so adding a tag does not break these.
+        """
+        mock_values = [named_values.get(name) for name in EXIF_VALUE_NAMES]
+        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
+            return PhotoMetadata.extract_exif_data(self.photo, commit=True)
+
     def test_extract_exif_data_merges_xmp_and_iptc_keywords(self):
         """Test that extract_exif_data merges XMP:Subject and IPTC:Keywords."""
-        # Mock get_metadata to return both XMP:Subject and IPTC:Keywords
-        mock_values = [
-            100000,  # FILE_SIZE
-            2.8,  # FSTOP
-            50.0,  # FOCAL_LENGTH
-            200,  # ISO
-            0.004,  # EXPOSURE_TIME
-            "Canon EOS R5",  # CAMERA
-            "RF 50mm",  # LENS
-            6000,  # IMAGE_WIDTH
-            4000,  # IMAGE_HEIGHT
-            50,  # FOCAL_LENGTH_35MM
-            None,  # SUBJECT_DISTANCE
-            None,  # DIGITAL_ZOOM_RATIO
-            None,  # QUICKTIME_DURATION
-            5,  # RATING
-            None,  # SUBSEC_TIME_ORIGINAL
-            None,  # IMAGE_NUMBER
-            ["vacation", "beach"],  # XMP:Subject
-            ["beach", "sunset", "travel"],  # IPTC:Keywords
-        ]
-
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        metadata = self._extract(
+            size=100000,
+            fstop=2.8,
+            focal_length=50.0,
+            iso=200,
+            shutter_speed=0.004,
+            camera="Canon EOS R5",
+            lens="RF 50mm",
+            width=6000,
+            height=4000,
+            focal_length_35mm=50,
+            rating=5,
+            xmp_subject=["vacation", "beach"],
+            iptc_keywords=["beach", "sunset", "travel"],
+        )
 
         self.assertIsNotNone(metadata)
         # Keywords should be merged and deduplicated
@@ -250,119 +255,39 @@ class PhotoMetadataModelTestCase(TestCase):
 
     def test_extract_exif_data_xmp_subject_only(self):
         """Test extract_exif_data with only XMP:Subject keywords."""
-        mock_values = [
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            ["nature", "landscape"],  # XMP:Subject
-            None,  # IPTC:Keywords (not set)
-        ]
-
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        metadata = self._extract(xmp_subject=["nature", "landscape"])
 
         self.assertIsNotNone(metadata)
         self.assertEqual(sorted(metadata.keywords), ["landscape", "nature"])
 
     def test_extract_exif_data_iptc_keywords_only(self):
         """Test extract_exif_data with only IPTC:Keywords."""
-        mock_values = [
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,  # XMP:Subject (not set)
-            ["family", "birthday"],  # IPTC:Keywords
-        ]
-
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        metadata = self._extract(iptc_keywords=["family", "birthday"])
 
         self.assertIsNotNone(metadata)
         self.assertEqual(sorted(metadata.keywords), ["birthday", "family"])
 
     def test_extract_exif_data_single_string_keyword(self):
         """Test extract_exif_data handles single string keyword (not a list)."""
-        mock_values = [
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            "solo-keyword",  # XMP:Subject as a single string
-            None,  # IPTC:Keywords
-        ]
-
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        metadata = self._extract(xmp_subject="solo-keyword")
 
         self.assertIsNotNone(metadata)
         self.assertEqual(metadata.keywords, ["solo-keyword"])
 
     def test_extract_exif_data_no_keywords(self):
         """Test extract_exif_data with no keywords sets None."""
-        mock_values = [
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,  # XMP:Subject
-            None,  # IPTC:Keywords
-        ]
-
-        with patch("api.models.photo_metadata.get_metadata", return_value=mock_values):
-            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+        metadata = self._extract()
 
         self.assertIsNotNone(metadata)
         self.assertIsNone(metadata.keywords)
+
+    def test_extract_exif_data_tolerates_a_short_result(self):
+        """A get_metadata result shorter than the tag list must not KeyError."""
+        with patch("api.models.photo_metadata.get_metadata", return_value=[None] * 18):
+            metadata = PhotoMetadata.extract_exif_data(self.photo, commit=True)
+
+        self.assertIsNotNone(metadata)
+        self.assertIsNone(metadata.caption)
 
 
 class MetadataFileModelTestCase(TestCase):
