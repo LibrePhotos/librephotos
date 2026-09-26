@@ -26,9 +26,9 @@ class DeletePhotosTest(TestCase):
         data = response.json()
 
         self.assertTrue(data["status"])
-        self.assertEqual(3, len(data["results"]))
-        self.assertEqual(3, len(data["updated"]))
-        self.assertEqual(0, len(data["not_updated"]))
+        self.assertEqual(3, data["count"])
+        self.assertEqual(3, len(data["updated_hashes"]))
+        self.assertEqual(0, len(data["not_updated_hashes"]))
 
     def test_untag_my_photos_for_removal(self):
         photos1 = create_test_photos(
@@ -45,9 +45,9 @@ class DeletePhotosTest(TestCase):
         data = response.json()
 
         self.assertTrue(data["status"])
-        self.assertEqual(1, len(data["results"]))
-        self.assertEqual(1, len(data["updated"]))
-        self.assertEqual(2, len(data["not_updated"]))
+        self.assertEqual(1, data["count"])
+        self.assertEqual(1, len(data["updated_hashes"]))
+        self.assertEqual(2, len(data["not_updated_hashes"]))
 
     def test_tag_photos_of_other_user_for_removal(self):
         photos = create_test_photos(number_of_photos=2, owner=self.user2)
@@ -61,10 +61,10 @@ class DeletePhotosTest(TestCase):
         data = response.json()
 
         self.assertTrue(data["status"])
-        self.assertEqual(0, len(data["results"]))
-        self.assertEqual(0, len(data["updated"]))
+        self.assertEqual(0, data["count"])
+        self.assertEqual(0, len(data["updated_hashes"]))
         # Photos not owned by user are treated as "missing" for security (no info leak)
-        self.assertEqual(0, len(data["not_updated"]))
+        self.assertEqual(0, len(data["not_updated_hashes"]))
 
     @patch("api.views.photos.logger.warning", autospec=True)
     def test_tag_for_removal_nonexistent_photo(self, logger):
@@ -76,9 +76,9 @@ class DeletePhotosTest(TestCase):
         data = response.json()
 
         self.assertTrue(data["status"])
-        self.assertEqual(0, len(data["results"]))
-        self.assertEqual(0, len(data["updated"]))
-        self.assertEqual(0, len(data["not_updated"]))
+        self.assertEqual(0, data["count"])
+        self.assertEqual(0, len(data["updated_hashes"]))
+        self.assertEqual(0, len(data["not_updated_hashes"]))
         logger.assert_called_with(
             "Could not set photo nonexistent_photo to deleted. It does not exist or is not owned by user."
         )
