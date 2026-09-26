@@ -13,6 +13,9 @@ export const BulkPhotoMutationResponse = z
   .object({
     status: z.boolean().optional(),
     count: z.number().optional(),
+    updated_hashes: z.array(z.string()).optional(),
+    not_updated_hashes: z.array(z.string()).optional(),
+    // Older servers sent one serialized photo per entry instead of the hashes.
     updated: z.array(z.unknown()).optional(),
     not_updated: z.array(z.unknown()).optional(),
   })

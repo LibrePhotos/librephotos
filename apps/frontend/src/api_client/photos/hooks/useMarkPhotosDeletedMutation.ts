@@ -7,14 +7,14 @@ import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery"
 import { fetchClient, queryClient } from "../../api";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
-import { BulkPhotoQuery, Photo } from "../types";
+import { BulkPhotoQuery } from "../types";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const DeletePhotosResponse = z.object({
   status: z.boolean(),
-  results: Photo.array().optional(),
-  updated: Photo.array().optional(),
-  not_updated: Photo.array().optional(),
+  // Hashes, not serialized photos: the backend no longer builds a payload per photo.
+  updated_hashes: z.string().array().optional(),
+  not_updated_hashes: z.string().array().optional(),
   count: z.number().optional(),
 });
 type DeletePhotosResponse = z.infer<typeof DeletePhotosResponse>;
@@ -50,7 +50,7 @@ export const useMarkPhotosDeletedMutation = () =>
       if (request.select_all) {
         notification.togglePhotoDelete(request.deleted, data.count ?? 0);
       } else {
-        notification.togglePhotoDelete(request.deleted, data.updated?.length ?? request.image_hashes.length);
+        notification.togglePhotoDelete(request.deleted, data.count ?? request.image_hashes.length);
       }
 
       return data;

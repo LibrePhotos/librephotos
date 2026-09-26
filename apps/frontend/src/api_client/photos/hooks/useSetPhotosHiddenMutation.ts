@@ -8,15 +8,15 @@ import { fetchClient, queryClient } from "../../api";
 import { IncompleteFacesQueryKeys } from "../../faces/hooks/useFetchIncompleteFacesQuery";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { PhotoMonthCountQueryKeys } from "../../stats/hooks/useFetchPhotoMonthCountQuery";
-import { BulkPhotoQuery, Photo } from "../types";
+import { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const UpdatePhotosResponse = z.object({
   status: z.boolean(),
-  results: Photo.array().optional(),
-  updated: Photo.array().optional(),
-  not_updated: Photo.array().optional(),
+  // Hashes, not serialized photos: the backend no longer builds a payload per photo.
+  updated_hashes: z.string().array().optional(),
+  not_updated_hashes: z.string().array().optional(),
   count: z.number().optional(),
 });
 
