@@ -1,7 +1,7 @@
 import numpy as np
 import PIL
 
-from api.face_recognition import get_face_locations
+from api.face_recognition import detect_faces
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.util import is_number, logger
@@ -82,15 +82,14 @@ def extract_from_exif(image_path, big_thumbnail_image_path):
 
 
 def extract_from_face_service(image_path, big_thumbnail_path):
+    """Detected faces as (top, right, bottom, left, None, encoding)."""
     try:
-        face_locations = get_face_locations(big_thumbnail_path)
+        faces = detect_faces(big_thumbnail_path)
     except Exception:
         logger.exception(f"Can't extract face information on photo: {image_path}")
-        face_locations = []
+        faces = []
 
-    for i, face_location in enumerate(face_locations):
-        face_locations[i] = (*face_location, None)
-    return face_locations
+    return [(*location, None, encoding) for location, encoding in faces]
 
 
 def extract(image_path, big_thumbnail_path, owner):
