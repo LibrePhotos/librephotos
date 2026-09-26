@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FaceClusterGraph } from "../../../components/charts/FaceClusterGraph";
 import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 
-export const Route = createFileRoute("/_protected/statistics/faceclusters")();
+export const Route = createFileRoute("/_protected/statistics/faceclusters")({
+  component: FaceClusters,
+});
 
 function FaceClusters() {
   return (
@@ -11,5 +13,3 @@ function FaceClusters() {
     </StatisticsNav>
   );
 }
-
-Route.update({ component: FaceClusters });

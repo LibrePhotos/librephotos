@@ -7,9 +7,11 @@ import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
-export const Route = createFileRoute("/_protected/deleted")();
+export const Route = createFileRoute("/_protected/deleted")({
+  component: DeletedPhotos,
+});
 
-export function DeletedPhotos() {
+function DeletedPhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
@@ -60,5 +62,3 @@ export function DeletedPhotos() {
     />
   );
 }
-
-Route.update({ component: DeletedPhotos });

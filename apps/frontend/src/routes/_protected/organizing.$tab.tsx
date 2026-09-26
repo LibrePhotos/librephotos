@@ -21,13 +21,14 @@ type StacksDuplicatesSearchParams = {
 };
 
 export const Route = createFileRoute("/_protected/organizing/$tab")({
+  component: StacksDuplicatesPage,
   validateSearch: (search: Record<string, unknown>): StacksDuplicatesSearchParams => ({
     type: search.type as string | undefined,
     status: search.status as string | undefined,
   }),
 });
 
-export function StacksDuplicatesPage() {
+function StacksDuplicatesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { tab } = Route.useParams();
@@ -107,5 +108,3 @@ export function StacksDuplicatesPage() {
     </Stack>
   );
 }
-
-Route.update({ component: StacksDuplicatesPage });

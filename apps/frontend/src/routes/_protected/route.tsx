@@ -6,11 +6,13 @@ import { FooterMenu } from "../../components/menubars/FooterMenu";
 import { SideMenuNarrow } from "../../components/menubars/SideMenuNarrow";
 import { TopMenu } from "../../components/menubars/TopMenu";
 import { UploadProgressCard, UploadProvider } from "../../components/upload";
-import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, MIN_VIEWPORT_WODTH, TOP_MENU_HEIGHT } from "../../ui-constants";
+import { FOOTER_HEIGHT, LEFT_MENU_WIDTH, MIN_VIEWPORT_WIDTH, TOP_MENU_HEIGHT } from "../../ui-constants";
 
-export const Route = createFileRoute("/_protected")();
+export const Route = createFileRoute("/_protected")({
+  component: AppShellProtected,
+});
 
-export function AppShellProtected() {
+function AppShellProtected() {
   const colorScheme = useComputedColorScheme();
   const theme = useMantineTheme();
   const { data: isAuthenticated, isLoading } = useIsAuthenticatedQuery();
@@ -32,7 +34,7 @@ export function AppShellProtected() {
         header={{ height: TOP_MENU_HEIGHT }}
         navbar={{ width: LEFT_MENU_WIDTH, breakpoint: "sm", collapsed: { mobile: true, desktop: false } }}
         footer={{ height: { base: FOOTER_HEIGHT, sm: 0 } }}
-        style={{ minWidth: MIN_VIEWPORT_WODTH }}
+        style={{ minWidth: MIN_VIEWPORT_WIDTH }}
         transitionDuration={0}
       >
         <AppShell.Header>
@@ -56,5 +58,3 @@ export function AppShellProtected() {
     </UploadProvider>
   );
 }
-
-Route.update({ component: AppShellProtected });

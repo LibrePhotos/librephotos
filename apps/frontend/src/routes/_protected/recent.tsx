@@ -5,9 +5,11 @@ import { useTranslation } from "react-i18next";
 import { useFetchRecentlyAddedPhotosQuery } from "../../api_client/photos/hooks/useFetchRecentlyAddedPhotosQuery";
 import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 
-export const Route = createFileRoute("/_protected/recent")();
+export const Route = createFileRoute("/_protected/recent")({
+  component: RecentlyAddedPhotos,
+});
 
-export function RecentlyAddedPhotos() {
+function RecentlyAddedPhotos() {
   const { t } = useTranslation();
   const { data, status } = useFetchRecentlyAddedPhotosQuery();
   const photosFlat = data?.results || [];
@@ -38,5 +40,3 @@ export function RecentlyAddedPhotos() {
     />
   );
 }
-
-Route.update({ component: RecentlyAddedPhotos });

@@ -4,9 +4,11 @@ import React from "react";
 import { TopMenuPublic } from "../../components/menubars/TopMenuPublic";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-export const Route = createFileRoute("/public")();
+export const Route = createFileRoute("/public")({
+  component: AppShellPublicWithHeader,
+});
 
-export function AppShellPublicWithHeader() {
+function AppShellPublicWithHeader() {
   const colorScheme = useComputedColorScheme();
   const theme = useMantineTheme();
 
@@ -25,5 +27,3 @@ export function AppShellPublicWithHeader() {
     </AppShell>
   );
 }
-
-Route.update({ component: AppShellPublicWithHeader });

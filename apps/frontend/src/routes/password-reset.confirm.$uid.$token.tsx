@@ -8,9 +8,11 @@ import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useConfirmPasswordResetMutation } from "../api_client/auth";
 
-export const Route = createFileRoute("/password-reset/confirm/$uid/$token")();
+export const Route = createFileRoute("/password-reset/confirm/$uid/$token")({
+  component: PasswordResetConfirmPage,
+});
 
-export function PasswordResetConfirmPage(): JSX.Element {
+function PasswordResetConfirmPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme("dark");
@@ -99,5 +101,3 @@ export function PasswordResetConfirmPage(): JSX.Element {
     </Stack>
   );
 }
-
-Route.update({ component: PasswordResetConfirmPage });

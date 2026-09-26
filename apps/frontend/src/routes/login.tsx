@@ -46,7 +46,9 @@ import { ssoErrorMessageKey } from "../util/ssoErrors";
 import { isStringEmpty } from "../util/stringUtils";
 import { EMAIL_REGEX } from "../util/util";
 
-export const Route = createFileRoute("/login")();
+export const Route = createFileRoute("/login")({
+  component: Login,
+});
 
 export interface LocationState {
   from: {
@@ -54,7 +56,7 @@ export interface LocationState {
   };
 }
 
-export function LoginPage(): JSX.Element {
+function LoginPage(): JSX.Element {
   const colorScheme = useComputedColorScheme("dark");
   const { t } = useTranslation();
   const { data: isAuthenticated } = useIsAuthenticatedQuery();
@@ -213,7 +215,7 @@ export type FirstTimeSetupProps = {
   onComplete?: () => void;
 };
 
-export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
+function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { mutate: signup, isPending: isSignupPending } = useSignUpMutation();
@@ -517,7 +519,7 @@ export function FirstTimeSetupPage({ onComplete }: FirstTimeSetupProps): JSX.Ele
   );
 }
 
-export function Login(): JSX.Element {
+function Login(): JSX.Element {
   const { data: isFirstTimeSetup, isLoading } = useIsFirstTimeSetupQuery();
   const [firstTimeFlow, setFirstTimeFlow] = useState(false);
 
@@ -545,5 +547,3 @@ export function Login(): JSX.Element {
     </div>
   );
 }
-
-Route.update({ component: Login });

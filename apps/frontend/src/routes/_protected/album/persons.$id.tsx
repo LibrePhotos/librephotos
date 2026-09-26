@@ -15,10 +15,11 @@ import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFi
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/persons/$id")({
+  component: AlbumPersonGallery,
   validateSearch: validateMediaSearch,
 });
 
-export function AlbumPersonGallery(): JSX.Element {
+function AlbumPersonGallery(): JSX.Element {
   const { id } = Route.useParams();
   const { t } = useTranslation();
   const mediaType = useMediaTypeFilter();
@@ -77,5 +78,3 @@ export function AlbumPersonGallery(): JSX.Element {
     />
   );
 }
-
-Route.update({ component: AlbumPersonGallery });

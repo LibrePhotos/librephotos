@@ -19,9 +19,11 @@ import { useTranslation } from "react-i18next";
 import { useRequestPasswordResetMutation } from "../api_client/auth";
 import { EMAIL_REGEX } from "../util/util";
 
-export const Route = createFileRoute("/password-reset/")();
+export const Route = createFileRoute("/password-reset/")({
+  component: PasswordResetRequestPage,
+});
 
-export function PasswordResetRequestPage(): JSX.Element {
+function PasswordResetRequestPage(): JSX.Element {
   const { t } = useTranslation();
   const colorScheme = useComputedColorScheme("dark");
   const { mutate: requestReset, isPending } = useRequestPasswordResetMutation();
@@ -98,5 +100,3 @@ export function PasswordResetRequestPage(): JSX.Element {
     </Stack>
   );
 }
-
-Route.update({ component: PasswordResetRequestPage });

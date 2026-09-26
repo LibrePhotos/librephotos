@@ -11,9 +11,11 @@ import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { PublicAlbumsGrid } from "../../../components/sharing/PublicAlbumsGrid";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
-export const Route = createFileRoute("/_protected/sharing/links")();
+export const Route = createFileRoute("/_protected/sharing/links")({
+  component: PublicLinksPage,
+});
 
-export function PublicLinksPage() {
+function PublicLinksPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>("albums");
   const [albumID, setAlbumID] = useState("");
@@ -113,5 +115,3 @@ export function PublicLinksPage() {
     </Stack>
   );
 }
-
-Route.update({ component: PublicLinksPage });

@@ -18,9 +18,11 @@ import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { i18nResolvedLanguage } from "../../../i18n";
 
-export const Route = createFileRoute("/_protected/album/events/")();
+export const Route = createFileRoute("/_protected/album/events/")({
+  component: AlbumAuto,
+});
 
-export function AlbumAuto() {
+function AlbumAuto() {
   const [autoAlbumID, setAutoAlbumID] = useState("");
   const [autoAlbumTitle, setAutoAlbumTitle] = useState("");
   const [deleteDialogVisible, { open: showDeleteDialog, close: closeDeleteDialog }] = useDisclosure(false);
@@ -147,5 +149,3 @@ export function AlbumAuto() {
     </div>
   );
 }
-
-Route.update({ component: AlbumAuto });

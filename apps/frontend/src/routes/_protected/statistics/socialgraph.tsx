@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SocialGraph } from "../../../components/charts/SocialGraph";
 import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 
-export const Route = createFileRoute("/_protected/statistics/socialgraph")();
+export const Route = createFileRoute("/_protected/statistics/socialgraph")({
+  component: Graph,
+});
 
 function Graph() {
   return (
@@ -11,5 +13,3 @@ function Graph() {
     </StatisticsNav>
   );
 }
-
-Route.update({ component: Graph });

@@ -22,9 +22,11 @@ import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute("/_protected/album/tags/")();
+export const Route = createFileRoute("/_protected/album/tags/")({
+  component: AlbumTag,
+});
 
-export function AlbumTag() {
+function AlbumTag() {
   const { t } = useTranslation();
   const { data: tags, isFetching } = useFetchTagsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(tags || []);
@@ -251,5 +253,3 @@ export function AlbumTag() {
     </div>
   );
 }
-
-Route.update({ component: AlbumTag });

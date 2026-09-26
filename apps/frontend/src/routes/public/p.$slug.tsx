@@ -9,7 +9,9 @@ import { useFetchSharedPhotoQuery } from "../../api_client/photos/hooks";
 import { i18nResolvedLanguage } from "../../i18n";
 import { TOP_MENU_HEIGHT } from "../../ui-constants";
 
-export const Route = createFileRoute("/public/p/$slug")();
+export const Route = createFileRoute("/public/p/$slug")({
+  component: PublicPhotoBySlug,
+});
 
 // Leave room for the public header and a little breathing space around the media.
 const MEDIA_MAX_HEIGHT = `calc(100vh - ${TOP_MENU_HEIGHT + 120}px)`;
@@ -91,5 +93,3 @@ function PublicPhotoBySlug() {
     </Stack>
   );
 }
-
-Route.update({ component: PublicPhotoBySlug });

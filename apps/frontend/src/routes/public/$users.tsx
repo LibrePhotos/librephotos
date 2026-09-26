@@ -9,9 +9,11 @@ import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
 type PhotoGroup = { id: string; page: number };
 
-export const Route = createFileRoute("/public/$users")();
+export const Route = createFileRoute("/public/$users")({
+  component: UserPublicPage,
+});
 
-export function UserPublicPage() {
+function UserPublicPage() {
   const { users } = Route.useParams();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
 
@@ -81,5 +83,3 @@ export function UserPublicPage() {
     />
   );
 }
-
-Route.update({ component: UserPublicPage });

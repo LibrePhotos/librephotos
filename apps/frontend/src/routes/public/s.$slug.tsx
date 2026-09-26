@@ -5,11 +5,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { UserAlbum } from "../../api_client/albums/types";
+import { ApiError, fetchClient } from "../../api_client/api";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 import { parseWithNotification } from "../../util/zodUtils";
 
-export const Route = createFileRoute("/public/s/$slug")();
+export const Route = createFileRoute("/public/s/$slug")({
+  component: PublicAlbumBySlug,
+});
 
 function PublicAlbumBySlug() {
   const { t } = useTranslation();
@@ -23,10 +26,14 @@ function PublicAlbumBySlug() {
     queryKey: ["publicAlbumBySlug", slug],
     retry: false,
     queryFn: async () => {
-      const resp = await fetch(`/api/public/albums/s/${slug}/`);
-      if (resp.status === 404) return null;
-      if (!resp.ok) throw new Error("Failed to load public album");
-      const json = await resp.json();
+      let json: { results: unknown };
+      try {
+        // Through fetchClient so the request is prefixed with PUBLIC_URL.
+        json = await fetchClient.get<{ results: unknown }>(`/public/albums/s/${slug}/`);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
       return parseWithNotification(UserAlbum, json.results, "Failed to parse public album");
     },
   });
@@ -65,5 +72,3 @@ function PublicAlbumBySlug() {
     />
   );
 }
-
-Route.update({ component: PublicAlbumBySlug });

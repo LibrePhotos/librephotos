@@ -30,7 +30,9 @@ import { PhotoGroup, PhotoListView } from "../../../components/photolist/PhotoLi
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 import classes from "./folder.module.css";
 
-export const Route = createFileRoute("/_protected/album/folder/$id")();
+export const Route = createFileRoute("/_protected/album/folder/$id")({
+  component: FolderDetail,
+});
 
 type FolderButtonProps = {
   subfolder: SubfolderInfo;
@@ -264,7 +266,7 @@ function getMaxFolderNameLength(isSmallMobile: boolean, isMobile: boolean): numb
   return isMobile ? 15 : 20;
 }
 
-export function FolderDetail() {
+function FolderDetail() {
   const { id } = Route.useParams();
   const folderPath = decodeURIComponent(id); // The id is the encoded folder path
   const { t } = useTranslation();
@@ -430,5 +432,3 @@ export function FolderDetail() {
     />
   );
 }
-
-Route.update({ component: FolderDetail });

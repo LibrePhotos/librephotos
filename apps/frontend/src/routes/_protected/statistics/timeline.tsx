@@ -4,7 +4,9 @@ import { EventCountMonthGraph } from "../../../components/charts/EventCountMonth
 import { LocationDurationStackedBar } from "../../../components/charts/LocationDurationStackedBar";
 import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 
-export const Route = createFileRoute("/_protected/statistics/timeline")();
+export const Route = createFileRoute("/_protected/statistics/timeline")({
+  component: Timeline,
+});
 
 function Timeline() {
   return (
@@ -16,5 +18,3 @@ function Timeline() {
     </StatisticsNav>
   );
 }
-
-Route.update({ component: Timeline });

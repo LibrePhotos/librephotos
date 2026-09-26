@@ -32,9 +32,11 @@ import { SimilarPhotosSection } from "../../components/lightbox/SimilarPhotosSec
 import { TimestampItem } from "../../components/lightbox/TimestampItem";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 
-export const Route = createFileRoute("/_protected/photo/$id")();
+export const Route = createFileRoute("/_protected/photo/$id")({
+  component: SinglePhotoView,
+});
 
-export function SinglePhotoView() {
+function SinglePhotoView() {
   const { id: photoId } = Route.useParams();
   const { data: photoDetail } = useFetchPhotoDetailsQuery(photoId || "");
   const [faceLocation] = React.useState<FaceLocationType>(null);
@@ -154,5 +156,3 @@ export function SinglePhotoView() {
     </Container>
   );
 }
-
-Route.update({ component: SinglePhotoView });

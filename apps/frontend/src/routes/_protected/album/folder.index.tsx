@@ -8,9 +8,11 @@ import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks"
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute("/_protected/album/folder/")();
+export const Route = createFileRoute("/_protected/album/folder/")({
+  component: AlbumFolder,
+});
 
-export function AlbumFolder() {
+function AlbumFolder() {
   const { t } = useTranslation();
   const { data: folderData, isFetching } = useFetchFolderSubfoldersQuery();
   const subfolders = folderData?.subfolders ?? [];
@@ -115,5 +117,3 @@ export function AlbumFolder() {
     </div>
   );
 }
-
-Route.update({ component: AlbumFolder });

@@ -8,10 +8,11 @@ import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 
 export const Route = createFileRoute("/_protected/album/things/$id")({
+  component: AlbumThingGallery,
   validateSearch: validateMediaSearch,
 });
 
-export function AlbumThingGallery() {
+function AlbumThingGallery() {
   const { t } = useTranslation();
   const { id: albumID } = Route.useParams();
   const mediaType = useMediaTypeFilter();
@@ -29,5 +30,3 @@ export function AlbumThingGallery() {
     />
   );
 }
-
-Route.update({ component: AlbumThingGallery });
