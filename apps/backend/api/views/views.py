@@ -1010,17 +1010,6 @@ class UnifiedMediaAccessView(APIView):
         )
 
     @staticmethod
-    def _has_active_photo_share(photo):
-        """Whether ``photo`` itself is shared by an active per-photo link.
-
-        Mirrors the album check: an active share vouches for anonymous access
-        to the photo's derived media (issue #2028). Revoking drops the slug, so
-        a withdrawn link stops matching here at once.
-        """
-        share = getattr(photo, "share", None)
-        return share is not None and share.is_active()
-
-    @staticmethod
     def _vouching_albums(photo):
         """Albums whose shares may grant access to ``photo``: its owner's only.
 
@@ -1228,12 +1217,7 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if (
-            self._has_active_photo_share(photo)
-            or self._vouching_albums(photo)
-            .filter(self._public_album_active_q())
-            .exists()
-        ):
+        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
             return self._generate_response(photo, path, fname, False, use_proxy)
 
         if not token_valid:

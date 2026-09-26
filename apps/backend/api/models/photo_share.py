@@ -1,4 +1,4 @@
-import uuid
+import secrets
 
 from django.db import models
 
@@ -24,14 +24,13 @@ class PhotoShare(models.Model):
 
     def ensure_slug(self) -> None:
         if self.enabled and not self.slug:
-            base = uuid.uuid4().hex[:12]
-            candidate = base
-            idx = 0
+            # 9 random bytes -> 12 URL-safe characters (72 bits). The slug is
+            # the only credential a share has, so it must not be guessable.
+            candidate = secrets.token_urlsafe(9)
             while (
                 PhotoShare.objects.filter(slug=candidate).exclude(id=self.id).exists()
             ):
-                idx += 1
-                candidate = f"{base}-{idx}"
+                candidate = secrets.token_urlsafe(9)
             self.slug = candidate
 
     def is_active(self) -> bool:
