@@ -40,6 +40,10 @@ const INTERVAL_OPTIONS = [
   { value: "30", label: "30s" },
 ];
 
+function favoriteLabel(isFavorite: boolean) {
+  return isFavorite ? "Remove from favorites (F)" : "Add to favorites (F)";
+}
+
 export function LightboxControls({
   photoDetail,
   isPhotoDetailsLoading,
@@ -289,15 +293,12 @@ export function LightboxControls({
               </Tooltip>
             )}
             {photoDetail && (
-              <Tooltip
-                label={photoDetail.rating >= favoriteMinRating ? "Remove from favorites (F)" : "Add to favorites (F)"}
-                position="bottom"
-                withArrow
-              >
+              <Tooltip label={favoriteLabel(photoDetail.rating >= favoriteMinRating)} position="bottom" withArrow>
                 <ActionIcon
                   variant="subtle"
                   color="gray"
                   size={28}
+                  aria-label={favoriteLabel(photoDetail.rating >= favoriteMinRating)}
                   onClick={() => {
                     const { image_hash: imageHash } = photoDetail;
                     const val = !(photoDetail.rating >= favoriteMinRating);
