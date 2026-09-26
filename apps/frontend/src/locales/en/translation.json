@@ -722,6 +722,13 @@
     "screenshots": "Screenshots",
     "deleted": "Trash"
   },
+  "phototile": {
+    "photo": "Photo",
+    "phototaken": "Photo taken {{date}}",
+    "video": "Video",
+    "videotaken": "Video taken {{date}}",
+    "select": "Select {{name}}"
+  },
   "trash": {
     "restorePhoto": "Restore photo",
     "restorePhotos": "Restore {{count}} photos",

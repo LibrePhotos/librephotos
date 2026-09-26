@@ -52,6 +52,7 @@ import {
 import type { StackType } from "../../api_client/stacks/types";
 import { stackTypeLabels } from "../../api_client/stacks/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { buttonRoleProps } from "../../util/a11y";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";
 
@@ -119,7 +120,7 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
       }}
     >
       {/* Image Preview */}
-      <Group gap={1} wrap="nowrap" onClick={onClick}>
+      <Group gap={1} wrap="nowrap" aria-label={t("stacks.reviewstack")} {...buttonRoleProps(onClick)}>
         {stack.preview_photos.slice(0, 2).map((photo, index) => (
           <Image
             key={photo.image_hash || index}

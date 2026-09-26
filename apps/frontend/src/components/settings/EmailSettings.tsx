@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Button,
   Card,
   Grid,
@@ -230,9 +231,9 @@ export function EmailSettings(): JSX.Element {
               </Grid.Col>
               {hasSecret && (
                 <Grid.Col span={12}>
-                  <Text fz="xs" c="dimmed" style={{ cursor: "pointer" }} onClick={onClearSecret}>
+                  <Anchor component="button" type="button" fz="xs" c="dimmed" onClick={onClearSecret}>
                     {t("emailsettings.clear_secret", "Remove the stored credential")}
-                  </Text>
+                  </Anchor>
                 </Grid.Col>
               )}
             </>
