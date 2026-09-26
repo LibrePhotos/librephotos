@@ -1,10 +1,14 @@
 import os
+import shutil
+import unittest
+from unittest import mock
 
 from django.conf import settings
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from rest_framework.test import APIClient
 
 from api.models import User
+from api.serializers.user import directories_overlap
 from api.tests.utils import create_password
 
 
@@ -148,9 +152,25 @@ class OverlappingScanDirectoryTestCase(TestCase):
         self.free = os.path.abspath(os.path.join(settings.DATA_ROOT, "overlap-free"))
         for path in (self.child, self.free):
             os.makedirs(path, exist_ok=True)
+        # DATA_ROOT is a real directory shared by the whole run; don't leave
+        # these behind for the next test class to trip over.
+        for name in (
+            "overlap-taken",
+            "overlap-free",
+            "overlap-taken-2",
+            "overlap-link",
+        ):
+            self.addCleanup(self._remove, os.path.join(settings.DATA_ROOT, name))
 
         self.owner.scan_directory = self.taken
         self.owner.save()
+
+    @staticmethod
+    def _remove(path):
+        if os.path.islink(path):
+            os.unlink(path)
+        else:
+            shutil.rmtree(path, ignore_errors=True)
 
     def _patch(self, user, scan_directory):
         return self.client.patch(
@@ -235,3 +255,68 @@ class OverlappingScanDirectoryTestCase(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("overlap_owner", self._message(response))
         self.assertFalse(User.objects.filter(username="overlap_new").exists())
+
+    @unittest.skipUnless(os.name == "nt", "case-insensitive paths are a Windows thing")
+    def test_a_differently_cased_spelling_is_rejected_on_windows(self):
+        # NTFS is case-insensitive: C:\Data\alice and c:\data\alice are
+        # one directory, so the second spelling must not slip past the check.
+        # Only the last component changes case: DATA_ROOT is still spelled as
+        # configured, so the path passes the "inside the data root" check.
+        shouted = os.path.join(settings.DATA_ROOT, "OVERLAP-TAKEN")
+        response = self._patch(self.other, shouted)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("overlap_owner", self._message(response))
+
+    def test_a_symlink_into_another_users_directory_is_rejected(self):
+        link = os.path.join(settings.DATA_ROOT, "overlap-link")
+        try:
+            os.symlink(self.child, link, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("cannot create symlinks here")
+        response = self._patch(self.other, link)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("overlap_owner", self._message(response))
+
+
+class DirectoriesOverlapTestCase(SimpleTestCase):
+    """The overlap test compares paths the way the filesystem does.
+
+    ``os.path.normcase`` lower-cases on Windows and is the identity on POSIX,
+    so patching it in stands in for a case-insensitive filesystem on any OS.
+    """
+
+    root = os.path.abspath(os.sep)
+
+    def _path(self, *parts):
+        return os.path.join(self.root, *parts)
+
+    def test_case_differences_overlap_when_the_filesystem_folds_case(self):
+        with mock.patch("os.path.normcase", lambda path: path.lower()):
+            self.assertTrue(
+                directories_overlap(
+                    self._path("Data", "Alice"), self._path("data", "alice")
+                )
+            )
+            self.assertTrue(
+                directories_overlap(
+                    self._path("data", "alice", "2020"), self._path("DATA", "ALICE")
+                )
+            )
+            self.assertFalse(
+                directories_overlap(
+                    self._path("Data", "Alice"), self._path("data", "bob")
+                )
+            )
+
+    def test_case_differences_do_not_overlap_when_the_filesystem_keeps_case(self):
+        with mock.patch("os.path.normcase", lambda path: path):
+            self.assertFalse(
+                directories_overlap(
+                    self._path("Data", "Alice"), self._path("data", "alice")
+                )
+            )
+
+    @unittest.skipUnless(os.name == "nt", "Windows drive letters and separators")
+    def test_windows_spellings_of_one_directory_overlap(self):
+        self.assertTrue(directories_overlap(r"C:\Data\alice", "c:/data/alice/2020"))
+        self.assertFalse(directories_overlap(r"C:\Data\alice", r"C:\Data\alice2"))

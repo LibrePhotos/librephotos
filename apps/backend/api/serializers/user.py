@@ -73,8 +73,21 @@ def assign_fields(instance, validated_data, fields):
             setattr(instance, field, validated_data.pop(field))
 
 
+def comparable_path(path):
+    """Spell ``path`` the way the filesystem tells directories apart.
+
+    ``realpath`` folds a symlink onto its target, so a link into another
+    user's library is seen for what it is. ``normcase`` folds case and
+    separators on Windows, where ``C:\\Data\\alice`` and ``c:/data/alice``
+    are the same directory; it is a no-op on POSIX. Neither needs the path to
+    exist: ``realpath`` resolves as much of it as it can.
+    """
+    return os.path.normcase(os.path.realpath(path))
+
+
 def directories_overlap(one, other):
     """True when two directories are the same or one contains the other."""
+    one, other = comparable_path(one), comparable_path(other)
     return is_valid_path(one, other) or is_valid_path(other, one)
 
 
@@ -96,7 +109,7 @@ def reject_overlap_with_another_user(abs_scan_directory, user):
     # spelling, and a raw string compare would read that as a change and lock
     # the user out of its own directory.
     if user is not None and user.scan_directory:
-        if abs_scan_directory == os.path.abspath(user.scan_directory):
+        if comparable_path(abs_scan_directory) == comparable_path(user.scan_directory):
             return
 
     others = User.objects.exclude(scan_directory="")
