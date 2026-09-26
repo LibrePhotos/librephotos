@@ -17,10 +17,16 @@ def get_default_config_burst_detection_rules():  # This is a callable
 
 
 def get_default_llm_settings():
+    """Caption context: what a generated caption may know about the photo.
+
+    The field keeps its historical name; the switches used to feed a separate
+    LLM and now steer the captioning model's prompt directly. Names and
+    places are on by default: a caption that says who and where is the point.
+    """
     return {
-        "enabled": False,
-        "add_person": False,
-        "add_location": False,
+        "enabled": True,
+        "add_person": True,
+        "add_location": True,
         "add_keywords": False,
         "add_camera": False,
         "add_lens": False,

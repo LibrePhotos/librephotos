@@ -49,6 +49,13 @@ class SetUserAlbumPublic(APIView):
         share, _ = AlbumUserShare.objects.get_or_create(album=album)
         share.enabled = bool(val_public)
         self._apply_share_settings(share, data)
+        if not share.enabled:
+            # Revoking has to actually revoke. Keeping the slug means the next
+            # time the album is made public it is handed out under the very
+            # same URL, so everyone the withdrawn link ever reached silently
+            # gets access again (issue #76). Dropping it makes save() mint a
+            # fresh random one on the next enable.
+            share.slug = None
         share.save()
 
         return Response({"status": True, "album": AlbumUserListSerializer(album).data})

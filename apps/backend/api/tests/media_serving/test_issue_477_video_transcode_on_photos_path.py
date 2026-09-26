@@ -38,7 +38,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
-# Minimal well-formed-looking MP4 header so python-magic reports video/mp4.
+# Minimal well-formed-looking MP4 header so MIME sniffing reports video/mp4.
 MP4_BYTES = b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom" + b"\x00" * 64
 
 

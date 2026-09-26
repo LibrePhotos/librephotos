@@ -127,7 +127,7 @@ class ServerLogsPathResolutionTest(ServerLogsViewTestBase):
     """Both endpoints read settings.LOGS_ROOT, not $BASE_LOGS.
 
     A deployment may set the log directory through a settings override instead
-    of the environment variable, and the environment of the gunicorn process is
+    of the environment variable, and the environment of the server process is
     not necessarily the one the settings were built from.
     """
 

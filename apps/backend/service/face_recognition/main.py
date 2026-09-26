@@ -1,3 +1,4 @@
+import os
 import time
 
 import gevent
@@ -11,7 +12,14 @@ app = Flask(__name__)
 last_request_time = None
 face_analysis_models = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
-FACE_MODEL_ROOT = "/protected_media/data_models/face_recognition"
+# The sidecars never load Django, so the data root comes in as BASE_DATA (see
+# api.services._service_environment). Unset, this is the Docker layout under /.
+FACE_MODEL_ROOT = os.path.join(
+    os.environ.get("BASE_DATA", os.sep),
+    "protected_media",
+    "data_models",
+    "face_recognition",
+)
 SUPPORTED_FACE_MODELS = {
     "antelopev2",
     "buffalo_l",
@@ -166,8 +174,14 @@ def health():
     return {"last_request_time": last_request_time}, 200
 
 
-if __name__ == "__main__":
+def serve():
     log("service starting")
-    server = WSGIServer(("0.0.0.0", 8005), app)
+    # 0.0.0.0 inside the containers, as always; the standalone build sets
+    # SERVICE_HOST to loopback (librephotos.standalone.prepare_environment).
+    server = WSGIServer((os.environ.get("SERVICE_HOST", "0.0.0.0"), 8005), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
+
+
+if __name__ == "__main__":
+    serve()

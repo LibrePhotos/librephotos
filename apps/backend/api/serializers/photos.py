@@ -540,11 +540,8 @@ class PhotoSerializer(serializers.ModelSerializer):
         ):
             return obj.caption_instance.captions_json
         else:
-            emptyArray = {
-                "im2txt": "",
-                "places365": {"attributes": [], "categories": [], "environment": []},
-            }
-            return emptyArray
+            # Tags live under the active tagging model's key when present.
+            return {"im2txt": ""}
 
     def get_search_captions(self, obj) -> str:
         if hasattr(obj, "search_instance") and obj.search_instance:
@@ -634,6 +631,10 @@ class PhotoSerializer(serializers.ModelSerializer):
                 "face_id": f.id,
             }
             for f in obj.faces.all()
+            # A deleted face is hidden everywhere else in LibrePhotos -- the face
+            # dashboard and the person's face list both filter it out -- so it must
+            # not come back in the photo's own face list either.
+            if not f.deleted
         ]
 
     def get_embedded_media(self, obj: Photo) -> list[dict]:
@@ -970,10 +971,7 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
                 and len(obj.caption_instance.captions_json) > 0
             ):
                 return obj.caption_instance.captions_json
-        return {
-            "im2txt": "",
-            "places365": {"attributes": [], "categories": [], "environment": []},
-        }
+        return {"im2txt": ""}
 
     # People/faces - conditional
     def get_people(self, obj) -> list:
@@ -987,5 +985,5 @@ class PublicPhotoDetailSerializer(serializers.ModelSerializer):
                 "face_id": face.id,
             }
             for face in obj.faces.all()
-            if (person := face.person or face.cluster_person)
+            if not face.deleted and (person := face.person or face.cluster_person)
         ]

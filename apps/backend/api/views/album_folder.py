@@ -88,7 +88,7 @@ def _photo_counts(user, entries):
         )
         for idx, (_, folder_path, _) in enumerate(entries)
     }
-    counts = Photo.objects.filter(owner=user).aggregate(**aggregates)
+    counts = Photo.objects.owned_by(user).aggregate(**aggregates)
     return [counts.get(f"count_{idx}", 0) or 0 for idx in range(len(entries))]
 
 

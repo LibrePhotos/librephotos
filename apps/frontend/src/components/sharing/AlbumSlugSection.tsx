@@ -307,6 +307,10 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
         </Tooltip>
       </Group>
 
+      <Text size="xs" c="dimmed" mt={4}>
+        {t("sharing.linkRotatesOnRevoke")}
+      </Text>
+
       {showSettings && (
         <Stack mt="xs" gap="xs">
           <SlugSetting

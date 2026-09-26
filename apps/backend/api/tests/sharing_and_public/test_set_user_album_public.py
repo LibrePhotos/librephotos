@@ -195,7 +195,7 @@ class SetUserAlbumPublicEnableTest(SetUserAlbumPublicTestBase):
 
 
 class SetUserAlbumPublicDisableTest(SetUserAlbumPublicTestBase):
-    def test_disable_keeps_share_row_and_slug(self):
+    def test_disable_keeps_share_row_but_clears_slug(self):
         AlbumUserShare.objects.create(album=self.album, enabled=True, slug="old-slug")
 
         response = self.post({"album_id": self.album.id, "val_public": False})
@@ -203,10 +203,21 @@ class SetUserAlbumPublicDisableTest(SetUserAlbumPublicTestBase):
         self.assertEqual(200, response.status_code)
         share = AlbumUserShare.objects.get(album=self.album)
         self.assertFalse(share.enabled)
-        # The slug is NOT cleared when unpublishing.
-        self.assertEqual("old-slug", share.slug)
+        # The slug is burned on unpublish so the withdrawn link can never be
+        # revived by re-sharing the album.
+        self.assertIsNone(share.slug)
         self.assertFalse(response.json()["album"]["public"])
-        self.assertEqual("old-slug", response.json()["album"]["public_slug"])
+        self.assertEqual("", response.json()["album"]["public_slug"])
+
+    def test_disable_clears_a_slug_sent_in_the_same_request(self):
+        AlbumUserShare.objects.create(album=self.album, enabled=True, slug="old-slug")
+
+        response = self.post(
+            {"album_id": self.album.id, "val_public": False, "slug": "new-slug"}
+        )
+
+        self.assertEqual(200, response.status_code)
+        self.assertIsNone(AlbumUserShare.objects.get(album=self.album).slug)
 
     def test_disable_without_existing_share_creates_disabled_share_without_slug(self):
         response = self.post({"album_id": self.album.id, "val_public": False})
@@ -407,6 +418,27 @@ class SetUserAlbumPublicIdempotencyTest(SetUserAlbumPublicTestBase):
         self.assertEqual(200, second.status_code)
         self.assertEqual(1, AlbumUserShare.objects.filter(album=self.album).count())
         self.assertEqual(slug, second.json()["album"]["public_slug"])
+
+    def test_resharing_after_a_revoke_mints_a_new_link(self):
+        """Issue #76: a withdrawn link must not come back to life."""
+        first = self.post({"album_id": self.album.id, "val_public": True})
+        old_slug = first.json()["album"]["public_slug"]
+
+        self.post({"album_id": self.album.id, "val_public": False})
+        second = self.post({"album_id": self.album.id, "val_public": True})
+        new_slug = second.json()["album"]["public_slug"]
+
+        self.assertTrue(new_slug)
+        self.assertNotEqual(old_slug, new_slug)
+        self.assertEqual(1, AlbumUserShare.objects.filter(album=self.album).count())
+
+        anonymous = APIClient()
+        self.assertEqual(
+            404, anonymous.get(f"/api/public/albums/s/{old_slug}/").status_code
+        )
+        self.assertEqual(
+            200, anonymous.get(f"/api/public/albums/s/{new_slug}/").status_code
+        )
 
     def test_second_album_gets_its_own_share(self):
         album2 = AlbumUser.objects.create(title="album-b", owner=self.owner)

@@ -12,8 +12,13 @@
       "enabled": false
     },
     {
-      "description": "Never auto-bump these. The backend-gpu image runs Python 3.10, but newer releases of these packages drop py3.10, so apps/backend/requirements.txt carries a python_version split (newest on >=3.11, last py3.10-compatible on <3.11). Renovate applies one version to every matching line and collapses the split, breaking the GPU build. Bump manually and keep the <3.11 pin on a py3.10-compatible version: scikit-learn<=1.7.2, timezonefinder<=8.2.0, onnxruntime<=1.23.2.",
-      "matchPackageNames": ["scikit-learn", "scikit_learn", "timezonefinder", "onnxruntime", "onnxruntime-gpu"],
+      "description": "Never auto-bump these. hdbscan and timezonefinder also have arm64 wheels pinned by URL in requirements.txt. The backend-gpu image runs Python 3.10, but newer releases of these packages drop py3.10, so apps/backend/requirements.txt carries a python_version split (newest on >=3.11, last py3.10-compatible on <3.11). Renovate applies one version to every matching line and collapses the split, breaking the GPU build. Bump manually and keep the <3.11 pin on a py3.10-compatible version: scikit-learn<=1.7.2, timezonefinder<=8.2.0, onnxruntime<=1.23.2.",
+      "matchPackageNames": ["scikit-learn", "scikit_learn", "timezonefinder", "hdbscan", "onnxruntime", "onnxruntime-gpu"],
+      "enabled": false
+    },
+    {
+      "description": "insightface has no wheels on PyPI; requirements.txt pins wheels built by the prebuilt-wheels workflow next to the PyPI pin. Bump them together by hand and re-run the workflow.",
+      "matchPackageNames": ["insightface"],
       "enabled": false
     },
     {
@@ -45,6 +50,98 @@
       "matchFileNames": [".github/workflows/**"],
       "groupName": "github-actions",
       "addLabels": ["ci"]
+    },
+    {
+      "description": "The React Native app is being replaced by the Expo rewrite (apps/mobile-v2, PR #1952). Its updates cannot land without a full RN 0.72 upgrade, and react-native 0.x minors are breaking, so no dependency PRs for it.",
+      "matchFileNames": ["apps/mobile/**"],
+      "enabled": false
+    },
+    {
+      "description": "Deploy updates are never built by PR CI (the image workflows run on push to dev only), so they must not automerge.",
+      "matchFileNames": ["deploy/**"],
+      "automerge": false
+    },
+    {
+      "description": "The k8s manifests pin release tags and a Postgres major by hand; a Postgres major refuses to start on an existing data volume. Update them manually with a documented migration.",
+      "matchFileNames": ["deploy/k8s/**"],
+      "enabled": false
+    },
+    {
+      "description": "The GPU image stays on CUDA 12.1.1 / ubuntu22.04 / Python 3.10. Bump by hand only.",
+      "matchPackageNames": ["nvidia/cuda"],
+      "enabled": false
+    },
+    {
+      "description": "A new Ubuntu release swaps the distro Python under the backend base image. Move between LTS releases by hand after a test build.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ubuntu"],
+      "enabled": false
+    },
+    {
+      "description": "A Postgres major needs pg_upgrade or dump/restore on existing volumes. Never bump it automatically.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["postgres"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Django 6 requires Python >= 3.12, which the Python 3.10 GPU image cannot install. Stay on the 5.2 LTS until the GPU image moves off 3.10.",
+      "matchPackageNames": ["Django", "django"],
+      "allowedVersions": "<6"
+    },
+    {
+      "description": "typescript-eslint 8 supports TypeScript < 6.1 only; a newer TypeScript fails lint before anything else runs.",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<6.1"
+    },
+    {
+      "description": "Docusaurus 2 to 3 is a manual migration (MDX 3, prism-react-renderer 2 imports, @docusaurus/tsconfig), and PR CI does not build the docs. Re-enable once it is done.",
+      "matchFileNames": ["apps/docs/**"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together (with recharts, which only @mantine/charts uses) and are blocked on replacing react-beautiful-dnd.",
+      "matchFileNames": ["apps/frontend/**"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom", "/^@mantine\\//", "recharts", "@welldone-software/why-did-you-render"],
+      "groupName": "frontend react and mantine"
+    },
+    {
+      "matchFileNames": ["apps/frontend/**"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["eslint", "@eslint/js", "/^eslint-/", "/^@typescript-eslint\\//", "typescript-eslint", "typescript"],
+      "groupName": "frontend lint tooling"
+    },
+    {
+      "matchFileNames": ["apps/frontend/**"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["vite", "/^@vitejs\\//", "vitest", "/^@vitest\\//", "jsdom"],
+      "groupName": "frontend vite and vitest"
+    },
+    {
+      "matchFileNames": ["apps/frontend/**"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["/^@tiptap\\//", "tippy.js"],
+      "groupName": "frontend tiptap"
+    },
+    {
+      "matchFileNames": ["apps/frontend/**"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["maplibre-gl", "react-map-gl"],
+      "groupName": "frontend maps"
+    },
+    {
+      "description": "zod 4 touches about 70 files; keep it out of the general frontend group.",
+      "matchFileNames": ["apps/frontend/**"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["zod"],
+      "groupName": "frontend zod"
+    },
+    {
+      "description": "PR CI does not run the Cypress suite, so keep its updates apart from the app's.",
+      "matchFileNames": ["apps/frontend/e2e/**"],
+      "groupName": "frontend e2e dependencies"
     }
   ]
 }

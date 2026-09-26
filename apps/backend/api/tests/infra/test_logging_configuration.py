@@ -160,6 +160,13 @@ class LogLevelTest(SimpleTestCase):
                 logging.WARNING,
             )
 
+    def test_libvips_chatter_stays_out_of_the_default_log(self):
+        # pyvips forwards libvips' per-decode INFO messages, ~35 per photo.
+        with temporary_logging(level="INFO"):
+            self.assertEqual(
+                logging.getLogger("pyvips").getEffectiveLevel(), logging.WARNING
+            )
+
     def test_floors_tighten_with_the_requested_level(self):
         # A floor should never make a logger more verbose than the admin asked
         # for, so ERROR pushes the INFO floors down with everything else.

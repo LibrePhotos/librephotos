@@ -43,13 +43,12 @@ class ThumbnailNamingTest(TestCase):
         self.assertNotIn(str(photo.id), thumbnail.square_thumbnail.name)
         self.assertNotIn(str(photo.id), thumbnail.square_thumbnail_small.name)
 
-    @mock.patch("api.models.thumbnail.create_thumbnail")
+    @mock.patch("api.models.thumbnail.create_static_thumbnails")
     @mock.patch("api.models.thumbnail.does_static_thumbnail_exist")
     def test_generate_thumbnail_uses_image_hash(self, mock_exists, mock_create):
         """Verify that _generate_thumbnail method uses image_hash"""
         # Mock to indicate thumbnails don't exist yet
         mock_exists.return_value = False
-        mock_create.return_value = "/tmp/test.webp"
 
         # Create a photo
         photo = create_test_photo(owner=self.user)
@@ -58,15 +57,15 @@ class ThumbnailNamingTest(TestCase):
         # Call _generate_thumbnail
         thumbnail._generate_thumbnail()
 
-        # Verify create_thumbnail was called with image_hash, not UUID
-        calls = mock_create.call_args_list
-        for call in calls:
-            kwargs = call[1]
-            if "hash" in kwargs:
-                # The hash parameter should be the image_hash
-                self.assertEqual(kwargs["hash"], photo.image_hash)
-                # Should NOT be the UUID
-                self.assertNotEqual(kwargs["hash"], str(photo.id))
+        # One call renders every missing size, named after image_hash, not UUID
+        mock_create.assert_called_once()
+        kwargs = mock_create.call_args.kwargs
+        self.assertEqual(kwargs["hash"], photo.image_hash)
+        self.assertNotEqual(kwargs["hash"], str(photo.id))
+        self.assertEqual(
+            kwargs["output_paths"],
+            ["thumbnails_big", "square_thumbnails", "square_thumbnails_small"],
+        )
 
     def test_thumbnail_file_naming_convention(self):
         """Test that thumbnail file names follow the correct pattern"""

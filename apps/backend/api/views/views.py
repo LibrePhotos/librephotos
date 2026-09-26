@@ -6,10 +6,11 @@ import uuid
 from urllib.parse import quote
 
 import jsonschema
-import magic
 from constance import config as site_config
 from django.conf import settings
 
+from api import binaries
+from api.mime import mime_type
 from api.mail import email_is_configured
 from django.db.models import Q, Sum
 from django.http import (
@@ -40,7 +41,7 @@ from api.ml_models import do_all_models_exist, download_models
 from api.models import AlbumUser, LongRunningJob, Photo, User
 from api.schemas.site_settings import site_settings_schema
 from api.serializers.album_user import AlbumUserEditSerializer, AlbumUserListSerializer
-from api import ffmpeg_budget, transcode_cache
+from api import ffmpeg_budget, transcode_cache, video_color
 from api.util import logger
 from api.views.pagination import StandardResultsSetPagination
 
@@ -56,7 +57,14 @@ def custom_exception_handler(exc, context):
 
         if isinstance(response.data, dict):
             for key, value in response.data.items():
-                error = {"field": key, "message": "".join(str(value))}
+                # DRF gives per-field errors as a list of ErrorDetail. str() on
+                # the list yields its repr, which used to leak into the response
+                # as "[ErrorDetail(string='...', code='unique')]".
+                if isinstance(value, (list, tuple)):
+                    message = " ".join(str(item) for item in value)
+                else:
+                    message = str(value)
+                error = {"field": key, "message": message}
                 customized_response["errors"].append(error)
         elif isinstance(response.data, list):
             # Handle ValidationError raised with a string (creates a list)
@@ -127,7 +135,8 @@ class SiteSettingsView(APIView):
         out["map_api_key"] = site_config.MAP_API_KEY
         out["map_tile_provider"] = site_config.MAP_TILE_PROVIDER
         out["captioning_model"] = site_config.CAPTIONING_MODEL
-        out["llm_model"] = site_config.LLM_MODEL
+        # There is no LLM any more; older mobile clients still expect the key.
+        out["llm_model"] = "None"
         out["tagging_model"] = site_config.TAGGING_MODEL
         out["ocr_model"] = site_config.OCR_MODEL
         out["face_recognition_model"] = site_config.FACE_RECOGNITION_MODEL
@@ -151,8 +160,6 @@ class SiteSettingsView(APIView):
             site_config.MAP_TILE_PROVIDER = request.data["map_tile_provider"]
         if "captioning_model" in request.data.keys():
             site_config.CAPTIONING_MODEL = request.data["captioning_model"]
-        if "llm_model" in request.data.keys():
-            site_config.LLM_MODEL = request.data["llm_model"]
         if "tagging_model" in request.data.keys():
             site_config.TAGGING_MODEL = request.data["tagging_model"]
         if "ocr_model" in request.data.keys():
@@ -562,7 +569,7 @@ def build_live_command(path):
     # mid-video, with the process still alive and the browser still waiting.
     # Rate limiting lengthens exactly that wall clock, which would have turned a
     # bug reachable only on long videos into one reachable on ordinary ones.
-    command = ["ffmpeg", "-nostdin", "-loglevel", "error", "-threads", threads]
+    command = [binaries.ffmpeg(), "-nostdin", "-loglevel", "error", "-threads", threads]
 
     # -threads does not govern the filter pool, which defaults to one thread per
     # core: on a many-core host the scale filter alone can spawn as many threads
@@ -581,7 +588,7 @@ def build_live_command(path):
         if burst > 0 and ffmpeg_budget.supports("readrate_initial_burst"):
             command += ["-readrate_initial_burst", str(burst)]
 
-    return command + [
+    command += [
         "-i",
         path,
         # Again after the input: the first one capped the decoder, this caps the
@@ -594,16 +601,18 @@ def build_live_command(path):
         "ultrafast",
         "-movflags",
         "frag_keyframe+empty_moov",
-        "-filter:v",
-        # A ceiling, not a target: plain "scale=-2:720" enlarges anything
-        # shorter than 720 lines, and the phone clips that most often need
-        # converting are exactly that. Upscaling costs bandwidth and CPU to
-        # add nothing a viewer can see.
-        "scale=-2:'min(720,ih)'",
-        "-f",
-        "mp4",
-        "-",
     ]
+
+    # A ceiling, not a target: plain "scale=-2:720" enlarges anything shorter
+    # than 720 lines, and the phone clips that most often need converting are
+    # exactly that. Upscaling costs bandwidth and CPU to add nothing a viewer
+    # can see. An HDR source needs tonemapping after it, or the browser reads a
+    # PQ curve as bt709 and shows it washed out; see :mod:`api.video_color`.
+    video_filter = video_color.video_filter(path, "scale=-2:'min(720,ih)'")
+    if video_filter:
+        command += ["-filter:v", video_filter]
+
+    return command + ["-f", "mp4", "-"]
 
 
 class VideoTranscoder:
@@ -709,8 +718,7 @@ class UnifiedMediaAccessView(APIView):
 
     def _file_content_type(self, file_path):
         try:
-            mime = magic.Magic(mime=True)
-            return mime.from_file(file_path)
+            return mime_type(file_path)
         except Exception:
             return "application/octet-stream"
 
@@ -884,10 +892,8 @@ class UnifiedMediaAccessView(APIView):
         if photo.video:
             if transcode_videos:
                 return self._transcoded_video_response(photo, use_proxy=True)
-            mime = magic.Magic(mime=True)
-            filename = mime.from_file(photo.main_file.path)
             response = HttpResponse()
-            response["Content-Type"] = filename
+            response["Content-Type"] = mime_type(photo.main_file.path)
             response["X-Accel-Redirect"] = iri_to_uri(
                 photo.main_file.path.replace(settings.DATA_ROOT, "/original")
             )
@@ -1003,6 +1009,15 @@ class UnifiedMediaAccessView(APIView):
             Q(share__expires_at__isnull=True) | Q(share__expires_at__gte=timezone.now())
         )
 
+    @staticmethod
+    def _vouching_albums(photo):
+        """Albums whose shares may grant access to ``photo``: its owner's only.
+
+        A photo that sits in someone else's album (GHSA-phvg-g65q-rhq3) must
+        not be served on the strength of that album's share.
+        """
+        return photo.albumuser_set.filter(owner_id=photo.owner_id)
+
     def _resolve_requester(self, jwt):
         """Return ``(user, token_valid)`` for the value of the ``jwt`` cookie.
 
@@ -1044,7 +1059,7 @@ class UnifiedMediaAccessView(APIView):
                 if p.shared_to.filter(id=user.id).exists():
                     return p
         for p in candidates:
-            if p.albumuser_set.filter(self._public_album_active_q()).exists():
+            if self._vouching_albums(p).filter(self._public_album_active_q()).exists():
                 return p
         return candidates[0]
 
@@ -1054,9 +1069,11 @@ class UnifiedMediaAccessView(APIView):
             return False
         if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
             return True
-        return photo.albumuser_set.filter(
-            self._public_album_active_q() | Q(shared_to=user)
-        ).exists()
+        return (
+            self._vouching_albums(photo)
+            .filter(self._public_album_active_q() | Q(shared_to=user))
+            .exists()
+        )
 
     @staticmethod
     def _is_uuid_format(value):
@@ -1167,9 +1184,11 @@ class UnifiedMediaAccessView(APIView):
         if album is None:
             return HttpResponse(status=404)
         try:
-            photo = album.photos.only(
-                "image_hash", "video", "main_file", "thumbnail"
-            ).get(image_hash=image_hash)
+            photo = (
+                album.photos.filter(owner_id=album.owner_id)
+                .only("image_hash", "video", "main_file", "thumbnail")
+                .get(image_hash=image_hash)
+            )
         except Photo.DoesNotExist:
             return HttpResponse(status=404)
 
@@ -1198,7 +1217,7 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if photo.albumuser_set.filter(self._public_album_active_q()).exists():
+        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
             return self._generate_response(photo, path, fname, False, use_proxy)
 
         if not token_valid:
@@ -1216,7 +1235,7 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if photo.albumuser_set.filter(self._public_album_active_q()).exists():
+        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
             return self._generate_response_original(photo, use_proxy, False)
 
         if not token_valid:
@@ -1277,7 +1296,7 @@ class ZipListPhotosView_V2(APIView):
             )
         include_stacked = bool(include_stacked)
 
-        photo_query = Photo.objects.filter(owner=self.request.user)
+        photo_query = Photo.objects.owned_by(self.request.user)
 
         # Two payload shapes are accepted, mirroring the other bulk mutations
         # (SetPhotosDeleted, SetFavoritePhotos, SetPhotosHidden, SetPhotosPublic):

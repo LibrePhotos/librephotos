@@ -33,7 +33,7 @@ spec:
         # backend's ALLOWED_HOSTS and would be answered with a 400.
         #
         # The entrypoint runs migrations, collectstatic and the service startup
-        # before gunicorn binds, which on a first install or a CPU-limited host
+        # before uvicorn binds, which on a first install or a CPU-limited host
         # takes minutes. kubelet holds the other two probes off until this one
         # succeeds, so a slow boot cannot be mistaken for a wedged process and
         # restarted into a loop.

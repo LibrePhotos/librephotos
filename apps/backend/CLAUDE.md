@@ -13,7 +13,7 @@
 - **Custom Commands**: `python manage.py <command_name>` (see `api/management/commands/`)
 
 ### Running Services
-- **API Server (Gunicorn)**: Runs automatically in container
+- **API Server (uvicorn, ASGI)**: Runs automatically in container
 - **Background Jobs (django-q2)**: Runs automatically via `qcluster` command
 - **Image Similarity Service**: Flask app for semantic search
 - **Thumbnail Service**: Separate process for image processing
@@ -36,7 +36,7 @@
    ```bash
    bash scripts/setup_test_env.sh
    ```
-   This installs `libvips-dev`, `libimage-exiftool-perl`, `libmagic1`, and all Python
+   This installs perl and all Python
    packages from `requirements.txt` and `requirements.dev.txt`.
 
 2. Run the tests using the SQLite in-memory settings and pointing the runtime
@@ -61,6 +61,39 @@
    The `test_sqlite` settings module (`librephotos/settings/test_sqlite.py`) uses
    an in-memory SQLite database so no PostgreSQL instance is required.
 
+**Natively on Windows (no Docker):** Python 3.11; everything else comes from pip. `requirements.txt`
+carries the Windows variants behind `sys_platform` markers; `insightface`, `timezonefinder`,
+`exiftool-bin` (ExifTool wrapped by `scripts/build_exiftool_wheel.py`; a Perl variant
+serves Linux/macOS) and `ffmpeg-bin` (BtbN's GPL build, `scripts/build_ffmpeg_wheel.py`; macOS
+needs `brew install ffmpeg`) come as wheels from the `windows-wheels-*` GitHub release (`.github/workflows/prebuilt-wheels.yml`
+rebuilds them, including manylinux insightface wheels for the images and CI, `api/tests/infra/test_requirements_windows_wheels.py` keeps the versions in
+step).
+
+```powershell
+py -3.11 -m venv .venv; .\.venv\Scripts\pip install -r requirements.txt -r requirements.dev.txt
+$env:DJANGO_SETTINGS_MODULE = "librephotos.settings.test_sqlite"; $env:SECRET_KEY = "x"
+$env:BASE_DATA = "$PWD\.testtmp"; $env:BASE_LOGS = "$PWD\.testtmp\logs"; $env:NO_COVERAGE = "1"
+.\.venv\Scripts\python manage.py test api.tests
+.\scripts\dev_windows.ps1 -DataDir C:\devdata   # dev server: exif sidecar + qcluster + uvicorn :8000
+```
+
+`dev_windows.ps1` uses `librephotos.settings.dev_windows` (SQLite on disk, Django serves
+media). Uploads only get dated/thumbnailed because `qcluster` and the exif sidecar run.
+`qcluster` needs django-q2 >= 1.11.1: 1.11.0 asked for the `fork` multiprocessing context
+and died on Windows with `ValueError: cannot find context for 'fork'`, so no background job
+(scan, thumbnails, faces) ever ran natively; 1.11.1 falls back to `spawn` (django-q2#345).
+ML sidecars are not started and their `FEATURE_*` flags default off there; set one to `1`
+and `python manage.py start_service <name>` after downloading the models. The sidecars
+never load Django and locate their models through `BASE_DATA` (`start_service` passes it
+along with `BASE_LOGS`), so they resolve to `$BASE_DATA\protected_media\data_models`,
+the same directory `api.ml_models` downloads into; unset, that is Docker's
+`/protected_media/data_models`. The POSIX permission and mount tests in
+`test_serving_permissions` are skipped on Windows.
+
+Frontend against that backend: `cd apps/frontend`, copy `.env.development.example` to
+`.env.development`, set `VITE_BACKEND_URL=http://localhost:8000`, then `yarn install` and
+`yarn start` (Node 22). Vite proxies `/api` and `/media` so the app stays same-origin.
+
 ### Debugging
 - **PDB Breakpoint**: Add `import pdb; pdb.set_trace()` in code
 - **Attach to Container**: `docker attach $(docker ps --filter name=backend -q)`
@@ -74,7 +107,7 @@
 - **Target Python**: 3.11+
 - **Framework**: Django 5.x with Django REST Framework
 - **Async Jobs**: django-q2 with ORM broker
-- **ML Framework**: PyTorch for machine learning models
+- **ML Runtime**: ONNX Runtime for every model (no PyTorch); tokenizers via the `tokenizers` package
 
 ## Project Structure
 
@@ -89,12 +122,11 @@
 - `feature/` - Feature extraction utilities
 
 ### `service/` - Microservices
-- `clip_embeddings/` - CLIP model for semantic search
+- `clip_embeddings/` - CLIP ViT-B/32 (ONNX) embeddings for semantic search
 - `face_recognition/` - Face detection and recognition
-- `image_captioning/` - Image captioning (im2txt, BLIP)
+- `image_captioning/` - Image captioning (LFM2.5-VL, ONNX; prompted with names and places)
 - `thumbnail/` - Thumbnail generation
-- `llm/` - LLM integration for chat features
-- `tags/` - Tag extraction (places365)
+- `tags/` - Zero-shot tagging (MobileCLIP-S2, SigLIP 2; ONNX)
 - `exif/` - EXIF metadata extraction
 
 ### `image_similarity/` - Similarity Search
@@ -115,7 +147,7 @@ Key environment variables (set in Docker or `.env`):
 - `SECRET_KEY` - Django secret key
 - `DB_*` - Database connection settings
 - `MAPBOX_API_KEY` - For map features
-- `WEB_CONCURRENCY` - Gunicorn worker count
+- `WEB_CONCURRENCY` - uvicorn worker count
 
 ## Common Patterns
 
@@ -136,3 +168,11 @@ Key environment variables (set in Docker or `.env`):
 2. Create service wrapper in `service/<model_name>/`
 3. Integrate with API views as needed
 
+### Standalone build (Windows, Nuitka)
+
+`scripts/build_standalone.py --zip` (needs `requirements.standalone.txt`, MSVC, Node 22) compiles
+`librephotos_standalone.py` into `build/standalone/librephotos/librephotos.exe`: server, qcluster
+and every sidecar in one binary (`librephotos/standalone.py` dispatches on `run`/`manage`/`service`),
+settings `librephotos.settings.standalone` (SQLite + WhiteNoise under `%LOCALAPPDATA%\LibrePhotos`).
+Sidecars must expose `serve()`; their bare sibling imports are compiled as top-level modules via
+PYTHONPATH at build time. `.github/workflows/standalone-windows.yml` builds and uploads the zip.

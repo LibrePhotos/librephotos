@@ -1,7 +1,7 @@
 import re
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, F, Prefetch, Q
+from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -61,7 +61,8 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
             return Person.objects.none()
 
         return (
-            Person.objects.annotate(
+            Person.objects.filter(cluster_owner=self.request.user)
+            .annotate(
                 photo_count=Count(
                     "faces", filter=Q(faces__photo__hidden=False), distinct=True
                 )
@@ -76,9 +77,8 @@ class AlbumPersonViewSet(viewsets.ModelViewSet):
             .prefetch_related(
                 Prefetch(
                     "faces__photo",
-                    queryset=Photo.objects.filter(
-                        Q(faces__photo__hidden=False) & Q(owner=self.request.user)
-                    )
+                    queryset=Photo.objects.owned_by(self.request.user)
+                    .filter(faces__photo__hidden=False)
                     .distinct()
                     .order_by("-exif_timestamp")
                     .only("image_hash", "exif_timestamp", "rating", "public", "hidden"),
@@ -113,6 +113,16 @@ class PersonViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_anonymous:
             return Person.objects.none()
+        # People without an explicit cover fall back to their first face.
+        # Resolving that in the serializer costs eight queries per person, so
+        # the values are pulled in with the page instead (issue #618).
+        # Scoped to the requester's own photos, following the owned_by /
+        # visible_to convention (#2031). `cluster_owner` scopes the person, not
+        # its faces, so without this a face attached from another user's photo
+        # would put that photo's image hash in this user's people list (#2047).
+        first_face = Face.objects.filter(
+            person=OuterRef("pk"), photo__owner=self.request.user
+        ).order_by("id")
         qs = (
             Person.objects.filter(
                 Q(kind=Person.KIND_USER) & Q(cluster_owner=self.request.user)
@@ -124,6 +134,13 @@ class PersonViewSet(viewsets.ModelViewSet):
                 "id",
                 "cover_face",
                 "cover_photo",
+            )
+            .annotate(
+                first_face_image=Subquery(first_face.values("image")[:1]),
+                first_face_photo_hash=Subquery(
+                    first_face.values("photo__image_hash")[:1]
+                ),
+                first_face_photo_video=Subquery(first_face.values("photo__video")[:1]),
             )
             .order_by("name")
         )
@@ -189,14 +206,31 @@ def _with_photo_summary_relations(queryset):
     )
 
 
+def with_album_user_list_relations(queryset):
+    """Load everything ``AlbumUserListSerializer`` reads in a constant number of queries.
+
+    The list serializer renders the album cover, the owner, the users the album
+    is shared to and its public-share settings. None of those are joined by
+    default, so every album on the page costs four extra round trips and the
+    cover grid only appears once the last of them has come back (issue #618).
+    """
+    return queryset.select_related("owner", "cover_photo", "share").prefetch_related(
+        "shared_to",
+        # Fallback cover for albums without an explicit one. ``.first()`` on the
+        # unordered m2m orders by pk, so the prefetch has to do the same.
+        Prefetch(
+            "photos",
+            queryset=Photo.objects.order_by("pk")[:1],
+            to_attr="first_photos",
+        ),
+    )
+
+
 def _get_active_tag_thing_types():
     """Return the AlbumThing thing_type values for the active tagging model."""
     from constance import config as site_config
 
-    tagging_model = site_config.TAGGING_MODEL
-    if tagging_model == "siglip2":
-        return ["siglip2_tag"]
-    return ["places365_attribute", "places365_category"]
+    return [f"{site_config.TAGGING_MODEL}_tag"]
 
 
 class AlbumThingViewSet(viewsets.ModelViewSet):
@@ -426,7 +460,7 @@ class AlbumUserListViewSet(ListViewSet):
     def get_queryset(self):
         if self.request.user.is_anonymous:
             return AlbumUser.objects.none()
-        return (
+        return with_album_user_list_relations(
             AlbumUser.objects.filter(owner=self.request.user)
             .annotate(
                 photo_count=Count(

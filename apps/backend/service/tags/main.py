@@ -1,15 +1,26 @@
+import os
 import time
 
 import gevent
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
-from places365.places365 import Places365
+from mobileclip.mobileclip import MobileCLIP
 from siglip2.siglip2 import SigLIP2
 
 app = Flask(__name__)
 
-places365_instance = None
-siglip2_instance = None
+DEFAULT_TAGGING_MODEL = "mobileclip_s2"
+MAX_TAGS = 10
+
+# Per-model minimum score for a tag to be kept. The two scales differ on
+# purpose: SigLIP 2 is cut on raw cosine similarity, MobileCLIP on the
+# softmax probability over all tags (see mobileclip.py for why).
+TAGGERS = {
+    "siglip2": (SigLIP2, 0.05),
+    "mobileclip_s2": (MobileCLIP, 0.02),
+}
+
+tagger_instances = {}
 last_request_time = None
 
 
@@ -22,24 +33,18 @@ def parse_tag_request():
     return (
         data["image_path"],
         data.get("confidence", 0.4),
-        data.get("tagging_model", "places365"),
+        data.get("tagging_model") or DEFAULT_TAGGING_MODEL,
     )
 
 
-def tag_with_siglip2(image_path, confidence):
-    global siglip2_instance
-    if siglip2_instance is None:
-        siglip2_instance = SigLIP2()
-    # SigLIP 2 uses cosine similarity (range -1 to 1), not probability scores.
-    # Always return the top 10 most relevant tags above a minimum threshold.
-    return siglip2_instance.predict(image_path, threshold=0.05, max_tags=10)
-
-
-def tag_with_places365(image_path, confidence):
-    global places365_instance
-    if places365_instance is None:
-        places365_instance = Places365()
-    return places365_instance.inference_places365(image_path, confidence)
+def get_tagger(tagging_model):
+    """The cached tagger for a model, built on first use; None for an unknown model."""
+    if tagging_model not in TAGGERS:
+        return None
+    if tagging_model not in tagger_instances:
+        tagger_cls, _ = TAGGERS[tagging_model]
+        tagger_instances[tagging_model] = tagger_cls()
+    return tagger_instances[tagging_model]
 
 
 @app.route("/generate-tags", methods=["POST"])
@@ -48,15 +53,23 @@ def generate_tags():
     last_request_time = time.time()
 
     try:
-        image_path, confidence, tagging_model = parse_tag_request()
+        image_path, _confidence, tagging_model = parse_tag_request()
     except Exception as e:
         print(str(e))
         return "", 400
 
-    tagger = tag_with_siglip2 if tagging_model == "siglip2" else tag_with_places365
+    tagger = get_tagger(tagging_model)
+    if tagger is None:
+        return {"error": f"Unknown tagging model {tagging_model!r}"}, 400
+
+    _, threshold = TAGGERS[tagging_model]
     try:
-        return {"tags": tagger(image_path, confidence)}, 201
+        return {
+            "tags": tagger.predict(image_path, threshold=threshold, max_tags=MAX_TAGS)
+        }, 201
     except Exception as e:
+        # A tagger that failed half-way through loading must not be reused.
+        tagger_instances.pop(tagging_model, None)
         print(f"tags: Error processing image {image_path}: {e}")
         return {"error": "Failed to process image"}, 500
 
@@ -66,8 +79,14 @@ def health():
     return {"last_request_time": last_request_time}, 200
 
 
-if __name__ == "__main__":
+def serve():
     log("service starting")
-    server = WSGIServer(("0.0.0.0", 8011), app)
+    # 0.0.0.0 inside the containers, as always; the standalone build sets
+    # SERVICE_HOST to loopback (librephotos.standalone.prepare_environment).
+    server = WSGIServer((os.environ.get("SERVICE_HOST", "0.0.0.0"), 8011), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
+
+
+if __name__ == "__main__":
+    serve()

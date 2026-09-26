@@ -50,6 +50,12 @@ You can create a public link for any user album, making it accessible to anyone 
 
 The public album is accessible at `https://your-instance/public/s/{slug}`.
 
+### Revoking a Public Link
+
+Toggle **"Public sharing"** off again and the link stops working immediately. The slug is burned at the same time, so turning public sharing back on generates a brand-new URL rather than reviving the old one. Anyone who still holds the withdrawn link, including someone you shared it with by mistake, keeps getting a "not found" page.
+
+This also means a custom slug is not kept across a revoke: set it again after re-enabling the link if you want it back.
+
 ### Configuring Public Link Settings
 
 When public sharing is enabled, click **Show settings** in the sharing dialog to expand the configuration panel. From there you can configure:

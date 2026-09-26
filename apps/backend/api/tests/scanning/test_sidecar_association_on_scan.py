@@ -112,7 +112,7 @@ class XMPAssociationTest(TestCase):
             self.assertEqual(len(xmp_paths), N, "Should have N XMP files")
 
             # Mock pyvips to accept our test images
-            with patch("pyvips.Image.thumbnail"):
+            with patch("api.image_decoding.thumbnail"):
                 # Process images first (simulating what the sentinel ensures)
                 # This is the critical ordering that the sentinel guarantees
                 for img_path in image_paths:
@@ -157,7 +157,7 @@ class XMPAssociationTest(TestCase):
             with open(xmp_path, "wb") as f:
                 f.write(b"<x:xmpmeta>test</x:xmpmeta>")
 
-            with patch("pyvips.Image.thumbnail"):
+            with patch("api.image_decoding.thumbnail"):
                 # Process XMP first (the problematic order that sentinel prevents)
                 result_xmp = create_new_image(user, xmp_path)
                 self.assertIsNone(result_xmp, "XMP without photo should return None")
@@ -261,7 +261,7 @@ class MetadataOrderingSentinelTest(TestCase):
                         "api.directory_watcher.scan_jobs.update_scan_counter"
                     ) as _update_counter,
                     patch("api.directory_watcher.scan_jobs.util.logger") as _logger,
-                    patch("pyvips.Image.thumbnail") as _thumb,
+                    patch("api.image_decoding.thumbnail") as _thumb,
                     patch(
                         "api.models.thumbnail.Thumbnail._generate_thumbnail"
                     ) as _gen_thumb,

@@ -9,6 +9,24 @@ function updateUser(username: string) {
   });
 }
 
+function updateUserError(message?: string) {
+  showNotification({
+    message: message || i18n.t("toasts.updateusererror"),
+    title: i18n.t("toasts.updateusererrortitle"),
+    color: "red",
+  });
+}
+
+function signupError(message?: string) {
+  showNotification({
+    message: message || i18n.t("toasts.signuperror"),
+    title: i18n.t("toasts.signuperrortitle"),
+    color: "red",
+  });
+}
+
 export const user = {
   updateUser,
+  updateUserError,
+  signupError,
 };

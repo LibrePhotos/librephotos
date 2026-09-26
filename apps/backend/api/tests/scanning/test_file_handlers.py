@@ -322,6 +322,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
     def test_no_valid_files_logs_warning_and_skips_processing(self):
         bad_path = _write_bytes(self.p("garbage.txt"), b"nope")
+        self._make_job()
 
         with patch(f"{MODULE}.util.logger") as logger:
             handle_file_group(self.user, [bad_path], self.job_id)
@@ -329,9 +330,12 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertEqual(0, Photo.objects.count())
         self.mock_process.assert_not_called()
         self.assertIn("No valid files in group", logger.warning.call_args[0][0])
+        job = LongRunningJob.objects.get(job_id=self.job_id)
+        self.assertEqual(1, (job.result or {}).get("error_count"))
 
     def test_metadata_only_group_creates_no_photo(self):
         xmp_path = _write_bytes(self.p("only.xmp"), b"<x:xmpmeta/>")
+        self._make_job()
 
         with patch(f"{MODULE}.util.logger") as logger:
             handle_file_group(self.user, [xmp_path], self.job_id)
@@ -340,6 +344,8 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.mock_process.assert_not_called()
         warnings = [c[0][0] for c in logger.warning.call_args_list]
         self.assertTrue(any("Could not create photo for files" in w for w in warnings))
+        job = LongRunningJob.objects.get(job_id=self.job_id)
+        self.assertEqual(1, (job.result or {}).get("error_count"))
         # The File record for the sidecar IS created even though no Photo is.
         self.assertTrue(File.objects.filter(path=xmp_path).exists())
 
@@ -385,9 +391,10 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
         job.refresh_from_db()
         self.assertEqual(1, job.progress_current)
-        # The failure is only logged - update_scan_counter is called without
-        # failed/error, so the job is NOT marked as failed.
+        # The error is recorded on the job result, but one failure is below
+        # FAILURE_ERROR_FLOOR so the sticky failed flag stays off.
         self.assertFalse(job.failed)
+        self.assertEqual(1, (job.result or {}).get("error_count"))
 
     def test_scan_counter_is_incremented_when_group_has_no_valid_files(self):
         job = self._make_job(target=2)

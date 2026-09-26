@@ -11,18 +11,17 @@ from django.utils import timezone
 
 from api.models import Photo
 from api.util import logger
+from api.sidecars import sidecar_url
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
+from librephotos.standalone import named_executable
 
 # Track services that should not be restarted due to system incompatibility
 INCOMPATIBLE_SERVICES = set()
 
-# CPU features required for different services
-SERVICE_CPU_REQUIREMENTS = {
-    "llm": {
-        "required": ["avx", "sse4_2"],  # Essential for llama.cpp
-        "recommended": ["avx2", "fma", "f16c"],  # Improve performance
-    }
-}
+# CPU features required for different services. Empty since the llama.cpp
+# based LLM service left; the check stays for the next sidecar that needs it, as
+# {"service": {"required": [...], "recommended": [...]}}.
+SERVICE_CPU_REQUIREMENTS = {}
 
 # Define all the services that can be started, with their respective ports
 SERVICES = {
@@ -30,7 +29,6 @@ SERVICES = {
     "thumbnail": 8003,
     "face_recognition": 8005,
     "clip_embeddings": 8006,
-    "llm": 8008,
     "image_captioning": 8007,
     "exif": 8010,
     "tags": 8011,
@@ -40,19 +38,11 @@ SERVICES = {
 HTTP_OK = 200
 
 # The feature flag each service serves; None means core scan/search, always on.
-#
-# llm is gated on captioning because captioning is its only consumer: port 8008
-# is reached from api.llm.generate_prompt and the Moondream branch of
-# api.image_captioning.generate_caption, and both are called only from
-# PhotoCaption's caption generation, which already stops when
-# FEATURE_IMAGE_CAPTIONING is off. If anything else ever calls generate_prompt
-# — chat, cluster naming — this has to go back to None.
 SERVICE_FEATURE_FLAGS = {
     "image_similarity": None,
     "thumbnail": None,
     "face_recognition": "FEATURE_FACE_DETECTION",
     "clip_embeddings": None,
-    "llm": "FEATURE_IMAGE_CAPTIONING",
     "image_captioning": "FEATURE_IMAGE_CAPTIONING",
     "exif": None,
     "tags": "FEATURE_SCENE_CLASSIFICATION",
@@ -136,25 +126,50 @@ def is_healthy(service):
     try:
         from api.http_timeouts import HEALTH_CHECK
 
-        res = requests.get(f"http://localhost:{port}/health", timeout=HEALTH_CHECK)
+        res = requests.get(sidecar_url(port, "/health"), timeout=HEALTH_CHECK)
         # If response has timestamp, check if it needs to be restarted
         if res.json().get("last_request_time") is not None:
             if res.json()["last_request_time"] < time.time() - 120:
                 logger.info(f"Service {service} is stale and needs to be restarted")
                 return False
         return res.status_code == HTTP_OK
+    except requests.RequestException as e:
+        # The sidecars serve one request at a time, and a tag or embedding
+        # batch takes far longer than the health probe allows, so a probe that
+        # times out or is refused during a scan means "busy" as often as
+        # "dead". Restarting a busy sidecar fails the request it was serving
+        # and loses that photo's tags or embedding; a process that is still
+        # there is left alone, only one that has gone is restarted.
+        if _service_process_running(service):
+            logger.info(
+                f"Service {service} did not answer its health check but is running: {e}"
+            )
+            return True
+        logger.warning(f"Service {service} is not running: {e}")
+        return False
     except BaseException as e:
         logger.exception(f"Error checking health of {service}: {str(e)}")
         return False
+
+
+def _service_process_running(service):
+    import psutil
+
+    for process in psutil.process_iter(["pid", "cmdline"]):
+        if _is_service_process(process.info["cmdline"], service):
+            return True
+    return False
 
 
 def _service_environment():
     """Environment for the spawned service processes.
 
     They never load Django, so they configure their logging from BASE_LOGS and
-    LOG_LEVEL (see librephotos.logging_bootstrap). Popen without ``env`` would
-    pass on only the ambient environment, which does not carry a log location
-    set through a settings override rather than an environment variable.
+    LOG_LEVEL (see librephotos.logging_bootstrap) and find their models under
+    BASE_DATA/protected_media/data_models, the same root api.ml_models downloads
+    them to. Popen without ``env`` would pass on only the ambient environment,
+    which does not carry a location set through a settings override rather
+    than an environment variable.
 
     Their stdout is deliberately left alone. Handing a child an fd on the log
     file would pin it to that inode, so after the first rotation it would keep
@@ -162,9 +177,40 @@ def _service_environment():
     """
     return {
         **os.environ,
+        "BASE_DATA": settings.BASE_DATA,
         "BASE_LOGS": settings.LOGS_ROOT,
         "LOG_LEVEL": settings.LOGGING.get("root", {}).get("level", DEFAULT_LOG_LEVEL),
     }
+
+
+def _service_script(service):
+    if service == "image_similarity":
+        return "image_similarity/main.py"
+    return f"service/{service}/main.py"
+
+
+def _service_command(service):
+    """argv that starts the sidecar.
+
+    From source that is the script under the interpreter on PATH, as the
+    Docker images have always done. The standalone build has no interpreter:
+    the binary runs the sidecar itself (librephotos.standalone.run_service).
+    """
+    executable = named_executable(service)
+    if executable is not None:
+        return [executable, "service", service]
+    return ["python", _service_script(service)]
+
+
+def _is_service_process(cmdline, service):
+    """Whether a process command line is one _service_command would produce."""
+    if not cmdline or len(cmdline) < 2:
+        return False
+    if cmdline[-2:] == ["service", service]:
+        return True
+    script = cmdline[-1].replace("\\", "/")
+    interpreter = os.path.basename(cmdline[0]).lower()
+    return script.endswith(_service_script(service)) and "python" in interpreter
 
 
 def start_service(service):
@@ -177,52 +223,49 @@ def start_service(service):
         logger.error(f"Service '{service}' is not compatible with this system")
         return False
 
-    if service == "image_similarity":
-        subprocess.Popen(
-            ["python", "image_similarity/main.py"], env=_service_environment()
-        )
-    elif service in SERVICES.keys():
-        subprocess.Popen(
-            ["python", f"service/{service}/main.py"], env=_service_environment()
-        )
-    else:
+    if service not in SERVICES:
         logger.warning("Unknown service: %s", service)
         return False
+
+    subprocess.Popen(_service_command(service), env=_service_environment())
 
     logger.info(f"Service '{service}' started successfully")
     return True
 
 
 def stop_service(service):
+    """Kill every process running the sidecar.
+
+    psutil rather than `ps | grep | kill`: the standalone build runs on Windows,
+    where neither exists, and its sidecars are the binary itself, which no
+    "python" pattern would match.
+    """
+    import psutil
+
+    stopped = False
     try:
-        # Find the process ID (PID) of the service using `ps` and `grep`
-        ps_command = f"ps aux | grep '[p]ython.*{service}/main.py' | awk '{{print $2}}'"
-        result = subprocess.run(
-            ps_command,
-            shell=True,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
-        pids = result.stdout.decode().strip().split()
-
-        if not pids:
-            logger.warning("Service '%s' is not running", service)
-            return False
-
-        # Kill each process found
-        for pid in pids:
-            subprocess.run(["kill", "-9", pid], check=True)
-            logger.info(f"Service '{service}' with PID {pid} stopped successfully")
-
-        return True
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to stop service '{service}': {e.stderr.decode().strip()}")
-        return False
+        for process in psutil.process_iter(["pid", "cmdline"]):
+            if process.info["pid"] == os.getpid():
+                continue
+            if not _is_service_process(process.info["cmdline"], service):
+                continue
+            try:
+                process.kill()
+                stopped = True
+                logger.info(
+                    f"Service '{service}' with PID {process.info['pid']} stopped successfully"
+                )
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.Error as e:
+                logger.error(f"Failed to stop service '{service}': {e}")
     except Exception as e:
         logger.error(f"An error occurred while stopping service '{service}': {e}")
         return False
+
+    if not stopped:
+        logger.warning("Service '%s' is not running", service)
+    return stopped
 
 
 def _is_arm_architecture():
@@ -272,7 +315,7 @@ def has_required_cpu_features(service):
     """Check if CPU has required features for a specific service
 
     On ARM architectures, x86-specific CPU checks are bypassed since those
-    instruction sets don't exist on ARM. Services like llama.cpp support ARM natively.
+    instruction sets don't exist on ARM.
     """
     if service not in SERVICE_CPU_REQUIREMENTS:
         return True  # No CPU requirements for this service

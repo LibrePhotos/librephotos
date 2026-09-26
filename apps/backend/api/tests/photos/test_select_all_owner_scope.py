@@ -1,12 +1,12 @@
 """Regression tests: select_all bulk operations must never write to other
 users' photos.
 
-build_photo_queryset(user, {"public": True}) intentionally drops the owner
-filter so public browsing works, which means every select_all branch that
-feeds it into a write must re-scope to owner=request.user itself. These
-tests pin that property for the favorite, share, and delete endpoints
-(the hide/makepublic/setdeleted counterparts are covered by their own
-fixes, see #1980/#1981/#1982).
+build_photo_queryset(user, {"public": True}) used to drop the owner
+filter so public browsing worked, and every select_all write had to
+re-scope to owner=request.user itself; the helper is now owner-bound.
+These tests pin that property for the favorite, share, and delete
+endpoints (the hide/makepublic/setdeleted counterparts are covered by
+their own fixes, see #1980/#1981/#1982).
 """
 
 from django.test import TestCase

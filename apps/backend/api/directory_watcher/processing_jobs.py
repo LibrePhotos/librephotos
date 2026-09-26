@@ -26,6 +26,7 @@ from api.directory_watcher.utils import (
     is_job_cancelled,
     update_scan_counter,
 )
+from api.sidecars import sidecar_url
 
 
 def _encode_face(face: Face, job_id: UUID):
@@ -135,7 +136,7 @@ def _untagged_photos(user):
 
 def generate_tags(user, job_id: UUID, full_scan=False):
     """
-    Generate image tags (Places365 captions) for photos.
+    Generate image tags with the active tagging model for photos.
 
     Args:
         user: The user whose photos to process
@@ -409,7 +410,7 @@ def _run_ocr_for_photo(photo: Photo):
         return
 
     response = requests.post(
-        "http://localhost:8012/ocr",
+        sidecar_url(8012, "/ocr"),
         json={"image_path": image_path, "min_confidence": OCR_MIN_CONFIDENCE},
         timeout=OCR,
     )

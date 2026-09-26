@@ -133,13 +133,26 @@ class GetPeopleNameResolutionTestCase(TestCase):
 
         self.assertIsNone(entry["face_url"])
 
-    def test_deleted_faces_are_still_returned(self):
-        """QUIRK: ``obj.faces.all()`` is unfiltered - soft-deleted faces leak."""
+    def test_deleted_faces_are_not_returned(self):
+        """A soft-deleted face is hidden everywhere, this list included.
+
+        This replaces a characterization test that pinned the opposite as a
+        known quirk: ``obj.faces.all()`` used to be unfiltered, so a face the
+        owner had deleted came back on every shared copy of the photo.
+        """
         person = create_test_person(name="Ghost")
         create_test_face(photo=self.photo, person=person, deleted=True)
 
+        self.assertEqual(_people(self.photo, self.settings_on), [])
+
+    def test_deleted_face_does_not_hide_the_live_faces_beside_it(self):
+        create_test_face(
+            photo=self.photo, person=create_test_person(name="Ghost"), deleted=True
+        )
+        create_test_face(photo=self.photo, person=create_test_person(name="Alice"))
+
         self.assertEqual(
-            [p["name"] for p in _people(self.photo, self.settings_on)], ["Ghost"]
+            [p["name"] for p in _people(self.photo, self.settings_on)], ["Alice"]
         )
 
     def test_photo_without_faces_returns_empty_list(self):

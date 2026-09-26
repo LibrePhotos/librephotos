@@ -15,9 +15,9 @@ from mmap import ACCESS_READ, mmap
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import magic
 from django.conf import settings
 
+from api.mime import mime_type
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
 from api.util import logger
@@ -70,9 +70,7 @@ def has_embedded_motion_video(path: str) -> bool:
         True if embedded video detected, False otherwise
     """
     try:
-        mime = magic.Magic(mime=True)
-        mime_type = mime.from_file(path)
-        if mime_type != "image/jpeg":
+        if mime_type(path) != "image/jpeg":
             return False
 
         with open(path, "rb") as image:

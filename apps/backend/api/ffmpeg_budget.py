@@ -39,12 +39,17 @@ import os
 import shutil
 import subprocess
 
+from api import binaries
+
 logger = logging.getLogger(__name__)
 
 # Probed once per process: asking ffmpeg for its full help costs a subprocess and
 # about a megabyte of text, and the answer cannot change under us. The help text
 # is cached rather than each answer, so asking about a second option is free.
 _help_text = None
+
+# The filter list is a second, much smaller question, cached the same way.
+_filter_text = None
 
 
 def cpu_share(fraction=2):
@@ -79,6 +84,28 @@ def supports(option):
     )
 
 
+def supports_filter(name):
+    """Whether this ffmpeg was built with the filter ``name``, e.g. ``"zscale"``.
+
+    Same hazard as :func:`supports` and the same answer: naming a filter the
+    build does not have makes ffmpeg exit rather than skip it. zscale in
+    particular is libzimg, a build option rather than a version, so no ffmpeg is
+    new enough to guarantee it. See :mod:`api.video_color`.
+    """
+    return any(
+        # "  ... name    V->V   description", with flags in the first column.
+        len(fields) > 1 and fields[1] == name
+        for fields in (line.split() for line in _filters().splitlines())
+    )
+
+
+def _filters():
+    global _filter_text
+    if _filter_text is None:
+        _filter_text = _run([binaries.ffmpeg(), "-hide_banner", "-filters"])
+    return _filter_text
+
+
 def _full_help():
     global _help_text
     if _help_text is None:
@@ -87,21 +114,29 @@ def _full_help():
 
 
 def _read_full_help():
+    return _run([binaries.ffmpeg(), "-hide_banner", "-h", "full"])
+
+
+def _run(command):
+    """What ffmpeg says about itself, or "" if it will not say.
+
+    A host without ffmpeg, or one whose ffmpeg cannot be asked, answers "no" to
+    every question rather than raising: the conversion then runs with none of
+    the optional arguments, which is what it did before any of them existed.
+    """
     if not shutil.which("ffmpeg"):
         return ""
     try:
         return subprocess.run(
-            ["ffmpeg", "-hide_banner", "-h", "full"],
-            capture_output=True,
-            text=True,
-            timeout=30,
+            command, capture_output=True, text=True, timeout=30
         ).stdout
     except (OSError, subprocess.SubprocessError):
-        logger.warning("could not ask ffmpeg which options it supports", exc_info=True)
+        logger.warning("could not ask ffmpeg what it supports", exc_info=True)
         return ""
 
 
 def reset_probe_cache():
     """Forget what was probed. For tests, which vary the ffmpeg they pretend to have."""
-    global _help_text
+    global _help_text, _filter_text
     _help_text = None
+    _filter_text = None

@@ -36,6 +36,9 @@ import time
 
 from django.conf import settings
 
+from api import binaries
+from api import video_color
+
 logger = logging.getLogger(__name__)
 
 BYTES_PER_GB = 1024**3
@@ -248,8 +251,8 @@ def build_command(source, destination):
     niceness = int(getattr(settings, "TRANSCODE_CACHE_NICE", 10))
     # Without the binary the conversion still runs, just without the courtesy.
     prefix = [nice, "-n", str(niceness)] if nice and niceness else []
-    return prefix + [
-        "ffmpeg",
+    command = prefix + [
+        binaries.ffmpeg(),
         "-nostdin",
         "-loglevel",
         "error",
@@ -264,14 +267,15 @@ def build_command(source, destination):
         "libx264",
         "-preset",
         getattr(settings, "TRANSCODE_CACHE_PRESET", "veryfast"),
-        "-filter:v",
-        "scale=-2:'min(720,ih)'",
-        "-movflags",
-        "+faststart",
-        "-f",
-        "mp4",
-        destination,
     ]
+
+    # An HDR source converted without tonemapping comes out washed out, because
+    # the browser reads its PQ or HLG curve as bt709. See :mod:`api.video_color`.
+    video_filter = video_color.video_filter(source, "scale=-2:'min(720,ih)'")
+    if video_filter:
+        command += ["-filter:v", video_filter]
+
+    return command + ["-movflags", "+faststart", "-f", "mp4", destination]
 
 
 def run_transcode(command, part, final, root=None):

@@ -10,12 +10,33 @@ from PIL import Image
 from api.models.photo import Photo
 from api.thumbnails import (
     create_animated_thumbnail,
-    create_thumbnail,
+    create_static_thumbnails,
     create_thumbnail_for_video,
     does_static_thumbnail_exist,
     does_video_thumbnail_exist,
 )
 from api.util import logger
+
+# Static thumbnails are webp; the animated ones videos get instead are mp4.
+STATIC_THUMBNAIL_DIRS = (
+    "thumbnails_big",
+    "square_thumbnails",
+    "square_thumbnails_small",
+)
+ANIMATED_THUMBNAIL_DIRS = ("square_thumbnails", "square_thumbnails_small")
+
+
+def delete_thumbnail_files(photo_hash: str) -> None:
+    """Remove every thumbnail file named after ``photo_hash``."""
+    named = [(d, ".webp") for d in STATIC_THUMBNAIL_DIRS]
+    named += [(d, ".mp4") for d in ANIMATED_THUMBNAIL_DIRS]
+    for output_dir, extension in named:
+        path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + extension)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                logger.error(f"could not remove thumbnail {path}")
 
 
 class Thumbnail(models.Model):
@@ -33,35 +54,27 @@ class Thumbnail(models.Model):
             # Use photo.image_hash for thumbnail paths for frontend compatibility
             photo_hash = self.photo.image_hash
             local_orientation = getattr(self.photo, "local_orientation", 1) or 1
-            if not does_static_thumbnail_exist("thumbnails_big", photo_hash):
-                if not self.photo.video:
-                    create_thumbnail(
+            if not self.photo.video:
+                missing = [
+                    output_path
+                    for output_path in STATIC_THUMBNAIL_DIRS
+                    if not does_static_thumbnail_exist(output_path, photo_hash)
+                ]
+                if missing:
+                    create_static_thumbnails(
                         input_path=self.photo.main_file.path,
-                        output_height=1080,
-                        output_path="thumbnails_big",
                         hash=photo_hash,
-                        file_type=".webp",
+                        output_paths=missing,
                         local_orientation=local_orientation,
                     )
-                else:
-                    create_thumbnail_for_video(
-                        input_path=self.photo.main_file.path,
-                        output_path="thumbnails_big",
-                        hash=photo_hash,
-                        file_type=".webp",
-                    )
-
-            if not self.photo.video and not does_static_thumbnail_exist(
-                "square_thumbnails", photo_hash
-            ):
-                create_thumbnail(
+            elif not does_static_thumbnail_exist("thumbnails_big", photo_hash):
+                create_thumbnail_for_video(
                     input_path=self.photo.main_file.path,
-                    output_height=500,
-                    output_path="square_thumbnails",
+                    output_path="thumbnails_big",
                     hash=photo_hash,
                     file_type=".webp",
-                    local_orientation=local_orientation,
                 )
+
             if self.photo.video and not does_video_thumbnail_exist(
                 "square_thumbnails", photo_hash
             ):
@@ -73,17 +86,6 @@ class Thumbnail(models.Model):
                     file_type=".mp4",
                 )
 
-            if not self.photo.video and not does_static_thumbnail_exist(
-                "square_thumbnails_small", photo_hash
-            ):
-                create_thumbnail(
-                    input_path=self.photo.main_file.path,
-                    output_height=250,
-                    output_path="square_thumbnails_small",
-                    hash=photo_hash,
-                    file_type=".webp",
-                    local_orientation=local_orientation,
-                )
             if self.photo.video and not does_video_thumbnail_exist(
                 "square_thumbnails_small", photo_hash
             ):
@@ -120,26 +122,28 @@ class Thumbnail(models.Model):
         ``_generate_thumbnail``.  Should be called after updating
         ``Photo.local_orientation``.
         """
-        photo_hash = self.photo.image_hash
-
-        # Remove static (image) thumbnails
-        for output_dir in (
-            "thumbnails_big",
-            "square_thumbnails",
-            "square_thumbnails_small",
-        ):
-            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".webp")
-            if os.path.exists(path):
-                os.remove(path)
-
-        # Remove video thumbnails (animated MP4 clips)
-        for output_dir in ("square_thumbnails", "square_thumbnails_small"):
-            path = os.path.join(settings.MEDIA_ROOT, output_dir, photo_hash + ".mp4")
-            if os.path.exists(path):
-                os.remove(path)
+        delete_thumbnail_files(self.photo.image_hash)
 
         self._generate_thumbnail()
         self._calculate_aspect_ratio()
+        self._refresh_perceptual_hash()
+
+    def _refresh_perceptual_hash(self) -> None:
+        """Re-read the photo's perceptual hash from the thumbnail just built.
+
+        The scan compares this against the file on disk to tell a rewritten
+        file from a replaced one, so a stale value left behind by a rotation
+        would cost the photo its faces on the next scan.
+        """
+        from api.perceptual_hash import calculate_hash_from_thumbnail
+
+        if not self.thumbnail_big or not os.path.exists(self.thumbnail_big.path):
+            return
+        phash = calculate_hash_from_thumbnail(self.thumbnail_big.path)
+        if not phash:
+            return
+        self.photo.perceptual_hash = phash
+        self.photo.save(save_metadata=False, update_fields=["perceptual_hash"])
 
     def _calculate_aspect_ratio(self):
         try:

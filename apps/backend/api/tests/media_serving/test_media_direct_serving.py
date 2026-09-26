@@ -8,8 +8,8 @@ Pins the CURRENT observed behavior of
 
 before either is refactored.  No database, no network, no ML models: the view's
 private helpers are called directly on a bare instance with stub photo objects,
-and ``magic`` is patched wherever content-type sniffing would otherwise touch a
-real libmagic database.
+and ``mime_type`` is patched wherever content-type sniffing would otherwise
+read the file.
 """
 
 import os
@@ -99,17 +99,16 @@ class ServeFileDirectTest(SimpleTestCase):
         self.assertEqual(response["Accept-Ranges"], "bytes")
         self.assertEqual(b"".join(response.streaming_content), b"0123456789")
 
-    def test_no_content_type_sniffs_with_magic(self):
+    def test_no_content_type_sniffs_the_file(self):
         view = make_view()
-        with patch(f"{VIEWS}.magic.Magic") as magic_cls:
-            magic_cls.return_value.from_file.return_value = "image/png"
+        with patch(f"{VIEWS}.mime_type", return_value="image/png"):
             response = view._serve_file_direct(self.path)
         self.assertEqual(response["Content-Type"], "image/png")
         response.close()
 
-    def test_magic_failure_falls_back_to_octet_stream(self):
+    def test_sniff_failure_falls_back_to_octet_stream(self):
         view = make_view()
-        with patch(f"{VIEWS}.magic.Magic", side_effect=Exception("no libmagic")):
+        with patch(f"{VIEWS}.mime_type", side_effect=Exception("unreadable")):
             response = view._serve_file_direct(self.path)
         self.assertEqual(response["Content-Type"], "application/octet-stream")
         response.close()

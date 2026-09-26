@@ -14,6 +14,7 @@ stderr was never read, and rate limiting is precisely what makes a conversion
 run long enough to fill it.
 """
 
+import contextlib
 import subprocess
 from unittest import mock
 
@@ -223,7 +224,11 @@ class BuildLiveCommandTest(SimpleTestCase):
 
     def test_the_conversion_being_watched_is_not_niced(self):
         """Unlike the cached copy: somebody is waiting for this one."""
-        self.assertEqual(views.build_live_command("/x.mp4")[0], "ffmpeg")
+        self.assertTrue(
+            views.build_live_command("/x.mp4")[0].endswith(
+                ("ffmpeg", "ffmpeg.EXE", "ffmpeg.exe")
+            )
+        )
 
     def test_the_path_is_the_input(self):
         command = views.build_live_command("/library/clip.mkv")
@@ -264,9 +269,27 @@ class FakePopen:
         pass
 
 
+def _only_the_conversion_is_fake(process):
+    """Stand ``process`` in for the conversion without standing in for the probes.
+
+    Patching Popen patches it for everything, and building the command asks the
+    host two questions first -- which options this ffmpeg has, and whether the
+    source is HDR -- both of which go through subprocess and would otherwise be
+    answered by a FakePopen that is not shaped like either one. Neither answer
+    is what these tests are about, so both are given directly.
+    """
+    return (
+        mock.patch.object(views.subprocess, "Popen", return_value=process),
+        mock.patch.object(ffmpeg_budget, "_run", return_value=""),
+        mock.patch.object(views.video_color, "is_hdr", return_value=False),
+    )
+
+
 class VideoTranscoderStderrTest(SimpleTestCase):
     def _transcoder(self, process):
-        with mock.patch.object(views.subprocess, "Popen", return_value=process):
+        with contextlib.ExitStack() as stack:
+            for patch in _only_the_conversion_is_fake(process):
+                stack.enter_context(patch)
             return views.VideoTranscoder("/x.mp4")
 
     def test_stderr_is_drained_so_a_full_pipe_cannot_stall_the_video(self):
@@ -288,9 +311,11 @@ class VideoTranscoderStderrTest(SimpleTestCase):
         The process is a real fake rather than a bare Mock: the drain thread
         reads until it is handed b"", and a Mock never hands it one.
         """
-        with mock.patch.object(
-            views.subprocess, "Popen", return_value=FakePopen([], [])
-        ) as popen:
+        patches = _only_the_conversion_is_fake(FakePopen([], []))
+        with contextlib.ExitStack() as stack:
+            popen = stack.enter_context(patches[0])
+            for patch in patches[1:]:
+                stack.enter_context(patch)
             transcoder = views.VideoTranscoder("/x.mp4")
         transcoder._drain.join(timeout=5)
         self.assertEqual(popen.call_args.kwargs["stderr"], subprocess.PIPE)
@@ -308,7 +333,9 @@ class VideoTranscoderStderrTest(SimpleTestCase):
 
 class GenTest(SimpleTestCase):
     def _transcoder(self, process):
-        with mock.patch.object(views.subprocess, "Popen", return_value=process):
+        with contextlib.ExitStack() as stack:
+            for patch in _only_the_conversion_is_fake(process):
+                stack.enter_context(patch)
             return views.VideoTranscoder("/x.mp4")
 
     def test_a_successful_conversion_says_nothing(self):

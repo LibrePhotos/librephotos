@@ -1,4 +1,4 @@
-import { Center, Progress, Text, Tooltip } from "@mantine/core";
+import { Box, Center, Progress, Text, Tooltip } from "@mantine/core";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -51,23 +51,39 @@ export function JobProgress({
     );
   }
   if (finished) {
-    const hasFailed = failed || error || result?.error || result?.status === "failed";
+    // Only a hard failure is red. A scan that errored on a minority of its
+    // files reports status "partial_failure" and still sets result.error, so
+    // keying off result.error here would paint a 4-in-150k scan as Failed.
+    const hasFailed = failed || result?.status === "failed";
+    const isPartialFailure = !hasFailed && result?.status === "partial_failure";
+    const errorCount = result?.error_count != null ? Number(result.error_count) : 0;
     const finalCurrent = effectiveCurrent ?? current;
+
+    let color = "green";
+    if (hasFailed) color = "red";
+    else if (isPartialFailure) color = "yellow";
+
+    const label = hasFailed ? (
+      <Text size="sm" c="red">
+        {t("joblist.failed")}
+      </Text>
+    ) : isPartialFailure ? (
+      <Text size="sm" c="yellow">
+        {t("joblist.partialfailure", { errorCount, total: effectiveTarget || finalCurrent })}
+      </Text>
+    ) : null;
+
     return (
       <div>
-        <Progress size={10} color={hasFailed ? "red" : "green"} value={100} />
+        <Progress size={10} color={color} value={100} />
         <Center>
-          {hasFailed ? (
+          {label ? (
             errorMessage ? (
               <Tooltip label={errorMessage} multiline w={300}>
-                <Text size="sm" c="red" style={{ cursor: "help" }}>
-                  {t("joblist.failed")}
-                </Text>
+                <Box style={{ cursor: "help" }}>{label}</Box>
               </Tooltip>
             ) : (
-              <Text size="sm" c="red">
-                {t("joblist.failed")}
-              </Text>
+              label
             )
           ) : (
             `${finalCurrent} ${t("joblist.itemsadded")} `

@@ -19,6 +19,7 @@ class PersonFaceListSerializer(serializers.ModelSerializer):
             "timestamp",
             "person_label_probability",
         ]
+        read_only_fields = ["photo"]
 
     def get_person_label_probability(self, obj):
         if obj.analysis_method == "clustering":
@@ -64,6 +65,7 @@ class FaceListSerializer(serializers.ModelSerializer):
             "person_label_probability",
             "person_name",
         )
+        read_only_fields = ("photo", "person")
 
     def get_person_label_probability(self, obj) -> float:
         return obj.cluster_probability

@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.mime import mime_type
+from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, File, Photo, User
 from api.models.photo_stack import PhotoStack
 from api.models.person import Person
@@ -51,19 +53,17 @@ def _get_photo_filter_kwargs(lookup_value):
 def _get_owned_photo(image_hash, user):
     """Return the user's photo for ``image_hash``, or None if there is none."""
     try:
-        return Photo.objects.get(image_hash=image_hash, owner=user)
+        return Photo.objects.owned_by(user).get(image_hash=image_hash)
     except Photo.DoesNotExist:
         return None
     except Photo.MultipleObjectsReturned:
-        return Photo.objects.filter(image_hash=image_hash, owner=user).first()
+        return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
 
 
 def _detect_content_type(path):
     """Return the MIME type of a file, falling back to a generic binary type."""
-    import magic
-
     try:
-        return magic.Magic(mime=True).from_file(path)
+        return mime_type(path)
     except Exception:
         return "application/octet-stream"
 
@@ -92,9 +92,9 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
         )
 
         queryset = (
-            Photo.visible.filter(
-                Q(owner=self.request.user)
-                & Q(thumbnail__aspect_ratio__isnull=False)
+            Photo.visible.owned_by(self.request.user)
+            .filter(
+                Q(thumbnail__aspect_ratio__isnull=False)
                 & Q(added_on__date=latest_date.date())
             )
             .select_related("thumbnail", "search_instance", "main_file")
@@ -142,7 +142,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
     def _get_latest_photo(self):
         if not hasattr(self, "_latest_photo"):
             self._latest_photo = (
-                Photo.visible.filter(Q(owner=self.request.user))
+                Photo.visible.owned_by(self.request.user)
                 .only("added_on")
                 .order_by("-added_on")
                 .first()
@@ -162,7 +162,8 @@ class NoTimestampPhotoViewSet(ListViewSet):
 
     def get_queryset(self):
         return (
-            Photo.visible.filter(Q(exif_timestamp=None) & Q(owner=self.request.user))
+            Photo.visible.owned_by(self.request.user)
+            .filter(exif_timestamp=None)
             .select_related("thumbnail", "search_instance", "main_file")
             .prefetch_related(
                 Prefetch(
@@ -212,10 +213,6 @@ class SetPhotosDeleted(APIView):
             excluded_hashes = data.get("excluded_hashes", [])
 
             photos_qs = build_photo_queryset(request.user, query_params)
-            # Security: build_photo_queryset does not scope to the requester
-            # when query.public is set, so bind the write target to the
-            # requesting user's own photos (CVE-2026-57943, issue #1982).
-            photos_qs = photos_qs.filter(owner=request.user)
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -261,7 +258,8 @@ class SetPhotosDeleted(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related("owner", "thumbnail", "main_file")
             .prefetch_related(
                 "files", "faces__person", "shared_to", "main_file__embedded_media"
@@ -286,8 +284,8 @@ class SetPhotosDeleted(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            updated_photos = Photo.objects.filter(
-                image_hash__in=photos_to_update, owner=request.user
+            updated_photos = Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_update
             )
             affected_tag_ids = tag_ids_for_photos(updated_photos)
             updated_photos.update(in_trashcan=val_deleted)
@@ -351,11 +349,7 @@ class SetPhotosFavorite(APIView):
             query_params = data.get("query", {})
             excluded_hashes = data.get("excluded_hashes", [])
 
-            # build_photo_queryset drops the owner filter for public queries,
-            # so re-scope to the requesting user before writing (see #1980).
-            photos_qs = build_photo_queryset(request.user, query_params).filter(
-                owner=request.user
-            )
+            photos_qs = build_photo_queryset(request.user, query_params)
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -383,7 +377,8 @@ class SetPhotosFavorite(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related(
                 "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
             )
@@ -412,13 +407,13 @@ class SetPhotosFavorite(APIView):
 
         # Bulk update in separate queries for different rating values
         if photos_to_favorite:
-            Photo.objects.filter(
-                image_hash__in=photos_to_favorite, owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_favorite
             ).update(rating=user.favorite_min_rating)
 
         if photos_to_unfavorite:
-            Photo.objects.filter(
-                image_hash__in=photos_to_unfavorite, owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_unfavorite
             ).update(rating=0)
 
         # Handle missing photos
@@ -463,11 +458,6 @@ class SetPhotosHidden(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            # Security: build_photo_queryset does not scope to the requester
-            # when query.public=true, so restrict the write to the user's own
-            # photos to prevent hiding/unhiding other users' public photos.
-            photos_qs = photos_qs.filter(owner=request.user)
-
             # Hiding takes a photo out of its tags' counts the same way
             # trashing does; see SetPhotosDeleted above.
             affected_tag_ids = tag_ids_for_photos(photos_qs)
@@ -490,7 +480,8 @@ class SetPhotosHidden(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related(
                 "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
             )
@@ -514,8 +505,8 @@ class SetPhotosHidden(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            updated_photos = Photo.objects.filter(
-                image_hash__in=photos_to_update, owner=request.user
+            updated_photos = Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_update
             )
             affected_tag_ids = tag_ids_for_photos(updated_photos)
             updated_photos.update(hidden=val_hidden)
@@ -639,27 +630,12 @@ class PhotoViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        if self.request.user.is_anonymous:
-            return (
-                Photo.visible.filter(Q(public=True))
-                .prefetch_related("stacks")
-                .order_by("-exif_timestamp")
-            )
-        else:
-            # Include photos that are:
-            # 1. Owned by the user
-            # 2. Shared directly with the user
-            # 3. Public (for retrieve access)
-            # Note: Photos in shared albums are handled by the permission class
-            return (
-                Photo.visible.filter(
-                    Q(owner=self.request.user)
-                    | Q(shared_to=self.request.user)
-                    | Q(public=True)
-                )
-                .prefetch_related("stacks")
-                .order_by("-exif_timestamp")
-            )
+        # Photos in shared albums are handled by the permission class.
+        return (
+            Photo.visible.visible_to(self.request.user)
+            .prefetch_related("stacks")
+            .order_by("-exif_timestamp")
+        )
 
     def retrieve(self, *args, **kwargs):
         return super().retrieve(*args, **kwargs)
@@ -673,7 +649,7 @@ class PhotoEditViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
-        return Photo.visible.filter(Q(owner=self.request.user))
+        return Photo.visible.owned_by(self.request.user)
 
     def get_object(self):
         """
@@ -721,12 +697,7 @@ class SetPhotosShared(APIView):
             query_params = data.get("query", {})
             excluded_hashes = data.get("excluded_hashes", [])
 
-            # build_photo_queryset drops the owner filter for public queries.
-            # The write below re-filters by owner, but scope here too so the
-            # security property doesn't hinge on a distant check.
-            photos_qs = build_photo_queryset(request.user, query_params).filter(
-                owner=request.user
-            )
+            photos_qs = build_photo_queryset(request.user, query_params)
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -755,9 +726,11 @@ class SetPhotosShared(APIView):
         # own, matching the sibling SetPhotos* endpoints. Without this, an authenticated
         # user could add an arbitrary target_user_id to the shared_to of someone else's
         # private photos (cross-user IDOR). See issue #1860.
-        photos = Photo.objects.filter(
-            image_hash__in=image_hashes, owner=request.user
-        ).only("id", "image_hash")
+        photos = (
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
+            .only("id", "image_hash")
+        )
         photo_ids = [photo.id for photo in photos]
 
         if shared:
@@ -804,13 +777,6 @@ class SetPhotosPublic(APIView):
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
-            # Scope the write to the requester's own photos. build_photo_queryset
-            # intentionally does not filter by owner when query.public=true (it is
-            # shared with public read paths), so without this an authenticated user
-            # could bulk-set OTHER users' public photos to private (issue #1981,
-            # incomplete fix for CVE-2026-57943).
-            photos_qs = photos_qs.filter(owner=request.user)
-
             count = photos_qs.update(public=val_public)
 
             if val_public:
@@ -829,7 +795,8 @@ class SetPhotosPublic(APIView):
 
         # Get all photos with related data in one query to prevent N+1 queries from serializer
         photos = (
-            Photo.objects.filter(image_hash__in=image_hashes, owner=request.user)
+            Photo.objects.owned_by(request.user)
+            .filter(image_hash__in=image_hashes)
             .select_related(
                 "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
             )
@@ -853,8 +820,8 @@ class SetPhotosPublic(APIView):
 
         # Bulk update in one query
         if photos_to_update:
-            Photo.objects.filter(
-                image_hash__in=photos_to_update, owner=request.user
+            Photo.objects.owned_by(request.user).filter(
+                image_hash__in=photos_to_update
             ).update(public=val_public)
 
         # Handle missing photos
@@ -897,11 +864,27 @@ class GeneratePhotoCaption(APIView):
         data = dict(request.data)
         image_hash = data["image_hash"]
 
-        photo = Photo.objects.filter(image_hash=image_hash, owner=request.user).first()
+        photo = (
+            Photo.objects.owned_by(request.user).filter(image_hash=image_hash).first()
+        )
         if photo is None:
             return Response(
                 {"status": False, "message": "photo not found"},
                 status=404,
+            )
+
+        if not captioning_model_exists():
+            # The captioner is fetched with the other models, but a fresh
+            # install (or a model switch) can be asked for a caption before
+            # the download ran. Start it and tell the user to try again;
+            # a 200 so the client can read the reason.
+            start_model_download(request.user)
+            return Response(
+                {
+                    "status": False,
+                    "reason": "model_downloading",
+                    "message": "The captioning model is being downloaded. Try again in a few minutes.",
+                }
             )
 
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
@@ -927,7 +910,9 @@ class SavePhotoCaption(APIView):
         image_hash = data["image_hash"]
         caption = data["caption"]
 
-        photo = Photo.objects.filter(image_hash=image_hash, owner=request.user).first()
+        photo = (
+            Photo.objects.owned_by(request.user).filter(image_hash=image_hash).first()
+        )
         if photo is None:
             return Response(
                 {"status": False, "message": "photo not found"},
@@ -954,12 +939,7 @@ class DeletePhotos(APIView):
             # Override query to filter for trashcan photos only
             query_params["in_trashcan"] = True
 
-            # build_photo_queryset drops the owner filter for public queries.
-            # The loop below re-checks ownership, but scope here too so other
-            # users' photos are never even loaded.
-            photos_qs = build_photo_queryset(request.user, query_params).filter(
-                owner=request.user
-            )
+            photos_qs = build_photo_queryset(request.user, query_params)
             if excluded_hashes:
                 photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
 
@@ -1092,7 +1072,7 @@ class SetMainFileView(APIView):
         except Photo.DoesNotExist:
             return None
         except Photo.MultipleObjectsReturned:
-            return Photo.objects.filter(image_hash=image_hash, owner=user).first()
+            return Photo.objects.owned_by(user).filter(image_hash=image_hash).first()
 
     def post(self, request, image_hash):
         """Set the main file for a photo."""
@@ -1143,7 +1123,7 @@ class SaveMetadataView(APIView):
             request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
         )
 
-        photos = Photo.objects.filter(owner=request.user)
+        photos = Photo.objects.owned_by(request.user)
 
         # When writing face tags, only include photos that have labeled faces
         if "face_tags" in metadata_types and metadata_types == ["face_tags"]:

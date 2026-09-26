@@ -23,9 +23,6 @@ from api.models.user import User, get_deleted_user
 from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou, logger
 
 
-_NO_PLACES365 = object()
-
-
 def _overlaps_existing_face(existing_face_locations, top, right, bottom, left):
     """Return True if a new face region overlaps significantly with any
     existing face (IoU >= FACE_OVERLAP_IOU_THRESHOLD).
@@ -51,7 +48,31 @@ def _has_usable_coordinates(lat, lon):
     return not (float(lat) == 0.0 and float(lon) == 0.0)
 
 
-class VisiblePhotoManager(models.Manager):
+class PhotoQuerySet(models.QuerySet):
+    """The two per-user scopes every view and serializer goes through.
+
+    ``owned_by`` is the write scope and ``visible_to`` the read scope. Spell
+    ``owner=request.user`` here, once, rather than at each call site.
+    """
+
+    def owned_by(self, user):
+        """Photos ``user`` may mutate: their own, and nothing else."""
+        if user is None or not getattr(user, "is_authenticated", False):
+            return self.none()
+        return self.filter(owner=user)
+
+    def visible_to(self, user):
+        """Photos ``user`` may read: their own, shared directly to them, public.
+
+        Album shares are resolved by the media views, not here.
+        """
+        q = Q(public=True)
+        if user is not None and getattr(user, "is_authenticated", False):
+            q |= Q(owner=user) | Q(shared_to=user)
+        return self.filter(q)
+
+
+class VisiblePhotoManager(models.Manager.from_queryset(PhotoQuerySet)):
     def get_queryset(self):
         return (
             super()
@@ -159,7 +180,7 @@ class Photo(models.Model):
     # endpoint and is applied when regenerating thumbnails.
     local_orientation = models.IntegerField(default=1)
 
-    objects = models.Manager()
+    objects = PhotoQuerySet.as_manager()
     visible = VisiblePhotoManager()
 
     _loaded_values = {}
@@ -548,6 +569,7 @@ class Photo(models.Model):
         face.image.save(image_path, ContentFile(face_io.getvalue()))
         face_io.close()
         face.save()
+        return face
 
     def _retry_face_extraction(self, second_try):
         # When using multiple processes, then we can save at the same time, which leads to this error
@@ -561,34 +583,42 @@ class Photo(models.Model):
         else:
             logger.error(f"image {self}: rescan face failed")
 
-    def _places365_captions(self):
+    def _active_model_tags(self):
+        """Tags the active tagging model stored for this photo, or None."""
+        from constance import config as site_config
+
         caption_instance = getattr(self, "caption_instance", None)
         if not caption_instance:
-            return _NO_PLACES365
+            return None
         captions_json = caption_instance.captions_json
         if not captions_json or type(captions_json) is not dict:
-            return _NO_PLACES365
-        if "places365" not in captions_json.keys():
-            return _NO_PLACES365
-        return captions_json["places365"]
+            return None
+        tag_result = captions_json.get(site_config.TAGGING_MODEL)
+        if not isinstance(tag_result, dict):
+            return None
+        return tag_result.get("tags", [])
 
     def _add_to_album_things(self, titles, thing_type):
         for title in titles:
             album_thing = api.models.album_thing.get_album_thing(
                 title=title,
                 owner=self.owner,
+                thing_type=thing_type,
             )
             if not album_thing.photos.filter(image_hash=self.image_hash).exists():
                 album_thing.photos.add(self)
-                album_thing.thing_type = thing_type
                 album_thing.save()
 
     def _add_to_album_thing(self):
-        places365 = self._places365_captions()
-        if places365 is _NO_PLACES365:
+        """File the photo under the Things albums of its active-model tags."""
+        from constance import config as site_config
+
+        from api.models.photo_caption import tag_thing_type
+
+        tags = self._active_model_tags()
+        if tags is None:
             return
-        self._add_to_album_things(places365["attributes"], "places365_attribute")
-        self._add_to_album_things(places365["categories"], "places365_category")
+        self._add_to_album_things(tags, tag_thing_type(site_config.TAGGING_MODEL))
 
     def _check_files(self):
         for file in self.files.all():

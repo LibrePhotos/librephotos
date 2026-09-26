@@ -1,5 +1,6 @@
 import uuid
 
+import PIL
 from django.conf import settings
 from django.db.models import (
     Case,
@@ -22,8 +23,9 @@ from rest_framework.views import APIView
 from api.directory_watcher import generate_face_embeddings, scan_faces
 from api.face_classify import cluster_all_faces
 from api.ml_models import do_all_models_exist, download_models
-from api.models import Face, User
+from api.models import Face, Photo, User
 from api.models.person import Person, get_or_create_person
+from api.models.photo import _overlaps_existing_face
 from api.models.photo_search import PhotoSearch
 from api.serializers.face import (
     FaceListSerializer,
@@ -33,6 +35,7 @@ from api.serializers.face import (
 from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import RegularResultsSetPagination
+from api.views.photos import _get_photo_filter_kwargs
 
 
 class ScanFacesView(APIView):
@@ -170,6 +173,13 @@ class FaceIncompleteListViewSet(ListViewSet):
         min_confidence = float(self.request.query_params.get("min_confidence", 0))
 
         queryset = Person.objects.filter(cluster_owner=self.request.user)
+        # Every count below is scoped to the requester's own photos, because
+        # FaceListView scopes its rows the same way (`photo__owner`). Without
+        # it, a person shared with another user is counted across both
+        # libraries while the list returns only this user's faces, so the
+        # dashboard grid draws slots that can never be filled and the last page
+        # 404s with "Invalid page" (#2031). `cluster_owner` scopes the person,
+        # not its faces, so it does not cover this.
         if inferred:
             if analysis_method == "classification":
                 conditional_count = Count(
@@ -179,7 +189,8 @@ class FaceIncompleteListViewSet(ListViewSet):
                             & Q(classification_faces__person=None)
                             & Q(
                                 classification_faces__classification_probability__gte=min_confidence
-                            ),
+                            )
+                            & Q(classification_faces__photo__owner=self.request.user),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -191,7 +202,8 @@ class FaceIncompleteListViewSet(ListViewSet):
                         When(
                             Q(cluster_faces__deleted=False)
                             & Q(cluster_faces__person=None)
-                            & Q(cluster_faces__cluster_probability__gte=min_confidence),
+                            & Q(cluster_faces__cluster_probability__gte=min_confidence)
+                            & Q(cluster_faces__photo__owner=self.request.user),
                             then=1,
                         ),
                         output_field=IntegerField(),
@@ -202,7 +214,8 @@ class FaceIncompleteListViewSet(ListViewSet):
             conditional_count = Count(
                 Case(
                     When(
-                        Q(faces__deleted=False),
+                        Q(faces__deleted=False)
+                        & Q(faces__photo__owner=self.request.user),
                         then=1,
                     ),
                     output_field=IntegerField(),
@@ -274,9 +287,43 @@ class SetFacePersonLabel(APIView):
         person = None
         cluster_person = None
         classification_person = None
-        if data["person_name"] != Person.UNKNOWN_PERSON_NAME:
+        # Person.name carries a MinLengthValidator, but get_or_create() does not run
+        # field validators, so a blank name would quietly create a nameless person
+        # and an album to go with it. Surrounding whitespace is trimmed for the same
+        # reason: " Bob " would otherwise become a second person next to "Bob".
+        person_name = (data.get("person_name") or "").strip()
+        if not person_name:
+            return Response(
+                {"status": False, "message": "person_name must not be empty"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if person_name != Person.UNKNOWN_PERSON_NAME:
+            # A cluster's label is not a person's name. Clustering backs every
+            # unnamed cluster with a Person of kind CLUSTER called "Unknown NNN",
+            # and that label reaches the client in the same field a real name
+            # arrives in. get_or_create_person() looks a row up by
+            # (name, cluster_owner, kind), so asking for KIND_USER would not find
+            # the cluster: it would mint a *second* person with that name, of the
+            # kind that gets a person album and trains the classifier, and move
+            # the face onto it. The face dashboard has always hidden confirm for
+            # these kinds; the photo's own face list had not.
+            if Person.objects.filter(
+                name=person_name,
+                cluster_owner=self.request.user,
+                kind__in=(Person.KIND_CLUSTER, Person.KIND_UNKNOWN),
+            ).exists():
+                return Response(
+                    {
+                        "status": False,
+                        "message": (
+                            f'"{person_name}" is the label of a face cluster, not a '
+                            "person. Name the face instead of confirming the cluster."
+                        ),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             person = get_or_create_person(
-                name=data["person_name"], owner=self.request.user, kind=Person.KIND_USER
+                name=person_name, owner=self.request.user, kind=Person.KIND_USER
             )
 
         # Everything the loop below touches is pulled in up front: the ownership
@@ -284,8 +331,12 @@ class SetFacePersonLabel(APIView):
         # needs the caption, metadata and file rows. Fetching them lazily costs
         # several queries per face, which is what makes tagging a large
         # selection of faces run into the gateway timeout.
+        # Only the requester's own faces are loaded: a foreign face id must
+        # not come back serialized in ``not_updated`` (it carried the photo id
+        # and the face crop path of someone else's photo).
         faces = (
-            Face.objects.select_related(
+            Face.objects.filter(photo__owner=request.user)
+            .select_related(
                 "photo__owner",
                 "photo__main_file",
                 "photo__metadata",
@@ -306,17 +357,14 @@ class SetFacePersonLabel(APIView):
         relabeled_faces = []
         affected_person_ids = set()
         for face in faces.values():
-            if face.photo.owner == request.user:
-                if face.person_id is not None:
-                    affected_person_ids.add(face.person_id)
-                face.person = person
-                if not person:
-                    face.cluster_person = cluster_person
-                    face.classification_person = classification_person
-                relabeled_faces.append(face)
-                updated.append(FaceListSerializer(face).data)
-            else:
-                not_updated.append(FaceListSerializer(face).data)
+            if face.person_id is not None:
+                affected_person_ids.add(face.person_id)
+            face.person = person
+            if not person:
+                face.cluster_person = cluster_person
+                face.classification_person = classification_person
+            relabeled_faces.append(face)
+            updated.append(FaceListSerializer(face).data)
         Face.objects.bulk_update(
             relabeled_faces, ["person", "cluster_person", "classification_person"]
         )
@@ -402,20 +450,222 @@ class SetFacePersonLabel(APIView):
         PhotoSearch.objects.bulk_update(to_update, ["search_captions", "updated_at"])
 
 
+class AddFaceView(APIView):
+    """Create a face from a box the user drew on a photo.
+
+    Until now every Face row came from the detector or from an XMP region already
+    written into the file, so a face the detector missed could not be recorded at
+    all -- someone turned away from the camera, a child, a face behind a hat. This
+    is the manual way in.
+
+    The box arrives normalized to the displayed image (each side a fraction of the
+    width or height) because fractions are what the browser can measure. Face rows
+    store pixels in big-thumbnail space, and the big thumbnail is the image the
+    lightbox displays, so converting is a multiplication by the thumbnail's own
+    size -- no separate coordinate mapping is involved.
+
+    A manually added face is a user label: it gets ``person`` set with
+    ``KIND_USER`` and no cluster, so classification trains on it like any other
+    face the user named, but it never seeds a cluster of its own.
+    """
+
+    # A box smaller than this in big-thumbnail pixels is a stray drag, not a face.
+    MIN_SIDE_PIXELS = 12
+
+    def post(self, request, format=None):
+        person_name = (request.data.get("person_name") or "").strip()
+        if not person_name:
+            return self._error("person_name must not be empty")
+        if person_name == Person.UNKNOWN_PERSON_NAME:
+            return self._error(
+                "a face drawn by hand has to name someone; "
+                f"'{Person.UNKNOWN_PERSON_NAME}' is what the algorithms use"
+            )
+
+        photo_id = request.data.get("photo")
+        if not photo_id:
+            return self._error("photo is required")
+        photo = (
+            Photo.objects.owned_by(request.user)
+            .filter(**_get_photo_filter_kwargs(str(photo_id)))
+            .select_related(
+                "owner", "thumbnail", "main_file", "metadata", "caption_instance"
+            )
+            .prefetch_related("files", "faces__person")
+            .first()
+        )
+        if photo is None:
+            return Response(
+                {"status": False, "message": "photo not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        thumbnail_path = self._thumbnail_path(photo)
+        if thumbnail_path is None:
+            return self._error(
+                "this photo has no big thumbnail yet, so there is nothing to "
+                "measure the box against"
+            )
+
+        try:
+            big_thumbnail = PIL.Image.open(thumbnail_path)
+        except OSError:
+            logger.exception(f"Cannot open thumbnail for photo {photo.image_hash}")
+            return self._error("this photo's thumbnail cannot be read")
+
+        with big_thumbnail:
+            box, error = self._box_in_pixels(
+                request.data.get("box"), big_thumbnail.width, big_thumbnail.height
+            )
+            if error:
+                return self._error(error)
+            top, right, bottom, left = box
+
+            existing = photo.faces.filter(deleted=False).values_list(
+                "location_top", "location_right", "location_bottom", "location_left"
+            )
+            if _overlaps_existing_face(existing, top, right, bottom, left):
+                return Response(
+                    {
+                        "status": False,
+                        "message": "there is already a face here; label that one "
+                        "instead of adding a second face over it",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            face_image = big_thumbnail.crop((left, top, right, bottom))
+            person = get_or_create_person(
+                name=person_name, owner=request.user, kind=Person.KIND_USER
+            )
+            face = photo._save_detected_face(
+                face_image,
+                f"{photo.image_hash}_manual_{uuid.uuid4().hex[:8]}.jpg",
+                person,
+                None,
+                (top, right, bottom, left),
+            )
+
+        # Without an encoding the face is still a valid label -- it just cannot be
+        # compared to anything yet. "Train faces" encodes faces that have none, so
+        # a face service that is down or disabled delays recognition rather than
+        # losing the user's work.
+        try:
+            face.generate_encoding()
+        except Exception:
+            logger.exception(
+                f"Could not encode manually added face {face.id}; "
+                "it will be encoded by the next face training run"
+            )
+
+        person._calculate_face_count()
+        person._set_default_cover_photo()
+
+        # The person's name is part of what the photo can be found by.
+        photo.refresh_from_db()
+        SetFacePersonLabel._recreate_search_captions([photo])
+
+        if request.user.save_face_tags_to_disk:
+            use_sidecar = (
+                request.user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+            )
+            try:
+                photo._save_metadata(
+                    use_sidecar=use_sidecar, metadata_types=["face_tags"]
+                )
+            except Exception:
+                logger.exception(
+                    f"Failed to write face tags for photo {photo.image_hash}"
+                )
+
+        return Response(
+            {
+                "status": True,
+                "face": {
+                    "face_id": face.id,
+                    "face_url": face.image.url,
+                    "person": person.id,
+                    "person_name": person.name,
+                    "location": {
+                        "top": top,
+                        "right": right,
+                        "bottom": bottom,
+                        "left": left,
+                    },
+                },
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    @staticmethod
+    def _error(message):
+        return Response(
+            {"status": False, "message": message}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    @staticmethod
+    def _thumbnail_path(photo):
+        thumbnail = getattr(photo, "thumbnail", None)
+        if thumbnail is None or not thumbnail.thumbnail_big:
+            return None
+        try:
+            return thumbnail.thumbnail_big.path
+        except (ValueError, NotImplementedError):
+            return None
+
+    @classmethod
+    def _box_in_pixels(cls, box, width, height):
+        """Turn a normalized box into big-thumbnail pixels.
+
+        Returns ``((top, right, bottom, left), None)`` or ``(None, message)``.
+        """
+        if not isinstance(box, dict):
+            return None, "box is required, with top, right, bottom and left"
+
+        sides = {}
+        for side in ("top", "right", "bottom", "left"):
+            try:
+                sides[side] = float(box[side])
+            except (KeyError, TypeError, ValueError):
+                return None, f"box.{side} must be a number between 0 and 1"
+            if not 0 <= sides[side] <= 1:
+                return None, f"box.{side} must be between 0 and 1"
+
+        if sides["right"] <= sides["left"] or sides["bottom"] <= sides["top"]:
+            return None, "box must have a positive width and height"
+
+        top = int(round(sides["top"] * height))
+        bottom = int(round(sides["bottom"] * height))
+        left = int(round(sides["left"] * width))
+        right = int(round(sides["right"] * width))
+
+        # Rounding can collapse a thin box, and clamping keeps the crop inside the
+        # thumbnail even when the browser reports a box a fraction past the edge.
+        top = max(0, min(top, height - 1))
+        left = max(0, min(left, width - 1))
+        bottom = max(top + 1, min(bottom, height))
+        right = max(left + 1, min(right, width))
+
+        if right - left < cls.MIN_SIDE_PIXELS or bottom - top < cls.MIN_SIDE_PIXELS:
+            return None, (
+                f"the box is too small; each side has to be at least "
+                f"{cls.MIN_SIDE_PIXELS} pixels of the photo's big thumbnail"
+            )
+
+        return (top, right, bottom, left), None
+
+
 class DeleteFaces(APIView):
     def post(self, request, format=None):
         data = dict(request.data)
-        faces = Face.objects.in_bulk(data["face_ids"])
+        faces = Face.objects.filter(photo__owner=request.user).in_bulk(data["face_ids"])
 
         deleted = []
         not_deleted = []
         for face in faces.values():
-            if face.photo.owner == request.user:
-                deleted.append(face.image.url)
-                face.deleted = True
-                face.save()
-            else:
-                not_deleted.append(face.image.url)
+            deleted.append(face.image.url)
+            face.deleted = True
+            face.save()
 
         return Response(
             {

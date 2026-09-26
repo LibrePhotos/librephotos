@@ -52,6 +52,8 @@ THIRD_PARTY_LEVELS = {
     "matplotlib": "WARNING",
     "asyncio": "WARNING",
     "django.db.backends": "WARNING",
+    # libvips narrates every decode and resize at INFO, ~35 lines per photo.
+    "pyvips": "WARNING",
 }
 
 # Problems noticed while the configuration is still being built - at that point
@@ -170,7 +172,7 @@ def build_logging_config(
     handlers = {
         LOG_FILE_HANDLER_NAME: {
             # ConcurrentRotatingFileHandler rather than the stdlib
-            # RotatingFileHandler: gunicorn workers and django-q2 workers write
+            # RotatingFileHandler: uvicorn workers and django-q2 workers write
             # to this file at the same time, and plain rotation truncates it
             # under the other processes (bug #1765).
             "class": "concurrent_log_handler.ConcurrentRotatingFileHandler",

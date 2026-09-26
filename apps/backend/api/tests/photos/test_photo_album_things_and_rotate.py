@@ -7,17 +7,12 @@ Everything expensive is mocked: ``Thumbnail._regenerate_thumbnails`` and
 ``api.models.photo.write_metadata`` (exiftool). No network, no ML models.
 
 Quirks deliberately pinned (see inline comments):
-  * BUG (pinned, not fixed): ``_add_to_album_thing`` calls
-    ``get_album_thing(title=..., owner=...)`` WITHOUT ``thing_type``, so the
-    get_or_create lookup is always ``thing_type=None`` -- but the method then
-    stamps ``places365_attribute`` / ``places365_category`` on the row. Any
-    later call for the same title therefore misses the existing album,
-    creates a duplicate NULL-typed row, and its final ``save()`` violates the
-    ``(title, thing_type, owner)`` unique constraint -> ``IntegrityError``.
-    This fires for a repeated title in one list, for a second photo with the
-    same title, and for re-running the method on the same photo.
-  * A title present in both ``attributes`` and ``categories`` escapes that
-    collision (the two rows differ in ``thing_type``) and yields two albums.
+  * ``_add_to_album_thing`` reads the tags the ACTIVE tagging model stored
+    for the photo (``captions_json[TAGGING_MODEL]["tags"]``) and files the
+    photo under ``<model>_tag`` albums, looked up by title, owner AND
+    thing_type -- so repeated titles, second photos and reruns are all
+    idempotent (the old Places365 code looked albums up without a type and
+    hit the unique constraint on every repeat).
   * ``captions_json`` that is a non-dict (e.g. a list) is rejected by the
     ``type(...) is dict`` check.
   * ``rotate`` normalises the angle with ``% 360`` BEFORE the multiple-of-90
@@ -32,7 +27,7 @@ Quirks deliberately pinned (see inline comments):
 
 from unittest.mock import patch
 
-from django.db.utils import IntegrityError
+from constance.test import override_config
 from django.test import TestCase
 
 from api.models.album_thing import AlbumThing
@@ -42,16 +37,12 @@ from api.models.user import User
 from api.tests.utils import create_test_photo, create_test_user
 
 
-def _places365(attributes=None, categories=None):
-    return {
-        "places365": {
-            "attributes": attributes if attributes is not None else [],
-            "categories": categories if categories is not None else [],
-        }
-    }
+def _tags(tags, model="mobileclip_s2"):
+    return {model: {"tags": tags}}
 
 
-class AddToAlbumThingCharacterizationTest(TestCase):
+@override_config(TAGGING_MODEL="mobileclip_s2")
+class AddToAlbumThingTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
@@ -70,13 +61,12 @@ class AddToAlbumThingCharacterizationTest(TestCase):
 
     def test_empty_captions_json_is_noop(self):
         photo = self._photo({})
-        # falsy dict short-circuits before the places365 lookup
         photo._add_to_album_thing()
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
-    def test_captions_json_without_places365_is_noop(self):
-        photo = self._photo({"im2txt": "a dog"})
+    def test_captions_json_without_active_model_is_noop(self):
+        photo = self._photo({"im2txt": "a dog", "siglip2": {"tags": ["dog"]}})
 
         photo._add_to_album_thing()
 
@@ -85,159 +75,122 @@ class AddToAlbumThingCharacterizationTest(TestCase):
     def test_non_dict_captions_json_is_noop(self):
         """``type(x) is dict`` rejects lists (and dict subclasses)."""
         photo = create_test_photo(owner=self.user)
-        PhotoCaption.objects.create(photo=photo, captions_json=["places365"])
+        PhotoCaption.objects.create(photo=photo, captions_json=["mobileclip_s2"])
 
         photo.refresh_from_db()
         photo._add_to_album_thing()
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
-    def test_missing_attributes_key_raises_keyerror(self):
-        """No defensive ``.get()``: a malformed places365 payload blows up."""
-        photo = self._photo({"places365": {"categories": ["outdoor"]}})
-
-        with self.assertRaises(KeyError):
-            photo._add_to_album_thing()
-
-    def test_missing_categories_key_raises_keyerror_after_attributes(self):
-        photo = self._photo({"places365": {"attributes": ["sunny"]}})
-
-        with self.assertRaises(KeyError):
-            photo._add_to_album_thing()
-
-        # the attributes loop already ran and committed its album thing
-        self.assertTrue(
-            AlbumThing.objects.filter(
-                title="sunny", thing_type="places365_attribute"
-            ).exists()
-        )
-
-    def test_empty_lists_create_nothing(self):
-        photo = self._photo(_places365([], []))
+    def test_non_dict_tag_result_is_noop(self):
+        photo = self._photo({"mobileclip_s2": "nope"})
 
         photo._add_to_album_thing()
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
+    def test_missing_tags_key_and_empty_list_create_nothing(self):
+        self._photo({"mobileclip_s2": {}})._add_to_album_thing()
+        self._photo(_tags([]))._add_to_album_thing()
+
+        self.assertEqual(AlbumThing.objects.count(), 0)
+
     # ---- happy path ---------------------------------------------------
 
-    def test_creates_attribute_and_category_album_things(self):
-        photo = self._photo(
-            _places365(attributes=["sunny", "natural light"], categories=["beach"])
-        )
+    def test_creates_one_typed_album_per_tag(self):
+        photo = self._photo(_tags(["sunny", "natural light", "beach"]))
 
         photo._add_to_album_thing()
 
         self.assertEqual(AlbumThing.objects.count(), 3)
-        for title in ("sunny", "natural light"):
+        for title in ("sunny", "natural light", "beach"):
             thing = AlbumThing.objects.get(title=title)
-            self.assertEqual(thing.thing_type, "places365_attribute")
+            self.assertEqual(thing.thing_type, "mobileclip_s2_tag")
             self.assertEqual(thing.owner, self.user)
             self.assertEqual(list(thing.photos.all()), [photo])
-        beach = AlbumThing.objects.get(title="beach")
-        self.assertEqual(beach.thing_type, "places365_category")
-        self.assertEqual(list(beach.photos.all()), [photo])
+
+    @override_config(TAGGING_MODEL="siglip2")
+    def test_active_model_decides_which_tags_and_which_type(self):
+        photo = self._photo(
+            {"mobileclip_s2": {"tags": ["beach"]}, "siglip2": {"tags": ["dog"]}}
+        )
+
+        photo._add_to_album_thing()
+
+        thing = AlbumThing.objects.get()
+        self.assertEqual((thing.title, thing.thing_type), ("dog", "siglip2_tag"))
 
     def test_photo_count_receiver_updates_count(self):
-        photo = self._photo(_places365(attributes=["sunny"]))
+        photo = self._photo(_tags(["sunny"]))
 
         photo._add_to_album_thing()
 
         self.assertEqual(AlbumThing.objects.get(title="sunny").photo_count, 1)
 
-    def test_second_photo_with_same_title_raises_integrity_error(self):
-        """BUG, pinned as-is. ``get_album_thing`` is called WITHOUT
-        ``thing_type``, so the lookup is ``(title, owner, thing_type=None)``.
-        The album saved by the first photo now has
-        ``thing_type='places365_attribute'`` and is therefore invisible to
-        that lookup: a fresh ``thing_type=None`` row is created, the photo is
-        added, and the final ``save()`` -- which stamps
-        ``places365_attribute`` -- collides with the first row on the
-        ``(title, thing_type, owner)`` unique constraint.
-
-        Net effect in production: the second photo is never grouped, and the
-        caller sees an IntegrityError. A refactor that passes ``thing_type``
-        into ``get_album_thing`` would fix this; the test must then be
-        updated deliberately.
-        """
-        first = self._photo(_places365(attributes=["sunny"]))
-        second = self._photo(_places365(attributes=["sunny"]))
+    def test_second_photo_with_same_title_joins_the_same_album(self):
+        first = self._photo(_tags(["sunny"]))
+        second = self._photo(_tags(["sunny"]))
 
         first._add_to_album_thing()
-        with self.assertRaises(IntegrityError):
-            second._add_to_album_thing()
+        second._add_to_album_thing()
 
-    def test_rerunning_for_same_photo_raises_integrity_error(self):
-        """Not idempotent: the second call cannot find the album (its
-        ``thing_type`` is no longer ``None``) and its duplicate collides.
-        """
-        photo = self._photo(_places365(attributes=["sunny"]))
+        thing = AlbumThing.objects.get(title="sunny")
+        self.assertEqual(set(thing.photos.all()), {first, second})
+
+    def test_rerunning_for_same_photo_is_idempotent(self):
+        photo = self._photo(_tags(["sunny", "sunny"]))
 
         photo._add_to_album_thing()
-        with self.assertRaises(IntegrityError):
-            photo._add_to_album_thing()
+        photo._add_to_album_thing()
+
+        thing = AlbumThing.objects.get(title="sunny")
+        self.assertEqual(list(thing.photos.all()), [photo])
 
     def test_membership_check_uses_image_hash_not_pk(self):
         """The existence check filters on ``image_hash``: a *different* photo
         sharing the hash counts as already-present, so the new photo is never
-        added and ``thing_type`` is left untouched (``None``).
+        added.
         """
-        photo = self._photo(_places365(attributes=["sunny"]))
+        photo = self._photo(_tags(["sunny"]))
         twin = create_test_photo(owner=self.user)
         twin.image_hash = photo.image_hash
         twin.save()
 
-        thing = AlbumThing.objects.create(title="sunny", owner=self.user)
+        thing = AlbumThing.objects.create(
+            title="sunny", owner=self.user, thing_type="mobileclip_s2_tag"
+        )
         thing.photos.add(twin)
 
         photo._add_to_album_thing()
 
-        thing.refresh_from_db()
         self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 1)
-        self.assertIsNone(thing.thing_type)
         self.assertEqual(list(thing.photos.all()), [twin])
-
-    def test_title_in_both_lists_creates_two_rows(self):
-        """The category pass cannot see the attribute album (thing_type no
-        longer NULL), so it creates a second row -- which happens to be legal
-        because ``(beach, places365_category, owner)`` is free. The photo ends
-        up in both.
-        """
-        photo = self._photo(_places365(attributes=["beach"], categories=["beach"]))
-
-        photo._add_to_album_thing()
-
-        things = AlbumThing.objects.filter(title="beach")
-        self.assertEqual(things.count(), 2)
-        self.assertEqual(
-            sorted(t.thing_type for t in things),
-            ["places365_attribute", "places365_category"],
-        )
-        for thing in things:
-            self.assertEqual(list(thing.photos.all()), [photo])
 
     def test_albums_are_scoped_to_the_photo_owner(self):
         other = create_test_user()
-        AlbumThing.objects.create(title="sunny", owner=other)
-        photo = self._photo(_places365(attributes=["sunny"]))
+        AlbumThing.objects.create(
+            title="sunny", owner=other, thing_type="mobileclip_s2_tag"
+        )
+        photo = self._photo(_tags(["sunny"]))
 
         photo._add_to_album_thing()
 
         self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 2)
         mine = AlbumThing.objects.get(title="sunny", owner=self.user)
-        self.assertEqual(mine.thing_type, "places365_attribute")
+        self.assertEqual(list(mine.photos.all()), [photo])
         theirs = AlbumThing.objects.get(title="sunny", owner=other)
-        self.assertIsNone(theirs.thing_type)
         self.assertEqual(theirs.photos.count(), 0)
 
-    def test_duplicate_titles_within_one_list_raise_integrity_error(self):
-        """Same root cause as the two-photo case: the second occurrence of the
-        title re-creates a NULL-typed row whose save collides.
-        """
-        photo = self._photo(_places365(attributes=["sunny", "sunny"]))
+    def test_untyped_album_with_same_title_is_left_alone(self):
+        """A legacy NULL-typed album is a different row from the typed one."""
+        legacy = AlbumThing.objects.create(title="sunny", owner=self.user)
+        photo = self._photo(_tags(["sunny"]))
 
-        with self.assertRaises(IntegrityError):
-            photo._add_to_album_thing()
+        photo._add_to_album_thing()
+
+        legacy.refresh_from_db()
+        self.assertEqual(legacy.photos.count(), 0)
+        self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 2)
 
 
 class RotateCharacterizationTest(TestCase):

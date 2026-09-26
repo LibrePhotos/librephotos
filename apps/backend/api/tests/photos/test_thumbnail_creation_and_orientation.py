@@ -16,7 +16,7 @@ from unittest import mock
 import pyvips
 from django.test import SimpleTestCase, override_settings
 
-from api.thumbnails import _apply_local_orientation, create_thumbnail
+from api.thumbnails import WEBP, _apply_local_orientation, create_thumbnail
 
 MEDIA_ROOT = os.path.join("/tmp", "lp-crap-u30-media")
 
@@ -108,14 +108,13 @@ class ApplyLocalOrientationTests(SimpleTestCase):
 
 @override_settings(MEDIA_ROOT=MEDIA_ROOT)
 class CreateThumbnailNonRawTests(SimpleTestCase):
-    """Non-raw input: pyvips thumbnail + optional local orientation."""
+    """Non-raw input: image_decoding.thumbnail + optional local orientation."""
 
     def setUp(self):
-        patcher = mock.patch("api.thumbnails.pyvips")
-        self.pyvips = patcher.start()
+        patcher = mock.patch("api.thumbnails.image_decoding.thumbnail")
+        self.decode = patcher.start()
         self.addCleanup(patcher.stop)
-        # ``pyvips.enums`` is mocked too; the values are only passed through.
-        self.thumb = self.pyvips.Image.thumbnail.return_value
+        self.thumb = self.decode.return_value
 
     def test_happy_path_orientation_1(self):
         result = create_thumbnail(
@@ -123,41 +122,36 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
         )
         expected = os.path.join(MEDIA_ROOT, "thumbnails_big", "abc123.webp")
         self.assertEqual(result, expected)
-        self.pyvips.Image.thumbnail.assert_called_once_with(
-            "/data/photo.jpg",
-            10000,
-            height=200,
-            size=self.pyvips.enums.Size.DOWN,
-        )
-        # orientation 1 -> no copy_memory, the thumbnail itself is written
-        self.thumb.copy_memory.assert_not_called()
-        self.thumb.write_to_file.assert_called_once_with(expected, Q=95)
+        self.decode.assert_called_once_with("/data/photo.jpg", 200)
+        self.thumb.write_to_file.assert_called_once_with(expected, **WEBP)
 
     def test_orientation_none_skips_transform(self):
-        create_thumbnail(
-            "/data/photo.jpg",
-            200,
-            "thumbnails_small",
-            "h",
-            ".webp",
-            local_orientation=None,
-        )
-        self.thumb.copy_memory.assert_not_called()
+        with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
+            create_thumbnail(
+                "/data/photo.jpg",
+                200,
+                "thumbnails_small",
+                "h",
+                ".webp",
+                local_orientation=None,
+            )
+        apply_mock.assert_not_called()
         self.thumb.write_to_file.assert_called_once()
 
     def test_orientation_zero_skips_transform(self):
         # 0 is falsy, so the ``local_orientation and ...`` guard skips it.
-        create_thumbnail(
-            "/data/photo.jpg",
-            200,
-            "thumbnails_small",
-            "h",
-            ".webp",
-            local_orientation=0,
-        )
-        self.thumb.copy_memory.assert_not_called()
+        with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
+            create_thumbnail(
+                "/data/photo.jpg",
+                200,
+                "thumbnails_small",
+                "h",
+                ".webp",
+                local_orientation=0,
+            )
+        apply_mock.assert_not_called()
 
-    def test_non_trivial_orientation_copies_memory_and_transforms(self):
+    def test_non_trivial_orientation_transforms(self):
         with mock.patch("api.thumbnails._apply_local_orientation") as apply_mock:
             result = create_thumbnail(
                 "/data/photo.jpg",
@@ -169,15 +163,14 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
             )
         expected = os.path.join(MEDIA_ROOT, "thumbnails_big", "abc123.webp")
         self.assertEqual(result, expected)
-        copied = self.thumb.copy_memory.return_value
-        apply_mock.assert_called_once_with(copied, 6)
+        apply_mock.assert_called_once_with(self.thumb, 6)
         # the *transformed* image is what gets written
-        apply_mock.return_value.write_to_file.assert_called_once_with(expected, Q=95)
+        apply_mock.return_value.write_to_file.assert_called_once_with(expected, **WEBP)
         self.thumb.write_to_file.assert_not_called()
 
     def test_exception_is_logged_and_reraised(self):
         boom = RuntimeError("vips exploded")
-        self.pyvips.Image.thumbnail.side_effect = boom
+        self.decode.side_effect = boom
         with mock.patch("api.thumbnails.util.logger") as logger:
             with self.assertRaises(RuntimeError) as ctx:
                 create_thumbnail("/data/photo.jpg", 200, "thumbnails_big", "h", ".webp")
@@ -203,6 +196,12 @@ class CreateThumbnailRawTests(SimpleTestCase):
         self.requests.post.return_value.json.return_value = {
             "thumbnail": "/service/result.webp"
         }
+        # No usable embedded preview: the RAW goes to the service.
+        preview_patcher = mock.patch(
+            "api.thumbnails.image_decoding.raw_preview", return_value=None
+        )
+        self.raw_preview = preview_patcher.start()
+        self.addCleanup(preview_patcher.stop)
 
     def test_big_thumbnail_posts_to_raw_service_and_returns_service_path(self):
         from api.http_timeouts import THUMBNAIL
@@ -214,7 +213,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         # locally computed complete_path like every other branch.
         self.assertEqual(result, "/service/result.webp")
         self.requests.post.assert_called_once_with(
-            "http://localhost:8003/",
+            "http://127.0.0.1:8003/",
             json={
                 "source": self.RAW_PATH,
                 "destination": os.path.join(
@@ -242,7 +241,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         self.pyvips.Image.new_from_file.assert_called_once_with(complete)
         copied = self.pyvips.Image.new_from_file.return_value.copy_memory.return_value
         apply_mock.assert_called_once_with(copied, 8)
-        apply_mock.return_value.write_to_file.assert_called_once_with(complete, Q=95)
+        apply_mock.return_value.write_to_file.assert_called_once_with(complete, **WEBP)
 
     def test_small_raw_thumbnail_resizes_the_big_thumbnail(self):
         result = create_thumbnail(
@@ -256,7 +255,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
             big, 10000, height=200, size=self.pyvips.enums.Size.DOWN
         )
         self.pyvips.Image.thumbnail.return_value.write_to_file.assert_called_once_with(
-            expected, Q=95
+            expected, **WEBP
         )
 
     def test_small_raw_thumbnail_ignores_local_orientation(self):

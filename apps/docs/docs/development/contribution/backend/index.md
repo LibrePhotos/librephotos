@@ -9,7 +9,7 @@ The backend uses the following technologies:
 
 - Python
 - Django
-- Pytorch
+- ONNX Runtime
 
 ## ✨ Code Standards
 
@@ -73,25 +73,23 @@ You have your python model and want to somehow convert that to JSON. That's what
 
 ### Services
 
-Not everything runs inside Django. The heavy machine-learning work lives in standalone Flask processes that Django talks to over plain HTTP on localhost. Seven of them sit under `service/` — `thumbnail`, `face_recognition`, `clip_embeddings`, `image_captioning`, `llm`, `exif` and `tags` — and `image_similarity/` is a separate top-level folder. Each is served by a gevent `WSGIServer` on a fixed port; the ports are defined in the `SERVICES` dict in `api/services.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, clip_embeddings 8006, image_captioning 8007, llm 8008, exif 8010, tags 8011).
+Not everything runs inside Django. The heavy machine-learning work lives in standalone Flask processes that Django talks to over plain HTTP on localhost. Seven of them sit under `service/` — `thumbnail`, `face_recognition`, `clip_embeddings`, `image_captioning`, `exif`, `tags` and `ocr` — and `image_similarity/` is a separate top-level folder. Each is served by a gevent `WSGIServer` on a fixed port; the ports are defined in the `SERVICES` dict in `api/services.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, clip_embeddings 8006, image_captioning 8007, exif 8010, tags 8011, ocr 8012).
 
-You start them with `python manage.py start_service`, which also schedules `api.services.check_services` in django-q2 to poll each service's `/health` endpoint and restart any that have gone stale or died. The `llm` service additionally needs certain CPU features (`avx`, `sse4_2`) and is skipped on hardware that lacks them.
+You start them with `python manage.py start_service`, which also schedules `api.services.check_services` in django-q2 to poll each service's `/health` endpoint and restart any that have gone stale or died.
 
 Because these are separate processes, the `docker attach` + pdb trick above does not reach them — to debug a service, check its log under `/logs/` or add logging in the service's own `main.py`.
 
 ### Machine Learning
 
-We use as a base framework PyTorch. If you find a cool machine learning model with PyTorch, we sure can add that too.
+Every model runs on [ONNX Runtime](https://onnxruntime.ai/); there is no PyTorch in the image, which keeps the CPU image small and lets the same code run on the GPU image with `onnxruntime-gpu`. A new model has to come as an ONNX export (the `onnx-community` and `Xenova` organisations on Hugging Face publish many) with its tokenizer as a `tokenizer.json` for the `tokenizers` package.
 
 #### Image Captioning
 
-Captions are generated on demand by the image captioning service (`service/image_captioning/`, port 8007). The model is chosen with the `Captioning Model` site setting (`im2txt` by default, or `none` to turn caption generation off):
+Captions are generated on demand by the image captioning service (`service/image_captioning/`, port 8007), which runs Liquid AI's LFM2.5-VL-450M as three ONNX graphs (SigLIP2 NaFlex vision encoder, token embedding, merged LFM2 decoder with its key/value and convolution caches), driven by `service/image_captioning/lfm2_vl.py` with greedy decoding. The `Captioning Model` site setting is `lfm2_vl_450m` or `none`; the model files are always downloaded so turning captioning on never waits.
 
-- **im2txt** — the original PyTorch captioning model. It still works, though its output is fairly basic.
-- **blip_base_capfilt_large** (BLIP) — a newer captioning model. It is not a separate service; it lives inside the image captioning service at `service/image_captioning/api/im2txt/blip/` and is selected by passing `blip=True` through to the model.
-- **moondream** — a visual LLM. This one does not go through the captioning service at all: `api/image_captioning.py` routes it to the `llm` service (port 8008).
+The request carries a prompt. `PhotoCaption.generate_captions_im2txt` builds it from the user's caption-context switches (`User.llm_settings`, a historical name): the recognised person's name and the geocoded place go into the prompt, and the model writes them into the caption itself. There is no separate LLM pass any more. Photos are always fed as one tile of at most 256 image tokens; see the module docstring for why.
 
-Whichever model runs, the caption is stored under the `"im2txt"` key in `PhotoCaption.captions_json`, and if an LLM is enabled it can post-process the caption before it is saved. For the user-facing comparison of these models, see the [image captioning guide](../../../user-guide/image-captioning.md).
+The caption is stored under the `"im2txt"` key in `PhotoCaption.captions_json`. For the user-facing comparison of these models, see the [image captioning guide](../../../user-guide/image-captioning.md).
 
 #### Face Recognition
 
@@ -101,11 +99,11 @@ We use [InsightFace](https://github.com/deepinsight/insightface) to detect and r
 
 The tags service (`service/tags/`) generates auto-tags for photos. Two models are available, selectable via the Tagging Model site setting:
 
-- **places365** — Scene classification using the Places365 CNN. Generates scene category tags (e.g. "kitchen", "beach").
-- **siglip2** (`service/tags/siglip2/`) — Google's SigLIP 2 vision-language model running as ONNX. Uses zero-shot classification by computing cosine similarity between image embeddings and a curated vocabulary of 900+ text tag embeddings. Tag embeddings are cached to disk after the first run. Returns the top 10 tags.
+- **mobileclip_s2** (`service/tags/mobileclip/`, the default) — Apple's MobileCLIP-S2 running as ONNX. Zero-shot classification against the shared vocabulary in `service/tags/tags.txt`; tags are cut on the softmax probability over all tags (CLIP logit scale 100), because raw CLIP cosines are not comparable between photos.
+- **siglip2** (`service/tags/siglip2/`) — Google's SigLIP 2 vision-language model running as ONNX. Same vocabulary, cut on raw cosine similarity. More accurate and several times heavier.
 
-Tags from each model are stored independently in `PhotoCaption.captions_json` under their model key (e.g. `"places365"`, `"siglip2"`), so switching models does not require regeneration.
+Both taggers cache their tag embeddings next to the model after the first run and store `{"tags": [...]}` in `PhotoCaption.captions_json` under their model key (`"mobileclip_s2"`, `"siglip2"`), and file the photo under `AlbumThing` rows of type `<model>_tag`. Only the active model's key is read, so switching models does not require regeneration.
 
 #### Semantic Search
 
-Here you can find the code which allows us to search semantically for images like "trees in a valley".
+Here you can find the code which allows us to search semantically for images like "trees in a valley". The `clip_embeddings` service (`service/clip_embeddings/clip_onnx.py`) runs OpenAI's CLIP ViT-B/32 as ONNX; these are the same weights the earlier sentence-transformers bundle wrapped, so embeddings stored before the switch stay valid.

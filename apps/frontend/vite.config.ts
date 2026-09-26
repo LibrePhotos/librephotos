@@ -14,6 +14,13 @@ export default defineConfig(({ mode }) => {
   // switched on, so a normal dev server keeps the stock transform.
   const wdyr = mode !== "production" && env.VITE_APP_WDYR === "true";
 
+  // Native dev without the nginx proxy: forward the backend paths to it, so
+  // the app stays same-origin (VITE_PUBLIC_URL unset).
+  const backend = env.VITE_BACKEND_URL;
+  const proxy = backend
+    ? Object.fromEntries(["/api", "/media"].map(p => [p, { target: backend, changeOrigin: true }]))
+    : undefined;
+
   return {
     base: publicUrl,
     plugins: [
@@ -24,6 +31,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "0.0.0.0",
       port: 3000,
+      proxy,
     },
     build: {
       assetsDir: 'assets',

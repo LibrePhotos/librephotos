@@ -16,7 +16,9 @@ on a CIFS share or an NTFS drive.
 import os
 import shutil
 import stat
+import sys
 import tempfile
+import unittest
 from unittest import mock
 
 from django.test import SimpleTestCase, TestCase, override_settings
@@ -97,6 +99,7 @@ class _TreeMixin:
 
 
 @override_settings(WEBSERVER_UID=FAKE_WEBSERVER_UID, WEBSERVER_GID=FAKE_WEBSERVER_GID)
+@unittest.skipIf(sys.platform == "win32", "POSIX mode bits and /proc/mounts")
 class DiagnoseMediaPathTest(_TreeMixin, SimpleTestCase):
     def test_fully_readable_file_reports_permissions_are_not_the_problem(self):
         """The most useful answer this can give is "stop looking at permissions".
@@ -224,6 +227,7 @@ class DiagnoseMediaPathTest(_TreeMixin, SimpleTestCase):
 
 
 @override_settings(WEBSERVER_UID=FAKE_WEBSERVER_UID, WEBSERVER_GID=FAKE_WEBSERVER_GID)
+@unittest.skipIf(sys.platform == "win32", "POSIX mode bits and /proc/mounts")
 class RemedySelectionTest(_TreeMixin, SimpleTestCase):
     """Which *kind* of fix gets suggested has to follow the storage.
 
