@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useToggleUserAlbumPublicMutation, type PublicSharingOptions } from "../../api_client/albums/hooks";
 import { UserAlbum } from "../../api_client/albums/types";
+import { ApiError, fetchClient } from "../../api_client/api";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
 import { type PublicSharingDefaults, type User } from "../../api_client/user/types";
 import { copyToClipboard } from "../../util/util";
@@ -33,13 +34,16 @@ function SlugSetting({ value, onChange, isPublic, albumId, onMetaChange }: SlugP
     queryKey: ["slugAvailable", value],
     enabled,
     queryFn: async () => {
-      const resp = await fetch(`/api/public/albums/s/${encodeURIComponent(value)}/`);
-      if (resp.ok) {
-        const data = await resp.json();
+      try {
+        const data = await fetchClient.get<{ results?: { id?: string | number } } | null>(
+          `/public/albums/s/${encodeURIComponent(value)}/`
+        );
         return data?.results?.id ?? "__exists__";
+      } catch (error) {
+        // 404 means the slug is free; other HTTP errors don't block saving either.
+        if (error instanceof ApiError) return null;
+        throw error;
       }
-      if (resp.status === 404) return null;
-      return null;
     },
     staleTime: 30_000,
     retry: false,
