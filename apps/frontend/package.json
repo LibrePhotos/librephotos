@@ -13,7 +13,6 @@
     "test": "vitest --watch=false",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --watch=false",
-    "analyze": "source-map-explorer 'build/static/js/*.js'",
     "prepare": "husky install",
     "postinstall": "patch-package",
     "eslint-fix-interactive": "eslint-nibble --fixable-only \"./src/**/*.{js,jsx,ts,tsx}\"",
