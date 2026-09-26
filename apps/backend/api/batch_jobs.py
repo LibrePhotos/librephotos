@@ -77,5 +77,12 @@ def batch_calculate_clip_embedding(user):
 
         lrj.update_progress(current=done_count, target=count)
 
-    build_image_similarity_index(user)
+    try:
+        build_image_similarity_index(user)
+    except Exception as e:
+        # The embeddings are stored; only the index is stale. Say so rather
+        # than report a job that left similar-photo search behind as done.
+        util.logger.error(f"Error building the similarity index: {e}")
+        lrj.fail(e)
+        raise
     lrj.complete()

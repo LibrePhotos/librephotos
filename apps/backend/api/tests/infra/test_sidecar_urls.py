@@ -44,6 +44,20 @@ class SidecarUrlTest(SimpleTestCase):
 
         self.assertIs(services.SERVICES, SERVICES)
 
+    def test_no_sidecar_port_is_written_down_twice(self):
+        """Every address comes from SERVICES, never a literal port."""
+        literal_port = re.compile(rf"\b(?:{PORTS})\b")
+        offenders = []
+        for path in _sources():
+            if path.endswith(os.path.join("api", "sidecars.py")):
+                continue
+            with open(path, encoding="utf-8") as handle:
+                for number, line in enumerate(handle, 1):
+                    code = line.split("#", 1)[0]
+                    if literal_port.search(code):
+                        offenders.append(f"{os.path.relpath(path, BACKEND)}:{number}")
+        self.assertEqual(offenders, [], "use api.sidecars.SERVICES")
+
     def test_no_sidecar_is_called_through_localhost(self):
         offenders = []
         for path in _sources():
