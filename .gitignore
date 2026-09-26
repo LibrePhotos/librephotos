@@ -23,3 +23,10 @@ desktop.ini
 # Env
 .env
 .env.local
+
+# Local Python environments, coverage reports and test scratch dirs
+.venv*/
+htmlcov/
+.testtmp-*/
+# Cygwin/MSYS crash dumps
+*.stackdump

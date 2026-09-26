@@ -34,6 +34,10 @@ apps/mobile/ios
 **/.pytest_cache
 **/.ruff_cache
 **/.mypy_cache
+**/.venv*
+**/htmlcov
+**/.testtmp-*
+**/*.stackdump
 apps/backend/media
 apps/backend/static
 
