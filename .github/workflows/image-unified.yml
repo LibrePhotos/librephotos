@@ -22,6 +22,7 @@ jobs:
     with:
       image: reallibrephotos/librephotos-unified
       dockerfile: deploy/docker/unified/Dockerfile
+      base-image: reallibrephotos/librephotos-base
       build-args: |
         IMAGE_TAG=dev
     secrets:
@@ -34,6 +35,7 @@ jobs:
     with:
       image: reallibrephotos/librephotos-unified
       dockerfile: deploy/docker/unified/Dockerfile
+      base-image: reallibrephotos/librephotos-base
       release-tag: ${{ github.event.release.tag_name }}
       build-args: |
         IMAGE_TAG=${{ github.event.release.tag_name }}

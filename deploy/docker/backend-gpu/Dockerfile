@@ -1,4 +1,7 @@
-FROM reallibrephotos/librephotos-base-gpu:dev
+# Release builds pass their release tag, so the image sits on the base that was
+# promoted for that release instead of whatever :dev points at while it builds.
+ARG BASE_TAG=dev
+FROM reallibrephotos/librephotos-base-gpu:${BASE_TAG}
 
 # Debug flag is more like a dev flag
 ARG DEBUG

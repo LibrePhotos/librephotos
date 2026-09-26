@@ -1,6 +1,8 @@
 name: image-backend-base
 
 on:
+  release:
+    types: [created]
   push:
     branches: [dev]
     paths:
@@ -13,6 +15,7 @@ permissions:
 
 jobs:
   dev:
+    if: github.event_name != 'release'
     uses: ./.github/workflows/_build-image.yml
     with:
       image: reallibrephotos/librephotos-base
@@ -21,3 +24,30 @@ jobs:
     secrets:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+  # A release does not rebuild the base: it pins the :dev the release was
+  # tested on as :<release-tag>, which the backend and unified release builds
+  # use as BASE_TAG. _build-image.yml does the same promotion before those
+  # builds, since this job runs in parallel with them; either copy is a no-op
+  # once the tag exists.
+  release:
+    if: github.event_name == 'release' && github.event.action == 'created'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Login to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Promote :dev to the release tag
+        env:
+          BASE_IMAGE: reallibrephotos/librephotos-base
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if docker buildx imagetools inspect "${BASE_IMAGE}:${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "${BASE_IMAGE}:${RELEASE_TAG} already exists, leaving it alone"
+          else
+            docker buildx imagetools create -t "${BASE_IMAGE}:${RELEASE_TAG}" "${BASE_IMAGE}:dev"
+          fi

@@ -1,3 +1,7 @@
+# Release builds pass their release tag, so the backend stage sits on the base
+# that was promoted for that release instead of whatever :dev points at.
+ARG BASE_TAG=dev
+
 # Multi-stage build: First build the frontend
 FROM node:20-slim as frontend-builder
 
@@ -14,7 +18,7 @@ COPY apps/frontend/ ./
 RUN yarn run build
 
 # Second stage: Build the backend with frontend included
-FROM reallibrephotos/librephotos-base:dev
+FROM reallibrephotos/librephotos-base:${BASE_TAG}
 
 ARG DEBUG
 ARG MLVALIDATION

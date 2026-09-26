@@ -1,4 +1,7 @@
-FROM reallibrephotos/librephotos-base:dev
+# Release builds pass their release tag, so the image sits on the base that was
+# promoted for that release instead of whatever :dev points at while it builds.
+ARG BASE_TAG=dev
+FROM reallibrephotos/librephotos-base:${BASE_TAG}
 # actual project
 
 ARG DEBUG
