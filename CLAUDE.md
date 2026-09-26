@@ -34,7 +34,7 @@ deploy/
 
 ### Frontend (apps/frontend/)
 - Install: `cd apps/frontend && yarn install`
-- Lint: `yarn lint:error` • Test: `yarn test` • Build: `yarn build`
+- Lint: `yarn lint:error` • Test: `yarn test` • Build: `yarn build` • Typecheck: `yarn typecheck` (ratchet vs `tsc-baseline.txt`)
 - Dev server: `yarn start`
 
 ### Mobile (apps/mobile/)

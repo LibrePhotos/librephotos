@@ -2,7 +2,7 @@
 title: "👨‍💻 Frontend"
 description: "Development Information regarding LibrePhotos Frontend."
 sidebar_position: 2
-last_modified_at: 2026-07-22
+last_modified_at: 2026-09-26
 ---
 
 The frontend is a [React 18](https://react.dev/) single-page app, written in TypeScript and built
@@ -23,6 +23,13 @@ your changes and `yarn lint:error:fix` to apply the automatic fixes — the ESLi
 Prettier through the `prettier/prettier` rule, so linting also flags unformatted code. The
 `lint-frontend` CI workflow runs the lint, test and build steps on every pull request that touches
 `apps/frontend` and fails on anything unclean, so nothing un-linted gets merged.
+
+`yarn build` does not type-check, so run `yarn typecheck` as well. It runs `tsc --noEmit` and
+compares the errors against `apps/frontend/tsc-baseline.txt`, the backlog of errors that predate the
+check. Any error that is not in the baseline fails it, and so does the `typecheck-frontend` CI
+workflow. Errors are matched by file, code and message, not by line, so moving existing code around
+is fine. When you fix baseline errors the check tells you so; run `yarn typecheck:update` and commit
+the smaller baseline. Don't use `typecheck:update` to accept new errors — fix them instead.
 
 The repository ships a `husky` pre-commit hook (`apps/frontend/.husky/pre-commit`, which runs
 `lint-staged`), but it is currently inactive in the monorepo: `yarn install` runs the `prepare`
