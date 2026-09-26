@@ -37,8 +37,8 @@
       "addLabels": ["mobile"]
     },
     {
-      "description": "packages/* are npm workspaces of the mobile app (root package.json); the frontend does not consume them.",
-      "matchFileNames": ["packages/**"],
+      "description": "The root package.json is the npm workspace for apps/mobile and packages/*, and pins Expo, expo-router and React to move in lockstep with apps/mobile; packages/* are only consumed by the mobile app. Exact root paths, so apps/frontend and apps/docs manifests are not caught.",
+      "matchFileNames": ["package.json", "package-lock.json", "packages/**"],
       "groupName": "mobile dependencies",
       "addLabels": ["mobile"]
     },
