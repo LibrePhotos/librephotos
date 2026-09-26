@@ -1,6 +1,6 @@
 """Characterization tests for the media-serving views (unit 38).
 
-These pin the *current* behaviour of ``api.views.views.UnifiedMediaAccessView.get``,
+These pin the *current* behaviour of ``api.views.media.UnifiedMediaAccessView.get``,
 the big dispatcher that routes ``/media/<path>/<fname>`` to zip, avatar,
 embedded-media, public-album and photo/thumbnail handling, in both proxy
 (``X-Accel-Redirect``) and direct-serving modes.
@@ -9,6 +9,7 @@ They are deliberately written against the response headers and status codes a
 caller can observe, so a refactor that preserves behaviour keeps them green.
 """
 
+import datetime
 import os
 
 from django.test import TestCase, override_settings
@@ -18,7 +19,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.models import AlbumUser, File
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import ONE_PIXEL_PNG, create_test_photo, create_test_user
-from api.views.views import UnifiedMediaAccessView
+from api.views.media import UnifiedMediaAccessView
 
 factory = APIRequestFactory()
 
@@ -535,8 +536,8 @@ class UnifiedTranscodeBranchTest(TestCase):
 
         with (
             mock.patch("api.transcode_cache.cached_path", return_value=None),
-            mock.patch("api.views.views.VideoTranscoder") as transcoder,
-            mock.patch("api.views.views.gen", return_value=iter([b"abc"])),
+            mock.patch("api.views.media.VideoTranscoder") as transcoder,
+            mock.patch("api.views.media.gen", return_value=iter([b"abc"])),
             mock.patch("api.transcode_cache.ensure_cached") as ensure_cached,
         ):
             response = _unified("photos", self.video.image_hash, user=self.owner)
@@ -587,3 +588,126 @@ class UnifiedTranscodeBranchTest(TestCase):
             response = _unified("photos", self.video.image_hash)
         cached_path.assert_not_called()
         self.assertEqual(response.status_code, 200)
+
+
+def _expired_token_for(user):
+    token = RefreshToken.for_user(user).access_token
+    token.set_exp(lifetime=datetime.timedelta(seconds=-30))
+    return str(token)
+
+
+def _bearer(user):
+    return {"HTTP_AUTHORIZATION": f"Bearer {_token_for(user)}"}
+
+
+class UnifiedCookieAndHeaderAuthTest(TestCase):
+    """How the media view authenticates (``JWTCookieAuthentication``).
+
+    A stale cookie must never cost an anonymous visitor public content, and
+    must still be told apart from a signed-in stranger (403 with the marker
+    versus 404).
+    """
+
+    def setUp(self):
+        self.owner = create_test_user()
+        self.stranger = create_test_user()
+        self.photo = create_test_photo(owner=self.owner)
+
+    def _make_public(self):
+        self.photo.public = True
+        self.photo.save(update_fields=["public"])
+
+    def test_expired_cookie_still_gets_a_public_photo(self):
+        self._make_public()
+        stale = _expired_token_for(self.owner)
+        for path in ("thumbnails_big", "photos"):
+            with self.subTest(path=path):
+                response = _unified(path, self.photo.image_hash, jwt=stale)
+                self.assertEqual(response.status_code, 200)
+
+    def test_expired_cookie_still_gets_a_public_album_photo(self):
+        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album.photos.add(self.photo)
+        AlbumUserShare.objects.create(album=album, enabled=True)
+        response = _unified(
+            "thumbnails_big", self.photo.image_hash, jwt=_expired_token_for(self.owner)
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_expired_cookie_on_a_private_photo_is_403_with_marker(self):
+        for path in ("thumbnails_big", "photos"):
+            with self.subTest(path=path):
+                response = _unified(
+                    path, self.photo.image_hash, jwt=_expired_token_for(self.owner)
+                )
+                self.assertEqual(response.status_code, 403)
+                self.assertEqual(response["X-Media-Error"], "authentication")
+
+    def test_expired_cookie_still_gets_public_embedded_media(self):
+        self._make_public()
+        embedded_path = f"/tmp/{self.photo.image_hash}-embedded-auth.mp4"
+        with open(embedded_path, "wb+") as handle:
+            handle.write(ONE_PIXEL_PNG + b"embedded")
+        self.photo.main_file.embedded_media.add(File.create(embedded_path, self.owner))
+        response = _unified(
+            "embedded_media", self.photo.image_hash, jwt=_expired_token_for(self.owner)
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_cookie_of_a_deleted_user_is_403_with_marker(self):
+        # Used to be a 404: the token still parsed, so the request counted as
+        # signed in. The account is gone, so it is a missing session now.
+        ghost = create_test_user()
+        cookie = _token_for(ghost)
+        ghost.delete()
+        response = _unified("thumbnails_big", self.photo.image_hash, jwt=cookie)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["X-Media-Error"], "authentication")
+
+    def test_cookie_of_a_deactivated_owner_no_longer_grants_access(self):
+        self.owner.is_active = False
+        self.owner.save()
+        response = _unified("thumbnails_big", self.photo.image_hash, user=self.owner)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["X-Media-Error"], "authentication")
+
+    def test_bearer_header_grants_access_without_a_cookie(self):
+        for path in ("thumbnails_big", "photos"):
+            with self.subTest(path=path):
+                response = _unified(
+                    path, self.photo.image_hash, headers=_bearer(self.owner)
+                )
+                self.assertEqual(response.status_code, 200)
+
+    def test_bearer_header_wins_over_the_cookie(self):
+        response = _unified(
+            "thumbnails_big",
+            self.photo.image_hash,
+            user=self.owner,
+            headers=_bearer(self.stranger),
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_bearer_header_is_401(self):
+        # Unchanged: a bad Authorization header already failed authentication
+        # on this view before it read the cookie through DRF.
+        response = _unified(
+            "thumbnails_big",
+            self.photo.image_hash,
+            user=self.owner,
+            headers={"HTTP_AUTHORIZATION": "Bearer not-a-jwt"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_zip_with_an_expired_cookie_is_403_with_marker(self):
+        response = _unified("zip", ZIP_UUID, jwt=_expired_token_for(self.owner))
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["X-Media-Error"], "authentication")
+
+    def test_zip_with_a_bearer_header_is_named_after_that_user(self):
+        response = _unified("zip", ZIP_UUID, headers=_bearer(self.owner))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["X-Accel-Redirect"],
+            f"/protected_media/zip/{ZIP_UUID}{self.owner.id}.zip",
+        )

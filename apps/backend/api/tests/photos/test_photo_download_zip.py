@@ -57,7 +57,7 @@ class ZipListPhotosV2SelectAllTest(TestCase):
 
         # create_download_job enqueues a django-q AsyncTask; stub it out and
         # capture the photos that would have been zipped instead.
-        job_patcher = patch("api.views.views.create_download_job")
+        job_patcher = patch("api.views.zip_downloads.create_download_job")
         self.mock_create_job = job_patcher.start()
         self.mock_create_job.return_value = "fake-job-id"
         self.addCleanup(job_patcher.stop)

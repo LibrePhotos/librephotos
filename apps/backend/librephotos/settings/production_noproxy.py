@@ -26,7 +26,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from .production import *  # noqa
 
-# librephotos/urls.py hangs the SPA catch-all off this, and api/views/views.py
+# librephotos/urls.py hangs the SPA catch-all off this, and api/views/media.py
 # reads it to decide whether '/' still belongs to DRF's API root. This module is
 # the frontend-serving deployment, so it is on unconditionally rather than
 # re-read from the environment variable the entrypoint already checked.

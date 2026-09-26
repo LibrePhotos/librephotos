@@ -447,7 +447,7 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
-    "EXCEPTION_HANDLER": "api.views.views.custom_exception_handler",
+    "EXCEPTION_HANDLER": "api.views.exception_handler.custom_exception_handler",
     "PAGE_SIZE": 20000,
     "DEFAULT_THROTTLE_RATES": {
         "password_reset": os.environ.get("PASSWORD_RESET_THROTTLE_RATE", "5/hour"),

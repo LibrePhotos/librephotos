@@ -17,7 +17,7 @@ from unittest import mock
 from django.test import SimpleTestCase
 
 from api import ffmpeg_budget, transcode_cache, video_color
-from api.views import views
+from api.views import media
 
 # The whole point of the exercise, in the order the filters have to run.
 TONEMAP = (
@@ -211,12 +211,12 @@ class ConversionSitesTest(SimpleTestCase):
 
     def test_live_playback_tonemaps_an_hdr_source(self):
         with self._hdr(), self._zscale():
-            command = views.build_live_command("/v.mov")
+            command = media.build_live_command("/v.mov")
         self.assertEqual(_filter_arg(command), "scale=-2:'min(720,ih)'," + TONEMAP)
 
     def test_live_playback_leaves_an_sdr_source_alone(self):
         with self._hdr(False), self._zscale():
-            command = views.build_live_command("/v.mov")
+            command = media.build_live_command("/v.mov")
         self.assertEqual(_filter_arg(command), "scale=-2:'min(720,ih)'")
 
     def test_the_cached_copy_tonemaps_an_hdr_source(self):
@@ -233,7 +233,7 @@ class ConversionSitesTest(SimpleTestCase):
         """Before -i it would be read as a decoder setting and do nothing."""
         with self._hdr(), self._zscale():
             for command in (
-                views.build_live_command("/v.mov"),
+                media.build_live_command("/v.mov"),
                 transcode_cache.build_command("/v.mov", "/out.mp4"),
             ):
                 self.assertGreater(

@@ -209,7 +209,7 @@ class AutoCreateUserDirectoryTestCase(TestCase):
                 self.assertEqual(response.status_code, 201)
                 self.assertEqual(User.objects.get(username=username).scan_directory, "")
 
-    @mock.patch("api.views.views.do_all_models_exist", return_value=True)
+    @mock.patch("api.views.site_settings.do_all_models_exist", return_value=True)
     def test_the_switch_is_exposed_in_site_settings(self, _models_exist):
         # The docs send admins to Admin Area -> Site settings for this.
         self.assertFalse(

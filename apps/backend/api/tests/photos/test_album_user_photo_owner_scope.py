@@ -21,7 +21,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.models import AlbumUser
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import create_test_photo, create_test_photos, create_test_user
-from api.views.views import UnifiedMediaAccessView
+from api.views.media import UnifiedMediaAccessView
 
 EDIT_URL = "/api/albums/user/edit/"
 

@@ -26,7 +26,7 @@ class NextcloudSiteSettingTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["nextcloud_enabled"])
 
-    @mock.patch("api.views.views.do_all_models_exist", return_value=True)
+    @mock.patch("api.views.site_settings.do_all_models_exist", return_value=True)
     def test_admin_can_enable_nextcloud(self, _mock_do_all_models_exist):
         self.client.force_authenticate(user=self.admin)
         response = self.client.post(
