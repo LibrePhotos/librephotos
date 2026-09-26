@@ -18,7 +18,12 @@ class ApiConfig(AppConfig):
         for message in take_deferred_warnings():
             logger.warning(message)
 
+        from django.core import checks
+
+        from api.checks import check_default_db_password
         from api.util import LoggingNotConfiguredError, reconfigure_logging
+
+        checks.register(check_default_db_password, checks.Tags.security)
 
         # Delta-sync bookkeeping: last_modified bumps + tombstone writers
         # (mobile v2, doc 04). Registered here so all models are loaded first.

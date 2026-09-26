@@ -1,4 +1,5 @@
 import collections
+import functools
 import os
 import subprocess
 import threading
@@ -8,6 +9,7 @@ from urllib.parse import quote
 import jsonschema
 from constance import config as site_config
 from django.conf import settings
+from django.core.cache import cache
 
 from api import binaries
 from api.mime import mime_type
@@ -18,11 +20,8 @@ from django.http import (
     HttpResponseForbidden,
     StreamingHttpResponse,
 )
-from django.utils.decorators import method_decorator
 from django.utils.encoding import iri_to_uri
 from django.utils import timezone
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_cookie
 from django_q.tasks import AsyncTask, Chain
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
@@ -318,34 +317,67 @@ class ApiHelpView(APIView):
         return Response(data)
 
 
+@functools.lru_cache(maxsize=1)
+def read_git_hash():
+    """The commit this backend was built from.
+
+    The images are built without ``.git``, so ``GIT_HASH`` (a build argument of
+    the backend Dockerfiles) is the answer there. A source checkout falls back
+    to asking git. ``-c safe.directory=...`` covers the case the old code
+    papered over with ``git config --global --add safe.directory /code`` on
+    every request - a checkout owned by another user - but only for this one
+    command, instead of appending another line to the global git config each
+    time. Cached for the life of the process: the answer cannot change under it.
+    """
+    git_hash = os.environ.get("GIT_HASH", "").strip()
+    if git_hash:
+        return git_hash
+    backend_root = os.path.dirname(str(settings.BASE_DIR))
+    try:
+        return (
+            subprocess.check_output(
+                [
+                    "git",
+                    "-c",
+                    f"safe.directory={backend_root}",
+                    "rev-parse",
+                    "--short",
+                    "HEAD",
+                ],
+                cwd=backend_root,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+            )
+            .strip()
+            .decode("utf-8")
+        )
+    except Exception:
+        return os.environ.get("IMAGE_TAG") or "unknown"
+
+
 class ImageTagView(APIView):
-    @method_decorator(cache_page(60 * 60 * 2))
     def get(self, request, format=None):
-        try:
-            subprocess.run(
-                ["git", "config", "--global", "--add", "safe.directory", "/code"],
-                check=False,
-            )
-            git_hash = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "--short", "HEAD"],
-                    stderr=subprocess.DEVNULL,
-                )
-                .strip()
-                .decode("utf-8")
-            )
-        except Exception:
-            git_hash = os.environ.get("IMAGE_TAG", "unknown")
         return Response(
-            {"image_tag": os.environ.get("IMAGE_TAG", ""), "git_hash": git_hash}
+            {"image_tag": os.environ.get("IMAGE_TAG", ""), "git_hash": read_git_hash()}
         )
 
 
+SEARCH_TERM_EXAMPLES_CACHE_SECONDS = 60 * 60 * 2
+
+
 class SearchTermExamples(APIView):
-    @method_decorator(vary_on_cookie)
-    @method_decorator(cache_page(60 * 60 * 2))
     def get(self, request, format=None):
-        search_term_examples = get_search_term_examples(request.user)
+        # The examples are built from the caller's own photos, people and places,
+        # so the cache is keyed on the user. cache_page + vary_on_cookie keyed
+        # it on the request instead, which says nothing about who a
+        # header-authenticated client is.
+        cache_key = f"search_term_examples:{request.user.pk}"
+        search_term_examples = cache.get(cache_key)
+        if search_term_examples is None:
+            search_term_examples = get_search_term_examples(request.user)
+            cache.set(
+                cache_key, search_term_examples, SEARCH_TERM_EXAMPLES_CACHE_SECONDS
+            )
         return Response({"results": search_term_examples})
 
 

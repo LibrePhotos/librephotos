@@ -148,7 +148,7 @@ Do not cap the container so hard that the first scan cannot finish. Face detecti
 
 Every part of the library scan that costs real CPU, memory or network can be switched off at deploy time with a `FEATURE_*` environment variable. All of them default to **on**, so an upgrade changes nothing until you set one.
 
-Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anything else counts as off.
+Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anything else counts as off. An empty value counts as unset, so it keeps the default - the same way Compose already treats an empty `.env` entry. `ALLOW_UPLOAD` and `DEMO_SITE` are read the same way.
 
 | Variable | `.env` key | What turning it off stops |
 | --- | --- | --- |
@@ -285,6 +285,28 @@ So set this whenever LibrePhotos has to hand a URL to something outside the cont
 
 - **Password-reset emails** — the link in the email. Without it the fallback can produce a link pointing at `http://backend/...`, which no mail recipient can open.
 - **Single sign-on** — the OAuth `redirect_uri` sent to your identity provider, which the browser has to follow and the provider has to recognise. SSO refuses to start rather than send a broken one, so this is effectively required for [OIDC](../user-guide/settings/single-sign-on.md).
+
+### Trusted origins for the Django admin
+
+`CSRF_TRUSTED_ORIGINS` (`csrfTrustedOrigins` in `.env`) lists the addresses the Django admin at `/api/django-admin/` accepts logins from. Set it to the URL your users browse to, including the scheme, for example `https://photos.example.com`. Several origins are separated by commas:
+
+```bash
+csrfTrustedOrigins=https://photos.example.com,https://photos.internal.lan
+```
+
+Each entry must match the address in the browser exactly, scheme and port included. The photo app itself authenticates with JWT and is not affected by this setting.
+
+:::note
+Older releases treated the whole value as a single origin, so a comma-separated list only worked with the [unified image](unified-deployment.md). This part is not in a released image yet; it is available on the `dev` branch.
+:::
+
+### Database password
+
+`DB_PASS` (`dbPass` in `.env`) is the password of the PostgreSQL user in `DB_USER`. The bundled Compose file, the unified image instructions and the Kubernetes manifests all pass it. If it is missing, the backend still falls back to the old built-in default password so existing installs keep starting, but it now logs a `librephotos.W001` warning on every start (in the `migrate` output). Set `DB_PASS` explicitly to silence it; the fallback may be removed in a future release.
+
+### Demo mode
+
+`DEMO_SITE=true` runs LibrePhotos as a public demo: password changes submitted through the API are ignored. It is off unless set to `true`, `1`, `yes` or `on`. (Before this was fixed on `dev`, any value other than exactly `False` - including `false`, `0` or an empty value - switched demo mode on.)
 
 ### Hosting under a sub-path (subdirectory)
 

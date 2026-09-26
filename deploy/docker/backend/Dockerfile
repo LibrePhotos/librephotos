@@ -24,5 +24,11 @@ RUN if [ "$MLVALIDATION" = 1 ] ; then \
 COPY apps/backend/ /code/
 EXPOSE 8001
 
+# The commit this image was built from, reported by /api/imagetag/ (the image
+# ships without .git). Declared last so a new commit does not invalidate the
+# dependency layers above.
+ARG GIT_HASH
+ENV GIT_HASH=${GIT_HASH}
+
 COPY deploy/docker/backend/entrypoint.sh /entrypoint.sh
 CMD ["/entrypoint.sh"]
