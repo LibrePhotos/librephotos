@@ -4,7 +4,7 @@ from constance.test import override_config
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_user, patch_nextcloud_dns
 
 LISTDIR_URL = "/api/nextcloud/listdir/?fpath=/"
 SCANPHOTOS_URL = "/api/nextcloud/scanphotos"
@@ -48,6 +48,9 @@ class NextcloudEndpointGatingTest(TestCase):
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+        dns = patch_nextcloud_dns()
+        dns.start()
+        self.addCleanup(dns.stop)
 
     def test_listdir_is_forbidden_while_nextcloud_is_disabled(self):
         response = self.client.get(LISTDIR_URL)
@@ -65,7 +68,7 @@ class NextcloudEndpointGatingTest(TestCase):
         factory = mock.MagicMock()
         factory.return_value.list.return_value = [folder]
 
-        with mock.patch("nextcloud.views.nextcloud.Client", factory):
+        with mock.patch("nextcloud.server_address.GuardedClient", factory):
             response = self.client.get(LISTDIR_URL)
 
         self.assertEqual(response.status_code, 200)

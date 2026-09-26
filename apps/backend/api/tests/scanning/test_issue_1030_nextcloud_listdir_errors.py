@@ -43,7 +43,7 @@ from constance.test import override_config
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_user, patch_nextcloud_dns
 
 LISTDIR_URL = "/api/nextcloud/listdir/?fpath=/"
 
@@ -52,8 +52,8 @@ LISTDIR_URL = "/api/nextcloud/listdir/?fpath=/"
 class NextcloudListDirErrorHandlingTest(TestCase):
     def setUp(self):
         self.user = create_test_user(
-            # a hostname (not a bare private IP) so the SSRF allowlist in
-            # nextcloud/views.py::valid_url lets us reach the client code
+            # resolves to a public address (see patch_nextcloud_dns below), so
+            # nextcloud.server_address lets the request reach the client code
             nextcloud_server_address="https://cloud.example.com",
             nextcloud_username="alice",
             nextcloud_app_password="app-password",
@@ -64,6 +64,9 @@ class NextcloudListDirErrorHandlingTest(TestCase):
         # having Django re-raise the view's exception into the test runner.
         self.client.raise_request_exception = False
         self.client.force_authenticate(user=self.user)
+        dns = patch_nextcloud_dns()
+        dns.start()
+        self.addCleanup(dns.stop)
 
     @staticmethod
     def _client_factory(login_side_effect=None, list_side_effect=None):
@@ -86,7 +89,7 @@ class NextcloudListDirErrorHandlingTest(TestCase):
         factory = self._client_factory()
         factory.return_value.list.return_value = [folder]
 
-        with mock.patch("nextcloud.views.nextcloud.Client", factory):
+        with mock.patch("nextcloud.server_address.GuardedClient", factory):
             response = self.client.get(LISTDIR_URL)
 
         self.assertEqual(200, response.status_code)
@@ -101,7 +104,7 @@ class NextcloudListDirErrorHandlingTest(TestCase):
             login_side_effect=owncloud.HTTPResponseError(401)
         )
 
-        with mock.patch("nextcloud.views.nextcloud.Client", factory):
+        with mock.patch("nextcloud.server_address.GuardedClient", factory):
             response = self.client.get(LISTDIR_URL)
 
         self.assertEqual(
@@ -122,7 +125,7 @@ class NextcloudListDirErrorHandlingTest(TestCase):
             )
         )
 
-        with mock.patch("nextcloud.views.nextcloud.Client", factory):
+        with mock.patch("nextcloud.server_address.GuardedClient", factory):
             response = self.client.get(LISTDIR_URL)
 
         self.assertLess(
@@ -141,7 +144,7 @@ class NextcloudListDirErrorHandlingTest(TestCase):
             list_side_effect=requests.exceptions.ConnectionError("Connection aborted.")
         )
 
-        with mock.patch("nextcloud.views.nextcloud.Client", factory):
+        with mock.patch("nextcloud.server_address.GuardedClient", factory):
             response = self.client.get(LISTDIR_URL)
 
         self.assertLess(

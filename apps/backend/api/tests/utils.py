@@ -260,3 +260,46 @@ def share_test_photos(photo_ids, user):
             for photo_id in resolved_ids
         ]
     )
+
+
+# A globally routable address standing in for the Nextcloud server.
+PUBLIC_TEST_IP = "93.184.215.14"
+
+
+def patch_nextcloud_dns(resolves=None, default=PUBLIC_TEST_IP):
+    """Patch the DNS lookup of nextcloud.server_address, keeping tests offline.
+
+    ``resolves`` maps a host name to the addresses it resolves to; an empty list
+    makes the lookup fail. A literal IP resolves to itself and any other host to
+    ``default``.
+    """
+    import ipaddress
+    import socket
+    from unittest import mock
+
+    resolves = resolves or {}
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        addresses = resolves.get(host)
+        if addresses is None:
+            try:
+                ipaddress.ip_address(host)
+                addresses = [host]
+            except ValueError:
+                addresses = [default]
+        if not addresses:
+            raise socket.gaierror(socket.EAI_NONAME, "Name or service not known")
+        return [
+            (
+                socket.AF_INET6 if ":" in address else socket.AF_INET,
+                socket.SOCK_STREAM,
+                6,
+                "",
+                (address, port),
+            )
+            for address in addresses
+        ]
+
+    return mock.patch(
+        "nextcloud.server_address.socket.getaddrinfo", side_effect=fake_getaddrinfo
+    )

@@ -248,6 +248,28 @@ The backend talks to its helper services (thumbnails, metadata, faces, tags, cap
 
 *Unreleased: released images listen on `0.0.0.0`. The change is on `dev` and will appear in the next release.*
 
+### Which Nextcloud servers may be contacted
+
+:::note
+This is not in a released image yet. It is available on the `dev` branch and will appear in the next release.
+:::
+
+With the Nextcloud integration switched on, every user enters their own Nextcloud server address, and it is the backend that connects to it. So that this cannot be used to make the backend reach things only it can reach, LibrePhotos looks up the address before each connection and before saving it, and refuses it if the host name resolves to any of these:
+
+- loopback addresses (`localhost`, `127.0.0.1`, `::1`), which would be the backend's own services
+- link-local addresses (`169.254.0.0/16`, `fe80::/10`), which include the metadata endpoint of cloud providers
+- unspecified, multicast and reserved addresses
+
+Redirects from the Nextcloud server are checked the same way. Only `http://` and `https://` addresses are accepted.
+
+Addresses on a private network - your LAN (`192.168.x.x`, `10.x.x.x`), a Docker network such as `http://nextcloud` in the same Compose project, a Tailscale address (`100.64.0.0/10`) or an IPv6 unique local address - are allowed, because that is where most self-hosted Nextcloud instances live.
+
+| Variable | `.env` key | Default | What it does |
+| --- | --- | --- | --- |
+| `NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES` | `nextcloudAllowPrivateAddresses` | `true` | Set it to `false` if users on your instance should only be able to connect to Nextcloud servers on the public internet, for example when you host LibrePhotos for people you do not know and do not want them to reach anything on your local network. |
+
+A Nextcloud on the same machine as LibrePhotos cannot be reached as `localhost`; use its Docker service name, or `host.docker.internal` for one running directly on the host.
+
 ### Logging
 
 The backend writes its log files into the directory named by `BASE_LOGS`. `ownphotos.log` is the one to look at first; it is also downloadable from the Admin Area (see [Internal files](../user-guide/internal-files.md) and [Library](../user-guide/library.md)).

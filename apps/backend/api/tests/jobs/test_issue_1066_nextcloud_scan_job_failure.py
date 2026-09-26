@@ -34,7 +34,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.models import LongRunningJob
-from api.tests.utils import create_test_user
+from api.tests.utils import create_test_user, patch_nextcloud_dns
 from nextcloud.directory_watcher import scan_photos as nextcloud_scan_photos
 
 RQ_AVAILABLE_URL = "/api/rqavailable/"
@@ -50,6 +50,9 @@ class NextcloudScanFailureLeavesQueueBlockedTest(TestCase):
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+        dns = patch_nextcloud_dns()
+        dns.start()
+        self.addCleanup(dns.stop)
 
     def _run_failing_nextcloud_scan(self, job_id):
         """Run a Nextcloud scan whose login fails, as a rejected app password does.
@@ -60,7 +63,7 @@ class NextcloudScanFailureLeavesQueueBlockedTest(TestCase):
         fake_client = mock.MagicMock()
         fake_client.login.side_effect = owncloud.HTTPResponseError(401)
         with mock.patch(
-            "nextcloud.directory_watcher.nextcloud.Client", return_value=fake_client
+            "nextcloud.server_address.GuardedClient", return_value=fake_client
         ):
             try:
                 nextcloud_scan_photos(self.user, job_id)

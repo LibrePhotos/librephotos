@@ -13,6 +13,7 @@ from api.ml_models import do_all_models_exist, download_models
 from api.models import Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
 from api.util import is_valid_path, logger
+from nextcloud.server_address import UnsafeServerAddress, validate_server_address
 
 # (field name, log message template) in the order the fields are applied.
 USER_UPDATE_FIELDS = (
@@ -312,6 +313,23 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def validate_nextcloud_app_password(self, value):
+        return value
+
+    def validate_nextcloud_server_address(self, value):
+        value = (value or "").strip()
+        # The settings page sends the whole profile back on every save, so an
+        # address that was stored before is not re-checked here: it is checked
+        # again each time it is used, and a stale one must not block saving
+        # unrelated fields.
+        if not value or (
+            self.instance is not None
+            and value == self.instance.nextcloud_server_address
+        ):
+            return value
+        try:
+            validate_server_address(value)
+        except UnsafeServerAddress as e:
+            raise ValidationError(str(e)) from e
         return value
 
     def create(self, validated_data):

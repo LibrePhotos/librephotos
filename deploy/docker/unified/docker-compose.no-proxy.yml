@@ -49,6 +49,7 @@ services:
       - SKIP_PATTERNS=${skipPatterns:-}
       - ALLOW_UPLOAD=${allowUpload:-false}
       - NEXTCLOUD_ENABLED=${nextcloudEnabled:-false}
+      - NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES=${nextcloudAllowPrivateAddresses:-true}
       - CSRF_TRUSTED_ORIGINS=${csrfTrustedOrigins:-}
       - FEATURE_VIDEO=${featureVideo:-true}
       - FEATURE_FACE_DETECTION=${featureFaceDetection:-true}
