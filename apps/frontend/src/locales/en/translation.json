@@ -420,6 +420,10 @@
     "photoLinksExplanation": "Anyone with one of these links can see that photo. Refresh a link to replace it, or revoke it to switch it off.",
     "rotateLink": "Replace link",
     "revokeLink": "Revoke",
+    "photoLink": "Share link",
+    "photoLinkExplanation": "Anyone with this link can see this photo, without signing in. It does not make the photo public, and you can replace or revoke the link at any time.",
+    "photoLinkFailed": "Could not update the share link for this photo.",
+    "shareLinkShortcut": "Share link (P)",
     "openPublicLink": "Open public link",
     "linkRotatesOnRevoke": "Turning public sharing off revokes this link for good. Turning it back on creates a new one.",
     "saveLinkSettings": "Save link settings",
@@ -1292,6 +1296,10 @@
   "results": "Results",
   "no_folders_found": "No folders found",
   "showing_first": "showing first",
+  "publicphoto": {
+    "title": "Shared photo",
+    "notFound": "Photo not found or the link was revoked"
+  },
   "publicalbum": {
     "notFound": "Album not found or the link has expired",
     "checkUrl": "Please check the URL or ask the owner to regenerate a new link.",

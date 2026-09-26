@@ -37,6 +37,7 @@ import { Route as ProtectedJobsIndexRouteImport } from './routes/_protected/jobs
 import { Route as ProtectedAlbumIndexRouteImport } from './routes/_protected/album/index'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
 import { Route as PublicSSlugRouteImport } from './routes/public/s.$slug'
+import { Route as PublicPSlugRouteImport } from './routes/public/p.$slug'
 import { Route as ProtectedStatisticsWordcloudsRouteImport } from './routes/_protected/statistics/wordclouds'
 import { Route as ProtectedStatisticsTimelineRouteImport } from './routes/_protected/statistics/timeline'
 import { Route as ProtectedStatisticsSocialgraphRouteImport } from './routes/_protected/statistics/socialgraph'
@@ -205,6 +206,11 @@ const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
 const PublicSSlugRoute = PublicSSlugRouteImport.update({
   id: '/s/$slug',
   path: '/s/$slug',
+  getParentRoute: () => PublicRouteRoute,
+} as any)
+const PublicPSlugRoute = PublicPSlugRouteImport.update({
+  id: '/p/$slug',
+  path: '/p/$slug',
   getParentRoute: () => PublicRouteRoute,
 } as any)
 const ProtectedStatisticsWordcloudsRoute =
@@ -398,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
   '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
   '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
+  '/public/p/$slug': typeof PublicPSlugRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/admin/': typeof ProtectedAdminIndexRoute
   '/album/': typeof ProtectedAlbumIndexRoute
@@ -455,6 +462,7 @@ export interface FileRoutesByTo {
   '/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
   '/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
   '/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
+  '/public/p/$slug': typeof PublicPSlugRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/admin': typeof ProtectedAdminIndexRoute
   '/album': typeof ProtectedAlbumIndexRoute
@@ -515,6 +523,7 @@ export interface FileRoutesById {
   '/_protected/statistics/socialgraph': typeof ProtectedStatisticsSocialgraphRoute
   '/_protected/statistics/timeline': typeof ProtectedStatisticsTimelineRoute
   '/_protected/statistics/wordclouds': typeof ProtectedStatisticsWordcloudsRoute
+  '/public/p/$slug': typeof PublicPSlugRoute
   '/public/s/$slug': typeof PublicSSlugRoute
   '/_protected/admin/': typeof ProtectedAdminIndexRoute
   '/_protected/album/': typeof ProtectedAlbumIndexRoute
@@ -575,6 +584,7 @@ export interface FileRouteTypes {
     | '/statistics/socialgraph'
     | '/statistics/timeline'
     | '/statistics/wordclouds'
+    | '/public/p/$slug'
     | '/public/s/$slug'
     | '/admin/'
     | '/album/'
@@ -632,6 +642,7 @@ export interface FileRouteTypes {
     | '/statistics/socialgraph'
     | '/statistics/timeline'
     | '/statistics/wordclouds'
+    | '/public/p/$slug'
     | '/public/s/$slug'
     | '/admin'
     | '/album'
@@ -691,6 +702,7 @@ export interface FileRouteTypes {
     | '/_protected/statistics/socialgraph'
     | '/_protected/statistics/timeline'
     | '/_protected/statistics/wordclouds'
+    | '/public/p/$slug'
     | '/public/s/$slug'
     | '/_protected/admin/'
     | '/_protected/album/'
@@ -922,6 +934,13 @@ declare module '@tanstack/react-router' {
       path: '/s/$slug'
       fullPath: '/public/s/$slug'
       preLoaderRoute: typeof PublicSSlugRouteImport
+      parentRoute: typeof PublicRouteRoute
+    }
+    '/public/p/$slug': {
+      id: '/public/p/$slug'
+      path: '/p/$slug'
+      fullPath: '/public/p/$slug'
+      preLoaderRoute: typeof PublicPSlugRouteImport
       parentRoute: typeof PublicRouteRoute
     }
     '/_protected/statistics/wordclouds': {
@@ -1250,11 +1269,13 @@ const ProtectedRouteRouteWithChildren = ProtectedRouteRoute._addFileChildren(
 
 interface PublicRouteRouteChildren {
   PublicUsersRoute: typeof PublicUsersRoute
+  PublicPSlugRoute: typeof PublicPSlugRoute
   PublicSSlugRoute: typeof PublicSSlugRoute
 }
 
 const PublicRouteRouteChildren: PublicRouteRouteChildren = {
   PublicUsersRoute: PublicUsersRoute,
+  PublicPSlugRoute: PublicPSlugRoute,
   PublicSSlugRoute: PublicSSlugRoute,
 }
 
