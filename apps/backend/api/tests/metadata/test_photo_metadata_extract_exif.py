@@ -3,7 +3,7 @@ Characterization tests for ``PhotoMetadata.extract_exif_data`` (unit 24).
 
 These pin the *current* behaviour of the classmethod before refactoring:
 the tag list passed to ``get_metadata``, the positional unpacking of its
-18-element result, the per-field truthiness/type guards, the keyword merge,
+result, the per-field truthiness/type guards, the keyword merge,
 and the ``commit`` semantics.
 
 ``get_metadata`` is always mocked, so no exiftool binary or sidecar service
@@ -39,12 +39,14 @@ IDX = {
     "image_number": 15,
     "xmp_subject": 16,
     "iptc_keywords": 17,
+    "xmp_description": 18,
+    "xmp_description_any_language": 19,
 }
 
 
 def metadata_tuple(**overrides):
-    """Build an 18-element get_metadata() result with named overrides."""
-    values = [None] * 18
+    """Build a get_metadata() result, one slot per tag, with overrides."""
+    values = [None] * len(IDX)
     for name, value in overrides.items():
         values[IDX[name]] = value
     return tuple(values)
@@ -108,6 +110,8 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.IMAGE_NUMBER,
                 Tags.SUBJECT,
                 Tags.IPTC_KEYWORDS,
+                Tags.DESCRIPTION,
+                Tags.DESCRIPTION_ANY_LANGUAGE,
             ],
         )
 

@@ -19,6 +19,7 @@ from fractions import Fraction
 
 from django.db import models
 
+from api import util
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.models.tag import link_tags_from_keywords
@@ -45,6 +46,8 @@ EXIF_VALUE_NAMES = (
     "image_number",
     "xmp_subject",
     "iptc_keywords",
+    "xmp_description",
+    "xmp_description_any_language",
 )
 
 EXIF_TAGS = [
@@ -66,7 +69,14 @@ EXIF_TAGS = [
     Tags.IMAGE_NUMBER,
     Tags.SUBJECT,
     Tags.IPTC_KEYWORDS,
+    Tags.DESCRIPTION,
+    Tags.DESCRIPTION_ANY_LANGUAGE,
 ]
+
+# Key in PhotoCaption.captions_json remembering the description last imported
+# from the file, so a rescan can tell "already imported" (and possibly edited
+# or cleared by the user since) from "the file has a new description".
+IMPORTED_DESCRIPTION_KEY = "imported_description"
 
 
 def _assign_nonzero_number(target, field, value):
@@ -82,6 +92,29 @@ def _assign_number(target, field, value):
 def _assign_string(target, field, value):
     if value and isinstance(value, str):
         setattr(target, field, value)
+
+
+def _text_value(value):
+    """A free-text tag value as a stripped string, or None when empty.
+
+    ExifTool's JSON output turns a text value that looks like a number into a
+    number (a description of "2024" comes back as the int 2024), so numbers are
+    turned back into text rather than dropped. Anything else is ignored.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, numbers.Number):
+        value = str(value)
+    if not isinstance(value, str):
+        return None
+    return value.strip() or None
+
+
+def _description(values):
+    """The file's description: x-default first, else any language entry."""
+    return _text_value(values.get("xmp_description")) or _text_value(
+        values.get("xmp_description_any_language")
+    )
 
 
 def _merge_keywords(*values):
@@ -375,7 +408,10 @@ class PhotoMetadata(models.Model):
         if not photo.main_file:
             return None
 
-        values = dict(
+        # Every name gets a key even if get_metadata comes back short, so the
+        # appliers below can index values[...] without a KeyError.
+        values = dict.fromkeys(EXIF_VALUE_NAMES)
+        values.update(
             zip(
                 EXIF_VALUE_NAMES,
                 get_metadata(photo.main_file.path, tags=EXIF_TAGS, try_sidecar=True),
@@ -395,6 +431,7 @@ class PhotoMetadata(models.Model):
             metadata.save()
             # "Import tags from EXIF": the keywords read above also become Tag rows.
             link_tags_from_keywords(photo, metadata.keywords)
+            cls._import_description_to_caption(photo, _description(values))
 
         return metadata
 
@@ -445,6 +482,79 @@ class PhotoMetadata(models.Model):
         keywords = _merge_keywords(values["xmp_subject"], values["iptc_keywords"])
         if keywords:
             metadata.keywords = keywords
+
+        description = _description(values)
+        if description and not _user_edited(metadata, "caption"):
+            metadata.caption = description
+
+    @staticmethod
+    def _import_description_to_caption(photo, description):
+        """Carry a newly found file description over to the lightbox caption.
+
+        ``PhotoMetadata.caption`` is the structured field; the caption a user
+        sees and edits in the lightbox is ``captions_json["user_caption"]``.
+        Metadata is re-extracted on every scan, so the description last
+        imported is remembered under ``IMPORTED_DESCRIPTION_KEY`` and the
+        lightbox caption is only touched when the file's description differs
+        from it, i.e. on first import or after the file was edited. Even then
+        it is only written when the lightbox caption is empty or still exactly
+        the previously imported text: a caption the user typed over it is
+        kept. A caption the user cleared stays cleared, because the unchanged
+        description on the next scan matches the remembered one.
+
+        It goes through ``PhotoCaption.apply_user_caption``, the same path as a
+        typed caption, so it is indexed for search and its #hashtags become
+        hashtag albums.
+        """
+        if not description:
+            return
+
+        from api.models.photo_caption import PhotoCaption
+
+        caption_instance, _ = PhotoCaption.objects.get_or_create(photo=photo)
+        captions = caption_instance.captions_json or {}
+        previously_imported = captions.get(IMPORTED_DESCRIPTION_KEY)
+        if description == previously_imported:
+            return
+
+        current = captions.get("user_caption") or ""
+        caption_instance.captions_json = {
+            **captions,
+            IMPORTED_DESCRIPTION_KEY: description,
+        }
+        if current.strip() and current != previously_imported:
+            caption_instance.save(update_fields=["captions_json"])
+            return
+
+        try:
+            caption_instance.apply_user_caption(description, commit=True)
+        except Exception:
+            util.logger.exception(
+                f"could not import the description of photo {photo.image_hash} "
+                "as its caption"
+            )
+
+
+def _user_edited(metadata, field_name):
+    """Whether the user changed *field_name* through the metadata API.
+
+    Such an edit sets ``source`` to USER_EDIT and leaves a MetadataEdit row;
+    "revert all" leaves a ``_all`` row, and only edits after the latest one
+    count, so a revert lets the file's value back in.
+    """
+    if metadata.source != PhotoMetadata.Source.USER_EDIT:
+        return False
+    edits = MetadataEdit.objects.filter(photo_id=metadata.photo_id)
+    field_edits = edits.filter(field_name=field_name)
+    last_revert = (
+        edits.filter(field_name="_all")
+        .order_by("-created_at")
+        .values_list("created_at", flat=True)
+        .first()
+    )
+    if last_revert is not None:
+        field_edits = field_edits.filter(created_at__gt=last_revert)
+    return field_edits.exists()
 
 
 class MetadataEdit(models.Model):

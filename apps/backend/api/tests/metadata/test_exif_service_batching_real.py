@@ -17,7 +17,11 @@ from django.test import SimpleTestCase
 
 from api.metadata.tags import Tags
 from api.models.photo_metadata import EXIF_TAGS
-from service.exif.main import highest_priority_value, highest_priority_values
+from service.exif.main import (
+    _attribute,
+    highest_priority_value,
+    highest_priority_values,
+)
 
 EXIFTOOL = shutil.which("exiftool")
 FIXTURES = os.path.join(
@@ -72,6 +76,21 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
             [EXIFTOOL, "-XMP:Rating=5", cls.sidecar], check=True, capture_output=True
         )
 
+        # A description with language entries only, no x-default one.
+        cls.languages = os.path.join(cls.directory, "languages.jpg")
+        PIL.Image.new("RGB", (16, 12), (10, 20, 30)).save(cls.languages)
+        subprocess.run(
+            [
+                EXIFTOOL,
+                "-overwrite_original",
+                "-XMP-dc:Description-de=Hallo",
+                "-XMP-dc:Description-fr=Bonjour",
+                cls.languages,
+            ],
+            check=True,
+            capture_output=True,
+        )
+
     @classmethod
     def tearDownClass(cls):
         cls.plain.terminate()
@@ -85,6 +104,7 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
             [self.camera, self.sidecar],
             [os.path.join(FIXTURES, "niaz.jpg"), os.path.join(FIXTURES, "niaz.xmp")],
             [os.path.join(FIXTURES, "iptc_test.jpg")],
+            [self.languages],
         ]
 
     def test_batched_equals_per_tag_for_every_tag_we_read(self):
@@ -110,3 +130,13 @@ class BatchedReadMatchesPerTagReadTest(SimpleTestCase):
         self.assertEqual(values[Tags.RATING], 5)  # the sidecar wins
         self.assertIsNotNone(values[Tags.IMAGE_WIDTH])
         self.assertIsNotNone(values[Tags.LATITUDE])
+
+    def test_language_wildcard_is_answered_by_the_batch(self):
+        # Every Description-<lang> key must be claimed by the wildcard request,
+        # or each such file would fall back to one command per tag.
+        data = self.plain.get_tags_batch(ALL_TAGS, [self.languages])[0]
+        values, complete = _attribute(data, ALL_TAGS)
+        self.assertTrue(complete)
+        values = dict(zip(ALL_TAGS, values))
+        self.assertIsNone(values[Tags.DESCRIPTION])
+        self.assertIn(values[Tags.DESCRIPTION_ANY_LANGUAGE], ("Hallo", "Bonjour"))

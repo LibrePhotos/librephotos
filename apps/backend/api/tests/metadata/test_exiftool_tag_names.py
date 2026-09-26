@@ -179,6 +179,8 @@ class ExifToolReadTagNameTest(SimpleTestCase):
                 continue
             group, _, name = tag.rpartition(":")
             group = group or None
+            # "Name-*" is ExifTool's lang-alt wildcard; the tag itself must exist.
+            name = name.removesuffix("-*")
             if group not in known:
                 known[group] = _known_names(group)
             with self.subTest(tag=tag):
