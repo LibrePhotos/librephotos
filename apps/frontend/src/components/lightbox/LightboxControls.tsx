@@ -18,6 +18,7 @@ import {
   IconZoomIn as ZoomIn,
   IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
+import type { TFunction } from "i18next";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -40,8 +41,8 @@ const INTERVAL_OPTIONS = [
   { value: "30", label: "30s" },
 ];
 
-function favoriteLabel(isFavorite: boolean) {
-  return isFavorite ? "Remove from favorites (F)" : "Add to favorites (F)";
+function favoriteLabel(t: TFunction, isFavorite: boolean) {
+  return isFavorite ? t("lightbox.toolbar.removeFromFavorites") : t("lightbox.toolbar.addToFavorites");
 }
 
 export function LightboxControls({
@@ -293,12 +294,12 @@ export function LightboxControls({
               </Tooltip>
             )}
             {photoDetail && (
-              <Tooltip label={favoriteLabel(photoDetail.rating >= favoriteMinRating)} position="bottom" withArrow>
+              <Tooltip label={favoriteLabel(t, photoDetail.rating >= favoriteMinRating)} position="bottom" withArrow>
                 <ActionIcon
                   variant="subtle"
                   color="gray"
                   size={28}
-                  aria-label={favoriteLabel(photoDetail.rating >= favoriteMinRating)}
+                  aria-label={favoriteLabel(t, photoDetail.rating >= favoriteMinRating)}
                   onClick={() => {
                     const { image_hash: imageHash } = photoDetail;
                     const val = !(photoDetail.rating >= favoriteMinRating);

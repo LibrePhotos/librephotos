@@ -22,7 +22,7 @@ function removePhotos(numberOfPhotos: number) {
 
 function downloadStarting() {
   showNotification({
-    message: "Download Starting ...",
+    message: i18n.t("toasts.downloadstarting"),
     title: i18n.t("toasts.downloadstart"),
     color: "teal",
   });
@@ -30,7 +30,7 @@ function downloadStarting() {
 
 function downloadCompleted() {
   showNotification({
-    message: "Download Completed",
+    message: i18n.t("toasts.downloadcompleted"),
     title: i18n.t("toasts.downloadcomplete"),
     color: "teal",
   });
@@ -38,7 +38,7 @@ function downloadCompleted() {
 
 function downloadFailed() {
   showNotification({
-    message: "Download failed",
+    message: i18n.t("toasts.downloadfailed"),
     title: i18n.t("toasts.downloaderror"),
     color: "red",
   });

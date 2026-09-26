@@ -108,7 +108,7 @@ export function Profile() {
       <Stack>
         <Card shadow="md">
           <Title order={4} mb={10}>
-            User
+            {t("settings.user")}
           </Title>
           <Title order={5}>{t("settings.avatar")}</Title>
           <Group justify="center" align="self-start" grow mb="lg">

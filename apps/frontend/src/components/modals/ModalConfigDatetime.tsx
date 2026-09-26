@@ -84,13 +84,13 @@ export function ModalConfigDatetime({ opened, onClose, availableRules, onAddRule
     <Modal
       opened={opened}
       size="xl"
-      title={<Title order={3}>Choose a new rule to add</Title>}
+      title={<Title order={3}>{t("settings.configdatetime_add_title")}</Title>}
       onClose={() => onClose()}
     >
-      <Text c="dimmed">Choose a rule, that will parse the date from a certain field or attribute.</Text>
+      <Text c="dimmed">{t("settings.configdatetime_add_description")}</Text>
       <ScrollArea>
         <TextInput
-          placeholder="Find rules by name or type..."
+          placeholder={t("settings.configdatetime_search_placeholder")}
           mb="md"
           leftSection={<Search size={14} />}
           value={filter}

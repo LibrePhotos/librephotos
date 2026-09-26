@@ -49,7 +49,7 @@ export function JobList({ variant = "admin" }: IJobList) {
       <Title order={3} mb={20}>
         {mine ? t("jobs.myjobs") : t("joblist.workerlogs")} {isLoading ? <Loader size="xs" /> : null}
       </Title>
-      <Alert icon={<AlertCircle />} title="Removing entries" mb={20}>
+      <Alert icon={<AlertCircle />} title={t("joblist.removeentries")} mb={20}>
         {t("joblist.removeexplanation")}
       </Alert>
       <Table striped highlightOnHover verticalSpacing="xs">
