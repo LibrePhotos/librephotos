@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base"],
+  "extends": ["config:recommended"],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
@@ -33,6 +33,12 @@
     },
     {
       "matchFileNames": ["apps/mobile/**"],
+      "groupName": "mobile dependencies",
+      "addLabels": ["mobile"]
+    },
+    {
+      "description": "packages/* are npm workspaces of the mobile app (root package.json); the frontend does not consume them.",
+      "matchFileNames": ["packages/**"],
       "groupName": "mobile dependencies",
       "addLabels": ["mobile"]
     },
@@ -90,7 +96,7 @@
       "allowedVersions": "<6.1"
     },
     {
-      "description": "Docusaurus 2 to 3 is a manual migration (MDX 3, prism-react-renderer 2 imports, @docusaurus/tsconfig), and PR CI does not build the docs. Re-enable once it is done.",
+      "description": "Docusaurus 2 to 3 is a manual migration (MDX 3, prism-react-renderer 2 imports, @docusaurus/tsconfig), not a dependency bump. Re-enable once it is done.",
       "matchFileNames": ["apps/docs/**"],
       "matchUpdateTypes": ["major"],
       "enabled": false
