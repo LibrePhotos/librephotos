@@ -142,22 +142,21 @@ class PrepareEnvironmentTest(SimpleTestCase):
             )
 
 
-@patch("api.services.is_service_compatible", return_value=True)
 @patch("api.services.subprocess.Popen")
 class SidecarCommandTest(SimpleTestCase):
-    def test_from_source_the_script_runs_under_python(self, popen, _compatible):
+    def test_from_source_the_script_runs_under_python(self, popen):
         services.start_service("thumbnail")
         self.assertEqual(
             popen.call_args.args[0], ["python", "service/thumbnail/main.py"]
         )
 
-    def test_image_similarity_lives_outside_service(self, popen, _compatible):
+    def test_image_similarity_lives_outside_service(self, popen):
         services.start_service("image_similarity")
         self.assertEqual(
             popen.call_args.args[0], ["python", "image_similarity/main.py"]
         )
 
-    def test_compiled_the_binary_runs_the_sidecar_itself(self, popen, _compatible):
+    def test_compiled_the_binary_runs_the_sidecar_itself(self, popen):
         with as_compiled():
             services.start_service("thumbnail")
         self.assertEqual(
@@ -306,10 +305,7 @@ class NamedExecutableTest(SimpleTestCase):
         )
 
     def test_sidecars_start_under_their_name(self):
-        with (
-            patch("api.services.is_service_compatible", return_value=True),
-            patch("api.services.subprocess.Popen") as popen,
-        ):
+        with patch("api.services.subprocess.Popen") as popen:
             services.start_service("face_recognition")
         argv = popen.call_args.args[0]
         self.assertEqual(os.path.basename(argv[0]), "librephotos-faces.exe")

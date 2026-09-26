@@ -1,5 +1,4 @@
 import os
-import platform
 import subprocess
 import time
 from datetime import timedelta
@@ -17,14 +16,6 @@ from librephotos.standalone import named_executable
 
 # apps/backend: where _service_script's relative paths and the service package live.
 BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Track services that should not be restarted due to system incompatibility
-INCOMPATIBLE_SERVICES = set()
-
-# CPU features required for different services. Empty since the llama.cpp
-# based LLM service left; the check stays for the next sidecar that needs it, as
-# {"service": {"required": [...], "recommended": [...]}}.
-SERVICE_CPU_REQUIREMENTS = {}
 
 # Define all the services that can be started, with their respective ports
 SERVICES = {
@@ -109,10 +100,6 @@ def disabled_reason(service):
 
 def check_services():
     for service in SERVICES.keys():
-        if service in INCOMPATIBLE_SERVICES:
-            logger.info(f"Skipping restart of incompatible service: {service}")
-            continue
-
         if not is_service_enabled(service):
             # Silent on purpose: this runs every minute, and startup already
             # logged the reason once.
@@ -228,11 +215,6 @@ def start_service(service):
         logger.info("Service '%s' not started: %s", service, disabled_reason(service))
         return False
 
-    # Check system compatibility before attempting to start the service
-    if not is_service_compatible(service):
-        logger.error(f"Service '{service}' is not compatible with this system")
-        return False
-
     if service not in SERVICES:
         logger.warning("Unknown service: %s", service)
         return False
@@ -276,109 +258,6 @@ def stop_service(service):
     if not stopped:
         logger.warning("Service '%s' is not running", service)
     return stopped
-
-
-def _is_arm_architecture():
-    """Check if the current system is running on ARM architecture
-
-    Returns:
-        bool: True if ARM architecture, False otherwise
-    """
-    machine = platform.machine().lower()
-    return machine in ["aarch64", "arm64", "armv7l", "armv8"]
-
-
-def check_cpu_features():
-    """Check for CPU instruction sets for various services
-
-    Note: x86/x64-specific instruction sets (AVX, SSE, etc.) only apply to x86/x64 CPUs.
-    On ARM architectures, these checks are skipped as they are not relevant.
-    """
-    # Check if we're on ARM architecture
-    if _is_arm_architecture():
-        machine = platform.machine()
-        logger.info(
-            f"Detected ARM architecture ({machine}), skipping x86-specific CPU feature checks"
-        )
-        return []  # Return empty list as x86 features don't apply to ARM
-
-    # Features to check for (x86/x64 specific)
-    features_to_check = ["avx", "avx2", "sse4_2", "fma", "f16c"]
-    available_features = []
-
-    if not available_features:
-        try:
-            import cpuinfo
-
-            cpu_info = cpuinfo.get_cpu_info()
-            flags = cpu_info.get("flags", [])
-            for feature in features_to_check:
-                if feature in flags:
-                    available_features.append(feature)
-        except ImportError:
-            pass
-
-    return available_features
-
-
-def has_required_cpu_features(service):
-    """Check if CPU has required features for a specific service
-
-    On ARM architectures, x86-specific CPU checks are bypassed since those
-    instruction sets don't exist on ARM.
-    """
-    if service not in SERVICE_CPU_REQUIREMENTS:
-        return True  # No CPU requirements for this service
-
-    # Check if we're on ARM architecture
-    if _is_arm_architecture():
-        machine = platform.machine()
-        logger.info(
-            f"Running on ARM architecture ({machine}), skipping x86-specific CPU feature requirements for {service}"
-        )
-        return True  # Skip x86-specific checks on ARM
-
-    requirements = SERVICE_CPU_REQUIREMENTS[service]
-    required_features = requirements.get("required", [])
-    recommended_features = requirements.get("recommended", [])
-
-    available_features = check_cpu_features()
-
-    logger.info(f"CPU features detected for {service}: {available_features}")
-
-    missing_required = []
-    missing_recommended = []
-
-    for feature in required_features:
-        if feature not in available_features:
-            missing_required.append(feature)
-
-    for feature in recommended_features:
-        if feature not in available_features:
-            missing_recommended.append(feature)
-
-    if missing_required:
-        logger.error(f"Service '{service}' requires CPU features: {missing_required}")
-        logger.error(f"Missing required CPU features: {missing_required}")
-        return False
-
-    if missing_recommended:
-        logger.warning(
-            f"Service '{service}' performance may be degraded without: {missing_recommended}"
-        )
-
-    logger.info(f"CPU compatible with service '{service}'")
-    return True
-
-
-def is_service_compatible(service):
-    """Check if a service is compatible with the current system"""
-    # Check CPU compatibility
-    if not has_required_cpu_features(service):
-        INCOMPATIBLE_SERVICES.add(service)
-        return False
-
-    return True
 
 
 def cleanup_deleted_photos():

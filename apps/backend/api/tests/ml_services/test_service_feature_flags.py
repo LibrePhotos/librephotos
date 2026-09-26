@@ -79,25 +79,24 @@ class ServiceFeatureFlagMappingTest(SimpleTestCase):
             self.assertTrue(is_service_enabled("thumbnail"))
 
 
-@patch("api.services.is_service_compatible", return_value=True)
 @patch("api.services.subprocess.Popen")
 class StartServiceTest(SimpleTestCase):
-    def test_an_enabled_service_is_spawned(self, popen_mock, _compatible):
+    def test_an_enabled_service_is_spawned(self, popen_mock):
         self.assertTrue(start_service("face_recognition"))
         popen_mock.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    def test_a_disabled_service_is_refused(self, popen_mock, _compatible):
+    def test_a_disabled_service_is_refused(self, popen_mock):
         self.assertFalse(start_service("face_recognition"))
         popen_mock.assert_not_called()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    def test_the_other_services_are_unaffected(self, popen_mock, _compatible):
+    def test_the_other_services_are_unaffected(self, popen_mock):
         self.assertTrue(start_service("thumbnail"))
         popen_mock.assert_called_once()
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
-    def test_the_refusal_is_logged_at_info(self, popen_mock, _compatible):
+    def test_the_refusal_is_logged_at_info(self, popen_mock):
         with self.assertLogs("ownphotos", level="INFO") as logs:
             start_service("image_captioning")
 
@@ -111,18 +110,17 @@ class StartServiceTest(SimpleTestCase):
 
 
 @EVERY_MODEL_SELECTED
-@patch("api.services.is_service_compatible", return_value=True)
 @patch("api.services.subprocess.Popen")
 class StartAllCommandTest(TestCase):
     """`manage.py start_service all` is what the Docker entrypoints run."""
 
-    def test_everything_starts_by_default(self, popen_mock, _compatible):
+    def test_everything_starts_by_default(self, popen_mock):
         call_command("start_service", "all")
 
         self.assertEqual(set(SERVICES), spawned_services(popen_mock))
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    def test_a_disabled_service_is_skipped(self, popen_mock, _compatible):
+    def test_a_disabled_service_is_skipped(self, popen_mock):
         call_command("start_service", "all")
 
         started = spawned_services(popen_mock)
@@ -134,9 +132,7 @@ class StartAllCommandTest(TestCase):
         FEATURE_IMAGE_CAPTIONING=False,
         FEATURE_SCENE_CLASSIFICATION=False,
     )
-    def test_only_the_core_pipeline_starts_when_every_flag_is_off(
-        self, popen_mock, _compatible
-    ):
+    def test_only_the_core_pipeline_starts_when_every_flag_is_off(self, popen_mock):
         call_command("start_service", "all")
 
         self.assertEqual(
@@ -144,7 +140,7 @@ class StartAllCommandTest(TestCase):
             spawned_services(popen_mock),
         )
 
-    def test_the_watchdog_is_still_scheduled(self, popen_mock, _compatible):
+    def test_the_watchdog_is_still_scheduled(self, popen_mock):
         from django_q.models import Schedule
 
         with override_settings(FEATURE_FACE_DETECTION=False):
@@ -220,7 +216,6 @@ class CheckServicesTest(SimpleTestCase):
         )
 
 
-@patch("api.services.is_service_compatible", return_value=True)
 @patch("api.services.subprocess.Popen")
 class OcrSiteGateTest(TestCase):
     """OCR's switch is a site setting, not an environment flag.
@@ -231,31 +226,25 @@ class OcrSiteGateTest(TestCase):
     lets the per-minute watchdog pick the choice up without a restart.
     """
 
-    def test_no_model_selected_keeps_the_sidecar_down(self, popen_mock, _compatible):
+    def test_no_model_selected_keeps_the_sidecar_down(self, popen_mock):
         self.assertFalse(is_service_enabled("ocr"))
 
     @override_config(OCR_MODEL="ppocrv6_small")
-    def test_selecting_a_model_enables_it(self, popen_mock, _compatible):
+    def test_selecting_a_model_enables_it(self, popen_mock):
         self.assertTrue(is_service_enabled("ocr"))
 
     @override_config(OCR_MODEL="none")
-    def test_the_lowercase_spelling_of_none_also_counts_as_unselected(
-        self, popen_mock, _compatible
-    ):
+    def test_the_lowercase_spelling_of_none_also_counts_as_unselected(self, popen_mock):
         """The dropdown sends "none"; the default is "None"."""
         self.assertFalse(is_service_enabled("ocr"))
 
-    def test_start_all_skips_it_while_no_model_is_selected(
-        self, popen_mock, _compatible
-    ):
+    def test_start_all_skips_it_while_no_model_is_selected(self, popen_mock):
         call_command("start_service", "all")
 
         self.assertNotIn("ocr", spawned_services(popen_mock))
 
     @override_config(OCR_MODEL="ppocrv6_small")
-    def test_start_all_spawns_it_once_a_model_is_selected(
-        self, popen_mock, _compatible
-    ):
+    def test_start_all_spawns_it_once_a_model_is_selected(self, popen_mock):
         call_command("start_service", "all")
 
         self.assertIn("ocr", spawned_services(popen_mock))
@@ -264,16 +253,14 @@ class OcrSiteGateTest(TestCase):
     @patch("api.services.is_healthy", return_value=False)
     @patch("api.services.stop_service")
     def test_the_watchdog_brings_it_up_after_the_admin_selects_a_model(
-        self, stop_mock, healthy_mock, popen_mock, _compatible
+        self, stop_mock, healthy_mock, popen_mock
     ):
         """No restart required: check_services re-reads the setting every minute."""
         check_services()
 
         self.assertIn("ocr", spawned_services(popen_mock))
 
-    def test_an_unreadable_configuration_leaves_the_service_enabled(
-        self, popen_mock, _compatible
-    ):
+    def test_an_unreadable_configuration_leaves_the_service_enabled(self, popen_mock):
         """Fail open, like an unrecognised flag: a database that is not up yet
         must not be able to take a service away."""
         with patch(
@@ -282,9 +269,7 @@ class OcrSiteGateTest(TestCase):
         ):
             self.assertTrue(is_service_enabled("ocr"))
 
-    def test_the_refusal_names_the_site_setting_rather_than_a_flag(
-        self, popen_mock, _compatible
-    ):
+    def test_the_refusal_names_the_site_setting_rather_than_a_flag(self, popen_mock):
         with self.assertLogs("ownphotos", level="INFO") as logs:
             start_service("ocr")
 
