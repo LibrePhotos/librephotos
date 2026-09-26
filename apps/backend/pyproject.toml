@@ -7,7 +7,7 @@
 required-version = "==0.15.22"
 line-length = 88
 target-version = "py311"
-extend-exclude = ["migrations", "im2txt", "blip", "places365"]
+extend-exclude = ["migrations"]
 
 [tool.ruff.lint]
 # NOTE: the select list below used to live in a top-level `[lint]` table, which
