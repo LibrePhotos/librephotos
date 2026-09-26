@@ -14,12 +14,13 @@ def photos_missing_clip_embeddings(user):
 
 
 def photos_with_existing_thumbnail(objs):
-    # Thumbnail could have been deleted
+    # Thumbnail could have been deleted, or never made (no Thumbnail row)
     return [
         obj
         for obj in objs
-        if obj.thumbnail.thumbnail_big
-        and os.path.exists(obj.thumbnail.thumbnail_big.path)
+        if (thumbnail := getattr(obj, "thumbnail", None))
+        and thumbnail.thumbnail_big
+        and os.path.exists(thumbnail.thumbnail_big.path)
     ]
 
 
@@ -47,23 +48,31 @@ def batch_calculate_clip_embedding(user):
         start_now=True,
     )
 
-    count = photos_missing_clip_embeddings(user).count()
+    missing = (
+        photos_missing_clip_embeddings(user).select_related("thumbnail").order_by("pk")
+    )
+    count = missing.count()
     lrj.update_progress(current=0, target=count)
 
     BATCH_SIZE = 64
     done_count = 0
+    last_pk = None
     while done_count < count:
+        batch = missing if last_pk is None else missing.filter(pk__gt=last_pk)
+        objs = list(batch[:BATCH_SIZE])
+        if not objs:
+            break
+        # Page past this batch whatever happens to it. A photo that gets no
+        # embedding (no thumbnail, unreadable for the sidecar, a failed call)
+        # still matches the filter, and taking the first BATCH_SIZE again
+        # would hand it the head of every batch until the run ended.
+        last_pk = objs[-1].pk
+        done_count += len(objs)
+
         try:
-            objs = list(photos_missing_clip_embeddings(user)[:BATCH_SIZE])
-            done_count += len(objs)
-
-            if len(objs) == 0:
-                break
             valid_objs = photos_with_existing_thumbnail(objs)
-            if len(valid_objs) == 0:
-                continue
-
-            store_clip_embeddings(valid_objs)
+            if valid_objs:
+                store_clip_embeddings(valid_objs)
         except Exception as e:
             util.logger.error(f"Error calculating clip embeddings: {e}")
 
