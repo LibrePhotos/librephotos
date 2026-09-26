@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 import numpy as np
 import requests
 from constance import config as site_config
+from api.sidecars import sidecar_url
 
 # The face-recognition sidecar can transiently drop the connection while a scan
 # saturates the box (RemoteDisconnected → requests.ConnectionError), or time out.
@@ -125,9 +126,7 @@ def get_face_encodings(image_path, known_face_locations):
         "face_locations": known_face_locations,
         "model_name": site_config.FACE_RECOGNITION_MODEL,
     }
-    face_encoding = _post_to_face_service(
-        "http://localhost:8005/face-encodings", payload
-    )
+    face_encoding = _post_to_face_service(sidecar_url(8005, "/face-encodings"), payload)
 
     face_encodings_list = face_encoding["encodings"]
     face_encodings = [np.array(enc) for enc in face_encodings_list]
@@ -141,6 +140,6 @@ def get_face_locations(image_path):
         "model_name": site_config.FACE_RECOGNITION_MODEL,
     }
     face_locations = _post_to_face_service(
-        "http://localhost:8005/face-locations", payload
+        sidecar_url(8005, "/face-locations"), payload
     )
     return face_locations["face_locations"]

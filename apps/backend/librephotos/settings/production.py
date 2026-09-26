@@ -510,7 +510,8 @@ CHUNKED_UPLOAD_PATH = ""
 CHUNKED_UPLOAD_TO = os.path.join("chunked_uploads")
 
 DEFAULT_FAVORITE_MIN_RATING = os.environ.get("DEFAULT_FAVORITE_MIN_RATING", 4)
-IMAGE_SIMILARITY_SERVER = "http://localhost:8002"
+# 127.0.0.1, not localhost: see api/sidecars.py.
+IMAGE_SIMILARITY_SERVER = "http://127.0.0.1:8002"
 
 # Email / SMTP configuration.
 #

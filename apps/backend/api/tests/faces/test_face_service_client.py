@@ -47,7 +47,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
         with self.assertRaises(requests.HTTPError) as context:
             get_face_locations("/tmp/image.jpg")
 
-        self.assertIn("http://localhost:8005/face-locations", str(context.exception))
+        self.assertIn("http://127.0.0.1:8005/face-locations", str(context.exception))
         self.assertIn("status 400", str(context.exception))
         self.assertIn("<empty body>", str(context.exception))
 
@@ -90,7 +90,7 @@ class FaceRecognitionClientTest(SimpleTestCase):
         with self.assertRaises(ValueError) as context:
             get_face_locations("/tmp/image.jpg")
 
-        self.assertIn("http://localhost:8005/face-locations", str(context.exception))
+        self.assertIn("http://127.0.0.1:8005/face-locations", str(context.exception))
         self.assertIn("status 200", str(context.exception))
         # The body has to reach the message so an operator can see what the
         # service actually replied with, but an HTML error page is reduced to

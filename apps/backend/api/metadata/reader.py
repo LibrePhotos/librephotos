@@ -5,8 +5,9 @@ import time
 import requests
 
 from api import util
+from api.sidecars import sidecar_url
 
-EXIF_SERVICE_URL = "http://localhost:8010/get-tags"
+EXIF_SERVICE_URL = sidecar_url(8010, "/get-tags")
 # The exif sidecar can transiently fail while a scan saturates the box —
 # returning an empty body (so ``.json()`` raises ``JSONDecodeError``), a non-2xx
 # status, or dropping the connection. Retry a few times with a short backoff
