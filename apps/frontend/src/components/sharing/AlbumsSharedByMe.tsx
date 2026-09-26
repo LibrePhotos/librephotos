@@ -1,19 +1,16 @@
 import { Anchor, Loader, Stack, Text } from "@mantine/core";
 import { useResizeObserver } from "@mantine/hooks";
 import { IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
-import debounce from "lodash/debounce";
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { AutoSizer, Grid } from "react-virtualized";
 import { useFetchSharedAlbumsByMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
 import { LEFT_MENU_WIDTH } from "../../ui-constants";
 import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util/gridUtils";
-import { SCROLL_DEBOUNCE_DURATION, ScrollSpeed } from "../../util/scrollUtils";
 import { Tile } from "../Tile";
 
 const DAY_HEADER_HEIGHT = 70;
-const SPEED_THRESHOLD = 300;
 const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
 export function AlbumsSharedByMe({ showSidebar }: any) {
@@ -21,13 +18,11 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
   const [albumGridContents, setAlbumGridContents] = React.useState<any[]>([]);
   const [entrySquareSize, setEntrySquareSize] = React.useState(200);
   const [height, setHeight] = React.useState(window.innerHeight);
-  const [isScrollingFast, setIsScrollingFast] = React.useState(false);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = React.useState(10);
   const [totalListHeight, setTotalListHeight] = React.useState(0);
   const [width, setWidth] = React.useState(window.innerWidth);
-  const photoGridRef = React.createRef<Grid>();
+  const photoGridRef = useRef<Grid>(null);
   const rect = useResizeObserver()[1];
-  const scrollSpeedHandler = new ScrollSpeed();
   const { data: albums, isFetching, isSuccess } = useFetchSharedAlbumsByMeQuery();
   const { data: users } = useFetchUserListQuery();
 
@@ -37,7 +32,9 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
     }
     const contents = calculateSharedAlbumGridCells(albums, numEntrySquaresPerRow).cellContents;
     setAlbumGridContents(contents);
-  }, [albums, isSuccess]);
+    // numEntrySquaresPerRow was missing, so resizing the window kept the old
+    // column count in the cells while the Grid used the new one.
+  }, [albums, isSuccess, numEntrySquaresPerRow]);
 
   useEffect(() => {
     const listHeight = albumGridContents
@@ -51,28 +48,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
       })
       .reduce((a, b) => a + b, 0);
     setTotalListHeight(listHeight);
-  }, [albumGridContents]);
-
-  const handleScroll = useCallback(
-    ({ scrollTop: value }) => {
-      // scrollSpeed represents the number of pixels scrolled since the last scroll event was fired
-      const scrollSpeed = Math.abs(scrollSpeedHandler.getScrollSpeed(value) ?? 0);
-
-      if (scrollSpeed >= SPEED_THRESHOLD) {
-        setIsScrollingFast(true);
-      }
-    },
-    [scrollSpeedHandler]
-  );
-
-  useEffect(
-    debounce(() => {
-      if (isScrollingFast) {
-        setIsScrollingFast(false);
-      }
-    }, SCROLL_DEBOUNCE_DURATION),
-    []
-  );
+  }, [albumGridContents, entrySquareSize]);
 
   useEffect(() => {
     const columnWidth = window.innerWidth - 20 - (showSidebar ? SIDEBAR_WIDTH : 0);
@@ -84,7 +60,7 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
     if (photoGridRef.current) {
       photoGridRef.current.recomputeGridSize();
     }
-  }, [rect]);
+  }, [rect, showSidebar]);
 
   const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
     if (albumGridContents[rowIndex][columnIndex]) {
@@ -168,7 +144,6 @@ export function AlbumsSharedByMe({ showSidebar }: any) {
                 ref={photoGridRef}
                 style={{ outline: "none" }}
                 disableHeader={false}
-                onScroll={handleScroll}
                 cellRenderer={cellRenderer}
                 columnWidth={entrySquareSize}
                 columnCount={numEntrySquaresPerRow}

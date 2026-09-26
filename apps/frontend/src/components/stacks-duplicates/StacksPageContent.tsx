@@ -54,6 +54,8 @@ import { stackTypeLabels } from "../../api_client/stacks/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { StackModal } from "../stacks/StackModal";
 
+const validStackTypes: StackType[] = ["raw_jpeg", "burst", "bracket", "live_photo", "manual"];
+
 function getStackTypeIcon(type: StackType) {
   switch (type) {
     case "raw_jpeg":
@@ -185,7 +187,6 @@ export function StacksPageContent() {
   const { data: userSelfDetails } = useFetchUserSelfDetailsQuery(auth?.access?.user_id.toString() ?? "");
 
   const [selectedStackId, setSelectedStackId] = useState<string | null>(null);
-  const validStackTypes: StackType[] = ["raw_jpeg", "burst", "bracket", "live_photo", "manual"];
   const [typeFilter, setTypeFilter] = useState<StackType | undefined>(
     typeParam && validStackTypes.includes(typeParam as StackType) ? (typeParam as StackType) : undefined
   );

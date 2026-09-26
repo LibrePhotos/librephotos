@@ -103,6 +103,10 @@ export function ModalUserEdit(props: Props) {
     } else {
       setScanDirectoryPlaceholder(t("modalscandirectoryedit.notset"));
     }
+    // Reset the form only when a different user is opened. `form` is a new object
+    // every render and `userPassword` changes while typing; either would wipe the
+    // fields the admin is editing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userToEdit, t]);
 
   useEffect(() => {

@@ -18,7 +18,7 @@ import { IconLink, IconSettings } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { throttle } from "lodash";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSetPersonAlbumCoverMutation, useSetUserAlbumCoverMutation } from "../../api_client/albums/hooks";
 import { serverAddress } from "../../api_client/apiClient";
@@ -55,6 +55,17 @@ import { TrashcanActions } from "./TrashcanActions";
 import { VideoOverlay } from "./VideoOverlay";
 
 const TIMELINE_SCROLL_WIDTH = 0;
+
+// Pig calls updateGroups/updateItems unconditionally; a module-level no-op keeps
+// the prop identity stable when the caller did not pass one.
+const noop = () => {};
+
+const scrollToY = (y: number) => {
+  window.scrollTo(0, y);
+};
+
+// Layout data Pig attaches to each date group (see react-pig computeLayoutGroups).
+type PigGroupLayout = DatePhotosGroup & { groupTranslateY: number };
 
 export type PhotoGroup = {
   id: string;
@@ -250,12 +261,13 @@ function PhotoListViewComponent({
   }, []);
 
   const isDateView = photoset !== idx2hash;
-  const photos = isDateView ? formatDateForPhotoGroups(photoset) : photoset;
+  // Pig re-lays-out the whole grid whenever `imageData` changes identity, so
+  // only re-format the date groups when the photoset itself changes.
+  const photos = useMemo(() => (isDateView ? formatDateForPhotoGroups(photoset) : photoset), [isDateView, photoset]);
 
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme("light");
   const idx2hashRef = useRef(idx2hash);
-  const params = { albumID } as { albumID?: string }; // provide album context when available
 
   useEffect(() => {
     idx2hashRef.current = idx2hash;
@@ -294,14 +306,33 @@ function PhotoListViewComponent({
     debouncedSavePreferences({ header_size: size });
   };
 
-  const throttledUpdateGroups = useCallback(
-    throttle(visibleItems => updateGroups(visibleItems), 500),
+  // The throttled wrappers must keep one identity (a new throttle per render
+  // would never throttle), but must call the caller's *latest* callback: parents
+  // pass closures over their current state, and calling the first-render one
+  // forever fetches with stale state.
+  const updateGroupsRef = useRef(updateGroups);
+  const updateItemsRef = useRef(updateItems);
+  // Layout effect: Pig reports visible groups from its own (passive) effects,
+  // which run before this component's passive effects on the same commit.
+  useLayoutEffect(() => {
+    updateGroupsRef.current = updateGroups;
+    updateItemsRef.current = updateItems;
+  }, [updateGroups, updateItems]);
+
+  const throttledUpdateGroups = useMemo(
+    () => throttle((visibleGroups: unknown) => updateGroupsRef.current?.(visibleGroups), 500),
     []
   );
-
-  const throttledUpdateItems = useCallback(
-    throttle(visibleItems => updateItems(visibleItems), 500),
+  const throttledUpdateItems = useMemo(
+    () => throttle((visibleItems: unknown) => updateItemsRef.current?.(visibleItems), 500),
     []
+  );
+  useEffect(
+    () => () => {
+      throttledUpdateGroups.cancel();
+      throttledUpdateItems.cancel();
+    },
+    [throttledUpdateGroups, throttledUpdateItems]
   );
 
   const getUrl = useCallback((item: any, pxHeight: number) => {
@@ -313,11 +344,14 @@ function PhotoListViewComponent({
     return `${serverAddress}/media/square_thumbnails/${url.split(";")[0]}`;
   }, []);
 
-  const updateSelectionState = (newState: Partial<SelectionState>) => {
-    const updatedState = { ...selectionState, ...newState };
+  // Merge into the ref, not the render-time `selectionState`: callers such as
+  // handleSelection run from Pig's stored callbacks and may fire twice before a
+  // re-render (shift-click), so the closure value can be stale.
+  const updateSelectionState = useCallback((newState: Partial<SelectionState>) => {
+    const updatedState = { ...selectionStateRef.current, ...newState };
     selectionStateRef.current = updatedState;
     setSelectionState(updatedState);
-  };
+  }, []);
 
   // Tag the selection from the keyboard, the way Shotwell's Ctrl+T does. A
   // bare "t" rather than a modifier because browsers reserve Ctrl+T for a new
@@ -351,63 +385,68 @@ function PhotoListViewComponent({
     setSelectionState(cleared);
   }, [mediaType]);
 
-  const handleSelection = (item: any) => {
-    const currentState = selectionStateRef.current;
+  const handleSelection = useCallback(
+    (item: any) => {
+      const currentState = selectionStateRef.current;
 
-    // In selectAllMode, selectedItems tracks EXCLUDED items
-    if (currentState.selectAllMode) {
-      const isExcluded = currentState.selectedItems.find(i => i.id === item.id);
-      if (isExcluded) {
-        // Re-include by removing from exclusions
-        updateSelectionState({
-          selectedItems: currentState.selectedItems.filter(i => i.id !== item.id),
-        });
-      } else {
-        // Exclude by adding to list
-        updateSelectionState({
-          selectedItems: [...currentState.selectedItems, item],
-        });
+      // In selectAllMode, selectedItems tracks EXCLUDED items
+      if (currentState.selectAllMode) {
+        const isExcluded = currentState.selectedItems.find(i => i.id === item.id);
+        if (isExcluded) {
+          // Re-include by removing from exclusions
+          updateSelectionState({
+            selectedItems: currentState.selectedItems.filter(i => i.id !== item.id),
+          });
+        } else {
+          // Exclude by adding to list
+          updateSelectionState({
+            selectedItems: [...currentState.selectedItems, item],
+          });
+        }
+        return;
       }
-      return;
-    }
 
-    // Normal selection mode
-    let newSelectedItems = currentState.selectedItems;
+      // Normal selection mode
+      let newSelectedItems = currentState.selectedItems;
 
-    if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
-      newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
-    } else {
-      newSelectedItems = newSelectedItems.concat(item);
-    }
-
-    updateSelectionState({
-      selectedItems: newSelectedItems,
-      selectMode: newSelectedItems.length > 0,
-    });
-  };
-
-  const handleSelections = (items: any[]) => {
-    let newSelectedItems = selectionStateRef.current.selectedItems;
-    items.forEach(item => {
       if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
         newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
       } else {
         newSelectedItems = newSelectedItems.concat(item);
       }
-    });
-    updateSelectionState({
-      selectedItems: newSelectedItems,
-      selectMode: newSelectedItems.length > 0,
-    });
-  };
+
+      updateSelectionState({
+        selectedItems: newSelectedItems,
+        selectMode: newSelectedItems.length > 0,
+      });
+    },
+    [updateSelectionState]
+  );
+
+  const handleSelections = useCallback(
+    (items: any[]) => {
+      let newSelectedItems = selectionStateRef.current.selectedItems;
+      items.forEach(item => {
+        if (newSelectedItems.find(selectedItem => selectedItem.id === item.id)) {
+          newSelectedItems = newSelectedItems.filter(value => value.id !== item.id);
+        } else {
+          newSelectedItems = newSelectedItems.concat(item);
+        }
+      });
+      updateSelectionState({
+        selectedItems: newSelectedItems,
+        selectMode: newSelectedItems.length > 0,
+      });
+    },
+    [updateSelectionState]
+  );
 
   const getDataForScrollIndicator = (): ScrollerData[] => {
     const scrollPositions: ScrollerData[] = [];
     if (pigRef.current) {
-      // @ts-ignore
-      pigRef.current.imageData.forEach((group: DatePhotosGroup) => {
+      (pigRef.current.imageData as PigGroupLayout[]).forEach(group => {
         scrollPositions.push({
-          label: group.date,
+          label: group.date as string,
           targetY: group.groupTranslateY,
           year: group.year,
           month: group.month,
@@ -420,60 +459,69 @@ function PhotoListViewComponent({
   useEffect(() => {
     if (!isLoading && pigRef.current) {
       setDataForScrollIndicator(getDataForScrollIndicator());
-      // @ts-ignore
       gridHeight.current = pigRef.current.totalHeight;
     }
-    // @ts-ignore
+    // Pig exposes its layout through the imperative handle; re-read it whenever
+    // the height it reports on this render differs. getDataForScrollIndicator only
+    // reads that ref.
   }, [isLoading, pigRef.current?.totalHeight]);
 
-  const scrollToY = (y: number) => {
-    window.scrollTo(0, y);
-  };
+  const handleClick = useCallback(
+    (event: React.MouseEvent<Element, MouseEvent>, item: any) => {
+      // if an image is selectable, then handle shift click
+      if (selectable && event.shiftKey) {
+        const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
+        if (lastSelectedElement === undefined) {
+          handleSelection(item);
+          return;
+        }
+        const indexOfCurrentlySelectedItem = idx2hashRef.current.findIndex(image => image.id === item.id);
+        const indexOfLastSelectedItem = idx2hashRef.current.findIndex(image => image.id === lastSelectedElement.id);
 
-  const handleClick = (event: React.MouseEvent<Element, MouseEvent>, item: any) => {
-    // if an image is selectable, then handle shift click
-    if (selectable && event.shiftKey) {
-      const lastSelectedElement = selectionStateRef.current.selectedItems.at(-1);
-      if (lastSelectedElement === undefined) {
+        if (indexOfCurrentlySelectedItem > indexOfLastSelectedItem) {
+          handleSelections(idx2hashRef.current.slice(indexOfLastSelectedItem + 1, indexOfCurrentlySelectedItem + 1));
+          return;
+        }
+        handleSelections(idx2hashRef.current.slice(indexOfCurrentlySelectedItem, indexOfLastSelectedItem));
+        return;
+      }
+      if (selectionStateRef.current.selectMode) {
         handleSelection(item);
         return;
       }
-      const indexOfCurrentlySelectedItem = idx2hashRef.current.findIndex(image => image.id === item.id);
-      const indexOfLastSelectedItem = idx2hashRef.current.findIndex(image => image.id === lastSelectedElement.id);
 
-      if (indexOfCurrentlySelectedItem > indexOfLastSelectedItem) {
-        handleSelections(idx2hashRef.current.slice(indexOfLastSelectedItem + 1, indexOfCurrentlySelectedItem + 1));
+      // Store image index for later scrolling
+      const currentIndex = idx2hashRef.current.findIndex(image => image.id === item.id);
+      currentImageIndexRef.current = currentIndex;
+
+      // If Ctrl/Cmd key is pressed, navigate to single photo view
+      if (("ctrlKey" in event && event.ctrlKey) || ("metaKey" in event && event.metaKey)) {
+        navigate(`/photo/${item.id}`);
         return;
       }
-      handleSelections(idx2hashRef.current.slice(indexOfCurrentlySelectedItem, indexOfLastSelectedItem));
-      return;
-    }
-    if (selectionStateRef.current.selectMode) {
-      handleSelection(item);
-      return;
-    }
 
-    // Store image index for later scrolling
-    const currentIndex = idx2hashRef.current.findIndex(image => image.id === item.id);
-    currentImageIndexRef.current = currentIndex;
+      // Otherwise, open in lightbox
+      showLightbox(item.id, currentIndex >= 0);
+    },
+    [selectable, handleSelection, handleSelections, navigate, showLightbox]
+  );
 
-    // If Ctrl/Cmd key is pressed, navigate to single photo view
-    if (("ctrlKey" in event && event.ctrlKey) || ("metaKey" in event && event.metaKey)) {
-      navigate(`/photo/${item.id}`);
-      return;
-    }
-
-    // Otherwise, open in lightbox
-    showLightbox(item.id, currentIndex >= 0);
-  };
+  // In selectAllMode, all real (non-temp) items are selected except the
+  // exclusions tracked in selectedItems. Memoised so Pig's selection prop keeps
+  // its identity across unrelated re-renders.
+  const pigSelectedItems = useMemo(
+    () =>
+      selectionState.selectAllMode
+        ? idx2hash.filter(
+            item => !item.isTemp && !selectionState.selectedItems.find(excluded => excluded.id === item.id)
+          )
+        : selectionState.selectedItems,
+    [idx2hash, selectionState.selectAllMode, selectionState.selectedItems]
+  );
 
   // Use live prop length so UI reflects data availability immediately on load
   const getNumPhotos = () => (idx2hash ? idx2hash.length : 0);
-  let isUserAlbum = false;
-  // @ts-ignore
-  if (location.pathname.startsWith("/album/user/")) {
-    isUserAlbum = true;
-  }
+  const isUserAlbum = location.pathname.startsWith("/album/user/");
 
   return (
     <RemoveScroll enabled={lightboxOpen}>
@@ -492,8 +540,6 @@ function PhotoListViewComponent({
         {header || (
           <Box style={{ position: "relative", width: "100%" }}>
             <DefaultHeader
-              // @ts-ignore
-              photoList={this}
               loading={isLoading}
               numPhotosetItems={photos.length || 0}
               numPhotos={getNumPhotos()}
@@ -661,8 +707,7 @@ function PhotoListViewComponent({
                     selectAllMode={selectionState.selectAllMode}
                     selectAllQuery={selectionState.selectAllQuery}
                     totalCount={selectionState.totalCount || numberOfItems || idx2hash.length}
-                    // @ts-ignore
-                    albumID={params ? params.albumID : undefined}
+                    albumID={albumID}
                     ownerUsername={ownerUsername}
                     title={title}
                     setAlbumCover={(actionType, photoId) => {
@@ -670,13 +715,13 @@ function PhotoListViewComponent({
                       if (photoId) {
                         if (actionType === "person") {
                           setPersonAlbumCover.mutate({
-                            id: `${params.albumID}`,
+                            id: `${albumID}`,
                             cover_photo: photoId,
                           });
                         }
                         if (actionType === "useralbum") {
                           setUserAlbumCover.mutate({
-                            id: `${params.albumID}`,
+                            id: `${albumID}`,
                             photo: photoId,
                           });
                         }
@@ -687,13 +732,13 @@ function PhotoListViewComponent({
                       if (selectionState.selectedItems.length === 1) {
                         if (actionType === "person") {
                           setPersonAlbumCover.mutate({
-                            id: `${params.albumID}`,
+                            id: `${albumID}`,
                             cover_photo: selectionState.selectedItems[0].image_hash,
                           });
                         }
                         if (actionType === "useralbum") {
                           setUserAlbumCover.mutate({
-                            id: `${params.albumID}`,
+                            id: `${albumID}`,
                             photo: selectionState.selectedItems[0].id,
                           });
                         }
@@ -736,14 +781,7 @@ function PhotoListViewComponent({
               className="scrollscrubbertarget"
               imageData={photos}
               selectable={selectable === undefined || selectable}
-              selectedItems={
-                selectionState.selectAllMode
-                  ? // In selectAllMode, all real (non-temp) items are selected except exclusions
-                    idx2hash.filter(
-                      item => !item.isTemp && !selectionState.selectedItems.find(excluded => excluded.id === item.id)
-                    )
-                  : selectionState.selectedItems
-              }
+              selectedItems={pigSelectedItems}
               handleSelection={handleSelection}
               handleClick={handleClick}
               scaleOfImages={localImageScale}
@@ -753,8 +791,8 @@ function PhotoListViewComponent({
               bottomleftoverlay={StackOverlay}
               bottomrightoverlay={VideoOverlay}
               numberOfItems={numberOfItems ?? idx2hashRef.current.length}
-              updateItems={updateItems ? throttledUpdateItems : () => {}}
-              updateGroups={updateGroups ? throttledUpdateGroups : () => {}}
+              updateItems={updateItems ? throttledUpdateItems : noop}
+              updateGroups={updateGroups ? throttledUpdateGroups : noop}
               bgColor="inherit"
               textAlignment={localTextAlignment}
               headerSize={localHeaderSize}
@@ -864,13 +902,13 @@ function PhotoListViewComponent({
           onSelectCover={(photoId: string) => {
             if (coverPickerAlbumType === "person") {
               setPersonAlbumCover.mutate({
-                id: `${params.albumID}`,
+                id: `${albumID}`,
                 cover_photo: photoId,
               });
             }
             if (coverPickerAlbumType === "useralbum") {
               setUserAlbumCover.mutate({
-                id: `${params.albumID}`,
+                id: `${albumID}`,
                 photo: photoId,
               });
             }
@@ -881,7 +919,7 @@ function PhotoListViewComponent({
   );
 }
 
-export const PhotoListView = React.memo(
-  PhotoListViewComponent,
-  (prev, next) => prev.loading === next.loading && prev.idx2hash === next.idx2hash && prev.mediaType === next.mediaType
-);
+// Default shallow comparison: a custom comparator that only looked at a few
+// props silently dropped changes to title, photoset, header, emptyStateConfig,
+// updateGroups, etc. Callers should pass stable (memoised) props.
+export const PhotoListView = React.memo(PhotoListViewComponent);

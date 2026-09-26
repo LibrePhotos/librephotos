@@ -43,8 +43,12 @@ export function PasswordEntry(props: Props): JSX.Element {
     onValidate(validPassword, isValid);
   };
 
+  // Re-validate when the mode changes; keystrokes validate in the inputs'
+  // onChange handlers. The effect reads this render's password values, so they
+  // are not stale, just not triggers.
   useEffect(() => {
     validateAndUpdatePassword(newPassword, newPasswordConfirm, closing);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createNew, closing, editPasswordMode]);
 
   return (

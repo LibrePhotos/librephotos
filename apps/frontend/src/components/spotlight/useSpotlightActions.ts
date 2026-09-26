@@ -57,6 +57,8 @@ import { notification } from "../../service/notifications";
 import { SearchOptionType, useSearch, type SearchOption } from "../../service/use-search";
 
 const ICON_SIZE = 20;
+// Module-level so the useMemo action lists below do not depend on a per-render object.
+const iconProps = { size: ICON_SIZE, stroke: 1.5 };
 const AVATAR_SIZE = 28;
 
 type SpotlightAction = SpotlightActionData & {
@@ -75,8 +77,6 @@ function getFaceUrl(faceUrl: string | undefined): string | undefined {
 }
 
 function searchOptionToAction(option: SearchOption, navigate: ReturnType<typeof useNavigate>): SpotlightAction {
-  const iconProps = { size: ICON_SIZE, stroke: 1.5 };
-
   const getLeftSection = () => {
     // For people, show face avatar
     if (option.type === SearchOptionType.PEOPLE && option.thumbnail) {
@@ -154,8 +154,6 @@ export function useSpotlightActions(query: string = "") {
   const { mutate: generateAutoAlbums } = useGenerateAutoAlbumsMutation();
   const deleteMissingPhotos = useDeleteMissingPhotosMutation();
   const trainFaces = useTrainFacesMutation();
-
-  const iconProps = { size: ICON_SIZE, stroke: 1.5 };
 
   // Navigation actions
   const navigationActions: SpotlightAction[] = useMemo(

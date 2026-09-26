@@ -189,6 +189,7 @@ export function useVirtualizedGrid(
     });
     // Only a fold changes the cells behind a fixed range - a scroll moves the range and the Grid
     // reports it, and reacting to data arriving here would re-request the pages that just landed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collapsedPersons]);
 
   // Get flattened cell contents for cell range selection

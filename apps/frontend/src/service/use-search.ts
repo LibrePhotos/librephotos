@@ -120,8 +120,12 @@ export function useSearch() {
     return updateSearchPlaceholder.stop;
   }, [updateSearchPlaceholder]);
 
+  // Seed the unfiltered options once everything has loaded. Deliberately not
+  // re-run when filterOptions changes (any refetch): that would replace the
+  // options for the query the user is typing with the unfiltered list.
   useEffect(() => {
     if (!isLoading) filterOptions("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
   return {

@@ -149,7 +149,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
       }
       return dates;
     },
-    [positions]
+    [positions, getLabelsMarkers]
   );
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     if (markersType === ScrollerType.enum.alphabet) setMarkerPositions(getAlphabetMarkers());
     else if (markersType === ScrollerType.enum.date) setMarkerPositions(getDateMarkers());
     else setMarkerPositions(getLabelsMarkers());
-  }, [positions]);
+  }, [positions, type, getAlphabetMarkers, getDateMarkers, getLabelsMarkers]);
 
   const determinePositionsCoordinates = () => {
     if (ref.current) ref.current.height = targetClientHeight;
@@ -189,30 +189,37 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     setPositions(newPositions);
   };
 
+  // targetHeight was missing here, so a grid that grew without new scroll
+  // positions kept markers computed against its old height. The function itself
+  // is rebuilt every render and only reads these values.
   useEffect(() => {
     determinePositionsCoordinates();
-  }, [scrollPositions, targetClientHeight, height, type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollPositions, targetHeight, targetClientHeight, height, type]);
 
-  const debouncedResize = useCallback(
-    _.debounce(() => {
-      setTargetClientHeight(window.innerHeight);
-      if (ref.current) {
-        let elmt = ref.current;
-        while (typeof elmt.parentElement !== "undefined") {
-          if (elmt.parentElement.offsetTop !== 0) {
-            setOffsetTop(elmt.parentElement.offsetTop);
-            break;
+  const debouncedResize = useMemo(
+    () =>
+      _.debounce(() => {
+        setTargetClientHeight(window.innerHeight);
+        if (ref.current) {
+          let elmt = ref.current;
+          while (typeof elmt.parentElement !== "undefined") {
+            if (elmt.parentElement.offsetTop !== 0) {
+              setOffsetTop(elmt.parentElement.offsetTop);
+              break;
+            }
+            elmt = elmt.parentElement;
           }
-          elmt = elmt.parentElement;
         }
-      }
-    }, 500),
-    []
+      }, 500),
+    [ref]
   );
 
   useEffect(() => {
     debouncedResize();
-  }, [width, height]);
+  }, [debouncedResize, width, height]);
+
+  useEffect(() => () => debouncedResize.cancel(), [debouncedResize]);
 
   const hideScrollScrubber = () => {
     if (scrollerVisibilityTimerRef.current) {
@@ -305,9 +312,12 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     previousScrollPosition.current = y;
   };
 
-  const throttledDetectScrolling = useCallback(_.throttle(detectScrolling, 1000), [scrollerIsVisible]);
+  // detectScrolling only reads scrollerIsVisible (everything else it touches is
+  // a setter or a ref), so rebuilding the throttle on that change is enough.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const throttledDetectScrolling = useMemo(() => _.throttle(detectScrolling, 1000), [scrollerIsVisible]);
 
-  const debouncedUpdateCurrentPosMarker = useCallback(_.throttle(setCurrentScrollPosMarkerY, 250), []);
+  const debouncedUpdateCurrentPosMarker = useMemo(() => _.throttle(setCurrentScrollPosMarkerY, 250), []);
 
   useEffect(() => {
     if (window.scrollY > 0) {
@@ -319,9 +329,14 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
     } else {
       debouncedUpdateCurrentPosMarker(0);
     }
+    // Deliberately keyed on the scroll offsets read at render time: this re-syncs
+    // the position marker on any render after a scroll, without its own listener.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [window.scrollY, targetRef.current?.scrollTop]);
 
-  const renderMarkers = useCallback(() => {
+  // Plain functions, not useCallback: they are called during render, so memoising
+  // them saved nothing and left colour-scheme and scrollToY changes stale.
+  const renderMarkers = () => {
     if (!scrollerIsVisible || markerPositions.length === 0) return null;
 
     const halfMarkerHeightInPercent = scrollerYToScrollerYPercentage(6);
@@ -348,9 +363,9 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         </Badge>
       ))
       .reduce((prev: ReactNode, curr: ReactNode) => [prev, " ", curr]);
-  }, [markerPositions, scrollerIsVisible]);
+  };
 
-  const renderMarkersLines = useCallback(() => {
+  const renderMarkersLines = () => {
     if (!scrollerIsVisible || markerPositions.length === 0) return null;
 
     return markerPositions
@@ -366,7 +381,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
         />
       ))
       .reduce((prev: ReactNode, curr: ReactNode) => [prev, " ", curr]);
-  }, [markerPositions, scrollerIsVisible]);
+  };
 
   const renderDragMarker = () => {
     if (!scrollerIsVisible || !dragMarkerIsVisible) return null;
