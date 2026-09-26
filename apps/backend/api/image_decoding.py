@@ -29,8 +29,14 @@ def _pillow_to_vips(path):
 def thumbnail(path, height):
     """A pyvips image of at most `height` pixels high, auto-rotated, from any supported file."""
     try:
+        # libvips caches loads by file name and hands back the pixels this
+        # process read the first time, so a file rewritten in place (exiftool
+        # writing an orientation or a rating, an original replaced on disk)
+        # would render as it was. The scan compares that render against the
+        # stored perceptual hash, and a second rotate renders the file the
+        # first one has just rewritten.
         image = pyvips.Image.thumbnail(
-            path, 10000, height=height, size=pyvips.enums.Size.DOWN
+            f"{path}[revalidate]", 10000, height=height, size=pyvips.enums.Size.DOWN
         )
         return image.copy_memory()  # decode now, so an unsupported codec fails here
     except pyvips.Error:
