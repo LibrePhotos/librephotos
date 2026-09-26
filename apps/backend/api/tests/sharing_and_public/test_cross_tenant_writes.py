@@ -35,6 +35,7 @@ from rest_framework.test import APIClient
 
 from api.models import AlbumAuto, AlbumDate, AlbumPlace, AlbumThing, AlbumUser, Photo
 from api.models.duplicate import Duplicate
+from api.models.photo_share import PhotoShare
 from api.models.photo_stack import PhotoStack
 from api.models.tag import Tag
 from api.tests.utils import (
@@ -173,6 +174,8 @@ class CrossTenantWriteTest(TestCase):
         self.v_stack.photos.add(self.v_pub, self.v_priv)
         self.v_dup = Duplicate.objects.create(owner=self.victim)
         self.v_dup.photos.add(self.v_pub, self.v_priv)
+        # A live link, so revoking or rotating someone else's share shows up.
+        PhotoShare.objects.create(photo=self.v_pub, enabled=True)
 
         self.a_photo = create_test_photo(owner=self.attacker)
         self.a_photo2 = create_test_photo(owner=self.attacker)
@@ -360,6 +363,12 @@ class CrossTenantWriteTest(TestCase):
                 "post",
                 "/api/useralbum/makepublic",
                 {"album_id": self.v_album.pk, "val_public": True},
+            ),
+            # per-photo share links, by id and by hash, for every action
+            *(
+                ("post", "/api/photo/share", {"photo_id": ref, "action": action})
+                for ref in (*self._ids(), *self._hashes())
+                for action in ("enable", "rotate", "disable")
             ),
             # other album kinds
             ("post", "/api/albums/user/", {"title": "Loot 4", "photos": self._ids()}),
@@ -572,6 +581,7 @@ class CrossTenantWriteTest(TestCase):
             "thumbnail",
             "metadata",
             "caption_instance",
+            "share",
         ):
             self.assertIn(accessor, populated)
         photo_fields = snap[("photo", self.v_pub.pk)]

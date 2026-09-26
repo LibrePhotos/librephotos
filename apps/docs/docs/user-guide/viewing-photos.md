@@ -66,13 +66,13 @@ The toolbar at the top provides quick actions. From left to right:
 - **Copy to clipboard** - Copy the photo as an image to your clipboard, ready to paste into a chat, a document or an email. It copies the display-size version the viewer shows; use **Download** for the original file. The button is shown for still photos, and only when LibrePhotos is served over HTTPS, because browsers allow clipboard access on secure pages only.
 - **Hide / Show** (eye icon) - Hide the photo from the main timeline, or unhide it.
 - **Favorite** (star icon) - Mark the photo as a favorite, or remove the mark.
-- **Make public / Make private** (globe icon) - Toggle the photo's public visibility. Toggling in either direction also copies a link to the photo to your clipboard.
+- **Share link** (globe icon) - Create a revocable link to this one photo and show it with a copy button, plus **Replace link** and **Revoke**. The globe is green while the photo has a live link. This does not make the photo public; see [Revocable Photo Links](./sharing.md#revocable-photo-links).
 - **Delete** - Move the photo to trash.
 - **Rotate counter-clockwise** / **Rotate clockwise** - Rotate the photo 90° in either direction (see [Rotating Photos](#rotating-photos)).
 - **Toggle info panel** - Show or hide the photo details sidebar.
 - **Close** - Return to the gallery.
 
-The Hide, Favorite, Make public, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
+The Hide, Favorite, Share link, Delete and Rotate controls are only shown when you are signed in. On a public or shared album page the toolbar shows just the slideshow, zoom, fullscreen, copy, info-panel and close buttons.
 
 There is no download or share button in the lightbox itself. To download photos, select them in the gallery grid and choose **Download** from the selection actions menu; the download dialog can also include the other photos from each selected photo's stack. To share photos with other users, select them in the grid and choose **Sharing** from the same menu.
 
@@ -181,7 +181,7 @@ Click on any similar photo to view it directly.
 | `i` | Toggle sidebar |
 | `f` | Toggle favorite |
 | `h` | Hide / unhide photo |
-| `p` | Make public / private (copies the link to your clipboard) |
+| `p` | Open the photo's share link dialog |
 | `d` | Move photo to trash |
 | `g` | Toggle fullscreen |
 | `s` | Start / stop slideshow |

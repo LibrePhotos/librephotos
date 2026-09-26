@@ -18,17 +18,16 @@ import {
   IconZoomIn as ZoomIn,
   IconZoomOut as ZoomOut,
 } from "@tabler/icons-react";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { shareAddress } from "../../api_client/apiClient";
 import {
+  useFetchPhotoSharesQuery,
   useMarkPhotosDeletedMutation,
   useSetFavoritePhotosMutation,
   useSetPhotosHiddenMutation,
-  useSetPhotosPublicMutation,
 } from "../../api_client/photos/hooks";
 import { useCurrentUserSelfDetailsQuery } from "../../api_client/user/hooks/useCurrentUserSelfDetailsQuery";
-import { copyToClipboard } from "../../util/util";
+import { PhotoShareLinkModal } from "../sharing/PhotoShareLinkModal";
 import { copyKeyLabel } from "./lightbox.hotkeys";
 import type { LightboxControlsProps } from "./lightbox.types";
 
@@ -74,7 +73,10 @@ export function LightboxControls({
 
   // Mutations for photo actions
   const setPhotosHidden = useSetPhotosHiddenMutation();
-  const setPhotosPublic = useSetPhotosPublicMutation();
+  // Whether this photo has a live share link, for the globe's colour.
+  const { data: photoShares } = useFetchPhotoSharesQuery(!isPublic);
+  const isShared = !!photoDetail && !!photoShares?.some(share => share.photo_id === photoDetail.id);
+  const [sharingPhotoId, setSharingPhotoId] = useState<string | null>(null);
   const setFavoritePhotos = useSetFavoritePhotosMutation();
   const markPhotosDeleted = useMarkPhotosDeletedMutation();
 
@@ -95,14 +97,15 @@ export function LightboxControls({
     }
   }, [photoDetail, isPublic, setPhotosHidden]);
 
+  // A share link carries its own random slug, so it can be rotated or
+  // revoked later; the old thumbnails_big URL came from the file content and
+  // could never be withdrawn (issue #2028). It is independent of the photo's
+  // "public" flag, which the bulk Make Public action still controls.
   const handlePublicShortcut = useCallback(() => {
     if (photoDetail && !isPublic) {
-      const { image_hash: imageHash } = photoDetail;
-      const val = !photoDetail.public;
-      setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
-      copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
+      setSharingPhotoId(photoDetail.id);
     }
-  }, [photoDetail, isPublic, setPhotosPublic]);
+  }, [photoDetail, isPublic]);
 
   const handleDeleteShortcut = useCallback(() => {
     if (photoDetail && !isPublic) {
@@ -306,19 +309,15 @@ export function LightboxControls({
               </Tooltip>
             )}
             {photoDetail && (
-              <Tooltip label={photoDetail.public ? "Make private (P)" : "Make public (P)"} position="bottom" withArrow>
+              <Tooltip label={t("sharing.shareLinkShortcut")} position="bottom" withArrow>
                 <ActionIcon
                   variant="subtle"
                   color="gray"
                   size={28}
-                  onClick={() => {
-                    const { image_hash: imageHash } = photoDetail;
-                    const val = !photoDetail.public;
-                    setPhotosPublic.mutate({ image_hashes: [imageHash], val_public: val });
-                    copyToClipboard(`${shareAddress}/media/thumbnails_big/${imageHash}`);
-                  }}
+                  aria-label={t("sharing.shareLinkShortcut")}
+                  onClick={() => setSharingPhotoId(photoDetail.id)}
                 >
-                  <Globe size={18} color={photoDetail.public ? "green" : "grey"} />
+                  <Globe size={18} color={isShared ? "green" : "grey"} />
                 </ActionIcon>
               </Tooltip>
             )}
@@ -353,6 +352,7 @@ export function LightboxControls({
             )}
           </Group>
           <Divider orientation="vertical" color="rgba(255,255,255,0.2)" />
+          <PhotoShareLinkModal photoId={sharingPhotoId} onClose={() => setSharingPhotoId(null)} />
         </>
       )}
 
