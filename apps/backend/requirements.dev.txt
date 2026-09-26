@@ -1,5 +1,9 @@
 ipdb==0.13.13
-ipython==9.16.1
+# ipython: the backend-gpu image (DEBUG=1) runs Python 3.10, but IPython 9.x requires
+# Python >= 3.11. Keep the python_version < "3.11" pin on 8.x (8.39.0 is the last
+# release supporting 3.10). Renovate is disabled for it (see renovate.json).
+ipython==9.16.1; python_version >= "3.11"
+ipython==8.39.0; python_version < "3.11"
 Pygments==2.20.0
 prompt-toolkit==3.0.53
 pre-commit==4.6.2

@@ -12,8 +12,8 @@
       "enabled": false
     },
     {
-      "description": "Never auto-bump these. hdbscan and timezonefinder also have arm64 wheels pinned by URL in requirements.txt. The backend-gpu image runs Python 3.10, but newer releases of these packages drop py3.10, so apps/backend/requirements.txt carries a python_version split (newest on >=3.11, last py3.10-compatible on <3.11). Renovate applies one version to every matching line and collapses the split, breaking the GPU build. Bump manually and keep the <3.11 pin on a py3.10-compatible version: scikit-learn<=1.7.2, timezonefinder<=8.2.0, onnxruntime<=1.23.2.",
-      "matchPackageNames": ["scikit-learn", "scikit_learn", "timezonefinder", "hdbscan", "onnxruntime", "onnxruntime-gpu"],
+      "description": "Never auto-bump these. hdbscan and timezonefinder also have arm64 wheels pinned by URL in requirements.txt. The backend-gpu image runs Python 3.10, but newer releases of these packages drop py3.10, so apps/backend/requirements.txt (and requirements.dev.txt for ipython) carries a python_version split (newest on >=3.11, last py3.10-compatible on <3.11). Renovate applies one version to every matching line and collapses the split, breaking the GPU build. Bump manually and keep the <3.11 pin on a py3.10-compatible version: scikit-learn<=1.7.2, timezonefinder<=8.2.0, onnxruntime<=1.23.2, ipython<=8.39.0 (8.x).",
+      "matchPackageNames": ["scikit-learn", "scikit_learn", "timezonefinder", "hdbscan", "onnxruntime", "onnxruntime-gpu", "ipython"],
       "enabled": false
     },
     {
