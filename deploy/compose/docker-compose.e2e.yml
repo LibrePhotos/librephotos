@@ -1,25 +1,34 @@
-# End-to-end compose: builds images from local sources, wires them behind the
-# e2e proxy, and bootstraps a test database. Paths are relative to this file
-# (deploy/compose/).
+# End-to-end stack for the Playwright suite in apps/frontend/e2e.
+#
+# Builds the proxy, frontend and backend images from local sources, creates an
+# admin/admin account and scans the synthetic sample library in deploy/e2e/photos
+# (see deploy/e2e/entrypoint.sh). Serves the app on http://localhost:8080.
+# Needs no env file; every value below is a throwaway test value.
+#
+#   docker compose -f deploy/compose/docker-compose.e2e.yml up -d --build --wait
+#   docker compose -f deploy/compose/docker-compose.e2e.yml down -v
+#
+# Paths are relative to this file (deploy/compose/). CI: .github/workflows/e2e.yml.
+
+name: librephotos-e2e
 
 networks:
   e2e:
 
 volumes:
-  e2e_cache:
   e2e_logs:
   e2e_protected_media:
   e2e_scan_directory:
 
 services:
   e2e-proxy:
-    image: reallibrephotos/librephotos-proxy:${tag}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/proxy/Dockerfile
     container_name: e2e-proxy
-    restart: unless-stopped
-    command: /bin/bash -c "sed -ri 's/(backend|frontend)/e2e-\1/' /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     volumes:
-      - e2e_scan_directory:/data
-      - e2e_protected_media:/protected_media
+      - e2e_scan_directory:/data:ro
+      - e2e_protected_media:/protected_media:ro
     ports:
       - 8080:80
     healthcheck:
@@ -31,93 +40,80 @@ services:
       e2e-backend:
         condition: service_healthy
       e2e-frontend:
-        condition: service_healthy
+        condition: service_started
     networks:
       - e2e
 
   e2e-db:
-    image: postgres:13
+    image: postgres:16
     container_name: e2e-db
-    restart: unless-stopped
     environment:
-      - POSTGRES_USER=${dbUser}
-      - POSTGRES_PASSWORD=${dbPass}
-      - POSTGRES_DB=${dbName}
-    volumes:
-      - ${e2e_bootstrap_dir:-../e2e}/init.sql.gz:/docker-entrypoint-initdb.d/init.sql.gz
+      - POSTGRES_USER=docker
+      - POSTGRES_PASSWORD=e2e
+      - POSTGRES_DB=librephotos
     healthcheck:
-      test: psql -U ${dbUser} -d ${dbName} -c "SELECT 1;"
+      test: psql -U docker -d librephotos -c "SELECT 1;"
       interval: 5s
       timeout: 5s
       retries: 12
     networks:
       - e2e
 
+  # The production image: a static build, so the first page load does not wait
+  # for the Vite dev server to compile.
   e2e-frontend:
-    container_name: e2e-frontend
-    environment:
-      - DEBUG=1
-      - WDS_SOCKET_PORT=0 # needed for Vite HMR
-    tty: true
     build:
       context: ../..
-      dockerfile: deploy/docker/frontend/Dockerfile.dev
-    restart: unless-stopped
-    volumes:
-      - ../../apps/frontend:/usr/src/app
-    healthcheck:
-      test: curl -sI localhost:3000 | grep HTTP | grep 200
-      interval: 5s
-      timeout: 5s
-      retries: 24
-    depends_on:
-      e2e-backend:
-        condition: service_healthy
+      dockerfile: deploy/docker/frontend/Dockerfile
+    container_name: e2e-frontend
     networks:
-      - e2e
+      e2e:
+        # deploy/docker/proxy/nginx.conf proxies to "frontend" and "backend".
+        aliases: [frontend]
 
   e2e-backend:
-    container_name: e2e-backend
-    tty: true
-    stdin_open: true
     build:
       context: ../..
       dockerfile: deploy/docker/backend/Dockerfile
-      args:
-        DEBUG: 1
-    restart: unless-stopped
+    container_name: e2e-backend
     entrypoint: /e2e/entrypoint.sh
     volumes:
-      - ${e2e_bootstrap_dir:-../e2e}:/e2e
-      - ../../apps/backend:/code
+      - ../e2e:/e2e:ro
       - e2e_scan_directory:/data
       - e2e_protected_media:/protected_media
       - e2e_logs:/logs
-      - e2e_cache:/root/.cache
     environment:
-      - SECRET_KEY=${shhhhKey:-}
-      - BACKEND_HOST=e2e-backend
-      - ADMIN_EMAIL=${adminEmail:-admin@local.host}
-      - ADMIN_USERNAME=${userName:-admin}
-      - ADMIN_PASSWORD=${userPass:-admin}
+      - SECRET_KEY=e2e-secret-key
+      - BACKEND_HOST=backend
+      - ADMIN_EMAIL=admin@local.host
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
       - DB_BACKEND=postgresql
-      - DB_NAME=${dbName}
-      - DB_USER=${dbUser}
-      - DB_PASS=${dbPass}
+      - DB_NAME=librephotos
+      - DB_USER=docker
+      - DB_PASS=e2e
       - DB_HOST=e2e-db
       - DB_PORT=5432
-      - MAPBOX_API_KEY=${mapApiKey:-}
-      - WEB_CONCURRENCY=${gunniWorkers:-1}
-      - SKIP_PATTERNS=${skipPatterns:-}
-      - ALLOW_UPLOAD=${allowUpload:-true}
-      - DEBUG=1
+      - WEB_CONCURRENCY=1
+      - WORKER_CONCURRENCY=2
+      - ALLOW_UPLOAD=true
+      # The smoke suite needs no ML; keep the sidecars and their models out of it.
+      - FEATURE_FACE_DETECTION=false
+      - FEATURE_FACE_CLUSTER=false
+      - FEATURE_IMAGE_CAPTIONING=false
+      - FEATURE_SCENE_CLASSIFICATION=false
+      - FEATURE_REVERSE_GEOCODING=false
+      - DEBUG=0
     healthcheck:
       test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/api/healthz')"
       interval: 5s
       timeout: 5s
       retries: 24
+      # migrate runs the whole history on a fresh database first.
+      start_period: 300s
     depends_on:
       e2e-db:
         condition: service_healthy
     networks:
-      - e2e
+      e2e:
+        aliases: [backend]
