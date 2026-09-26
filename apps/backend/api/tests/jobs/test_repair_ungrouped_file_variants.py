@@ -266,7 +266,7 @@ class RepairUngroupedFileVariantsTest(TestCase):
 
     def test_unexpected_error_marks_the_job_failed_and_is_swallowed(self):
         broken = MagicMock()
-        broken.objects.filter.side_effect = RuntimeError("boom")
+        broken.objects.owned_by.side_effect = RuntimeError("boom")
 
         with patch.object(repair_jobs, "Photo", broken):
             # No exception escapes the job function.

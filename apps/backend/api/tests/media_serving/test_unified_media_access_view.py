@@ -109,6 +109,10 @@ class MediaAccessViewCharacterizationTest(TestCase):
                     )
 
 
+# Download archives are named ``<uuid><user id>.zip``; the route takes the UUID.
+ZIP_UUID = "0f8fad5b-d9cb-469f-a165-70867728950e"
+
+
 class UnifiedZipAndAvatarTest(TestCase):
     def setUp(self):
         self.user = create_test_user()
@@ -124,17 +128,26 @@ class UnifiedZipAndAvatarTest(TestCase):
         self.assertEqual(response["X-Media-Error"], "authentication")
 
     def test_zip_redirect_appends_user_id_and_extension(self):
-        response = _unified("zip", "job-1", user=self.user)
+        response = _unified("zip", ZIP_UUID, user=self.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/x-zip-compressed")
         self.assertEqual(
             response["X-Accel-Redirect"],
-            f"/protected_media/zip/job-1{self.user.id}.zip",
+            f"/protected_media/zip/{ZIP_UUID}{self.user.id}.zip",
         )
+
+    def test_zip_fname_that_is_not_a_uuid_is_404(self):
+        # fname is only ever the download job's UUID. Anything else could name
+        # a path outside MEDIA_ROOT/zip or, with extra digits, another user's
+        # archive (``<uuid>1`` + user 2 == user 12's file).
+        for fname in ("job-1", "..", r"..\secret", f"{ZIP_UUID}1"):
+            with self.subTest(fname=fname):
+                response = _unified("zip", fname, user=self.user)
+                self.assertEqual(response.status_code, 404)
 
     @override_settings(SERVE_FRONTEND=True)
     def test_zip_direct_mode_404s_when_the_file_is_absent(self):
-        response = _unified("zip", "job-1", user=self.user)
+        response = _unified("zip", ZIP_UUID, user=self.user)
         self.assertEqual(response.status_code, 404)
 
     def test_avatar_without_token_is_marked_403(self):
@@ -156,7 +169,7 @@ class UnifiedZipAndAvatarTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_path_matching_is_case_insensitive(self):
-        response = _unified("ZIP", "job-1", user=self.user)
+        response = _unified("ZIP", ZIP_UUID, user=self.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/x-zip-compressed")
 
