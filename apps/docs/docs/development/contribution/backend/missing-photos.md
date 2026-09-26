@@ -214,11 +214,21 @@ Notes on the implementation:
 - Associations with place-based albums
 - Associations with user-created albums
 - Face detections linked to the photos
+- Thumbnail files on disk that no remaining photo uses
 
 Album associations and face detections are removed by database cascade on `Photo.delete()` (`Face.photo` is `on_delete=CASCADE`), not by explicit per-photo loops. `AlbumThing` is the one exception: its `photo_count` and cover photos are maintained by an `m2m_changed` receiver that cascade bypasses, so affected `AlbumThing` ids are snapshotted per batch and refreshed afterwards.
 
-**What doesn't get deleted (TODO)**:
-- Thumbnail files on disk (see [Known Issues and TODOs](#known-issues-and-todos)).
+**Thumbnail file cleanup**: `Thumbnail` rows are cascade-deleted with the `Photo`, and a `post_delete` receiver in `apps/backend/api/models/thumbnail.py` then removes their files from `MEDIA_ROOT` (`$BASE_DATA/protected_media/`):
+- `thumbnails_big/` (`.webp`)
+- `square_thumbnails/` (`.webp`, or `.mp4` for video previews)
+- `square_thumbnails_small/` (`.webp`, or `.mp4` for video previews)
+
+Thumbnail files are named by `image_hash`, not owned by one row, so the receiver only removes true orphans:
+- The deletion is deferred with `transaction.on_commit`, so a rolled-back delete keeps its files.
+- Inside that callback, the files are kept if any remaining `Thumbnail` row still points at them, or any `Photo` still has that `image_hash` (for example a photo that is still being scanned and has no `Thumbnail` row yet).
+- Otherwise `delete_thumbnail_files(image_hash)` removes them. It logs and skips an `OSError` (including `PermissionError`) per file, so a file that cannot be removed never fails the job.
+
+The same receiver runs for every `Thumbnail` delete, including the scheduled trash cleanup (`api.services.cleanup_deleted_photos`).
 
 ## API Endpoints
 
@@ -437,15 +447,7 @@ The English strings `settings.missingphotos`, `settings.missingphotosbutton`, an
 
 ### Current TODOs
 
-1. **Remove thumbnails** (not implemented in `delete_missing_photos`)
-   - `Thumbnail` rows are cascade-deleted with the `Photo` (`Thumbnail.photo` is a `OneToOneField(..., on_delete=CASCADE, primary_key=True)`), but the files on disk are left behind — there is no `post_delete` receiver for `Thumbnail`.
-   - Orphaned files remain under `MEDIA_ROOT` (`$BASE_DATA/protected_media/`), named by `image_hash`, in:
-     - `thumbnails_big/` (`.webp`)
-     - `square_thumbnails/` (`.webp`, plus `.mp4` for video previews)
-     - `square_thumbnails_small/` (`.webp`, plus `.mp4` for video previews)
-   - Should be cleaned up to free disk space.
-
-2. **Move delete_missing_photos function** (`autoalbum.py`)
+1. **Move delete_missing_photos function** (`autoalbum.py`)
    - The function carries a `# To-Do: This does not belong here` comment.
    - It should be moved to a more appropriate module (e.g. `photo_operations.py` or similar).
 
@@ -464,7 +466,7 @@ The English strings `settings.missingphotos`, `settings.missingphotosbutton`, an
   - `apps/backend/api/models/file.py` — `File` model (`missing` flag, unique `path`, `calculate_hash`)
   - `apps/backend/api/models/photo.py` — `Photo` model and `_check_files()` method
   - `apps/backend/api/models/long_running_job.py` — job type definitions
-  - `apps/backend/api/models/thumbnail.py` — thumbnail records (cascade-deleted with the photo; files are not)
+  - `apps/backend/api/models/thumbnail.py` — thumbnail records (cascade-deleted with the photo) and the `post_delete` receiver that removes orphaned thumbnail files
 
 - **Business Logic**:
   - `apps/backend/api/directory_watcher/` — scanning and relinking (a package implementing the two-phase scan):

@@ -1,7 +1,9 @@
 import os
+from functools import partial
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+from django.dispatch import receiver
 from PIL import Image
 
 from api.models.photo import Photo
@@ -191,3 +193,49 @@ class Thumbnail(models.Model):
             self.save()
         except Exception:
             logger.info(f"Cannot calculate dominant color {self} object")
+
+
+def _delete_orphaned_thumbnail_files(file_names):
+    """Delete the thumbnail files of a deleted Thumbnail nothing else uses.
+
+    Thumbnail files are named by ``image_hash`` and are not owned by a single
+    row: a removed Photo keeps its image_hash, and a re-added file with the
+    same hash reuses the existing files instead of regenerating them. A Photo
+    whose Thumbnail row is not saved yet (mid-scan) picks them up too, so any
+    remaining Photo with the hash keeps the files, as does any Thumbnail row
+    still pointing at one of them.
+    """
+    if Thumbnail.objects.filter(
+        models.Q(thumbnail_big__in=file_names)
+        | models.Q(square_thumbnail__in=file_names)
+        | models.Q(square_thumbnail_small__in=file_names)
+    ).exists():
+        return
+    photo_hashes = {os.path.splitext(os.path.basename(n))[0] for n in file_names}
+    for photo_hash in photo_hashes:
+        if not Photo.objects.filter(image_hash=photo_hash).exists():
+            # Swallows OSError per file, so an unremovable file never fails
+            # the job that deleted the rows.
+            delete_thumbnail_files(photo_hash)
+
+
+@receiver(models.signals.post_delete, sender=Thumbnail)
+def delete_orphaned_thumbnail_files(sender, instance, using, **kwargs):
+    """Remove a deleted Thumbnail's files once nothing else references them.
+
+    Deferred to on_commit so a rolled-back delete keeps its files, and so the
+    "still referenced?" check sees the committed state of the whole delete.
+    """
+    file_names = [
+        field_file.name
+        for field_file in (
+            instance.thumbnail_big,
+            instance.square_thumbnail,
+            instance.square_thumbnail_small,
+        )
+        if field_file and field_file.name
+    ]
+    if file_names:
+        transaction.on_commit(
+            partial(_delete_orphaned_thumbnail_files, file_names), using=using
+        )
