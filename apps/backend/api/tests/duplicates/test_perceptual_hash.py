@@ -11,8 +11,10 @@ Tests the perceptual hashing algorithm used for visual duplicate detection:
 
 import os
 import tempfile
+import timeit
 from unittest.mock import patch
 
+import imagehash
 from django.test import TestCase
 from PIL import Image
 
@@ -622,6 +624,16 @@ class EdgeCasesTestCase(TestCase):
 class PerformanceTestCase(TestCase):
     """Performance-related tests for the perceptual hash module."""
 
+    # Wall-time budgets are measured against imagehash's own comparison on the
+    # same machine instead of a fixed number of seconds: an absolute "10,000
+    # calls in under 1 s" failed at 1.02 s on a Windows dev box, and a busy CI
+    # runner is slower still. Best-of-five hides one-off stalls, and the ratio
+    # still catches the wrapper taking on real per-call work (parsing twice,
+    # logging, a query). The absolute ceiling is only a gross sanity check.
+    TIMING_REPEATS = 5
+    MAX_SLOWDOWN = 3.0
+    MAX_SECONDS_PER_COMPARISON = 0.001  # ~10x what a typical machine takes
+
     def setUp(self):
         """Create temporary directory for test images."""
         self.temp_dir = tempfile.mkdtemp()
@@ -632,33 +644,41 @@ class PerformanceTestCase(TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_hamming_distance_performance(self):
-        """Hamming distance should be fast for many comparisons."""
-        import time
+    def _best_time(self, fn, number):
+        return min(timeit.repeat(fn, number=number, repeat=self.TIMING_REPEATS))
 
+    @staticmethod
+    def _raw_distance(hash1, hash2):
+        return imagehash.hex_to_hash(hash1) - imagehash.hex_to_hash(hash2)
+
+    def test_hamming_distance_performance(self):
+        """Hamming distance should cost no more than imagehash's own comparison."""
         hash1 = "a" * 16
         hash2 = "b" * 16
+        calls = 1000
 
-        start = time.time()
-        for _ in range(10000):
-            hamming_distance(hash1, hash2)
-        elapsed = time.time() - start
+        ours = self._best_time(lambda: hamming_distance(hash1, hash2), calls)
+        raw = self._best_time(lambda: self._raw_distance(hash1, hash2), calls)
 
-        # 10000 comparisons should complete in under 1 second
-        self.assertLess(elapsed, 1.0)
+        self.assertLess(ours, raw * self.MAX_SLOWDOWN)
+        self.assertLess(ours / calls, self.MAX_SECONDS_PER_COMPARISON)
 
     def test_find_similar_performance(self):
-        """find_similar_hashes should be reasonably fast for medium-sized lists."""
-        import time
-
+        """find_similar_hashes should cost about one comparison per candidate."""
         target = "0" * 16
-        # Create a list of 100 hashes
         hash_list = [(f"img_{i}", f"{i:016x}") for i in range(100)]
+        searches = 10
 
-        start = time.time()
-        for _ in range(100):
+        def ours():
             find_similar_hashes(target, hash_list, threshold=10)
-        elapsed = time.time() - start
 
-        # 100 searches over 100 hashes should complete quickly
-        self.assertLess(elapsed, 2.0)
+        def raw():
+            for _, hash_value in hash_list:
+                self._raw_distance(target, hash_value)
+
+        ours_time = self._best_time(ours, searches)
+        raw_time = self._best_time(raw, searches)
+
+        self.assertLess(ours_time, raw_time * self.MAX_SLOWDOWN)
+        comparisons = searches * len(hash_list)
+        self.assertLess(ours_time / comparisons, self.MAX_SECONDS_PER_COMPARISON)
