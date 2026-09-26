@@ -40,6 +40,7 @@ IDX = {
     "xmp_subject": 16,
     "iptc_keywords": 17,
     "xmp_description": 18,
+    "xmp_description_any_language": 19,
 }
 
 
@@ -110,6 +111,7 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
                 Tags.SUBJECT,
                 Tags.IPTC_KEYWORDS,
                 Tags.DESCRIPTION,
+                Tags.DESCRIPTION_ANY_LANGUAGE,
             ],
         )
 

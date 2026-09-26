@@ -30,9 +30,13 @@ class Tags:
     REGION_INFO_WRITE = "XMP-mwg-rs:RegionInfo"
     SUBJECT = "XMP:Subject"
     IPTC_KEYWORDS = "IPTC:Keywords"
-    # The x-default entry of the dc:description lang-alt. Embedded or
-    # sidecar, ExifTool always resolves the lang-alt down to one string.
+    # The x-default entry of the dc:description lang-alt, embedded or sidecar.
     DESCRIPTION = "XMP:Description"
+    # Every language-tagged entry of the same lang-alt (XMP:Description-de,
+    # -fr, ...). A lang-alt without an x-default entry reads back as nothing
+    # under DESCRIPTION, so this is the fallback; get_tag keeps the first one.
+    # The wildcard does not match the untagged x-default entry itself.
+    DESCRIPTION_ANY_LANGUAGE = "XMP:Description-*"
     ROTATION = "QuickTime:Rotation"
     ORIENTATION = "EXIF:Orientation"
 
