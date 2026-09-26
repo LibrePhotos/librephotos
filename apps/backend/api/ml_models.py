@@ -301,6 +301,27 @@ def _unpack_archive(archive_path, model_folder, model):
         target_dir.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(archive_path) as archive:
             archive.extractall(path=target_dir)
+        _flatten_wrapper_dir(target_dir)
+
+
+def _flatten_wrapper_dir(target_dir):
+    """Lift the files out of a zip's lone top-level folder into target_dir.
+
+    Most InsightFace bundles are flat, but antelopev2.zip and buffalo_m.zip
+    wrap their .onnx files in a folder named after the model, so they land in
+    face_recognition/models/<name>/<name>/ where FaceAnalysis never looks.
+    """
+    target_dir = Path(target_dir)
+    if not target_dir.is_dir():
+        return
+    entries = list(target_dir.iterdir())
+    if len(entries) != 1 or not entries[0].is_dir():
+        return
+    # Move the wrapper aside first so a member sharing its name cannot collide.
+    wrapper = entries[0].rename(target_dir / f".{entries[0].name}.unwrap")
+    for child in wrapper.iterdir():
+        child.rename(target_dir / child.name)
+    wrapper.rmdir()
 
 
 def download_model(model):
@@ -310,6 +331,11 @@ def download_model(model):
         return
 
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
+
+    if model["unpack-command"] == "zip":
+        # Repairs installs unpacked before the wrapper folder was flattened,
+        # which would otherwise fail the .onnx check and download again.
+        _flatten_wrapper_dir(model_folder / model["target-dir"])
 
     if _model_target_exists(model_folder, model):
         util.logger.info(f"Model {model['name']} already downloaded")
