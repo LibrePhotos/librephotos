@@ -20,8 +20,8 @@ Whatever you have — a partial report is better than none:
 - What an attacker can do, and what they need in order to do it (an account on
   the instance, a share link, network access to the host, nothing at all).
 - Steps to reproduce, ideally against a fresh install.
-- The affected version and how it is deployed (Docker, Kubernetes, `.deb`,
-  from source), since some issues only exist in one deployment path.
+- The affected version and how it is deployed (Docker, Kubernetes, the Windows
+  build, from source), since some issues only exist in one deployment path.
 - Which component it is in, if you know: `apps/backend`, `apps/frontend`,
   `apps/mobile`, or the deployment configuration under `deploy/`.
 
