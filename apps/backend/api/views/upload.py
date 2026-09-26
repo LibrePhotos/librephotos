@@ -123,14 +123,10 @@ def validate_scan_directory(user):
 
 class UploadPhotoExists(viewsets.ViewSet):
     def retrieve(self, request, pk):
-        try:
-            Photo.objects.get(image_hash=pk)
-            return Response({"exists": True})
-        except Photo.DoesNotExist:
-            return Response({"exists": False})
-        except Photo.MultipleObjectsReturned:
-            # Multiple photos with same hash - photo exists
-            return Response({"exists": True})
+        # Only the requester's own library counts: answering for other users'
+        # hashes would tell anyone which files someone else has uploaded.
+        exists = Photo.objects.owned_by(request.user).filter(image_hash=pk).exists()
+        return Response({"exists": exists})
 
 
 @method_decorator(csrf_exempt, name="dispatch")

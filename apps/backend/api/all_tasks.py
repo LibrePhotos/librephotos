@@ -1,5 +1,6 @@
 import io
 import os
+import uuid
 import zipfile
 
 from django.conf import settings
@@ -8,6 +9,23 @@ from django_q.tasks import AsyncTask, schedule
 
 from api import util
 from api.models.long_running_job import LongRunningJob
+
+
+def zip_file_name(file_uuid, user_id):
+    """Name of the archive a download job writes: ``<uuid><user id>.zip``.
+
+    ``file_uuid`` comes from the client on the delete and serve routes, so it
+    must be a canonical UUID. Returns ``None`` otherwise, which keeps a crafted
+    value from naming a path outside the zip directory or another user's
+    archive (``<uuid>1`` + user ``2`` would otherwise reach user ``12``'s file).
+    """
+    try:
+        canonical = str(uuid.UUID(str(file_uuid)))
+    except (ValueError, TypeError, AttributeError):
+        return None
+    if canonical != str(file_uuid).lower():
+        return None
+    return f"{canonical}{int(user_id)}.zip"
 
 
 def create_download_job(job_type, user, photos, filename):
@@ -132,7 +150,11 @@ def zip_photos_task(job_id, user, photos, filename):
 
 
 def delete_zip_file(filename):
-    file_path = os.path.join(settings.MEDIA_ROOT, "zip", filename)
+    zip_dir = os.path.realpath(os.path.join(settings.MEDIA_ROOT, "zip"))
+    file_path = os.path.realpath(os.path.join(zip_dir, filename))
+    if os.path.dirname(file_path) != zip_dir:
+        util.logger.error(f"Refusing to delete zip outside {zip_dir}: {filename!r}")
+        return
     try:
         if not os.path.exists(file_path):
             util.logger.error(f"Error while deleting file not found at : {file_path}")

@@ -1,4 +1,5 @@
 import uuid
+from collections import defaultdict
 
 from django.conf import settings
 from django.db.models import Count, Prefetch, Q
@@ -585,18 +586,12 @@ class PhotoViewSet(viewsets.ModelViewSet):
     def summary(self, request, pk):
         # Use Photo.objects instead of get_queryset() to include processing photos
         filter_kwargs = _get_photo_filter_kwargs(pk)
-        queryset = Photo.objects.filter(**filter_kwargs)
+        # Owner, shared to the requester, or public; anything else is a 404.
+        queryset = (
+            Photo.objects.visible_to(request.user).filter(**filter_kwargs).distinct()
+        )
 
         if not queryset.exists():
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-        photo = queryset.first()
-        # Check permissions - owner, shared, or public
-        if not (
-            photo.owner == request.user
-            or photo.shared_to.filter(id=request.user.id).exists()
-            or photo.public
-        ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         # Serializer expects a queryset (calls .get() internally)
@@ -986,17 +981,17 @@ class DeletePhotos(APIView):
             # Need to call manual_delete on each photo for proper cleanup
             deleted_count = 0
             failed_count = 0
+            # build_photo_queryset is already bound to the requester's photos.
             for photo in photos_qs:
-                if photo.owner == request.user:
-                    try:
-                        photo.manual_delete()
-                    except Exception:
-                        logger.exception(
-                            f"Could not delete photo {photo.image_hash}, skipping it."
-                        )
-                        failed_count += 1
-                    else:
-                        deleted_count += 1
+                try:
+                    photo.manual_delete()
+                except Exception:
+                    logger.exception(
+                        f"Could not delete photo {photo.image_hash}, skipping it."
+                    )
+                    failed_count += 1
+                else:
+                    deleted_count += 1
 
             logger.info(
                 f"{deleted_count} photos were permanently deleted via select_all for user {request.user.id}."
@@ -1006,30 +1001,34 @@ class DeletePhotos(APIView):
                 {"status": True, "count": deleted_count, "failed_count": failed_count}
             )
 
-        # Existing logic for individual hashes
-        # Use filter since image_hash may not be unique after UUID migration
-        image_hashes = data["image_hashes"]
-        photos = Photo.objects.filter(image_hash__in=image_hashes)
-        photos_by_hash = {photo.image_hash: photo for photo in photos}
+        # Individual hashes. Only the requester's trashed photos are eligible;
+        # a hash that is someone else's, not in the trash, or unknown is
+        # reported as not deleted, all alike. image_hash is not unique, so
+        # every matching row of the requester's is deleted.
+        image_hashes = list(dict.fromkeys(data["image_hashes"]))
+        photos_by_hash = defaultdict(list)
+        for photo in Photo.objects.owned_by(request.user).filter(
+            image_hash__in=image_hashes, in_trashcan=True
+        ):
+            photos_by_hash[photo.image_hash].append(photo)
 
         deleted = []
         not_deleted = []
         for image_hash in image_hashes:
-            photo = photos_by_hash.get(image_hash)
-            if photo is None:
-                continue  # Photo not found
-            if photo.owner == request.user and photo.in_trashcan:
+            photos = photos_by_hash.get(image_hash)
+            if not photos:
+                not_deleted.append(image_hash)
+                continue
+            failed = False
+            for photo in photos:
                 try:
                     photo.manual_delete()
                 except Exception:
                     logger.exception(
                         f"Could not delete photo {image_hash}, skipping it."
                     )
-                    not_deleted.append(photo.image_hash)
-                else:
-                    deleted.append(photo.image_hash)
-            else:
-                not_deleted.append(photo.image_hash)
+                    failed = True
+            (not_deleted if failed else deleted).append(image_hash)
 
         return Response(
             {
@@ -1108,7 +1107,7 @@ class SetMainFileView(APIView):
     @staticmethod
     def _get_owned_photo(image_hash, user):
         try:
-            return Photo.objects.get(image_hash=image_hash, owner=user)
+            return Photo.objects.owned_by(user).get(image_hash=image_hash)
         except Photo.DoesNotExist:
             return None
         except Photo.MultipleObjectsReturned:
@@ -1209,8 +1208,10 @@ def _parse_rotation_angle(raw_angle):
 def _get_rotatable_photo(image_hash, user):
     """Return ``(photo, error_response)`` for a photo that may be rotated."""
     try:
-        photo = Photo.objects.select_related("thumbnail", "main_file", "owner").get(
-            image_hash=image_hash, owner=user
+        photo = (
+            Photo.objects.owned_by(user)
+            .select_related("thumbnail", "main_file", "owner")
+            .get(image_hash=image_hash)
         )
     except Photo.DoesNotExist:
         return None, _rotation_error("photo not found", status.HTTP_404_NOT_FOUND)

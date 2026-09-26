@@ -248,9 +248,8 @@ def backfill_missing_aspect_ratios(user):
     just looks short. Returns the number of photos still missing an aspect ratio
     after this pass, and logs a warning when that number is non-zero.
     """
-    photos_with_missing_aspect_ratio = Photo.objects.filter(
-        Q(owner=user.id)
-        & Q(thumbnail__isnull=False)
+    photos_with_missing_aspect_ratio = Photo.objects.owned_by(user).filter(
+        Q(thumbnail__isnull=False)
         & Q(thumbnail__thumbnail_big__isnull=False)
         & Q(thumbnail__aspect_ratio__isnull=True)
     )
@@ -500,7 +499,7 @@ def scan_missing_photos(user, job_id: UUID):
         job_id=job_id,
     )
     try:
-        existing_photos = Photo.objects.filter(owner=user.id).order_by("image_hash")
+        existing_photos = Photo.objects.owned_by(user).order_by("image_hash")
 
         paginator = Paginator(existing_photos, 5000)
         lrj.update_progress(current=0, target=paginator.num_pages)

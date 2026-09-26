@@ -446,9 +446,11 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     # missing and reappeared: _check_files detaches a missing file from the
     # m2m but keeps main_file pointing at it, so without that match a
     # reappearing file would spawn a duplicate Photo with the same image_hash.
-    existing_photo = Photo.objects.filter(
-        Q(owner=user) & (Q(files__in=files) | Q(main_file__in=files))
-    ).first()
+    existing_photo = (
+        Photo.objects.owned_by(user)
+        .filter(Q(files__in=files) | Q(main_file__in=files))
+        .first()
+    )
 
     if existing_photo:
         _adopt_files_into_photo(existing_photo, files, main_file, job_id)

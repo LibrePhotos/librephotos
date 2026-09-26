@@ -45,7 +45,7 @@ class Command(BaseCommand):
             except User.DoesNotExist:
                 self.stderr.write(f"User '{username}' not found")
                 return None
-            photos = photos.filter(owner=user)
+            photos = photos.owned_by(user)
 
         # When only writing face tags, filter to photos with any (non-deleted) faces
         if metadata_types == ["face_tags"]:

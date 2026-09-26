@@ -520,7 +520,16 @@ class PhotoSerializer(serializers.ModelSerializer):
         arr = []
         if len(res) > 0:
             [arr.append(e) for e in res["result"]]
-            photos = Photo.objects.filter(image_hash__in=arr).all()
+            # The index is per owner; of the owner's matches, list only those
+            # the requester may see (a share recipient is not shown the rest).
+            request = self.context.get("request")
+            viewer = getattr(request, "user", None) if request else obj.owner
+            photos = (
+                Photo.objects.owned_by(obj.owner)
+                .visible_to(viewer)
+                .filter(image_hash__in=arr)
+                .distinct()
+            )
             res = []
             for photo in photos:
                 type = "image"

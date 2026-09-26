@@ -1,6 +1,5 @@
 import os
 
-from django.db.models import Q
 
 from api import util
 from api.image_similarity import build_image_similarity_index
@@ -10,7 +9,7 @@ from api.semantic_search import create_clip_embeddings
 
 
 def photos_missing_clip_embeddings(user):
-    return Photo.objects.filter(Q(owner=user) & Q(clip_embeddings__isnull=True))
+    return Photo.objects.owned_by(user).filter(clip_embeddings__isnull=True)
 
 
 def photos_with_existing_thumbnail(objs):

@@ -79,8 +79,9 @@ class Person(models.Model):
             self.faces.prefetch_related(
                 Prefetch(
                     "photo",
-                    queryset=Photo.objects.exclude(image_hash=None)
-                    .filter(hidden=False, owner=owner)
+                    queryset=Photo.objects.owned_by(owner)
+                    .exclude(image_hash=None)
+                    .filter(hidden=False)
                     .order_by("-exif_timestamp")
                     .only(
                         "image_hash",

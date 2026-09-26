@@ -4,7 +4,6 @@ import numpy as np
 import requests
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import Q
 
 from api.http_timeouts import SIMILARITY
 from api.models import Photo
@@ -77,7 +76,8 @@ def build_image_similarity_index(user):
     )
     start = datetime.now()
     photos = (
-        Photo.objects.filter(Q(hidden=False) & Q(owner=user))
+        Photo.objects.owned_by(user)
+        .filter(hidden=False)
         .exclude(clip_embeddings=None)
         .only("clip_embeddings", "image_hash")
         .order_by("image_hash")
