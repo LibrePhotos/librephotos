@@ -71,7 +71,7 @@ Full design docs: [`plans/mobile-v2/`](https://github.com/LibrePhotos/librephoto
   added to `AlbumAuto`, `AlbumPlace`, `AlbumThing`, `AlbumUser`, `Person`,
   `Tag`, `Photo`, `User`. Signals bump `last_modified` on mutation and record
   tombstones; a cleaning-service prune step ages tombstones out. Migration
-  `0141_deletionlog_albumauto_last_modified_and_more`.
+  `0142_deletionlog_albumauto_last_modified_and_more`.
 - **Delta-sync feeds** (`api/views/sync.py`, `api/serializers/sync.py`):
   `GET /api/sync/photos`, `/api/sync/persons`, `/api/sync/albums/{user,auto,thing,place,tag}`,
   `/api/sync/sharing`, and `/api/sync/counts` — all keyset-paginated by

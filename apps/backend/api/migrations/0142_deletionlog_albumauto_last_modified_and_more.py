@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0140_album_m2m_unique_constraints'),
+        ('api', '0141_photoshare'),
     ]
 
     operations = [
