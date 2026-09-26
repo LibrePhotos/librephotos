@@ -148,7 +148,7 @@ Do not cap the container so hard that the first scan cannot finish. Face detecti
 
 Every part of the library scan that costs real CPU, memory or network can be switched off at deploy time with a `FEATURE_*` environment variable. All of them default to **on**, so an upgrade changes nothing until you set one.
 
-Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anything else counts as off. An empty value counts as unset, so it keeps the default - the same way Compose already treats an empty `.env` entry. `ALLOW_UPLOAD` and `DEMO_SITE` are read the same way.
+Accepted "on" values are `true`, `1`, `yes` and `on` (any capitalisation); anything else counts as off. An empty value (`FEATURE_VIDEO=`) also counts as off. `DEMO_SITE` is read the same way; `ALLOW_UPLOAD` too, except that an empty value leaves uploads on, as it always has.
 
 | Variable | `.env` key | What turning it off stops |
 | --- | --- | --- |

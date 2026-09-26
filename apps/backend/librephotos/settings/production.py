@@ -100,15 +100,19 @@ SECRET_KEY_FILENAME = os.path.join(BASE_LOGS, "secret.key")
 SECRET_KEY = ""
 
 
-def _env_flag(name, default=True):
+def _env_flag(name, default=True, empty=False):
     """Read an on/off switch from the environment (true/1/yes/on, any case).
 
-    Unset or blank means ``default``, the way Compose's ``${var:-default}``
-    already treats an empty ``.env`` entry; any other value is off.
+    Unset means ``default``. A blank value means ``empty``, which is off unless
+    a caller says otherwise: ``FEATURE_X=`` switches a feature off. Any other
+    value is off.
     """
-    value = os.environ.get(name, "").strip()
-    if not value:
+    value = os.environ.get(name)
+    if value is None:
         return default
+    value = value.strip()
+    if not value:
+        return empty
     return value.lower() in ("true", "1", "yes", "on")
 
 
@@ -317,7 +321,8 @@ CONSTANCE_ADDITIONAL_FIELDS = {
 CONSTANCE_CONFIG = {
     "ALLOW_REGISTRATION": (False, "Publicly allow user registration", bool),
     "ALLOW_UPLOAD": (
-        _env_flag("ALLOW_UPLOAD", default=True),
+        # A blank ALLOW_UPLOAD has always meant "on", like leaving it unset.
+        _env_flag("ALLOW_UPLOAD", default=True, empty=True),
         "Allow uploading files",
         bool,
     ),

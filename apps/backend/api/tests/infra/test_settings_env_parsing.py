@@ -75,7 +75,7 @@ class AllowUploadParsingTest(_ReloadMixin, SimpleTestCase):
     def test_unset_defaults_to_on(self):
         self.assertTrue(self._allow_upload())
 
-    def test_empty_counts_as_unset(self):
+    def test_empty_keeps_uploads_on_as_before(self):
         self.assertTrue(self._allow_upload(ALLOW_UPLOAD=""))
 
     def test_off_spellings(self):
@@ -175,10 +175,11 @@ class DefaultDbPasswordCheckTest(SimpleTestCase):
 
 
 class EnvHelpersTest(SimpleTestCase):
-    def test_env_flag_blank_is_default(self):
+    def test_env_flag_blank_is_off_unless_told_otherwise(self):
+        """FEATURE_X= switches a feature off (see test_feature_flag_gating)."""
         with patch.dict(os.environ, {"X_FLAG": "  "}):
-            self.assertTrue(production._env_flag("X_FLAG", default=True))
-            self.assertFalse(production._env_flag("X_FLAG", default=False))
+            self.assertFalse(production._env_flag("X_FLAG", default=True))
+            self.assertTrue(production._env_flag("X_FLAG", default=True, empty=True))
 
     def test_env_int_blank_is_default(self):
         with patch.dict(os.environ, {"X_INT": ""}):
