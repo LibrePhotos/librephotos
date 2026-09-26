@@ -17,7 +17,11 @@ In LibrePhotos, the file system acts as the definitive source of photo organizat
 
 To isolate users and their photo collections, create a subfolder for each user inside the folder you set as `scanDirectory` in your `.env` file — the folder LibrePhotos mounts as `/data`. Inside LibrePhotos these show up as `/data/user1`, `/data/user2`, etc., and that is the path you assign as each user's scan directory. Create the folders before assigning them: LibrePhotos only accepts directories that already exist under `/data`. This ensures that users only see and interact with the photos in their designated directories.
 
-If multiple users are assigned the same scan directory (e.g., /data), all photos within that directory will be accessible to all users. LibrePhotos treats the directory as a global source of photos, meaning that every user linked to the directory will see all its contents.
+Scan directories of different users must not overlap. Every photo belongs to exactly one user, so LibrePhotos refuses a scan directory that is the same as, inside, or above another user's scan directory, and names the user it clashes with. In particular, once one user scans `/data` itself, no other user can be given any folder under `/data`, so give every user a folder of their own, the admin included. Installations that already have overlapping scan directories keep working and those users can still be edited; only changing a scan directory to one that overlaps is refused.
+
+If your admin account already scans `/data` and you want to add more users, move the admin's photos into a subfolder such as `/data/admin`, set that as the admin's scan directory and run a scan. The moved photos are matched to their existing entries by their content, so ratings, faces and albums are kept; see [Missing Photos](./missing-photos.md) for how that relinking works.
+
+To let several users see the same photos, keep the photos in one user's library and share them from there: albums and individual photos can be shared with other users on the instance, see [Sharing](./sharing.md).
 
 While the application saves metadata (e.g., tags, albums, facial recognition data) on a per-user basis in its database, it doesn’t inherently restrict access to the photos themselves. Access permissions must be managed through the file system / paths.
 

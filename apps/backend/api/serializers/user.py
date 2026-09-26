@@ -75,12 +75,70 @@ def assign_fields(instance, validated_data, fields):
             setattr(instance, field, validated_data.pop(field))
 
 
-def normalize_scan_directory(scan_directory):
+def comparable_path(path):
+    """Spell ``path`` the way the filesystem tells directories apart.
+
+    ``realpath`` folds a symlink onto its target, so a link into another
+    user's library is seen for what it is. ``normcase`` folds case and
+    separators on Windows, where ``C:\\Data\\alice`` and ``c:/data/alice``
+    are the same directory; it is a no-op on POSIX. Neither needs the path to
+    exist: ``realpath`` resolves as much of it as it can.
+    """
+    return os.path.normcase(os.path.realpath(path))
+
+
+def directories_overlap(one, other):
+    """True when two directories are the same or one contains the other."""
+    one, other = comparable_path(one), comparable_path(other)
+    return is_valid_path(one, other) or is_valid_path(other, one)
+
+
+def reject_overlap_with_another_user(abs_scan_directory, user):
+    """Refuse a library root that another user already scans.
+
+    A photo has exactly one owner, so two users pointed at overlapping trees
+    give an outcome that depends on which scan runs first: the second either
+    skips the files the first already owns, or takes them over. Equal, parent
+    and child paths all have that problem, so all three are rejected (#2034).
+
+    Leaving the directory as it is never conflicts, even when it already
+    overlaps -- an install that predates this check has to stay editable,
+    rather than having every other field on that user locked behind a
+    directory the admin may not want to move.
+    """
+    # Compare normalised forms: a directory stored before this check, or by an
+    # older version, may carry a trailing separator or a non-canonical
+    # spelling, and a raw string compare would read that as a change and lock
+    # the user out of its own directory.
+    if user is not None and user.scan_directory:
+        if comparable_path(abs_scan_directory) == comparable_path(user.scan_directory):
+            return
+
+    others = User.objects.exclude(scan_directory="")
+    if user is not None and user.pk is not None:
+        others = others.exclude(pk=user.pk)
+
+    for other in others.only("pk", "username", "scan_directory").iterator():
+        if directories_overlap(abs_scan_directory, other.scan_directory):
+            raise ValidationError(
+                f"Scan directory overlaps the library of user "
+                f"'{other.username}' ({other.scan_directory}). Every photo has "
+                f"exactly one owner, so two users cannot scan the same files."
+            )
+
+
+def normalize_scan_directory(scan_directory, user=None):
     """Return ``scan_directory`` as a usable absolute library root.
 
     Returns ``None`` when nothing was supplied, so callers can leave the
     stored value untouched. Raises ``ValidationError`` when the path escapes
-    ``settings.DATA_ROOT`` or does not exist on disk.
+    ``settings.DATA_ROOT``, does not exist on disk, or overlaps another
+    user's library.
+
+    ``user`` is the account the directory is being set on, so that its own
+    current directory is not read as a conflict with itself. Leave it out when
+    creating a user, where there is no account yet and every other user's
+    directory is somebody else's.
     """
     if not scan_directory:
         return None
@@ -92,6 +150,8 @@ def normalize_scan_directory(scan_directory):
 
     if not os.path.exists(abs_scan_directory):
         raise ValidationError("Scan directory does not exist")
+
+    reject_overlap_with_another_user(abs_scan_directory, user)
 
     return abs_scan_directory
 
@@ -431,7 +491,9 @@ class ManageUserSerializer(serializers.ModelSerializer):
         return instance
 
     def apply_scan_directory(self, instance: User, new_scan_directory):
-        abs_new_scan_directory = normalize_scan_directory(new_scan_directory)
+        abs_new_scan_directory = normalize_scan_directory(
+            new_scan_directory, user=instance
+        )
         if abs_new_scan_directory is None:
             return
 
