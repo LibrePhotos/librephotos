@@ -101,10 +101,11 @@
       "allowedVersions": "<6.1"
     },
     {
-      "description": "Docusaurus 2 to 3 is a manual migration (MDX 3, prism-react-renderer 2 imports, @docusaurus/tsconfig), not a dependency bump. Re-enable once it is done.",
+      "description": "Docusaurus, React and MDX majors in the docs site have to move together (Docusaurus pins its React and @mdx-js/react peer ranges), so keep them in one separate PR instead of the docs group.",
       "matchFileNames": ["apps/docs/**"],
       "matchUpdateTypes": ["major"],
-      "enabled": false
+      "matchPackageNames": ["/^@docusaurus\\//", "react", "react-dom", "@mdx-js/react", "prism-react-renderer"],
+      "groupName": "docs docusaurus major"
     },
     {
       "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together (with recharts, which only @mantine/charts uses) and are blocked on replacing react-beautiful-dnd.",

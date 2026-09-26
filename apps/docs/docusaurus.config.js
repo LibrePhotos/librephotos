@@ -1,8 +1,11 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require("prism-react-renderer/themes/github");
-const darkCodeTheme = require("prism-react-renderer/themes/dracula");
+const { themes } = require("prism-react-renderer");
+const htmlTableStructure = require("./src/remark/html-table-structure");
+
+const lightCodeTheme = themes.github;
+const darkCodeTheme = themes.dracula;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -30,7 +33,12 @@ const config = {
   ],
 
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
+
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: "warn",
+    },
+  },
 
   // Even if you don't use internalization, you can use this field to set useful
   // metadata like html lang. For example, if your site is Chinese, you may want
@@ -47,11 +55,16 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
+          remarkPlugins: [htmlTableStructure],
           editUrl:
             "https://github.com/LibrePhotos/librephotos/tree/dev/apps/docs/",
         },
         blog: {
           showReadingTime: true,
+          remarkPlugins: [htmlTableStructure],
+          // Release notes are short and have always been shown in full on the
+          // blog index, so don't nag about missing truncate markers.
+          onUntruncatedBlogPosts: "ignore",
           editUrl:
             "https://github.com/LibrePhotos/librephotos/tree/dev/apps/docs/",
         },
@@ -157,6 +170,9 @@ const config = {
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
+        // prism-react-renderer 2 no longer bundles bash (also sh/shell), so
+        // without this the shell snippets all over the docs render unhighlighted.
+        additionalLanguages: ["bash", "powershell", "nginx"],
       },
     }),
 };
