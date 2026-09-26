@@ -1,0 +1,88 @@
+name: e2e
+
+# Playwright smoke suite (apps/frontend/e2e) against the full stack from
+# deploy/compose/docker-compose.e2e.yml, built from this checkout.
+# Runs nightly, on demand, and on pull requests labelled "e2e".
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+  pull_request:
+    # "labeled" so that adding the label to an open PR starts a run.
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - "apps/frontend/**"
+      - "deploy/compose/docker-compose.e2e.yml"
+      - "deploy/e2e/**"
+      - ".github/workflows/e2e.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    # Building three images takes a while, so PRs opt in with the "e2e" label.
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'e2e')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      COMPOSE_FILE: deploy/compose/docker-compose.e2e.yml
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build the e2e stack
+        run: docker compose build
+
+      - name: Start the e2e stack
+        # --wait returns once the backend and proxy report healthy. The backend
+        # entrypoint then queues the scan of deploy/e2e/photos; the suite's setup
+        # step waits for the photos.
+        run: docker compose up -d --wait --wait-timeout 600
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: apps/frontend/e2e/yarn.lock
+
+      - name: Install Playwright
+        working-directory: apps/frontend/e2e
+        run: |
+          yarn install --frozen-lockfile
+          yarn playwright install --with-deps chromium
+
+      - name: Run the suite
+        working-directory: apps/frontend/e2e
+        env:
+          E2E_BASE_URL: http://localhost:8080
+        run: yarn test
+
+      - name: Collect stack logs
+        if: failure()
+        run: |
+          mkdir -p e2e-logs
+          docker compose ps -a > e2e-logs/ps.txt 2>&1 || true
+          docker compose logs --no-color --timestamps > e2e-logs/compose.log 2>&1 || true
+
+      - name: Upload report, traces and logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            apps/frontend/e2e/playwright-report/
+            apps/frontend/e2e/test-results/
+            e2e-logs/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Stop the e2e stack
+        if: always()
+        run: docker compose down -v
