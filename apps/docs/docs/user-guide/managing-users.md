@@ -31,26 +31,16 @@ The separation will also not keep the photos "private" as the admin of the host 
 
 *Unreleased — this is on `dev` and is not in a released version yet.*
 
-Admin Area → Site settings has an **Auto create user directory** switch, off by
-default. With it on, creating a user — from the admin panel, from self
-registration, or through single sign-on — also creates `/data/<username>` and
-assigns it as that user's scan directory, so you no longer have to make the
-folder on the host and assign it by hand for every account.
+Admin Area → Site settings has a **Create a folder for each new user** switch, off by default. With it on, creating a user — from the admin panel, from self registration, or through single sign-on — also creates `/data/<username>` and assigns it as that user's scan directory, so you no longer have to make the folder on the host and assign it by hand for every account.
 
-Leave it off if your users are meant to share one library: on a shared install
-everybody points at the same folder, and a per-user folder is the wrong default.
+It only works when your own scan directory is a subfolder such as `/data/admin`, not `/data` itself. Scan directories of different users cannot overlap (see above), so while any user scans `/data`, every `/data/<username>` folder is refused.
 
-Three things it deliberately does not do:
+What it deliberately does not do:
 
-- It never overwrites a scan directory you typed on the create form. An
-  explicit path wins.
-- It never fails account creation. If `/data` is read-only, or the folder it
-  would pick overlaps a directory another user already scans, the account is
-  still created — just without a scan directory, the same state a
-  self-registered account starts in — and the reason is written to the backend
-  log. Assign a directory by hand afterwards.
-- It does not touch existing users. Only accounts created while the switch is
-  on get a folder.
+- It never overwrites a scan directory you typed on the create form. An explicit path wins.
+- It never fails account creation. If `/data` is read-only, the username does not name a plain folder (such as `.` or `..`), or the folder would overlap a directory another user already scans, the account is still created — just without a scan directory — and the reason is written to the backend log. Nothing is created on disk in that case. Assign a directory by hand afterwards.
+- It does not give a self-registered or single sign-on account a folder that already exists. Otherwise anyone who can sign up could take over, say, `/data/family` just by choosing `family` as their username. Such an account is created without a scan directory instead. When **you** create a user in the admin panel and `/data/<username>` already exists, that folder is assigned, since you can see what is in it.
+- It does not touch existing users. Only accounts created while the switch is on get a folder.
 
 ## User Registration
 
@@ -58,7 +48,7 @@ Click on your Avatar → Admin Area to the user registration setting.
 
 You can also activate user registration, where user can create an account themselves. They cannot change the path, which means the admin is still in full control.
 
-A self-registered account is created without a scan directory, so the new user sees an empty library and is told to contact their administrator if they try to scan or upload. After someone signs up, open the Admin Area, edit their account in the user panel at the bottom of the page and set its scan path as described above.
+Unless [Create a folder for each new user](#giving-each-user-their-own-folder-automatically) is on, a self-registered account is created without a scan directory, so the new user sees an empty library and is told to contact their administrator if they try to scan or upload. After someone signs up, open the Admin Area, edit their account in the user panel at the bottom of the page and set its scan path as described above.
 
 ## How to change the admin password, when you can't log in
 

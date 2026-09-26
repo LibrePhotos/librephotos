@@ -294,8 +294,9 @@ CONSTANCE_CONFIG = {
     "AUTO_CREATE_USER_DIRECTORY": (
         False,
         "Give each new user their own folder under the data root and set it as"
-        " their scan directory. Off by default: on a shared-library install"
-        " every user is meant to point at the same folder.",
+        " their scan directory. Needs the admin's own scan directory to be a"
+        " subfolder, not the data root itself, since scan directories of"
+        " different users cannot overlap.",
         bool,
     ),
     "SKIP_PATTERNS": (
