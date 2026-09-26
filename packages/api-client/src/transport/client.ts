@@ -22,8 +22,9 @@ function isFormData(value: unknown): value is FormData {
 
 /**
  * Build the injectable, React-free fetch transport with a single-flight refresh
- * interceptor. Adapted from apps/frontend `api_client/api.ts` and apps/mobile
- * `api_client/api.ts`, unified so both platforms share one implementation:
+ * interceptor. Adapted from apps/frontend `api_client/api.ts` and the original
+ * React Native app's `api_client/api.ts`, unified so both platforms share one
+ * implementation:
  *
  *  - a token about to expire is refreshed BEFORE the request (proactive), and
  *  - a 401 triggers ONE reactive refresh + retry (interceptor).

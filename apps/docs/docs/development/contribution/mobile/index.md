@@ -2,53 +2,37 @@
 title: "📱 Mobile"
 description: "Development Information regarding the LibrePhotos Mobile App."
 sidebar_position: 3
-last_modified_at: 2026-07-23
+last_modified_at: 2026-09-26
 ---
 
-Open-Source Android and iOS Mobile Application for the [LibrePhotos](https://github.com/LibrePhotos/librephotos) Project
+The LibrePhotos mobile app lives in [`apps/mobile/`](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile). It is an [Expo](https://expo.dev/) (React Native, New Architecture) app for Android and iOS with an offline-first data model: a local SQLite mirror of the library, kept current by delta sync against the backend, plus camera-roll backup. The [app README](https://github.com/LibrePhotos/librephotos/tree/dev/apps/mobile#readme) is the full developer guide, and the design documents are in [`plans/mobile-v2/`](https://github.com/LibrePhotos/librephotos/tree/dev/plans/mobile-v2).
 
-## 🚀 Get Started
+## 🔨 Setup
 
-**Compatibility**
+You need [Node.js](https://nodejs.org/) 22, which is what CI uses.
 
-- Android 5.0+
-- iOS 10.0+ (Stability on iOS is not tested yet.)
+The app is an npm workspace together with the shared API client in `packages/api-client`, so install once from the repository root. The root `package-lock.json` is the only lockfile:
 
-### 📱 Android
-
-1. Download the Latest Build from [releases](https://github.com/LibrePhotos/librephotos/releases?q=mobile%2F).
-2. Install the APK
-
-### 🍎 iOS
-
-Currently, there are no automated builds for IOS. You will need to build the app from source. Follow the instructions in the next section.
-
-### 🔨 Build from Source
-
-You need the dependencies required by React Native — follow the [Environment Setup](https://reactnative.dev/docs/environment-setup) guide for your platform.
-
-You also need [Node.js](https://nodejs.org/). The app is pinned to Node 20 in `apps/mobile/.node-version`, which is what CI installs from; anything older than Node 18 will fail at `yarn install`. Tools like fnm, nodenv and asdf read `.node-version` automatically.
-
-Once the dependencies are set up, build the app from the `apps/mobile` directory:
-
-1. Install Yarn if you don't already have it: `npm install -g yarn`
+1. `npm ci` at the repository root
 2. `cd apps/mobile`
-3. `yarn install`
-4. On iOS only (macOS): install the CocoaPods dependencies with `cd ios && pod install && cd ..` (CocoaPods is part of the React Native environment setup linked above).
-5. `yarn android` — or `yarn ios` on macOS.
+3. `npx expo start --go` and scan the QR code with Expo Go, or build a development build with `npx expo run:android` / `npx expo run:ios`
+
+The native `android/` and `ios/` folders are not committed. `expo prebuild` generates them from `app.json`.
 
 ## ✨ Code Standards
 
-We use ESLint and Prettier to keep the code tidy. `yarn lint` (which runs `eslint --fix .`) must pass — it runs on every pull request that touches `apps/mobile/`, and again when your change lands on `dev`. `yarn test` runs the [Jest](https://jestjs.io/) tests locally — a render smoke test plus a couple of regression tests — but the suite is not part of CI yet.
+Every pull request that touches `apps/mobile/`, `packages/` or the root `package.json` / `package-lock.json` runs typecheck, lint and the Jest suites in CI. Run the same checks locally before pushing:
 
-## 🐛 Debugging
+```bash
+npm run check --workspace apps/mobile
+```
 
-For debugging, we use [reactotron](https://github.com/infinitered/reactotron/)
+The shared API client has its own checks:
 
-### Enable File Logging
+```bash
+npm run test --workspace packages/api-client
+```
 
-Logging to the phone's local file system can be enabled or disabled from the Settings page, under Debug Options → Debug Logging. It is enabled by default on a clean install.
-Logs are stored in the cache directory of the phone.
-For Android: `/storage/emulated/0/Android/data/com.librephotosmobile/cache/logs/`
+## 🌐 Translations
 
-You can also quickly send a bug report to the developer by shaking your phone. Shake-to-report only works while Debug Logging is enabled — the shake listener is registered alongside the file logger, so turning logging off disables it too.
+English strings live in `apps/mobile/src/i18n/locales/en.ts`. Other languages fall back to English until translations are added.

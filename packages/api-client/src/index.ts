@@ -2,7 +2,7 @@
  * @librephotos/api-client
  *
  * Platform-agnostic LibrePhotos API client shared between apps/frontend and
- * apps/mobile-v2. Three layers:
+ * apps/mobile. Three layers:
  *   - schemas/   zod schemas = single source of truth for API types
  *   - transport/ React-free injectable fetch client with refresh interceptor
  *   - endpoints/ thin typed wrappers over the transport
