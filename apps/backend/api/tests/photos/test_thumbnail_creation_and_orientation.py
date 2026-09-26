@@ -207,7 +207,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         # locally computed complete_path like every other branch.
         self.assertEqual(result, "/service/result.webp")
         self.requests.post.assert_called_once_with(
-            "http://localhost:8003/",
+            "http://127.0.0.1:8003/",
             json={
                 "source": self.RAW_PATH,
                 "destination": os.path.join(

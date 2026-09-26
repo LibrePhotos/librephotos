@@ -7,6 +7,7 @@ import api.models
 from api import util
 from api.image_captioning import generate_caption
 from api.models.user import User
+from api.sidecars import sidecar_url
 
 
 def tag_thing_type(tagging_model):
@@ -267,7 +268,7 @@ class PhotoCaption(models.Model):
                 "tagging_model": tagging_model,
             }
             response = requests.post(
-                "http://localhost:8011/generate-tags", json=json_data, timeout=TAGS
+                sidecar_url(8011, "/generate-tags"), json=json_data, timeout=TAGS
             )
 
             if not response.ok:
