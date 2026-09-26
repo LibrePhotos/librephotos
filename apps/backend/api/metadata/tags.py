@@ -18,9 +18,13 @@ class Tags:
     FILE_SIZE = "File:FileSize"
     FSTOP = "EXIF:FNumber"
     EXPOSURE_TIME = "EXIF:ExposureTime"
-    ISO = "EXIF:ISOSpeedRatings"
+    # EXIF tag 0x8827 is "ISO" to ExifTool; "EXIF:ISOSpeedRatings" (its EXIF
+    # 2.2 name) reads nothing, so no photo ever had an ISO value.
+    ISO = "EXIF:ISO"
     FOCAL_LENGTH = "EXIF:FocalLength"
-    FOCAL_LENGTH_35MM = "EXIF:FocalLengthIn35mmFilm"
+    # "FocalLengthIn35mmFilm" is the EXIF spec's name; ExifTool's is "...Format",
+    # and the old name read nothing.
+    FOCAL_LENGTH_35MM = "EXIF:FocalLengthIn35mmFormat"
     SHUTTER_SPEED = "EXIF:ShutterSpeedValue"
     CAMERA = "EXIF:Model"
     LENS = "EXIF:LensModel"

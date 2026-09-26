@@ -55,7 +55,7 @@ class File(models.Model):
         return self.path + " " + self._find_out_type()
 
     @staticmethod
-    def create(path: str, user):
+    def create(path: str, user, hash_value: str | None = None):
         """
         Create or retrieve a File record for the given path.
 
@@ -73,6 +73,8 @@ class File(models.Model):
         Args:
             path: The file system path to the file
             user: The user who owns this file (used for hash calculation)
+            hash_value: ``calculate_hash(user, path)`` when the caller already
+                has it; hashing reads the whole file, so it is done only once.
 
         Returns:
             File: The existing or newly created File instance
@@ -93,8 +95,8 @@ class File(models.Model):
         # Create new File
         file = File()
         file.path = path
-        file.hash = calculate_hash(user, path)
-        file._find_out_type()
+        file.hash = hash_value or calculate_hash(user, path)
+        file.type = detect_file_type(path)
 
         try:
             file.save()

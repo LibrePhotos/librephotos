@@ -42,7 +42,15 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
                 side_effect=embeddings_side_effect or fake_embeddings,
             ) as m_embed,
             patch.object(batch_jobs, "build_image_similarity_index") as m_index,
-            patch.object(batch_jobs.os.path, "exists", return_value=path_exists),
+            patch.object(
+                batch_jobs.os.path,
+                "exists",
+                **(
+                    {"side_effect": path_exists}
+                    if callable(path_exists)
+                    else {"return_value": path_exists}
+                ),
+            ),
         ):
             batch_jobs.batch_calculate_clip_embedding(self.user)
         return m_embed, m_index
@@ -143,11 +151,9 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
     # ------------------------------------------------------------------
 
     def test_missing_thumbnail_files_skip_the_batch_entirely(self):
-        """When no thumbnail exists on disk the batch is skipped via ``continue``.
+        """When no thumbnail exists on disk the sidecar is not called at all.
 
-        Quirk pinned here: the ``continue`` also skips the trailing
-        ``lrj.update_progress`` call, so progress_current stays at 0 even though
-        the loop has consumed every photo and terminates.
+        The photos were still attempted, so they count towards the progress.
         """
         photos = create_test_photos(number_of_photos=2, owner=self.user)
 
@@ -163,7 +169,82 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
         self.assertEqual(job.progress_target, 2)
-        self.assertEqual(job.progress_current, 0)
+        self.assertEqual(job.progress_current, 2)
+
+    # ------------------------------------------------------------------
+    # photos that get no embedding must not starve the rest (a later run
+    # retries them; this one moves on)
+    # ------------------------------------------------------------------
+
+    def test_photos_without_thumbnail_file_do_not_starve_later_photos(self):
+        """More failures than a batch holds, all ahead of a good photo.
+
+        Taking the first BATCH_SIZE photos still missing an embedding again
+        and again handed the failures every batch, and the good photo, last
+        in line, was never sent to the sidecar.
+        """
+        broken = create_test_photos(number_of_photos=65, owner=self.user)
+        good = create_test_photos(number_of_photos=1, owner=self.user)[0]
+        good_path = good.thumbnail.thumbnail_big.path
+
+        m_embed, m_index = self.run_job(path_exists=lambda path: path == good_path)
+
+        good.refresh_from_db()
+        self.assertIsNotNone(good.clip_embeddings)
+        m_embed.assert_called_once_with([good_path])
+        self.assertFalse(
+            Photo.objects.filter(
+                pk__in=[p.pk for p in broken], clip_embeddings__isnull=False
+            ).exists()
+        )
+        m_index.assert_called_once_with(self.user)
+        job = self.latest_job()
+        self.assertTrue(job.finished)
+        self.assertEqual(job.progress_target, 66)
+        self.assertEqual(job.progress_current, 66)
+
+    def test_photos_the_sidecar_cannot_read_do_not_starve_later_photos(self):
+        """The same for a ``None`` slot: every photo is sent exactly once."""
+        photos = create_test_photos(number_of_photos=130, owner=self.user)
+        unreadable = {
+            p.thumbnail.thumbnail_big.path
+            for p in Photo.objects.filter(owner=self.user).order_by("pk")[:64]
+        }
+
+        def skip_unreadable(imgs):
+            embeddings = [
+                None if img in unreadable else np.array([1.0, 2.0]) for img in imgs
+            ]
+            return embeddings, [None if e is None else 3.0 for e in embeddings]
+
+        m_embed, _ = self.run_job(embeddings_side_effect=skip_unreadable)
+
+        sent = [img for call in m_embed.call_args_list for img in call.args[0]]
+        self.assertEqual(len(sent), 130)
+        self.assertEqual(len(set(sent)), 130)
+        self.assertEqual(
+            Photo.objects.filter(
+                owner=self.user, clip_embeddings__isnull=False
+            ).count(),
+            130 - 64,
+        )
+        self.assertEqual(len(photos), 130)
+        self.assertEqual(self.latest_job().progress_current, 130)
+
+    def test_photo_without_thumbnail_row_does_not_sink_its_batch(self):
+        """A missing Thumbnail row used to raise and skip the whole batch."""
+        photos = create_test_photos(number_of_photos=3, owner=self.user)
+        photos[0].thumbnail.delete()
+
+        m_embed, _ = self.run_job()
+
+        self.assertEqual(len(m_embed.call_args[0][0]), 2)
+        self.assertEqual(
+            Photo.objects.filter(
+                owner=self.user, clip_embeddings__isnull=False
+            ).count(),
+            2,
+        )
 
     def test_embedding_error_is_swallowed_and_job_still_completes(self):
         """A sidecar failure is logged, not raised; the job completes as success."""
