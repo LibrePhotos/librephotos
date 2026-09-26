@@ -2,7 +2,7 @@
 
 These pin the CURRENT behavior of the two-phase scan orchestrator before it is
 refactored: which walker is used, how files are grouped into image groups vs
-metadata paths, which follow-up tasks are enqueued (sentinel, scan_missing_photos,
+metadata paths, which follow-up tasks are enqueued (scan_missing_photos,
 repair, feature-flagged jobs, the CLIP/face chain), how the progress target is
 computed, when the job is auto-finished, and what happens on failure.
 
@@ -225,54 +225,88 @@ class GroupingAndQueueingTest(ScanPhotosCharacterizationBase):
         res = self.run_scan(walk_result=["/p/a.xmp", "/p/b.XMP"])
         self.assertEqual(res["photo_scanner"].call_count, 2)
         self.assertEqual(res["tasks"].find(scan_jobs.handle_file_group), [])
-        self.assertEqual(
-            res["tasks"].find(scan_jobs.wait_for_group_and_process_metadata), []
-        )
         called_paths = sorted(c[0][3] for c in res["photo_scanner"].call_args_list)
         self.assertEqual(called_paths, ["/p/a.xmp", "/p/b.XMP"])
 
-    def test_images_plus_metadata_enqueue_sentinel_instead_of_direct_scan(self):
-        res = self.run_scan(walk_result=["/p/a.jpg", "/p/b.jpg", "/p/a.xmp"])
-        res["photo_scanner"].assert_not_called()
-        sentinel = res["tasks"].find(scan_jobs.wait_for_group_and_process_metadata)
-        self.assertEqual(len(sentinel), 1)
-        _func, args, kwargs = sentinel[0]
-        group_id, metadata_paths, user_id, full_scan, job_id, expected = args
-        self.assertEqual(metadata_paths, ["/p/a.xmp"])
-        self.assertEqual(user_id, self.user.id)
-        self.assertFalse(full_scan)
-        self.assertEqual(job_id, self.job_id)
-        # expected count == number of image groups, not number of files
-        self.assertEqual(expected, 2)
-        self.assertEqual(kwargs, {"attempt": 1, "max_attempts": 2})
-        # the sentinel waits on the same group id the image tasks were queued in
-        image_group_ids = {
-            c[2]["group"] for c in res["tasks"].find(scan_jobs.handle_file_group)
-        }
-        self.assertEqual({group_id}, image_group_ids)
-
-    def test_images_without_metadata_enqueue_no_sentinel(self):
-        res = self.run_scan(walk_result=["/p/a.jpg"])
-        self.assertEqual(
-            res["tasks"].find(scan_jobs.wait_for_group_and_process_metadata), []
+    def test_sidecars_ride_in_their_photos_file_group(self):
+        """A sidecar is ingested with its photo, never raced against it."""
+        res = self.run_scan(
+            walk_result=[
+                "/p/a.jpg",
+                "/p/b.jpg",
+                "/p/c.jpg",
+                "/p/a.xmp",
+                "/p/b.jpg.xmp",
+                "/p/C.XMP",
+            ]
         )
         res["photo_scanner"].assert_not_called()
+        queued = sorted(
+            sorted(call[1][1])
+            for call in res["tasks"].find(scan_jobs.handle_file_group)
+        )
+        self.assertEqual(
+            queued,
+            [
+                ["/p/C.XMP", "/p/c.jpg"],
+                ["/p/a.jpg", "/p/a.xmp"],
+                ["/p/b.jpg", "/p/b.jpg.xmp"],
+            ],
+        )
 
-    def test_all_groups_skipped_but_metadata_present_falls_back_to_photo_scanner(self):
-        """When the selector drops every image group, metadata is processed inline."""
+    def test_sidecar_joins_only_the_group_with_its_exact_stem(self):
+        res = self.run_scan(
+            walk_result=["/p/IMG_1.jpg", "/p/IMG_10.jpg", "/p/IMG_1.xmp"]
+        )
+        queued = sorted(
+            sorted(call[1][1])
+            for call in res["tasks"].find(scan_jobs.handle_file_group)
+        )
+        self.assertEqual(queued, [["/p/IMG_1.jpg", "/p/IMG_1.xmp"], ["/p/IMG_10.jpg"]])
+
+    def test_dotted_stem_sidecar_prefers_the_full_stem_group(self):
+        """``my.photo.xmp`` belongs to ``my.photo.jpg``, not to ``my.jpg``."""
+        res = self.run_scan(
+            walk_result=["/p/my.photo.jpg", "/p/my.jpg", "/p/my.photo.xmp"]
+        )
+        queued = sorted(
+            sorted(call[1][1])
+            for call in res["tasks"].find(scan_jobs.handle_file_group)
+        )
+        self.assertEqual(
+            queued, [["/p/my.jpg"], ["/p/my.photo.jpg", "/p/my.photo.xmp"]]
+        )
+
+    def test_orphan_sidecars_are_scanned_directly_alongside_image_groups(self):
+        """A sidecar whose photo is not in this scan has nothing to wait for."""
+        res = self.run_scan(walk_result=["/p/a.jpg", "/p/elsewhere.xmp"])
+        self.assertEqual(len(res["tasks"].find(scan_jobs.handle_file_group)), 1)
+        self.assertEqual(
+            [c[0][3] for c in res["photo_scanner"].call_args_list],
+            ["/p/elsewhere.xmp"],
+        )
+
+    def test_images_without_metadata_scan_no_metadata(self):
+        res = self.run_scan(walk_result=["/p/a.jpg"])
+        res["photo_scanner"].assert_not_called()
+
+    def test_skipped_group_skips_its_sidecar_too(self):
+        """When the selector drops a group, its unchanged sidecar is not rescanned."""
         res = self.run_scan(
             walk_result=["/p/a.jpg", "/p/a.xmp"],
             select_groups=lambda *a, **kw: [],
         )
         self.assertEqual(res["tasks"].find(scan_jobs.handle_file_group), [])
-        self.assertEqual(res["photo_scanner"].call_count, 1)
+        res["photo_scanner"].assert_not_called()
 
 
 class ProgressAndCompletionTest(ScanPhotosCharacterizationBase):
-    def test_progress_target_counts_groups_plus_metadata_files(self):
-        self.run_scan(walk_result=["/p/a.jpg", "/p/a.cr2", "/p/b.jpg", "/p/a.xmp"])
+    def test_progress_target_counts_groups_plus_orphan_metadata_files(self):
+        self.run_scan(
+            walk_result=["/p/a.jpg", "/p/a.cr2", "/p/b.jpg", "/p/a.xmp", "/p/z.xmp"]
+        )
         job = self.job()
-        # 2 image groups + 1 metadata file
+        # 2 image groups (a.xmp rides with a.jpg) + 1 orphan metadata file
         self.assertEqual(job.progress_target, 3)
         self.assertEqual(job.progress_current, 0)
 

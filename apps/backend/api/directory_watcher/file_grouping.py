@@ -42,6 +42,23 @@ def get_file_grouping_key(path: str) -> tuple[str, str]:
     return (directory, basename)
 
 
+def get_sidecar_grouping_keys(path: str) -> list[tuple[str, str]]:
+    """
+    Grouping keys of the media file an XMP sidecar may describe, best first.
+
+    Both sidecar naming conventions are supported (see
+    ``get_sidecar_files_in_priority_order``): ``IMG_001.xmp`` and the
+    extension-qualified ``IMG_001.jpg.xmp``. The full stem is tried first so
+    ``my.photo.xmp`` belongs to ``my.photo.jpg`` rather than ``my.jpg``.
+    """
+    key = get_file_grouping_key(path)
+    directory, stem = key
+    inner_stem, inner_ext = os.path.splitext(stem)
+    if inner_ext:
+        return [key, (directory, inner_stem)]
+    return [key]
+
+
 def select_main_file(files: list[File]) -> File | None:
     """
     Select the best file to be the main_file for a Photo.
