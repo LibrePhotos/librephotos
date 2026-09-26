@@ -1,13 +1,11 @@
 """Regression tests for ``api.metadata.reader.get_metadata``.
 
-The exif service (``service/exif/main.py``) can return a ``values`` list
-shorter than the requested ``tags`` list — for example, when exiftool raises
-mid-loop, the partial list is returned with HTTP 201.  Several callers
-unpack the result positionally (``a, b = get_metadata(...)``) and crash with
-``ValueError: not enough values to unpack`` when that happens.
+Several callers unpack the result positionally (``a, b = get_metadata(...)``)
+and crash with ``ValueError: not enough values to unpack`` on a short list.
 
-These tests exercise the padding contract documented in the function's
-docstring: one value per tag, ``None`` when the tag was not found.
+These tests exercise the contract documented in the function's docstring: one
+value per tag, ``None`` when the tag was not found, and a raise (never a list
+of ``None``) when the exif service could not read the file.
 """
 
 from unittest.mock import MagicMock, patch
@@ -15,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.test import SimpleTestCase
 
-from api.metadata.reader import EXIF_MAX_ATTEMPTS, get_metadata
+from api.metadata.reader import EXIF_MAX_ATTEMPTS, MetadataReadError, get_metadata
 
 
 class GetMetadataPaddingTest(SimpleTestCase):
@@ -56,10 +54,11 @@ class GetMetadataPaddingTest(SimpleTestCase):
 
 
 class GetMetadataResilienceTest(SimpleTestCase):
-    """The exif sidecar can transiently fail under scan load — empty body,
-    non-2xx status, or dropped connection. ``get_metadata`` must retry and then
-    degrade to ``None``-per-tag rather than raising, so one blip doesn't fail a
-    whole enrichment job (Add Geolocation / Scan Faces) via the error threshold.
+    """The exif sidecar can transiently fail under scan load: empty body,
+    non-2xx status, or dropped connection. ``get_metadata`` retries, and when
+    every attempt fails it raises instead of answering "no tags": a photo stored
+    with empty metadata keeps no date or location, and a rescan never reads the
+    unchanged file again. The scan records the raise as a per-file failure.
     """
 
     def _values_response(self, values):
@@ -77,25 +76,45 @@ class GetMetadataResilienceTest(SimpleTestCase):
         )
         return response
 
+    def _server_error_response(self, error):
+        response = MagicMock()
+        response.status_code = 500
+        response.json.return_value = {"error": error}
+        response.raise_for_status.side_effect = requests.HTTPError(
+            "500 Server Error", response=response
+        )
+        return response
+
     @patch("api.metadata.reader.time.sleep", return_value=None)
     @patch("api.metadata.reader.requests.post")
-    def test_empty_body_falls_back_to_none(self, mock_post, _sleep):
+    def test_empty_body_raises(self, mock_post, _sleep):
         mock_post.return_value = self._empty_body_response()
 
-        result = get_metadata("/tmp/photo.jpg", tags=["EXIF:Make", "EXIF:Model"])
+        with self.assertRaises(MetadataReadError):
+            get_metadata("/tmp/photo.jpg", tags=["EXIF:Make", "EXIF:Model"])
 
-        self.assertEqual(result, [None, None])
         self.assertEqual(mock_post.call_count, EXIF_MAX_ATTEMPTS)
 
     @patch("api.metadata.reader.time.sleep", return_value=None)
     @patch("api.metadata.reader.requests.post")
-    def test_connection_error_falls_back_to_none(self, mock_post, _sleep):
+    def test_connection_error_raises(self, mock_post, _sleep):
         mock_post.side_effect = requests.exceptions.ConnectionError("closed")
 
-        result = get_metadata("/tmp/photo.jpg", tags=["GPS:Latitude", "GPS:Longitude"])
+        with self.assertRaises(MetadataReadError):
+            get_metadata("/tmp/photo.jpg", tags=["GPS:Latitude", "GPS:Longitude"])
 
-        self.assertEqual(result, [None, None])
         self.assertEqual(mock_post.call_count, EXIF_MAX_ATTEMPTS)
+
+    @patch("api.metadata.reader.time.sleep", return_value=None)
+    @patch("api.metadata.reader.requests.post")
+    def test_exiftool_error_raises_with_the_file_and_the_error(self, mock_post, _sleep):
+        mock_post.return_value = self._server_error_response("File not found")
+
+        with self.assertRaises(MetadataReadError) as context:
+            get_metadata("/tmp/photo.jpg", tags=["EXIF:Make"])
+
+        self.assertIn("/tmp/photo.jpg", str(context.exception))
+        self.assertIn("File not found", str(context.exception))
 
     @patch("api.metadata.reader.time.sleep", return_value=None)
     @patch("api.metadata.reader.requests.post")

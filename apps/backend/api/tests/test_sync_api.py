@@ -9,6 +9,7 @@ and the upload timestamp fallback.
 import base64
 import datetime
 import uuid
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -545,7 +546,12 @@ class DeviceTimestampFallbackTest(TestCase):
         device_time = datetime.datetime(
             2019, 3, 1, 10, 30, tzinfo=datetime.timezone.utc
         )
-        apply_device_timestamp_fallback(photo, device_time)
+        # The file carries no date; the exif service is not running here.
+        with patch(
+            "api.models.photo.get_metadata",
+            side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+        ):
+            apply_device_timestamp_fallback(photo, device_time)
 
         photo.refresh_from_db()
         self.assertIsNotNone(photo.exif_timestamp)

@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
+from api.metadata.reader import MetadataReadError
 from api.metadata.tags import Tags
 from api.models.photo_metadata import PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
@@ -79,6 +80,18 @@ class ExtractExifDataGuardTestCase(ExtractExifDataBaseTestCase):
 
         self.assertIsNone(result)
         mocked.assert_not_called()
+        self.assertFalse(PhotoMetadata.objects.filter(photo=self.photo).exists())
+
+    def test_unreadable_metadata_fails_the_photo_instead_of_storing_nothing(self):
+        """The scan counts the raise as a failed file; empty metadata would
+        leave the photo without a date for good, since a rescan skips it."""
+        with patch(
+            "api.models.photo_metadata.get_metadata",
+            side_effect=MetadataReadError("exif service failed"),
+        ):
+            with self.assertRaises(MetadataReadError):
+                PhotoMetadata.extract_exif_data(self.photo, commit=True)
+
         self.assertFalse(PhotoMetadata.objects.filter(photo=self.photo).exists())
 
     def test_get_metadata_called_with_full_tag_list_and_sidecar(self):

@@ -12,6 +12,7 @@ Tests the following:
 
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -371,14 +372,12 @@ class PhotoMetadataRevertAllTestCase(APITestCase):
 
         initial_count = MetadataEdit.objects.filter(photo=self.photo).count()
 
-        try:
-            _response = self.client.post(
-                f"/api/photos/{self.photo.pk}/metadata/revert-all/"
-            )
-        except (ConnectionError, OSError):
-            # The endpoint may try to contact external services (e.g. EXIF/tag)
-            # that are not available in the test environment
-            pass
+        # The file carries no metadata; the exif service is not running here.
+        with patch(
+            "api.models.photo_metadata.get_metadata",
+            side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+        ):
+            self.client.post(f"/api/photos/{self.photo.pk}/metadata/revert-all/")
 
         new_count = MetadataEdit.objects.filter(photo=self.photo).count()
         # Should have at least tried to create the record

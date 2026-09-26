@@ -144,10 +144,11 @@ def get_tags():
 
     try:
         values = highest_priority_values(et, tags, files_by_reverse_priority)
-    except Exception:
-        log("An error occurred")
-        # Callers unpack one value per tag; the reader pads a short list.
-        values = []
+    except Exception as exc:
+        # Not an empty answer: that reads as "no tags", and the photo would be
+        # stored without a date or location that a rescan never comes back for.
+        log(f"error reading tags from {files_by_reverse_priority}: {exc}")
+        return {"error": str(exc)}, 500
 
     return {"values": values}, 201
 
