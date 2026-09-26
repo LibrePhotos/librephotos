@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Count, Q
 
-from api.util import logger
+from api.util import is_valid_path, logger
 from api.models.photo import Photo
 
 PAGE_SIZE = 100
@@ -48,7 +48,7 @@ def _validate_path(base_path):
 
 def _check_access(request, base_path, is_admin):
     if is_admin:
-        if not base_path.startswith(settings.DATA_ROOT):
+        if not is_valid_path(base_path, settings.DATA_ROOT):
             return Response({"error": "Access denied"}, status=403)
         return None
 
@@ -57,7 +57,10 @@ def _check_access(request, base_path, is_admin):
         return Response({"error": "User scan directory not configured"}, status=403)
     if not os.path.exists(scan_directory):
         return Response({"error": "Scan directory does not exist"}, status=403)
-    if not base_path.startswith(scan_directory):
+    # A plain startswith() let /data/alice reach the sibling /data/alice2, and
+    # /data/alice/../bob reach anything; is_valid_path compares whole,
+    # normalised path components.
+    if not is_valid_path(base_path, scan_directory):
         return Response(
             {
                 "error": "Access denied - can only access folders within your scan directory"
