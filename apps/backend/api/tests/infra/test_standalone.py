@@ -195,26 +195,7 @@ class ServiceProcessMatchTest(SimpleTestCase):
         self.assertFalse(services._is_service_process(["python"], "exif"))
 
 
-class StopServiceTest(SimpleTestCase):
-    def _process(self, pid, cmdline):
-        return SimpleNamespace(info={"pid": pid, "cmdline": cmdline}, kill=lambda: None)
-
-    def test_kills_every_matching_process_but_itself(self):
-        killed = []
-        running = [
-            self._process(os.getpid(), ["librephotos.exe", "service", "exif"]),
-            self._process(41, ["python", "service/exif/main.py"]),
-            self._process(42, ["python", "service/tags/main.py"]),
-        ]
-        running[1].kill = lambda: killed.append(41)
-        running[2].kill = lambda: killed.append(42)
-        with patch("psutil.process_iter", return_value=running):
-            self.assertTrue(services.stop_service("exif"))
-        self.assertEqual(killed, [41])
-
-    def test_reports_a_service_that_is_not_running(self):
-        with patch("psutil.process_iter", return_value=[]):
-            self.assertFalse(services.stop_service("exif"))
+# stop_service itself: api/tests/ml_services/test_service_watchdog.py
 
 
 class WorkerDefaultTest(SimpleTestCase):

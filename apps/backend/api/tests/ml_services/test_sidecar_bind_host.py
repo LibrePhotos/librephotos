@@ -5,8 +5,9 @@ They have no authentication, and the backend only ever calls them on
 thumbnail sidecar writes files, the others read any path they are given - to
 whatever can reach the container. SERVICE_HOST still overrides the default.
 
-The mains are scripts that import their neighbours by bare name, so this reads
-the source instead of importing eight of them into one process.
+They are all served by service._common.serve_forever. The mains are scripts
+that import their neighbours by bare name, so this reads their source instead
+of importing eight of them into one process.
 """
 
 import ast
@@ -25,24 +26,33 @@ def _service_main(service):
     return BACKEND / "service" / service / "main.py"
 
 
-def _bind_hosts(path):
-    """The (env var, default) of every os.environ.get(...) a WSGIServer binds."""
-    hosts = []
+def _calls(path, name):
+    """The literal arguments of every call to *name* in the file."""
+    calls = []
     for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-        if not (isinstance(node, ast.Call) and getattr(node.func, "id", None)):
-            continue
-        if node.func.id != "WSGIServer":
-            continue
-        host = node.args[0].elts[0]
-        hosts.append(tuple(arg.value for arg in host.args))
-    return hosts
+        if isinstance(node, ast.Call) and getattr(node.func, "id", None) == name:
+            calls.append(
+                [
+                    arg.value if isinstance(arg, ast.Constant) else arg
+                    for arg in node.args
+                ]
+            )
+    return calls
 
 
 class SidecarBindHostTest(SimpleTestCase):
-    def test_every_sidecar_defaults_to_loopback(self):
+    def test_every_sidecar_is_served_by_the_shared_app(self):
+        """service._common binds loopback and the port from SERVICES
+        (test_sidecar_common); no main.py opens a server of its own."""
         for service in SERVICES:
             with self.subTest(service=service):
-                self.assertEqual(
-                    _bind_hosts(_service_main(service)),
-                    [("SERVICE_HOST", "127.0.0.1")],
-                )
+                path = _service_main(service)
+                self.assertEqual(_calls(path, "WSGIServer"), [])
+                served = _calls(path, "serve_forever")
+                self.assertEqual(len(served), 1)
+                self.assertEqual(served[0][1], service)
+
+    def test_the_shared_app_defaults_to_loopback(self):
+        from service import _common
+
+        self.assertEqual(_common.DEFAULT_HOST, "127.0.0.1")

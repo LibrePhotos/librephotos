@@ -1,20 +1,9 @@
-import os
-import time
-
-import gevent
-from flask import Flask, request
-from gevent.pywsgi import WSGIServer
-
 from lfm2_vl import Lfm2VlCaptioner
 
-app = Flask(__name__)
+from service._common import create_app, json_fields, logger, serve_forever
 
 captioner = None
-last_request_time = None
-
-
-def log(message):
-    print(f"image_captioning: {message}")
+log = logger("image_captioning")
 
 
 def get_captioner():
@@ -24,22 +13,27 @@ def get_captioner():
     return captioner
 
 
+def unload_captioner():
+    global captioner
+    if captioner is not None:
+        captioner.unload()
+    captioner = None
+
+
+app = create_app(
+    "image_captioning",
+    unload=unload_captioner,
+    is_loaded=lambda: captioner is not None,
+)
+
+
 @app.route("/generate-caption", methods=["POST"])
 def generate_caption():
     """A caption for ``image_path``, steered by the optional ``prompt``."""
-    global last_request_time
-    last_request_time = time.time()
+    image_path, prompt = json_fields("image_path", prompt=None)
 
     try:
-        data = request.get_json()
-        image_path = data["image_path"]
-        prompt = data.get("prompt")
-    except Exception as e:
-        print(str(e))
-        return "", 400
-
-    try:
-        return {"caption": get_captioner().caption(image_path, prompt)}, 201
+        return {"caption": get_captioner().caption(image_path, prompt)}, 200
     except Exception as e:
         # A captioner that failed half-way through loading must not be reused.
         global captioner
@@ -50,27 +44,8 @@ def generate_caption():
         return {"error": f"{type(e).__name__}: {e}"}, 500
 
 
-@app.route("/unload-model", methods=["GET"])
-def unload_model():
-    global captioner
-    if captioner is not None:
-        captioner.unload()
-    captioner = None
-    return "", 200
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return {"last_request_time": last_request_time}, 200
-
-
 def serve():
-    log("service starting")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8007), app)
-    server_thread = gevent.spawn(server.serve_forever)
-    gevent.joinall([server_thread])
+    serve_forever(app, "image_captioning")
 
 
 if __name__ == "__main__":

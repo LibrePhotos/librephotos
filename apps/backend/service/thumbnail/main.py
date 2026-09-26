@@ -1,20 +1,17 @@
 import os
-import gevent
+
 import pyvips
 import rawpy
-from flask import Flask, request
-from gevent.pywsgi import WSGIServer
 
-app = Flask(__name__)
+from service._common import create_app, json_fields, logger, serve_forever
+
+app = create_app("thumbnail")
+log = logger("thumbnail")
 
 # Thumbnails are written only under the media root the backend serves them
 # from. The sidecars never load Django, so the data root comes in as BASE_DATA
 # (see api.services._service_environment). Unset, this is the Docker layout.
 MEDIA_ROOT = os.path.join(os.environ.get("BASE_DATA", os.sep), "protected_media")
-
-
-def log(message):
-    print(f"thumbnail: {message}")
 
 
 def render_raw(source, destination, height):
@@ -41,36 +38,25 @@ def _inside_media_root(destination):
 
 @app.route("/", methods=["POST"])
 def create_thumbnail():
-    try:
-        data = request.get_json()
-        source = data["source"]
-        destination = data["destination"]
-        height = data["height"]
-    except Exception:
-        return "", 400
+    source, destination, height = json_fields("source", "destination", "height")
     # Anything that reaches the port could otherwise overwrite any file the
     # service can write to.
     if not _inside_media_root(destination):
         log(f"refused destination outside {MEDIA_ROOT}: {destination}")
         return {"error": "destination is outside the media root"}, 400
     log(f"creating for source={source} height={height}")
-    render_raw(source, destination, height)
+    try:
+        render_raw(source, destination, height)
+    except Exception as e:
+        log(f"error creating a thumbnail of {source}: {e!r}")
+        return {"error": f"{type(e).__name__}: {e}"}, 500
     log(f"created at location={destination}")
+    # 201: unlike the other sidecars' answers, this one made a file.
     return {"thumbnail": destination}, 201
 
 
-@app.route("/health", methods=["GET"])
-def health():
-    return {"status": "OK"}, 200
-
-
 def serve():
-    log("service starting")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8003), app)
-    server_thread = gevent.spawn(server.serve_forever)
-    gevent.joinall([server_thread])
+    serve_forever(app, "thumbnail")
 
 
 if __name__ == "__main__":

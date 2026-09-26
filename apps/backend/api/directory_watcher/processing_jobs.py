@@ -14,7 +14,7 @@ from django import db
 from django.db.models import Q
 from django_q.tasks import AsyncTask
 
-from api import util
+from api import sidecars, util
 from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
 from api.models import Face, LongRunningJob, Photo
@@ -26,7 +26,6 @@ from api.directory_watcher.utils import (
     is_job_cancelled,
     update_scan_counter,
 )
-from api.sidecars import sidecar_url
 
 
 def _encode_face(face: Face, job_id: UUID):
@@ -432,15 +431,18 @@ def _run_ocr_for_photo(photo: Photo):
         util.logger.warning(f"No OCR image source for photo {photo.image_hash}")
         return
 
-    response = requests.post(
-        sidecar_url(8012, "/ocr"),
-        json={"image_path": image_path, "min_confidence": OCR_MIN_CONFIDENCE},
-        timeout=OCR,
-    )
-    if not response.ok:
-        raise RuntimeError(
-            f"OCR service returned status {response.status_code} for {image_path}"
+    try:
+        response = sidecars.post(
+            "ocr",
+            "/ocr",
+            json={"image_path": image_path, "min_confidence": OCR_MIN_CONFIDENCE},
+            timeout=OCR,
         )
+    except requests.HTTPError as error:
+        raise RuntimeError(
+            f"OCR service returned status {error.response.status_code} "
+            f"for {image_path}: {sidecars.error_detail(error)}"
+        ) from error
 
     data = response.json()
     ocr_text = data.get("text", "") or ""

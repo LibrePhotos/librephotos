@@ -19,6 +19,7 @@ import requests
 from constance.test import override_config
 from django.test import TestCase, override_settings
 
+from api.http_timeouts import MODEL_DOWNLOAD
 from api.ml_models import (
     ML_MODELS,
     MlTypes,
@@ -705,7 +706,9 @@ class DownloadFileProgressTest(TestCase):
                 _download_file("https://example.invalid/x", str(target), "m")
             self.assertEqual(payload, target.read_bytes())
 
-    def test_request_is_streamed_and_follows_redirects(self):
+    def test_request_is_streamed_follows_redirects_and_times_out(self):
+        """A stalled mirror must not park the download job forever: the
+        read timeout bounds the wait for each chunk, not the whole file."""
         payload = b"opts"
         response = _FakeResponse(
             chunks=[payload], headers={"content-length": str(len(payload))}
@@ -716,8 +719,14 @@ class DownloadFileProgressTest(TestCase):
                 _download_file("https://example.invalid/x", target, "m")
 
             get.assert_called_once_with(
-                "https://example.invalid/x", stream=True, allow_redirects=True
+                "https://example.invalid/x",
+                stream=True,
+                allow_redirects=True,
+                timeout=MODEL_DOWNLOAD,
             )
+        connect, read = MODEL_DOWNLOAD
+        self.assertGreater(connect, 0)
+        self.assertGreater(read, 0)
 
 
 class MlTypesConstantsTest(TestCase):

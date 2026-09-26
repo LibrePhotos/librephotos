@@ -80,7 +80,7 @@ class GetTagsTest(SimpleTestCase):
             resp = self.post(
                 {"files_by_reverse_priority": files, "tags": tags, "struct": struct}
             )
-        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.status_code, 200)
         return resp.get_json()["values"]
 
     # ------------------------------------------------------------------
@@ -304,7 +304,8 @@ class GetTagsTest(SimpleTestCase):
         self.assertEqual(self.get_values(fake, ["/a.jpg"], ["A", "B"]), [None, None])
 
     def test_start_failure_propagates_as_500(self):
-        # et.start() is outside the try/except -> not swallowed.
+        # et.start() is outside the try/except -> not swallowed, and the shared
+        # app answers it with the reason rather than an HTML page.
         fake = FakeExifTool(running=False)
 
         def boom():
@@ -312,14 +313,16 @@ class GetTagsTest(SimpleTestCase):
 
         fake.start = boom
         with patch.object(exif_main, "static_et", fake):
-            with self.assertRaises(RuntimeError):
-                self.post(
-                    {
-                        "files_by_reverse_priority": ["/a.jpg"],
-                        "tags": ["T"],
-                        "struct": False,
-                    }
-                )
+            resp = self.client.post(
+                "/get-tags",
+                json={
+                    "files_by_reverse_priority": ["/a.jpg"],
+                    "tags": ["T"],
+                    "struct": False,
+                },
+            )
+        self.assertEqual(resp.status_code, 500)
+        self.assertEqual(resp.get_json(), {"error": "RuntimeError: cannot start"})
 
 
 class HealthAndLogTest(SimpleTestCase):
@@ -330,9 +333,10 @@ class HealthAndLogTest(SimpleTestCase):
     def test_health(self):
         resp = self.client.get("/health")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.get_json(), {"status": "OK"})
+        self.assertEqual(resp.get_json()["status"], "OK")
+        self.assertEqual(resp.get_json()["service"], "exif")
 
     def test_log_prefixes_message(self):
         with patch("builtins.print") as p:
             exif_main.log("hello")
-        p.assert_called_once_with("exif: hello")
+        p.assert_called_once_with("exif: hello", flush=True)

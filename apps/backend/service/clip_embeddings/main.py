@@ -1,21 +1,13 @@
-import os
-import time
-
-import gevent
 import numpy as np
 from clip_onnx import ClipEmbeddings
-from flask import Flask, request
-from gevent.pywsgi import WSGIServer
 
-app = Flask(__name__)
+from service._common import create_app, json_fields, serve_forever
 
-
-def log(message):
-    print(f"clip embeddings: {message}")
-
-
+# The sessions load on the first request and go again on /unload-model.
 clip = ClipEmbeddings()
-last_request_time = None
+app = create_app(
+    "clip_embeddings", unload=clip.unload, is_loaded=lambda: clip.is_loaded
+)
 
 
 @app.route("/clip-embeddings", methods=["POST"])
@@ -26,55 +18,27 @@ def create_clip_embeddings():
     magnitude, or ``null`` in both lists where the image could not be read,
     so the caller can match results to photos by position.
     """
-    global last_request_time
-    last_request_time = time.time()
-
-    try:
-        data = request.get_json()
-        imgs = data["imgs"]
-        model = data["model"]
-    except Exception as e:
-        print(str(e))
-        return "", 400
+    imgs, model = json_fields("imgs", "model")
 
     embeddings = clip.encode_images(imgs, model)
     imgs_emb = [None if e is None else e.tolist() for e in embeddings]
     magnitudes = [None if e is None else float(np.linalg.norm(e)) for e in embeddings]
-    return {"imgs_emb": imgs_emb, "magnitudes": magnitudes}, 201
+    return {"imgs_emb": imgs_emb, "magnitudes": magnitudes}, 200
 
 
 @app.route("/query-embeddings", methods=["POST"])
 def calculate_query_embeddings():
-    global last_request_time
-    last_request_time = time.time()
-
-    try:
-        data = request.get_json()
-        query = data["query"]
-        model = data["model"]
-    except Exception as e:
-        print(str(e))
-        return "", 400
+    query, model = json_fields("query", "model")
 
     embedding = clip.encode_text(query, model)
     return {
         "emb": embedding.tolist(),
         "magnitude": float(np.linalg.norm(embedding)),
-    }, 201
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return {"last_request_time": last_request_time}, 200
+    }, 200
 
 
 def serve():
-    log("service starting")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8006), app)
-    server_thread = gevent.spawn(server.serve_forever)
-    gevent.joinall([server_thread])
+    serve_forever(app, "clip_embeddings")
 
 
 if __name__ == "__main__":

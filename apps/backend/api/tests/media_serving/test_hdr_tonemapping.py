@@ -244,7 +244,7 @@ class ConversionSitesTest(SimpleTestCase):
         from api import thumbnails
 
         with self._hdr(), self._zscale():
-            with mock.patch.object(thumbnails.subprocess, "Popen") as popen:
+            with mock.patch.object(thumbnails.subprocess, "run") as popen:
                 thumbnails.create_animated_thumbnail("/v.mov", 720, "out", "h", ".mp4")
         self.assertEqual(_filter_arg(popen.call_args[0][0]), "scale=-2:720," + TONEMAP)
 
@@ -252,7 +252,7 @@ class ConversionSitesTest(SimpleTestCase):
         from api import thumbnails
 
         with self._hdr(), self._zscale():
-            with mock.patch.object(thumbnails.subprocess, "Popen") as popen:
+            with mock.patch.object(thumbnails.subprocess, "run") as popen:
                 thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
         self.assertEqual(_filter_arg(popen.call_args[0][0]), TONEMAP)
 
@@ -260,6 +260,6 @@ class ConversionSitesTest(SimpleTestCase):
         from api import thumbnails
 
         with self._hdr(False), self._zscale():
-            with mock.patch.object(thumbnails.subprocess, "Popen") as popen:
+            with mock.patch.object(thumbnails.subprocess, "run") as popen:
                 thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
         self.assertIsNone(_filter_arg(popen.call_args[0][0]))

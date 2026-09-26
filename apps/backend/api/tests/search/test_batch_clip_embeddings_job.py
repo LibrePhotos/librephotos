@@ -270,8 +270,8 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         self.assertEqual(job.progress_target, 2)
         self.assertEqual(job.progress_current, 2)
 
-    def test_index_build_failure_propagates(self):
-        """``build_image_similarity_index`` is outside the try/except."""
+    def test_index_build_failure_propagates_and_fails_the_job(self):
+        """A stale index is not a finished job (test_similarity_index_persistence)."""
         create_test_photos(number_of_photos=1, owner=self.user)
 
         with (
@@ -289,7 +289,8 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
                 batch_jobs.batch_calculate_clip_embedding(self.user)
 
         job = self.latest_job()
-        self.assertFalse(job.finished)
+        self.assertTrue(job.failed)
+        self.assertEqual(job.result["error"], "index down")
 
     def test_unreadable_image_slot_is_skipped_and_neighbours_keep_their_own(self):
         """A ``None`` slot from the sidecar leaves that photo for a later run.

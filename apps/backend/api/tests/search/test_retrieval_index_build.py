@@ -248,6 +248,5 @@ class BuildIndexThenSearchTests(TestCase):
         self.index.build_index_for_user(1, ["match"], [vec(1.0)])
         self.assertEqual(self.index.search_similar(1, vec(1.0), n=1, thres=1e9), [])
 
-    def test_search_for_unknown_user_raises_key_error(self):
-        with self.assertRaises(KeyError):
-            self.index.search_similar(999, vec(1.0))
+    def test_search_for_unknown_user_is_an_empty_result(self):
+        self.assertEqual(self.index.search_similar(999, vec(1.0)), [])

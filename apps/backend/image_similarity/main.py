@@ -1,82 +1,111 @@
-import json
+"""Image similarity sidecar: per-user FAISS indices over the CLIP embeddings.
+
+The indices are kept under BASE_DATA/protected_media/similarity (see
+retrieval_index.RetrievalIndex), so a restart of this process no longer
+forgets them until the next Calculate CLIP embeddings job.
+
+``POST /build/``
+    ``{"user_id", "image_hashes", "image_embeddings"}`` plus, for a rebuild,
+    ``"begin": true`` on the first page and ``"commit": true`` on the last:
+    the pages fill a staging index that replaces the user's index (on disk,
+    then in memory) only once the last page arrived. Without the flags a page
+    is added to the live index, as before. Answers ``{"status": true,
+    "index_size": n}``, or ``{"status": false, "error": ...}`` with 400.
+``DELETE /build/``
+    ``{"user_id"}``: forget the user's index, on disk too.
+``POST /search/``
+    ``{"user_id", "image_embedding", "n"?, "threshold"?}``: ``{"status": true,
+    "result": [image hashes]}``; empty for a user without an index.
+"""
+
 import os
 
-from flask import Flask, jsonify, request
-from flask_restful import Api, Resource
-from gevent.pywsgi import WSGIServer
-from retrieval_index import RetrievalIndex
+from retrieval_index import IndexBuildError, RetrievalIndex
 from utils import logger
 
-app = Flask(__name__)
-api = Api(app)
+from service._common import create_app, json_fields, serve_forever
 
-index = RetrievalIndex()
+# The sidecars never load Django, so the data root comes in as BASE_DATA (see
+# api.services._service_environment). Unset, this is the Docker layout under /.
+INDEX_ROOT = os.path.join(
+    os.environ.get("BASE_DATA", os.sep), "protected_media", "similarity"
+)
+
+app = create_app("image_similarity")
+index = RetrievalIndex(store_dir=INDEX_ROOT)
 
 
-class BuildIndex(Resource):
-    def post(self):
-        request_body = json.loads(request.data)
+def _user_id(value):
+    # The id names a file under INDEX_ROOT, so nothing but an integer will do.
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"user_id must be an integer, not {value!r}")
+    return value
 
-        user_id = request_body["user_id"]
-        image_hashes = request_body["image_hashes"]
-        image_embeddings = request_body["image_embeddings"]
 
+def _failed(message, status=400):
+    logger.error(message)
+    return {"status": False, "error": message}, status
+
+
+@app.route("/build/", methods=["POST"])
+def build_index():
+    user_id, image_hashes, image_embeddings, begin, commit = json_fields(
+        "user_id", "image_hashes", "image_embeddings", begin=False, commit=False
+    )
+    try:
+        user_id = _user_id(user_id)
+    except ValueError as e:
+        return _failed(str(e))
+
+    if not (begin or commit or index.rebuilding(user_id)):
         index.build_index_for_user(user_id, image_hashes, image_embeddings)
+        live = index.indices.get(user_id)
+        return {"status": True, "index_size": 0 if live is None else live.ntotal}
 
-        # Return 0 if no index was created, otherwise return the actual size
-        index_size = index.indices[user_id].ntotal if user_id in index.indices else 0
-        return jsonify({"status": True, "index_size": index_size})
-
-    def delete(self):
-        user_id = json.loads(request.data)["user_id"]
-        if user_id not in index.indices:
-            return jsonify({"status": True})
-        del index.indices[user_id]
-        del index.image_hashes[user_id]
-        return jsonify({"status": True})
-
-
-class SearchIndex(Resource):
-    def post(self):
-        try:
-            request_body = json.loads(request.data)
-
-            user_id = request_body["user_id"]
-            image_embedding = request_body["image_embedding"]
-            if "n" in request_body.keys():
-                n = int(request_body["n"])
-            else:
-                n = 100
-
-            if "threshold" in request_body.keys():
-                thres = float(request_body["threshold"])
-            else:
-                thres = 27.0
-
-            res = index.search_similar(user_id, image_embedding, n, thres)
-
-            return jsonify({"status": True, "result": res})
-        except BaseException as e:
-            logger.error(str(e))
-            return jsonify({"status": False, "result": []}), 500
+    try:
+        if begin:
+            index.begin_rebuild(user_id)
+        index.add_to_rebuild(user_id, image_hashes, image_embeddings)
+        if not commit:
+            return {"status": True, "index_size": index.staged_size(user_id)}
+        return {"status": True, "index_size": index.commit_rebuild(user_id)}
+    except IndexBuildError as e:
+        # A rebuild missing a page must not replace the index.
+        index.abandon_rebuild(user_id)
+        return _failed(f"rebuild for user {user_id} abandoned: {e}")
 
 
-class Health(Resource):
-    def get(self):
-        return jsonify({"status": True})
+@app.route("/build/", methods=["DELETE"])
+def delete_index():
+    (user_id,) = json_fields("user_id")
+    try:
+        index.remove_user(_user_id(user_id))
+    except ValueError as e:
+        return _failed(str(e))
+    return {"status": True}
 
 
-api.add_resource(BuildIndex, "/build/")
-api.add_resource(SearchIndex, "/search/")
-api.add_resource(Health, "/health/")
+@app.route("/search/", methods=["POST"])
+def search_index():
+    user_id, image_embedding, n, threshold = json_fields(
+        "user_id", "image_embedding", n=100, threshold=27.0
+    )
+    try:
+        user_id = _user_id(user_id)
+        n = int(n)
+        threshold = float(threshold)
+    except (TypeError, ValueError) as e:
+        return _failed(str(e))
+    try:
+        result = index.search_similar(user_id, image_embedding, n, threshold)
+    except Exception as e:
+        logger.error(f"search for user {user_id} failed: {e}")
+        return {"status": False, "result": [], "error": str(e)}, 500
+    return {"status": True, "result": result}
 
 
 def serve():
-    logger.info("Starting server")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8002), app)
-    server.serve_forever()
+    serve_forever(app, "image_similarity")
 
 
 if __name__ == "__main__":

@@ -1,17 +1,11 @@
 import os
-import time
 
-import gevent
 import numpy as np
 from PIL import Image
-from flask import Flask, request
-from gevent.pywsgi import WSGIServer
 
+from service._common import create_app, json_fields, logger, serve_forever
 from service.onnx_session import execution_providers, uses_gpu
 
-app = Flask(__name__)
-
-last_request_time = None
 face_analysis_models = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
 # How much a requested region (drawn by hand, or read from XMP) must overlap a
@@ -34,9 +28,12 @@ SUPPORTED_FACE_MODELS = {
     "buffalo_sc",
 }
 
-
-def log(message):
-    print(f"face_recognition: {message}")
+log = logger("face_recognition")
+app = create_app(
+    "face_recognition",
+    unload=face_analysis_models.clear,
+    is_loaded=lambda: bool(face_analysis_models),
+)
 
 
 def _normalize_model_name(model_name):
@@ -132,17 +129,9 @@ def _find_best_face_match(face_locations, detected_faces):
 
 @app.route("/face-encodings", methods=["POST"])
 def create_face_encodings():
-    global last_request_time
-    # Update last request time
-    last_request_time = time.time()
-
-    try:
-        data = request.get_json()
-        source = data["source"]
-        face_locations = data["face_locations"]
-        model_name = data.get("model_name")
-    except Exception:
-        return "", 400
+    source, face_locations, model_name = json_fields(
+        "source", "face_locations", model_name=None
+    )
 
     try:
         image = np.array(Image.open(source).convert("RGB"))
@@ -158,21 +147,12 @@ def create_face_encodings():
 
     matched = sum(encoding is not None for encoding in face_encodings_list)
     log(f"created face_encodings={matched}/{len(face_encodings_list)}")
-    return {"encodings": face_encodings_list}, 201
+    return {"encodings": face_encodings_list}, 200
 
 
 @app.route("/face-locations", methods=["POST"])
 def create_face_locations():
-    global last_request_time
-    # Update last request time
-    last_request_time = time.time()
-
-    try:
-        data = request.get_json()
-        source = data["source"]
-        model_name = data.get("model_name")
-    except Exception:
-        return "", 400
+    source, model_name = json_fields("source", model_name=None)
 
     try:
         image = np.array(Image.open(source).convert("RGB"))
@@ -188,21 +168,11 @@ def create_face_locations():
         return {"error": str(exc)}, 500
 
     log(f"created face_location={face_locations}")
-    return {"face_locations": face_locations, "encodings": face_encodings}, 201
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return {"last_request_time": last_request_time}, 200
+    return {"face_locations": face_locations, "encodings": face_encodings}, 200
 
 
 def serve():
-    log("service starting")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8005), app)
-    server_thread = gevent.spawn(server.serve_forever)
-    gevent.joinall([server_thread])
+    serve_forever(app, "face_recognition")
 
 
 if __name__ == "__main__":

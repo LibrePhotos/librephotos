@@ -92,13 +92,13 @@ For example, searching "sunset at the beach" will find photos that look like a s
 
 ### Enabling Semantic Search
 
-Semantic search is disabled by default. It works from CLIP embeddings, which LibrePhotos computes for your photos during a scan, plus an in-memory similarity index built from those embeddings.
+Semantic search is disabled by default. It works from CLIP embeddings, which LibrePhotos computes for your photos during a scan, plus a similarity index built from those embeddings.
 
 1. Go to **Settings**
 2. Find the **Semantic search max results** setting
 3. Set it to **Top 100**, **Top 50**, or **Top 10** — the maximum number of semantically similar photos to add to your results. Matches that fall below an internal similarity threshold are dropped, so you may get fewer than this, and because keyword matches are still included the total number of results can be higher.
 
-Turning the setting on also queues a background job that computes CLIP embeddings for any photos that do not have one yet and then builds the similarity index. Semantic results only start appearing once that job has finished, which can take a while on a large library that has never been embedded. The index itself lives in memory in the image-similarity service and is rebuilt automatically each time the backend container starts; the first query after a restart can take a moment while the CLIP model loads, after which queries are fast.
+Turning the setting on also queues a background job that computes CLIP embeddings for any photos that do not have one yet and then builds the similarity index. Semantic results only start appearing once that job has finished, which can take a while on a large library that has never been embedded. The image-similarity service keeps the index on disk under `protected_media/similarity/`, so it survives a restart of that service, and it is rebuilt automatically each time the backend container starts. The first query after a while without searches can take a moment while the CLIP model loads again, after which queries are fast.
 
 :::tip
 You need to have the **CLIP embedding** calculation job completed for semantic search to work. This runs automatically during photo scanning, or you can trigger it manually from the Library page.

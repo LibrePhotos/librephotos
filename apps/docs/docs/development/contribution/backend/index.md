@@ -73,9 +73,11 @@ You have your python model and want to somehow convert that to JSON. That's what
 
 ### Services
 
-Not everything runs inside Django. The heavy machine-learning work lives in standalone Flask processes that Django talks to over plain HTTP on localhost. Seven of them sit under `service/` — `thumbnail`, `face_recognition`, `clip_embeddings`, `image_captioning`, `exif`, `tags` and `ocr` — and `image_similarity/` is a separate top-level folder. Each is served by a gevent `WSGIServer` on a fixed port; the ports are defined in the `SERVICES` dict in `api/services.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, clip_embeddings 8006, image_captioning 8007, exif 8010, tags 8011, ocr 8012).
+Not everything runs inside Django. The heavy machine-learning work lives in standalone Flask processes that Django talks to over plain HTTP on localhost. Seven of them sit under `service/` — `thumbnail`, `face_recognition`, `clip_embeddings`, `image_captioning`, `exif`, `tags` and `ocr` — and `image_similarity/` is a separate top-level folder. Each builds its Flask app with `service/_common.py` (`create_app`, the shared `/health` and `/unload-model`, `json_fields` for request parsing) and is served by a gevent `WSGIServer` on a fixed port; the ports are defined in the `SERVICES` dict in `api/sidecars.py` (image_similarity 8002, thumbnail 8003, face_recognition 8005, clip_embeddings 8006, image_captioning 8007, exif 8010, tags 8011, ocr 8012).
 
-You start them with `python manage.py start_service`, which also schedules `api.services.check_services` in django-q2 to poll each service's `/health` endpoint and restart any that have gone stale or died.
+The backend reaches them with `sidecar_url(name)` and calls them through `api.sidecars.post`/`get`, which retry a refused connection or a 503 and raise `requests.HTTPError` for any other error status; a caller turns that into its own error (for example `MetadataReadError`).
+
+You start them with `python manage.py start_service`, which also schedules `api.services.check_services` in django-q2 to poll each service's `/health` endpoint every minute: a service that died is restarted, and one that has held a model for two minutes without a request is asked to unload it. Stopping a service sends SIGTERM and kills it only if it is still there five seconds later.
 
 Because these are separate processes, the `docker attach` + pdb trick above does not reach them — to debug a service, check its log under `/logs/` or add logging in the service's own `main.py`.
 

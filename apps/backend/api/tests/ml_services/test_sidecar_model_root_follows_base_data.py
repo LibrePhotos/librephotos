@@ -202,7 +202,7 @@ class ServiceEnvironmentPythonPathTest(SimpleTestCase):
         # sys.path unless the environment puts it there.
         with tempfile.TemporaryDirectory() as elsewhere:
             result = subprocess.run(
-                [sys.executable, "-c", "import service.onnx_session"],
+                [sys.executable, "-c", "import service.onnx_session, service._common"],
                 cwd=elsewhere,
                 env=_service_environment(),
                 capture_output=True,
