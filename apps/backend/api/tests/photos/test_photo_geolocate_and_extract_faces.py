@@ -324,6 +324,24 @@ class ExtractFacesCharacterizationTest(TestCase):
 
     @patch("api.models.photo.PIL.Image.open", return_value=_thumb_image())
     @patch("api.models.photo.face_extractor")
+    def test_encoding_from_the_face_service_is_stored_with_the_face(
+        self, extractor, _open
+    ):
+        import numpy as np
+
+        encoding = np.array([0.5, -1.25, 3.0])
+        extractor.extract.return_value = [(10, 60, 50, 20, None, encoding)]
+
+        self.photo._extract_faces()
+
+        face = Face.objects.get(photo=self.photo)
+        # Stored as Face.generate_encoding stores it, so nothing is left for
+        # generate_face_embeddings to ask the face service for again.
+        self.assertEqual(face.encoding, encoding.tobytes().hex())
+        np.testing.assert_array_equal(face.get_encoding_array(), encoding)
+
+    @patch("api.models.photo.PIL.Image.open", return_value=_thumb_image())
+    @patch("api.models.photo.face_extractor")
     def test_named_face_creates_user_labelled_person(self, extractor, _open):
         extractor.extract.return_value = [(10, 60, 50, 20, "Ada Lovelace")]
 

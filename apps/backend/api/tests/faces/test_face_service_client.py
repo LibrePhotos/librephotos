@@ -24,6 +24,7 @@ from django.test import SimpleTestCase
 from api.face_recognition import (
     FACE_MAX_ATTEMPTS,
     _post_to_face_service,
+    detect_faces,
     get_face_locations,
 )
 
@@ -98,6 +99,40 @@ class FaceRecognitionClientTest(SimpleTestCase):
         # line is what _get_response_preview exists to prevent.
         self.assertIn("service error", str(context.exception))
         self.assertNotIn("<html>", str(context.exception))
+
+
+class DetectFacesTest(SimpleTestCase):
+    """One detection returns the faces and their encodings together."""
+
+    @patch("api.face_recognition.requests.post")
+    @patch("api.face_recognition.site_config")
+    def test_encodings_come_with_the_locations(self, mock_site_config, mock_post):
+        mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
+        mock_post.return_value = _ok_response(
+            {
+                "face_locations": [[1, 2, 3, 4], [5, 6, 7, 8]],
+                "encodings": [[0.5, 0.25], [1.0, 2.0]],
+            }
+        )
+
+        faces = detect_faces("/tmp/image.jpg")
+
+        self.assertEqual(
+            [location for location, _ in faces], [[1, 2, 3, 4], [5, 6, 7, 8]]
+        )
+        # float64, like get_face_encodings, so the stored hex is the same
+        self.assertEqual(faces[0][1].dtype.name, "float64")
+        self.assertEqual(faces[1][1].tolist(), [1.0, 2.0])
+        mock_post.assert_called_once()
+
+    @patch("api.face_recognition.requests.post")
+    @patch("api.face_recognition.site_config")
+    def test_older_sidecar_without_encodings(self, mock_site_config, mock_post):
+        mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
+        mock_post.return_value = _ok_response({"face_locations": [[1, 2, 3, 4]]})
+
+        self.assertEqual(detect_faces("/tmp/image.jpg"), [([1, 2, 3, 4], None)])
+        self.assertEqual(get_face_locations("/tmp/image.jpg"), [[1, 2, 3, 4]])
 
 
 def _ok_response(json_body=None):

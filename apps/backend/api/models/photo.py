@@ -485,7 +485,9 @@ class Photo(models.Model):
         )
 
         for idx_face, face_location in enumerate(face_locations):
-            top, right, bottom, left, person_name = face_location
+            # Faces from the face service carry their encoding; XMP regions
+            # get one later from generate_face_embeddings.
+            top, right, bottom, left, person_name, *encoding = face_location
             person = self._get_or_create_named_person(person_name)
 
             face_image = big_thumbnail_image[top:bottom, left:right]
@@ -508,6 +510,7 @@ class Photo(models.Model):
                 person,
                 unknown_cluster,
                 (top, right, bottom, left),
+                encoding[0] if encoding else None,
             )
             if person_name:
                 person._calculate_face_count()
@@ -550,7 +553,9 @@ class Photo(models.Model):
                 )
             break
 
-    def _save_detected_face(self, face_image, image_path, person, cluster, location):
+    def _save_detected_face(
+        self, face_image, image_path, person, cluster, location, encoding=None
+    ):
         top, right, bottom, left = location
         face = api.models.face.Face(
             photo=self,
@@ -558,7 +563,8 @@ class Photo(models.Model):
             location_right=right,
             location_bottom=bottom,
             location_left=left,
-            encoding="",
+            # As Face.generate_encoding stores it.
+            encoding="" if encoding is None else encoding.tobytes().hex(),
             person=person,
             cluster=cluster,
         )
