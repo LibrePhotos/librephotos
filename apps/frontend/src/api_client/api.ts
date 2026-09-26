@@ -26,13 +26,46 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * How to read a successful response body. "auto" (the default) picks by
+ * Content-Type; "blob" and "text" force a type, e.g. for file downloads whose
+ * Content-Type depends on the server's mimetype guess.
+ */
+export type ResponseType = "auto" | "blob" | "text";
+
+export type RequestOptions = RequestInit & { responseType?: ResponseType };
+
 // Custom fetch client with auth and refresh token functionality
 class FetchClient {
+  /**
+   * The refresh currently on the wire. Concurrent requests share it so a burst
+   * of requests with an expired token (or a burst of 401s) POSTs one refresh,
+   * not one per request. Cleared once it settles. Mirrors the single-flight
+   * refresh in packages/api-client/src/transport/client.ts.
+   */
+  private static refreshInFlight: Promise<string | null> | null = null;
+
+  /**
+   * Set once the first failed authentication starts logging the user out, so
+   * concurrent 401s don't each blacklist the token, notify and redirect. Never
+   * reset: logging out ends in a full page navigation, which reloads this module.
+   */
+  private static loggingOut = false;
+
   private static isTokenExpired(exp: number): boolean {
     return 1000 * exp - new Date().getTime() < 5000;
   }
 
-  private static async refreshToken(): Promise<string | null> {
+  private static refreshToken(): Promise<string | null> {
+    if (!FetchClient.refreshInFlight) {
+      FetchClient.refreshInFlight = FetchClient.requestNewAccessToken().finally(() => {
+        FetchClient.refreshInFlight = null;
+      });
+    }
+    return FetchClient.refreshInFlight;
+  }
+
+  private static async requestNewAccessToken(): Promise<string | null> {
     const cookies = new Cookies();
     const refreshToken = cookies.get("refresh");
 
@@ -54,14 +87,15 @@ class FetchClient {
         return refreshData.access;
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Token refresh failed", error);
     }
     return null;
   }
 
   private static async handleAuthError(response: Response, endpoint: string, options: RequestInit): Promise<Response> {
-    if (response.status === 401) {
+    // A 401 from the token endpoints themselves (e.g. wrong credentials on
+    // login) is not an expired access token, so refreshing cannot fix it.
+    if (response.status === 401 && !endpoint.includes("/auth/token/")) {
       const newToken = await FetchClient.refreshToken();
 
       if (newToken) {
@@ -119,6 +153,13 @@ class FetchClient {
       const suppressAuthNotifications = isPublicPage || isPasswordResetPage || isLoginPage || isSignupPage;
 
       if (!isPublicPage && !isPasswordResetPage) {
+        if (!isLoginPage) {
+          // Another request already started logging out and redirecting.
+          if (FetchClient.loggingOut) {
+            throw new ApiError("Authentication failed", 401);
+          }
+          FetchClient.loggingOut = true;
+        }
         // Logout the user by blacklisting the refresh token
         const cookies = new Cookies();
         const refreshToken = cookies.get("refresh");
@@ -131,7 +172,6 @@ class FetchClient {
               credentials: "include",
             });
           } catch (error) {
-            // eslint-disable-next-line no-console
             console.error("Logout failed:", error);
           }
         }
@@ -140,6 +180,8 @@ class FetchClient {
           cookies.remove("access");
           cookies.remove("refresh");
           cookies.remove("jwt");
+          // A full navigation on purpose: the router lives in App.tsx (importing it
+          // here would be circular) and a reload also drops the cached queries.
           window.location.href = PUBLIC_URL + "/login";
         }
 
@@ -168,7 +210,8 @@ class FetchClient {
     }
   }
 
-  static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  static async request<T>(endpoint: string, requestOptions: RequestOptions = {}): Promise<T> {
+    const { responseType = "auto", ...options } = requestOptions;
     const cookies = new Cookies();
     const accessToken = cookies.get("access");
 
@@ -186,12 +229,12 @@ class FetchClient {
           headers.set("Authorization", `Bearer ${accessToken}`);
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error("Error decoding token:", error);
       }
     }
 
-    if (!headers.has("Content-Type") && !options.body?.toString().includes("FormData")) {
+    // FormData needs the browser to set a multipart Content-Type with its boundary.
+    if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
       headers.set("Content-Type", "application/json");
     }
 
@@ -220,6 +263,13 @@ class FetchClient {
         throw new ApiError(message ?? `API error: ${response.status} ${response.statusText}`, response.status, message);
       }
 
+      if (responseType === "blob") {
+        return (await response.blob()) as unknown as T;
+      }
+      if (responseType === "text") {
+        return (await response.text()) as unknown as T;
+      }
+
       // Handle different response types
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
@@ -235,20 +285,26 @@ class FetchClient {
       }
       return (await response.text()) as unknown as T;
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Fetch error:", error);
-      // eslint-disable-next-line no-console
-      console.trace();
+      // HTTP errors reach the caller as ApiError (and 500/401 already notify);
+      // only log what the server never answered, like network failures.
+      if (!(error instanceof ApiError)) {
+        console.error(`Fetch error for ${endpoint}:`, error);
+      }
       throw error;
     }
   }
 
-  request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     return (this.constructor as typeof FetchClient).request<T>(endpoint, options);
   }
 
   get<T>(endpoint: string): Promise<T> {
     return (this.constructor as typeof FetchClient).request<T>(endpoint, { method: "GET" });
+  }
+
+  /** GET a file (e.g. a download) as a Blob, whatever Content-Type the server sends. */
+  getBlob(endpoint: string): Promise<Blob> {
+    return (this.constructor as typeof FetchClient).request<Blob>(endpoint, { method: "GET", responseType: "blob" });
   }
 
   post<T>(endpoint: string, data?: any): Promise<T> {
