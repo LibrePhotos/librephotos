@@ -6,15 +6,49 @@ on:
     paths:
       - 'apps/docs/**'
       - '.github/workflows/docs.yml'
+  # PRs only build, so onBrokenLinks: throw fails the PR instead of the deploy.
+  pull_request:
+    paths:
+      - 'apps/docs/**'
+      - '.github/workflows/docs.yml'
 
-# The gh-pages push uses the workflow token.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  build:
+    name: Build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/docs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/docs/.nvmrc
+          cache: yarn
+          cache-dependency-path: apps/docs/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Build website
+        run: yarn build
+
   deploy:
     name: Deploy to GitHub Pages
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # The gh-pages push uses the workflow token.
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: apps/docs
