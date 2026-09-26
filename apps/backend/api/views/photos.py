@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.mime import mime_type
+from api.metadata.jobs import queue_rating_write
 from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, File, Photo, User
 from api.models.photo_stack import PhotoStack
@@ -358,6 +359,17 @@ class SetPhotosFavorite(BulkPhotoMutationView):
 
     def new_values(self, user, value):
         return {"rating": user.favorite_min_rating if value else 0}
+
+    def apply(self, user, photos, value):
+        # Photo.save() writes a changed rating to the file or sidecar; this
+        # UPDATE skips save(), so the same write is queued as a job. The ids
+        # are taken first: afterwards the rating filter no longer matches.
+        photo_ids = []
+        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
+            photo_ids = list(photos.values_list("id", flat=True))
+        count = super().apply(user, photos, value)
+        queue_rating_write(user, photo_ids)
+        return count
 
 
 class SetPhotosHidden(BulkPhotoMutationView):
