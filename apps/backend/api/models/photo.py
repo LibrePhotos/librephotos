@@ -754,9 +754,18 @@ class Photo(models.Model):
 
     def _write_orientation_to_disk(self, angle: int, flip_horizontal: bool) -> None:
         """Write the combined orientation to the file / sidecar when the user
-        has opted into persisting metadata to disk."""
+        has opted into persisting metadata to disk.
+
+        A media-file write the renderer picks up is folded into the file (see
+        ``_fold_rotation_into_file``). Anything else keeps the rotation in
+        ``local_orientation`` and writes the tag for other viewers only.
+        """
         user = self.owner
         if user.save_metadata_to_disk == User.SaveMetadata.OFF:
+            return
+
+        use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
+        if not use_sidecar and self._fold_rotation_into_file():
             return
 
         from api.util import compose_orientation
@@ -777,8 +786,75 @@ class Photo(models.Model):
         write_metadata(
             self.main_file.path,
             {Tags.ORIENTATION: combined},
-            use_sidecar=user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE,
+            use_sidecar=use_sidecar,
         )
+
+    def _fold_rotation_into_file(self) -> bool:
+        """Move the rotation into the file's own EXIF Orientation (#2050).
+
+        Once the file carries the rotation, the renderer applies it by itself,
+        so ``local_orientation`` has to go back to 1 or every later thumbnail
+        rebuild applies it a second time. The value written is the one that
+        makes the file render exactly like the thumbnails ``rotate`` has just
+        rebuilt (``exif_orientation_showing``), so the stored perceptual hash
+        still matches the file and the next scan sees the same picture.
+
+        Only when
+
+        * the format's decode path honours an EXIF Orientation written into
+          it (``renders_exif_orientation``: not HEIC, AVIF, RAW, ...), and
+        * the value is really on disk afterwards. exiftool reports a failed
+          write (read-only library, locked file, unwritable format) on stdout
+          and PyExifTool does not raise, so the file is read back.
+
+        The file's own tag is the starting point, not ``PhotoMetadata.orientation``,
+        which the scan never fills in: a photo shot in portrait (EXIF 6) would
+        otherwise be written back as if it were upright.
+
+        Returns False, having written nothing, when the file cannot be folded
+        into, so the caller keeps the rotation in ``local_orientation`` as
+        before. Returns True once the write was attempted; a write that did not
+        land is logged and leaves ``local_orientation`` alone.
+        """
+        from api.metadata.writer import read_orientation
+        from api.thumbnails import exif_orientation_showing, renders_exif_orientation
+
+        path = self.main_file.path
+        if not renders_exif_orientation(path):
+            return False
+        on_disk = read_orientation(path)
+        if on_disk is None:
+            return False
+
+        combined = exif_orientation_showing(on_disk, self.local_orientation)
+        write_metadata(path, {Tags.ORIENTATION: combined}, use_sidecar=False)
+
+        written = read_orientation(path)
+        if written != combined:
+            logger.warning(
+                f"orientation {combined} was not written to {path} "
+                f"(the file says {written}); keeping the rotation in the database"
+            )
+            return True
+
+        self._adopt_written_orientation(combined)
+        return True
+
+    def _adopt_written_orientation(self, combined: int) -> None:
+        """Fold a confirmed media-file orientation write back into the DB.
+
+        The file's own EXIF now carries the whole rotation: ``local_orientation``
+        goes back to 1 so the renderer does not apply it twice, and
+        ``PhotoMetadata.orientation`` records what the file says.
+        """
+        if self.local_orientation != 1:
+            self.local_orientation = 1
+            self.save(save_metadata=False, update_fields=["local_orientation"])
+
+        metadata = getattr(self, "metadata", None)
+        if metadata is not None and metadata.orientation != combined:
+            metadata.orientation = combined
+            metadata.save(update_fields=["orientation"])
 
     def _set_embedded_media(self, obj):
         return obj.main_file.embedded_media

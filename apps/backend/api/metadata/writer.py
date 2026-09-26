@@ -35,3 +35,25 @@ def write_metadata(media_file, tags, use_sidecar=True):
     finally:
         if terminate_et:
             et.terminate()
+
+
+def read_orientation(media_file):
+    """The EXIF Orientation stored in *media_file* itself.
+
+    Reads the media file with exiftool directly, never a sidecar and never the
+    exif service, so it tells what a write just left on disk. ``write_metadata``
+    cannot: exiftool reports a failed write on stdout ("0 image files updated")
+    and PyExifTool does not raise on it.
+
+    A file without the tag is upright, so that reads as 1. Returns None when
+    the file cannot be read at all.
+    """
+    try:
+        with exiftool.ExifTool(binaries.exiftool()) as et:
+            value = et.get_tag("EXIF:Orientation", media_file)
+    except Exception:
+        logger.exception(f"could not read the orientation of {media_file}")
+        return None
+    if value is None:
+        return 1
+    return value if isinstance(value, int) else None
