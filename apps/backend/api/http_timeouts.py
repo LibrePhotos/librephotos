@@ -16,6 +16,9 @@ take on a slow but functioning server.
 CONNECT_TIMEOUT = 5
 
 HEALTH_CHECK = (CONNECT_TIMEOUT, 5)
+# Dropping ONNX sessions and trimming the heap; the sidecar may be finishing
+# a request first.
+UNLOAD_MODEL = (CONNECT_TIMEOUT, 30)
 EXIF = (CONNECT_TIMEOUT, 30)
 FACE = (CONNECT_TIMEOUT, 60)
 SIMILARITY = (CONNECT_TIMEOUT, 60)

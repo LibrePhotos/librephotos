@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from api import sidecars
 from api.models import Photo
 from api.sidecars import SERVICES, sidecar_url
 from api.util import logger
@@ -86,7 +87,24 @@ def disabled_reason(service):
     return "no model is selected for it in the site settings"
 
 
+# The Popen handle of every sidecar this process started. The watchdog runs
+# in whichever django-q worker picks up the schedule, and a child that is
+# killed stays a zombie until its parent waits for it.
+_processes = {}
+
+# The last /health body of each sidecar, for the idle check that follows it.
+_last_health = {}
+
+# A sidecar with a model loaded and no request for this long is asked to
+# unload it: the memory goes back without losing the process.
+IDLE_UNLOAD_SECONDS = 120
+
+# How long a sidecar has to exit after SIGTERM before it is killed.
+STOP_GRACE_SECONDS = 5
+
+
 def check_services():
+    _reap_exited()
     for service in SERVICES.keys():
         if not is_service_enabled(service):
             # Silent on purpose: this runs every minute, and startup already
@@ -97,19 +115,30 @@ def check_services():
             stop_service(service)
             logger.info(f"Restarting {service}")
             start_service(service)
+        else:
+            unload_idle_model(service)
 
 
 def is_healthy(service):
+    """Whether the sidecar answers its health check (or is busy, see below).
+
+    An idle sidecar is healthy: its memory is reclaimed by unload_idle_model,
+    not by a restart.
+    """
+    _last_health.pop(service, None)
     try:
         from api.http_timeouts import HEALTH_CHECK
 
         res = requests.get(sidecar_url(service, "/health"), timeout=HEALTH_CHECK)
-        # If response has timestamp, check if it needs to be restarted
-        if res.json().get("last_request_time") is not None:
-            if res.json()["last_request_time"] < time.time() - 120:
-                logger.info(f"Service {service} is stale and needs to be restarted")
-                return False
-        return res.status_code == HTTP_OK
+        if res.status_code != HTTP_OK:
+            return False
+        try:
+            body = res.json()
+        except ValueError:
+            body = None
+        if isinstance(body, dict):
+            _last_health[service] = body
+        return True
     except requests.RequestException as e:
         # The sidecars serve one request at a time, and a tag or embedding
         # batch takes far longer than the health probe allows, so a probe that
@@ -124,9 +153,45 @@ def is_healthy(service):
             return True
         logger.warning(f"Service {service} is not running: {e}")
         return False
-    except BaseException as e:
+    except Exception as e:
         logger.exception(f"Error checking health of {service}: {str(e)}")
         return False
+
+
+def unload_idle_model(service):
+    """Ask a sidecar idle for IDLE_UNLOAD_SECONDS to unload its model.
+
+    Reads the /health answer is_healthy just got; a sidecar that holds no
+    model reports ``model_loaded`` as None and is never asked.
+    """
+    health = _last_health.pop(service, None) or {}
+    last_request_time = health.get("last_request_time")
+    if health.get("model_loaded") is not True or last_request_time is None:
+        return False
+    if health.get("busy"):
+        return False
+    idle = time.time() - last_request_time
+    if idle < IDLE_UNLOAD_SECONDS:
+        return False
+
+    from api.http_timeouts import UNLOAD_MODEL
+
+    try:
+        sidecars.get(service, "/unload-model", timeout=UNLOAD_MODEL)
+    except requests.RequestException as e:
+        logger.warning(f"Service {service} could not unload its model: {e}")
+        return False
+    logger.info(f"Service {service} idle for {idle:.0f} s: unloaded its model")
+    return True
+
+
+def _reap_exited():
+    """Collect the exit status of sidecars this process started that ended."""
+    for service, process in list(_processes.items()):
+        returncode = process.poll()
+        if returncode is not None:
+            del _processes[service]
+            logger.info(f"Service '{service}' (PID {process.pid}) exited: {returncode}")
 
 
 def _service_process_running(service):
@@ -206,14 +271,17 @@ def start_service(service):
         logger.warning("Unknown service: %s", service)
         return False
 
-    subprocess.Popen(_service_command(service), env=_service_environment())
+    _processes[service] = subprocess.Popen(
+        _service_command(service), env=_service_environment()
+    )
 
     logger.info(f"Service '{service}' started successfully")
     return True
 
 
 def stop_service(service):
-    """Kill every process running the sidecar.
+    """Stop every process running the sidecar: SIGTERM, then SIGKILL for any
+    still there after STOP_GRACE_SECONDS.
 
     psutil rather than `ps | grep | kill`: the standalone build runs on Windows,
     where neither exists, and its sidecars are the binary itself, which no
@@ -221,7 +289,7 @@ def stop_service(service):
     """
     import psutil
 
-    stopped = False
+    processes = []
     try:
         for process in psutil.process_iter(["pid", "cmdline"]):
             if process.info["pid"] == os.getpid():
@@ -229,22 +297,40 @@ def stop_service(service):
             if not _is_service_process(process.info["cmdline"], service):
                 continue
             try:
-                process.kill()
-                stopped = True
-                logger.info(
-                    f"Service '{service}' with PID {process.info['pid']} stopped successfully"
-                )
+                process.terminate()
+                processes.append(process)
             except psutil.NoSuchProcess:
                 pass
             except psutil.Error as e:
                 logger.error(f"Failed to stop service '{service}': {e}")
+
+        # Waiting on a child also reaps it.
+        _, alive = psutil.wait_procs(processes, timeout=STOP_GRACE_SECONDS)
+        for process in alive:
+            logger.warning(
+                f"Service '{service}' with PID {process.info['pid']} ignored "
+                f"SIGTERM for {STOP_GRACE_SECONDS} s; killing it"
+            )
+            try:
+                process.kill()
+            except psutil.NoSuchProcess:
+                pass
+        psutil.wait_procs(alive, timeout=STOP_GRACE_SECONDS)
     except Exception as e:
         logger.error(f"An error occurred while stopping service '{service}': {e}")
         return False
+    finally:
+        handle = _processes.pop(service, None)
+        if handle is not None:
+            handle.poll()
 
-    if not stopped:
+    for process in processes:
+        logger.info(
+            f"Service '{service}' with PID {process.info['pid']} stopped successfully"
+        )
+    if not processes:
         logger.warning("Service '%s' is not running", service)
-    return stopped
+    return bool(processes)
 
 
 def cleanup_deleted_photos():
