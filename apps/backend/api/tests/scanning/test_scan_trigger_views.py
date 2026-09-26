@@ -221,20 +221,23 @@ class ScanPhotosViewHappyPathTest(ScanViewTestBase):
 
 
 class ScanPhotosViewErrorPathTest(ScanViewTestBase):
-    def test_chain_run_failure_returns_status_false_with_http_200(self):
+    def test_chain_run_failure_returns_500_with_a_message(self):
         response = self.call_view(ScanPhotosView, run_error=RuntimeError("broker down"))
 
-        # Quirk: the failure branch answers 200, not 500, and omits job_id.
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {"status": False})
-        self.logger_mock.exception.assert_called_once_with("An Error occurred")
+        # The job never started, so the request fails: 500, no job_id.
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.data,
+            {"status": False, "message": "Could not start the photo scan."},
+        )
+        self.logger_mock.exception.assert_called_once_with(
+            "Could not start the photo scan"
+        )
 
-    def test_non_exception_baseexception_is_also_swallowed(self):
-        # ``except BaseException`` catches KeyboardInterrupt/SystemExit too.
-        response = self.call_view(ScanPhotosView, run_error=KeyboardInterrupt())
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {"status": False})
+    def test_non_exception_baseexception_is_not_swallowed(self):
+        # ``except Exception``: KeyboardInterrupt/SystemExit propagate.
+        with self.assertRaises(KeyboardInterrupt):
+            self.call_view(ScanPhotosView, run_error=KeyboardInterrupt())
 
 
 class SelectiveScanPhotosViewTest(ScanViewTestBase):
@@ -285,14 +288,16 @@ class SelectiveScanPhotosViewTest(ScanViewTestBase):
         self.assertEqual(len(chain.appended), 2)
         self.assertIs(chain.appended[0][0][0], self.download_models_mock)
 
-    def test_chain_run_failure_returns_status_false(self):
+    def test_chain_run_failure_returns_500(self):
         response = self.call_view(
             SelectiveScanPhotosView, run_error=RuntimeError("boom")
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, {"status": False})
-        self.logger_mock.exception.assert_called_once_with("An Error occurred")
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(response.data["status"])
+        self.logger_mock.exception.assert_called_once_with(
+            "Could not start the photo scan"
+        )
 
     def test_view_only_exposes_get(self):
         # No POST handler exists on this view (unlike ScanPhotosView).

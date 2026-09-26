@@ -372,18 +372,34 @@ def _validate_scan_directory(user):
     return None
 
 
-def _start_photo_scan(user, directory):
-    chain = Chain()
-    if not do_all_models_exist():
-        chain.append(download_models, user)
+def start_job(enqueue, description):
+    """Queue a background job for a request and answer that request.
+
+    ``enqueue(job_id)`` hands the work to django-q2. When that fails (the
+    broker is unreachable, say) the job never started, and the client is told
+    so with a 500 rather than a 200 carrying ``"status": False``.
+    """
+    job_id = uuid.uuid4()
     try:
-        job_id = uuid.uuid4()
-        chain.append(scan_photos, user, False, job_id, directory)
+        enqueue(job_id)
+    except Exception:
+        logger.exception(f"Could not start {description}")
+        return Response(
+            {"status": False, "message": f"Could not start {description}."},
+            status=500,
+        )
+    return Response({"status": True, "job_id": job_id})
+
+
+def _start_photo_scan(user, directory, full_scan=False):
+    def enqueue(job_id):
+        chain = Chain()
+        if not do_all_models_exist():
+            chain.append(download_models, user)
+        chain.append(scan_photos, user, full_scan, job_id, directory)
         chain.run()
-        return Response({"status": True, "job_id": job_id})
-    except BaseException:
-        logger.exception("An Error occurred")
-        return Response({"status": False})
+
+    return start_job(enqueue, "the photo scan")
 
 
 class ScanPhotosView(APIView):
@@ -425,19 +441,9 @@ class FullScanPhotosView(APIView):
         return self._scan_photos(request)
 
     def _scan_photos(self, request):
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, request.user)
-        try:
-            job_id = uuid.uuid4()
-            chain.append(
-                scan_photos, request.user, True, job_id, request.user.scan_directory
-            )
-            chain.run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return _validate_scan_directory(request.user) or _start_photo_scan(
+            request.user, request.user.scan_directory, full_scan=True
+        )
 
 
 class DeleteMissingPhotosView(APIView):
@@ -452,40 +458,33 @@ class DeleteMissingPhotosView(APIView):
         return self._delete_missing_photos(request, format)
 
     def _delete_missing_photos(self, request, format=None):
-        try:
-            job_id = uuid.uuid4()
-            AsyncTask(delete_missing_photos, request.user, job_id).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return start_job(
+            lambda job_id: AsyncTask(delete_missing_photos, request.user, job_id).run(),
+            "the missing-photo cleanup",
+        )
 
 
 class ClassifyMediaView(APIView):
     def post(self, request, format=None):
         from api.directory_watcher.processing_jobs import classify_media
 
-        try:
-            job_id = uuid.uuid4()
-            AsyncTask(classify_media, request.user, job_id).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return start_job(
+            lambda job_id: AsyncTask(classify_media, request.user, job_id).run(),
+            "media classification",
+        )
 
 
 class GenerateOcrView(APIView):
     def post(self, request, format=None):
         from api.directory_watcher.processing_jobs import generate_ocr
 
-        try:
-            job_id = uuid.uuid4()
-            full_scan = bool(request.data.get("full_scan", False))
-            AsyncTask(generate_ocr, request.user, job_id, full_scan).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        full_scan = bool(request.data.get("full_scan", False))
+        return start_job(
+            lambda job_id: AsyncTask(
+                generate_ocr, request.user, job_id, full_scan
+            ).run(),
+            "text recognition",
+        )
 
 
 class MediaAccessView(APIView):
