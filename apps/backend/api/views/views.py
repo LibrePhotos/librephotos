@@ -32,7 +32,7 @@ from rest_framework.views import APIView, exception_handler
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
-from api.all_tasks import create_download_job, delete_zip_file
+from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
 from api.api_util import get_search_term_examples
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
@@ -1151,7 +1151,9 @@ class UnifiedMediaAccessView(APIView):
         if token is None:
             return self._forbidden_unauthenticated()
         try:
-            filename = fname + str(token["user_id"]) + ".zip"
+            filename = zip_file_name(fname, token["user_id"])
+            if filename is None:
+                return HttpResponse(status=404)
             if use_proxy:
                 response = HttpResponse()
                 response["Content-Type"] = "application/x-zip-compressed"
@@ -1397,7 +1399,7 @@ class ZipListPhotosView_V2(APIView):
         if free_storage < total_file_size:
             return Response(data={"status": "Insufficient Storage"}, status=507)
         file_uuid = uuid.uuid4()
-        filename = str(str(file_uuid) + str(self.request.user.id) + ".zip")
+        filename = zip_file_name(file_uuid, self.request.user.id)
 
         job_id = create_download_job(
             LongRunningJob.JOB_DOWNLOAD_PHOTOS,
@@ -1410,38 +1412,31 @@ class ZipListPhotosView_V2(APIView):
         return Response(data=response, status=200)
 
     def get(self, request):
-        job_id = request.GET["job_id"]
-        print(job_id)
-        if job_id is None:
+        job_id = request.GET.get("job_id")
+        if not job_id:
+            return Response(data={"error": "job_id is required"}, status=400)
+        # Only the user who started the download may poll it (see api/views/jobs.py).
+        job = LongRunningJob.objects.filter(
+            job_id=job_id, started_by=request.user
+        ).first()
+        if job is None:
             return Response(status=404)
-        try:
-            job = LongRunningJob.objects.get(job_id=job_id)
-            if job.finished:
-                return Response(data={"status": "SUCCESS"}, status=200)
-            elif job.failed:
-                return Response(
-                    data={"status": "FAILURE", "result": job.result}, status=500
-                )
-            else:
-                return Response(
-                    data={"status": "PENDING", "progress": job.result}, status=202
-                )
-        except BaseException as e:
-            logger.error(str(e))
-            return Response(status=404)
+        if job.finished:
+            return Response(data={"status": "SUCCESS"}, status=200)
+        if job.failed:
+            return Response(
+                data={"status": "FAILURE", "result": job.result}, status=500
+            )
+        return Response(data={"status": "PENDING", "progress": job.result}, status=202)
 
 
 class DeleteZipView(APIView):
     def delete(self, request, fname):
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:
-            try:
-                token = AccessToken(jwt)
-            except TokenError:
-                return HttpResponseForbidden()
-        else:
-            return HttpResponseForbidden()
-        filename = fname + str(token["user_id"]) + ".zip"
+        # The archive is named after the authenticated requester, so a user can
+        # only ever name their own file; fname itself must be the job's UUID.
+        filename = zip_file_name(fname, request.user.id)
+        if filename is None:
+            return Response(status=404)
         try:
             delete_zip_file(filename)
             return Response(status=200)

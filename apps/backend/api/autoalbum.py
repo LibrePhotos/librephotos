@@ -56,7 +56,7 @@ def generate_event_albums(user, job_id):
 
     try:
         photos = (
-            Photo.objects.filter(Q(owner=user))
+            Photo.objects.owned_by(user)
             .exclude(Q(exif_timestamp=None))
             .only("exif_timestamp", "exif_gps_lat", "exif_gps_lon")
         )
@@ -222,9 +222,9 @@ def delete_missing_photos(user, job_id):
     )
     try:
         missing_pks = list(
-            Photo.objects.filter(
-                Q(owner=user) & (Q(files=None) | Q(main_file=None))
-            ).values_list("pk", flat=True)
+            Photo.objects.owned_by(user)
+            .filter(Q(files=None) | Q(main_file=None))
+            .values_list("pk", flat=True)
         )
         target = len(missing_pks)
         lrj.update_progress(current=0, target=target)

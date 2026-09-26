@@ -139,9 +139,11 @@ def _detect_bursts_hard_criteria(user, hard_rules, progress_callback=None):
     from api.metadata.reader import get_metadata
 
     # Get all photos that could be in bursts
-    photos = Photo.objects.filter(
-        Q(owner=user) & Q(hidden=False) & Q(in_trashcan=False)
-    ).select_related("main_file", "metadata")
+    photos = (
+        Photo.objects.owned_by(user)
+        .filter(Q(hidden=False) & Q(in_trashcan=False))
+        .select_related("main_file", "metadata")
+    )
 
     total = photos.count()
     if total == 0:
@@ -212,11 +214,9 @@ def _detect_bursts_soft_criteria(
     """
     # Get photos ordered by timestamp (needed for proximity detection)
     photos = (
-        Photo.objects.filter(
-            Q(owner=user)
-            & Q(exif_timestamp__isnull=False)
-            & Q(hidden=False)
-            & Q(in_trashcan=False)
+        Photo.objects.owned_by(user)
+        .filter(
+            Q(exif_timestamp__isnull=False) & Q(hidden=False) & Q(in_trashcan=False)
         )
         .order_by("exif_timestamp")
         .select_related("main_file", "metadata")

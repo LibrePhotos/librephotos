@@ -406,7 +406,7 @@ urlpatterns = [
         name="media",
     ),
     re_path(
-        r"^api/delete/zip/(?P<fname>.*)",
+        r"^api/delete/zip/(?P<fname>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/?$",
         views.DeleteZipView.as_view(),
         name="delete-zip",
     ),

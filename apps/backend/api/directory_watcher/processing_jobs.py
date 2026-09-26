@@ -124,13 +124,10 @@ def _untagged_photos(user):
 
     tagging_model = site_config.TAGGING_MODEL
 
-    return Photo.objects.filter(
-        Q(owner=user.id)
-        & (
-            Q(caption_instance__isnull=True)
-            | Q(caption_instance__captions_json__isnull=True)
-            | Q(**{f"caption_instance__captions_json__{tagging_model}__isnull": True})
-        )
+    return Photo.objects.owned_by(user).filter(
+        Q(caption_instance__isnull=True)
+        | Q(caption_instance__captions_json__isnull=True)
+        | Q(**{f"caption_instance__captions_json__{tagging_model}__isnull": True})
     )
 
 
@@ -284,7 +281,7 @@ def generate_ocr(user, job_id: UUID, full_scan=False):
             .first()
         )
 
-        existing_photos = Photo.objects.filter(owner=user.id).filter(video=False)
+        existing_photos = Photo.objects.owned_by(user).filter(video=False)
         if not full_scan:
             # Skip photos already OCR'd with the active model (idempotency).
             existing_photos = existing_photos.exclude(ocr__engine=ocr_model)
@@ -484,7 +481,7 @@ def classify_media(user, job_id: UUID):
         # select_related the OCR row so the per-photo is_document derivation does
         # not issue an extra query just to discover whether OCR exists.
         existing_photos = (
-            Photo.objects.filter(owner=user.id)
+            Photo.objects.owned_by(user)
             .exclude(category_source="user")
             .select_related("ocr")
         )
@@ -573,7 +570,7 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
 
     try:
         existing_photos = _limit_to_photos_added_since_last_scan(
-            Photo.objects.filter(owner=user.id),
+            Photo.objects.owned_by(user),
             user,
             LongRunningJob.JOB_ADD_GEOLOCATION,
             full_scan,
@@ -642,9 +639,7 @@ def scan_faces(user, job_id: UUID, full_scan=False):
 
     try:
         existing_photos = _limit_to_photos_added_since_last_scan(
-            Photo.objects.filter(
-                Q(owner=user.id) & Q(thumbnail__thumbnail_big__isnull=False)
-            ),
+            Photo.objects.owned_by(user).filter(thumbnail__thumbnail_big__isnull=False),
             user,
             LongRunningJob.JOB_SCAN_FACES,
             full_scan,

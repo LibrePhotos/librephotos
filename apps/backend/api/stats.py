@@ -242,16 +242,16 @@ def get_server_stats():
 
 
 def get_count_stats(user):
-    num_photos = Photo.visible.filter(Q(owner=user)).distinct().count()
+    num_photos = Photo.visible.owned_by(user).distinct().count()
     num_screenshots = (
-        Photo.visible.filter(Q(owner=user) & Q(is_screenshot=True)).distinct().count()
+        Photo.visible.owned_by(user).filter(is_screenshot=True).distinct().count()
     )
     num_documents = (
-        Photo.visible.filter(Q(owner=user) & Q(is_document=True)).distinct().count()
+        Photo.visible.owned_by(user).filter(is_document=True).distinct().count()
     )
-    num_missing_photos = Photo.objects.filter(
-        Q(owner=user) & (Q(files=None) | Q(main_file=None))
-    ).count()
+    num_missing_photos = (
+        Photo.objects.owned_by(user).filter(Q(files=None) | Q(main_file=None)).count()
+    )
     num_faces = Face.objects.filter(photo__owner=user).count()
     num_unknown_faces = Face.objects.filter(
         (
@@ -320,7 +320,7 @@ def get_count_stats(user):
 
 def get_photo_month_counts(user):
     counts = (
-        Photo.objects.filter(owner=user)
+        Photo.objects.owned_by(user)
         .exclude(exif_timestamp=None)
         .annotate(month=TruncMonth("exif_timestamp"))
         .values("month")
@@ -425,7 +425,7 @@ def get_searchterms_wordcloud(user):
     tagging_model = site_config.TAGGING_MODEL
     captions = _LabelTally()
     captions_iter = (
-        Photo.objects.filter(owner=user)
+        Photo.objects.owned_by(user)
         .exclude(caption_instance__captions_json__isnull=True)
         .values_list("caption_instance__captions_json", flat=True)
         .iterator(chunk_size=2000)
@@ -441,7 +441,7 @@ def get_searchterms_wordcloud(user):
     # Locations: parse geolocation_json, ignore postcode and poi, one word per photo
     locations = _LabelTally()
     geo_iter = (
-        Photo.objects.filter(owner=user)
+        Photo.objects.owned_by(user)
         .exclude(geolocation_json=None)
         .values_list("geolocation_json", flat=True)
         .iterator(chunk_size=2000)
@@ -478,7 +478,7 @@ def get_location_sunburst(user):
     counter = Counter()
     # Stream results to avoid caching entire queryset in memory
     photo_geo_iter = (
-        Photo.objects.filter(owner=user)
+        Photo.objects.owned_by(user)
         .exclude(geolocation_json=None)
         .values_list("geolocation_json", flat=True)
         .iterator(chunk_size=2000)
@@ -556,7 +556,7 @@ def get_location_clusters(user):
     results_by_location = {}
     # Stream results to avoid large memory usage
     photo_geo_iter = (
-        Photo.objects.filter(owner=user)
+        Photo.objects.owned_by(user)
         .exclude(geolocation_json=None)
         .values_list("geolocation_json", flat=True)
         .iterator(chunk_size=2000)
@@ -594,7 +594,7 @@ def get_location_timeline(user):
 
     # Stream through photos ordered by exif_timestamp
     qs = (
-        Photo.objects.filter(owner=user)
+        Photo.objects.owned_by(user)
         .exclude(exif_timestamp=None)
         .order_by("exif_timestamp")
         .values_list("geolocation_json", "exif_timestamp")

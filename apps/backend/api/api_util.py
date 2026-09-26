@@ -64,7 +64,7 @@ def get_search_term_examples(user):
     ]
 
     possible_ids = list(
-        Photo.objects.filter(owner=user)
+        Photo.objects.owned_by(user)
         .exclude(caption_instance__captions_json={})
         .exclude(caption_instance__captions_json__isnull=True)[:1000]
         .values_list("image_hash", flat=True)
@@ -74,7 +74,7 @@ def get_search_term_examples(user):
     logger.info(f"{len(possible_ids)} possible ids")
     try:
         samples = (
-            Photo.objects.filter(owner=user)
+            Photo.objects.owned_by(user)
             .exclude(caption_instance__captions_json={})
             .exclude(caption_instance__captions_json__isnull=True)
             .filter(image_hash__in=possible_ids)

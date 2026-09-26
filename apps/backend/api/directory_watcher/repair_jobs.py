@@ -65,8 +65,8 @@ def repair_ungrouped_file_variants(user, job_id: UUID):
 
     try:
         # Find Photos where main_file is RAW (potential orphans)
-        raw_only_photos = Photo.objects.filter(
-            owner=user, main_file__type=File.RAW_FILE
+        raw_only_photos = Photo.objects.owned_by(user).filter(
+            main_file__type=File.RAW_FILE
         )
 
         lrj.update_progress(current=0, target=raw_only_photos.count())

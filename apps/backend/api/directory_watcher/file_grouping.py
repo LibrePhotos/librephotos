@@ -84,7 +84,9 @@ def find_matching_jpeg_photo(raw_path: str, user) -> Photo | None:
         # Try both lowercase and uppercase extensions
         for ext in [jpeg_ext, jpeg_ext.upper()]:
             jpeg_path = os.path.join(raw_dir, raw_basename + ext)
-            photo = Photo.objects.filter(owner=user, main_file__path=jpeg_path).first()
+            photo = (
+                Photo.objects.owned_by(user).filter(main_file__path=jpeg_path).first()
+            )
             if photo:
                 return photo
 
@@ -118,7 +120,9 @@ def find_matching_image_for_video(video_path: str, user) -> Photo | None:
     for img_ext in image_extensions:
         for ext in [img_ext, img_ext.upper()]:
             image_path = os.path.join(video_dir, video_basename + ext)
-            photo = Photo.objects.filter(owner=user, main_file__path=image_path).first()
+            photo = (
+                Photo.objects.owned_by(user).filter(main_file__path=image_path).first()
+            )
             if photo:
                 return photo
 

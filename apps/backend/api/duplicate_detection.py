@@ -145,9 +145,9 @@ def detect_exact_copies(user, progress_callback=None):
     # Method 1: Find duplicate groups by Photo.image_hash using database aggregation
     # This is memory efficient as we only load photo IDs grouped by hash
     image_hash_groups = (
-        Photo.objects.filter(
-            Q(owner=user)
-            & Q(hidden=False)
+        Photo.objects.owned_by(user)
+        .filter(
+            Q(hidden=False)
             & Q(in_trashcan=False)
             & Q(removed=False)
             & Q(image_hash__isnull=False)
@@ -198,13 +198,14 @@ def detect_exact_copies(user, progress_callback=None):
     for i, image_hash in enumerate(image_hash_list):
         # Only load photo IDs, not full Photo objects
         photo_ids = list(
-            Photo.objects.filter(
-                owner=user,
+            Photo.objects.owned_by(user)
+            .filter(
                 image_hash=image_hash,
                 hidden=False,
                 in_trashcan=False,
                 removed=False,
-            ).values_list("id", flat=True)
+            )
+            .values_list("id", flat=True)
         )
 
         if len(photo_ids) >= 2:
@@ -219,8 +220,8 @@ def detect_exact_copies(user, progress_callback=None):
     for i, content_hash in enumerate(file_hash_duplicates):
         # Find photos with files matching this content hash
         photo_ids = list(
-            Photo.objects.filter(
-                owner=user,
+            Photo.objects.owned_by(user)
+            .filter(
                 hidden=False,
                 in_trashcan=False,
                 removed=False,
@@ -301,9 +302,9 @@ def detect_visual_duplicates(
     # Get photos with perceptual hash that aren't already in visual duplicate groups
     # Exclude removed photos to avoid including merged/deleted duplicates
     photos_queryset = (
-        Photo.objects.filter(
-            Q(owner=user)
-            & Q(hidden=False)
+        Photo.objects.owned_by(user)
+        .filter(
+            Q(hidden=False)
             & Q(in_trashcan=False)
             & Q(removed=False)
             & Q(perceptual_hash__isnull=False)

@@ -76,7 +76,7 @@ NOT_PHOTO_SCOPED = {
     "api/auth/": "authentication",
     "api/nextcloud/": "the requester's own Nextcloud credentials",
     "api/geocode/search": "stateless lookup",
-    "api/delete/zip/": "zip files are named by the requester's own user id",
+    "api/delete/zip/": "only the requester's own <uuid><user id>.zip (test_zip_and_photo_scope)",
     "api/django-admin/": "Django admin, staff only",
     "api/accounts/": "allauth account pages",
 }

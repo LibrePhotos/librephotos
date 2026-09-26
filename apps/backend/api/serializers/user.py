@@ -4,7 +4,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import identify_hasher
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.db.models import Q
 from django_q.tasks import Chain
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -381,14 +380,14 @@ class UserSerializer(serializers.ModelSerializer):
         chain.run()
 
     def get_photo_count(self, obj) -> int:
-        return Photo.objects.filter(owner=obj).count()
+        return Photo.objects.owned_by(obj).count()
 
     def get_public_photo_count(self, obj) -> int:
-        return Photo.objects.filter(Q(owner=obj) & Q(public=True)).count()
+        return Photo.objects.owned_by(obj).filter(public=True).count()
 
     def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
         return PhotoSuperSimpleSerializer(
-            Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10], many=True
+            Photo.objects.owned_by(obj).filter(public=True)[:10], many=True
         ).data
 
     def get_avatar_url(self, obj) -> str or None:
@@ -422,11 +421,11 @@ class PublicUserSerializer(serializers.ModelSerializer):
         )
 
     def get_public_photo_count(self, obj) -> int:
-        return Photo.objects.filter(Q(owner=obj) & Q(public=True)).count()
+        return Photo.objects.owned_by(obj).filter(public=True).count()
 
     def get_public_photo_samples(self, obj) -> PhotoSuperSimpleSerializer(many=True):
         return PhotoSuperSimpleSerializer(
-            Photo.objects.filter(Q(owner=obj) & Q(public=True))[:10], many=True
+            Photo.objects.owned_by(obj).filter(public=True)[:10], many=True
         ).data
 
     def get_avatar_url(self, obj) -> str or None:
@@ -554,7 +553,7 @@ class ManageUserSerializer(serializers.ModelSerializer):
         }
 
     def get_photo_count(self, obj) -> int:
-        return Photo.objects.filter(owner=obj).count()
+        return Photo.objects.owned_by(obj).count()
 
     def update(self, instance: User, validated_data):
         if "password" in validated_data:
