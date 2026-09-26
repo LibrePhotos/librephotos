@@ -2,11 +2,12 @@
 Utility functions for directory scanning and job management.
 """
 
+import copy
 import os
 import stat
 
 from constance import config as site_config
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 
 from api import util
@@ -25,6 +26,11 @@ CANCELLATION_CHECK_INTERVAL = 100
 FAILURE_ERROR_FLOOR = 10  # absolute floor — below this, never sticky
 FAILURE_ERROR_RATE = 0.05  # otherwise: failed if errors exceed 5% of target
 
+# Every failed compare-and-swap in ``update_job_result`` means another worker's
+# write landed, so the job as a whole always makes progress; the bound only
+# stops one unlucky worker from spinning forever under a pathological storm.
+RESULT_UPDATE_ATTEMPTS = 50
+
 
 def _exceeds_failure_threshold(error_count: int, target: int) -> bool:
     """Return True when aggregate errors should mark ``job.failed`` as True."""
@@ -34,17 +40,23 @@ def _exceeds_failure_threshold(error_count: int, target: int) -> bool:
     return error_count > threshold
 
 
-def should_skip(path):
-    """Check if a path should be skipped based on configured patterns."""
-    if not site_config.SKIP_PATTERNS:
-        return False
-
+def _skip_patterns():
+    """Parse the ``SKIP_PATTERNS`` site setting (one DB read)."""
     skip_patterns = site_config.SKIP_PATTERNS
-    skip_list = skip_patterns.split(",")
-    skip_list = map(str.strip, skip_list)
+    if not skip_patterns:
+        return []
+    return [pattern.strip() for pattern in skip_patterns.split(",")]
 
-    res = [ele for ele in skip_list if (ele in path)]
-    return bool(res)
+
+def should_skip(path, skip_list=None):
+    """Check if a path should be skipped based on configured patterns.
+
+    ``skip_list`` is the parsed setting; a directory walk passes it in so the
+    setting is read once per walk instead of once per entry.
+    """
+    if skip_list is None:
+        skip_list = _skip_patterns()
+    return any(pattern in path for pattern in skip_list)
 
 
 if os.name == "Windows":
@@ -76,24 +88,49 @@ def walk_directory(directory, callback):
     - or contain - a link to a mounted share. An entry that is neither a real
     directory nor a real file (a dangling link, a socket, a fifo) is skipped:
     handing it to the photo pipeline only produces an unopenable path that
-    fails the whole scan job.
+    fails the whole scan job. A link back to a directory that is already being
+    walked (a symlink loop) is skipped too, or the walk would never end.
 
     Args:
         directory: Directory to scan
         callback: List to append file paths to
     """
-    for file in os.scandir(directory):
-        fpath = os.path.join(directory, file)
-        if is_hidden(fpath) or should_skip(fpath):
-            continue
-        if os.path.isdir(fpath):
-            walk_directory(fpath, callback)
-        elif os.path.isfile(fpath):
-            callback.append(fpath)
-        else:
-            util.logger.warning(
-                f"skipping {fpath}: neither a file nor a directory (broken symlink?)"
-            )
+    _walk_directory(directory, callback, _skip_patterns(), set())
+
+
+def _directory_identity(path):
+    """Identify a directory by what it resolves to, not by the path taken to it."""
+    st = os.stat(path)
+    if st.st_ino:
+        return (st.st_dev, st.st_ino)
+    # Some network filesystems report no inode numbers.
+    return os.path.normcase(os.path.realpath(path))
+
+
+def _walk_directory(directory, callback, skip_list, ancestors):
+    identity = _directory_identity(directory)
+    if identity in ancestors:
+        util.logger.warning(
+            f"skipping {directory}: symlink loop back to a directory already "
+            "being scanned"
+        )
+        return
+    ancestors.add(identity)
+    try:
+        for file in os.scandir(directory):
+            fpath = os.path.join(directory, file)
+            if is_hidden(fpath) or should_skip(fpath, skip_list):
+                continue
+            if os.path.isdir(fpath):
+                _walk_directory(fpath, callback, skip_list, ancestors)
+            elif os.path.isfile(fpath):
+                callback.append(fpath)
+            else:
+                util.logger.warning(
+                    f"skipping {fpath}: neither a file nor a directory (broken symlink?)"
+                )
+    finally:
+        ancestors.discard(identity)
 
 
 def walk_files(scan_files, callback):
@@ -126,6 +163,105 @@ def is_job_cancelled(job_id) -> bool:
     return LongRunningJob.objects.filter(job_id=job_id, cancelled=True).exists()
 
 
+def update_job_result(job_id, mutate):
+    """Apply ``mutate`` to a job's ``result`` JSON without losing concurrent writes.
+
+    Many workers report into one job row at once. A plain read-modify-write
+    lets a worker that writes between another's read and save wipe out that
+    save. ``select_for_update`` would serialize them on PostgreSQL but is a
+    no-op on SQLite (the Windows standalone build, dev_windows and the test
+    suite), so this is a compare-and-swap instead: the write only lands if
+    ``result`` is still what was read, otherwise it re-reads and re-applies.
+
+    ``mutate(result, job)`` edits ``result`` (a private copy) in place and
+    returns a dict of other fields to write with it. Returns the job as read
+    for the successful write, or ``None`` if the job is gone or cancelled.
+    """
+    for _ in range(RESULT_UPDATE_ATTEMPTS):
+        job = LongRunningJob.objects.filter(job_id=job_id).first()
+        if job is None or job.cancelled:
+            return None
+        read = job.result
+        result = copy.deepcopy(read) if isinstance(read, dict) else {}
+        other_fields = mutate(result, job) or {}
+        unchanged = Q(result__isnull=True) if read is None else Q(result=read)
+        written = LongRunningJob.objects.filter(
+            unchanged, pk=job.pk, cancelled=False
+        ).update(result=result, **other_fields)
+        if written:
+            return job
+    util.logger.error(
+        f"job {job_id}: gave up updating its result after "
+        f"{RESULT_UPDATE_ATTEMPTS} conflicting writes"
+    )
+    return None
+
+
+def _record_error(result, error, target):
+    """Add one failed item to ``result``; return whether the job counts as failed.
+
+    ``error_count`` tracks the aggregate (uncapped); the ``errors`` list itself
+    is capped at 100 to prevent unbounded growth, so its length under-reports.
+    """
+    result["error_count"] = result.get("error_count", 0) + 1
+    if "errors" not in result:
+        result["errors"] = []
+    if error:
+        error_str = str(error)
+        # Avoid duplicate errors (limit to last 100 to prevent unbounded growth)
+        if error_str not in result["errors"]:
+            result["errors"].append(error_str)
+            if len(result["errors"]) > 100:
+                result["errors"] = result["errors"][-100:]
+    # Set main error field for backward compatibility
+    if "error" not in result and error:
+        result["error"] = str(error)
+    elif "error" not in result and result.get("errors"):
+        result["error"] = result["errors"][0]  # Use first error as main error
+
+    job_failed = _exceeds_failure_threshold(result["error_count"], target)
+    result["status"] = "failed" if job_failed else "partial_failure"
+    return job_failed
+
+
+def finish_job_if_complete(job_id) -> bool:
+    """Mark the job finished once its progress has reached the target.
+
+    The conditional UPDATE is the whole transition, so it happens exactly once:
+    of any number of callers racing past the target, only the one whose UPDATE
+    flips ``finished`` gets a row back, and only that one runs the job's
+    completion hook. Returns whether this call finished the job.
+    """
+    finished = LongRunningJob.objects.filter(
+        job_id=job_id,
+        finished=False,
+        cancelled=False,
+        progress_current__gte=F("progress_target"),
+    ).update(finished=True, finished_at=timezone.now())
+    if not finished:
+        return False
+    _on_job_finished(job_id)
+    return True
+
+
+def _on_job_finished(job_id):
+    """Start whatever had to wait for this job's work to be done."""
+    job_type = (
+        LongRunningJob.objects.filter(job_id=job_id)
+        .values_list("job_type", flat=True)
+        .first()
+    )
+    if job_type != LongRunningJob.JOB_SCAN_PHOTOS:
+        return
+    # Imported here because scan_jobs imports this module.
+    from api.directory_watcher.scan_jobs import queue_scan_followups
+
+    try:
+        queue_scan_followups(job_id)
+    except Exception:
+        util.logger.exception(f"job {job_id}: could not queue the scan follow-ups")
+
+
 def update_scan_counter(job_id, failed=False, error=None):
     """
     Update the progress counter for a long-running job.
@@ -138,57 +274,17 @@ def update_scan_counter(job_id, failed=False, error=None):
         failed: Whether this item failed processing
         error: Error message if failed
     """
-    # Increment the current progress and get the updated job
     LongRunningJob.objects.filter(job_id=job_id).update(
         progress_current=F("progress_current") + 1
     )
 
-    # Refetch the job to get the updated progress_current value
-    job = LongRunningJob.objects.filter(job_id=job_id).first()
-    if not job:
-        return
-
-    # If job has been cancelled, stop processing
-    if job.cancelled:
-        return
-
-    is_finishing = job.progress_current >= job.progress_target
-    result = job.result or {}
-
-    # Accumulate this item's error, if any. ``error_count`` tracks the
-    # aggregate (uncapped) — the ``errors`` list itself is capped at 100
-    # to prevent unbounded growth, so its length under-reports.
     if failed or error:
-        result["error_count"] = result.get("error_count", 0) + 1
-        if "errors" not in result:
-            result["errors"] = []
-        if error:
-            error_str = str(error)
-            # Avoid duplicate errors (limit to last 100 to prevent unbounded growth)
-            if error_str not in result["errors"]:
-                result["errors"].append(error_str)
-                if len(result["errors"]) > 100:
-                    result["errors"] = result["errors"][-100:]
-        # Set main error field for backward compatibility
-        if "error" not in result and error:
-            result["error"] = str(error)
-        elif "error" not in result and result.get("errors"):
-            result["error"] = result["errors"][0]  # Use first error as main error
 
-    job_failed = _exceeds_failure_threshold(
-        result.get("error_count", 0), job.progress_target
-    )
+        def add_error(result, job):
+            return {"failed": _record_error(result, error, job.progress_target)}
 
-    if is_finishing:
-        if result.get("error_count", 0) > 0:
-            result["status"] = "failed" if job_failed else "partial_failure"
-        job.finished = True
-        job.finished_at = timezone.now()
-        job.failed = job_failed
-        job.result = result
-        job.save(update_fields=["finished", "finished_at", "failed", "result"])
-    elif failed or error:
-        result["status"] = "partial_failure"
-        job.result = result
-        job.failed = job_failed
-        job.save(update_fields=["failed", "result"])
+        if update_job_result(job_id, add_error) is None:
+            # Gone, or cancelled: a cancelled job keeps its "cancelled" result.
+            return
+
+    finish_job_if_complete(job_id)

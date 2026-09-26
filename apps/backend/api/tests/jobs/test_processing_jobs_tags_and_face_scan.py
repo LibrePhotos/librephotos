@@ -46,10 +46,10 @@ class GenerateTagsCharacterizationTest(TestCase):
         self.assertEqual(async_task.call_count, 3)
         queued = set()
         for call in async_task.call_args_list:
-            func, photo, job_id = call.args
+            func, photo_id, job_id = call.args
             self.assertIs(func, processing_jobs.generate_tag_job)
             self.assertEqual(job_id, self.job_id)
-            queued.add(photo.pk)
+            queued.add(photo_id)
         self.assertEqual(queued, {p.pk for p in photos})
 
         job = _job(self.job_id)
@@ -88,7 +88,7 @@ class GenerateTagsCharacterizationTest(TestCase):
         # Only the photo missing a "mobileclip_s2" key is queued: a caption row
         # for a *different* model does not count as tagged.
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1].pk, pending.pk)
+        self.assertEqual(async_task.call_args.args[1], pending.pk)
         self.assertEqual(_job(self.job_id).progress_target, 1)
 
     @override_config(TAGGING_MODEL="siglip2")
@@ -103,7 +103,7 @@ class GenerateTagsCharacterizationTest(TestCase):
             generate_tags(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1].pk, places.pk)
+        self.assertEqual(async_task.call_args.args[1], places.pk)
 
     @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_other_users_photos_are_not_touched(self):
@@ -115,7 +115,7 @@ class GenerateTagsCharacterizationTest(TestCase):
             generate_tags(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1].pk, mine.pk)
+        self.assertEqual(async_task.call_args.args[1], mine.pk)
 
     # ---- incremental vs full scan -----------------------------------
 
@@ -140,7 +140,7 @@ class GenerateTagsCharacterizationTest(TestCase):
             generate_tags(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1].pk, new.pk)
+        self.assertEqual(async_task.call_args.args[1], new.pk)
 
     @override_config(TAGGING_MODEL="mobileclip_s2")
     def test_full_scan_ignores_last_scan_cutoff(self):

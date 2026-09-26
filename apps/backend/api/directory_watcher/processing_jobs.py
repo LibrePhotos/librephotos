@@ -35,11 +35,15 @@ def _encode_face(face: Face, job_id: UUID):
     try:
         face.generate_encoding()
     except Exception as err:
-        util.logger.exception("An error occurred: ")
-        print(f"[ERR]: {err}")
+        util.logger.exception(f"Could not generate an encoding for face {face.id}")
         failed = True
         error = f"Face {face.id}: {str(err)}\n{traceback.format_exc()}"
     update_scan_counter(job_id, failed, error)
+
+
+def _faces_missing_encoding(user):
+    """Faces on ``user``'s photos that have no encoding yet."""
+    return Face.objects.filter(photo__in=Photo.objects.owned_by(user), encoding="")
 
 
 def generate_face_embeddings(user, job_id: UUID):
@@ -50,7 +54,7 @@ def generate_face_embeddings(user, job_id: UUID):
         user: The user whose faces to process
         job_id: Job ID for tracking progress
     """
-    if Face.objects.filter(encoding="").count() == 0:
+    if not _faces_missing_encoding(user).exists():
         return
 
     lrj = LongRunningJob.get_or_create_job(
@@ -60,7 +64,7 @@ def generate_face_embeddings(user, job_id: UUID):
     )
 
     try:
-        faces = Face.objects.filter(encoding="")
+        faces = _faces_missing_encoding(user)
         lrj.update_progress(current=0, target=faces.count())
         db.connections.close_all()
 
@@ -73,7 +77,6 @@ def generate_face_embeddings(user, job_id: UUID):
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print(f"[ERR]: {err}")
         lrj.fail(error=err)
 
 
@@ -112,9 +115,40 @@ def _scan_cancelled(idx: int, job_id, message: str) -> bool:
     return False
 
 
+def _queue_per_photo_tasks(task, photos, job_id, cancelled_message: str):
+    """Queue ``task(photo_id, job_id)`` for each photo.
+
+    The queue gets primary keys, not pickled ``Photo`` instances: the payload
+    stays small and the worker works on the row as it is when the task runs.
+    """
+    photo_ids = photos.values_list("pk", flat=True)
+    for idx, photo_id in enumerate(photo_ids):
+        if _scan_cancelled(idx, job_id, cancelled_message):
+            return
+        AsyncTask(task, photo_id, job_id).run()
+
+
+def _photo_for_task(photo_id, job_id) -> Photo | None:
+    """Load the photo a queued per-photo task is for, or ``None`` to skip it.
+
+    Cancelling a job only stops more tasks from being queued, so a task still
+    in the queue checks the flag itself and does nothing for a cancelled job.
+    A photo deleted since it was queued still counts toward the job, so the
+    job can reach its target and finish.
+    """
+    if is_job_cancelled(job_id):
+        return None
+    # Tasks queued before the switch to ids carry the Photo itself.
+    photo_id = getattr(photo_id, "pk", photo_id)
+    photo = Photo.objects.filter(pk=photo_id).first()
+    if photo is None:
+        util.logger.info(f"Photo {photo_id} is gone, nothing to do for job {job_id}")
+        update_scan_counter(job_id)
+    return photo
+
+
 def _record_photo_error(photo: Photo, err: Exception) -> str:
     util.logger.exception("An error occurred: ")
-    print(f"[ERR]: {err}")
     return f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
 
 
@@ -156,34 +190,33 @@ def generate_tags(user, job_id: UUID, full_scan=False):
         if not _begin_photo_scan(lrj, existing_photos):
             return
 
-        for idx, photo in enumerate(existing_photos):
-            if _scan_cancelled(idx, job_id, "Generate tags job cancelled"):
-                return
-            AsyncTask(generate_tag_job, photo, job_id).run()
+        _queue_per_photo_tasks(
+            generate_tag_job, existing_photos, job_id, "Generate tags job cancelled"
+        )
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print(f"[ERR]: {err}")
         lrj.fail(error=err)
 
 
-def generate_tag_job(photo: Photo, job_id: str):
+def generate_tag_job(photo_id, job_id: str):
     """
     Worker task to generate tags for a single photo.
 
     Args:
-        photo: The photo to process
+        photo_id: Primary key of the photo to process
         job_id: Job ID for tracking progress
     """
+    photo = _photo_for_task(photo_id, job_id)
+    if photo is None:
+        return
     failed = False
     error = None
     try:
-        photo.refresh_from_db()
         caption_instance, created = PhotoCaption.objects.get_or_create(photo=photo)
         caption_instance.generate_tag_captions(commit=True)
     except Exception as err:
         util.logger.exception("An error occurred: %s", photo.image_hash)
-        print(f"[ERR]: {err}")
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
@@ -293,42 +326,35 @@ def generate_ocr(user, job_id: UUID, full_scan=False):
                     Q(added_on__gt=last_scan.started_at) | Q(ocr__isnull=False)
                 )
 
-        if existing_photos.count() == 0:
-            lrj.update_progress(current=0, target=0)
-            lrj.complete()
+        if not _begin_photo_scan(lrj, existing_photos):
             return
-        lrj.update_progress(current=0, target=existing_photos.count())
-        db.connections.close_all()
 
-        for idx, photo in enumerate(existing_photos):
-            # Check for cancellation periodically
-            if idx % CANCELLATION_CHECK_INTERVAL == 0 and is_job_cancelled(job_id):
-                util.logger.info("Generate OCR job cancelled")
-                return
-            AsyncTask(generate_ocr_job, photo, job_id).run()
+        _queue_per_photo_tasks(
+            generate_ocr_job, existing_photos, job_id, "Generate OCR job cancelled"
+        )
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print(f"[ERR]: {err}")
         lrj.fail(error=err)
 
 
-def generate_ocr_job(photo: Photo, job_id: str):
+def generate_ocr_job(photo_id, job_id: str):
     """
     Worker task to run OCR for a single photo and store the result.
 
     Args:
-        photo: The photo to process
+        photo_id: Primary key of the photo to process
         job_id: Job ID for tracking progress
     """
+    photo = _photo_for_task(photo_id, job_id)
+    if photo is None:
+        return
     failed = False
     error = None
     try:
-        photo.refresh_from_db()
         _run_ocr_for_photo(photo)
     except Exception as err:
         util.logger.exception("An error occurred: %s", photo.image_hash)
-        print(f"[ERR]: {err}")
         failed = True
         error_msg = f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
         error = error_msg
@@ -537,7 +563,6 @@ def classify_media(user, job_id: UUID):
                     flush()
             except Exception as err:
                 util.logger.exception("An error occurred: ")
-                print(f"[ERR]: {err}")
                 failed = True
                 error_msg = (
                     f"Photo {photo.image_hash}: {str(err)}\n{traceback.format_exc()}"
@@ -549,7 +574,6 @@ def classify_media(user, job_id: UUID):
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print(f"[ERR]: {err}")
         lrj.fail(error=err)
 
 
@@ -578,29 +602,29 @@ def add_geolocation(user, job_id: UUID, full_scan=False):
         if not _begin_photo_scan(lrj, existing_photos):
             return
 
-        for idx, photo in enumerate(existing_photos):
-            if _scan_cancelled(idx, job_id, "Add geolocation job cancelled"):
-                return
-            AsyncTask(geolocation_job, photo, job_id).run()
+        _queue_per_photo_tasks(
+            geolocation_job, existing_photos, job_id, "Add geolocation job cancelled"
+        )
 
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print(f"[ERR]: {err}")
         lrj.fail(error=err)
 
 
-def geolocation_job(photo: Photo, job_id: UUID):
+def geolocation_job(photo_id, job_id: UUID):
     """
     Worker task to add geolocation for a single photo.
 
     Args:
-        photo: The photo to process
+        photo_id: Primary key of the photo to process
         job_id: Job ID for tracking progress
     """
+    photo = _photo_for_task(photo_id, job_id)
+    if photo is None:
+        return
     failed = False
     error = None
     try:
-        photo.refresh_from_db()
         photo._geolocate()
         photo._add_location_to_album_dates()
     except Exception as err:
@@ -653,7 +677,6 @@ def scan_faces(user, job_id: UUID, full_scan=False):
             _extract_faces_for_photo(photo, job_id)
     except Exception as err:
         util.logger.exception("An error occurred: ")
-        print(f"[ERR]: {err}")
         lrj.fail(error=err)
 
     generate_face_embeddings(user, uuid.uuid4())
