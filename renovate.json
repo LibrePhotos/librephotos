@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base"],
+  "extends": ["config:recommended"],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
@@ -33,6 +33,12 @@
     },
     {
       "matchFileNames": ["apps/mobile/**"],
+      "groupName": "mobile dependencies",
+      "addLabels": ["mobile"]
+    },
+    {
+      "description": "The root package.json is the npm workspace for apps/mobile and packages/*, and pins Expo, expo-router and React to move in lockstep with apps/mobile; packages/* are only consumed by the mobile app. Exact root paths, so apps/frontend and apps/docs manifests are not caught.",
+      "matchFileNames": ["package.json", "package-lock.json", "packages/**"],
       "groupName": "mobile dependencies",
       "addLabels": ["mobile"]
     },
@@ -90,7 +96,7 @@
       "allowedVersions": "<6.1"
     },
     {
-      "description": "Docusaurus 2 to 3 is a manual migration (MDX 3, prism-react-renderer 2 imports, @docusaurus/tsconfig), and PR CI does not build the docs. Re-enable once it is done.",
+      "description": "Docusaurus 2 to 3 is a manual migration (MDX 3, prism-react-renderer 2 imports, @docusaurus/tsconfig), not a dependency bump. Re-enable once it is done.",
       "matchFileNames": ["apps/docs/**"],
       "matchUpdateTypes": ["major"],
       "enabled": false

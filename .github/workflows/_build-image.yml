@@ -31,6 +31,11 @@ on:
         required: false
         default: false
         type: boolean
+      base-image:
+        description: "Base image the Dockerfile builds FROM through ARG BASE_TAG, e.g. reallibrephotos/librephotos-base. On a release build its :dev is promoted to :<release-tag> first and BASE_TAG=<release-tag> is passed, so the release is pinned to that base. Dev builds keep the Dockerfile default (dev)."
+        required: false
+        default: ""
+        type: string
     secrets:
       DOCKER_HUB_USERNAME:
         required: true
@@ -41,7 +46,35 @@ permissions:
   contents: read
 
 jobs:
+  # The base workflows promote the same tag on release (image-backend-base*.yml),
+  # but they run in parallel with this one, so promote here too before building.
+  # Both copy :dev, so whichever runs first wins and the other is a no-op.
+  pin-base:
+    if: ${{ inputs.base-image != '' && inputs.release-tag != '' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Login to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Promote base :dev to the release tag
+        env:
+          BASE_IMAGE: ${{ inputs.base-image }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: |
+          if docker buildx imagetools inspect "${BASE_IMAGE}:${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "${BASE_IMAGE}:${RELEASE_TAG} already exists, leaving it alone"
+          else
+            docker buildx imagetools create -t "${BASE_IMAGE}:${RELEASE_TAG}" "${BASE_IMAGE}:dev"
+          fi
+
   build-amd64:
+    needs: pin-base
+    # pin-base is skipped for dev builds and for images without a base-image.
+    if: ${{ !cancelled() && (needs.pin-base.result == 'success' || needs.pin-base.result == 'skipped') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +95,9 @@ jobs:
           else
             echo "tag=${{ inputs.image }}:dev-amd64" >> "$GITHUB_OUTPUT"
           fi
+          if [ -n "${{ inputs.base-image }}" ] && [ -n "${{ inputs.release-tag }}" ]; then
+            echo "base-arg=BASE_TAG=${{ inputs.release-tag }}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build and push (AMD64)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
@@ -71,11 +107,15 @@ jobs:
           push: true
           provenance: false
           sbom: false
-          build-args: ${{ inputs.build-args }}
+          # Empty lines are skipped, so base-arg may be unset.
+          build-args: |
+            ${{ inputs.build-args }}
+            ${{ steps.tag.outputs.base-arg }}
           tags: ${{ steps.tag.outputs.tag }}
 
   build-arm64:
-    if: ${{ !inputs.amd64-only }}
+    needs: pin-base
+    if: ${{ !inputs.amd64-only && !cancelled() && (needs.pin-base.result == 'success' || needs.pin-base.result == 'skipped') }}
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +136,9 @@ jobs:
           else
             echo "tag=${{ inputs.image }}:dev-arm64" >> "$GITHUB_OUTPUT"
           fi
+          if [ -n "${{ inputs.base-image }}" ] && [ -n "${{ inputs.release-tag }}" ]; then
+            echo "base-arg=BASE_TAG=${{ inputs.release-tag }}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build and push (ARM64)
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
@@ -105,7 +148,10 @@ jobs:
           push: true
           provenance: false
           sbom: false
-          build-args: ${{ inputs.build-args }}
+          # Empty lines are skipped, so base-arg may be unset.
+          build-args: |
+            ${{ inputs.build-args }}
+            ${{ steps.tag.outputs.base-arg }}
           tags: ${{ steps.tag.outputs.tag }}
 
   combine-manifest:

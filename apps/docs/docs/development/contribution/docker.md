@@ -76,7 +76,7 @@ docker compose logs -f backend
 
 ### Modifying the Backend Base Image
 
-The backend image is built in two tiers. `deploy/docker/backend/Dockerfile` starts `FROM reallibrephotos/librephotos-base:dev`, then only copies `apps/backend/` and pip-installs `requirements.txt`. The only system-level dependencies are Python and perl (for the ExifTool wheel), in the separate `deploy/docker/backend/base/Dockerfile`; libvips, LibRaw, ExifTool, ffmpeg, libpq and insightface come from pip as prebuilt wheels (`.github/workflows/prebuilt-wheels.yml`). There is no PyTorch: the ML models run on ONNX Runtime, which is a plain pip package in `requirements.txt`.
+The backend image is built in two tiers. `deploy/docker/backend/Dockerfile` starts `FROM reallibrephotos/librephotos-base:${BASE_TAG}` (`BASE_TAG` defaults to `dev`), then pip-installs `requirements.txt` and copies in `apps/backend/`. The requirements files are copied and installed before the source, so a change that only touches Python code reuses the cached dependency layers. The only system-level dependencies are Python and perl (for the ExifTool wheel), in the separate `deploy/docker/backend/base/Dockerfile`; libvips, LibRaw, ExifTool, ffmpeg, libpq and insightface come from pip as prebuilt wheels (`.github/workflows/prebuilt-wheels.yml`). There is no PyTorch: the ML models run on ONNX Runtime, which is a plain pip package in `requirements.txt`.
 
 The base is **pulled, not built**: `docker compose build backend`, even with `--no-cache`, will not rebuild it. To test a change to the base locally, build and tag it yourself first, then rebuild the backend:
 
@@ -88,13 +88,13 @@ docker build -t reallibrephotos/librephotos-base:dev deploy/docker/backend/base
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build backend
 ```
 
-The base image is published to Docker Hub by `.github/workflows/image-backend-base.yml`, which runs only on pushes to `dev` that touch `deploy/docker/backend/base/**`. The GPU build has the same split — `deploy/docker/backend-gpu/base/Dockerfile` produces `reallibrephotos/librephotos-base-gpu:dev` — and the unified image (`deploy/docker/unified/`) also builds `FROM` the CPU base, so a base change affects it too.
+The base image is published to Docker Hub by `.github/workflows/image-backend-base.yml`, which runs only on pushes to `dev` that touch `deploy/docker/backend/base/**`. The GPU build has the same split — `deploy/docker/backend-gpu/base/Dockerfile` produces `reallibrephotos/librephotos-base-gpu:dev` — and the unified image (`deploy/docker/unified/`) also builds `FROM` the CPU base, so a base change affects it too. A release does not rebuild either base: it promotes the current `:dev` to `:<release-tag>`, and the release builds of the backend, GPU and unified images pass `BASE_TAG=<release-tag>`, so a published release keeps the base it shipped with.
 
 ### Modifying the Frontend Dockerfile
 
 The frontend has two Dockerfiles:
 
-- `deploy/docker/frontend/Dockerfile` - Production build (multi-stage: `node:20-slim` builds `dist/`, then `halverneus/static-file-server` serves it on port 3000 behind the nginx proxy)
+- `deploy/docker/frontend/Dockerfile` - Production build (multi-stage: `node:22-slim` builds `dist/`, then `halverneus/static-file-server` serves it on port 3000 behind the nginx proxy)
 - `deploy/docker/frontend/Dockerfile.dev` - Development build (hot reload)
 
 ### Modifying the Proxy (Nginx)

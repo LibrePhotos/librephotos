@@ -22,6 +22,7 @@ jobs:
     with:
       image: reallibrephotos/librephotos-gpu
       dockerfile: deploy/docker/backend-gpu/Dockerfile
+      base-image: reallibrephotos/librephotos-base-gpu
       amd64-only: true
       build-args: |
         IMAGE_TAG=dev
@@ -35,6 +36,7 @@ jobs:
     with:
       image: reallibrephotos/librephotos-gpu
       dockerfile: deploy/docker/backend-gpu/Dockerfile
+      base-image: reallibrephotos/librephotos-base-gpu
       amd64-only: true
       release-tag: ${{ github.event.release.tag_name }}
       build-args: |

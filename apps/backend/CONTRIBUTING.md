@@ -20,7 +20,7 @@ Thank you for your interest in contributing to LibrePhotos! This guide will help
 
 - **Git** - for version control
 - **Docker** and **Docker Compose** - for running the development environment
-- **Node.js 18+** and **Yarn** - for frontend development (optional, if developing outside Docker)
+- **Node.js 22** and **Yarn** - for frontend development (optional, if developing outside Docker)
 - **Python 3.11+** - for backend development (optional, if developing outside Docker)
 
 ### Step 1: Clone the Monorepo

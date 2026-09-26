@@ -1,4 +1,4 @@
-FROM node:20-slim as builder
+FROM node:22-slim as builder
 
 RUN npm config set fetch-retry-maxtimeout 60000
 
@@ -8,7 +8,7 @@ ENV CLI_WIDTH 80
 # Copy manifests first for better layer caching
 COPY apps/frontend/package.json apps/frontend/yarn.lock ./
 COPY apps/frontend/patches/ ./patches/
-RUN yarn install --network-timeout 1000000
+RUN yarn install --frozen-lockfile --network-timeout 1000000
 
 # Copy the rest of the source
 COPY apps/frontend/ ./
@@ -16,7 +16,7 @@ COPY apps/frontend/ ./
 ARG GIT_HASH=unknown
 RUN yarn run build && echo "${GIT_HASH}" > dist/git_hash.txt
 
-FROM halverneus/static-file-server
+FROM halverneus/static-file-server:v1.8.12
 ENV PORT 3000
 EXPOSE 3000
 
