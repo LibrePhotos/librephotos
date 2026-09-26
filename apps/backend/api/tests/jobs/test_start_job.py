@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from api.tests.utils import create_test_user
@@ -77,6 +77,44 @@ class StartJobTest(TestCase):
         with patch("api.views.views.AsyncTask", side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):
                 self.client.post("/api/deletemissingphotos/")
+
+
+class OtherJobStartersTest(TestCase):
+    """The auto-album and face-scan starters share ``start_job`` too."""
+
+    def setUp(self):
+        self.user = create_test_user()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_auto_album_start_failure_is_a_500(self):
+        for url in ("/api/autoalbumgen/", "/api/autoalbumtitlegen/"):
+            with self.subTest(url=url):
+                with patch(
+                    "api.views.album_auto.AsyncTask", side_effect=RuntimeError("down")
+                ):
+                    response = self.client.post(url)
+                self.assertEqual(response.status_code, 500)
+                self.assertFalse(response.json()["status"])
+                self.assertTrue(response.json()["message"])
+
+    def test_auto_album_start_returns_the_job_id(self):
+        with patch("api.views.album_auto.AsyncTask") as async_task:
+            response = self.client.post("/api/autoalbumgen/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(str(async_task.call_args.args[2]), response.json()["job_id"])
+
+    @override_settings(FEATURE_FACE_DETECTION=True)
+    def test_face_scan_start_failure_is_a_500(self):
+        with (
+            patch("api.views.faces.Chain") as chain,
+            patch("api.views.faces.do_all_models_exist", return_value=True),
+        ):
+            chain.return_value.run.side_effect = RuntimeError("down")
+            response = self.client.post("/api/scanfaces/")
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(response.json()["status"])
+        self.assertTrue(response.json()["message"])
 
 
 class FullScanValidatesScanDirectoryTest(TestCase):

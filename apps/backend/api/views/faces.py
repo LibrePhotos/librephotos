@@ -36,6 +36,7 @@ from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import RegularResultsSetPagination
 from api.views.photos import _get_photo_filter_kwargs
+from api.views.views import start_job
 
 
 class ScanFacesView(APIView):
@@ -55,17 +56,15 @@ class ScanFacesView(APIView):
                 {"status": False, "message": "Face detection is disabled"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, request.user)
-        try:
-            job_id = uuid.uuid4()
+
+        def enqueue(job_id):
+            chain = Chain()
+            if not do_all_models_exist():
+                chain.append(download_models, request.user)
             chain.append(scan_faces, request.user, job_id, True)
             chain.run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+
+        return start_job(enqueue, "the face scan")
 
 
 class TrainFaceView(APIView):
