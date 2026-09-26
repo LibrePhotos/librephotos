@@ -12,12 +12,6 @@ from .constants import http_status, COMPLETE, UPLOADING
 from .exceptions import ChunkedUploadError
 
 
-def is_authenticated(user):
-    if callable(user.is_authenticated):
-        return user.is_authenticated()  # Django <2.0
-    return user.is_authenticated  # Django >=2.0
-
-
 class ChunkedUploadBaseView(View):
     """
     Base view for the rest of chunked upload views.
@@ -36,7 +30,7 @@ class ChunkedUploadBaseView(View):
         if (
             hasattr(self.model, self.user_field_name)
             and hasattr(request, "user")
-            and is_authenticated(request.user)
+            and request.user.is_authenticated
         ):
             queryset = queryset.filter(**{self.user_field_name: request.user})
         return queryset
@@ -86,7 +80,7 @@ class ChunkedUploadBaseView(View):
         """
         Grants permission to start/continue an upload based on the request.
         """
-        if hasattr(request, "user") and not is_authenticated(request.user):
+        if hasattr(request, "user") and not request.user.is_authenticated:
             raise ChunkedUploadError(
                 status=http_status.HTTP_403_FORBIDDEN,
                 detail="Authentication credentials were not provided",
@@ -132,7 +126,7 @@ class ChunkedUploadView(ChunkedUploadBaseView):
         if (
             hasattr(self.model, self.user_field_name)
             and hasattr(request, "user")
-            and is_authenticated(request.user)
+            and request.user.is_authenticated
         ):
             attrs[self.user_field_name] = request.user
         return attrs

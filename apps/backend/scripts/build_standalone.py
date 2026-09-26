@@ -95,7 +95,6 @@ INCLUDE_PACKAGE_DATA = [
 NOFOLLOW = [
     "api.tests",
     "nextcloud.tests",
-    "chunked_upload.tests",
     "service.thumbnail.test",
     "pytest",
     "_pytest",
