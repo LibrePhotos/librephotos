@@ -1,4 +1,9 @@
 #!/bin/bash
+# pipefail, not -e: a pipeline's status is its first failing command rather than
+# tee's, so the migrate check below sees a failed migration. Everything else
+# keeps running past a failure as before (build_similarity_index, createadmin).
+set -o pipefail
+
 export PYTHONUNBUFFERED=TRUE
 export PYTHONFAULTHANDLER=1
 
@@ -37,7 +42,12 @@ if ! mkdir -p "$logs_dir"; then
 fi
 
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
-python manage.py migrate | tee "$logs_dir/command_migrate.log"
+# Serving on a schema the code does not match fails in ways that are hard to
+# trace back, so a failed migration stops the container before it serves.
+if ! python manage.py migrate 2>&1 | tee "$logs_dir/command_migrate.log"; then
+    echo "Database migration failed, not starting LibrePhotos. See $logs_dir/command_migrate.log" >&2
+    exit 1
+fi
 python manage.py showmigrations | tee "$logs_dir/show_migrate.log"
 python manage.py collectstatic --no-input
 python manage.py start_service all

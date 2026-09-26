@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -e
+# -e as before, plus pipefail so a failure inside a `| tee` pipeline is not
+# masked by tee succeeding (same as the backend image's entrypoint).
+set -eo pipefail
 
 echo "LibrePhotos starting..."
 
@@ -106,7 +108,9 @@ python manage.py start_service all
 python manage.py start_cleaning_service
 python manage.py start_job_cleanup_service
 python manage.py clear_cache 
-python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log"
+# Not fatal, as in the backend image; pipefail would otherwise turn it into one.
+python manage.py build_similarity_index 2>&1 | tee "$logs_dir/command_build_similarity_index.log" \
+    || echo "build_similarity_index failed, continuing. See $logs_dir/command_build_similarity_index.log" >&2
 python manage.py qcluster 2>&1 | tee "$logs_dir/qcluster.log" &
 
 # Start the Django server
