@@ -17,7 +17,6 @@ src/api_client/user/hooks/useFetchUserListQuery.ts: TS2769 No overload matches t
 src/api_client/user/hooks/useFetchUserSelfDetailsQuery.ts: TS2769 No overload matches this call.
 src/components/ChunkedUploadButton.tsx: TS2339 Property 'scan_directory' does not exist on type 'NonNullable<TQueryFnData>'.
 src/components/ChunkedUploadButton.tsx: TS2339 Property 'scan_directory' does not exist on type 'NonNullable<TQueryFnData>'.
-src/components/CustomSearch.tsx: TS2345 Argument of type '({ icon, value, ...rest }: SearchSuggestion, ref: ForwardedRef<HTMLDivElement>) => Element' is not assignable to parameter of type 'ForwardRefRenderFunction<HTMLDivElement, Omit<SearchSuggestion, "ref">>'.
 src/components/album/AlbumSection.tsx: TS2322 Type 'FC<{}>' is not assignable to type 'string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined'.
 src/components/album/AlbumSection.tsx: TS2322 Type 'FC<{}>' is not assignable to type 'string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined'.
 src/components/album/AlbumSection.tsx: TS2322 Type 'ReactNode' is not assignable to type 'FC<{}>'.
@@ -46,10 +45,6 @@ src/components/lightbox/ContentViewer.tsx: TS2339 Property 'slideshow_interval' 
 src/components/lightbox/ContentViewer.tsx: TS2554 Expected 0 arguments, but got 1.
 src/components/lightbox/LightboxControls.tsx: TS2339 Property 'favorite_min_rating' does not exist on type 'NonNullable<TQueryFnData>'.
 src/components/lightbox/LocationSection.tsx: TS2322 Type 'string | undefined' is not assignable to type 'string'.
-src/components/lightbox/MetadataSection.tsx: TS2322 Type '{ source: "embedded" | "sidecar" | "user_edit" | "computed"; rating: number | null; camera_display: string | null; lens_display: string | null; aperture: number | null; shutter_speed: string | null; ... 8 more ...; has_edits: boolean; } | null | undefined' is not assignable to type '{ aperture: number | null; shutter_speed: string | null; iso: number | null; focal_length: number | null; focal_length_35mm: number | null; } | undefined'.
-src/components/lightbox/MetadataSection.tsx: TS2322 Type '{ source: "embedded" | "sidecar" | "user_edit" | "computed"; rating: number | null; camera_display: string | null; lens_display: string | null; aperture: number | null; shutter_speed: string | null; ... 8 more ...; has_edits: boolean; } | null | undefined' is not assignable to type '{ camera_display: string | null; lens_display: string | null; } | undefined'.
-src/components/lightbox/MetadataSection.tsx: TS2393 Duplicate function implementation.
-src/components/lightbox/MetadataSection.tsx: TS2393 Duplicate function implementation.
 src/components/lightbox/StackSection.tsx: TS2353 Object literal may only specify known properties, and 'raw_jpeg' does not exist in type 'Record<"burst" | "bracket" | "manual", ReactNode>'.
 src/components/lightbox/StackSection.tsx: TS2353 Object literal may only specify known properties, and 'raw_jpeg' does not exist in type 'Record<"burst" | "bracket" | "manual", string>'.
 src/components/lightbox/VersionComponent.tsx: TS2322 Type 'TFunction<"translation", undefined>' is not assignable to type '(key: string, fallback?: string | undefined) => string'.
@@ -74,9 +69,7 @@ src/components/photolist/DefaultHeader.tsx: TS2339 Property 'scan_directory' doe
 src/components/photolist/DefaultHeader.tsx: TS2345 Argument of type 'TQueryFnData' is not assignable to parameter of type 'SetStateAction<{}>'.
 src/components/photolist/DefaultHeader.tsx: TS2345 Argument of type 'number | ""' is not assignable to parameter of type 'string'.
 src/components/photolist/MediaTypeSelector.tsx: TS2322 Type '(prev: Record<string, unknown>) => { media: "photos" | "videos" | "screenshots" | undefined; }' is not assignable to type 'true | ParamsReducerFn<RouterCore<Route<Register, any, "/", "/", string, "__root__", undefined, {}, MyRouterContext, AnyContext, AnyContext, ... 6 more ..., undefined>, "never", false, RouterHistory, Record<...>>, "SEARCH", string, string | undefined> | undefined'.
-src/components/photolist/PhotoListView.tsx: TS2322 Type 'string | null' is not assignable to type 'string'.
 src/components/photolist/PhotoListView.tsx: TS2322 Type '{ type: Media; id: string; isTemp: boolean; image_hash: string; aspectRatio: number; rating: number; shared_to: { id: number; username: string; first_name: string; last_name: string; }[]; has_raw_variant: boolean; ... 11 more ...; stacks?: { ...; }[] | ... 1 more ... | undefined; }[]' is not assignable to type '{ title: string; id: string; date: string; location: string | null; owner: { id: number; username: string; first_name: string; last_name: string; }; grouped_photos: { date: string | null; location: string | null; items: { ...; }[]; year?: number | ... 1 more ... | undefined; month?: number | ... 1 more ... | undefin...'.
-src/components/photolist/PhotoListView.tsx: TS2339 Property 'groupTranslateY' does not exist on type '{ date: string | null; location: string | null; items: { type: Media; id: string; isTemp: boolean; image_hash: string; aspectRatio: number; rating: number; shared_to: { id: number; username: string; first_name: string; last_name: string; }[]; ... 12 more ...; stacks?: { ...; }[] | ... 1 more ... | undefined; }[]; ye...'.
 src/components/photolist/PhotoListView.tsx: TS2339 Property 'header_size' does not exist on type 'NonNullable<TQueryFnData>'.
 src/components/photolist/PhotoListView.tsx: TS2339 Property 'id' does not exist on type 'NonNullable<TQueryFnData>'.
 src/components/photolist/PhotoListView.tsx: TS2339 Property 'image_scale' does not exist on type 'NonNullable<TQueryFnData>'.
