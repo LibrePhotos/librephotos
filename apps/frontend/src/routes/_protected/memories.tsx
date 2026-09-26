@@ -17,12 +17,14 @@ import { MemorySlideshow } from "../../components/memories/MemorySlideshow";
 import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useAlbumListGridConfig } from "../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute("/_protected/memories")();
+export const Route = createFileRoute("/_protected/memories")({
+  component: Memories,
+});
 
 /** What the lightbox is playing: one year's memory, or every year in a row. */
 type Playing = { kind: "all" } | { kind: "one"; id: string };
 
-export function Memories() {
+function Memories() {
   const { t } = useTranslation();
   const [view, setView] = useState<MemoriesView>("tiles");
   const [playing, setPlaying] = useState<Playing | null>(null);
@@ -124,5 +126,3 @@ export function Memories() {
     </>
   );
 }
-
-Route.update({ component: Memories });

@@ -7,9 +7,11 @@ import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
-export const Route = createFileRoute("/_protected/screenshots")();
+export const Route = createFileRoute("/_protected/screenshots")({
+  component: OnlyScreenshots,
+});
 
-export function OnlyScreenshots() {
+function OnlyScreenshots() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
@@ -62,5 +64,3 @@ export function OnlyScreenshots() {
     />
   );
 }
-
-Route.update({ component: OnlyScreenshots });

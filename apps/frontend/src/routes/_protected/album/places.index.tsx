@@ -17,7 +17,9 @@ import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlace
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { useMapStyle } from "../../../util/mapStyle";
 
-export const Route = createFileRoute("/_protected/album/places/")();
+export const Route = createFileRoute("/_protected/album/places/")({
+  component: AlbumPlace,
+});
 
 type Props = Readonly<{
   height?: number;
@@ -63,7 +65,7 @@ const unclusteredPointLayer: CircleLayer = {
   },
 };
 
-function AlbumPlace({ height }: Props) {
+function AlbumPlace({ height = 0 }: Props) {
   const { width } = useViewportSize();
   const mapRef = useRef<MapRef>(null);
   const { t } = useTranslation();
@@ -282,9 +284,3 @@ function AlbumPlace({ height }: Props) {
     </div>
   );
 }
-
-AlbumPlace.defaultProps = {
-  height: 0,
-};
-
-Route.update({ component: AlbumPlace });

@@ -30,12 +30,16 @@ import i18n from "../i18n";
 const stubs = vi.hoisted(() => ({
   login: vi.fn(),
   noopMutation: { mutate: () => {}, isPending: false },
+  component: undefined as React.ComponentType | undefined,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => {
-    const route = () => route;
-    route.update = () => {};
+    // The route module hands its page component to createFileRoute's options.
+    const route = (options?: { component?: React.ComponentType }) => {
+      stubs.component = options?.component;
+      return route;
+    };
     return route;
   },
   Navigate: () => null,
@@ -84,7 +88,10 @@ beforeAll(async () => {
 });
 
 async function renderLoginPage() {
-  const { LoginPage } = await import("../routes/login");
+  // The route component renders the sign-in form when this is not a first-time setup,
+  // which the useIsFirstTimeSetupQuery mock above guarantees.
+  await import("../routes/login");
+  const LoginPage = stubs.component!;
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);

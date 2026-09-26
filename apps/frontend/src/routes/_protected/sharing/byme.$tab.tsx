@@ -8,9 +8,11 @@ import { AlbumsSharedByMe } from "../../../components/sharing/AlbumsSharedByMe";
 import { PhotoSharesSection } from "../../../components/sharing/PhotoSharesSection";
 import { PhotosSharedByMe } from "../../../components/sharing/PhotosSharedByMe";
 
-export const Route = createFileRoute("/_protected/sharing/byme/$tab")();
+export const Route = createFileRoute("/_protected/sharing/byme/$tab")({
+  component: SharedByMe,
+});
 
-export function SharedByMe() {
+function SharedByMe() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: albums = [] } = useFetchSharedAlbumsByMeQuery();
@@ -63,5 +65,3 @@ export function SharedByMe() {
     </Stack>
   );
 }
-
-Route.update({ component: SharedByMe });

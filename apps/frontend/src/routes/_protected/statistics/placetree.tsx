@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LocationLink } from "../../../components/charts/LocationLink";
 import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 
-export const Route = createFileRoute("/_protected/statistics/placetree")();
+export const Route = createFileRoute("/_protected/statistics/placetree")({
+  component: PlaceTree,
+});
 
 function PlaceTree() {
   return (
@@ -11,5 +13,3 @@ function PlaceTree() {
     </StatisticsNav>
   );
 }
-
-Route.update({ component: PlaceTree });

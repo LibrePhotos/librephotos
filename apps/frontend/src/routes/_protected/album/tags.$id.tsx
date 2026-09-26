@@ -9,10 +9,11 @@ import { PhotoListView } from "../../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFilter";
 
 export const Route = createFileRoute("/_protected/album/tags/$id")({
+  component: AlbumTagGallery,
   validateSearch: validateMediaSearch,
 });
 
-export function AlbumTagGallery() {
+function AlbumTagGallery() {
   const { t } = useTranslation();
   const { id: tagID } = Route.useParams();
   const mediaType = useMediaTypeFilter();
@@ -45,5 +46,3 @@ export function AlbumTagGallery() {
     />
   );
 }
-
-Route.update({ component: AlbumTagGallery });

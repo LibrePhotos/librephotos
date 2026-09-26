@@ -8,9 +8,11 @@ import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/ph
 import { useWorkerStatus } from "../../hooks/useWorkerStatus";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
-export const Route = createFileRoute("/_protected/")();
+export const Route = createFileRoute("/_protected/")({
+  component: TimestampPhotos,
+});
 
-export function TimestampPhotos() {
+function TimestampPhotos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
   const { workerRunningJob } = useWorkerStatus();
@@ -83,5 +85,3 @@ export function TimestampPhotos() {
     />
   );
 }
-
-Route.update({ component: TimestampPhotos });

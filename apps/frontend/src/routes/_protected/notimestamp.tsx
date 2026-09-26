@@ -7,9 +7,11 @@ import { PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoListView } from "../../components/photolist/PhotoListView";
 import { addTempElementsToFlatList } from "../../util/util";
 
-export const Route = createFileRoute("/_protected/notimestamp")();
+export const Route = createFileRoute("/_protected/notimestamp")({
+  component: NoTimestampPhotosView,
+});
 
-export function NoTimestampPhotosView() {
+function NoTimestampPhotosView() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
@@ -72,5 +74,3 @@ export function NoTimestampPhotosView() {
     />
   );
 }
-
-Route.update({ component: NoTimestampPhotosView });

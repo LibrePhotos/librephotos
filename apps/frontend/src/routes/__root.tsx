@@ -4,9 +4,11 @@ import { SpotlightProvider } from "../components/spotlight";
 
 interface MyRouterContext {}
 
-export const Route = createRootRouteWithContext<MyRouterContext>()();
+export const Route = createRootRouteWithContext<MyRouterContext>()({
+  component: AppShellPublicWithoutHeader,
+});
 
-export function AppShellPublicWithoutHeader() {
+function AppShellPublicWithoutHeader() {
   const theme = useMantineTheme();
   const colorScheme = useComputedColorScheme();
   return (
@@ -21,5 +23,3 @@ export function AppShellPublicWithoutHeader() {
     </div>
   );
 }
-
-Route.update({ component: AppShellPublicWithoutHeader });

@@ -7,9 +7,11 @@ import { useFetchSharedPhotosWithMeQuery } from "../../../api_client/photos/hook
 import { AlbumsSharedWithMe } from "../../../components/sharing/AlbumsSharedWithMe";
 import { PhotosSharedWithMe } from "../../../components/sharing/PhotosSharedWithMe";
 
-export const Route = createFileRoute("/_protected/sharing/withme/$tab")();
+export const Route = createFileRoute("/_protected/sharing/withme/$tab")({
+  component: SharedWithMe,
+});
 
-export function SharedWithMe() {
+function SharedWithMe() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: albums = [] } = useFetchSharedAlbumsWithMeQuery();
@@ -66,5 +68,3 @@ export function SharedWithMe() {
     </Stack>
   );
 }
-
-Route.update({ component: SharedWithMe });

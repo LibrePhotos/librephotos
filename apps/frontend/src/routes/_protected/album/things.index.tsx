@@ -10,9 +10,11 @@ import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute("/_protected/album/things/")();
+export const Route = createFileRoute("/_protected/album/things/")({
+  component: AlbumThing,
+});
 
-export function AlbumThing() {
+function AlbumThing() {
   const { t } = useTranslation();
   const { data: albums, isFetching } = useFetchThingsAlbumsQuery();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
@@ -91,5 +93,3 @@ export function AlbumThing() {
     </div>
   );
 }
-
-Route.update({ component: AlbumThing });

@@ -5,7 +5,9 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { JobList } from "../../../components/job/JobList";
 
-export const Route = createFileRoute("/_protected/jobs/")();
+export const Route = createFileRoute("/_protected/jobs/")({
+  component: UserJobsPage,
+});
 
 function UserJobsPage() {
   const { t } = useTranslation();
@@ -28,5 +30,3 @@ function UserJobsPage() {
     </Container>
   );
 }
-
-Route.update({ component: UserJobsPage });

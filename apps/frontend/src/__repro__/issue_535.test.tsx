@@ -46,9 +46,9 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => {
-    const route = () => route;
-    route.update = (options: any) => {
-      stubs.component = options.component;
+    const route = (options?: any) => {
+      stubs.component = options?.component;
+      return route;
     };
     return route;
   },
@@ -125,6 +125,9 @@ beforeAll(async () => {
   // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
+  // Load the route module here rather than inside the first test: the cold
+  // import alone takes ~4-5 s, right at the default per-test timeout.
+  await import("../routes/_protected/album/places.index");
 });
 
 beforeEach(() => {

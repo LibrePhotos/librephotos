@@ -3,7 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { StatisticsNav } from "../../../components/charts/StatisticsNav";
 import { WordCloud } from "../../../components/charts/WordCloud";
 
-export const Route = createFileRoute("/_protected/statistics/wordclouds")();
+export const Route = createFileRoute("/_protected/statistics/wordclouds")({
+  component: WordClouds,
+});
 
 function WordClouds() {
   return (
@@ -22,5 +24,3 @@ function WordClouds() {
     </StatisticsNav>
   );
 }
-
-Route.update({ component: WordClouds });

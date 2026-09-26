@@ -17,9 +17,11 @@ import { useTranslation } from "react-i18next";
 import { useSignUpMutation } from "../api_client/auth";
 import { EMAIL_REGEX } from "../util/util";
 
-export const Route = createFileRoute("/signup")();
+export const Route = createFileRoute("/signup")({
+  component: SignupPage,
+});
 
-export function SignupPage(): JSX.Element {
+function SignupPage(): JSX.Element {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme("light");
@@ -139,5 +141,3 @@ export function SignupPage(): JSX.Element {
     </Stack>
   );
 }
-
-Route.update({ component: SignupPage });

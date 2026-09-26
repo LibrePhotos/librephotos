@@ -30,9 +30,11 @@ import { PlacesMapCard } from "../../../components/album/PlacesMapCard";
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 
-export const Route = createFileRoute("/_protected/album/")();
+export const Route = createFileRoute("/_protected/album/")({
+  component: AlbumExplore,
+});
 
-export function AlbumExplore() {
+function AlbumExplore() {
   const { t } = useTranslation();
 
   // Album action state
@@ -315,5 +317,3 @@ export function AlbumExplore() {
     </Box>
   );
 }
-
-Route.update({ component: AlbumExplore });

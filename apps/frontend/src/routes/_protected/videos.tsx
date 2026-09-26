@@ -7,9 +7,11 @@ import { Photoset, PigPhoto } from "../../api_client/photos/types";
 import { EmptyStateConfig, PhotoGroup, PhotoListView } from "../../components/photolist/PhotoListView";
 import { getPhotosFlatFromGroupedByDate } from "../../util/util";
 
-export const Route = createFileRoute("/_protected/videos")();
+export const Route = createFileRoute("/_protected/videos")({
+  component: OnlyVideos,
+});
 
-export function OnlyVideos() {
+function OnlyVideos() {
   const { t } = useTranslation();
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
@@ -62,5 +64,3 @@ export function OnlyVideos() {
     />
   );
 }
-
-Route.update({ component: OnlyVideos });

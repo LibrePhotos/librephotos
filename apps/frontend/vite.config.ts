@@ -24,7 +24,12 @@ export default defineConfig(({ mode }) => {
   return {
     base: publicUrl,
     plugins: [
-      tanstackRouter({target: "react", autoCodeSplitting: true}),
+      // Code splitting only picks up `component` & co. passed in the
+      // createFileRoute(...)({...}) options, and never an identifier that is
+      // also exported from the route file. Under vitest it is switched off, so
+      // tests that mock @tanstack/react-router get the real component back
+      // rather than a lazyRouteComponent wrapper.
+      tanstackRouter({ target: "react", autoCodeSplitting: !process.env.VITEST }),
       react(wdyr ? { jsxImportSource: "@welldone-software/why-did-you-render" } : {}),
     ],
     appType: 'spa',

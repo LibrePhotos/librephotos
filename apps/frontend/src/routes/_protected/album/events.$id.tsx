@@ -10,9 +10,11 @@ import { serverAddress } from "../../../api_client/apiClient";
 import { AlbumLocationMap } from "../../../components/AlbumLocationMap";
 import { PhotoListView } from "../../../components/photolist/PhotoListView";
 
-export const Route = createFileRoute("/_protected/album/events/$id")();
+export const Route = createFileRoute("/_protected/album/events/$id")({
+  component: AlbumAutoGalleryView,
+});
 
-export function AlbumAutoGalleryView() {
+function AlbumAutoGalleryView() {
   const { id } = Route.useParams();
   const { data: album, isFetching } = useFetchAutoAlbumQuery(id ?? ""); // Add null check
   const [showMap, { toggle: toggleMap }] = useDisclosure(false);
@@ -132,5 +134,3 @@ export function AlbumAutoGalleryView() {
     </div>
   );
 }
-
-Route.update({ component: AlbumAutoGalleryView });

@@ -8,6 +8,7 @@ import { PhotoListView } from "../../components/photolist/PhotoListView";
 import { useMediaTypeFilter } from "../../components/photolist/useMediaTypeFilter";
 
 export const Route = createFileRoute("/_protected/search/$query")({
+  component: SearchView,
   validateSearch: validateMediaSearch,
 });
 const DEFAULTS = {
@@ -15,7 +16,7 @@ const DEFAULTS = {
   photosGroupedByDate: [],
 };
 
-export function SearchView() {
+function SearchView() {
   const { query: searchQuery } = Route.useParams();
   const { data: currentUser } = useCurrentUserSelfDetailsQuery();
   const mediaType = useMediaTypeFilter();
@@ -37,5 +38,3 @@ export function SearchView() {
     />
   );
 }
-
-Route.update({ component: SearchView });

@@ -22,9 +22,11 @@ import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute("/_protected/album/persons/")();
+export const Route = createFileRoute("/_protected/album/persons/")({
+  component: AlbumPeople,
+});
 
-export function AlbumPeople() {
+function AlbumPeople() {
   const navigate = useNavigate();
   const [deleteDialogVisible, { open: showDeleteDialog, close: hideDeleteDialog }] = useDisclosure(false);
   const [renameDialogVisible, { open: showRenameDialog, close: hideRenameDialog }] = useDisclosure(false);
@@ -226,5 +228,3 @@ export function AlbumPeople() {
     </>
   );
 }
-
-Route.update({ component: AlbumPeople });

@@ -15,9 +15,11 @@ import { HeaderComponent } from "../../../components/HeaderComponent";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
-export const Route = createFileRoute("/_protected/album/user/")();
+export const Route = createFileRoute("/_protected/album/user/")({
+  component: AlbumUser,
+});
 
-export function AlbumUser() {
+function AlbumUser() {
   const [newAlbumTitle, setNewAlbumTitle] = useState("");
   const [albumID, setAlbumID] = useState("");
   const [albumOwner, setAlbumOwner] = useState("");
@@ -164,5 +166,3 @@ export function AlbumUser() {
     </div>
   );
 }
-
-Route.update({ component: AlbumUser });

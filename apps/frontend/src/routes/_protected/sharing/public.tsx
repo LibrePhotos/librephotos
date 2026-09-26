@@ -5,13 +5,15 @@ import React from "react";
 import { UserList } from "../../../api_client/user";
 import { useFetchUserListQuery } from "../../../api_client/user/hooks";
 
-export const Route = createFileRoute("/_protected/sharing/public")();
+export const Route = createFileRoute("/_protected/sharing/public")({
+  component: PublicUserList,
+});
 
 function publicUsers(items: UserList = []) {
   return items.filter(el => el.public_sharing);
 }
 
-export function PublicUserList() {
+function PublicUserList() {
   const navigate = useNavigate();
   const { data: users } = useFetchUserListQuery();
 
@@ -56,5 +58,3 @@ export function PublicUserList() {
     </Stack>
   );
 }
-
-Route.update({ component: PublicUserList });

@@ -18,13 +18,15 @@ import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
 import { Tile } from "../../../components/Tile";
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
-export const Route = createFileRoute("/_protected/sharing/")();
+export const Route = createFileRoute("/_protected/sharing/")({
+  component: SharingExplore,
+});
 
 function publicUsers(items: any[] = []) {
   return items.filter(el => el.public_sharing);
 }
 
-export function SharingExplore() {
+function SharingExplore() {
   const { t } = useTranslation();
   const [albumID, setAlbumID] = useState("");
   const [albumOwner, setAlbumOwner] = useState("");
@@ -476,5 +478,3 @@ export function SharingExplore() {
     </Box>
   );
 }
-
-Route.update({ component: SharingExplore });

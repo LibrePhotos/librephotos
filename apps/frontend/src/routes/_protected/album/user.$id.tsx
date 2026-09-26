@@ -11,10 +11,11 @@ import { useMediaTypeFilter } from "../../../components/photolist/useMediaTypeFi
 import { getPhotosFlatFromGroupedByDate } from "../../../util/util";
 
 export const Route = createFileRoute("/_protected/album/user/$id")({
+  component: AlbumUserGallery,
   validateSearch: validateMediaSearch,
 });
 
-export function AlbumUserGallery() {
+function AlbumUserGallery() {
   const [flatPhotos, setFlatPhotos] = useState<PigPhoto[]>([]);
   const [groupedPhotos, setGroupedPhotos] = useState<DatePhotosGroup[]>([]);
   const [isPublic, setIsPublic] = useState(false);
@@ -62,5 +63,3 @@ export function AlbumUserGallery() {
     />
   );
 }
-
-Route.update({ component: AlbumUserGallery });

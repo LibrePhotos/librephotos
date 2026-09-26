@@ -19,14 +19,18 @@ import i18n from "../../../i18n";
 
 const stubs = vi.hoisted(() => ({
   tagAlbum: { id: 7, name: "beach", grouped_photos: [] as unknown[] },
+  component: undefined as React.ComponentType | undefined,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: () => {
-    const route = () => route;
+    // The route module hands its page component to createFileRoute's options.
+    const route = (options?: { component?: React.ComponentType }) => {
+      stubs.component = options?.component;
+      return route;
+    };
     route.useParams = () => ({ id: "7" });
     route.useSearch = () => ({});
-    route.update = () => {};
     return route;
   },
   useNavigate: () => () => {},
@@ -75,7 +79,8 @@ beforeAll(async () => {
 });
 
 async function renderPage() {
-  const { AlbumTagGallery } = await import("./tags.$id");
+  await import("./tags.$id");
+  const AlbumTagGallery = stubs.component!;
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
