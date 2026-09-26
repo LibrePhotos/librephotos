@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+import numpy as np
 import pyvips
 import requests
 from django.conf import settings
@@ -51,6 +52,57 @@ def _apply_local_orientation(
 # half the time of libwebp's default 4 and gives files of the same size, about
 # 0.4 dB lower in PSNR at ~43 dB, which cannot be seen.
 WEBP = {"Q": 95, "effort": 2}
+
+
+# Formats whose thumbnail follows an EXIF Orientation that exiftool writes into
+# the file afterwards, measured through ``image_decoding.thumbnail`` with the
+# pip-installed libvips and Pillow plugins (#2068). HEIC and AVIF keep the
+# picture unrotated (libheif applies its own irot/imir and the EXIF tag is
+# ignored), exiftool cannot write EXIF into a bare JPEG XL codestream, BMP or
+# GIF, and RAW files go through LibRaw in the thumbnail service, which is
+# unverified. Everything not listed here keeps the rotation in
+# ``local_orientation``.
+_EXIF_ORIENTED_EXTENSIONS = frozenset(
+    {".jpg", ".jpeg", ".jpe", ".jfif", ".tif", ".tiff", ".png", ".webp"}
+)
+
+
+def renders_exif_orientation(path) -> bool:
+    """Whether rotating ``path`` through its EXIF Orientation rotates its thumbnail."""
+    if is_raw(path):
+        return False
+    return os.path.splitext(path)[1].lower() in _EXIF_ORIENTED_EXTENSIONS
+
+
+def _autorotated(image: pyvips.Image, exif_orientation: int) -> pyvips.Image:
+    tagged = image.copy()
+    tagged.set_type(pyvips.GValue.gint_type, "orientation", exif_orientation)
+    return tagged.autorot()
+
+
+def exif_orientation_showing(exif_orientation: int, local_orientation: int) -> int:
+    """The EXIF Orientation that shows a file the way it renders today.
+
+    A file tagged ``exif_orientation`` and rendered with ``local_orientation``
+    on top looks exactly like the same file tagged with the returned value and
+    rendered with no local orientation. Worked out by running both through
+    libvips' own autorotation and ``_apply_local_orientation`` on a small
+    asymmetric image, because the two do not share a convention:
+    ``_apply_local_orientation`` renders 6 as a quarter turn counter-clockwise
+    where EXIF 6 is clockwise (the frontend negates the angle it sends to
+    match), so composing the numbers directly writes the opposite turn.
+    """
+    probe = pyvips.Image.new_from_array(np.arange(6, dtype=np.uint8).reshape(2, 3))
+    target = _apply_local_orientation(
+        _autorotated(probe, exif_orientation), local_orientation
+    ).numpy()
+    for candidate in range(1, 9):
+        shown = _autorotated(probe, candidate).numpy()
+        if shown.shape == target.shape and (shown == target).all():
+            return candidate
+    raise ValueError(
+        f"no EXIF orientation shows {exif_orientation} under {local_orientation}"
+    )
 
 
 def _media_path(output_path, hash, file_type):

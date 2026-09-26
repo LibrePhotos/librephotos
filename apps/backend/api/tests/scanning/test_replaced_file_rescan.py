@@ -2,6 +2,7 @@ import os
 import random
 import shutil
 import tempfile
+import unittest
 from unittest.mock import MagicMock, patch
 
 import pyvips
@@ -12,7 +13,9 @@ from api.directory_watcher.file_handlers import (
     create_file_record,
     group_files_into_photo,
 )
-from api.thumbnails import _apply_local_orientation
+from api import binaries
+from api.metadata.tags import Tags
+from api.metadata.writer import read_orientation, write_metadata
 from api.models import File, Person, Photo, Thumbnail, User
 from api.models.file import calculate_hash, content_hash
 from api.perceptual_hash import calculate_hash_from_thumbnail
@@ -21,7 +24,7 @@ from api.tests.utils import create_test_face, create_test_person, create_test_us
 THUMBNAIL_DIRS = ("thumbnails_big", "square_thumbnails", "square_thumbnails_small")
 
 
-def _write_image(path, seed, size=(256, 256)):
+def _write_image(path, seed, size=(256, 256), format="PNG"):
     """Write a picture whose perceptual hash depends on ``seed``.
 
     Blocks of colour rather than a flat fill: pHash reads the low frequencies
@@ -35,7 +38,7 @@ def _write_image(path, seed, size=(256, 256)):
             for _ in range(8 * 8)
         ]
     )
-    blocks.resize(size, Image.NEAREST).save(path, format="PNG")
+    blocks.resize(size, Image.NEAREST).save(path, format=format)
 
 
 class ReplacedFileTestCase(TestCase):
@@ -346,41 +349,46 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
         self.assertEqual(file_hash, rescanned.main_file.hash)
 
 
+def _exiftool_available():
+    return shutil.which(binaries.exiftool()) is not None
+
+
+@unittest.skipUnless(_exiftool_available(), "exiftool binary not available")
 class RotationIsNotAReplacementTest(ReplacedFileTestCase):
     """Rotating a photo rewrites the original under MEDIA_FILE. The file then
     shows the picture the thumbnails already show, so the next scan must not
-    read it as a replacement."""
+    read it as a replacement.
+
+    These run the real exiftool: what matters is whether the decoder honours
+    the tag exiftool writes, and a stand-in cannot answer that (#2068).
+    """
 
     def setUp(self):
         super().setUp()
         self.user.save_metadata_to_disk = User.SaveMetadata.MEDIA_FILE
         self.user.save()
 
-    def _exiftool_writing_the_orientation(self, photo):
-        """Stand in for exiftool writing Orientation into the media file.
-
-        The real thing writes a tag that pyvips applies when reading, so the
-        picture the file presents comes out rotated. Baking the same transform
-        into the pixels reproduces that without an exiftool binary, and it uses
-        the very transform the thumbnailer applies so the test cannot drift
-        from the orientation convention.
-        """
-
-        def write(path, tags, **kwargs):
-            image = pyvips.Image.new_from_file(path).copy_memory()
-            image = _apply_local_orientation(image, photo.local_orientation)
-            image.write_to_file(path)
-
-        return write
-
     def _rotate(self, photo):
+        """Rotate a quarter turn clockwise, as the lightbox's button does.
+
+        The frontend sends -90 for it: ``Photo.rotate`` counts its angle
+        counter-clockwise as rendered (``_apply_local_orientation``).
+        """
         loaded = Photo.objects.get(pk=photo.pk)
-        with patch(
-            "api.models.photo.write_metadata",
-            side_effect=self._exiftool_writing_the_orientation(loaded),
-        ):
-            loaded.rotate(90)
+        loaded.rotate(-90)
         return loaded
+
+    def _big_thumbnail_is_portrait(self, photo):
+        # Through Pillow, which closes the file: on Windows a file libvips has
+        # opened stays open, and the next rotate could not replace it.
+        with Image.open(self._thumbnail_path(photo.image_hash)) as image:
+            return image.height > image.width
+
+    def _rebuild(self, photo):
+        """Throw the thumbnails away and render them again from the file."""
+        photo = Photo.objects.get(pk=photo.pk)
+        photo.thumbnail._regenerate_thumbnails()
+        return photo
 
     def test_rotating_a_photo_does_not_cost_it_its_faces(self):
         _write_image(self.path, 1)
@@ -401,11 +409,47 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         self.assertEqual(added_on, rescanned.added_on)
         self.assertEqual(calculate_hash(self.user, self.path), rescanned.main_file.hash)
 
-    def test_the_rescan_keeps_cheap_derived_content_for_a_rotation(self):
-        """#2050: a rotation write is recognised as the same picture.
+    def test_the_rotation_moves_into_the_file_and_is_applied_once(self):
+        """#2050: the rotation lands in the file's own EXIF and
+        ``local_orientation`` goes back to 1, so a rebuild applies it once."""
+        self.path = os.path.join(self.tmpdir, "IMG_0001.jpg")
+        _write_image(self.path, 1, size=(256, 128), format="JPEG")
+        photo = self._index()
 
-        The rotation now lands in the file's own EXIF and ``local_orientation``
-        goes back to 1, so rendering the file again reproduces the hash the
+        self._rotate(photo)
+
+        self.assertEqual(6, read_orientation(self.path))
+        rotated = Photo.objects.get(pk=photo.pk)
+        self.assertEqual(1, rotated.local_orientation)
+        self.assertTrue(self._big_thumbnail_is_portrait(rotated))
+        rebuilt = self._rebuild(rotated)
+        self.assertTrue(self._big_thumbnail_is_portrait(rebuilt))
+        self.assertEqual(
+            rotated.perceptual_hash, Photo.objects.get(pk=photo.pk).perceptual_hash
+        )
+
+    def test_a_second_rotate_starts_from_the_first(self):
+        """The second rotate renders the file the first one just rewrote, in
+        the same process: libvips must not serve its cached decode of the
+        file as it was before the write."""
+        self.path = os.path.join(self.tmpdir, "IMG_0001.jpg")
+        _write_image(self.path, 1, size=(256, 128), format="JPEG")
+        photo = self._index()
+        create_test_face(photo=photo)
+
+        self._rotate(photo)
+        self._rotate(photo)
+
+        self.assertEqual(3, read_orientation(self.path))
+        rotated = Photo.objects.get(pk=photo.pk)
+        self.assertEqual(1, rotated.local_orientation)
+        self.assertFalse(self._big_thumbnail_is_portrait(rotated))
+        rescanned = self._scan()
+        self.assertEqual(1, rescanned.faces.count())
+        self.assertEqual(rotated.perceptual_hash, rescanned.perceptual_hash)
+
+    def test_the_rescan_keeps_cheap_derived_content_for_a_rotation(self):
+        """#2050: rendering the rotated file again reproduces the hash the
         thumbnails were built from. The verdict is SAME_PICTURE rather than
         UNCOMPARABLE, so nothing derived is thrown away and rebuilt.
         """
@@ -419,6 +463,85 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
 
         self.assertEqual("[1,2,3]", rescanned.thumbnail.dominant_color)
         self.assertTrue(os.path.exists(self._thumbnail_path(rescanned.image_hash)))
+        self.assertTrue(self._big_thumbnail_is_portrait(rescanned))
+
+    def test_a_photo_shot_in_portrait_is_rotated_from_its_own_orientation(self):
+        """The written value starts from the file's EXIF, not from
+        ``PhotoMetadata`` (which the scan never fills in): EXIF 6 plus a
+        clockwise quarter turn is 3."""
+        self.path = os.path.join(self.tmpdir, "IMG_0001.jpg")
+        _write_image(self.path, 1, size=(256, 128), format="JPEG")
+        write_metadata(self.path, {Tags.ORIENTATION: 6}, use_sidecar=False)
+        photo = self._index()
+        self.assertTrue(self._big_thumbnail_is_portrait(photo))
+        create_test_face(photo=photo)
+
+        self._rotate(photo)
+
+        self.assertEqual(3, read_orientation(self.path))
+        rescanned = self._scan()
+        self.assertEqual(1, rescanned.local_orientation)
+        self.assertEqual(1, rescanned.faces.count())
+        self.assertFalse(self._big_thumbnail_is_portrait(self._rebuild(rescanned)))
+
+    def test_a_heic_rotation_stays_in_the_database(self):
+        """libheif ignores the EXIF orientation exiftool writes into a HEIC, so
+        the rotation must stay in ``local_orientation``: resetting it loses the
+        rotation, and the rescan would render the file unrotated, miss the
+        stored hash and throw the photo's faces away as a replacement."""
+        self.path = os.path.join(self.tmpdir, "IMG_0001.heic")
+        _write_image(self.path, 1, size=(256, 128), format="HEIF")
+        photo = self._index()
+        image_hash = photo.image_hash
+        create_test_face(photo=photo)
+
+        self._rotate(photo)
+
+        self.assertEqual(8, Photo.objects.get(pk=photo.pk).local_orientation)
+        rescanned = self._scan()
+        self.assertEqual(photo.pk, rescanned.pk)
+        self.assertEqual(image_hash, rescanned.image_hash)
+        self.assertEqual(1, rescanned.faces.count())
+        self.assertEqual(8, rescanned.local_orientation)
+        self.assertTrue(self._big_thumbnail_is_portrait(self._rebuild(rescanned)))
+
+    def test_a_write_that_does_not_land_keeps_the_rotation_in_the_database(self):
+        """exiftool reports a failed write without raising. Bytes that changed
+        without the tag changing must not reset ``local_orientation``."""
+        _write_image(self.path, 1, size=(256, 128))
+        photo = self._index()
+        create_test_face(photo=photo)
+
+        loaded = Photo.objects.get(pk=photo.pk)
+        with patch("api.models.photo.write_metadata", side_effect=_append_a_byte):
+            loaded.rotate(-90)
+
+        self.assertEqual(1, read_orientation(self.path))
+        self.assertEqual(8, Photo.objects.get(pk=photo.pk).local_orientation)
+        rescanned = self._scan()
+        self.assertEqual(1, rescanned.faces.count())
+        self.assertTrue(self._big_thumbnail_is_portrait(self._rebuild(rescanned)))
+
+    def test_a_photo_rotated_before_the_fold_keeps_its_faces(self):
+        """Rotated by an older release under MEDIA_FILE: the file's EXIF and
+        ``local_orientation`` both carry the rotation, so rendering the file
+        applies it twice. The next metadata write must not read as a new
+        picture."""
+        self.path = os.path.join(self.tmpdir, "IMG_0001.jpg")
+        _write_image(self.path, 1, size=(256, 128), format="JPEG")
+        photo = self._index()
+        create_test_face(photo=photo)
+        photo = Photo.objects.get(pk=photo.pk)
+        photo.local_orientation = 8
+        photo.save(save_metadata=False, update_fields=["local_orientation"])
+        photo.thumbnail._regenerate_thumbnails()
+        write_metadata(self.path, {Tags.ORIENTATION: 6}, use_sidecar=False)
+
+        rescanned = self._scan()
+
+        self.assertEqual(photo.pk, rescanned.pk)
+        self.assertEqual(1, rescanned.faces.count())
+        self.assertEqual(8, rescanned.local_orientation)
 
 
 class RemovedPhotoIsNotSweptInTest(ReplacedFileTestCase):

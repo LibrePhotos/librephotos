@@ -98,19 +98,23 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
     metadata in place. Those must not cost the photo its faces and its place in
     the timeline, so the stored perceptual hash decides.
 
-    Videos have no cheap perceptual hash here, and a photo that never got one
-    has nothing to compare against. Guessing either way is wrong in those
-    cases, so the two halves of the decision are split: what is cheap to
-    rebuild is rebuilt, and what a person may have corrected by hand is kept.
+    Videos have no cheap perceptual hash here, a photo that never got one has
+    nothing to compare against, and a photo that still carries a LibrePhotos
+    rotation in ``local_orientation`` cannot be compared either: whether the
+    file's own EXIF carries that rotation too depends on the format and on when
+    it was rotated, so rendering it again may apply the rotation twice and the
+    two sides would disagree about orientation rather than about the picture.
+    Guessing either way is wrong in those cases, so the two halves of the
+    decision are split: what is cheap to rebuild is rebuilt, and what a person
+    may have corrected by hand is kept.
 
-    A photo the user rotated in LibrePhotos used to be excluded as well,
-    because writing the rotation into the file left ``local_orientation`` set
-    and rendering applied it a second time. ``Photo._adopt_written_orientation``
-    now clears it on a media-file write, so the render below matches the stored
-    hash and rotated photos can take the cheap comparison again.
+    A MEDIA_FILE rotate of a format that renders its EXIF orientation moves the
+    rotation into the file and resets ``local_orientation`` to 1
+    (``Photo._fold_rotation_into_file``), so those photos do take the
+    comparison.
     """
     stored = photo.perceptual_hash if photo else None
-    if not stored:
+    if not stored or photo.local_orientation != 1:
         return UNCOMPARABLE
     candidate = _rendered_perceptual_hash(path, photo.local_orientation)
     if candidate == stored:
