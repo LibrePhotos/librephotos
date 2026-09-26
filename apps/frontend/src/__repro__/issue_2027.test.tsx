@@ -12,9 +12,8 @@
  * nothing released the media element on unmount.
  */
 import { MantineProvider } from "@mantine/core";
-import React from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Tile } from "../components/Tile";
 
@@ -34,6 +33,8 @@ beforeAll(() => {
     removeEventListener: () => {},
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
+  // @ts-ignore
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 let container: HTMLDivElement | null = null;
@@ -96,6 +97,30 @@ describe("issue 2027: album cover tiles autoplay and loop", () => {
     act(() => {
       video.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
     });
+    expect(pause).toHaveBeenCalled();
+    expect(video.currentTime).toBe(0);
+  });
+
+  it("plays while the surrounding link has keyboard focus", () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => {
+      root!.render(
+        <a href="/album/things/1">
+          <Tile video width={200} height={200} image_hash="videohash" />
+        </a>
+      );
+    });
+    const link = container.querySelector("a")!;
+    const video = container.querySelector("video")!;
+    const play = vi.spyOn(video, "play").mockResolvedValue(undefined);
+    const pause = vi.spyOn(video, "pause");
+
+    act(() => link.focus());
+    expect(play).toHaveBeenCalled();
+
+    act(() => link.blur());
     expect(pause).toHaveBeenCalled();
     expect(video.currentTime).toBe(0);
   });

@@ -16,6 +16,17 @@ type Props = {
   image_hash: string;
 } & Partial<DefaultProps>;
 
+function startPreview(element: HTMLVideoElement) {
+  void element.play().catch(() => {
+    /* a play() the browser refuses is not a failed video */
+  });
+}
+
+function stopPreview(element: HTMLVideoElement) {
+  element.pause();
+  element.currentTime = 0;
+}
+
 export function Tile({ video, width, height, style, image_hash, className }: Props) {
   const [videoFailed, setVideoFailed] = useState(false);
   const src = `${serverAddress}/media/square_thumbnails/${image_hash}`;
@@ -23,7 +34,8 @@ export function Tile({ video, width, height, style, image_hash, className }: Pro
 
   // Deliberately never cleared: React detaches refs before it runs effect
   // cleanups, so a plain ref would already be null by the time the cleanup
-  // below needs the element. Same reasoning as the grid tile (#970).
+  // below needs the element. Same pattern as the photo grid tile
+  // (react-pig/components/Tile/Tile.jsx, #2018).
   const holdVideoNode = useCallback((node: HTMLVideoElement | null) => {
     if (node) videoNode.current = node;
   }, []);
@@ -41,7 +53,27 @@ export function Tile({ video, width, height, style, image_hash, className }: Pro
     []
   );
 
-  if (video && !videoFailed) {
+  // Covers usually sit inside a link (album, person, thing and place grids).
+  // The <video> itself is not focusable, so start the preview when that
+  // surrounding link or button (e.g. the cover picker) receives keyboard
+  // focus, like hover does. Not generic [tabindex]: modal containers carry
+  // tabindex="-1" and would start every cover in the dialog at once.
+  const isVideoShown = video && !videoFailed;
+  useEffect(() => {
+    const element = videoNode.current;
+    const focusTarget = isVideoShown ? element?.closest<HTMLElement>("a[href], button") : null;
+    if (!element || !focusTarget) return undefined;
+    const start = () => startPreview(element);
+    const stop = () => stopPreview(element);
+    focusTarget.addEventListener("focusin", start);
+    focusTarget.addEventListener("focusout", stop);
+    return () => {
+      focusTarget.removeEventListener("focusin", start);
+      focusTarget.removeEventListener("focusout", stop);
+    };
+  }, [isVideoShown]);
+
+  if (isVideoShown) {
     return (
       <video
         ref={holdVideoNode}
@@ -49,7 +81,9 @@ export function Tile({ video, width, height, style, image_hash, className }: Pro
         height={height}
         style={style}
         className={className}
-        src={src}
+        // "#t=0.001" makes iOS Safari paint the first frame; with
+        // preload="metadata" and no poster it otherwise shows nothing.
+        src={`${src}#t=0.001`}
         muted
         loop
         playsInline
@@ -59,15 +93,8 @@ export function Tile({ video, width, height, style, image_hash, className }: Pro
         // (#2027). preload="metadata" fetches the first frame to show rather
         // than the whole 5 second clip.
         preload="metadata"
-        onMouseEnter={event => {
-          void event.currentTarget.play().catch(() => {
-            /* a play() the browser refuses is not a failed video */
-          });
-        }}
-        onMouseLeave={event => {
-          event.currentTarget.pause();
-          event.currentTarget.currentTime = 0;
-        }}
+        onMouseEnter={event => startPreview(event.currentTarget)}
+        onMouseLeave={event => stopPreview(event.currentTarget)}
         onError={() => setVideoFailed(true)}
       />
     );
