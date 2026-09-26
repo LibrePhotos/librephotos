@@ -368,6 +368,68 @@ class UnifiedThumbnailAccessTest(TestCase):
         response = _unified("thumbnails_big", self.photo.image_hash)
         self.assertEqual(response.status_code, 403)
 
+    def test_public_photo_that_left_the_timeline_is_not_served(self):
+        """Hiding, trashing or removing a photo does not clear ``public``.
+
+        The anonymous API stops listing such a photo, so its media must stop
+        answering too, rather than living on behind the flag.
+        """
+        for flag in ("hidden", "in_trashcan", "removed"):
+            with self.subTest(flag=flag):
+                photo = create_test_photo(owner=self.owner, public=True)
+                setattr(photo, flag, True)
+                photo.save(update_fields=[flag])
+                response = _unified("thumbnails_big", photo.image_hash)
+                self.assertEqual(response.status_code, 403)
+                self.assertEqual(response["X-Media-Error"], "authentication")
+
+    def test_public_photo_grants_what_a_public_album_share_grants(self):
+        """Path for path, ``public`` is worth exactly an album share.
+
+        Covers the paths that reach past the thumbnail branch: the legacy
+        ``video`` path, which serves the original video file, and face crops.
+        """
+        public_video = create_test_photo(owner=self.owner, video=True, public=True)
+        album_video = create_test_photo(owner=self.owner, video=True)
+        album = AlbumUser.objects.create(title="Open", owner=self.owner)
+        album.photos.add(album_video)
+        AlbumUserShare.objects.create(album=album, enabled=True)
+
+        for path, suffix in (("video", ""), ("faces", "_1.jpg")):
+            with self.subTest(path=path):
+                via_public = _unified(path, public_video.image_hash + suffix)
+                via_album = _unified(path, album_video.image_hash + suffix)
+                self.assertEqual(via_album.status_code, 200)
+                self.assertEqual(via_public.status_code, 200)
+                self.assertEqual(via_public["Content-Type"], via_album["Content-Type"])
+                self.assertEqual(
+                    via_public["X-Accel-Redirect"],
+                    via_album["X-Accel-Redirect"].replace(
+                        album_video.image_hash, public_video.image_hash
+                    ),
+                )
+
+    def test_duplicate_hash_resolves_in_favour_of_the_public_row(self):
+        """An anonymous visitor must land on the public twin, not a private one.
+
+        ``Photo`` has no default ordering, so each row takes a turn at being
+        the public one to keep the result from depending on which comes first.
+        """
+        twin = create_test_photo(owner=self.friend)
+        twin.image_hash = self.photo.image_hash
+        twin.save(update_fields=["image_hash"])
+        for public, private in ((self.photo, twin), (twin, self.photo)):
+            with self.subTest(public_owner=public.owner.username):
+                public.public, private.public = True, False
+                public.save(update_fields=["public"])
+                private.save(update_fields=["public"])
+                response = _unified("thumbnails_big", self.photo.image_hash)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response["X-Accel-Redirect"],
+                    "/protected_media/" + public.thumbnail.thumbnail_big.name,
+                )
+
     def test_duplicate_hash_resolves_in_favour_of_the_owner(self):
         twin = create_test_photo(owner=self.friend)
         twin_thumb = os.path.basename(twin.thumbnail.thumbnail_big.name)
@@ -428,6 +490,28 @@ class UnifiedOriginalPhotoTest(TestCase):
         response = _unified("photos", self.photo.image_hash)
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("Content-Disposition", response)
+
+    def test_public_photo_serves_anonymously_like_a_public_album(self):
+        """The lightbox plays a video from here, so a public one must answer."""
+        self.photo.public = True
+        self.photo.save(update_fields=["public"])
+        response = _unified("photos", self.photo.image_hash)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Content-Disposition", response)
+
+    def test_public_photo_in_the_trash_is_not_served(self):
+        self.photo.public = True
+        self.photo.in_trashcan = True
+        self.photo.save(update_fields=["public", "in_trashcan"])
+        response = _unified("photos", self.photo.image_hash)
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_of_a_public_photo_still_gets_it_inline(self):
+        self.photo.public = True
+        self.photo.save(update_fields=["public"])
+        response = _unified("photos", self.photo.image_hash, user=self.owner)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("inline;", response["Content-Disposition"])
 
     def test_anonymous_request_for_a_private_original_is_403_with_marker(self):
         response = _unified("photos", self.photo.image_hash)
@@ -518,5 +602,34 @@ class UnifiedTranscodeBranchTest(TestCase):
         AlbumUserShare.objects.create(album=album, enabled=True)
         with mock.patch("api.transcode_cache.cached_path") as cached_path:
             response = _unified("photos", self.video.image_hash, user=self.owner)
+        cached_path.assert_not_called()
+        self.assertEqual(response.status_code, 200)
+
+    def test_owner_of_a_public_video_keeps_transcoding(self):
+        """Making a video public must not cost its owner their own setting."""
+        from unittest import mock
+
+        from django.conf import settings
+
+        self.video.public = True
+        self.video.save(update_fields=["public"])
+        cached = os.path.join(settings.MEDIA_ROOT, "transcoded", "clip.mp4")
+        with mock.patch(
+            "api.transcode_cache.cached_path", return_value=cached
+        ) as cached_path:
+            response = _unified("photos", self.video.image_hash, user=self.owner)
+        cached_path.assert_called_once()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["X-Accel-Redirect"], "/protected_media/transcoded/clip.mp4"
+        )
+
+    def test_anonymous_viewer_of_a_public_video_gets_the_original(self):
+        from unittest import mock
+
+        self.video.public = True
+        self.video.save(update_fields=["public"])
+        with mock.patch("api.transcode_cache.cached_path") as cached_path:
+            response = _unified("photos", self.video.image_hash)
         cached_path.assert_not_called()
         self.assertEqual(response.status_code, 200)
