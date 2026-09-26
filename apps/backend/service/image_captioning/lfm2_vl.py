@@ -23,9 +23,10 @@ import math
 import os
 
 import numpy as np
-import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
+
+from service.onnx_session import inference_session
 
 # The sidecars never load Django, so the data root comes in as BASE_DATA (see
 # api.services._service_environment). Unset, this is the Docker layout under /.
@@ -117,10 +118,7 @@ class Lfm2VlCaptioner:
 
     def load(self):
         self.sessions = {
-            key: ort.InferenceSession(
-                os.path.join(self.model_dir, filename),
-                providers=["CPUExecutionProvider"],
-            )
+            key: inference_session(os.path.join(self.model_dir, filename))
             for key, filename in SESSION_FILES.items()
         }
         self.tokenizer = Tokenizer.from_file(

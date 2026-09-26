@@ -16,7 +16,9 @@ actually use, without reloading the registered module the other tests hold.
 
 import importlib.util
 import os
+import subprocess
 import sys
+import tempfile
 import uuid
 from unittest.mock import patch
 
@@ -173,3 +175,37 @@ class ServiceEnvironmentPassesBaseDataTest(SimpleTestCase):
         with override_settings(BASE_DATA="/"):
             env = _service_environment()
         self.assertEqual(env["BASE_DATA"], "/")
+
+
+class ServiceEnvironmentPythonPathTest(SimpleTestCase):
+    """The sidecars import service.onnx_session although they run as scripts.
+
+    ``python service/<name>/main.py`` puts only the script's own directory on
+    sys.path, so the backend root has to come in through PYTHONPATH.
+    """
+
+    def test_the_backend_root_comes_first(self):
+        with patch.dict(os.environ, {"PYTHONPATH": "/somewhere/else"}):
+            env = _service_environment()
+        self.assertEqual(
+            env["PYTHONPATH"].split(os.pathsep), [BACKEND_DIR, "/somewhere/else"]
+        )
+
+    def test_without_an_ambient_pythonpath(self):
+        with patch.dict(os.environ):
+            os.environ.pop("PYTHONPATH", None)
+            env = _service_environment()
+        self.assertEqual(env["PYTHONPATH"], BACKEND_DIR)
+
+    def test_a_script_context_can_import_the_shared_helper(self):
+        # -c from another directory: like a script, the backend root is not on
+        # sys.path unless the environment puts it there.
+        with tempfile.TemporaryDirectory() as elsewhere:
+            result = subprocess.run(
+                [sys.executable, "-c", "import service.onnx_session"],
+                cwd=elsewhere,
+                env=_service_environment(),
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)

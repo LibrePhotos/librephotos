@@ -1,6 +1,6 @@
 """Tests for ``service.clip_embeddings.clip_onnx.ClipEmbeddings``.
 
-No model is loaded: ``ort.InferenceSession`` and the tokenizer are faked.
+No model is loaded: ``inference_session`` and the tokenizer are faked.
 What is pinned:
 
   * The result keeps one slot per requested path, ``None`` where the image
@@ -49,8 +49,7 @@ class ClipEmbeddingsTest(SimpleTestCase):
     def setUp(self):
         self.sessions = {}
 
-        def make_session(path, providers=None):
-            self.assertEqual(providers, ["CPUExecutionProvider"])
+        def make_session(path):
             kind = "pixel_values" if path.endswith("vision_model.onnx") else "input_ids"
             session = FakeSession(kind)
             self.sessions.setdefault(kind, []).append(session)
@@ -61,7 +60,7 @@ class ClipEmbeddingsTest(SimpleTestCase):
             ids=list(range(len(text)))
         )
         for p in (
-            patch.object(clip_module.ort, "InferenceSession", side_effect=make_session),
+            patch.object(clip_module, "inference_session", side_effect=make_session),
             patch.object(
                 clip_module, "Tokenizer", MagicMock(from_file=lambda _p: tokenizer)
             ),

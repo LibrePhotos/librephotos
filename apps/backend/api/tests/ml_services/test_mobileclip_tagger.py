@@ -1,6 +1,6 @@
 """Tests for ``service.tags.mobileclip.mobileclip.MobileCLIP``.
 
-No model is ever loaded: ``ort.InferenceSession`` and the tokenizer are
+No model is ever loaded: ``inference_session`` and the tokenizer are
 replaced by fakes, the tag file by an in-memory one, and the embedding cache
 lives in a temporary directory.
 
@@ -36,7 +36,7 @@ class _IO:
 
 
 class FakeSession:
-    """Stands in for an ort.InferenceSession; records what it was fed."""
+    """Stands in for an onnxruntime InferenceSession; records what it was fed."""
 
     def __init__(self, output, input_name):
         self.output = output
@@ -100,8 +100,7 @@ class MobileCLIPTaggerTest(SimpleTestCase):
             np.array([[0.9, 0.85, 0.0, 0.0]], np.float32), "pixel_values"
         )
 
-        def make_session(path, providers=None):
-            self.assertEqual(providers, ["CPUExecutionProvider"])
+        def make_session(path):
             return (
                 self.text_session
                 if path.endswith("text_model.onnx")
@@ -109,7 +108,7 @@ class MobileCLIPTaggerTest(SimpleTestCase):
             )
 
         p = patch.object(
-            mobileclip_module.ort, "InferenceSession", side_effect=make_session
+            mobileclip_module, "inference_session", side_effect=make_session
         )
         p.start()
         self.addCleanup(p.stop)

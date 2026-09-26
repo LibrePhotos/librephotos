@@ -10,7 +10,8 @@ any model.
 """
 
 import numpy as np
-import onnxruntime as ort
+
+from service.onnx_session import inference_session
 
 from .config import OCRConfig
 from .crop import get_rotate_crop_image
@@ -134,13 +135,8 @@ class PPOCREngine:
 
     def load(self):
         self.config = OCRConfig(self._model_dir)
-        providers = ["CPUExecutionProvider"]
-        self.det_session = ort.InferenceSession(
-            self.config.det_model_path, providers=providers
-        )
-        self.rec_session = ort.InferenceSession(
-            self.config.rec_model_path, providers=providers
-        )
+        self.det_session = inference_session(self.config.det_model_path)
+        self.rec_session = inference_session(self.config.rec_model_path)
 
         self.det_input_name = self.det_session.get_inputs()[0].name
         rec_input_name = self.rec_session.get_inputs()[0].name

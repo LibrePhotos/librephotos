@@ -100,3 +100,38 @@ class UnmatchedRegionTest(SimpleTestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.get_json()["encodings"], [None, [3.0, 4.0]])
+
+
+class FaceAnalysisProvidersTest(SimpleTestCase):
+    """insightface runs on the providers service.onnx_session picks."""
+
+    def setUp(self):
+        cache = patch.dict(face_main.face_analysis_models, clear=True)
+        cache.start()
+        self.addCleanup(cache.stop)
+
+    def _load(self, providers):
+        with (
+            patch.object(face_main, "execution_providers", return_value=providers),
+            patch("insightface.app.FaceAnalysis") as analysis,
+        ):
+            face_main._get_face_analysis("buffalo_sc")
+        return analysis
+
+    def test_cuda_is_used_when_available(self):
+        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+
+        analysis = self._load(providers)
+
+        self.assertEqual(analysis.call_args.kwargs["providers"], providers)
+        # A negative ctx_id would switch every model back to the CPU.
+        analysis.return_value.prepare.assert_called_once_with(
+            ctx_id=0, det_size=(640, 640)
+        )
+
+    def test_a_cpu_build_stays_on_the_cpu(self):
+        analysis = self._load(["CPUExecutionProvider"])
+
+        analysis.return_value.prepare.assert_called_once_with(
+            ctx_id=-1, det_size=(640, 640)
+        )

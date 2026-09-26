@@ -2,7 +2,7 @@
 
 Pins the CURRENT behavior of ``SigLIP2.load`` before it is refactored.
 
-Nothing heavy is ever touched: ``ort.InferenceSession`` is replaced by a
+Nothing heavy is ever touched: ``inference_session`` is replaced by a
 factory returning a sentinel, ``builtins.open`` is replaced by ``mock_open``
 for ``tags.txt``, ``os.path.exists`` / ``np.load`` / ``os.remove`` are patched
 so ``/protected_media`` is never read from or written to, and
@@ -12,7 +12,7 @@ so ``/protected_media`` is never read from or written to, and
 Behavior pinned here that a refactor must preserve:
 
   * The vision session is built FIRST, before the tag file is read, via
-    ``ort.InferenceSession(SIGLIP2_VISION_PATH, providers=["CPUExecutionProvider"])``
+    ``inference_session(SIGLIP2_VISION_PATH)`` (service.onnx_session)
     and assigned to ``self.vision_session`` unconditionally.
   * ``tags.txt`` is opened with ``open(TAGS_FILE, "r")`` (text mode, no
     encoding argument) and parsed as ``[line.strip() for line in f
@@ -112,7 +112,7 @@ class LoadTestBase(TestCase):
         stdout = io.StringIO()
 
         with (
-            patch(MODULE + ".ort.InferenceSession", session_factory),
+            patch(MODULE + ".inference_session", session_factory),
             patch("builtins.open", fake_open),
             patch(MODULE + ".os.path.exists", return_value=cache_exists) as exists,
             patch(MODULE + ".np.load", np_load),
@@ -151,12 +151,11 @@ class LoadHappyPathTests(LoadTestBase):
         res["np_load"].assert_not_called()
         res["os_remove"].assert_not_called()
 
-    def test_vision_session_constructed_with_cpu_provider_and_vision_path(self):
+    def test_vision_session_constructed_from_the_vision_path(self):
         res = self.run_load()
 
         res["session_factory"].assert_called_once_with(
-            siglip2_module.SIGLIP2_VISION_PATH,
-            providers=["CPUExecutionProvider"],
+            siglip2_module.SIGLIP2_VISION_PATH
         )
 
     def test_tags_file_opened_in_text_mode_without_encoding(self):
@@ -353,7 +352,7 @@ class LoadErrorPropagationTests(LoadTestBase):
 
     def test_np_load_error_propagates(self):
         with (
-            patch(MODULE + ".ort.InferenceSession", return_value=self.session),
+            patch(MODULE + ".inference_session", return_value=self.session),
             patch("builtins.open", lambda *a, **kw: FakeTagsFile(DEFAULT_TAGS_TEXT)),
             patch(MODULE + ".os.path.exists", return_value=True),
             patch(MODULE + ".np.load", side_effect=ValueError("corrupt npy")),
@@ -370,7 +369,7 @@ class LoadErrorPropagationTests(LoadTestBase):
         cached = np.zeros((3,), dtype=np.float32)
 
         with (
-            patch(MODULE + ".ort.InferenceSession", return_value=self.session),
+            patch(MODULE + ".inference_session", return_value=self.session),
             patch("builtins.open", lambda *a, **kw: FakeTagsFile(DEFAULT_TAGS_TEXT)),
             patch(MODULE + ".os.path.exists", return_value=True),
             patch(MODULE + ".np.load", return_value=cached),
@@ -392,7 +391,7 @@ class LoadRealTagsFileTests(TestCase):
         model = SigLIP2()
 
         with (
-            patch(MODULE + ".ort.InferenceSession", return_value=object()),
+            patch(MODULE + ".inference_session", return_value=object()),
             patch(MODULE + ".os.path.exists", return_value=False),
             patch.object(SigLIP2, "_build_tag_embeddings", MagicMock()),
             patch("sys.stdout", io.StringIO()),

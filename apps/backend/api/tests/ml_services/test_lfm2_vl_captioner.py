@@ -160,8 +160,7 @@ class Lfm2VlCaptionerTest(SimpleTestCase):
         self.decoder = FakeDecoder([ord(c) for c in '"a cat"'])
         self.tokenizer = FakeTokenizer()
 
-        def make_session(path, providers=None):
-            self.assertEqual(providers, ["CPUExecutionProvider"])
+        def make_session(path):
             self.assertTrue(path.startswith(self.tmp.name))
             return {
                 "vision_encoder_q4.onnx": self.vision,
@@ -170,7 +169,7 @@ class Lfm2VlCaptionerTest(SimpleTestCase):
             }[os.path.basename(path)]
 
         for p in (
-            patch.object(lfm_module.ort, "InferenceSession", side_effect=make_session),
+            patch.object(lfm_module, "inference_session", side_effect=make_session),
             patch.object(
                 lfm_module, "Tokenizer", MagicMock(from_file=lambda _p: self.tokenizer)
             ),

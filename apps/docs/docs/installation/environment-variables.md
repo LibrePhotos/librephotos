@@ -56,6 +56,26 @@ To leverage GPU acceleration for neural networks and face detection, follow thes
 The GPU image is only available for x86 architecture. ARM is not supported for the GPU image.
 :::
 
+#### Which device the models run on
+
+Every machine learning model (face recognition, semantic search, scene tags, captions, OCR) runs on ONNX Runtime. The models use CUDA when the installed ONNX Runtime offers it, which the GPU image does, and fall back to the CPU otherwise; the CPU image needs no configuration.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ONNX_PROVIDERS` | CUDA if available, then CPU | Comma-separated ONNX Runtime execution providers, most preferred first. `CPUExecutionProvider` keeps the GPU image off the GPU, for example to leave it to another application. Names the installed ONNX Runtime does not offer are skipped. |
+| `ONNX_INTRA_OP_THREADS` | ONNX Runtime's default (one per physical core) | How many threads one model may use at a time. See [Threads per model](#threads-per-model). |
+
+Neither is in the bundled `.env` file; pass them to the backend container directly:
+
+```yaml
+services:
+  backend:
+    environment:
+      - ONNX_PROVIDERS=CPUExecutionProvider
+```
+
+*Unreleased: before this change every model ran on the CPU, even in the GPU image. It is on `dev` and will appear in the next release.*
+
 ### Limiting CPU and memory usage
 
 The backend container runs two things: **uvicorn**, which answers API requests, and a pool of **background workers**, which scan your library — thumbnails, face detection, captioning. Almost all of the CPU and memory LibrePhotos uses goes to the background workers, and by default there is **one worker per CPU core**.
@@ -115,6 +135,10 @@ services:
 :::note
 `cpu_shares` only sets a *relative* priority between containers and has no visible effect when nothing else is competing for the CPU, which is why it often looks like it does nothing.
 :::
+
+#### Threads per model
+
+Each machine learning service is a separate process, and by default each model in it may use one thread per physical core. With several of them busy during a scan they compete for the same cores. `ONNX_INTRA_OP_THREADS` caps every model at that many threads (`0` or unset keeps the default), which pairs well with a `cpus:` limit: set it to the number of cores you give the container, or fewer. The face recognition models are the exception, because the library that loads them does not pass the setting through. *Unreleased, on `dev`.*
 
 :::warning
 Do not cap the container so hard that the first scan cannot finish. Face detection and captioning load sizeable models; below roughly 2 GB of memory the backend will be killed by the kernel — and *that* really is an out-of-memory kill.
@@ -213,6 +237,16 @@ Unlike the cached copy, the live conversion is **not** niced: somebody is watchi
 `TRANSCODE_LIVE_READRATE` and `TRANSCODE_LIVE_BURST_SECONDS` need a recent ffmpeg — `-readrate` arrived in ffmpeg 5.0 and `-readrate_initial_burst` in 6.1. The CPU image has both. **The GPU image does not**: it is built on Ubuntu 22.04, whose ffmpeg is 4.4, so on that image these two settings have no effect and only `TRANSCODE_LIVE_CPU_FRACTION` applies. The same goes for a host supplying its own older ffmpeg. Nothing has to be configured for that — the option is simply not passed, and the core cap still holds.
 
 `TRANSCODE_LIVE_CPU_FRACTION` is a divisor, so a **larger** number means fewer cores: `4` is stricter than `2`. Raising it, or lowering the readrate, makes a busy server more responsive while a video is playing; going the other way favours the person watching. If a video stutters on a slow machine, set `TRANSCODE_LIVE_CPU_FRACTION` to `1` first: a stutter means the conversion cannot keep ahead of playback, and it is the core cap that decides how fast it can go — the readrate is a ceiling it never reached. For scale, one core converts 1080p to 720p at about 1.5x real time, and two at about 2x, so a machine with few cores has little margin at 1080p and none to spare for a second viewer.
+
+### Internal service address
+
+The backend talks to its helper services (thumbnails, metadata, faces, tags, captions, OCR, search) over HTTP inside the container. They have no authentication, so they listen on `127.0.0.1` only and cannot be reached from outside the container.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `SERVICE_HOST` | `127.0.0.1` | Address the helper services listen on. The backend always calls them on `127.0.0.1`, so there is rarely a reason to change it; anything else exposes unauthenticated services to whatever can reach that address. |
+
+*Unreleased: released images listen on `0.0.0.0`. The change is on `dev` and will appear in the next release.*
 
 ### Logging
 

@@ -7,6 +7,8 @@ from PIL import Image
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
+from service.onnx_session import execution_providers, uses_gpu
+
 app = Flask(__name__)
 
 last_request_time = None
@@ -48,13 +50,16 @@ def _get_face_analysis(model_name):
     if model_name not in face_analysis_models:
         from insightface.app import FaceAnalysis
 
+        providers = execution_providers()
         face_analysis = FaceAnalysis(
             name=model_name,
             root=FACE_MODEL_ROOT,
             allowed_modules=["detection", "recognition"],
-            providers=["CPUExecutionProvider"],
+            providers=providers,
         )
-        face_analysis.prepare(ctx_id=-1, det_size=(640, 640))
+        # A negative ctx_id makes insightface switch every model back to the CPU.
+        ctx_id = 0 if uses_gpu(providers) else -1
+        face_analysis.prepare(ctx_id=ctx_id, det_size=(640, 640))
         face_analysis_models[model_name] = face_analysis
     return face_analysis_models[model_name]
 
