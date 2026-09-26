@@ -951,6 +951,8 @@
     "noallow": "Do not allow",
     "headerupload": "Allow uploads",
     "headernextcloud": "Enable Nextcloud integration",
+    "headerautocreateuserdirectory": "Create a folder for each new user",
+    "autocreateuserdirectory": "New users get their own folder under the data root as their scan directory. Your own scan directory must be a subfolder, not the data root itself, because scan directories of different users cannot overlap.",
     "skip_raw_files": "Skip RAW files",
     "stack_raw_jpeg": "Stack RAW+JPEG pairs",
     "headerskippatterns": "Skip patterns",

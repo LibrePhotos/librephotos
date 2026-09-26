@@ -296,6 +296,14 @@ CONSTANCE_CONFIG = {
         "Enable the Nextcloud integration",
         bool,
     ),
+    "AUTO_CREATE_USER_DIRECTORY": (
+        False,
+        "Give each new user their own folder under the data root and set it as"
+        " their scan directory. Needs the admin's own scan directory to be a"
+        " subfolder, not the data root itself, since scan directories of"
+        " different users cannot overlap.",
+        bool,
+    ),
     "SKIP_PATTERNS": (
         os.environ.get("SKIP_PATTERNS", ""),
         "Comma delimited list of patterns to ignore (e.g. '@eaDir,#recycle' for synology devices)",

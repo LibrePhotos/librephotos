@@ -156,6 +156,85 @@ def normalize_scan_directory(scan_directory, user=None):
     return abs_scan_directory
 
 
+def auto_create_user_directory(user, claim_existing=False):
+    """Give ``user`` its own folder under ``DATA_ROOT``, when that is enabled.
+
+    Off unless the ``AUTO_CREATE_USER_DIRECTORY`` site setting is on. A
+    directory supplied on create is never overwritten -- an admin who typed a
+    path meant it (#2038).
+
+    The folder is ``DATA_ROOT/<username>``. Everything that can refuse it is
+    checked before anything is created, so a refusal leaves nothing behind:
+
+    - the username has to name a direct child of ``DATA_ROOT`` (``.`` and
+      ``..`` do not);
+    - it must not overlap another user's scan directory (#2034). On the
+      default layout, where the admin scans ``DATA_ROOT`` itself, every
+      candidate overlaps, so the feature needs the admin on a subfolder;
+    - a folder that already exists is only taken over when
+      ``claim_existing`` is set. That is for an admin creating the account,
+      who can see what is in it. A self-registered or SSO user must not be
+      able to claim a folder just by picking its name as a username -- an
+      account called ``family`` would otherwise get ``DATA_ROOT/family``.
+
+    Nothing here can fail user creation. A library mount is often read-only,
+    and an account with no scan directory is still a usable account: the user
+    sees an empty library and an admin can assign one later. So every refusal
+    is logged and returned from, not raised.
+    """
+    from constance import config as site_config
+
+    if not site_config.AUTO_CREATE_USER_DIRECTORY or user.scan_directory:
+        return
+
+    def refuse(reason):
+        logger.warning(
+            f"Not creating a data folder for user {user.username}: {reason}. "
+            f"The account was created without a scan directory; assign one "
+            f"in the Admin Area."
+        )
+
+    data_root = os.path.abspath(settings.DATA_ROOT)
+    candidate = os.path.abspath(os.path.join(data_root, user.username))
+    if os.path.dirname(candidate) != data_root:
+        refuse(f"the username does not name a folder directly inside {data_root}")
+        return
+
+    try:
+        reject_overlap_with_another_user(candidate, user)
+    except ValidationError as error:
+        refuse(f"{candidate} is not available. {' '.join(error.detail)}")
+        return
+
+    if os.path.lexists(candidate):
+        if not claim_existing:
+            refuse(
+                f"{candidate} already exists and may hold someone else's photos, "
+                f"so it is not handed to a self-registered or single sign-on "
+                f"account"
+            )
+            return
+        if not os.path.isdir(candidate):
+            refuse(f"{candidate} exists but is not a directory")
+            return
+    else:
+        try:
+            # No exist_ok: if the folder appeared since the check above, it is
+            # not ours to claim.
+            os.makedirs(candidate)
+        except FileExistsError:
+            if not claim_existing:
+                refuse(f"{candidate} was created by something else meanwhile")
+                return
+        except OSError as error:
+            refuse(f"could not create {candidate}: {error}")
+            return
+
+    user.scan_directory = candidate
+    user.save(update_fields=["scan_directory"])
+    logger.info(f"Assigned data folder {candidate} to user {user.username}")
+
+
 class UserSerializer(serializers.ModelSerializer):
     public_photo_count = serializers.SerializerMethodField()
     public_photo_samples = serializers.SerializerMethodField()
@@ -270,6 +349,9 @@ class UserSerializer(serializers.ModelSerializer):
         else:
             user = User.objects.create_user(**validated_data)
         logger.info(f"Created user {user.id}")
+        # Only an admin gets here (anonymous sign-up uses SignupUserSerializer),
+        # so an existing folder of that name is theirs to hand out.
+        auto_create_user_directory(user, claim_existing=True)
         return user
 
     def update(self, instance, validated_data):
@@ -430,6 +512,7 @@ class SignupUserSerializer(serializers.ModelSerializer):
         user.is_staff = should_be_superuser
         user.is_superuser = should_be_superuser
         user.save()
+        auto_create_user_directory(user)
         return user
 
 

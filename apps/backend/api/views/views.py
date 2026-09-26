@@ -141,6 +141,7 @@ class SiteSettingsView(APIView):
         out["ocr_model"] = site_config.OCR_MODEL
         out["face_recognition_model"] = site_config.FACE_RECOGNITION_MODEL
         out["nextcloud_enabled"] = site_config.NEXTCLOUD_ENABLED
+        out["auto_create_user_directory"] = site_config.AUTO_CREATE_USER_DIRECTORY
         out["email_configured"] = email_is_configured()
         return Response(out)
 
@@ -168,6 +169,10 @@ class SiteSettingsView(APIView):
             site_config.FACE_RECOGNITION_MODEL = request.data["face_recognition_model"]
         if "nextcloud_enabled" in request.data.keys():
             site_config.NEXTCLOUD_ENABLED = request.data["nextcloud_enabled"]
+        if "auto_create_user_directory" in request.data.keys():
+            site_config.AUTO_CREATE_USER_DIRECTORY = request.data[
+                "auto_create_user_directory"
+            ]
         if not do_all_models_exist():
             AsyncTask(download_models, User.objects.get(id=request.user.id)).run()
 

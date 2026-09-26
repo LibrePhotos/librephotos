@@ -12,6 +12,7 @@ site_settings_schema = {
         {"required": ["ocr_model"]},
         {"required": ["face_recognition_model"]},
         {"required": ["nextcloud_enabled"]},
+        {"required": ["auto_create_user_directory"]},
     ],
     "properties": {
         "allow_registration": {"type": "boolean"},
@@ -25,5 +26,6 @@ site_settings_schema = {
         "ocr_model": {"type": "string"},
         "face_recognition_model": {"type": "string"},
         "nextcloud_enabled": {"type": "boolean"},
+        "auto_create_user_directory": {"type": "boolean"},
     },
 }
