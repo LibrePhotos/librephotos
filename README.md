@@ -16,7 +16,7 @@ This is a monorepo that consolidates what was previously five separate repositor
 |---|---|---|
 | [`apps/backend/`](apps/backend/) | Django 5 API, machine-learning pipelines, background jobs | `librephotos` |
 | [`apps/frontend/`](apps/frontend/) | React 18 + Vite web client, i18next localization | `librephotos-frontend` |
-| [`apps/mobile/`](apps/mobile/) | React Native mobile client (Android) | `librephotos-mobile` |
+| [`apps/mobile/`](apps/mobile/) | Expo mobile app (Android and iOS), offline-first | `librephotos-mobile` |
 | [`apps/docs/`](apps/docs/) | Docusaurus site published to https://docs.librephotos.com | `librephotos.docs` |
 | [`deploy/`](deploy/) | Dockerfiles, Compose configs, proxy, Kubernetes manifests | `librephotos-docker` |
 

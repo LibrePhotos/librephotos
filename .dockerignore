@@ -23,11 +23,9 @@ apps/frontend/dist
 apps/frontend/.yarn
 apps/docs/build
 apps/docs/.docusaurus
-apps/mobile/android/build
-apps/mobile/android/app/build
-apps/mobile/android/.gradle
-apps/mobile/ios/build
-apps/mobile/ios/Pods
+apps/mobile/.expo
+apps/mobile/android
+apps/mobile/ios
 
 # Python caches
 **/__pycache__

@@ -11,7 +11,7 @@ Thanks for your interest in contributing! This is a monorepo — contributions t
 |---|---|
 | The Django API, ML pipelines, background jobs | [apps/backend/](apps/backend/) and [apps/backend/CONTRIBUTING.md](apps/backend/CONTRIBUTING.md) |
 | The React web client | [apps/frontend/](apps/frontend/) and [apps/frontend/README.md](apps/frontend/README.md) |
-| The React Native mobile client | [apps/mobile/](apps/mobile/) and [apps/mobile/README.md](apps/mobile/README.md) |
+| The Expo mobile app (Android and iOS) | [apps/mobile/](apps/mobile/) and [apps/mobile/README.md](apps/mobile/README.md) |
 | The documentation site | [apps/docs/](apps/docs/) |
 | Docker images, Compose configs, Kubernetes manifests | [deploy/](deploy/) |
 | Translations | https://hosted.weblate.org/engage/librephotos/ |
@@ -23,7 +23,7 @@ The full stack (backend + frontend + db + proxy) runs via Docker Compose from [`
 Each app can also be worked on standalone:
 - Backend: see [apps/backend/CONTRIBUTING.md](apps/backend/CONTRIBUTING.md)
 - Frontend: `cd apps/frontend && yarn install && yarn start`
-- Mobile: `cd apps/mobile && yarn install && yarn android`
+- Mobile: `npm ci` at the repo root, then `cd apps/mobile && npx expo start` (see [apps/mobile/README.md](apps/mobile/README.md))
 - Docs: `cd apps/docs && yarn install && yarn start`
 
 ## Pull requests

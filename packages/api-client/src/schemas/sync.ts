@@ -1,5 +1,5 @@
 /**
- * Zod schemas for the mobile-v2 delta-sync feeds (backend `api/views/sync.py`).
+ * Zod schemas for the mobile app's delta-sync feeds (backend `api/views/sync.py`).
  *
  * Every feed shares one envelope:
  *   { v, items, tombstones, next_cursor, total?, server_time }

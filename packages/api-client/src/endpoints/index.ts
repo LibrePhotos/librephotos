@@ -395,7 +395,7 @@ export async function existsByHash(client: ApiClient, hashes: string[]): Promise
   return parseResponse(S.ExistsResponse, res, "exists check");
 }
 
-/* ---- delta sync (mobile-v2, backend api/views/sync.py) ----------------- */
+/* ---- delta sync (mobile app, backend api/views/sync.py) ----------------- */
 
 /** Pull parameters for a keyset-paginated delta feed. */
 export type SyncPullParams = {

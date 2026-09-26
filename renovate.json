@@ -52,11 +52,6 @@
       "addLabels": ["ci"]
     },
     {
-      "description": "The React Native app is being replaced by the Expo rewrite (apps/mobile-v2, PR #1952). Its updates cannot land without a full RN 0.72 upgrade, and react-native 0.x minors are breaking, so no dependency PRs for it.",
-      "matchFileNames": ["apps/mobile/**"],
-      "enabled": false
-    },
-    {
       "description": "Deploy updates are never built by PR CI (the image workflows run on push to dev only), so they must not automerge.",
       "matchFileNames": ["deploy/**"],
       "automerge": false

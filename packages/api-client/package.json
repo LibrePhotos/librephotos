@@ -1,7 +1,7 @@
 {
   "name": "@librephotos/api-client",
   "version": "0.1.0",
-  "description": "Platform-agnostic LibrePhotos API client: zod schemas, injectable fetch transport, and TanStack Query v5 hooks. Shared between apps/frontend and apps/mobile-v2.",
+  "description": "Platform-agnostic LibrePhotos API client: zod schemas, injectable fetch transport, and TanStack Query v5 hooks. Shared between apps/frontend and apps/mobile.",
   "private": true,
   "type": "module",
   "main": "src/index.ts",

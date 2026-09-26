@@ -1,65 +1,48 @@
-# OSX
-#
-.DS_Store
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# Xcode
-#
-build/
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-xcuserdata
-*.xccheckout
-*.moved-aside
-DerivedData
-*.hmap
-*.ipa
-*.xcuserstate
-
-# Android/IntelliJ
-#
-build/
-.idea
-.gradle
-local.properties
-*.iml
-android/app/release
-
-# node.js
-#
+# dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
+# This app is an npm workspace: the ROOT package-lock.json is the only
+# authoritative one (CI runs `npm ci` at the repo root). A lockfile written
+# here by a stray `npm install` inside the app pins a whole second dependency
+# tree -- it went stale on an old Expo SDK once already.
+package-lock.json
 
-# docs
-docs/
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
 
-# BUCK
-buck-out/
-\.buckd/
-*.keystore
-!debug.keystore
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/
+# Metro
+.metro-health-check*
 
-*/fastlane/report.xml
-*/fastlane/Preview.html
-*/fastlane/screenshots
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 
-# Bundle artifact
-*.jsbundle
+# macOS
+.DS_Store
+*.pem
 
-# CocoaPods
-/ios/Pods/
+# local env files
+.env*.local
 
-template/plugins/typescript/template/tsconfig.json
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
