@@ -150,6 +150,22 @@ class SubfoldersPathValidationTests(SubfoldersTestBase):
             200,
         )
 
+    def test_scan_directory_at_the_filesystem_root_admits_its_subfolders(self):
+        # "/" (or a drive root such as D:\ in the Windows standalone build)
+        # already ends in a separator; it must not become "//" and refuse
+        # every child.
+        fs_root = os.path.splitdrive(self.root)[0] + os.sep
+        user = create_test_user(scan_directory=fs_root)
+        resp = self.client_for(user).get(URL, {"path": self.root})
+        self.assertEqual(resp.status_code, 200)
+
+    def test_data_root_at_the_filesystem_root_admits_admin_subfolders(self):
+        fs_root = os.path.splitdrive(self.root)[0] + os.sep
+        admin = create_test_user(is_admin=True)
+        with override_settings(DATA_ROOT=fs_root):
+            resp = self.client_for(admin).get(URL, {"path": self.root})
+        self.assertEqual(resp.status_code, 200)
+
     def test_admin_sibling_sharing_the_data_root_prefix_is_refused(self):
         sibling = self.root + "-evil"
         os.makedirs(sibling)

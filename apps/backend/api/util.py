@@ -72,24 +72,31 @@ def reconfigure_logging():
 
 
 def is_valid_path(path, root_path):
-    # Resolve absolute paths to prevent directory traversal attacks
-    abs_path = os.path.abspath(path)
-    abs_root = os.path.abspath(root_path)
+    """Return True when ``path`` is ``root_path`` itself or lies inside it.
 
-    try:
-        common = os.path.commonpath([abs_path, abs_root])
-    except ValueError:
-        # Raised when paths are on different drives
-        return False
+    Both paths are made absolute and normalised first, so ``..`` segments
+    cannot climb out of the root, and on Windows mixed separators and letter
+    case do not matter. The root is compared with exactly one trailing
+    separator: that keeps a sibling sharing the root's prefix (``/data/alice2``
+    against ``/data/alice``) out, while a root that already ends in a
+    separator (``/``, ``D:\\``) or has no root component (a UNC share such as
+    ``\\\\nas\\photos``) still admits its children.
+    """
+    return _is_within(path, root_path, os.path)
 
-    if common != abs_root:
-        return False
 
-    # Guard against paths that merely share a prefix with the root path
-    # (e.g. /root and /root_dir). By normalising with os.path.commonpath
-    # and checking for path separators we ensure the path really resides
-    # within the root directory or is the directory itself.
-    return abs_path == abs_root or abs_path.startswith(abs_root + os.sep)
+def _is_within(path, root_path, pathmod):
+    # pathmod is os.path in production; tests pass ntpath/posixpath to pin the
+    # Windows and POSIX behaviour on whichever OS runs the suite.
+    abs_path = pathmod.normcase(pathmod.abspath(path))
+    abs_root = pathmod.normcase(pathmod.abspath(root_path))
+
+    if abs_path == abs_root:
+        return True
+
+    sep = pathmod.sep
+    root_prefix = abs_root if abs_root.endswith(sep) else abs_root + sep
+    return abs_path.startswith(root_prefix)
 
 
 def is_number(s):
