@@ -105,6 +105,54 @@ class CreateNewImageTests(FileHandlerTestBase):
         logger.warning.assert_called_once()
         self.assertIn("no photo to metadata file found", logger.warning.call_args[0][0])
 
+    def test_metadata_file_does_not_attach_to_another_users_photo(self):
+        other_user = create_test_user()
+        image_path = _write_image(self.p("IMG_200.png"), width=11)
+        other_photo = create_new_image(other_user, image_path)
+        self.assertIsNotNone(other_photo)
+
+        xmp_path = _write_bytes(self.p("IMG_200.xmp"), b"<x:xmpmeta/>")
+        with patch(f"{MODULE}.util.logger") as logger:
+            self.assertIsNone(create_new_image(self.user, xmp_path))
+
+        self.assertFalse(other_photo.files.filter(path=xmp_path).exists())
+        self.assertIn("no photo to metadata file found", logger.warning.call_args[0][0])
+
+    def test_metadata_file_does_not_attach_to_photo_sharing_a_name_prefix(self):
+        """``IMG_1.xmp`` describes ``IMG_1.*``, never ``IMG_10.png``."""
+        prefixed = create_new_image(self.user, _write_image(self.p("IMG_10.png"), 12))
+        self.assertIsNotNone(prefixed)
+
+        xmp_path = _write_bytes(self.p("IMG_1.xmp"), b"<x:xmpmeta/>")
+        with patch(f"{MODULE}.util.logger") as logger:
+            self.assertIsNone(create_new_image(self.user, xmp_path))
+
+        self.assertFalse(prefixed.files.filter(path=xmp_path).exists())
+        self.assertIn("no photo to metadata file found", logger.warning.call_args[0][0])
+
+    def test_metadata_file_prefers_exact_stem_over_prefix_match(self):
+        create_new_image(self.user, _write_image(self.p("IMG_10.png"), 13))
+        exact = create_new_image(self.user, _write_image(self.p("IMG_1.png"), 14))
+
+        xmp_path = _write_bytes(self.p("IMG_1.xmp"), b"<x:xmpmeta/>")
+        create_new_image(self.user, xmp_path)
+
+        self.assertEqual(
+            [exact.pk],
+            list(
+                Photo.objects.filter(files__path=xmp_path).values_list("pk", flat=True)
+            ),
+        )
+
+    def test_extension_qualified_sidecar_attaches_to_its_photo(self):
+        """``IMG_300.png.xmp`` is the darktable-style name for ``IMG_300.png``."""
+        photo = create_new_image(self.user, _write_image(self.p("IMG_300.png"), 15))
+
+        xmp_path = _write_bytes(self.p("IMG_300.png.xmp"), b"<x:xmpmeta/>")
+        self.assertIsNone(create_new_image(self.user, xmp_path))
+
+        self.assertTrue(photo.files.filter(path=xmp_path).exists())
+
     # --- RAW branch ------------------------------------------------------
 
     def test_raw_attaches_to_existing_jpeg_photo(self):
@@ -348,6 +396,35 @@ class HandleFileGroupTests(FileHandlerTestBase):
         self.assertEqual(1, (job.result or {}).get("error_count"))
         # The File record for the sidecar IS created even though no Photo is.
         self.assertTrue(File.objects.filter(path=xmp_path).exists())
+
+    def test_group_sidecar_is_attached_to_the_new_photo(self):
+        image_path = _write_image(self.p("S_1.png"), width=23)
+        xmp_path = _write_bytes(self.p("S_1.xmp"), b"<x:xmpmeta>s1</x:xmpmeta>")
+        self._make_job(target=1)
+
+        handle_file_group(self.user, [image_path, xmp_path], self.job_id)
+
+        photo = Photo.objects.get()
+        self.assertEqual(image_path, photo.main_file.path)
+        self.assertTrue(photo.files.filter(path=xmp_path).exists())
+
+    def test_byte_identical_sidecars_do_not_merge_their_photos(self):
+        """Sidecar Files are keyed by content hash, so identical XMPs share one
+        row; that shared row must not make the second image join the first
+        image's Photo."""
+        first = _write_image(self.p("S_2.png"), width=24)
+        second = _write_image(self.p("S_3.png"), width=25)
+        _write_bytes(self.p("S_2.xmp"), b"<x:xmpmeta/>")
+        _write_bytes(self.p("S_3.xmp"), b"<x:xmpmeta/>")
+        self._make_job(target=2)
+
+        handle_file_group(self.user, [first, self.p("S_2.xmp")], self.job_id)
+        handle_file_group(self.user, [second, self.p("S_3.xmp")], self.job_id)
+
+        self.assertEqual(
+            {first, second},
+            set(Photo.objects.values_list("main_file__path", flat=True)),
+        )
 
     def test_photo_without_main_file_is_not_processed(self):
         path = _write_image(self.p("G_3.png"), width=22)

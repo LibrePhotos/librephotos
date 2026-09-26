@@ -3,12 +3,11 @@
 Covers two layers of the same guarantee: that metadata sidecars end up linked to
 the right Photo even when the filesystem hands files back in a shuffled order.
 
-* ``XMPAssociationTest`` drives ``create_new_image`` directly, verifying the
-  image-before-metadata ordering the scan sentinel is responsible for producing.
-* ``MetadataOrderingSentinelTest`` exercises the real async sequencing --
-  ``handle_new_image`` in a group followed by
-  ``wait_for_group_and_process_metadata`` -- with django-q replaced by
-  synchronous doubles.
+* ``XMPAssociationTest`` drives ``create_new_image`` directly, the path uploads
+  and orphan sidecars (whose photo is not part of the scan) take.
+* ``SidecarsSurviveSlowIngestTest`` runs ``scan_photos`` against a django-q
+  double where the image groups finish last, pinning that a sidecar is never
+  dropped because its photo was still being ingested.
 """
 
 import os
@@ -17,12 +16,13 @@ import struct
 import tempfile
 import uuid
 import zlib
+from collections import defaultdict, deque
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
 
 from api.directory_watcher import create_new_image
-from api.models import Photo
+from api.models import LongRunningJob, Photo
 from api.tests.utils import create_test_user
 
 
@@ -64,9 +64,8 @@ class XMPAssociationTest(TestCase):
         """
         Test that XMP files are correctly associated when processed after their images.
 
-        This test simulates the real scenario that the sentinel handles:
+        This test simulates sidecars reaching create_new_image after their images:
         - Files arrive in random mixed order from directory scanning
-        - The sentinel logic separates them into images and metadata
         - Images are processed first, then metadata
 
         We verify that even when files are discovered in random order (e.g., XMP before image),
@@ -113,15 +112,14 @@ class XMPAssociationTest(TestCase):
 
             # Mock pyvips to accept our test images
             with patch("api.image_decoding.thumbnail"):
-                # Process images first (simulating what the sentinel ensures)
-                # This is the critical ordering that the sentinel guarantees
+                # Process images first
                 for img_path in image_paths:
                     photo = create_new_image(user, img_path)
                     self.assertIsNotNone(
                         photo, f"Photo should be created for {img_path}"
                     )
 
-                # Then process XMP files (after sentinel waits for image group completion)
+                # Then process XMP files
                 for xmp_path in xmp_paths:
                     create_new_image(user, xmp_path)
 
@@ -142,7 +140,7 @@ class XMPAssociationTest(TestCase):
         """
         Test that XMP files processed before their images are handled gracefully.
 
-        Without the sentinel ordering, this would be the problematic scenario.
+        A sidecar whose photo does not exist yet has nothing to attach to.
         The XMP should not be associated (logged as warning) and later when the
         image is processed, it won't automatically pick up the orphaned XMP.
         """
@@ -158,7 +156,7 @@ class XMPAssociationTest(TestCase):
                 f.write(b"<x:xmpmeta>test</x:xmpmeta>")
 
             with patch("api.image_decoding.thumbnail"):
-                # Process XMP first (the problematic order that sentinel prevents)
+                # Process XMP first (the scan avoids this by grouping it with its photo)
                 result_xmp = create_new_image(user, xmp_path)
                 self.assertIsNone(result_xmp, "XMP without photo should return None")
 
@@ -175,172 +173,116 @@ class XMPAssociationTest(TestCase):
                 )
 
 
-class DummyAsyncTask:
-    """Synchronous replacement for django_q.tasks.AsyncTask.
+class SlowIngestQueue:
+    """Stand-in for ``AsyncTask`` modelling a busy django-q cluster.
 
-    - Immediately executes the callable.
-    - Tracks completion counts per group id when used for image tasks.
+    Tasks queued in a django-q ``group`` (the scan's image groups) only finish
+    after every ungrouped task has run: the worst case where the workers pick
+    up the metadata work while the photos it belongs to are still being
+    ingested. ``count_group`` reports the grouped tasks finished so far.
     """
 
-    GROUP_COMPLETIONS: dict[str, int] = {}
+    def __init__(self):
+        self.grouped = deque()
+        self.ungrouped = deque()
+        self.completed = defaultdict(int)
 
-    def __init__(self, func, *args, **kwargs):
-        self.func = func
-        self.args = args
-        # Extract 'group' from kwargs before passing to func (func doesn't accept it)
-        self.group_id = kwargs.pop("group", None)
-        self.kwargs = kwargs
+    def __call__(self, func, *args, **kwargs):
+        return _QueuedTask(self, func, args, kwargs)
 
-    def run(self):
-        # Execute the callable synchronously (without 'group' in kwargs)
-        result = self.func(*self.args, **self.kwargs)
+    def count_group(self, group_id, *args, **kwargs):
+        return self.completed[group_id]
 
-        # If this was an image/video task scheduled with a group,
-        # increment the completion counter for that group
-        func_name = getattr(self.func, "__name__", "")
-        if self.group_id and func_name == "handle_new_image":
-            DummyAsyncTask.GROUP_COMPLETIONS[self.group_id] = (
-                DummyAsyncTask.GROUP_COMPLETIONS.get(self.group_id, 0) + 1
-            )
-        return result
+    def drain(self):
+        while self.ungrouped or self.grouped:
+            if self.ungrouped:
+                func, args, kwargs, _group = self.ungrouped.popleft()
+                func(*args, **kwargs)
+                continue
+            func, args, kwargs, group = self.grouped.popleft()
+            func(*args, **kwargs)
+            self.completed[group] += 1
 
 
-class DummyChain:
-    def __init__(self, *args, **kwargs):
-        self.appended = []
-
-    def append(self, *args, **kwargs):
-        self.appended.append((args, kwargs))
-        return self
+class _QueuedTask:
+    def __init__(self, queue, func, args, kwargs):
+        self.queue = queue
+        self.group = kwargs.pop("group", None)
+        self.entry = (func, args, kwargs, self.group)
 
     def run(self):
-        return None
+        target = self.queue.grouped if self.group else self.queue.ungrouped
+        target.append(self.entry)
 
 
-class MetadataOrderingSentinelTest(TestCase):
-    def test_random_order_images_and_xmp_are_consistently_linked(self):
+class SidecarsSurviveSlowIngestTest(TestCase):
+    """A sidecar whose photo is still being ingested must not be dropped."""
+
+    def test_sidecars_link_to_their_photos_when_ingest_lags_behind(self):
         user = create_test_user()
-        with tempfile.TemporaryDirectory() as tmpdir:
-            user.scan_directory = tmpdir
+        with (
+            tempfile.TemporaryDirectory() as scan_dir,
+            tempfile.TemporaryDirectory() as media_root,
+        ):
+            user.scan_directory = scan_dir
             user.save(update_fields=["scan_directory"])
 
-            # Create N image files and corresponding XMP sidecars
-            N = 4
-            image_paths = []
-            xmp_paths = []
-            for i in range(N):
-                base = f"img_{i}"
-                img_path = os.path.join(tmpdir, f"{base}.jpg")
-                xmp_path = os.path.join(tmpdir, f"{base}.xmp")
+            expected = {}  # image path -> sidecar path
+            for i in range(4):
+                img_path = os.path.join(scan_dir, f"img_{i}.jpg")
+                # Both naming conventions: img_0.xmp and img_1.jpg.xmp.
+                xmp_name = f"img_{i}.jpg.xmp" if i % 2 else f"img_{i}.xmp"
+                xmp_path = os.path.join(scan_dir, xmp_name)
                 with open(img_path, "wb") as f:
-                    f.write(create_unique_png(i))  # Each image has unique hash
+                    f.write(create_unique_png(i))
                 with open(xmp_path, "wb") as f:
-                    f.write(b"<x:xmpmeta>test</x:xmpmeta>")
-                image_paths.append(img_path)
-                xmp_paths.append(xmp_path)
+                    # Distinct bytes: File rows are keyed by content hash.
+                    f.write(f"<x:xmpmeta>{i}</x:xmpmeta>".encode())
+                expected[img_path] = xmp_path
+            # A sidecar whose photo is not in the scan is queued on its own and
+            # must still count toward the job finishing.
+            with open(os.path.join(scan_dir, "lonely.xmp"), "wb") as f:
+                f.write(b"<x:xmpmeta>lonely</x:xmpmeta>")
 
-            # Randomize processing order explicitly via scan_files
-            all_files = image_paths + xmp_paths
-            random.shuffle(all_files)
-
-            # Patch environment to make processing synchronous and lightweight
-            with override_settings(MEDIA_ROOT=tmpdir):
+            queue = SlowIngestQueue()
+            with override_settings(MEDIA_ROOT=media_root):
                 with (
-                    patch("api.directory_watcher.scan_jobs.AsyncTask", DummyAsyncTask),
-                    patch("api.directory_watcher.scan_jobs.Chain", DummyChain),
+                    patch("api.directory_watcher.scan_jobs.AsyncTask", queue),
+                    patch("django_q.tasks.count_group", queue.count_group),
                     patch(
-                        "django_q.tasks.count_group",
-                        side_effect=lambda gid: DummyAsyncTask.GROUP_COMPLETIONS.get(
-                            gid, 0
-                        ),
-                    ),
-                    patch(
-                        "api.directory_watcher.scan_jobs.db.connections.close_all"
-                    ) as _close_all,
-                    patch(
-                        "api.directory_watcher.scan_jobs.update_scan_counter"
-                    ) as _update_counter,
-                    patch("api.directory_watcher.scan_jobs.util.logger") as _logger,
-                    patch("api.image_decoding.thumbnail") as _thumb,
-                    patch(
-                        "api.models.thumbnail.Thumbnail._generate_thumbnail"
-                    ) as _gen_thumb,
-                    patch(
-                        "api.models.thumbnail.Thumbnail._calculate_aspect_ratio"
-                    ) as _calc_ar,
-                    patch(
-                        "api.models.thumbnail.Thumbnail._get_dominant_color"
-                    ) as _dom_color,
-                    patch(
-                        "api.models.photo_metadata.PhotoMetadata.extract_exif_data"
-                    ) as _exif,
-                    patch(
-                        "api.models.photo.Photo._extract_date_time_from_exif"
-                    ) as _exif_dt,
+                        "api.directory_watcher.scan_jobs._queue_followup_jobs"
+                    ) as followups,
+                    patch("api.directory_watcher.scan_jobs.db.connections.close_all"),
+                    patch("api.image_decoding.thumbnail"),
+                    patch("api.models.thumbnail.Thumbnail._generate_thumbnail"),
+                    patch("api.models.thumbnail.Thumbnail._calculate_aspect_ratio"),
+                    patch("api.models.thumbnail.Thumbnail._get_dominant_color"),
+                    patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
+                    patch("api.models.photo.Photo._extract_date_time_from_exif"),
                 ):
-                    # No-op patches
-                    _thumb.return_value = None
-                    _close_all.return_value = None
-                    _update_counter.side_effect = lambda *_args, **_kwargs: None
-                    _logger.info.side_effect = lambda *_a, **_k: None
-                    _logger.warning.side_effect = lambda *_a, **_k: None
-                    _logger.exception.side_effect = lambda *_a, **_k: None
-                    _gen_thumb.return_value = None
-                    _calc_ar.return_value = None
-                    _dom_color.return_value = None
-                    _exif.return_value = None
-                    _exif_dt.return_value = None
+                    from api.directory_watcher import scan_photos
 
                     job_id = str(uuid.uuid4())
-                    # Emulate the core of scan_photos sequencing explicitly:
-                    # 1) Enqueue all images/videos in a group and run them synchronously
-                    # 2) Run the sentinel to process metadata after the group completes
-                    from api.directory_watcher import (
-                        handle_new_image,
-                        wait_for_group_and_process_metadata,
+                    scan_photos(user, False, job_id)
+                    queue.drain()
+
+            photos = list(Photo.objects.filter(owner=user))
+            self.assertEqual(len(photos), len(expected))
+            linked = {
+                p.main_file.path: sorted(
+                    p.files.filter(path__iendswith=".xmp").values_list(
+                        "path", flat=True
                     )
-
-                    image_group_id = str(uuid.uuid4())
-                    for img in image_paths:
-                        DummyAsyncTask(
-                            handle_new_image, user, img, job_id, group=image_group_id
-                        ).run()
-
-                    DummyAsyncTask(
-                        wait_for_group_and_process_metadata,
-                        image_group_id,
-                        xmp_paths,
-                        user.id,
-                        False,
-                        job_id,
-                        len(image_paths),
-                    ).run()
-
-            # Validate: image tasks ran and each image must have its XMP associated to the same Photo
-            total_completions = sum(DummyAsyncTask.GROUP_COMPLETIONS.values())
-            self.assertEqual(
-                total_completions,
-                N,
-                msg=f"Expected {N} image task completions, got {total_completions}",
-            )
-
-            photos = list(Photo.objects.all())
-            self.assertEqual(
-                len(photos), N, msg="All images should produce Photo objects"
-            )
-
-            # Build a map from image base name to whether an XMP is linked
-            linked = {}
-            for p in photos:
-                # main_file.path is the image path
-                main_path = p.main_file.path if p.main_file else ""
-                base = os.path.splitext(os.path.basename(main_path))[0]
-                xmp_list = list(
-                    p.files.filter(path__endswith=".xmp").values_list("path", flat=True)
                 )
-                linked[base] = len(xmp_list) >= 1
-
-            # All should be True
-            self.assertTrue(
-                all(linked.values()), msg=f"Some photos missing XMP: {linked}"
+                for p in photos
+            }
+            self.assertEqual(
+                linked, {img: [xmp] for img, xmp in expected.items()}, linked
             )
+
+            job = LongRunningJob.objects.get(job_id=job_id)
+            # 4 file groups (sidecars included) + 1 orphan sidecar
+            self.assertEqual(job.progress_target, len(expected) + 1)
+            self.assertEqual(job.progress_current, job.progress_target)
+            self.assertTrue(job.finished)
+            followups.assert_called_once()

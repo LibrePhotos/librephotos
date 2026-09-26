@@ -20,6 +20,8 @@ from api.directory_watcher.file_grouping import (
     FILE_TYPE_PRIORITY,
     find_matching_image_for_video,
     find_matching_jpeg_photo,
+    get_file_grouping_key,
+    get_sidecar_grouping_keys,
     select_main_file,
 )
 from api.directory_watcher.utils import update_scan_counter
@@ -446,9 +448,11 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     # missing and reappeared: _check_files detaches a missing file from the
     # m2m but keeps main_file pointing at it, so without that match a
     # reappearing file would spawn a duplicate Photo with the same image_hash.
+    # Sidecars are left out of the match: File rows are keyed by content hash,
+    # so byte-identical XMPs of two different photos share a single row.
     existing_photo = (
         Photo.objects.owned_by(user)
-        .filter(Q(files__in=files) | Q(main_file__in=files))
+        .filter(Q(files__in=non_metadata_files) | Q(main_file__in=non_metadata_files))
         .first()
     )
 
@@ -481,15 +485,30 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     return photo
 
 
+def _find_photo_for_sidecar(user, path) -> Photo | None:
+    """The user's Photo holding the media file an XMP sidecar describes.
+
+    Same directory and exactly the same stem, any extension - the scan's
+    grouping rule - trying ``IMG_1.jpg.xmp`` as ``IMG_1.jpg.*`` before
+    ``IMG_1.*``.
+    """
+    for key in get_sidecar_grouping_keys(path):
+        directory, stem = key
+        candidates = (
+            Photo.objects.owned_by(user)
+            .filter(files__path__istartswith=os.path.join(directory, stem) + ".")
+            .order_by("files__path")
+            .values_list("pk", "files__path")
+        )
+        for pk, file_path in candidates:
+            if get_file_grouping_key(file_path) == key and not is_metadata(file_path):
+                return Photo.objects.get(pk=pk)
+    return None
+
+
 def _attach_metadata_sidecar(user, path) -> None:
     """Attach an XMP sidecar to the Photo it describes, if one exists."""
-    photo_name = os.path.splitext(os.path.basename(path))[0]
-    photo_dir = os.path.dirname(path)
-    photo = Photo.objects.filter(
-        Q(files__path__contains=photo_dir)
-        & Q(files__path__contains=photo_name)
-        & ~Q(files__path__contains=os.path.basename(path))
-    ).first()
+    photo = _find_photo_for_sidecar(user, path)
 
     if not photo:
         util.logger.warning(f"no photo to metadata file found {path}")

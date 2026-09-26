@@ -24,7 +24,10 @@ from api.batch_jobs import batch_calculate_clip_embedding
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.file import is_metadata
 
-from api.directory_watcher.file_grouping import get_file_grouping_key
+from api.directory_watcher.file_grouping import (
+    get_file_grouping_key,
+    get_sidecar_grouping_keys,
+)
 from api.directory_watcher.file_handlers import handle_new_image, handle_file_group
 from api.directory_watcher.processing_jobs import (
     generate_tags,
@@ -126,98 +129,6 @@ def _last_finished_scan(user):
     )
 
 
-def wait_for_group_and_process_metadata(
-    group_id: str,
-    metadata_paths: list[str],
-    user_id: int,
-    full_scan: bool,
-    job_id: UUID | str,
-    expected_count: int,
-    *,
-    attempt: int = 1,
-    max_attempts: int = 2,
-    **kwargs,  # Django-Q may pass additional arguments like 'schedule'
-):
-    """
-    Sentinel task: waits until the expected number of image/video tasks in the group complete,
-    then processes metadata files. It runs inside a django-q worker (non-blocking for the caller).
-
-    Failure handling:
-    - If the group is not complete yet, it will re-enqueue itself up to `max_attempts`.
-    - After exhausting attempts, it proceeds with metadata processing anyway (best-effort).
-    """
-    from django_q.tasks import count_group
-    from django.contrib.auth import get_user_model
-
-    util.logger.info(
-        f"Sentinel attempt {attempt}/{max_attempts} for group {group_id} (expecting {expected_count} tasks)"
-    )
-
-    # Check current completion count for the group
-    try:
-        completed = count_group(group_id)  # counts successes by default
-    except Exception as e:
-        util.logger.warning(
-            f"Could not read group status for {group_id}: {e}. Treating as incomplete."
-        )
-        completed = 0
-
-    # Normalize to an int to avoid None-related type issues
-    completed_int = int(completed or 0)
-
-    if completed_int < expected_count and attempt < max_attempts:
-        util.logger.info(
-            f"Group {group_id} not complete yet: {completed_int}/{expected_count}. Re-enqueue sentinel (attempt {attempt + 1})."
-        )
-        # Requeue the sentinel to check again later
-        AsyncTask(
-            wait_for_group_and_process_metadata,
-            group_id,
-            metadata_paths,
-            user_id,
-            full_scan,
-            job_id,
-            expected_count,
-            attempt=attempt + 1,
-            max_attempts=max_attempts,
-            schedule=datetime.timedelta(seconds=5),
-        ).run()
-        return
-
-    # Proceed with metadata processing (either completed or after exhausting attempts)
-    if completed_int < expected_count:
-        util.logger.warning(
-            f"Proceeding with metadata despite incomplete image group {group_id}: {completed_int}/{expected_count}."
-        )
-    else:
-        util.logger.info(
-            f"Image group {group_id} completed. Processing {len(metadata_paths)} metadata files"
-        )
-
-    if not metadata_paths:
-        util.logger.info("No metadata files to process after images completion")
-        return
-
-    User = get_user_model()
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        util.logger.warning(
-            f"User {user_id} not found when processing metadata for job {job_id}"
-        )
-        return
-
-    last_scan = _last_finished_scan(user)
-
-    for path in metadata_paths:
-        try:
-            photo_scanner(user, last_scan, full_scan, path, job_id)
-        except Exception as e:
-            util.logger.exception(
-                f"Failed processing metadata {path} for job {job_id}: {e}"
-            )
-
-
 def photo_scanner(user, last_scan, full_scan, path, job_id):
     """
     Check if a single file needs processing and queue it.
@@ -295,16 +206,28 @@ def _partition_scan_paths(photo_list):
     """Split discovered paths into (directory, basename) file groups and metadata.
 
     Grouping RAW+JPEG variants together is what lets Phase 2 create one Photo per
-    group; metadata files are held back because they need their parent photo to
-    exist first.
+    group. An XMP sidecar joins the group of the media file it describes, so it
+    is attached in the same task that creates that Photo instead of racing it.
+    Only sidecars whose media file is not part of this scan are returned as
+    ``metadata_paths``: their Photo, if any, already exists.
     """
     file_groups: dict[tuple[str, str], list[str]] = defaultdict(list)
-    metadata_paths: list[str] = []
+    sidecar_paths: list[str] = []
     for path in photo_list:
         if is_metadata(path):
-            metadata_paths.append(path)
+            sidecar_paths.append(path)
         else:
             file_groups[get_file_grouping_key(path)].append(path)
+
+    metadata_paths: list[str] = []
+    for path in sidecar_paths:
+        group_key = next(
+            (k for k in get_sidecar_grouping_keys(path) if k in file_groups), None
+        )
+        if group_key is None:
+            metadata_paths.append(path)
+        else:
+            file_groups[group_key].append(path)
     return file_groups, metadata_paths
 
 
@@ -319,7 +242,11 @@ def _known_paths(batch_paths):
 def _queue_scan_work(
     user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
 ):
-    """Queue the image groups, then arrange for the metadata files to follow them."""
+    """Queue the file groups and the sidecars whose photo is not in this scan.
+
+    Sidecars of photos in this scan travel inside their file group, so the
+    remaining ones have nothing to wait for and are queued directly.
+    """
     image_group_id = str(uuid.uuid4())
     for _, paths in groups_to_process:
         AsyncTask(
@@ -330,31 +257,12 @@ def _queue_scan_work(
             group=image_group_id,
         ).run()
 
-    if not metadata_paths:
-        return
-
-    if not groups_to_process:
+    if metadata_paths:
         util.logger.info(
-            f"No images to process, processing {len(metadata_paths)} metadata files directly"
+            f"Processing {len(metadata_paths)} metadata files for photos outside this scan"
         )
-        for path in metadata_paths:
-            photo_scanner(user, last_scan, full_scan, path, job_id)
-        return
-
-    util.logger.info(
-        f"Scheduling sentinel to process {len(metadata_paths)} metadata files after {len(groups_to_process)} image groups"
-    )
-    AsyncTask(
-        wait_for_group_and_process_metadata,
-        image_group_id,
-        metadata_paths,
-        user.id,
-        full_scan,
-        job_id,
-        len(groups_to_process),
-        attempt=1,
-        max_attempts=2,
-    ).run()
+    for path in metadata_paths:
+        photo_scanner(user, last_scan, full_scan, path, job_id)
 
 
 # Key in the scan job's ``result`` holding what its follow-ups need. The scan
@@ -434,6 +342,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
 
     Phase 1: Collect all files and group by (directory, basename)
              - IMG_001.jpg, IMG_001.CR2, IMG_001.xmp -> one group
+               (IMG_001.jpg.xmp joins it too)
              - IMG_002.jpg -> separate group
 
     Phase 2: Process each group sequentially, creating one Photo per group
