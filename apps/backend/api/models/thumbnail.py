@@ -1,7 +1,9 @@
 import os
+from functools import partial
 
 from django.conf import settings
-from django.db import models
+from django.core.exceptions import SuspiciousFileOperation
+from django.db import models, transaction
 from django.dispatch import receiver
 from PIL import Image
 
@@ -190,13 +192,57 @@ class Thumbnail(models.Model):
             logger.info(f"Cannot calculate dominant color {self} object")
 
 
+_THUMBNAIL_FILE_FIELDS = (
+    "thumbnail_big",
+    "square_thumbnail",
+    "square_thumbnail_small",
+)
+
+
+def _is_thumbnail_file_referenced(name):
+    """Return True if a remaining Thumbnail or Photo still uses ``name``.
+
+    Thumbnail files are named by ``image_hash`` and are not owned by a single
+    row: a Photo that is removed keeps its image_hash, and a re-added file with
+    the same hash reuses the existing files instead of regenerating them. A
+    Photo without a Thumbnail row yet (mid-scan) would also pick them up, so
+    the Photo check covers the window before its Thumbnail is saved.
+    """
+    if Thumbnail.objects.filter(
+        models.Q(thumbnail_big=name)
+        | models.Q(square_thumbnail=name)
+        | models.Q(square_thumbnail_small=name)
+    ).exists():
+        return True
+    image_hash = os.path.splitext(os.path.basename(name))[0]
+    return Photo.objects.filter(image_hash=image_hash).exists()
+
+
+def _delete_orphaned_thumbnail_files(files):
+    for storage, name in files:
+        try:
+            if _is_thumbnail_file_referenced(name):
+                continue
+            storage.delete(name)
+        except (OSError, SuspiciousFileOperation) as e:
+            # The rows are already gone; a file we cannot remove must not
+            # fail the job that deleted them.
+            logger.warning(f"could not delete orphaned thumbnail file {name}: {e}")
+
+
 @receiver(models.signals.post_delete, sender=Thumbnail)
-def auto_delete_files_on_delete(sender, instance, **kwargs):
-    for field_name in (
-        "thumbnail_big",
-        "square_thumbnail",
-        "square_thumbnail_small",
-    ):
-        field_file = getattr(instance, field_name)
-        if field_file and field_file.name:
-            field_file.storage.delete(field_file.name)
+def delete_orphaned_thumbnail_files(sender, instance, using, **kwargs):
+    """Remove a deleted Thumbnail's files once nothing else references them.
+
+    Deferred to on_commit so a rolled-back delete keeps its files, and so the
+    "still referenced?" check sees the committed state of the whole delete.
+    """
+    files = [
+        (field_file.storage, field_file.name)
+        for field_file in (getattr(instance, f) for f in _THUMBNAIL_FILE_FIELDS)
+        if field_file and field_file.name
+    ]
+    if files:
+        transaction.on_commit(
+            partial(_delete_orphaned_thumbnail_files, files), using=using
+        )
