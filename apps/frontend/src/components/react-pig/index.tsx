@@ -481,7 +481,7 @@ function Pig(
         </React.Fragment>
       );
     },
-    [settings, activeTileUrl, renderTile]
+    [settings, activeTileUrl, renderTile, textAlignment, headerSize]
   );
 
   const renderFlat = useCallback((item: ImageItem) => renderTile(item), [renderTile]);
