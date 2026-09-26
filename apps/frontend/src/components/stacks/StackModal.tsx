@@ -36,6 +36,7 @@ import { serverAddress } from "../../api_client/apiClient";
 import { useSetCoverPhotoMutation, useStackQuery } from "../../api_client/stacks";
 import type { StackType } from "../../api_client/stacks/types";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
+import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackLightbox } from "./StackLightbox";
 
 // File variant type
@@ -187,7 +188,7 @@ function StackPhotoCard({
           <Image
             src={thumbnailUrl}
             alt="Stack photo"
-            fallbackSrc="https://placehold.co/200x200?text=No+Preview"
+            fallbackSrc={PLACEHOLDER_IMAGE}
             fit="contain"
             h={200}
             style={{

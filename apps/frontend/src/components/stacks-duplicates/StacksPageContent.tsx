@@ -52,6 +52,7 @@ import {
 import type { StackType } from "../../api_client/stacks/types";
 import { stackTypeLabels } from "../../api_client/stacks/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { StackModal } from "../stacks/StackModal";
 
 function getStackTypeIcon(type: StackType) {
@@ -124,7 +125,7 @@ function StackCard({ stack, onClick, onDelete }: { stack: StackListItem; onClick
             h={100}
             w="50%"
             alt="Preview"
-            fallbackSrc="https://placehold.co/100x100?text=?"
+            fallbackSrc={PLACEHOLDER_IMAGE}
           />
         ))}
       </Group>
