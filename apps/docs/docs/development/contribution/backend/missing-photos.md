@@ -225,8 +225,8 @@ Album associations and face detections are removed by database cascade on `Photo
 
 Thumbnail files are named by `image_hash`, not owned by one row, so the receiver only removes true orphans:
 - The deletion is deferred with `transaction.on_commit`, so a rolled-back delete keeps its files.
-- Inside that callback, a file is kept if any remaining `Thumbnail` row still points at it, or any `Photo` still has that `image_hash` (for example a photo that is still being scanned and has no `Thumbnail` row yet).
-- `OSError` (including `PermissionError`) and `SuspiciousFileOperation` from the storage are logged and skipped, so a file that cannot be removed never fails the job.
+- Inside that callback, the files are kept if any remaining `Thumbnail` row still points at them, or any `Photo` still has that `image_hash` (for example a photo that is still being scanned and has no `Thumbnail` row yet).
+- Otherwise `delete_thumbnail_files(image_hash)` removes them. It logs and skips an `OSError` (including `PermissionError`) per file, so a file that cannot be removed never fails the job.
 
 The same receiver runs for every `Thumbnail` delete, including the scheduled trash cleanup (`api.services.cleanup_deleted_photos`).
 

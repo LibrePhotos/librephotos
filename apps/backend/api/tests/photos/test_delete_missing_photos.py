@@ -2,7 +2,6 @@ import uuid
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
-from django.core.files.storage import FileSystemStorage
 from django.db import connection, transaction
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
@@ -136,19 +135,16 @@ class DeleteMissingPhotosThumbnailCleanupTest(TransactionTestCase):
         user = create_test_user()
         photo = create_test_photo(owner=user)
         paths = self._write_thumbnail_files(photo)
-        self.assertIsInstance(paths[0][0], FileSystemStorage)
         job_id = str(uuid.uuid4())
 
-        with patch.object(
-            FileSystemStorage,
-            "delete",
-            autospec=True,
+        with patch(
+            "api.models.thumbnail.os.remove",
             side_effect=[PermissionError("denied"), None, None],
-        ) as storage_delete:
+        ) as remove:
             delete_missing_photos(user, job_id)
 
         # Every file was attempted despite the first one failing.
-        self.assertEqual(storage_delete.call_count, 3)
+        self.assertEqual(remove.call_count, len(paths))
         self.assertFalse(Photo.objects.filter(pk=photo.pk).exists())
         lrj = LongRunningJob.objects.get(job_id=job_id)
         self.assertTrue(lrj.finished)

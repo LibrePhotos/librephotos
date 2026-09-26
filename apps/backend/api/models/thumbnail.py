@@ -2,7 +2,6 @@ import os
 from functools import partial
 
 from django.conf import settings
-from django.core.exceptions import SuspiciousFileOperation
 from django.db import models, transaction
 from django.dispatch import receiver
 from PIL import Image
@@ -196,42 +195,28 @@ class Thumbnail(models.Model):
             logger.info(f"Cannot calculate dominant color {self} object")
 
 
-_THUMBNAIL_FILE_FIELDS = (
-    "thumbnail_big",
-    "square_thumbnail",
-    "square_thumbnail_small",
-)
-
-
-def _is_thumbnail_file_referenced(name):
-    """Return True if a remaining Thumbnail or Photo still uses ``name``.
+def _delete_orphaned_thumbnail_files(file_names):
+    """Delete the thumbnail files of a deleted Thumbnail nothing else uses.
 
     Thumbnail files are named by ``image_hash`` and are not owned by a single
-    row: a Photo that is removed keeps its image_hash, and a re-added file with
-    the same hash reuses the existing files instead of regenerating them. A
-    Photo without a Thumbnail row yet (mid-scan) would also pick them up, so
-    the Photo check covers the window before its Thumbnail is saved.
+    row: a removed Photo keeps its image_hash, and a re-added file with the
+    same hash reuses the existing files instead of regenerating them. A Photo
+    whose Thumbnail row is not saved yet (mid-scan) picks them up too, so any
+    remaining Photo with the hash keeps the files, as does any Thumbnail row
+    still pointing at one of them.
     """
     if Thumbnail.objects.filter(
-        models.Q(thumbnail_big=name)
-        | models.Q(square_thumbnail=name)
-        | models.Q(square_thumbnail_small=name)
+        models.Q(thumbnail_big__in=file_names)
+        | models.Q(square_thumbnail__in=file_names)
+        | models.Q(square_thumbnail_small__in=file_names)
     ).exists():
-        return True
-    image_hash = os.path.splitext(os.path.basename(name))[0]
-    return Photo.objects.filter(image_hash=image_hash).exists()
-
-
-def _delete_orphaned_thumbnail_files(files):
-    for storage, name in files:
-        try:
-            if _is_thumbnail_file_referenced(name):
-                continue
-            storage.delete(name)
-        except (OSError, SuspiciousFileOperation) as e:
-            # The rows are already gone; a file we cannot remove must not
-            # fail the job that deleted them.
-            logger.warning(f"could not delete orphaned thumbnail file {name}: {e}")
+        return
+    photo_hashes = {os.path.splitext(os.path.basename(n))[0] for n in file_names}
+    for photo_hash in photo_hashes:
+        if not Photo.objects.filter(image_hash=photo_hash).exists():
+            # Swallows OSError per file, so an unremovable file never fails
+            # the job that deleted the rows.
+            delete_thumbnail_files(photo_hash)
 
 
 @receiver(models.signals.post_delete, sender=Thumbnail)
@@ -241,12 +226,16 @@ def delete_orphaned_thumbnail_files(sender, instance, using, **kwargs):
     Deferred to on_commit so a rolled-back delete keeps its files, and so the
     "still referenced?" check sees the committed state of the whole delete.
     """
-    files = [
-        (field_file.storage, field_file.name)
-        for field_file in (getattr(instance, f) for f in _THUMBNAIL_FILE_FIELDS)
+    file_names = [
+        field_file.name
+        for field_file in (
+            instance.thumbnail_big,
+            instance.square_thumbnail,
+            instance.square_thumbnail_small,
+        )
         if field_file and field_file.name
     ]
-    if files:
+    if file_names:
         transaction.on_commit(
-            partial(_delete_orphaned_thumbnail_files, files), using=using
+            partial(_delete_orphaned_thumbnail_files, file_names), using=using
         )
