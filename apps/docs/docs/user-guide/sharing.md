@@ -112,14 +112,21 @@ To reverse this, select the photos again and choose **"Make Private"** from the 
 
 ### Revocable Photo Links
 
-The **globe button** in the lightbox does something different from the bulk *Make Public* action above: it creates a *share link* for that one photo and copies it to your clipboard. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo.
+The **globe button** in the lightbox (shortcut **P**) does something different from the bulk *Make Public* action above: it creates a *share link* for that one photo and opens a dialog showing it, with a button to copy it. The link looks like `https://your-instance/public/p/{slug}`, where the slug is 12 random characters that belong to the share rather than to the photo. Creating a link does **not** make the photo public: it does not appear on your public profile or under *Make Public*, and the photo's own `/media/...` URLs still require a login.
 
 Because the slug is random, the link can be withdrawn:
 
-- **Replace link** mints a new slug. The previous URL stops working at once.
+- **Replace link** mints a new slug. The previous URL, and the image and video URLs behind it, stop working at once.
 - **Revoke** switches the share off and burns the slug, so anyone still holding that link gets a "not found" page. Sharing the photo again creates a brand-new link rather than reviving the old one.
 
 Your active photo links are listed under the **Photos** tab of your **Public Links** page, each with its own copy, replace and revoke buttons.
+
+What a visitor with the link can see:
+
+- The photo as a large preview image (not the original file). For a video, the video itself, so it can be played.
+- The photo details you allow in **Settings → Public Sharing Defaults** (date, location, camera, captions, people's names). Photo links have no per-link settings of their own.
+
+What they cannot see: the original file of a photo, face thumbnails, any other photo, or anything that identifies the file's content hash. While the photo is hidden or in the trash, its link shows "not found" as well.
 
 Expiring links and password-protected links are not available for photo shares yet.
 
