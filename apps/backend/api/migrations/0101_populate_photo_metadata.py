@@ -120,7 +120,7 @@ class Migration(migrations.Migration):
     """
 
     dependencies = [
-        ("api", "0100_metadataedit_metadatafile_photometadata_stackreview_and_more"),
+        ("api", "0001_squashed_0100"),
     ]
 
     operations = [

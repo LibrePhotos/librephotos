@@ -1,6 +1,9 @@
 """
 Tests for migration 0099_photo_uuid_primary_key.
 
+0099 now lives on inside the squashed migration 0001_squashed_0100, which
+runs its code on every fresh database, so these tests import it from there.
+
 Verifies the UUID primary key migration works correctly on both
 PostgreSQL (raw SQL) and SQLite (table recreation pattern).
 
@@ -25,7 +28,7 @@ from django.db import connection
 from django.test import TestCase
 
 # Import the migration module (name starts with a digit, use importlib)
-_mod = import_module("api.migrations.0099_photo_uuid_primary_key")
+_mod = import_module("api.migrations.0001_squashed_0100")
 
 
 # ============================================================================
