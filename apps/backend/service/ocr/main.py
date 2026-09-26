@@ -1,33 +1,31 @@
-"""OCR sidecar: Flask + gevent WSGIServer on port 8012.
-
-Mirrors service/tags/main.py: a lazily-created singleton engine, ``last_request_time``
-stamped at the START of each request (the supervisor restarts services idle for
-more than 120s, and a legitimate multi-second OCR run must not be mistaken for
-idle), and a /health endpoint of the same shape.
+"""OCR sidecar: a lazily-created singleton engine behind the shared sidecar app
+(service._common), which stamps the idle clock at the start of each request and
+unloads the engine when the watchdog finds the sidecar idle.
 
 Importing this module never starts the server or loads the model, so the engine
 is fully testable via ppocr.* without touching Flask/gevent.
 """
 
 import os
-import time
 
-import gevent
-from flask import Flask, request
-from gevent.pywsgi import WSGIServer
 from ppocr.detect import OCRDecodeError
 from ppocr.engine import PPOCREngine
 
-app = Flask(__name__)
+from service._common import create_app, json_fields, logger, serve_forever
 
 ocr_engine = None
-last_request_time = None
 
 DEFAULT_MIN_CONFIDENCE = 0.6
 
+log = logger("ocr")
 
-def log(message):
-    print(f"ocr: {message}")
+
+def _unload_engine():
+    global ocr_engine
+    ocr_engine = None
+
+
+app = create_app("ocr", unload=_unload_engine, is_loaded=lambda: ocr_engine is not None)
 
 
 def _get_engine():
@@ -39,28 +37,26 @@ def _get_engine():
 
 @app.route("/ocr", methods=["POST"])
 def ocr():
-    # Stamp at request START so a long (e.g. 90s) run never looks idle to the
-    # supervisor's >120s health check.
-    global last_request_time
-    last_request_time = time.time()
-
+    image_path, min_confidence, max_side, det_only = json_fields(
+        "image_path",
+        min_confidence=DEFAULT_MIN_CONFIDENCE,
+        max_side=None,
+        det_only=False,
+    )
     try:
-        data = request.get_json()
-        image_path = data["image_path"]
-        min_confidence = float(data.get("min_confidence", DEFAULT_MIN_CONFIDENCE))
-        max_side = data.get("max_side")
+        min_confidence = float(min_confidence)
         if max_side is not None:
             max_side = int(max_side)
-        det_only = bool(data.get("det_only", False))
-    except Exception as e:
-        print(str(e))
+        det_only = bool(det_only)
+    except (TypeError, ValueError) as e:
+        log(str(e))
         return "", 400
 
     # Validate the input path BEFORE touching the engine: a missing/unreadable
     # file is bad input (400), and checking here means we never pay the model
     # load just to reject it.
     if not isinstance(image_path, str) or not os.path.isfile(image_path):
-        print(f"ocr: image not found: {image_path}")
+        log(f"image not found: {image_path}")
         return {"error": "Image not found"}, 400
 
     try:
@@ -71,29 +67,19 @@ def ocr():
             max_side=max_side,
             det_only=det_only,
         )
-        return result, 201
+        return result, 200
     except OCRDecodeError as e:
         # Bad/undecodable input image -> client error, mirroring how the other
         # services treat unusable input.
-        print(f"ocr: could not decode image {image_path}: {e}")
+        log(f"could not decode image {image_path}: {e}")
         return {"error": "Failed to decode image"}, 400
     except Exception as e:
-        print(f"ocr: Error processing image {image_path}: {e}")
+        log(f"Error processing image {image_path}: {e}")
         return {"error": "Failed to process image"}, 500
 
 
-@app.route("/health", methods=["GET"])
-def health():
-    return {"last_request_time": last_request_time}, 200
-
-
 def serve():
-    log("service starting")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8012), app)
-    server_thread = gevent.spawn(server.serve_forever)
-    gevent.joinall([server_thread])
+    serve_forever(app, "ocr")
 
 
 if __name__ == "__main__":

@@ -1,82 +1,51 @@
-import json
-import os
-
-from flask import Flask, jsonify, request
-from flask_restful import Api, Resource
-from gevent.pywsgi import WSGIServer
 from retrieval_index import RetrievalIndex
 from utils import logger
 
-app = Flask(__name__)
-api = Api(app)
+from service._common import create_app, json_fields, serve_forever
+
+app = create_app("image_similarity")
 
 index = RetrievalIndex()
 
 
-class BuildIndex(Resource):
-    def post(self):
-        request_body = json.loads(request.data)
+@app.route("/build/", methods=["POST"])
+def build_index():
+    user_id, image_hashes, image_embeddings = json_fields(
+        "user_id", "image_hashes", "image_embeddings"
+    )
 
-        user_id = request_body["user_id"]
-        image_hashes = request_body["image_hashes"]
-        image_embeddings = request_body["image_embeddings"]
+    index.build_index_for_user(user_id, image_hashes, image_embeddings)
 
-        index.build_index_for_user(user_id, image_hashes, image_embeddings)
-
-        # Return 0 if no index was created, otherwise return the actual size
-        index_size = index.indices[user_id].ntotal if user_id in index.indices else 0
-        return jsonify({"status": True, "index_size": index_size})
-
-    def delete(self):
-        user_id = json.loads(request.data)["user_id"]
-        if user_id not in index.indices:
-            return jsonify({"status": True})
-        del index.indices[user_id]
-        del index.image_hashes[user_id]
-        return jsonify({"status": True})
+    # Return 0 if no index was created, otherwise return the actual size
+    index_size = index.indices[user_id].ntotal if user_id in index.indices else 0
+    return {"status": True, "index_size": index_size}
 
 
-class SearchIndex(Resource):
-    def post(self):
-        try:
-            request_body = json.loads(request.data)
-
-            user_id = request_body["user_id"]
-            image_embedding = request_body["image_embedding"]
-            if "n" in request_body.keys():
-                n = int(request_body["n"])
-            else:
-                n = 100
-
-            if "threshold" in request_body.keys():
-                thres = float(request_body["threshold"])
-            else:
-                thres = 27.0
-
-            res = index.search_similar(user_id, image_embedding, n, thres)
-
-            return jsonify({"status": True, "result": res})
-        except BaseException as e:
-            logger.error(str(e))
-            return jsonify({"status": False, "result": []}), 500
+@app.route("/build/", methods=["DELETE"])
+def delete_index():
+    (user_id,) = json_fields("user_id")
+    if user_id not in index.indices:
+        return {"status": True}
+    del index.indices[user_id]
+    del index.image_hashes[user_id]
+    return {"status": True}
 
 
-class Health(Resource):
-    def get(self):
-        return jsonify({"status": True})
-
-
-api.add_resource(BuildIndex, "/build/")
-api.add_resource(SearchIndex, "/search/")
-api.add_resource(Health, "/health/")
+@app.route("/search/", methods=["POST"])
+def search_index():
+    try:
+        user_id, image_embedding, n, threshold = json_fields(
+            "user_id", "image_embedding", n=100, threshold=27.0
+        )
+        res = index.search_similar(user_id, image_embedding, int(n), float(threshold))
+        return {"status": True, "result": res}
+    except BaseException as e:
+        logger.error(str(e))
+        return {"status": False, "result": []}, 500
 
 
 def serve():
-    logger.info("Starting server")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8002), app)
-    server.serve_forever()
+    serve_forever(app, "image_similarity")
 
 
 if __name__ == "__main__":

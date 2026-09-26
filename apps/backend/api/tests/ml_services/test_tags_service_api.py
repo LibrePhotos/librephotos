@@ -26,10 +26,10 @@ Dispatch
     dropped from the cache so the next request retries from scratch.
 
 Responses
-  * Success -> ``{"tags": <the tagger's return value>}`` with status **201**.
+  * Success -> ``{"tags": <the tagger's return value>}`` with status **200**.
   * Any exception from the tagger -> ``{"error": "Failed to process image"}``
     with status **500**.
-  * ``/health`` returns ``{"last_request_time": <float or None>}`` with 200.
+  * ``/health`` (service._common) reports ``last_request_time`` (float or None).
 """
 
 import importlib.util
@@ -100,7 +100,7 @@ class GenerateTagsTestCase(SimpleTestCase):
         tags_main.app.config["TESTING"] = False
         self.client = tags_main.app.test_client()
         tags_main.tagger_instances.clear()
-        tags_main.last_request_time = None
+        tags_main.app.extensions["librephotos_sidecar"].last_request_time = None
         self.mobileclip_cls = MagicMock(name="MobileCLIP")
         self.siglip_cls = MagicMock(name="SigLIP2")
         tags_main.TAGGERS = {
@@ -118,7 +118,7 @@ class GenerateTagsTestCase(SimpleTestCase):
 
         response = self._post(image_path="/a/b.jpg")
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), {"tags": {"tags": ["beach", "ocean"]}})
         instance.predict.assert_called_once_with(
             "/a/b.jpg", threshold=0.02, max_tags=10
@@ -128,7 +128,7 @@ class GenerateTagsTestCase(SimpleTestCase):
     def test_null_tagging_model_falls_back_to_the_default(self):
         self.mobileclip_cls.return_value.predict.return_value = {"tags": []}
         response = self._post(image_path="/a/b.jpg", tagging_model=None)
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         self.mobileclip_cls.assert_called_once()
 
     def test_siglip2_dispatch_and_threshold(self):
@@ -139,7 +139,7 @@ class GenerateTagsTestCase(SimpleTestCase):
             image_path="/a/b.jpg", tagging_model="siglip2", confidence=0.9
         )
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         instance.predict.assert_called_once_with(
             "/a/b.jpg", threshold=0.05, max_tags=10
         )
@@ -178,7 +178,7 @@ class GenerateTagsTestCase(SimpleTestCase):
         # The next request builds a fresh tagger.
         self.mobileclip_cls.return_value.predict.side_effect = None
         self.mobileclip_cls.return_value.predict.return_value = {"tags": ["ok"]}
-        self.assertEqual(self._post(image_path="/a/b.jpg").status_code, 201)
+        self.assertEqual(self._post(image_path="/a/b.jpg").status_code, 200)
         self.assertEqual(self.mobileclip_cls.call_count, 2)
 
     def test_missing_image_path_is_an_empty_400(self):
@@ -198,9 +198,7 @@ class GenerateTagsTestCase(SimpleTestCase):
 
     # -------------------------------------------------------------- health
     def test_health_reports_last_request_time_even_after_a_400(self):
-        self.assertEqual(
-            self.client.get("/health").get_json(), {"last_request_time": None}
-        )
+        self.assertIsNone(self.client.get("/health").get_json()["last_request_time"])
         self._post()
         stamped = self.client.get("/health").get_json()["last_request_time"]
         self.assertIsInstance(stamped, float)

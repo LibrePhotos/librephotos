@@ -1,7 +1,7 @@
 """Tests for the ``/generate-caption`` route of the image captioning sidecar.
 
 The captioner is replaced by a fake. What is pinned is the shape of the two
-replies the backend client relies on: ``{"caption": ...}`` with 201, and on
+replies the backend client relies on: ``{"caption": ...}`` with 200, and on
 failure a 500 whose ``error`` carries the exception's type and message so the
 backend can log why the caption failed, and a failed captioner is dropped so
 the next request loads a fresh one.
@@ -58,7 +58,7 @@ class GenerateCaptionRouteTest(SimpleTestCase):
     def tearDown(self):
         sidecar.captioner = None
 
-    def test_caption_is_returned_with_201(self):
+    def test_caption_is_returned_with_200(self):
         fake = MagicMock()
         fake.caption.return_value = "a dog on a beach"
         with patch.object(sidecar, "Lfm2VlCaptioner", return_value=fake):
@@ -67,7 +67,7 @@ class GenerateCaptionRouteTest(SimpleTestCase):
                 json={"image_path": "/data/img.jpg", "prompt": "Describe it."},
             )
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), {"caption": "a dog on a beach"})
         fake.caption.assert_called_once_with("/data/img.jpg", "Describe it.")
 
@@ -90,3 +90,16 @@ class GenerateCaptionRouteTest(SimpleTestCase):
         response = self.client.post("/generate-caption", json={"prompt": "x"})
 
         self.assertEqual(response.status_code, 400)
+
+    def test_unload_model_drops_the_captioner(self):
+        loaded = MagicMock()
+        sidecar.captioner = loaded
+
+        with patch.object(sidecar, "Lfm2VlCaptioner"):
+            self.assertIs(self.client.get("/health").get_json()["model_loaded"], True)
+            response = self.client.get("/unload-model")
+
+        self.assertEqual(response.status_code, 200)
+        loaded.unload.assert_called_once_with()
+        self.assertIsNone(sidecar.captioner)
+        self.assertIs(self.client.get("/health").get_json()["model_loaded"], False)

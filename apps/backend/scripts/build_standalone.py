@@ -209,9 +209,11 @@ def nuitka_command(output_dir, jobs, version):
     for directory in SIDECAR_DIRS:
         module = directory.relative_to(BACKEND).as_posix().replace("/", ".")
         command.append(f"--include-module={module}.main")
-    # Shared by the ML sidecars' top-level neighbours (clip_onnx, lfm2_vl, ...);
-    # named so the binary never depends on Nuitka following that import.
+    # Shared by the ML sidecars' top-level neighbours (clip_onnx, lfm2_vl, ...)
+    # and by every sidecar's main.py (the Flask app, /health, serve); named so
+    # the binary never depends on Nuitka following those imports.
     command.append("--include-module=service.onnx_session")
+    command.append("--include-module=service._common")
     # The tag vocabulary is looked up two directories above the tagger
     # modules, which compile as top-level packages: that is the distribution root.
     command.append(

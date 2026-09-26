@@ -1,32 +1,28 @@
-import os
 import shutil
 
 import exiftool
-import gevent
-from flask import Flask, request
-from gevent.pywsgi import WSGIServer
+
+from service._common import (
+    MalformedRequest,
+    create_app,
+    json_fields,
+    logger,
+    serve_forever,
+)
 
 # Absolute path: the exiftool-bin wheel is on PATH, but Windows searches System32 first.
 EXIFTOOL = shutil.which("exiftool") or "exiftool"
 static_et = exiftool.ExifTool(EXIFTOOL)
 static_struct_et = exiftool.ExifTool(EXIFTOOL, common_args=["-struct"])
 
-app = Flask(__name__)
-
-
-def log(message):
-    print(f"exif: {message}")
+app = create_app("exif")
+log = logger("exif")
 
 
 def parse_get_tags_request():
     try:
-        data = request.get_json()
-        return (
-            data["files_by_reverse_priority"],
-            data["tags"],
-            data["struct"],
-        )
-    except Exception:
+        return json_fields("files_by_reverse_priority", "tags", "struct")
+    except MalformedRequest:
         return None
 
 
@@ -140,7 +136,7 @@ def get_tags():
     et = running_exiftool(struct)
 
     if not tags or not files_by_reverse_priority:
-        return {"values": [None] * len(tags)}, 201
+        return {"values": [None] * len(tags)}, 200
 
     try:
         values = highest_priority_values(et, tags, files_by_reverse_priority)
@@ -150,21 +146,11 @@ def get_tags():
         log(f"error reading tags from {files_by_reverse_priority}: {exc}")
         return {"error": str(exc)}, 500
 
-    return {"values": values}, 201
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return {"status": "OK"}, 200
+    return {"values": values}, 200
 
 
 def serve():
-    log("service starting")
-    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
-    # they have no authentication. SERVICE_HOST overrides it.
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8010), app)
-    server_thread = gevent.spawn(server.serve_forever)
-    gevent.joinall([server_thread])
+    serve_forever(app, "exif")
 
 
 if __name__ == "__main__":

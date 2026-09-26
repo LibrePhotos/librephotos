@@ -98,7 +98,7 @@ class UnmatchedRegionTest(SimpleTestCase):
                 },
             )
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["encodings"], [None, [3.0, 4.0]])
 
 
