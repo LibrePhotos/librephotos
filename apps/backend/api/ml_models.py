@@ -10,6 +10,7 @@ from constance import config as site_config
 from django.conf import settings
 
 from api import util
+from api.http_timeouts import MODEL_DOWNLOAD
 from api.models.long_running_job import LongRunningJob
 
 
@@ -448,7 +449,9 @@ def _download_file(url, target_path, model_name, expected_sha256=None):
     hasher = hashlib.sha256() if expected_sha256 else None
 
     try:
-        with requests.get(url, stream=True, allow_redirects=True) as response:
+        with requests.get(
+            url, stream=True, allow_redirects=True, timeout=MODEL_DOWNLOAD
+        ) as response:
             # Error responses have a body too. Without this check a "404: Entry
             # not found" page gets written out as if it were the model.
             response.raise_for_status()

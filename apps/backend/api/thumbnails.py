@@ -284,11 +284,60 @@ def create_static_thumbnails(input_path, hash, output_paths, local_orientation=1
         raise e
 
 
+# A five-second clip of a 4K HEVC video takes a slow ARM box well under a
+# minute; ffmpeg still running after this is stuck on the file.
+FFMPEG_TIMEOUT = 300
+FFMPEG_STDERR_TAIL = 2000
+
+
+class VideoThumbnailError(RuntimeError):
+    """ffmpeg failed, or never finished, making a video thumbnail."""
+
+
+def _stderr_tail(stderr):
+    text = (stderr or b"").decode("utf-8", errors="replace").strip()
+    return text[-FFMPEG_STDERR_TAIL:] or "no output"
+
+
+def _run_ffmpeg(command, output):
+    """Run ffmpeg to write *output*; raise VideoThumbnailError if it fails.
+
+    A failed or killed run can leave a truncated file behind, which the next
+    thumbnail pass would take for a finished one, so it is removed.
+    """
+    try:
+        subprocess.run(
+            command,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=FFMPEG_TIMEOUT,
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        _remove_partial(output)
+        raise VideoThumbnailError(
+            f"ffmpeg exited with status {e.returncode}: {_stderr_tail(e.stderr)}"
+        ) from e
+    except subprocess.TimeoutExpired as e:
+        _remove_partial(output)
+        raise VideoThumbnailError(
+            f"ffmpeg did not finish within {FFMPEG_TIMEOUT} s: {_stderr_tail(e.stderr)}"
+        ) from e
+
+
+def _remove_partial(output):
+    try:
+        os.remove(output)
+    except FileNotFoundError:
+        pass
+
+
 def create_animated_thumbnail(input_path, output_height, output_path, hash, file_type):
     try:
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
             binaries.ffmpeg(),
+            "-y",
             "-i",
             input_path,
             "-to",
@@ -305,10 +354,11 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
             output,
         ]
 
-        with subprocess.Popen(command) as proc:
-            proc.wait()
+        _run_ffmpeg(command, output)
     except Exception as e:
-        util.logger.error(f"Could not create animated thumbnail for file {input_path}")
+        util.logger.error(
+            f"Could not create animated thumbnail for file {input_path}: {e}"
+        )
         raise e
 
 
@@ -317,6 +367,7 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
         output = os.path.join(settings.MEDIA_ROOT, output_path, hash + file_type)
         command = [
             binaries.ffmpeg(),
+            "-y",
             "-i",
             input_path,
             "-ss",
@@ -331,10 +382,11 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
             command += ["-filter:v", tonemap]
         command.append(output)
 
-        with subprocess.Popen(command) as proc:
-            proc.wait()
+        _run_ffmpeg(command, output)
     except Exception as e:
-        util.logger.error(f"Could not create thumbnail for video file {input_path}")
+        util.logger.error(
+            f"Could not create thumbnail for video file {input_path}: {e}"
+        )
         raise e
 
 
