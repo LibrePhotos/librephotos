@@ -1023,6 +1023,34 @@ class UnifiedMediaAccessView(APIView):
         """
         return photo.albumuser_set.filter(owner_id=photo.owner_id)
 
+    def _in_public_album(self, photo):
+        """Whether an active public share of one of its owner's albums vouches."""
+        return (
+            self._vouching_albums(photo).filter(self._public_album_active_q()).exists()
+        )
+
+    @staticmethod
+    def _is_public_photo(photo):
+        """Whether ``photo`` is public in the sense the photo API uses.
+
+        ``Photo.public`` alone is not enough: nothing clears it when the photo
+        is later hidden, trashed or removed. Asking the same queryset that
+        answers anonymous API requests (``Photo.visible.visible_to(None)``)
+        keeps the two in step, so a photo stops being served here exactly when
+        it stops being listed there.
+
+        What it grants mirrors a public album share, path for path: every
+        derived path (thumbnails, face crops, the legacy ``video`` path) and
+        the original under ``photos``, never transcoded and never inline. Face
+        crops are pixel subsets of a photo that is already public, and the
+        album-share routes serve them regardless of ``share_faces`` (that flag
+        only hides the people list in the public album API). The original is
+        what the lightbox plays a video from, so a public video would not play
+        without it. A public photo therefore never grants more than the same
+        photo in a publicly shared album would.
+        """
+        return Photo.visible.visible_to(None).filter(pk=photo.pk).exists()
+
     def _resolve_requester(self, jwt):
         """Return ``(user, token_valid)`` for the value of the ``jwt`` cookie.
 
@@ -1051,7 +1079,9 @@ class UnifiedMediaAccessView(APIView):
         existing row for a path already on disk, so the second user's Photo
         inherits the first scanner's hash. Falling back to an arbitrary row
         then denies an owner access to their own photo, so prefer a row the
-        requester can actually see.
+        requester can actually see. Anyone, signed in or not, can see a row in a
+        public album or a public photo, so either beats an arbitrary private
+        twin that would 403.
         """
         candidates = list(photos)
         if not candidates:
@@ -1064,7 +1094,7 @@ class UnifiedMediaAccessView(APIView):
                 if p.shared_to.filter(id=user.id).exists():
                     return p
         for p in candidates:
-            if self._vouching_albums(p).filter(self._public_album_active_q()).exists():
+            if self._in_public_album(p) or self._is_public_photo(p):
                 return p
         return candidates[0]
 
@@ -1222,16 +1252,24 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
+        if self._in_public_album(photo):
+            return self._generate_response(photo, path, fname, False, use_proxy)
+
+        if token_valid and self._may_access(photo, user):
+            return self._generate_response(
+                photo, path, fname, user.transcode_videos, use_proxy
+            )
+
+        # The lightbox's "Make public and copy link" action sets
+        # ``Photo.public`` and copies a link to this route, which used to
+        # consult only album shares, so that link always came back 403
+        # (#2029). Checked after the requester's own access so that an owner
+        # keeps their transcoding setting on a photo they made public.
+        if self._is_public_photo(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
 
         if not token_valid:
             return self._forbidden_unauthenticated()
-
-        if self._may_access(photo, user):
-            return self._generate_response(
-                photo, path, fname, user.transcode_videos, use_proxy
-            )
         return HttpResponse(status=404)
 
     def _serve_original_media(self, request, image_hash, use_proxy):
@@ -1240,21 +1278,26 @@ class UnifiedMediaAccessView(APIView):
         if photo is None:
             return HttpResponse(status=404)
 
-        if self._vouching_albums(photo).filter(self._public_album_active_q()).exists():
+        if self._in_public_album(photo):
+            return self._generate_response_original(photo, use_proxy, False)
+
+        if token_valid and user is not None:
+            if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
+                return self._generate_response_original(
+                    photo, use_proxy, user.transcode_videos, inline=True
+                )
+            if self._may_access(photo, user):
+                return self._generate_response_original(
+                    photo, use_proxy, user.transcode_videos
+                )
+
+        # Same grant, and same placement, as on the derived-media route: a
+        # public video plays from here (see ``_is_public_photo``).
+        if self._is_public_photo(photo):
             return self._generate_response_original(photo, use_proxy, False)
 
         if not token_valid:
             return self._forbidden_unauthenticated()
-
-        transcode_videos = user is not None and user.transcode_videos
-        if user is not None and (
-            photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists()
-        ):
-            return self._generate_response_original(
-                photo, use_proxy, transcode_videos, inline=True
-            )
-        if self._may_access(photo, user):
-            return self._generate_response_original(photo, use_proxy, transcode_videos)
         return HttpResponse(status=404)
 
     def get(self, request, path, fname, album_id=None, format=None):
