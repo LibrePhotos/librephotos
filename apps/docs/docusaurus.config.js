@@ -2,6 +2,7 @@
 // Note: type annotations allow type checking and IDEs autocompletion
 
 const { themes } = require("prism-react-renderer");
+const htmlTableStructure = require("./src/remark/html-table-structure");
 
 const lightCodeTheme = themes.github;
 const darkCodeTheme = themes.dracula;
@@ -54,11 +55,13 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
+          remarkPlugins: [htmlTableStructure],
           editUrl:
             "https://github.com/LibrePhotos/librephotos/tree/dev/apps/docs/",
         },
         blog: {
           showReadingTime: true,
+          remarkPlugins: [htmlTableStructure],
           // Release notes are short and have always been shown in full on the
           // blog index, so don't nag about missing truncate markers.
           onUntruncatedBlogPosts: "ignore",
@@ -167,6 +170,9 @@ const config = {
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
+        // prism-react-renderer 2 no longer bundles bash (also sh/shell), so
+        // without this the shell snippets all over the docs render unhighlighted.
+        additionalLanguages: ["bash", "powershell", "nginx"],
       },
     }),
 };

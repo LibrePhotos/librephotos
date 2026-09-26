@@ -69,3 +69,11 @@
 .navbar__sponsor svg {
   display: none;
 }
+
+/* MDX 3 wraps multi-line text inside raw HTML table cells in <p>, which
+   MDX 1 did not. Drop the paragraph margin so those cells keep the same
+   height as before (e.g. the feature toggles table). */
+.markdown td > p:last-child,
+.markdown th > p:last-child {
+  margin-bottom: 0;
+}
