@@ -19,3 +19,4 @@ export * as endpoints from "./endpoints";
 export type { DateAlbumFilter, SyncPullParams } from "./endpoints";
 export * from "./hooks";
 export * from "./media";
+export { ResponseParseError } from "./util/parse";
