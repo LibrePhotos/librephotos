@@ -36,6 +36,42 @@ The repository ships a `husky` pre-commit hook (`apps/frontend/.husky/pre-commit
 script — `husky` — with the working directory set to `apps/frontend`, which has no `.git` of
 its own, so husky exits without registering the hook. Don't rely on it; lint before you commit.
 
+## 🧪 End-to-end tests {#end-to-end-tests}
+
+`apps/frontend/e2e` holds a [Playwright](https://playwright.dev/) smoke suite: log in, the timeline
+shows photos, the lightbox opens, a favorite toggles and persists, log out. It has its own
+`package.json`, separate from the app's. The `e2e` workflow runs it nightly, on demand, and on pull
+requests labelled `e2e`, and uploads the Playwright report, traces and container logs when it fails.
+
+**Against the Docker e2e stack** (what CI does). `deploy/compose/docker-compose.e2e.yml` builds the
+proxy, frontend and backend from your checkout, creates `admin`/`admin` and scans the eight sample
+photos in `deploy/e2e/photos`:
+
+```bash
+docker compose -f deploy/compose/docker-compose.e2e.yml up -d --build --wait
+cd apps/frontend/e2e
+yarn install
+yarn playwright install chromium
+yarn test                     # or `yarn test:ui` for the interactive runner
+docker compose -f ../../../deploy/compose/docker-compose.e2e.yml down -v
+```
+
+**Against a native stack** (no Docker, see
+[Native Windows Setup](/docs/development/dev-install#native-windows-setup-no-docker)). Use a fresh
+data directory and an `admin`/`admin` account, copy `deploy/e2e/photos` to `<DataDir>\data\e2e` (it
+has to be inside the backend's data root), then point the suite at the Vite dev server and that folder:
+
+```powershell
+$env:E2E_BASE_URL = "http://localhost:3000"
+$env:E2E_SCAN_DIR = "C:\librephotos-devdata\data\e2e"
+yarn test
+```
+
+The setup step sets the admin's scan directory and starts a scan when the account has no photos yet.
+A scan started this way first downloads the ML models (about 1.3 GB, once). The specs expect exactly
+the sample library, so run them against an account with no other photos. `E2E_USERNAME` and
+`E2E_PASSWORD` override the credentials.
+
 ## 🐛 Debugging
 
 ### React Debug Tool
