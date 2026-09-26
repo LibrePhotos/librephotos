@@ -62,6 +62,14 @@ def _group_matches(requested, returned):
     )
 
 
+def _name_matches(requested, returned):
+    # "Description-*" asks for every language entry of a lang-alt tag
+    # (Description-de, Description-fr, ...); ExifTool answers with those keys.
+    if requested.endswith("-*"):
+        return returned.startswith(requested[:-1])
+    return requested == returned
+
+
 def _attribute(data, tags):
     """Map one file's batched output back to the requested tags.
 
@@ -79,7 +87,7 @@ def _attribute(data, tags):
         value = None
         for key in keys:
             key_group, key_name = _split_tag(key)
-            if key_name == name and _group_matches(group, key_group):
+            if _name_matches(name, key_name) and _group_matches(group, key_group):
                 claimed.add(key)
                 # Several groups can hold an ungrouped tag (File:ImageWidth,
                 # EXIF:ImageWidth); ExifTool lists them in the same order a
