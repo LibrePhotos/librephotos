@@ -12,16 +12,16 @@ from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.tokens import AccessToken
 
 from api import binaries, ffmpeg_budget, transcode_cache, video_color
 from api.all_tasks import zip_file_name
+from api.authentication import JWTCookieAuthentication
 from api.http_range import file_size, ranged_response
 from api.mime import mime_type
-from api.models import AlbumUser, Photo, User
+from api.models import AlbumUser, Photo
 from api.util import logger
 
 
@@ -172,6 +172,11 @@ class UnifiedMediaAccessView(APIView):
     """
 
     permission_classes = (AllowAny,)
+    # <img> and <video> requests carry the jwt cookie but no Authorization
+    # header. A stale cookie makes the request anonymous rather than a 401, so
+    # public photos and shared albums are still served (see
+    # JWTCookieAuthentication).
+    authentication_classes = (JWTCookieAuthentication, BasicAuthentication)
 
     def _should_use_proxy(self):
         return not getattr(settings, "SERVE_FRONTEND", False)
@@ -523,25 +528,18 @@ class UnifiedMediaAccessView(APIView):
         """
         return Photo.visible.visible_to(None).filter(pk=photo.pk).exists()
 
-    def _resolve_requester(self, jwt):
-        """Return ``(user, token_valid)`` for the value of the ``jwt`` cookie.
+    @staticmethod
+    def _requester(request):
+        """The signed-in user, or None.
 
-        ``user`` is None both when there is no usable token and when the token
-        names a user that no longer exists, so callers must not assume a valid
-        token yields a user.
+        None covers both "no credentials" and "credentials that no longer
+        work" (an expired cookie, a deleted or deactivated account):
+        ``JWTCookieAuthentication`` makes either one anonymous, and a request
+        that is refused for want of a session is marked by
+        ``_forbidden_unauthenticated``.
         """
-        if jwt is None:
-            return None, False
-        try:
-            token = AccessToken(jwt)
-        except TokenError:
-            return None, False
-        user = (
-            User.objects.filter(id=token["user_id"])
-            .only("id", "transcode_videos")
-            .first()
-        )
-        return user, True
+        user = request.user
+        return user if user.is_authenticated else None
 
     def _pick_visible_photo(self, photos, user):
         """Choose which row a shared ``image_hash`` resolves to.
@@ -586,15 +584,6 @@ class UnifiedMediaAccessView(APIView):
     def _is_uuid_format(value):
         return len(value) == 36 and value.count("-") == 4
 
-    def _token_or_none(self, request):
-        jwt = request.COOKIES.get("jwt")
-        if jwt is None:
-            return None
-        try:
-            return AccessToken(jwt)
-        except TokenError:
-            return None
-
     def _generate_response(self, photo, path, fname, transcode_videos, use_proxy):
         if use_proxy:
             return self._generate_response_proxy(photo, path, fname, transcode_videos)
@@ -619,11 +608,11 @@ class UnifiedMediaAccessView(APIView):
             )
 
     def _serve_zip(self, request, path, fname, use_proxy):
-        token = self._token_or_none(request)
-        if token is None:
+        user = self._requester(request)
+        if user is None:
             return self._forbidden_unauthenticated()
         try:
-            filename = zip_file_name(fname, token["user_id"])
+            filename = zip_file_name(fname, user.id)
             if filename is None:
                 return HttpResponse(status=404)
             if use_proxy:
@@ -637,11 +626,9 @@ class UnifiedMediaAccessView(APIView):
             return self._forbidden_unauthenticated()
 
     def _serve_avatar(self, request, path, fname, use_proxy):
-        token = self._token_or_none(request)
-        if token is None:
+        if self._requester(request) is None:
             return self._forbidden_unauthenticated()
         try:
-            _ = User.objects.filter(id=token["user_id"]).only("id").first()
             if use_proxy:
                 response = HttpResponse()
                 response["Content-Type"] = "image/png"
@@ -653,18 +640,8 @@ class UnifiedMediaAccessView(APIView):
             return HttpResponse(status=404)
 
     def _embedded_media_query(self, request):
-        query = Q(public=True)
-        if request.user.is_authenticated:
-            query = Q(owner=request.user)
-        jwt = request.COOKIES.get("jwt")
-        if jwt is not None:  # pragma: no cover
-            try:
-                token = AccessToken(jwt)
-                user = User.objects.filter(id=token["user_id"]).only("id").first()
-                query = Q(owner=user)
-            except TokenError:
-                pass
-        return query
+        user = self._requester(request)
+        return Q(public=True) if user is None else Q(owner=user)
 
     def _serve_embedded_media(self, request, path, fname, use_proxy):
         query = self._embedded_media_query(request)
@@ -721,7 +698,7 @@ class UnifiedMediaAccessView(APIView):
     def _serve_derived_media(self, request, image_hash, path, fname, use_proxy):
         # The requester is resolved up front so that a hash shared by several
         # Photo rows can be resolved in their favour.
-        user, token_valid = self._resolve_requester(request.COOKIES.get("jwt"))
+        user = self._requester(request)
         photo = self._lookup_photo(image_hash, user, allow_uuid=True)
         if photo is None:
             return HttpResponse(status=404)
@@ -729,7 +706,7 @@ class UnifiedMediaAccessView(APIView):
         if self._in_public_album(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
 
-        if token_valid and self._may_access(photo, user):
+        if user is not None and self._may_access(photo, user):
             return self._generate_response(
                 photo, path, fname, user.transcode_videos, use_proxy
             )
@@ -742,12 +719,12 @@ class UnifiedMediaAccessView(APIView):
         if self._is_public_photo(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
 
-        if not token_valid:
+        if user is None:
             return self._forbidden_unauthenticated()
         return HttpResponse(status=404)
 
     def _serve_original_media(self, request, image_hash, use_proxy):
-        user, token_valid = self._resolve_requester(request.COOKIES.get("jwt"))
+        user = self._requester(request)
         photo = self._lookup_photo(image_hash, user)
         if photo is None:
             return HttpResponse(status=404)
@@ -755,7 +732,7 @@ class UnifiedMediaAccessView(APIView):
         if self._in_public_album(photo):
             return self._generate_response_original(photo, use_proxy, False)
 
-        if token_valid and user is not None:
+        if user is not None:
             if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
                 return self._generate_response_original(
                     photo, use_proxy, user.transcode_videos, inline=True
@@ -770,7 +747,7 @@ class UnifiedMediaAccessView(APIView):
         if self._is_public_photo(photo):
             return self._generate_response_original(photo, use_proxy, False)
 
-        if not token_valid:
+        if user is None:
             return self._forbidden_unauthenticated()
         return HttpResponse(status=404)
 
