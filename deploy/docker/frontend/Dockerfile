@@ -8,7 +8,7 @@ ENV CLI_WIDTH 80
 # Copy manifests first for better layer caching
 COPY apps/frontend/package.json apps/frontend/yarn.lock ./
 COPY apps/frontend/patches/ ./patches/
-RUN yarn install --network-timeout 1000000
+RUN yarn install --frozen-lockfile --network-timeout 1000000
 
 # Copy the rest of the source
 COPY apps/frontend/ ./

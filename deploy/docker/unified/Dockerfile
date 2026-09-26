@@ -12,7 +12,7 @@ ENV CLI_WIDTH 80
 
 COPY apps/frontend/package.json apps/frontend/yarn.lock ./
 COPY apps/frontend/patches/ ./patches/
-RUN yarn install --network-timeout 1000000
+RUN yarn install --frozen-lockfile --network-timeout 1000000
 
 COPY apps/frontend/ ./
 RUN yarn run build
