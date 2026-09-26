@@ -1,4 +1,4 @@
-import "./wdyr";
+import { wdyrReady } from "./wdyr";
 import "@mantine/core/styles.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -13,7 +13,8 @@ const container = document.getElementById("root");
 const root = createRoot(container!); // createRoot(container!) if you use TypeScript
 // Non-English locales are fetched on demand; wait for the saved/detected one so
 // the first paint is already in the right language (English resolves at once).
-i18nReady.finally(() =>
+// Also wait for the dev-only why-did-you-render patch, so it sees every render.
+Promise.allSettled([wdyrReady, i18nReady]).then(() =>
   root.render(
     <QueryClientProvider client={queryClient}>
       <App />
