@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import _ from "lodash";
+import { groupBy, toPairs } from "lodash-es";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
@@ -21,6 +21,6 @@ export const useFetchSharedPhotosWithMeQuery = () =>
         response,
         "Failed to parse shared photos with me"
       );
-      return _.toPairs(_.groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));
+      return toPairs(groupBy(results, "owner.id")).map(el => ({ userId: parseInt(el[0], 10), photos: el[1] }));
     },
   });

@@ -9,7 +9,7 @@ import {
   IconUserCheck as UserCheck,
 } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
-import _ from "lodash";
+import { uniqBy } from "lodash-es";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -70,7 +70,7 @@ export function HeaderComponent({
   const handleClick = () => {
     if (!checked) {
       const facesToAdd = loadedFaces.map(i => ({ face_id: i.id, face_url: i.face_url }));
-      const merged = _.uniqBy([...selectedFaces, ...facesToAdd], el => el.face_id);
+      const merged = uniqBy([...selectedFaces, ...facesToAdd], el => el.face_id);
       setSelectedFaces(merged);
     } else {
       const remainingFaces = selectedFaces.filter(i => loadedFaces.filter(j => j.id === i.face_id).length === 0);

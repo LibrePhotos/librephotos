@@ -32,6 +32,13 @@ export default defineConfig(({ mode }) => {
       tanstackRouter({ target: "react", autoCodeSplitting: !process.env.VITEST }),
       react(wdyr ? { jsxImportSource: "@welldone-software/why-did-you-render" } : {}),
     ],
+    resolve: {
+      // `lodash` is CommonJS, so any `from "lodash"` import (even a named one)
+      // drags the whole library into the bundle. Send bare `lodash` imports to
+      // the ES-module build so they tree-shake; import from "lodash-es" in new
+      // code. Deep imports such as "lodash/debounce" are left alone.
+      alias: [{ find: /^lodash$/, replacement: "lodash-es" }],
+    },
     appType: 'spa',
     server: {
       host: "0.0.0.0",

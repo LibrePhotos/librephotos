@@ -2,7 +2,7 @@ import { Anchor, Image, Loader } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { IconMap2 as Map2 } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import _ from "lodash";
+import { sortBy } from "lodash-es";
 import type { CircleLayer, GeoJSONSource, SymbolLayer } from "maplibre-gl";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -78,7 +78,7 @@ function AlbumPlace({ height = 0 }: Props) {
   const { mapStyle, mapsDisabled } = useMapStyle();
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
   const shownAlbums = useMemo(
-    () => visibleAlbums ?? _.sortBy(albums ?? [], ["geolocation_level", "photo_count"]),
+    () => visibleAlbums ?? sortBy(albums ?? [], ["geolocation_level", "photo_count"]),
     [visibleAlbums, albums]
   );
 
@@ -121,7 +121,7 @@ function AlbumPlace({ height = 0 }: Props) {
 
       const visiblePlaceNames = markers.map(el => el[2]);
       const visiblePlaceAlbums = albums.filter(el => visiblePlaceNames.includes(el.title));
-      setVisibleAlbums(_.sortBy(visiblePlaceAlbums, ["geolocation_level", "photo_count"]));
+      setVisibleAlbums(sortBy(visiblePlaceAlbums, ["geolocation_level", "photo_count"]));
     },
     [albums, locationClusters]
   );

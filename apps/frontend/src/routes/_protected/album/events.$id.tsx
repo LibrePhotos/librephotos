@@ -2,7 +2,7 @@ import { Avatar, Box, Button, Divider, Group, Loader, Paper, Text, Title } from 
 import { useDisclosure } from "@mantine/hooks";
 import { IconMap2 as Map2, IconSettingsAutomation as SettingsAutomation } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
-import _ from "lodash";
+import { flatMap, groupBy, sortBy, uniq } from "lodash-es";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFetchAutoAlbumQuery } from "../../../api_client/albums/hooks";
@@ -31,8 +31,8 @@ function AlbumAutoGalleryView() {
     );
   }
 
-  const photos = _.sortBy(album.photos, "exif_timestamp").map((el, idx) => ({ ...el, idx }));
-  const byDate = _.groupBy(_.sortBy(photos, "exif_timestamp"), photo => photo.exif_timestamp.split("T")[0]);
+  const photos = sortBy(album.photos, "exif_timestamp").map((el, idx) => ({ ...el, idx }));
+  const byDate = groupBy(sortBy(photos, "exif_timestamp"), photo => photo.exif_timestamp.split("T")[0]);
 
   // Check if any photos have GPS coordinates
   const hasGPSCoordinates = photos.some(photo => photo.exif_gps_lat !== null && photo.exif_gps_lon !== null);
@@ -64,7 +64,7 @@ function AlbumAutoGalleryView() {
   }));
 
   // Get all unique locations across all dates
-  const allLocations = _.flatMap(Object.values(byDate), datePhotos =>
+  const allLocations = flatMap(Object.values(byDate), datePhotos =>
     datePhotos
       .filter(photo => !!photo.geolocation_json.features)
       .map(photo => {
@@ -74,7 +74,7 @@ function AlbumAutoGalleryView() {
         return "";
       })
   );
-  const uniqueLocations = _.uniq(allLocations).map(location => <Text key={location}>{location}</Text>);
+  const uniqueLocations = uniq(allLocations).map(location => <Text key={location}>{location}</Text>);
 
   return (
     <div>

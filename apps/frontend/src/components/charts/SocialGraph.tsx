@@ -1,6 +1,9 @@
 import { Group, Loader, Text, useComputedColorScheme } from "@mantine/core";
 import { IconShare } from "@tabler/icons-react";
-import * as d3 from "d3";
+import { drag } from "d3-drag";
+import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation } from "d3-force";
+import { select } from "d3-selection";
+import { zoom as d3Zoom } from "d3-zoom";
 import React, { useCallback, useEffect, useRef } from "react";
 import useDimensions from "react-cool-dimensions";
 import { useTranslation } from "react-i18next";
@@ -26,13 +29,12 @@ function ForceGraph({
   const renderGraph = useCallback(() => {
     if (!svgRef.current || !data || width <= 0 || height <= 0) return undefined;
 
-    const svg = d3.select(svgRef.current);
+    const svg = select(svgRef.current);
     svg.selectAll("*").remove();
 
     const g = svg.append("g");
 
-    const zoom = d3
-      .zoom<SVGSVGElement, unknown>()
+    const zoom = d3Zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on("zoom", event => {
         g.attr("transform", event.transform);
@@ -43,18 +45,16 @@ function ForceGraph({
     const nodes = data.nodes.map(d => ({ ...d }));
     const links = data.links.map(d => ({ ...d }));
 
-    const simulation = d3
-      .forceSimulation(nodes)
+    const simulation = forceSimulation(nodes)
       .force(
         "link",
-        d3
-          .forceLink(links)
+        forceLink(links)
           .id((d: any) => d.id)
           .distance(100)
       )
-      .force("charge", d3.forceManyBody().strength(-300))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(30));
+      .force("charge", forceManyBody().strength(-300))
+      .force("center", forceCenter(width / 2, height / 2))
+      .force("collision", forceCollide().radius(30));
 
     const link = g
       .append("g")
@@ -75,8 +75,7 @@ function ForceGraph({
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
       .call(
-        d3
-          .drag<SVGCircleElement, any>()
+        drag<SVGCircleElement, any>()
           .on("start", (event, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
             /* eslint-disable no-param-reassign -- d3-force requires mutating node properties */
@@ -97,10 +96,10 @@ function ForceGraph({
 
     node
       .on("mouseover", function () {
-        d3.select(this).attr("stroke", "orange").attr("stroke-width", 3);
+        select(this).attr("stroke", "orange").attr("stroke-width", 3);
       })
       .on("mouseout", function () {
-        d3.select(this).attr("stroke", "#fff").attr("stroke-width", 1.5);
+        select(this).attr("stroke", "#fff").attr("stroke-width", 1.5);
       });
 
     const label = g

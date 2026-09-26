@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import { IconPhoto as Photo, IconUpload as Upload, IconUser as User } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
-import _ from "lodash";
+import { isEqual } from "lodash-es";
 import React, { useEffect, useRef, useState } from "react";
 import AvatarEditor from "react-avatar-editor";
 import type { DropzoneRef } from "react-dropzone";
@@ -70,7 +70,7 @@ export function Profile() {
 
   // open update dialog, when user was edited
   useEffect(() => {
-    if (!_.isEqual(userSelfDetails, editedUserDetails)) {
+    if (!isEqual(userSelfDetails, editedUserDetails)) {
       setIsOpenUpdateDialog(true);
     } else {
       setIsOpenUpdateDialog(false);

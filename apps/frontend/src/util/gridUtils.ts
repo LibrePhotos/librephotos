@@ -1,4 +1,4 @@
-import _ from "lodash";
+import { reverse, sortBy } from "lodash-es";
 
 const gridType = "dense";
 
@@ -8,7 +8,7 @@ export const calculateSharedPhotoGridCells = (groupedBySharerList, itemsPerRow) 
 
   groupedBySharerList.forEach(group => {
     gridContents.push([group]);
-    _.reverse(_.sortBy(group.photos, "exif_timestamp")).forEach((photo, idx) => {
+    reverse(sortBy(group.photos, "exif_timestamp")).forEach((photo, idx) => {
       if (idx === 0) {
         rowCursor = [];
       }
