@@ -52,6 +52,8 @@ THIRD_PARTY_LEVELS = {
     "matplotlib": "WARNING",
     "asyncio": "WARNING",
     "django.db.backends": "WARNING",
+    # libvips narrates every decode and resize at INFO, ~35 lines per photo.
+    "pyvips": "WARNING",
 }
 
 # Problems noticed while the configuration is still being built - at that point

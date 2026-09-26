@@ -15,11 +15,13 @@ Moreover, the utilization of pyvips as a Python interface facilitates seamless i
 
 libvips comes bundled with `pyvips-binary`; what that build cannot decode (HEIC, JPEG XL, BMP, JPEG 2000) is decoded by Pillow with `pillow-heif` and `pillow-jxl-plugin` and handed back to pyvips (`api/image_decoding.py`).
 
+The original is decoded once, at the big thumbnail's size; the two smaller thumbnails are resized from that image (`create_static_thumbnails` in `api/thumbnails.py`). Thumbnails are WebP at quality 95 and encoder effort 2, which encodes twice as fast as libwebp's default effort 4 at the same file size.
+
 ### LibRaw via rawpy (RAW images)
 
-RAW files are decoded with LibRaw through [rawpy](https://github.com/letmaik/rawpy), which ships LibRaw in its wheel, and the result is resized and saved as WebP by pyvips.
+Almost every camera stores a JPEG preview it rendered itself inside the RAW file. When that preview shows the whole picture (the same aspect ratio as the sensor image) and is at least as tall as the big thumbnail, the thumbnail is made from it, in the worker (`image_decoding.raw_preview`). This takes a fraction of a full render, and the thumbnail looks like the camera's own JPEG.
 
-This runs on a separate microservice so that a decoder crash on an exotic file stays away from the API workers.
+Otherwise the RAW is rendered with LibRaw through [rawpy](https://github.com/letmaik/rawpy), which ships LibRaw in its wheel, and the result is resized and saved as WebP by pyvips. This runs on a separate microservice so that a decoder crash on an exotic file stays away from the API workers.
 
 ### FFmpeg (video)
 
