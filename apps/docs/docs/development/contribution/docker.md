@@ -94,7 +94,7 @@ The base image is published to Docker Hub by `.github/workflows/image-backend-ba
 
 The frontend has two Dockerfiles:
 
-- `deploy/docker/frontend/Dockerfile` - Production build (multi-stage: `node:20-slim` builds `dist/`, then `halverneus/static-file-server` serves it on port 3000 behind the nginx proxy)
+- `deploy/docker/frontend/Dockerfile` - Production build (multi-stage: `node:22-slim` builds `dist/`, then `halverneus/static-file-server` serves it on port 3000 behind the nginx proxy)
 - `deploy/docker/frontend/Dockerfile.dev` - Development build (hot reload)
 
 ### Modifying the Proxy (Nginx)

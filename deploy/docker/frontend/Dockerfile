@@ -1,4 +1,4 @@
-FROM node:20-slim as builder
+FROM node:22-slim as builder
 
 RUN npm config set fetch-retry-maxtimeout 60000
 
