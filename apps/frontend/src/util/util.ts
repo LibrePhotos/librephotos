@@ -1,7 +1,7 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 import _ from "lodash";
 import { DateTime } from "luxon";
-import type { DirTree } from "../api_client/dir-tree";
+import type { DirTree } from "../api_client/folders/types";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../api_client/photos/types";
 import i18n, { i18nResolvedLanguage } from "../i18n";
 

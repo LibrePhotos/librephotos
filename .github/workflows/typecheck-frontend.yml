@@ -1,0 +1,44 @@
+name: typecheck-frontend
+
+# `vite build` does not type-check. This runs `tsc --noEmit` through a ratchet
+# (apps/frontend/scripts/typecheck-ratchet.mjs): errors already recorded in
+# apps/frontend/tsc-baseline.txt are tolerated, any new error fails the job.
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/typecheck-frontend.yml'
+  pull_request:
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/typecheck-frontend.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/frontend/.nvmrc
+          cache: yarn
+          cache-dependency-path: apps/frontend/yarn.lock
+      - name: install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 1000000
+      - name: typecheck (no new errors vs tsc-baseline.txt)
+        run: yarn run typecheck

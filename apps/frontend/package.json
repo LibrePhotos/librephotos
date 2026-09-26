@@ -8,6 +8,8 @@
     "lint:error": "eslint --cache --quiet \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:error:fix": "eslint --quiet \"src/**/*.{js,jsx,ts,tsx}\" --fix",
     "lint:warning:fix": "eslint --cache --quiet \"src/**/*.{js,jsx,ts,tsx}\" --fix",
+    "typecheck": "node scripts/typecheck-ratchet.mjs",
+    "typecheck:update": "node scripts/typecheck-ratchet.mjs --update",
     "start": "vite",
     "build": "vite build",
     "test": "vitest --watch=false",

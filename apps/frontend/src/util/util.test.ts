@@ -1,4 +1,4 @@
-import type { DirTree } from "../api_client/dir-tree";
+import type { DirTree } from "../api_client/folders/types";
 import type { DatePhotosGroup } from "../api_client/photos/types";
 import i18n from "../i18n";
 import { EMAIL_REGEX, formatDateForPhotoGroups, fuzzyMatch, getAveragedCoordinates, mergeDirTree } from "./util";

@@ -61,7 +61,7 @@ function LoadingCard() {
   );
 }
 
-function LoadingAvararGrid({ icon, title }: { icon: React.FC; title: string }): React.FC {
+function LoadingAvararGrid({ icon, title }: { icon: React.FC; title: string }) {
   return (
     <div className={classes.section}>
       <div className={classes.header}>
@@ -85,7 +85,7 @@ function LoadingAvararGrid({ icon, title }: { icon: React.FC; title: string }): 
   );
 }
 
-function LoadingOther({ icon, title }: { icon: React.FC; title: string }): React.FC {
+function LoadingOther({ icon, title }: { icon: React.FC; title: string }) {
   return (
     <div className={classes.section}>
       <div className={classes.header}>
@@ -110,7 +110,7 @@ function LoadingOther({ icon, title }: { icon: React.FC; title: string }): React
   );
 }
 
-function AvatarPreview({ album }: { album: AlbumPreview }): React.FC {
+function AvatarPreview({ album }: { album: AlbumPreview }) {
   if (album.faceUrl) {
     return <Image src={album.faceUrl} w={56} h={56} className={classes.avatarImage} fallbackSrc="/unknown_user.jpg" />;
   }
@@ -134,7 +134,9 @@ function AvatarPreview({ album }: { album: AlbumPreview }): React.FC {
   );
 }
 
-function ScrollPreview({ album }: { album: AlbumPreview }): React.FC {
+function ScrollPreview({ album }: { album: AlbumPreview }) {
+  const { t } = useTranslation();
+
   if (album.coverUrl) {
     return (
       <Tile
@@ -157,15 +159,7 @@ function ScrollPreview({ album }: { album: AlbumPreview }): React.FC {
   );
 }
 
-function LoadingComponent({
-  variant,
-  icon,
-  title,
-}: {
-  variant: AlbumSectionVariant;
-  icon: React.FC;
-  title: string;
-}): React.FC {
+function LoadingComponent({ variant, icon, title }: { variant: AlbumSectionVariant; icon: React.FC; title: string }) {
   switch (variant) {
     case "avatarGrid":
       return <LoadingAvararGrid icon={icon} title={title} />;
