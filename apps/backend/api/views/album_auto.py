@@ -1,5 +1,3 @@
-import uuid
-
 from django.db.models import Count, Prefetch, Q
 from django_q.tasks import AsyncTask
 from drf_spectacular.utils import extend_schema
@@ -11,9 +9,9 @@ from rest_framework.views import APIView
 from api.autoalbum import generate_event_albums, regenerate_event_titles
 from api.models import AlbumAuto, Person, Photo
 from api.serializers.album_auto import AlbumAutoListSerializer, AlbumAutoSerializer
-from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import StandardResultsSetPagination
+from api.views.views import start_job
 
 
 # TODO: This is a fetches with too many queries. We need to optimize this.
@@ -102,13 +100,12 @@ class RegenerateAutoAlbumTitles(APIView):
         return self._schedule_auto_album_title_regeneration(request)
 
     def _schedule_auto_album_title_regeneration(self, request, format=None):
-        try:
-            job_id = uuid.uuid4()
-            AsyncTask(regenerate_event_titles, request.user, job_id).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException as e:
-            logger.error(str(e))
-            return Response({"status": False})
+        return start_job(
+            lambda job_id: AsyncTask(
+                regenerate_event_titles, request.user, job_id
+            ).run(),
+            "the auto album title regeneration",
+        )
 
 
 class AutoAlbumGenerateView(APIView):
@@ -123,10 +120,7 @@ class AutoAlbumGenerateView(APIView):
         return self._schedule_auto_album_regeneration(request)
 
     def _schedule_auto_album_regeneration(self, request):
-        try:
-            job_id = uuid.uuid4()
-            AsyncTask(generate_event_albums, request.user, job_id).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException as e:
-            logger.error(str(e))
-            return Response({"status": False})
+        return start_job(
+            lambda job_id: AsyncTask(generate_event_albums, request.user, job_id).run(),
+            "the auto album generation",
+        )

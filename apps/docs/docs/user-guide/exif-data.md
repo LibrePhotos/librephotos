@@ -19,7 +19,7 @@ sidebar_position: 18
         <td>Favorites</td>
         <td>✔️</td>
         <td>✔️</td>
-        <td>Settable via "Minimum image rating to interpret as favorite"</td>
+        <td>Settable via "Minimum image rating to interpret as favorite". Written back when you change a rating or favorite a photo, but only if "Synchronize metadata to disk" is enabled. Favoriting a selection writes the ratings in the background, so the files can lag the library by a moment.</td>
     </tr>
     <tr>
         <td>ImageHeight</td>

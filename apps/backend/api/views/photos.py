@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.mime import mime_type
+from api.metadata.jobs import queue_rating_write
 from api.ml_models import captioning_model_exists, start_model_download
 from api.models import AlbumUser, File, Photo, User
 from api.models.photo_stack import PhotoStack
@@ -202,344 +203,198 @@ class NoTimestampPhotoViewSet(ListViewSet):
         return super().list(*args, **kwargs)
 
 
-class SetPhotosDeleted(APIView):
+class BulkPhotoMutationView(APIView):
+    """Set one flag on many of the requester's photos in a single UPDATE.
+
+    The body carries the new value under ``value_field`` and names the photos
+    either as ``image_hashes`` or as ``select_all`` with a ``query`` (and
+    optional ``excluded_hashes``) for ``build_photo_queryset``. Only photos the
+    requester owns are touched. A subclass declares the field, which photos
+    the value would change (``differs``) and the columns it sets
+    (``new_values``).
+
+    The answer is ``count`` (photos changed) and, for ``image_hashes``, the
+    hashes that changed and those that already had the value. It used to carry
+    a full ``PhotoSerializer`` payload per photo, whose ``similar_photos`` asks
+    the similarity sidecar over HTTP: one call per photo, inside the request.
+    """
+
+    #: Request key carrying the new value.
+    value_field = None
+    #: The flag's name in the missing-photo warning ("set photo X to ...").
+    flag_name = None
+    #: What happened to a photo, by new value, for log lines.
+    past_tense = {True: "changed", False: "changed"}
+    #: Hiding or trashing a photo takes it out of its tags' counts, and a
+    #: queryset UPDATE fires no signal to say so.
+    refreshes_tag_counts = False
+    #: In ``select_all`` mode, touch (and count) only photos whose state
+    #: differs rather than every photo the query matches.
+    select_all_only_changed = False
+
+    def differs(self, user, value):
+        """A ``Q`` matching the photos that ``value`` would change."""
+        raise NotImplementedError
+
+    def new_values(self, user, value):
+        """The columns to UPDATE, besides ``last_modified``."""
+        raise NotImplementedError
+
+    def before_update(self, user, photos, value):
+        """Hook run on the photos about to change, before the UPDATE."""
+
+    def apply(self, user, photos, value):
+        """UPDATE ``photos`` to ``value``; return the number of rows changed."""
+        affected_tag_ids = (
+            tag_ids_for_photos(photos) if self.refreshes_tag_counts else None
+        )
+        self.before_update(user, photos, value)
+        count = photos.update(
+            **self.new_values(user, value), last_modified=timezone.now()
+        )
+        if affected_tag_ids is not None:
+            refresh_tag_photo_counts(affected_tag_ids)
+        return count
+
     def post(self, request, format=None):
+        data = dict(request.data)
+        value = data[self.value_field]
+        if data.get("select_all"):
+            return self._post_select_all(request.user, data, value)
+        return self._post_hashes(request.user, data["image_hashes"], value)
+
+    def _post_select_all(self, user, data, value):
         from api.views.photo_filters import build_photo_queryset
 
-        data = dict(request.data)
-        val_deleted = data["deleted"]
+        photos = build_photo_queryset(user, data.get("query", {}))
+        excluded_hashes = data.get("excluded_hashes", [])
+        if excluded_hashes:
+            photos = photos.exclude(image_hash__in=excluded_hashes)
+        if self.select_all_only_changed:
+            photos = photos.filter(self.differs(user, value))
 
-        # NEW: Support select_all mode for bulk operations
-        if data.get("select_all"):
-            query_params = data.get("query", {})
-            excluded_hashes = data.get("excluded_hashes", [])
-
-            photos_qs = build_photo_queryset(request.user, query_params)
-            if excluded_hashes:
-                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
-
-            # If restoring from trash, reset stacks to pending for re-evaluation
-            if not val_deleted:
-                from api.models.stack_review import StackReview
-                from api.models.photo_stack import PhotoStack
-
-                # Get stack IDs from photos that have stacks (ManyToMany)
-                stack_ids = set(
-                    PhotoStack.objects.filter(photos__in=photos_qs).values_list(
-                        "id", flat=True
-                    )
-                )
-                if stack_ids:
-                    StackReview.objects.filter(
-                        stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED
-                    ).update(decision=StackReview.Decision.PENDING)
-                    logger.info(
-                        f"Reset {len(stack_ids)} photo stacks to pending after restore"
-                    )
-
-            # Snapshot the tags before the update, then refresh: a trashed
-            # photo drops out of its tags' counts (and a restored one comes
-            # back), and no signal fires for a plain UPDATE.
-            affected_tag_ids = tag_ids_for_photos(photos_qs)
-            count = photos_qs.update(
-                in_trashcan=val_deleted, last_modified=timezone.now()
-            )
-            refresh_tag_photo_counts(affected_tag_ids)
-
-            if val_deleted:
-                logger.info(
-                    f"{count} photos were moved to trash via select_all for user {request.user.id}."
-                )
-            else:
-                logger.info(
-                    f"{count} photos were restored from trash via select_all for user {request.user.id}."
-                )
-
-            return Response({"status": True, "count": count})
-
-        # Existing logic for individual hashes
-        image_hashes = data["image_hashes"]
-
-        # Get all photos with related data in one query to prevent N+1 queries from serializer
-        photos = (
-            Photo.objects.owned_by(request.user)
-            .filter(image_hash__in=image_hashes)
-            .select_related("owner", "thumbnail", "main_file")
-            .prefetch_related(
-                "files", "faces__person", "shared_to", "main_file__embedded_media"
-            )
+        count = self.apply(user, photos, value)
+        logger.info(
+            f"{count} photos were {self.past_tense[bool(value)]} via select_all "
+            f"for user {user.id}."
         )
+        return Response({"status": True, "count": count})
 
-        # Also prefetch search and caption instances if they exist
-        photos = photos.select_related("search_instance", "caption_instance")
+    def _post_hashes(self, user, image_hashes, value):
+        owned = Photo.objects.owned_by(user).filter(image_hash__in=image_hashes)
+        found = set(owned.values_list("image_hash", flat=True))
+        changing = set(
+            owned.filter(self.differs(user, value)).values_list("image_hash", flat=True)
+        )
+        requested = list(dict.fromkeys(image_hashes))
+        updated_hashes = [h for h in requested if h in changing]
+        not_updated_hashes = [h for h in requested if h in found - changing]
 
-        # Group photos by whether they need updating
-        photos_to_update = []
-        updated_data = []
-        not_updated_data = []
-
-        for photo in photos:
-            if photo.in_trashcan != val_deleted:
-                photos_to_update.append(photo.image_hash)
-                photo.in_trashcan = val_deleted
-                updated_data.append(PhotoSerializer(photo).data)
-            else:
-                not_updated_data.append(PhotoSerializer(photo).data)
-
-        # Bulk update in one query
-        if photos_to_update:
-            updated_photos = Photo.objects.owned_by(request.user).filter(
-                image_hash__in=photos_to_update
+        if updated_hashes:
+            self.apply(
+                user,
+                Photo.objects.owned_by(user).filter(image_hash__in=updated_hashes),
+                value,
             )
-            affected_tag_ids = tag_ids_for_photos(updated_photos)
-            updated_photos.update(in_trashcan=val_deleted, last_modified=timezone.now())
-            refresh_tag_photo_counts(affected_tag_ids)
 
-            # If restoring from trash, reset stacks to pending for re-evaluation
-            if not val_deleted:
-                from api.models.stack_review import StackReview
-                from api.models.photo_stack import PhotoStack
-
-                # Get stack IDs from photos that have stacks (ManyToMany)
-                stack_ids = set(
-                    PhotoStack.objects.filter(
-                        photos__image_hash__in=photos_to_update
-                    ).values_list("id", flat=True)
-                )
-                if stack_ids:
-                    StackReview.objects.filter(
-                        stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED
-                    ).update(decision=StackReview.Decision.PENDING)
-                    logger.info(
-                        f"Reset {len(stack_ids)} photo stacks to pending after restore"
-                    )
-
-        # Handle missing photos
-        found_hashes = {photo.image_hash for photo in photos}
-        missing_hashes = set(image_hashes) - found_hashes
-        for missing_hash in missing_hashes:
+        for missing_hash in set(requested) - found:
             logger.warning(
-                f"Could not set photo {missing_hash} to deleted. It does not exist or is not owned by user."
+                f"Could not set photo {missing_hash} to {self.flag_name}. "
+                "It does not exist or is not owned by user."
             )
-
-        if val_deleted:
-            logger.info(
-                f"{len(updated_data)} photos were moved to trash. {len(not_updated_data)} photos were already in trash."
-            )
-        else:
-            logger.info(
-                f"{len(updated_data)} photos were restored from trash. {len(not_updated_data)} photos were already restored."
-            )
+        logger.info(
+            f"{len(updated_hashes)} photos were {self.past_tense[bool(value)]}. "
+            f"{len(not_updated_hashes)} photos already were."
+        )
         return Response(
             {
                 "status": True,
-                "results": updated_data,
-                "updated": updated_data,
-                "not_updated": not_updated_data,
+                "count": len(updated_hashes),
+                "updated_hashes": updated_hashes,
+                "not_updated_hashes": not_updated_hashes,
             }
         )
 
 
-class SetPhotosFavorite(APIView):
-    def post(self, request, format=None):
-        from api.views.photo_filters import build_photo_queryset
+class SetPhotosDeleted(BulkPhotoMutationView):
+    value_field = "deleted"
+    flag_name = "deleted"
+    past_tense = {True: "moved to trash", False: "restored from trash"}
+    refreshes_tag_counts = True
 
-        data = dict(request.data)
-        val_favorite = data["favorite"]
-        user = request.user
+    def differs(self, user, value):
+        return ~Q(in_trashcan=value)
 
-        # NEW: Support select_all mode for bulk operations
-        if data.get("select_all"):
-            query_params = data.get("query", {})
-            excluded_hashes = data.get("excluded_hashes", [])
+    def new_values(self, user, value):
+        return {"in_trashcan": value}
 
-            photos_qs = build_photo_queryset(request.user, query_params)
-            if excluded_hashes:
-                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+    def before_update(self, user, photos, value):
+        if value:
+            return
+        # A restored photo re-enters its stacks: reset those to pending so
+        # they are reviewed again. Taken before the UPDATE, while ``photos``
+        # (which may filter on in_trashcan) still matches them.
+        from api.models.stack_review import StackReview
 
-            if val_favorite:
-                # Only update photos that aren't already favorites
-                count = photos_qs.filter(rating__lt=user.favorite_min_rating).update(
-                    rating=user.favorite_min_rating, last_modified=timezone.now()
-                )
-                logger.info(
-                    f"{count} photos were added to favorites via select_all for user {user.id}."
-                )
-            else:
-                # Only update photos that are currently favorites
-                count = photos_qs.filter(rating__gte=user.favorite_min_rating).update(
-                    rating=0, last_modified=timezone.now()
-                )
-                logger.info(
-                    f"{count} photos were removed from favorites via select_all for user {user.id}."
-                )
-
-            return Response({"status": True, "count": count})
-
-        # Existing logic for individual hashes
-        image_hashes = data["image_hashes"]
-
-        # Get all photos with related data in one query to prevent N+1 queries from serializer
-        photos = (
-            Photo.objects.owned_by(request.user)
-            .filter(image_hash__in=image_hashes)
-            .select_related(
-                "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
-            )
-            .prefetch_related(
-                "files", "faces__person", "shared_to", "main_file__embedded_media"
-            )
+        stack_ids = set(
+            PhotoStack.objects.filter(photos__in=photos).values_list("id", flat=True)
         )
-
-        # Group photos by whether they need updating
-        photos_to_favorite = []
-        photos_to_unfavorite = []
-        updated_data = []
-        not_updated_data = []
-
-        for photo in photos:
-            if val_favorite and photo.rating < user.favorite_min_rating:
-                photos_to_favorite.append(photo.image_hash)
-                photo.rating = user.favorite_min_rating
-                updated_data.append(PhotoSerializer(photo).data)
-            elif not val_favorite and photo.rating >= user.favorite_min_rating:
-                photos_to_unfavorite.append(photo.image_hash)
-                photo.rating = 0
-                updated_data.append(PhotoSerializer(photo).data)
-            else:
-                not_updated_data.append(PhotoSerializer(photo).data)
-
-        # Bulk update in separate queries for different rating values
-        if photos_to_favorite:
-            Photo.objects.owned_by(request.user).filter(
-                image_hash__in=photos_to_favorite
-            ).update(rating=user.favorite_min_rating, last_modified=timezone.now())
-
-        if photos_to_unfavorite:
-            Photo.objects.owned_by(request.user).filter(
-                image_hash__in=photos_to_unfavorite
-            ).update(rating=0, last_modified=timezone.now())
-
-        # Handle missing photos
-        found_hashes = {photo.image_hash for photo in photos}
-        missing_hashes = set(image_hashes) - found_hashes
-        for missing_hash in missing_hashes:
-            logger.warning(
-                f"Could not set photo {missing_hash} to favorite. It does not exist or is not owned by user."
-            )
-
-        if val_favorite:
-            logger.info(
-                f"{len(updated_data)} photos were added to favorites. {len(not_updated_data)} photos were already in favorites."
-            )
-        else:
-            logger.info(
-                f"{len(updated_data)} photos were removed from favorites. {len(not_updated_data)} photos were already not in favorites."
-            )
-        return Response(
-            {
-                "status": True,
-                "results": updated_data,
-                "updated": updated_data,
-                "not_updated": not_updated_data,
-            }
-        )
+        if stack_ids:
+            StackReview.objects.filter(
+                stack_id__in=stack_ids, decision=StackReview.Decision.RESOLVED
+            ).update(decision=StackReview.Decision.PENDING)
+            logger.info(f"Reset {len(stack_ids)} photo stacks to pending after restore")
 
 
-class SetPhotosHidden(APIView):
-    def post(self, request, format=None):
-        from api.views.photo_filters import build_photo_queryset
+class SetPhotosFavorite(BulkPhotoMutationView):
+    value_field = "favorite"
+    flag_name = "favorite"
+    past_tense = {True: "added to favorites", False: "removed from favorites"}
+    select_all_only_changed = True
 
-        data = dict(request.data)
-        val_hidden = data["hidden"]
+    def differs(self, user, value):
+        if value:
+            return Q(rating__lt=user.favorite_min_rating)
+        return Q(rating__gte=user.favorite_min_rating)
 
-        # NEW: Support select_all mode for bulk operations
-        if data.get("select_all"):
-            query_params = data.get("query", {})
-            excluded_hashes = data.get("excluded_hashes", [])
+    def new_values(self, user, value):
+        return {"rating": user.favorite_min_rating if value else 0}
 
-            photos_qs = build_photo_queryset(request.user, query_params)
-            if excluded_hashes:
-                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
+    def apply(self, user, photos, value):
+        # Photo.save() writes a changed rating to the file or sidecar; this
+        # UPDATE skips save(), so the same write is queued as a job. The ids
+        # are taken first: afterwards the rating filter no longer matches.
+        photo_ids = []
+        if user.save_metadata_to_disk != User.SaveMetadata.OFF:
+            photo_ids = list(photos.values_list("id", flat=True))
+        count = super().apply(user, photos, value)
+        queue_rating_write(user, photo_ids)
+        return count
 
-            # Hiding takes a photo out of its tags' counts the same way
-            # trashing does; see SetPhotosDeleted above.
-            affected_tag_ids = tag_ids_for_photos(photos_qs)
-            count = photos_qs.update(hidden=val_hidden, last_modified=timezone.now())
-            refresh_tag_photo_counts(affected_tag_ids)
 
-            if val_hidden:
-                logger.info(
-                    f"{count} photos were set hidden via select_all for user {request.user.id}."
-                )
-            else:
-                logger.info(
-                    f"{count} photos were set unhidden via select_all for user {request.user.id}."
-                )
+class SetPhotosHidden(BulkPhotoMutationView):
+    value_field = "hidden"
+    flag_name = "hidden"
+    past_tense = {True: "set hidden", False: "set unhidden"}
+    refreshes_tag_counts = True
 
-            return Response({"status": True, "count": count})
+    def differs(self, user, value):
+        return ~Q(hidden=value)
 
-        # Existing logic for individual hashes
-        image_hashes = data["image_hashes"]
+    def new_values(self, user, value):
+        return {"hidden": value}
 
-        # Get all photos with related data in one query to prevent N+1 queries from serializer
-        photos = (
-            Photo.objects.owned_by(request.user)
-            .filter(image_hash__in=image_hashes)
-            .select_related(
-                "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
-            )
-            .prefetch_related(
-                "files", "faces__person", "shared_to", "main_file__embedded_media"
-            )
-        )
 
-        # Group photos by whether they need updating
-        photos_to_update = []
-        updated_data = []
-        not_updated_data = []
+class SetPhotosPublic(BulkPhotoMutationView):
+    value_field = "val_public"
+    flag_name = "public"
+    past_tense = {True: "set public", False: "set private"}
 
-        for photo in photos:
-            if photo.hidden != val_hidden:
-                photos_to_update.append(photo.image_hash)
-                photo.hidden = val_hidden
-                updated_data.append(PhotoSerializer(photo).data)
-            else:
-                not_updated_data.append(PhotoSerializer(photo).data)
+    def differs(self, user, value):
+        return ~Q(public=value)
 
-        # Bulk update in one query
-        if photos_to_update:
-            updated_photos = Photo.objects.owned_by(request.user).filter(
-                image_hash__in=photos_to_update
-            )
-            affected_tag_ids = tag_ids_for_photos(updated_photos)
-            updated_photos.update(hidden=val_hidden, last_modified=timezone.now())
-            refresh_tag_photo_counts(affected_tag_ids)
-
-        # Handle missing photos
-        found_hashes = {photo.image_hash for photo in photos}
-        missing_hashes = set(image_hashes) - found_hashes
-        for missing_hash in missing_hashes:
-            logger.warning(
-                f"Could not set photo {missing_hash} to hidden. It does not exist or is not owned by user."
-            )
-
-        if val_hidden:
-            logger.info(
-                f"{len(updated_data)} photos were set hidden. {len(not_updated_data)} photos were already hidden."
-            )
-        else:
-            logger.info(
-                f"{len(updated_data)} photos were set unhidden. {len(not_updated_data)} photos were already unhidden."
-            )
-        return Response(
-            {
-                "status": True,
-                "results": updated_data,
-                "updated": updated_data,
-                "not_updated": not_updated_data,
-            }
-        )
+    def new_values(self, user, value):
+        return {"public": value}
 
 
 class PhotoViewSet(viewsets.ModelViewSet):
@@ -794,96 +649,6 @@ class SetPhotosShared(APIView):
             res_count = res[0]
 
         return Response({"status": True, "count": res_count})
-
-
-class SetPhotosPublic(APIView):
-    def post(self, request, format=None):
-        from api.views.photo_filters import build_photo_queryset
-
-        data = dict(request.data)
-        val_public = data["val_public"]
-
-        # NEW: Support select_all mode for bulk operations
-        if data.get("select_all"):
-            query_params = data.get("query", {})
-            excluded_hashes = data.get("excluded_hashes", [])
-
-            photos_qs = build_photo_queryset(request.user, query_params)
-            if excluded_hashes:
-                photos_qs = photos_qs.exclude(image_hash__in=excluded_hashes)
-
-            count = photos_qs.update(public=val_public, last_modified=timezone.now())
-
-            if val_public:
-                logger.info(
-                    f"{count} photos were set public via select_all for user {request.user.id}."
-                )
-            else:
-                logger.info(
-                    f"{count} photos were set private via select_all for user {request.user.id}."
-                )
-
-            return Response({"status": True, "count": count})
-
-        # Existing logic for individual hashes
-        image_hashes = data["image_hashes"]
-
-        # Get all photos with related data in one query to prevent N+1 queries from serializer
-        photos = (
-            Photo.objects.owned_by(request.user)
-            .filter(image_hash__in=image_hashes)
-            .select_related(
-                "owner", "thumbnail", "main_file", "search_instance", "caption_instance"
-            )
-            .prefetch_related(
-                "files", "faces__person", "shared_to", "main_file__embedded_media"
-            )
-        )
-
-        # Group photos by whether they need updating
-        photos_to_update = []
-        updated_data = []
-        not_updated_data = []
-
-        for photo in photos:
-            if photo.public != val_public:
-                photos_to_update.append(photo.image_hash)
-                photo.public = val_public
-                updated_data.append(PhotoSerializer(photo).data)
-            else:
-                not_updated_data.append(PhotoSerializer(photo).data)
-
-        # Bulk update in one query
-        if photos_to_update:
-            Photo.objects.owned_by(request.user).filter(
-                image_hash__in=photos_to_update
-            ).update(public=val_public, last_modified=timezone.now())
-
-        # Handle missing photos
-        found_hashes = {photo.image_hash for photo in photos}
-        missing_hashes = set(image_hashes) - found_hashes
-        for missing_hash in missing_hashes:
-            logger.warning(
-                f"Could not set photo {missing_hash} to public. It does not exist or is not owned by user."
-            )
-
-        if val_public:
-            logger.info(
-                f"{len(updated_data)} photos were set public. {len(not_updated_data)} photos were already public."
-            )
-        else:
-            logger.info(
-                f"{len(updated_data)} photos were set private. {len(not_updated_data)} photos were already public."
-            )
-
-        return Response(
-            {
-                "status": True,
-                "results": updated_data,
-                "updated": updated_data,
-                "not_updated": not_updated_data,
-            }
-        )
 
 
 class GeneratePhotoCaption(APIView):

@@ -1,26 +1,16 @@
 """Characterization tests for the media-serving views (unit 38).
 
-These pin the *current* behaviour of
-
-* ``api.views.views.UnifiedMediaAccessView.get`` -- the big dispatcher that
-  routes ``/media/<path>/<fname>`` to zip, avatar, embedded-media, public-album
-  and photo/thumbnail handling, in both proxy (``X-Accel-Redirect``) and
-  direct-serving modes, and
-* ``api.views.views.MediaAccessView.get`` -- the older, unrouted media view.
+These pin the *current* behaviour of ``api.views.views.UnifiedMediaAccessView.get``,
+the big dispatcher that routes ``/media/<path>/<fname>`` to zip, avatar,
+embedded-media, public-album and photo/thumbnail handling, in both proxy
+(``X-Accel-Redirect``) and direct-serving modes.
 
 They are deliberately written against the response headers and status codes a
 caller can observe, so a refactor that preserves behaviour keeps them green.
-
-Known bug, pinned rather than fixed: ``MediaAccessView.get`` filters
-``photo.albumuser_set.filter(public=True)``, but ``AlbumUser`` has no ``public``
-column any more (sharing moved to ``AlbumUserShare``). Every request for a
-non-public photo therefore raises ``FieldError`` before any permission check
-runs. ``UnifiedMediaAccessView`` does not share the defect.
 """
 
 import os
 
-from django.core.exceptions import FieldError
 from django.test import TestCase, override_settings
 from rest_framework.test import APIRequestFactory
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -28,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.models import AlbumUser, File
 from api.models.album_user_share import AlbumUserShare
 from api.tests.utils import ONE_PIXEL_PNG, create_test_photo, create_test_user
-from api.views.views import MediaAccessView, UnifiedMediaAccessView
+from api.views.views import UnifiedMediaAccessView
 
 factory = APIRequestFactory()
 
@@ -56,57 +46,8 @@ def _unified(path, fname, **kwargs):
     return _call(UnifiedMediaAccessView, path, fname, **kwargs)
 
 
-class MediaAccessViewCharacterizationTest(TestCase):
-    """The legacy, currently unrouted ``MediaAccessView``."""
-
-    def setUp(self):
-        self.owner = create_test_user()
-        self.photo = create_test_photo(owner=self.owner)
-
-    def test_unknown_hash_is_404(self):
-        response = _call(MediaAccessView, "thumbnails_big", "doesnotexist.webp")
-        self.assertEqual(response.status_code, 404)
-
-    def test_public_photo_is_served_without_any_token(self):
-        self.photo.public = True
-        self.photo.save()
-        response = _call(
-            MediaAccessView, "thumbnails_big", f"{self.photo.image_hash}.webp"
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "image/jpeg")
-        # Note: no leading slash here, unlike UnifiedMediaAccessView.
-        self.assertEqual(
-            response["X-Accel-Redirect"],
-            f"protected_media/thumbnails_big/{self.photo.image_hash}.webp",
-        )
-
-    def test_hash_is_taken_from_the_part_before_dot_and_underscore(self):
-        self.photo.public = True
-        self.photo.save()
-        fname = f"{self.photo.image_hash}_1.jpg"
-        response = _call(MediaAccessView, "square_thumbnails", fname)
-        self.assertEqual(response.status_code, 200)
-        # The redirect keeps the *requested* filename, not the resolved hash.
-        self.assertEqual(
-            response["X-Accel-Redirect"], f"protected_media/square_thumbnails/{fname}"
-        )
-
-    def test_non_public_photo_raises_fielderror_before_any_auth_check(self):
-        """BUG: ``AlbumUser.public`` no longer exists, so this view is broken.
-
-        The album lookup happens before the jwt branch, so an owner with a
-        perfectly good token is affected exactly like an anonymous caller.
-        """
-        for label, user in (("anonymous", None), ("owner", self.owner)):
-            with self.subTest(caller=label):
-                with self.assertRaises(FieldError):
-                    _call(
-                        MediaAccessView,
-                        "thumbnails_big",
-                        f"{self.photo.image_hash}.webp",
-                        user=user,
-                    )
+# Download archives are named ``<uuid><user id>.zip``; the route takes the UUID.
+ZIP_UUID = "0f8fad5b-d9cb-469f-a165-70867728950e"
 
 
 # Download archives are named ``<uuid><user id>.zip``; the route takes the UUID.

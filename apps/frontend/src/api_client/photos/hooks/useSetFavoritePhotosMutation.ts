@@ -5,15 +5,15 @@ import { parseWithNotification } from "../../../util/zodUtils";
 import { DateAlbumQueryKeys } from "../../albums/hooks/useFetchDateAlbumQuery";
 import { DateAlbumsQueryKeys } from "../../albums/hooks/useFetchDateAlbumsQuery";
 import { fetchClient, queryClient } from "../../api";
-import { BulkPhotoQuery, Photo } from "../types";
+import { BulkPhotoQuery } from "../types";
 import { PhotoDetailsQueryKeys } from "./useFetchPhotoDetailsQuery";
 import { RecentlyAddedPhotosQueryKeys } from "./useFetchRecentlyAddedPhotosQuery";
 
 const UpdatedPhotosResponse = z.object({
   status: z.boolean(),
-  results: Photo.array().optional(),
-  updated: Photo.array().optional(),
-  not_updated: Photo.array().optional(),
+  // Hashes, not serialized photos: the backend no longer builds a payload per photo.
+  updated_hashes: z.string().array().optional(),
+  not_updated_hashes: z.string().array().optional(),
   count: z.number().optional(),
 });
 type UpdatedPhotosResponse = z.infer<typeof UpdatedPhotosResponse>;

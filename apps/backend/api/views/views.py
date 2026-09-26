@@ -372,18 +372,34 @@ def _validate_scan_directory(user):
     return None
 
 
-def _start_photo_scan(user, directory):
-    chain = Chain()
-    if not do_all_models_exist():
-        chain.append(download_models, user)
+def start_job(enqueue, description):
+    """Queue a background job for a request and answer that request.
+
+    ``enqueue(job_id)`` hands the work to django-q2. When that fails (the
+    broker is unreachable, say) the job never started, and the client is told
+    so with a 500 rather than a 200 carrying ``"status": False``.
+    """
+    job_id = uuid.uuid4()
     try:
-        job_id = uuid.uuid4()
-        chain.append(scan_photos, user, False, job_id, directory)
+        enqueue(job_id)
+    except Exception:
+        logger.exception(f"Could not start {description}")
+        return Response(
+            {"status": False, "message": f"Could not start {description}."},
+            status=500,
+        )
+    return Response({"status": True, "job_id": job_id})
+
+
+def _start_photo_scan(user, directory, full_scan=False):
+    def enqueue(job_id):
+        chain = Chain()
+        if not do_all_models_exist():
+            chain.append(download_models, user)
+        chain.append(scan_photos, user, full_scan, job_id, directory)
         chain.run()
-        return Response({"status": True, "job_id": job_id})
-    except BaseException:
-        logger.exception("An Error occurred")
-        return Response({"status": False})
+
+    return start_job(enqueue, "the photo scan")
 
 
 class ScanPhotosView(APIView):
@@ -425,19 +441,9 @@ class FullScanPhotosView(APIView):
         return self._scan_photos(request)
 
     def _scan_photos(self, request):
-        chain = Chain()
-        if not do_all_models_exist():
-            chain.append(download_models, request.user)
-        try:
-            job_id = uuid.uuid4()
-            chain.append(
-                scan_photos, request.user, True, job_id, request.user.scan_directory
-            )
-            chain.run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return _validate_scan_directory(request.user) or _start_photo_scan(
+            request.user, request.user.scan_directory, full_scan=True
+        )
 
 
 class DeleteMissingPhotosView(APIView):
@@ -452,105 +458,33 @@ class DeleteMissingPhotosView(APIView):
         return self._delete_missing_photos(request, format)
 
     def _delete_missing_photos(self, request, format=None):
-        try:
-            job_id = uuid.uuid4()
-            AsyncTask(delete_missing_photos, request.user, job_id).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return start_job(
+            lambda job_id: AsyncTask(delete_missing_photos, request.user, job_id).run(),
+            "the missing-photo cleanup",
+        )
 
 
 class ClassifyMediaView(APIView):
     def post(self, request, format=None):
         from api.directory_watcher.processing_jobs import classify_media
 
-        try:
-            job_id = uuid.uuid4()
-            AsyncTask(classify_media, request.user, job_id).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+        return start_job(
+            lambda job_id: AsyncTask(classify_media, request.user, job_id).run(),
+            "media classification",
+        )
 
 
 class GenerateOcrView(APIView):
     def post(self, request, format=None):
         from api.directory_watcher.processing_jobs import generate_ocr
 
-        try:
-            job_id = uuid.uuid4()
-            full_scan = bool(request.data.get("full_scan", False))
-            AsyncTask(generate_ocr, request.user, job_id, full_scan).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
-
-
-class MediaAccessView(APIView):
-    permission_classes = (AllowAny,)
-
-    def _get_protected_media_url(self, path, fname):
-        return f"protected_media/{path}/{fname}"
-
-    def _granted_response(self, path, fname):
-        response = HttpResponse()
-        response["Content-Type"] = "image/jpeg"
-        response["X-Accel-Redirect"] = self._get_protected_media_url(path, fname)
-        return response
-
-    def _is_public(self, photo):
-        return photo.public or photo.albumuser_set.filter(public=True).exists()
-
-    def _resolve_photo(self, image_hash):
-        try:
-            return Photo.objects.get(image_hash=image_hash)
-        except Photo.DoesNotExist:
-            return None
-        except Photo.MultipleObjectsReturned:
-            # Multiple photos with same hash - find one that matches permissions
-            photos = Photo.objects.filter(image_hash=image_hash)
-            for p in photos:
-                if self._is_public(p):
-                    return p
-            # If none found, we'll check user permissions below
-            return photos.first()
-
-    def _shared_via_album(self, photo, user):
-        for album in photo.albumuser_set.only("shared_to", "public"):
-            if album.public or user in album.shared_to.all():
-                return True
-        return False
-
-    # @silk_profile(name='media')
-    def get(self, request, path, fname, format=None):
-        jwt = request.COOKIES.get("jwt")
-        image_hash = fname.split(".")[0].split("_")[0]
-        photo = self._resolve_photo(image_hash)
-        if photo is None:
-            return HttpResponse(status=404)
-
-        # grant access if the requested photo is public or part of any public user album
-        if self._is_public(photo):
-            return self._granted_response(path, fname)
-
-        # forbid access if trouble with jwt
-        if jwt is None:
-            return HttpResponseForbidden()
-        try:
-            token = AccessToken(jwt)
-        except TokenError:
-            return HttpResponseForbidden()
-
-        # grant access if the user is owner of the requested photo,
-        # the photo is shared with the user, or the photo belongs to a public user album
-        user = User.objects.filter(id=token["user_id"]).only("id").first()
-        if photo.owner == user or user in photo.shared_to.all():
-            return self._granted_response(path, fname)
-        if self._shared_via_album(photo, user):
-            return self._granted_response(path, fname)
-        return HttpResponse(status=404)
+        full_scan = bool(request.data.get("full_scan", False))
+        return start_job(
+            lambda job_id: AsyncTask(
+                generate_ocr, request.user, job_id, full_scan
+            ).run(),
+            "text recognition",
+        )
 
 
 def build_live_command(path):
