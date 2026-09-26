@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import _ from "lodash";
+import { groupBy, toPairs } from "lodash-es";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { UserAlbumList, UserAlbumListResponse } from "../types";
@@ -21,7 +21,7 @@ export const useFetchSharedAlbumsWithMeQuery = () =>
         response,
         "Failed to parse shared albums with me"
       ).results;
-      const grouped = _.toPairs(_.groupBy(result, "owner.id")).map(el => ({
+      const grouped = toPairs(groupBy(result, "owner.id")).map(el => ({
         user_id: parseInt(el[0], 10),
         albums: el[1],
       })) as unknown as UserAlbumsGroupedByUserId[];

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import _ from "lodash";
+import { groupBy, toPairs } from "lodash-es";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
 import { UserAlbumList, UserAlbumListResponse } from "../types";
@@ -30,7 +30,7 @@ export const useFetchSharedAlbumsByMeQuery = () =>
         });
       });
       // Group by recipient ID
-      const grouped = _.toPairs(_.groupBy(albumsByRecipient, "recipientId")).map(el => ({
+      const grouped = toPairs(groupBy(albumsByRecipient, "recipientId")).map(el => ({
         user_id: parseInt(el[0], 10),
         albums: el[1].map(item => item.album),
       })) as unknown as UserAlbumsGroupedByUserId[];

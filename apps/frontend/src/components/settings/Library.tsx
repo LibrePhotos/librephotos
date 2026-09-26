@@ -288,7 +288,7 @@ export function Library() {
               <Grid.Col span={{ base: 12, sm: "auto" }}>
                 <Stack gap={0}>
                   <Group>
-                    <Text>Scan Library</Text>
+                    <Text>{t("settings.scanlibrary")}</Text>
                     <ActionIcon radius="xl" variant="light" size="xs">
                       <QuestionMark onClick={() => setIsOpenNextcloudHelp(!isOpenNextcloudHelp)} />
                     </ActionIcon>

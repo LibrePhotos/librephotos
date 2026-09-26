@@ -1,4 +1,4 @@
-import _ from "lodash";
+import { flatten, uniqBy } from "lodash-es";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
@@ -145,7 +145,7 @@ export function useVirtualizedGrid(
 
       if (!startPoint || !endPoint) return;
 
-      const flatCells = _.flatten(cells);
+      const flatCells = flatten(cells);
       const startIndex = flatCells.indexOf(startPoint);
       const endIndex = flatCells.indexOf(endPoint);
 
@@ -159,7 +159,7 @@ export function useVirtualizedGrid(
           method: analysisMethod,
         }));
 
-      onSectionChange(_.uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
+      onSectionChange(uniqBy(relevantInfos, e => `${e.page} ${e.person}`));
     },
     [activeTab, analysisMethod, getCellContentsForTab, getEndpointCell, onSectionChange]
   );
@@ -194,7 +194,7 @@ export function useVirtualizedGrid(
 
   // Get flattened cell contents for cell range selection
   const getFlattenedCells = useCallback(
-    (): FaceCell[] => _.flatten(getCellContentsForTab(activeTab)),
+    (): FaceCell[] => flatten(getCellContentsForTab(activeTab)),
     [activeTab, getCellContentsForTab]
   );
 

@@ -1,7 +1,7 @@
 import { ActionIcon, Avatar, Box, Indicator } from "@mantine/core";
 import { IconPhoto as Photo } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
-import _ from "lodash";
+import { reverse } from "lodash-es";
 import React, { useState } from "react";
 import { serverAddress } from "../../api_client/apiClient";
 import classes from "./FaceComponent.module.css";
@@ -29,7 +29,7 @@ const routeApi = getRouteApi("/_protected/faces");
 
 function getFaceImageUrl(cell: FaceCell): string {
   // cell.image is string e.g. http://backeng/path/to/file.jpg
-  const fileName = _.reverse(cell.image.split("/"))[0];
+  const fileName = reverse(cell.image.split("/"))[0];
   return `${serverAddress}/media/faces/${fileName}`;
 }
 

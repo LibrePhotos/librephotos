@@ -1,12 +1,23 @@
-.pigBtn {
+/* Positioned, animated box for one tile. Holds the photo button and, as a
+   sibling (never a child), the selection checkbox. */
+.pigTile {
   contain: strict;
-  /* overflow: hidden; */
   position: absolute;
   left: 0;
   top: 0;
   outline-style: solid;
   outline: 0;
   will-change: transform, width, height, outline-color;
+}
+
+.pigBtn {
+  /* overflow: hidden; */
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  outline: 0;
   padding: 0;
   margin: 0;
   border: 0;
@@ -86,12 +97,13 @@
   z-index: -1;
 } */
 
-.pigBtn:hover .checkbox {
+.pigTile:hover .checkbox {
   opacity: 0.5;
   transition: all 200ms linear;
 }
 
-.pigBtn:hover .checkbox:checked {
+.pigTile:hover .checkbox:checked,
+.checkbox:focus-visible {
   opacity: 1;
 }
 

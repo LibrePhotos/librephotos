@@ -2,7 +2,7 @@ import { RemoveScroll, Stack } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
 import { IconFaceId } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
-import _ from "lodash";
+import { debounce } from "lodash-es";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -90,7 +90,7 @@ export function FaceDashboard() {
 
   // Debounced localStorage save - doesn't trigger re-renders, just persists position
   const debouncedSavePosition = useRef(
-    _.debounce((tab: FacesTab, pos: number) => {
+    debounce((tab: FacesTab, pos: number) => {
       updatePosition(tab, pos);
     }, 300)
   ).current;

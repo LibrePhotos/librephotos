@@ -1,5 +1,5 @@
 import { useInterval } from "@mantine/hooks";
-import { random } from "lodash";
+import { random } from "lodash-es";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {

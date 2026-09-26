@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import _ from "lodash";
+import { orderBy } from "lodash-es";
 import { z } from "zod";
 import { parseWithNotification } from "../../../util/zodUtils";
 import { fetchClient } from "../../api";
@@ -55,7 +55,7 @@ export const useFetchPeopleAlbumsQuery = (skip: boolean = false) =>
         })
       );
 
-      return _.orderBy(people, ["name", "face_count"], ["asc", "desc"]);
+      return orderBy(people, ["name", "face_count"], ["asc", "desc"]);
     },
     enabled: !skip,
   });

@@ -1,5 +1,5 @@
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
-import _ from "lodash";
+import { escapeRegExp } from "lodash-es";
 import { DateTime } from "luxon";
 import type { DirTree } from "../api_client/folders/types";
 import type { DatePhotosGroup, IncompleteDatePhotosGroup, PigPhoto } from "../api_client/photos/types";
@@ -81,7 +81,7 @@ export function fuzzyMatch(query: string, value: string): boolean {
       .toLowerCase()
       .replace(/\s/g, "")
       .split("")
-      .map(a => _.escapeRegExp(a))
+      .map(a => escapeRegExp(a))
       .reduce((a, b) => `${a}.*${b}`)
       .concat(".*");
     return new RegExp(expression).test(value.toLowerCase());

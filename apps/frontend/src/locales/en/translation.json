@@ -2,6 +2,7 @@
   "settings": {
     "header": "Settings",
     "profile": "Profile",
+    "user": "User",
     "account": "Account",
     "avatar": "Public Avatar",
     "uploadheader": "Upload new avatar",
@@ -83,6 +84,7 @@
     "photos": "Photos",
     "helptranslating": "Help translating",
     "scanphotosdescription": "Scan for new files on your library",
+    "scanlibrary": "Scan Library",
     "statusscanphotostrue": "Scanning photos",
     "statusscanphotosfalse": "Scan",
     "scannextcloudphotos": "Scan",
@@ -187,6 +189,9 @@
     "duplicateclearexisting": "Clear existing pending duplicates",
     "duplicateclearexistinghelp": "When enabled, duplicates that are still pending review are removed before a new detection run starts.",
     "configdatetime": "Set date and time parsing rules",
+    "configdatetime_add_title": "Choose a new rule to add",
+    "configdatetime_add_description": "Choose a rule, that will parse the date from a certain field or attribute.",
+    "configdatetime_search_placeholder": "Find rules by name or type...",
     "password": {
       "errormustmatch": "Passwords must match",
       "errorcannotbeblank": "Password cannot be blank",
@@ -539,6 +544,7 @@
       "editTags": "Edit tags",
       "addTag": "Add tag…",
       "noTags": "No tags",
+      "noMentionResults": "No results",
       "tagsSaveFailed": "The tags could not be saved. Please try again.",
       "save": "Save"
     },
@@ -721,6 +727,13 @@
     "videos": "Videos",
     "screenshots": "Screenshots",
     "deleted": "Trash"
+  },
+  "phototile": {
+    "photo": "Photo",
+    "phototaken": "Photo taken {{date}}",
+    "video": "Video",
+    "videotaken": "Video taken {{date}}",
+    "select": "Select {{name}}"
   },
   "trash": {
     "restorePhoto": "Restore photo",
@@ -933,6 +946,7 @@
     "partialfailurebadge": "Partial failure",
     "faileditems": "Failed items",
     "removeexplanation": "Removing an entry does not actually stop the job - it's only removed from the DB. Use only in cases when you know that a job failed ungracefully, by inspecting the logs, etc.",
+    "removeentries": "Removing entries",
     "cancel": "Cancel"
   },
   "modaluseredit": {
@@ -1152,8 +1166,11 @@
     "copyphoto": "The photo was copied to the clipboard.",
     "copyphotofailed": "The photo could not be copied. Your browser may have blocked clipboard access.",
     "downloadstart": "Download started",
+    "downloadstarting": "Download starting...",
     "downloaderror": "Error while downloading",
+    "downloadfailed": "Download failed",
     "downloadcomplete": "Files downloaded successfully",
+    "downloadcompleted": "Download completed",
     "createnewalbum": "{{numberOfPhotos}} photo(s) were added to the new {{title}} album",
     "createalbumtitle": "Create album",
     "viewalbum": "View Album",

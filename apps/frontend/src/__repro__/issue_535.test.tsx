@@ -126,9 +126,10 @@ beforeAll(async () => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
   // Load the route module here rather than inside the first test: the cold
-  // import alone takes ~4-5 s, right at the default per-test timeout.
+  // import alone takes ~4-5 s, right at the default per-test timeout, and far
+  // longer when the whole suite runs in parallel, hence the generous hook timeout.
   await import("../routes/_protected/album/places.index");
-});
+}, 30_000);
 
 beforeEach(() => {
   stubs.mapStyle = { mapStyle: "https://example.invalid/style.json", mapsDisabled: false };

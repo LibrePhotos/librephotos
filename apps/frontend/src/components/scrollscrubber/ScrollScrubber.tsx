@@ -1,6 +1,6 @@
 import { Badge, Box, Group, useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { useElementSize, useMediaQuery } from "@mantine/hooks";
-import _ from "lodash";
+import { debounce, deburr, throttle } from "lodash-es";
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
@@ -81,7 +81,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   }, [positions]);
 
   const getLetterForAlphabetMarker = (str: string): string => {
-    let firstChar = _.deburr(str.charAt(0)).toUpperCase();
+    let firstChar = deburr(str.charAt(0)).toUpperCase();
     if (firstChar === firstChar.toLowerCase()) {
       // firstChar is not a letter
       if (/^\d$/.test(firstChar)) {
@@ -199,7 +199,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
 
   const debouncedResize = useMemo(
     () =>
-      _.debounce(() => {
+      debounce(() => {
         setTargetClientHeight(window.innerHeight);
         if (ref.current) {
           let elmt = ref.current;
@@ -237,7 +237,7 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
 
   const resetScrollerVisibilityTimer = useMemo(
     () =>
-      _.throttle(() => {
+      throttle(() => {
         if (scrollerVisibilityTimerRef.current) {
           clearTimeout(scrollerVisibilityTimerRef.current);
           scrollerVisibilityTimerRef.current = setTimeout(hideScrollScrubber, 2500);
@@ -315,9 +315,9 @@ export function ScrollScrubber({ type, scrollPositions, targetHeight, scrollToY,
   // detectScrolling only reads scrollerIsVisible (everything else it touches is
   // a setter or a ref), so rebuilding the throttle on that change is enough.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const throttledDetectScrolling = useMemo(() => _.throttle(detectScrolling, 1000), [scrollerIsVisible]);
+  const throttledDetectScrolling = useMemo(() => throttle(detectScrolling, 1000), [scrollerIsVisible]);
 
-  const debouncedUpdateCurrentPosMarker = useMemo(() => _.throttle(setCurrentScrollPosMarkerY, 250), []);
+  const debouncedUpdateCurrentPosMarker = useMemo(() => throttle(setCurrentScrollPosMarkerY, 250), []);
 
   useEffect(() => {
     if (window.scrollY > 0) {

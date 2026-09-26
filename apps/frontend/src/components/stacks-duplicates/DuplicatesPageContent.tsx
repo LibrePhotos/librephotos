@@ -59,6 +59,7 @@ import {
 import type { Duplicate, DuplicatePhoto, DuplicateType, ReviewStatus } from "../../api_client/duplicates/types";
 import { duplicateTypeLabels } from "../../api_client/duplicates/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
+import { buttonRoleProps } from "../../util/a11y";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
 import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { Lightbox } from "../lightbox";
@@ -516,7 +517,7 @@ function DuplicateCard({
         />
       )}
       {/* Image Preview */}
-      <Group gap={1} wrap="nowrap" onClick={onClick}>
+      <Group gap={1} wrap="nowrap" aria-label={t("duplicates.reviewgroup")} {...buttonRoleProps(onClick)}>
         {duplicate.preview_photos.slice(0, 2).map((photo, index) => (
           <Image
             key={photo.image_hash || index}

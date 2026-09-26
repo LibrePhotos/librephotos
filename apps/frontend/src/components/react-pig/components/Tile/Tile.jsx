@@ -1,6 +1,8 @@
+import { DateTime } from "luxon";
 import { motion } from "motion/react";
 import PropTypes from "prop-types";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import getImageHeight from "../../utils/getImageHeight";
 import getTileMeasurements from "../../utils/getTileMeasurements";
 import styles from "./styles.module.css";
@@ -42,6 +44,7 @@ const Tile = React.memo(
     bottomleftoverlay = null,
     bottomrightoverlay = null,
   }) => {
+    const { t, i18n } = useTranslation();
     const isTemp = !!item.isTemp;
     const isSelectable = selectable;
     const isSelected = selected;
@@ -90,10 +93,24 @@ const Tile = React.memo(
 
     const springTransition = { type: "spring", mass: 1.5, stiffness: 400, damping: 40 };
 
+    // Every image in the tile is decorative (alt=""), so the button itself says
+    // what it opens: the kind of media and, when known, when it was taken.
+    const language = i18n.resolvedLanguage;
+    const label = useMemo(() => {
+      const taken = item.date ? DateTime.fromISO(item.date) : null;
+      const date = taken?.isValid
+        ? taken.setLocale((language ?? "en").replace("_", "-")).toLocaleString(DateTime.DATETIME_MED)
+        : null;
+      if (isVideo) return date ? t("phototile.videotaken", { date }) : t("phototile.video");
+      return date ? t("phototile.phototaken", { date }) : t("phototile.photo");
+    }, [item.date, isVideo, language, t]);
+
+    // The wrapper carries the position and animation; the button and the
+    // selection checkbox sit side by side in it, because a checkbox inside a
+    // button is invalid interactive nesting that assistive tech cannot reach.
     return (
-      <motion.button
-        className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
-        onClick={event => handleClick(event, item)}
+      <motion.div
+        className={styles.pigTile}
         initial={false}
         animate={{
           width: getWidth(isExpanded, isSelected),
@@ -115,104 +132,112 @@ const Tile = React.memo(
           top: 0,
         }}
       >
-        {useLqip && !isTemp && !isVideo && (
-          // LQIP
-          <img
-            className={`${styles.pigImg} ${styles.pigThumbnail}${
-              isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
-            }`}
-            src={getUrl(item.url, settings.thumbnailSize)}
-            loading="lazy"
-            width={item.style.width}
-            height={item.style.height}
-            alt=""
-          />
-        )}
+        <button
+          type="button"
+          className={`${styles.pigBtn}${isExpanded ? ` ${styles.pigBtnActive}` : ""} pig-btn`}
+          onClick={event => handleClick(event, item)}
+          aria-label={label}
+        >
+          {useLqip && !isTemp && !isVideo && (
+            // LQIP
+            <img
+              className={`${styles.pigImg} ${styles.pigThumbnail}${
+                isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
+              }`}
+              src={getUrl(item.url, settings.thumbnailSize)}
+              loading="lazy"
+              width={item.style.width}
+              height={item.style.height}
+              alt=""
+            />
+          )}
 
-        {scrollSpeed === "slow" && !isVideo && !isTemp && (
-          // grid image
-          <img
-            className={`${styles.pigImg} ${styles.pigFull}${isFullSizeLoaded ? ` ${styles.pigFullLoaded}` : ""}`}
-            src={getUrl(item.url, getImageHeight(containerWidth))}
-            alt=""
-            onLoad={() => {
-              setFullSizeLoaded(true);
-              // Force a re-render to ensure the blur filter is removed
-              setTimeout(() => {
-                const imgElements = document.querySelectorAll(`.${styles.pigThumbnail}`);
-                imgElements.forEach(img => {
-                  if (img.src.includes(item.url.split(";")[0])) {
-                    img.classList.add(styles.pigThumbnailLoaded);
-                  }
-                });
-              }, 50);
-            }}
-          />
-        )}
+          {scrollSpeed === "slow" && !isVideo && !isTemp && (
+            // grid image
+            <img
+              className={`${styles.pigImg} ${styles.pigFull}${isFullSizeLoaded ? ` ${styles.pigFullLoaded}` : ""}`}
+              src={getUrl(item.url, getImageHeight(containerWidth))}
+              alt=""
+              onLoad={() => {
+                setFullSizeLoaded(true);
+                // Force a re-render to ensure the blur filter is removed
+                setTimeout(() => {
+                  const imgElements = document.querySelectorAll(`.${styles.pigThumbnail}`);
+                  imgElements.forEach(img => {
+                    if (img.src.includes(item.url.split(";")[0])) {
+                      img.classList.add(styles.pigThumbnailLoaded);
+                    }
+                  });
+                }, 50);
+              }}
+            />
+          )}
 
-        {scrollSpeed === "slow" && isVideo && !isTemp && !videoFailed && (
-          <video
-            ref={gridVideoRef}
-            className={`${styles.pigImg} ${styles.pigThumbnail}${
-              isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
-            }`}
-            src={getUrl(item.url, getImageHeight(containerWidth))}
-            preload="metadata"
-            onCanPlay={() => setFullSizeLoaded(true)}
-            onMouseOver={event => event.target.play()}
-            onFocus={event => event.target.play()}
-            onMouseOut={event => event.target.pause()}
-            onBlur={event => event.target.pause()}
-            onError={() => setVideoFailed(true)}
-            muted
-            loop
-            playsInline
-          />
-        )}
+          {scrollSpeed === "slow" && isVideo && !isTemp && !videoFailed && (
+            <video
+              ref={gridVideoRef}
+              className={`${styles.pigImg} ${styles.pigThumbnail}${
+                isFullSizeLoaded ? ` ${styles.pigThumbnailLoaded}` : ""
+              }`}
+              src={getUrl(item.url, getImageHeight(containerWidth))}
+              preload="metadata"
+              onCanPlay={() => setFullSizeLoaded(true)}
+              onMouseOver={event => event.target.play()}
+              onFocus={event => event.target.play()}
+              onMouseOut={event => event.target.pause()}
+              onBlur={event => event.target.pause()}
+              onError={() => setVideoFailed(true)}
+              muted
+              loop
+              playsInline
+            />
+          )}
 
-        {isExpanded && !isVideo && !isTemp && (
-          // full size expanded image
-          <img className={styles.pigImg} src={getUrl(item.url, settings.expandedSize)} alt="" />
-        )}
+          {isExpanded && !isVideo && !isTemp && (
+            // full size expanded image
+            <img className={styles.pigImg} src={getUrl(item.url, settings.expandedSize)} alt="" />
+          )}
 
-        {isExpanded && isVideo && !isTemp && !videoFailed && (
-          // full size expanded video
-          <video
-            ref={expandedVideoRef}
-            className={styles.pigImg}
-            src={getUrl(item.url, settings.expandedSize)}
-            preload="metadata"
-            onMouseOver={event => event.target.play()}
-            onFocus={event => event.target.play()}
-            onMouseOut={event => event.target.pause()}
-            onBlur={event => event.target.pause()}
-            onError={() => setVideoFailed(true)}
-            muted
-            loop
-            playsInline
-          />
-        )}
+          {isExpanded && isVideo && !isTemp && !videoFailed && (
+            // full size expanded video
+            <video
+              ref={expandedVideoRef}
+              className={styles.pigImg}
+              src={getUrl(item.url, settings.expandedSize)}
+              preload="metadata"
+              onMouseOver={event => event.target.play()}
+              onFocus={event => event.target.play()}
+              onMouseOut={event => event.target.pause()}
+              onBlur={event => event.target.pause()}
+              onError={() => setVideoFailed(true)}
+              muted
+              loop
+              playsInline
+            />
+          )}
 
-        <div>
-          <div className={styles.overlaysTopLeft}>
-            {isSelectable && (
-              <input
-                key={`checkbox-${item.id}-${isSelected}`}
-                type="checkbox"
-                className={styles.checkbox}
-                defaultChecked={isSelected}
-                onClick={event => {
-                  event.stopPropagation();
-                  handleSelection(item);
-                }}
-              />
-            )}
+          <div>
+            <div className={styles.overlaysTopRight}>{TopRightOverlay && <TopRightOverlay item={item} />}</div>
+            <div className={styles.overlaysBottomLeft}>{BottomLeftOverlay && <BottomLeftOverlay item={item} />}</div>
+            <div className={styles.overlaysBottomRight}>{BottomRightOverlay && <BottomRightOverlay item={item} />}</div>
           </div>
-          <div className={styles.overlaysTopRight}>{TopRightOverlay && <TopRightOverlay item={item} />}</div>
-          <div className={styles.overlaysBottomLeft}>{BottomLeftOverlay && <BottomLeftOverlay item={item} />}</div>
-          <div className={styles.overlaysBottomRight}>{BottomRightOverlay && <BottomRightOverlay item={item} />}</div>
-        </div>
-      </motion.button>
+        </button>
+        {isSelectable && (
+          <div className={styles.overlaysTopLeft}>
+            <input
+              key={`checkbox-${item.id}-${isSelected}`}
+              type="checkbox"
+              className={styles.checkbox}
+              defaultChecked={isSelected}
+              aria-label={t("phototile.select", { name: label })}
+              onClick={event => {
+                event.stopPropagation();
+                handleSelection(item);
+              }}
+            />
+          </div>
+        )}
+      </motion.div>
     );
   }
 );
@@ -223,6 +248,7 @@ const ItemType = PropTypes.shape({
   isTemp: PropTypes.bool,
   url: PropTypes.string,
   type: PropTypes.string,
+  date: PropTypes.string,
   style: PropTypes.shape({
     height: PropTypes.number,
     width: PropTypes.number,

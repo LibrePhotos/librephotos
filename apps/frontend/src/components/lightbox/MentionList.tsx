@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   items: string[];
@@ -6,6 +7,7 @@ type Props = {
 };
 
 export const MentionList = forwardRef((props: Props, ref) => {
+  const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const selectItem = index => {
@@ -86,7 +88,7 @@ export const MentionList = forwardRef((props: Props, ref) => {
           </button>
         ))
       ) : (
-        <div className="item">No result</div>
+        <div className="item">{t("lightbox.sidebar.noMentionResults")}</div>
       )}
     </div>
   );
