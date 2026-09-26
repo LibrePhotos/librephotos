@@ -7,12 +7,15 @@ FROM node:22-slim as frontend-builder
 
 RUN npm config set fetch-retry-maxtimeout 60000
 
-WORKDIR /frontend
+# Mirror the repo layout: the frontend compiles the shared API client from
+# ../../packages/api-client (vite.config.ts / tsconfig.json aliases).
+WORKDIR /frontend/apps/frontend
 ENV CLI_WIDTH 80
 
 COPY apps/frontend/package.json apps/frontend/yarn.lock ./
 RUN yarn install --frozen-lockfile --network-timeout 1000000
 
+COPY packages/api-client/ /frontend/packages/api-client/
 COPY apps/frontend/ ./
 RUN yarn run build
 
@@ -44,7 +47,7 @@ RUN if [ "$MLVALIDATION" = 1 ] ; then \
 COPY apps/backend/ /code/
 
 # Copy frontend build to Django static directory
-COPY --from=frontend-builder /frontend/dist /code/frontend_build/
+COPY --from=frontend-builder /frontend/apps/frontend/dist /code/frontend_build/
 RUN mkdir -p /code/static
 
 # The commit this image was built from, reported by /api/imagetag/ (the image

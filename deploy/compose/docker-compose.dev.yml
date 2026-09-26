@@ -31,8 +31,12 @@ services:
       context: ../..
       dockerfile: deploy/docker/frontend/Dockerfile.dev
     container_name: frontend
+    # Mirrors the repo layout: the frontend compiles packages/api-client from
+    # ../../packages (see apps/frontend/vite.config.ts).
+    working_dir: /usr/src/app/apps/frontend
     volumes:
-      - ../../apps/frontend:/usr/src/app
+      - ../../apps/frontend:/usr/src/app/apps/frontend
+      - ../../packages:/usr/src/app/packages:ro
 
   backend:
     tty: true

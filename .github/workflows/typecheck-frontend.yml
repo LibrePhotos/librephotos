@@ -9,10 +9,14 @@ on:
     branches: [dev]
     paths:
       - 'apps/frontend/**'
+      # The frontend compiles the shared API client from source.
+      - 'packages/api-client/**'
       - '.github/workflows/typecheck-frontend.yml'
   pull_request:
     paths:
       - 'apps/frontend/**'
+      # The frontend compiles the shared API client from source.
+      - 'packages/api-client/**'
       - '.github/workflows/typecheck-frontend.yml'
 
 concurrency:

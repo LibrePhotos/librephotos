@@ -117,7 +117,7 @@ Environment variables are loaded from the `.env` file. Key variables for Docker:
 | `scanDirectory` | Path to photo library | - |
 | `data` | Path to persistent data | - |
 
-The dev overlay bind-mounts `apps/backend` and `apps/frontend` by path relative to `deploy/compose/`, so there is no environment variable for the source-code location.
+The dev overlay bind-mounts `apps/backend`, `apps/frontend` and `packages` (the frontend compiles the shared `packages/api-client` from source) by path relative to `deploy/compose/`, so there is no environment variable for the source-code location.
 
 ## Testing Changes
 
