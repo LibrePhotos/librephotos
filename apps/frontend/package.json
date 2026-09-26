@@ -13,7 +13,7 @@
     "test": "vitest --watch=false",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --watch=false",
-    "prepare": "husky install",
+    "prepare": "husky",
     "postinstall": "patch-package",
     "eslint-fix-interactive": "eslint-nibble --fixable-only \"./src/**/*.{js,jsx,ts,tsx}\"",
     "eslint-fix-specified": "eslint-filtered-fix \"./src/**/*.{js,jsx,ts,tsx}\" --rule import/no-duplicates"
