@@ -50,7 +50,9 @@ ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/window
 ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_x86_64.whl ; sys_platform == "linux" and platform_machine == "x86_64"
 ffmpeg-bin @ https://github.com/LibrePhotos/librephotos/releases/download/windows-wheels-2026.09.16/ffmpeg_bin-9.0.1-py3-none-manylinux_2_28_aarch64.whl ; sys_platform == "linux" and platform_machine == "aarch64"
 psycopg[binary]==3.3.4
-https://github.com/owncloud/pyocclient/archive/master.zip
+# Nextcloud client. PyPI 0.6 is the last release; master only adds a port fix to
+# from_public_link (unused here) plus docs. The upstream repo is archived.
+pyocclient==0.6
 pytz==2026.3.post1
 tzdata==2026.3
 PyExifTool==0.4.9  # pinned: 0.5.x changes break metadata extraction; do not bump (see renovate.json)
