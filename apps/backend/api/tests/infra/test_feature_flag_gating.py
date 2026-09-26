@@ -4,6 +4,7 @@ import tempfile
 import uuid
 from unittest.mock import MagicMock, patch
 
+import requests
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
@@ -150,15 +151,19 @@ class SceneClassificationFeatureFlagTest(TestCase):
         self.photo = create_test_photo(owner=self.user)
         self.caption = PhotoCaption.objects.create(photo=self.photo)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_tags_are_generated_by_default(self, post_mock):
-        post_mock.return_value = MagicMock(ok=False, status_code=503)
+        response = MagicMock(ok=False, status_code=503)
+        response.raise_for_status.side_effect = requests.HTTPError(
+            "503 Server Error", response=response
+        )
+        post_mock.return_value = response
 
         self.caption.generate_tag_captions()
         post_mock.assert_called_once()
 
     @override_settings(FEATURE_SCENE_CLASSIFICATION=False)
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_tags_skipped_when_disabled(self, post_mock):
         self.caption.generate_tag_captions()
         post_mock.assert_not_called()

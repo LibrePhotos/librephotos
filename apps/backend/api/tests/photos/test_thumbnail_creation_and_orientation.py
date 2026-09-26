@@ -190,7 +190,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
         pyvips_patcher = mock.patch("api.thumbnails.pyvips")
         self.pyvips = pyvips_patcher.start()
         self.addCleanup(pyvips_patcher.stop)
-        requests_patcher = mock.patch("api.thumbnails.requests")
+        requests_patcher = mock.patch("api.sidecars.http")
         self.requests = requests_patcher.start()
         self.addCleanup(requests_patcher.stop)
         self.requests.post.return_value.json.return_value = {

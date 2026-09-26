@@ -1,20 +1,24 @@
 import numpy as np
-import requests
 from django.conf import settings
 
+from api import sidecars
 from api.http_timeouts import CLIP_EMBED
-from api.sidecars import sidecar_url
 
 dir_clip_ViT_B_32_model = settings.CLIP_ROOT
 
 
 def create_clip_embeddings(imgs):
+    """CLIP embeddings for image paths, one slot per path.
+
+    Raises ``requests.HTTPError`` when the sidecar answers with an error, rather
+    than a ``KeyError`` from reading its error reply as embeddings.
+    """
     json = {
         "imgs": imgs,
         "model": dir_clip_ViT_B_32_model,
     }
-    clip_embeddings = requests.post(
-        sidecar_url(8006, "/clip-embeddings"), json=json, timeout=CLIP_EMBED
+    clip_embeddings = sidecars.post(
+        "clip_embeddings", "/clip-embeddings", json=json, timeout=CLIP_EMBED
     ).json()
 
     imgs_emb = clip_embeddings["imgs_emb"]
@@ -32,8 +36,8 @@ def calculate_query_embeddings(query):
         "query": query,
         "model": dir_clip_ViT_B_32_model,
     }
-    query_embedding = requests.post(
-        sidecar_url(8006, "/query-embeddings"), json=json, timeout=CLIP_EMBED
+    query_embedding = sidecars.post(
+        "clip_embeddings", "/query-embeddings", json=json, timeout=CLIP_EMBED
     ).json()
 
     emb = query_embedding["emb"]

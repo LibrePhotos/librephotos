@@ -3,12 +3,10 @@ import subprocess
 
 import numpy as np
 import pyvips
-import requests
 from django.conf import settings
 
-from api import binaries, image_decoding, util, video_color
+from api import binaries, image_decoding, sidecars, util, video_color
 from api.models.file import is_raw
-from api.sidecars import sidecar_url
 
 
 _ORIENTATION_TRANSFORMS = {
@@ -126,9 +124,8 @@ def _request_raw_thumbnail(input_path, output_height, complete_path, local_orien
     }
     from api.http_timeouts import THUMBNAIL
 
-    response = requests.post(
-        sidecar_url(8003, "/"), json=json, timeout=THUMBNAIL
-    ).json()
+    # An error status raises here, before its body is read as a thumbnail.
+    response = sidecars.post("thumbnail", "/", json=json, timeout=THUMBNAIL).json()
     # The RAW service applies auto-orientation internally.  Apply
     # any user-specified rotation on top.
     _reorient_file_in_place(complete_path, local_orientation)

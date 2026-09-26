@@ -1,9 +1,7 @@
 import requests
 
-from api.http_timeouts import CAPTION, HEALTH_CHECK
-from api.sidecars import sidecar_url
-
-CAPTIONING_URL = sidecar_url(8007, "/generate-caption")
+from api import sidecars
+from api.http_timeouts import CAPTION
 
 
 class CaptionError(RuntimeError):
@@ -26,23 +24,35 @@ def generate_caption(image_path, prompt=None):
     if prompt is not None:
         json_data["prompt"] = prompt
 
-    response = requests.post(CAPTIONING_URL, json=json_data, timeout=CAPTION)
-
     try:
-        body = response.json()
-    except ValueError:
-        body = {}
-    if not isinstance(body, dict):
-        body = {}
-
-    if response.status_code >= 400 or "caption" not in body:
-        detail = body.get("error") or response.text.strip() or "no caption in reply"
-        raise CaptionError(
-            f"captioning sidecar returned HTTP {response.status_code}: {detail}"
+        response = sidecars.post(
+            "image_captioning", "/generate-caption", json=json_data, timeout=CAPTION
         )
+    except requests.HTTPError as error:
+        response = error.response
+        raise CaptionError(
+            f"captioning sidecar returned HTTP {response.status_code}: "
+            f"{_detail(response)}"
+        ) from error
 
+    body = _body(response)
+    if "caption" not in body:
+        raise CaptionError(
+            f"captioning sidecar returned HTTP {response.status_code}: "
+            f"{_detail(response)}"
+        )
     return body["caption"]
 
 
-def unload_model():
-    requests.get(sidecar_url(8007, "/unload-model"), timeout=HEALTH_CHECK)
+def _body(response):
+    try:
+        body = response.json()
+    except ValueError:
+        return {}
+    return body if isinstance(body, dict) else {}
+
+
+def _detail(response):
+    return (
+        _body(response).get("error") or response.text.strip() or "no caption in reply"
+    )

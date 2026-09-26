@@ -1,7 +1,8 @@
 """Tests for the OCR model, extraction job and image-source helper.
 
 The OCR sidecar (Flask service on :8012) is never contacted for real here:
-``requests.post`` is mocked with a fake service response. The parent
+the shared sidecar client (``api.sidecars.http.post``) is mocked with a fake
+service response. The parent
 ``generate_ocr`` fans work out via ``AsyncTask``; since no qcluster runs under
 the test settings we patch ``AsyncTask`` so ``.run()`` executes the worker
 synchronously, exactly as a real worker would.
@@ -11,6 +12,7 @@ import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import requests
 from constance.test import override_config
 from django.test import TestCase
 from django.utils import timezone
@@ -49,7 +51,7 @@ def _ok_response(
 ):
     response = MagicMock()
     response.ok = True
-    response.status_code = 201
+    response.status_code = 200
     response.json.return_value = {
         "text": text,
         "blocks": blocks
@@ -67,6 +69,10 @@ def _error_response(status_code=500):
     response = MagicMock()
     response.ok = False
     response.status_code = status_code
+    response.json.return_value = {"error": "Failed to process image"}
+    response.raise_for_status.side_effect = requests.HTTPError(
+        f"{status_code} Server Error", response=response
+    )
     return response
 
 
@@ -153,7 +159,7 @@ class GenerateOcrWorkerTest(TestCase):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_worker_writes_ocr_row(self, mock_post):
         mock_post.return_value = _ok_response(text="receipt total 12.50")
         job_id = uuid.uuid4()
@@ -174,7 +180,7 @@ class GenerateOcrWorkerTest(TestCase):
         self.assertTrue(job.finished)
         self.assertFalse(job.failed)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_worker_applies_text_cap(self, mock_post):
         long_text = "z" * (PhotoOcr.MAX_TEXT_LENGTH + 10000)
         many_blocks = [{"text": "x"} for _ in range(PhotoOcr.MAX_BLOCKS + 50)]
@@ -188,7 +194,7 @@ class GenerateOcrWorkerTest(TestCase):
         self.assertEqual(len(ocr.text), PhotoOcr.MAX_TEXT_LENGTH)
         self.assertEqual(len(ocr.blocks), PhotoOcr.MAX_BLOCKS)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_worker_applies_cap_on_update(self, mock_post):
         # First write a small row, then re-run so update_or_create takes the
         # UPDATE branch with an over-long payload -- caps must still apply.
@@ -209,7 +215,7 @@ class GenerateOcrWorkerTest(TestCase):
         self.assertEqual(len(ocr.text), PhotoOcr.MAX_TEXT_LENGTH)
         self.assertEqual(len(ocr.blocks), PhotoOcr.MAX_BLOCKS)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_worker_counts_failure_on_500(self, mock_post):
         mock_post.return_value = _error_response(500)
         job_id = uuid.uuid4()
@@ -371,7 +377,7 @@ class GenerateOcrJobTest(TestCase):
             generate_ocr(self.user, job_id, full_scan=full_scan)
         return job_id
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_creates_rows_for_all_photos(self, mock_post):
         mock_post.return_value = _ok_response()
         photos = [create_test_photo(owner=self.user) for _ in range(3)]
@@ -385,7 +391,7 @@ class GenerateOcrJobTest(TestCase):
         self.assertEqual(job.progress_current, 3)
         self.assertTrue(job.finished)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_skips_photos_done_with_same_engine(self, mock_post):
         mock_post.return_value = _ok_response()
         create_test_photo(owner=self.user)
@@ -400,7 +406,7 @@ class GenerateOcrJobTest(TestCase):
         self.assertEqual(job.progress_target, 0)
         self.assertTrue(job.finished)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_full_scan_reprocesses_done_photos(self, mock_post):
         mock_post.return_value = _ok_response()
         create_test_photo(owner=self.user)
@@ -413,7 +419,7 @@ class GenerateOcrJobTest(TestCase):
         job = LongRunningJob.objects.get(job_id=str(second_job))
         self.assertEqual(job.progress_target, 1)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_engine_change_reprocesses(self, mock_post):
         mock_post.return_value = _ok_response()
         photo = create_test_photo(owner=self.user)
@@ -429,7 +435,7 @@ class GenerateOcrJobTest(TestCase):
         job = LongRunningJob.objects.get(job_id=str(third_job))
         self.assertEqual(job.progress_target, 1)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_video_photos_skipped(self, mock_post):
         mock_post.return_value = _ok_response()
         image = create_test_photo(owner=self.user)
@@ -441,7 +447,7 @@ class GenerateOcrJobTest(TestCase):
         self.assertFalse(PhotoOcr.objects.filter(photo=video).exists())
         self.assertEqual(mock_post.call_count, 1)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_ocr_model_none_finishes_clean(self, mock_post):
         create_test_photo(owner=self.user)
         with override_config(OCR_MODEL="None"):
@@ -453,7 +459,7 @@ class GenerateOcrJobTest(TestCase):
         self.assertTrue(job.finished)
         self.assertEqual(job.progress_target, 0)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_ocr_model_lowercase_none_is_disabled(self, mock_post):
         # ml_models treats "", None and any-case "none" as disabled; the job
         # must use the same semantics rather than only matching literal "None".
@@ -467,7 +473,7 @@ class GenerateOcrJobTest(TestCase):
         self.assertTrue(job.finished)
         self.assertEqual(job.progress_target, 0)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_enable_after_disabled_run_processes_backlog(self, mock_post):
         # Regression: a disabled run must not leave a finished baseline that
         # makes a later incremental run skip every pre-existing photo.
@@ -486,7 +492,7 @@ class GenerateOcrJobTest(TestCase):
         job = LongRunningJob.objects.get(job_id=str(job_id))
         self.assertEqual(job.progress_target, 1)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_old_unocrd_photo_skipped_incrementally_but_full_scan_processes(
         self, mock_post
     ):
@@ -520,7 +526,7 @@ class GenerateOcrJobTest(TestCase):
         self.assertTrue(PhotoOcr.objects.filter(photo=photo).exists())
         self.assertEqual(mock_post.call_count, 1)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_cancellation_stops_dispatch(self, mock_post):
         mock_post.return_value = _ok_response()
         create_test_photo(owner=self.user)

@@ -4,7 +4,7 @@ The pure classifier (:mod:`api.document_detection`) is exercised directly with
 plain inputs -- no DB, no network. The wiring in
 :mod:`api.directory_watcher.processing_jobs` (the OCR worker and the
 ``classify_media`` backfill) is covered with real ``Photo`` rows, mocking
-``requests.post`` exactly as ``test_photo_ocr`` does.
+the shared sidecar client exactly as ``test_ocr_job_and_model`` does.
 """
 
 import uuid
@@ -53,7 +53,7 @@ def _make_job(user, job_id, target=1):
 def _ok_response(text="hello world", area=0.12):
     response = MagicMock()
     response.ok = True
-    response.status_code = 201
+    response.status_code = 200
     response.json.return_value = {
         "text": text,
         "blocks": [{"text": "hello", "box": [0, 0, 10, 10], "confidence": 0.9}],
@@ -213,7 +213,7 @@ class OcrDerivesDocumentTest(TestCase):
             )
             at.photos.add(photo)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_receipt_fingerprint_and_tag_sets_document(self, mock_post):
         photo = create_test_photo(owner=self.user)
         self._add_siglip(photo, "receipt")
@@ -228,7 +228,7 @@ class OcrDerivesDocumentTest(TestCase):
         # Sanity: OCR row was written too.
         self.assertTrue(PhotoOcr.objects.filter(photo=photo).exists())
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_plain_photo_not_document(self, mock_post):
         photo = create_test_photo(owner=self.user)
         mock_post.return_value = _ok_response(text="hello world", area=0.02)
@@ -240,7 +240,7 @@ class OcrDerivesDocumentTest(TestCase):
         photo.refresh_from_db()
         self.assertFalse(photo.is_document)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_user_corrected_photo_untouched(self, mock_post):
         photo = create_test_photo(
             owner=self.user, category_source="user", is_document=False
@@ -255,7 +255,7 @@ class OcrDerivesDocumentTest(TestCase):
         photo.refresh_from_db()
         self.assertFalse(photo.is_document)  # user pin respected
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_unchanged_value_writes_no_update(self, mock_post):
         # A plain photo stays is_document=False; the derivation must not issue a
         # redundant UPDATE for the unchanged value.

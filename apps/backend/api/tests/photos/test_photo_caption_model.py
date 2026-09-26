@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import requests
 from django.test import TestCase
 
 from api.models import PhotoCaption
@@ -147,7 +148,7 @@ class PhotoCaptionModelTest(TestCase):
         caption.save()
         self.assertEqual(caption.captions_json["user_caption"], "")
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_generate_tag_captions_handles_error_response(self, mock_post):
         """Test that generate_tag_captions handles non-OK HTTP response gracefully"""
         caption = PhotoCaption.objects.create(photo=self.photo)
@@ -156,6 +157,9 @@ class PhotoCaptionModelTest(TestCase):
         mock_response = MagicMock()
         mock_response.ok = False
         mock_response.status_code = 500
+        mock_response.raise_for_status.side_effect = requests.HTTPError(
+            "500 Server Error", response=mock_response
+        )
         mock_post.return_value = mock_response
 
         # Should return without crashing
@@ -164,7 +168,7 @@ class PhotoCaptionModelTest(TestCase):
         # captions_json should remain unchanged
         self.assertIsNone(caption.captions_json)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_generate_tag_captions_handles_non_json_response(self, mock_post):
         """Test that generate_tag_captions handles non-JSON response body gracefully"""
         caption = PhotoCaption.objects.create(photo=self.photo)
@@ -181,7 +185,7 @@ class PhotoCaptionModelTest(TestCase):
         # captions_json should remain unchanged
         self.assertIsNone(caption.captions_json)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_generate_tag_captions_handles_missing_tags_key(self, mock_post):
         """Test that generate_tag_captions handles JSON response without 'tags' key"""
         caption = PhotoCaption.objects.create(photo=self.photo)
@@ -198,7 +202,7 @@ class PhotoCaptionModelTest(TestCase):
         # captions_json should remain unchanged
         self.assertIsNone(caption.captions_json)
 
-    @patch("requests.post")
+    @patch("api.sidecars.http.post")
     def test_generate_tag_captions_handles_400_response(self, mock_post):
         """Test that generate_tag_captions handles HTTP 400 (bad request) gracefully"""
         caption = PhotoCaption.objects.create(photo=self.photo)
@@ -207,6 +211,9 @@ class PhotoCaptionModelTest(TestCase):
         mock_response = MagicMock()
         mock_response.ok = False
         mock_response.status_code = 400
+        mock_response.raise_for_status.side_effect = requests.HTTPError(
+            "400 Client Error", response=mock_response
+        )
         mock_post.return_value = mock_response
 
         # Should return without crashing

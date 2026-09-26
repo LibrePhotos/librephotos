@@ -1,19 +1,12 @@
 import html
 import re
-import time
 from html.parser import HTMLParser
 
 import numpy as np
 import requests
 from constance import config as site_config
-from api.sidecars import sidecar_url
 
-# The face-recognition sidecar can transiently drop the connection while a scan
-# saturates the box (RemoteDisconnected → requests.ConnectionError), or time out.
-# Retry a few times with a short backoff so one blip doesn't fail a face and,
-# accumulated, mark a whole Scan Faces / Generate Face Embeddings job failed.
-FACE_MAX_ATTEMPTS = 3
-FACE_RETRY_BACKOFF = 0.5
+from api import sidecars
 
 
 class _HTMLTextExtractor(HTMLParser):
@@ -79,35 +72,27 @@ def _get_error_detail(response):
     return _get_response_preview(response)
 
 
-def _post_to_face_service(url, payload):
+def _post_to_face_service(path, payload):
     """POST to the face service and raise errors with response details.
 
-    Transient transport failures (the service dropping the connection under
-    load, or a timeout) are retried with a short backoff before giving up.
-    Status (HTTP) and body (JSON) errors are not retried — they would fail the
-    same way — and are raised with response details as before.
+    The sidecar can drop the connection while a scan saturates the box; the
+    shared client (api.sidecars) retries that, so one blip does not fail a
+    face and, accumulated, a whole Scan Faces job. Status (HTTP) and body
+    (JSON) errors would fail the same way again, and are raised with the URL,
+    the status and the sidecar's reply.
     """
     from api.http_timeouts import FACE
 
-    last_error = None
-    for attempt in range(FACE_MAX_ATTEMPTS):
-        try:
-            response = requests.post(url, json=payload, timeout=FACE)
-            break
-        except (requests.ConnectionError, requests.Timeout) as exc:
-            last_error = exc
-            if attempt + 1 < FACE_MAX_ATTEMPTS:
-                time.sleep(FACE_RETRY_BACKOFF * (attempt + 1))
-    else:
-        raise last_error
-
+    url = sidecars.sidecar_url("face_recognition", path)
     try:
-        response.raise_for_status()
+        response = sidecars.post("face_recognition", path, json=payload, timeout=FACE)
     except requests.HTTPError as exc:
+        response = exc.response
         raise requests.HTTPError(
             "Face recognition service request failed for "
             f"{url} with status {response.status_code}: "
-            f"{_get_error_detail(response)}"
+            f"{_get_error_detail(response)}",
+            response=response,
         ) from exc
 
     try:
@@ -126,7 +111,7 @@ def get_face_encodings(image_path, known_face_locations):
         "face_locations": known_face_locations,
         "model_name": site_config.FACE_RECOGNITION_MODEL,
     }
-    face_encoding = _post_to_face_service(sidecar_url(8005, "/face-encodings"), payload)
+    face_encoding = _post_to_face_service("/face-encodings", payload)
 
     # One per location; None where the sidecar detected no face there.
     return [
@@ -145,7 +130,7 @@ def detect_faces(image_path):
         "source": image_path,
         "model_name": site_config.FACE_RECOGNITION_MODEL,
     }
-    response = _post_to_face_service(sidecar_url(8005, "/face-locations"), payload)
+    response = _post_to_face_service("/face-locations", payload)
     locations = response["face_locations"]
     encodings = response.get("encodings") or []
     if len(encodings) != len(locations):

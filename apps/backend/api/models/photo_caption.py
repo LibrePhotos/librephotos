@@ -4,10 +4,9 @@ from django.db import models
 from django.db.models import Q
 
 import api.models
-from api import util
+from api import sidecars, util
 from api.image_captioning import generate_caption
 from api.models.user import User
-from api.sidecars import sidecar_url
 
 
 def tag_thing_type(tagging_model):
@@ -279,14 +278,14 @@ class PhotoCaption(models.Model):
                 "confidence": confidence,
                 "tagging_model": tagging_model,
             }
-            response = requests.post(
-                sidecar_url(8011, "/generate-tags"), json=json_data, timeout=TAGS
-            )
-
-            if not response.ok:
+            try:
+                response = sidecars.post(
+                    "tags", "/generate-tags", json=json_data, timeout=TAGS
+                )
+            except requests.HTTPError as error:
                 util.logger.warning(
-                    f"Tag service returned status {response.status_code} "
-                    f"for image {image_path}"
+                    f"Tag service returned status {error.response.status_code} "
+                    f"for image {image_path}: {sidecars.error_detail(error)}"
                 )
                 return
 

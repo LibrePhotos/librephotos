@@ -9,25 +9,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from api.models import Photo
+from api.sidecars import SERVICES, sidecar_url
 from api.util import logger
-from api.sidecars import sidecar_url
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 from librephotos.standalone import named_executable
 
 # apps/backend: where _service_script's relative paths and the service package live.
 BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Define all the services that can be started, with their respective ports
-SERVICES = {
-    "image_similarity": 8002,
-    "thumbnail": 8003,
-    "face_recognition": 8005,
-    "clip_embeddings": 8006,
-    "image_captioning": 8007,
-    "exif": 8010,
-    "tags": 8011,
-    "ocr": 8012,
-}
 
 HTTP_OK = 200
 
@@ -112,11 +100,10 @@ def check_services():
 
 
 def is_healthy(service):
-    port = SERVICES.get(service)
     try:
         from api.http_timeouts import HEALTH_CHECK
 
-        res = requests.get(sidecar_url(port, "/health"), timeout=HEALTH_CHECK)
+        res = requests.get(sidecar_url(service, "/health"), timeout=HEALTH_CHECK)
         # If response has timestamp, check if it needs to be restarted
         if res.json().get("last_request_time") is not None:
             if res.json()["last_request_time"] < time.time() - 120:

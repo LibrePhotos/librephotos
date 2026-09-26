@@ -10,25 +10,26 @@ from unittest.mock import MagicMock, patch
 import requests
 from django.test import TestCase
 
-from api.http_timeouts import CAPTION, HEALTH_CHECK
-from api.image_captioning import (
-    CAPTIONING_URL,
-    CaptionError,
-    generate_caption,
-    unload_model,
-)
+from api.http_timeouts import CAPTION
+from api.image_captioning import CaptionError, generate_caption
+
+CAPTIONING_URL = "http://127.0.0.1:8007/generate-caption"
 
 
-def _response(status_code=201, json_data=None, text=""):
+def _response(status_code=200, json_data=None, text=""):
     response = MagicMock()
     response.status_code = status_code
     response.text = text
     response.json.return_value = json_data if json_data is not None else {}
+    if status_code >= 400:
+        response.raise_for_status.side_effect = requests.HTTPError(
+            f"{status_code} Error", response=response
+        )
     return response
 
 
 class GenerateCaptionTest(TestCase):
-    @patch("api.image_captioning.requests.post")
+    @patch("api.sidecars.http.post")
     def test_happy_path_without_prompt(self, mock_post):
         mock_post.return_value = _response(json_data={"caption": "a dog"})
 
@@ -39,7 +40,7 @@ class GenerateCaptionTest(TestCase):
             CAPTIONING_URL, json={"image_path": "/data/img.jpg"}, timeout=CAPTION
         )
 
-    @patch("api.image_captioning.requests.post")
+    @patch("api.sidecars.http.post")
     def test_prompt_is_forwarded(self, mock_post):
         mock_post.return_value = _response(json_data={"caption": "Anna's dog"})
 
@@ -50,7 +51,7 @@ class GenerateCaptionTest(TestCase):
             {"image_path": "/data/img.jpg", "prompt": "The person is named Anna."},
         )
 
-    @patch("api.image_captioning.requests.post")
+    @patch("api.sidecars.http.post")
     def test_empty_prompt_is_still_sent(self, mock_post):
         """Only ``None`` means "no prompt"; an empty string is the caller's choice."""
         mock_post.return_value = _response(json_data={"caption": "x"})
@@ -59,14 +60,14 @@ class GenerateCaptionTest(TestCase):
 
         self.assertEqual(mock_post.call_args.kwargs["json"]["prompt"], "")
 
-    @patch("api.image_captioning.requests.post")
+    @patch("api.sidecars.http.post")
     def test_connection_error_propagates(self, mock_post):
         mock_post.side_effect = requests.exceptions.ConnectionError("refused")
 
         with self.assertRaises(requests.exceptions.ConnectionError):
             generate_caption("/data/img.jpg")
 
-    @patch("api.image_captioning.requests.post")
+    @patch("api.sidecars.http.post")
     def test_sidecar_error_reply_raises_caption_error_with_its_message(self, mock_post):
         """The sidecar's reason must reach the backend log, not a KeyError."""
         mock_post.return_value = _response(
@@ -83,17 +84,17 @@ class GenerateCaptionTest(TestCase):
             "NoSuchFile: vision_encoder_q4f16.onnx",
         )
 
-    @patch("api.image_captioning.requests.post")
+    @patch("api.sidecars.http.post")
     def test_success_status_without_caption_key_raises_caption_error(self, mock_post):
         mock_post.return_value = _response(json_data={"something": "else"})
 
         with self.assertRaises(CaptionError) as raised:
             generate_caption("/data/img.jpg")
 
-        self.assertIn("HTTP 201", str(raised.exception))
+        self.assertIn("HTTP 200", str(raised.exception))
         self.assertIn("no caption in reply", str(raised.exception))
 
-    @patch("api.image_captioning.requests.post")
+    @patch("api.sidecars.http.post")
     def test_non_json_error_reply_uses_the_body_text(self, mock_post):
         """A 400 from a malformed request comes back as an empty body."""
         response = _response(status_code=400, text="")
@@ -111,12 +112,3 @@ class GenerateCaptionTest(TestCase):
     def test_caption_error_is_a_runtime_error(self):
         """Callers that catch ``Exception`` keep working; nothing narrower breaks."""
         self.assertTrue(issubclass(CaptionError, RuntimeError))
-
-
-class UnloadModelTest(TestCase):
-    @patch("api.image_captioning.requests.get")
-    def test_unload_model_hits_the_sidecar(self, mock_get):
-        self.assertIsNone(unload_model())
-        mock_get.assert_called_once_with(
-            "http://127.0.0.1:8007/unload-model", timeout=HEALTH_CHECK
-        )
