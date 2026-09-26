@@ -128,10 +128,11 @@ def get_face_encodings(image_path, known_face_locations):
     }
     face_encoding = _post_to_face_service(sidecar_url(8005, "/face-encodings"), payload)
 
-    face_encodings_list = face_encoding["encodings"]
-    face_encodings = [np.array(enc) for enc in face_encodings_list]
-
-    return face_encodings
+    # One per location; None where the sidecar detected no face there.
+    return [
+        None if encoding is None else np.array(encoding)
+        for encoding in face_encoding["encodings"]
+    ]
 
 
 def detect_faces(image_path):

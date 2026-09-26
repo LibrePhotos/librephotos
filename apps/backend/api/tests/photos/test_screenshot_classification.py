@@ -186,6 +186,15 @@ class ScanTimeHookTest(TestCase):
             patch("api.models.thumbnail.Thumbnail._calculate_aspect_ratio"),
             patch("api.models.thumbnail.Thumbnail._get_dominant_color"),
             patch("api.models.photo_search.PhotoSearch.recreate_search_captions"),
+            # The PNG carries no camera metadata; the exif service is not running.
+            patch(
+                "api.models.photo_metadata.get_metadata",
+                side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+            ),
+            patch(
+                "api.models.photo.get_metadata",
+                side_effect=lambda path, tags, **kwargs: [None] * len(tags),
+            ),
         ):
             _process_photo(
                 photo, photo.main_file.path, self.job_id, datetime.datetime.now()

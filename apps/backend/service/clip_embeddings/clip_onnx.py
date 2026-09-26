@@ -14,9 +14,10 @@ magnitude next to the vector and normalise at query time.
 import os
 
 import numpy as np
-import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
+
+from service.onnx_session import inference_session
 
 IMAGE_SIZE = 224
 IMAGE_MEAN = np.array([0.48145466, 0.4578275, 0.40821073], dtype=np.float32)
@@ -56,13 +57,11 @@ class ClipEmbeddings:
         return self.vision_session is not None
 
     def load(self, model_dir):
-        self.vision_session = ort.InferenceSession(
-            os.path.join(model_dir, "vision_model.onnx"),
-            providers=["CPUExecutionProvider"],
+        self.vision_session = inference_session(
+            os.path.join(model_dir, "vision_model.onnx")
         )
-        self.text_session = ort.InferenceSession(
-            os.path.join(model_dir, "text_model.onnx"),
-            providers=["CPUExecutionProvider"],
+        self.text_session = inference_session(
+            os.path.join(model_dir, "text_model.onnx")
         )
         self.tokenizer = Tokenizer.from_file(os.path.join(model_dir, "tokenizer.json"))
         self.model_dir = model_dir

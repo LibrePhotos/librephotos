@@ -7,11 +7,17 @@ from PIL import Image
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
 
+from service.onnx_session import execution_providers, uses_gpu
+
 app = Flask(__name__)
 
 last_request_time = None
 face_analysis_models = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
+# How much a requested region (drawn by hand, or read from XMP) must overlap a
+# detected face to take its embedding. A drawn box is looser than the
+# detector's, so this is well below 1; a neighbour's face shares far less.
+MIN_FACE_MATCH_IOU = 0.3
 # The sidecars never load Django, so the data root comes in as BASE_DATA (see
 # api.services._service_environment). Unset, this is the Docker layout under /.
 FACE_MODEL_ROOT = os.path.join(
@@ -44,13 +50,16 @@ def _get_face_analysis(model_name):
     if model_name not in face_analysis_models:
         from insightface.app import FaceAnalysis
 
+        providers = execution_providers()
         face_analysis = FaceAnalysis(
             name=model_name,
             root=FACE_MODEL_ROOT,
             allowed_modules=["detection", "recognition"],
-            providers=["CPUExecutionProvider"],
+            providers=providers,
         )
-        face_analysis.prepare(ctx_id=-1, det_size=(640, 640))
+        # A negative ctx_id makes insightface switch every model back to the CPU.
+        ctx_id = 0 if uses_gpu(providers) else -1
+        face_analysis.prepare(ctx_id=ctx_id, det_size=(640, 640))
         face_analysis_models[model_name] = face_analysis
     return face_analysis_models[model_name]
 
@@ -91,21 +100,28 @@ def _iou(face_location, detected_location):
 
 
 def _find_best_face_match(face_locations, detected_faces):
+    """The detected face at each requested location, None where there is none.
+
+    One entry per location, in order. A location no detected face overlaps by
+    MIN_FACE_MATCH_IOU is left unmatched rather than handed whichever face is
+    left: its embedding would file the region under somebody else.
+    """
     matches = []
     remaining_indices = set(range(len(detected_faces)))
 
     for face_location in face_locations:
         best_index = None
-        best_score = -1.0
+        best_score = MIN_FACE_MATCH_IOU
         for detected_index in remaining_indices:
             score = _iou(
                 face_location, _to_face_location(detected_faces[detected_index].bbox)
             )
-            if score > best_score:
+            if score >= best_score:
                 best_score = score
                 best_index = detected_index
 
         if best_index is None:
+            matches.append(None)
             continue
 
         remaining_indices.discard(best_index)
@@ -133,12 +149,15 @@ def create_face_encodings():
         face_analysis = _get_face_analysis(model_name)
         detected_faces = face_analysis.get(image)
         matched_faces = _find_best_face_match(face_locations, detected_faces)
-        face_encodings_list = [face.embedding.tolist() for face in matched_faces]
+        face_encodings_list = [
+            None if face is None else face.embedding.tolist() for face in matched_faces
+        ]
     except Exception as exc:
         log(f"error creating face_encodings for {source}: {exc}")
         return {"error": str(exc)}, 500
 
-    log(f"created face_encodings={len(face_encodings_list)}")
+    matched = sum(encoding is not None for encoding in face_encodings_list)
+    log(f"created face_encodings={matched}/{len(face_encodings_list)}")
     return {"encodings": face_encodings_list}, 201
 
 
@@ -179,9 +198,9 @@ def health():
 
 def serve():
     log("service starting")
-    # 0.0.0.0 inside the containers, as always; the standalone build sets
-    # SERVICE_HOST to loopback (librephotos.standalone.prepare_environment).
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "0.0.0.0"), 8005), app)
+    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
+    # they have no authentication. SERVICE_HOST overrides it.
+    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8005), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
 

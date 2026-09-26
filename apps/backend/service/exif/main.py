@@ -144,10 +144,11 @@ def get_tags():
 
     try:
         values = highest_priority_values(et, tags, files_by_reverse_priority)
-    except Exception:
-        log("An error occurred")
-        # Callers unpack one value per tag; the reader pads a short list.
-        values = []
+    except Exception as exc:
+        # Not an empty answer: that reads as "no tags", and the photo would be
+        # stored without a date or location that a rescan never comes back for.
+        log(f"error reading tags from {files_by_reverse_priority}: {exc}")
+        return {"error": str(exc)}, 500
 
     return {"values": values}, 201
 
@@ -159,9 +160,9 @@ def health():
 
 def serve():
     log("service starting")
-    # 0.0.0.0 inside the containers, as always; the standalone build sets
-    # SERVICE_HOST to loopback (librephotos.standalone.prepare_environment).
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "0.0.0.0"), 8010), app)
+    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
+    # they have no authentication. SERVICE_HOST overrides it.
+    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8010), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
 

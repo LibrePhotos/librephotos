@@ -15,6 +15,9 @@ from api.sidecars import sidecar_url
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 from librephotos.standalone import named_executable
 
+# apps/backend: where _service_script's relative paths and the service package live.
+BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # Track services that should not be restarted due to system incompatibility
 INCOMPATIBLE_SERVICES = set()
 
@@ -174,12 +177,19 @@ def _service_environment():
     Their stdout is deliberately left alone. Handing a child an fd on the log
     file would pin it to that inode, so after the first rotation it would keep
     writing to the rotated-away file and the space would never be reclaimed.
+
+    A script has only its own directory on sys.path, so PYTHONPATH leads with
+    the backend root: the ML sidecars share service.onnx_session.
     """
+    pythonpath = [BACKEND_ROOT]
+    if os.environ.get("PYTHONPATH"):
+        pythonpath.append(os.environ["PYTHONPATH"])
     return {
         **os.environ,
         "BASE_DATA": settings.BASE_DATA,
         "BASE_LOGS": settings.LOGS_ROOT,
         "LOG_LEVEL": settings.LOGGING.get("root", {}).get("level", DEFAULT_LOG_LEVEL),
+        "PYTHONPATH": os.pathsep.join(pythonpath),
     }
 
 

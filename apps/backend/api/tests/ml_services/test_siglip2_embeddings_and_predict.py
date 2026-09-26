@@ -2,7 +2,7 @@
 
 Pins the CURRENT behavior of ``SigLIP2._build_tag_embeddings`` and
 ``SigLIP2.predict`` before refactoring.  No ONNX model, tokenizer file,
-network access or image file on disk is ever touched: ``ort.InferenceSession``
+network access or image file on disk is ever touched: ``inference_session``
 is replaced with a fake session, the SentencePiece tokenizer is injected as a
 fake object (so ``_load_tokenizer`` short-circuits), ``PIL.Image.open`` is
 patched to return an in-memory image, and ``np.save`` / ``os.makedirs`` are
@@ -11,8 +11,8 @@ patched so nothing is written to ``/protected_media``.
 Behavior pinned here that a refactor must preserve:
 
 ``_build_tag_embeddings``
-  * Always constructs an ``ort.InferenceSession`` for ``SIGLIP2_TEXT_PATH``
-    with ``providers=["CPUExecutionProvider"]``.
+  * Always constructs a session for ``SIGLIP2_TEXT_PATH`` through
+    ``service.onnx_session.inference_session``.
   * Tags are prompted as ``f"a photo of {tag}"`` -- note there is no article,
     so the prompt for ``"cat"`` is ``"a photo of cat"``.
   * Batch size is hard-coded to 32; the last batch may be short.
@@ -116,7 +116,7 @@ class BuildTagEmbeddingsTests(TestCase):
         self.addCleanup(patcher_makedirs.stop)
 
     def _build(self, model, session):
-        with patch(f"{MODULE}.ort.InferenceSession", return_value=session) as ctor:
+        with patch(f"{MODULE}.inference_session", return_value=session) as ctor:
             model._build_tag_embeddings()
         return ctor
 
@@ -148,9 +148,7 @@ class BuildTagEmbeddingsTests(TestCase):
         session = FakeSession(["input_ids"], outputs_fn=lambda feed: [raw])
         ctor = self._build(make_model(["cat"]), session)
 
-        ctor.assert_called_once_with(
-            mod.SIGLIP2_TEXT_PATH, providers=["CPUExecutionProvider"]
-        )
+        ctor.assert_called_once_with(mod.SIGLIP2_TEXT_PATH)
 
     def test_single_input_model_only_feeds_input_ids(self):
         raw = np.ones((2, 4), dtype=np.float32)
@@ -317,7 +315,7 @@ class BuildTagEmbeddingsTests(TestCase):
         session = FakeSession(["input_ids"], outputs_fn=lambda feed: [])
         model = make_model([])
 
-        with patch(f"{MODULE}.ort.InferenceSession", return_value=session) as ctor:
+        with patch(f"{MODULE}.inference_session", return_value=session) as ctor:
             with self.assertRaises(ValueError):
                 model._build_tag_embeddings()
 
@@ -329,7 +327,7 @@ class BuildTagEmbeddingsTests(TestCase):
         session = FakeSession(["input_ids"], outputs_fn=lambda feed: [])
         model = make_model(None)
 
-        with patch(f"{MODULE}.ort.InferenceSession", return_value=session):
+        with patch(f"{MODULE}.inference_session", return_value=session):
             with self.assertRaises(TypeError):
                 model._build_tag_embeddings()
 
@@ -340,7 +338,7 @@ class BuildTagEmbeddingsTests(TestCase):
         fake_proc = MagicMock()
         fake_proc.Encode.return_value = [5, 6]
 
-        with patch(f"{MODULE}.ort.InferenceSession", return_value=session):
+        with patch(f"{MODULE}.inference_session", return_value=session):
             with patch(
                 f"{MODULE}.spm.SentencePieceProcessor", return_value=fake_proc
             ) as proc_ctor:

@@ -1,9 +1,10 @@
 import os
 
 import numpy as np
-import onnxruntime as ort
 import sentencepiece as spm
 from PIL import Image
+
+from service.onnx_session import inference_session
 
 # The sidecars never load Django, so the data root comes in as BASE_DATA (see
 # api.services._service_environment). Unset, this is the Docker layout under /.
@@ -89,10 +90,7 @@ class SigLIP2:
 
     def load(self):
         """Load the vision model, tokenizer, tag list, and pre-computed embeddings."""
-        self.vision_session = ort.InferenceSession(
-            SIGLIP2_VISION_PATH,
-            providers=["CPUExecutionProvider"],
-        )
+        self.vision_session = inference_session(SIGLIP2_VISION_PATH)
 
         with open(TAGS_FILE, "r") as f:
             self.tags = [line.strip() for line in f if line.strip()]
@@ -180,10 +178,7 @@ class SigLIP2:
         """Encode all tags with the text model and cache the embeddings."""
         print("siglip2: building tag embeddings (first run, this may take a minute)...")
 
-        text_session = ort.InferenceSession(
-            SIGLIP2_TEXT_PATH,
-            providers=["CPUExecutionProvider"],
-        )
+        text_session = inference_session(SIGLIP2_TEXT_PATH)
 
         text_input_names = [inp.name for inp in text_session.get_inputs()]
         text_output_names = [out.name for out in text_session.get_outputs()]

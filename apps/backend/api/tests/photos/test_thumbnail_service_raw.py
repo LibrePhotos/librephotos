@@ -9,6 +9,7 @@ from unittest.mock import patch
 import numpy as np
 import pyvips
 
+from service.thumbnail import main as thumbnail_main
 from service.thumbnail.main import app, render_raw
 
 
@@ -42,7 +43,12 @@ def _load(path):
 class RenderRawTests(unittest.TestCase):
     def setUp(self):
         FakeRaw.calls.clear()
-        self.out = os.path.join(tempfile.mkdtemp(), "thumb.webp")
+        self.media_root = tempfile.mkdtemp()
+        media_root = patch.object(thumbnail_main, "MEDIA_ROOT", self.media_root)
+        media_root.start()
+        self.addCleanup(media_root.stop)
+        os.makedirs(os.path.join(self.media_root, "thumbnails_big"))
+        self.out = os.path.join(self.media_root, "thumbnails_big", "thumb.webp")
         self.addCleanup(lambda: os.path.exists(self.out) and os.remove(self.out))
 
     def test_writes_webp_at_requested_height_keeping_aspect(self):
@@ -73,3 +79,62 @@ class RenderRawTests(unittest.TestCase):
 
     def test_bad_request_without_fields(self):
         self.assertEqual(app.test_client().post("/", json={}).status_code, 400)
+
+
+class DestinationTests(unittest.TestCase):
+    """The sidecar writes only under the media root the backend serves from.
+
+    It has no authentication; a caller-chosen destination anywhere else would
+    let anything that reaches the port overwrite a file of its choosing.
+    """
+
+    def setUp(self):
+        self.media_root = tempfile.mkdtemp()
+        media_root = patch.object(thumbnail_main, "MEDIA_ROOT", self.media_root)
+        media_root.start()
+        self.addCleanup(media_root.stop)
+
+    def post(self, destination):
+        with patch.object(thumbnail_main, "render_raw") as render:
+            response = app.test_client().post(
+                "/",
+                json={
+                    "source": "/photos/x.nef",
+                    "destination": destination,
+                    "height": 30,
+                },
+            )
+        return response, render
+
+    def test_a_destination_outside_the_media_root_is_refused(self):
+        elsewhere = os.path.join(tempfile.mkdtemp(), "thumb.webp")
+
+        response, render = self.post(elsewhere)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.get_json())
+        render.assert_not_called()
+
+    def test_climbing_out_of_the_media_root_is_refused(self):
+        climbing = os.path.join(self.media_root, "thumbnails_big", "..", "..", "x.webp")
+
+        response, render = self.post(climbing)
+
+        self.assertEqual(response.status_code, 400)
+        render.assert_not_called()
+
+    def test_a_sibling_directory_sharing_the_prefix_is_refused(self):
+        sibling = self.media_root + "-other" + os.sep + "thumb.webp"
+
+        response, render = self.post(sibling)
+
+        self.assertEqual(response.status_code, 400)
+        render.assert_not_called()
+
+    def test_a_destination_under_the_media_root_is_rendered(self):
+        inside = os.path.join(self.media_root, "thumbnails_big", "thumb.webp")
+
+        response, render = self.post(inside)
+
+        self.assertEqual(response.status_code, 201)
+        render.assert_called_once_with("/photos/x.nef", inside, 30)

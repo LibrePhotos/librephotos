@@ -4,7 +4,6 @@ import time
 
 import requests
 
-from api import util
 from api.sidecars import sidecar_url
 
 EXIF_SERVICE_URL = sidecar_url(8010, "/get-tags")
@@ -15,6 +14,23 @@ EXIF_SERVICE_URL = sidecar_url(8010, "/get-tags")
 # accumulates past the failure threshold and marks a whole job "failed".
 EXIF_MAX_ATTEMPTS = 3
 EXIF_RETRY_BACKOFF = 0.5
+
+
+class MetadataReadError(RuntimeError):
+    """The exif service could not read a file's metadata."""
+
+
+def _error_detail(error):
+    """The sidecar's own error message for a failed status, else the error."""
+    response = getattr(error, "response", None)
+    if response is not None:
+        try:
+            body = response.json()
+            if isinstance(body, dict) and body.get("error"):
+                return body["error"]
+        except ValueError:
+            pass
+    return str(error)
 
 
 def get_sidecar_files_in_priority_order(media_file):
@@ -50,10 +66,11 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
     If *struct* is `True`, use the exiftool instance which returns structured data
 
     Returns a list with the value of each tag in *tags* or `None` if the
-    tag was not found. If the exif service cannot be reached or returns an
-    unusable response after retries, returns a list of `None` (one per tag)
-    rather than raising, so a transient service hiccup does not abort the
-    caller's whole photo-processing pipeline.
+    tag was not found. Raises `MetadataReadError` if the exif service cannot
+    be reached, fails to read the file, or returns an unusable response after
+    retries: a list of `None` would be stored as "this file has no metadata",
+    and a rescan never reads the unchanged file again. The scan records the
+    raise as a failure of that one file.
 
     """
     files_by_reverse_priority = _get_existing_metadata_files_reversed(
@@ -84,16 +101,13 @@ def get_metadata(media_file, tags, try_sidecar=True, struct=False):
                 time.sleep(EXIF_RETRY_BACKOFF * (attempt + 1))
 
     if values is None:
-        util.logger.warning(
-            f"exif service returned no usable metadata for {media_file} after "
-            f"{EXIF_MAX_ATTEMPTS} attempt(s): {last_error}. "
-            f"Falling back to empty metadata."
-        )
-        return [None] * len(tags)
+        raise MetadataReadError(
+            f"exif service could not read the metadata of {media_file} after "
+            f"{EXIF_MAX_ATTEMPTS} attempt(s): {_error_detail(last_error)}"
+        ) from last_error
 
-    # The exif service can return fewer values than requested if exiftool
-    # errors mid-loop. Callers unpack the result positionally, so pad with
-    # None to honor the documented one-value-per-tag contract.
+    # Callers unpack the result positionally, so pad a short answer with None
+    # to honor the documented one-value-per-tag contract.
     if len(values) < len(tags):
         values = list(values) + [None] * (len(tags) - len(values))
     return values

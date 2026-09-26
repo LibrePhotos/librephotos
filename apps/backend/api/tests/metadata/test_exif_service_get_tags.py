@@ -277,10 +277,11 @@ class GetTagsTest(SimpleTestCase):
         self.assertEqual(self.client.get("/get-tags").status_code, 405)
 
     # ------------------------------------------------------------------
-    # exiftool failure branch -> swallowed, still 201
+    # exiftool failure branch -> 500 with the error
     # ------------------------------------------------------------------
-    def test_exiftool_error_is_swallowed_and_no_values_returned(self):
-        # The reader pads a short answer with None, one per tag.
+    def test_exiftool_error_is_a_500_with_the_error(self):
+        # An empty 201 read as "no tags": the photo was stored without a date
+        # or location, and a rescan never looked at the unchanged file again.
         fake = FakeExifTool(running=True, raise_on={("B", "/a.jpg")})
         with (
             patch.object(exif_main, "static_et", fake),
@@ -293,9 +294,14 @@ class GetTagsTest(SimpleTestCase):
                     "struct": False,
                 }
             )
-        self.assertEqual(resp.status_code, 201)
-        self.assertEqual(resp.get_json(), {"values": []})
-        log.assert_called_once_with("An error occurred")
+        self.assertEqual(resp.status_code, 500)
+        self.assertEqual(resp.get_json(), {"error": "boom"})
+        self.assertIn("/a.jpg", log.call_args.args[0])
+        self.assertIn("boom", log.call_args.args[0])
+
+    def test_a_file_without_the_tags_is_still_an_empty_answer(self):
+        fake = FakeExifTool(running=True)
+        self.assertEqual(self.get_values(fake, ["/a.jpg"], ["A", "B"]), [None, None])
 
     def test_start_failure_propagates_as_500(self):
         # et.start() is outside the try/except -> not swallowed.

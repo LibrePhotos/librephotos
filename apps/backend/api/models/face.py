@@ -75,6 +75,10 @@ class Face(models.Model):
         )
         if not encodings:
             raise ValueError(f"Face service returned no encoding for face {self.id}")
+        if encodings[0] is None:
+            # Another face's embedding would file this one under a stranger,
+            # so the face keeps no encoding and stays out of clustering.
+            raise ValueError(f"The face service detected no face in face {self.id}")
         self.encoding = encodings[0].tobytes().hex()
         self.save()
 

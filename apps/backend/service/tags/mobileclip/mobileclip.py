@@ -19,9 +19,10 @@ to each photo on its own.
 import os
 
 import numpy as np
-import onnxruntime as ort
 from PIL import Image
 from tokenizers import Tokenizer
+
+from service.onnx_session import inference_session
 
 # The sidecars never load Django, so the data root comes in as BASE_DATA (see
 # api.services._service_environment). Unset, this is the Docker layout under /.
@@ -101,9 +102,7 @@ class MobileCLIP:
 
     def load(self):
         """Load the image tower, the tag list and the (cached) tag embeddings."""
-        self.vision_session = ort.InferenceSession(
-            MOBILECLIP_VISION_PATH, providers=["CPUExecutionProvider"]
-        )
+        self.vision_session = inference_session(MOBILECLIP_VISION_PATH)
 
         with open(TAGS_FILE, "r", encoding="utf-8") as f:
             self.tags = [line.strip() for line in f if line.strip()]
@@ -135,9 +134,7 @@ class MobileCLIP:
     def _build_tag_embeddings(self):
         """Embed every prompted tag with the text tower and cache the result."""
         print("mobileclip: building tag embeddings (first run only)...")
-        text_session = ort.InferenceSession(
-            MOBILECLIP_TEXT_PATH, providers=["CPUExecutionProvider"]
-        )
+        text_session = inference_session(MOBILECLIP_TEXT_PATH)
         input_name = text_session.get_inputs()[0].name
         prompts = [PROMPT_TEMPLATE.format(tag=tag) for tag in self.tags]
 
