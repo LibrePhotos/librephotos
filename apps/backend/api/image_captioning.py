@@ -1,8 +1,9 @@
 import requests
 
 from api.http_timeouts import CAPTION, HEALTH_CHECK
+from api.sidecars import sidecar_url
 
-CAPTIONING_URL = "http://localhost:8007/generate-caption"
+CAPTIONING_URL = sidecar_url(8007, "/generate-caption")
 
 
 class CaptionError(RuntimeError):
@@ -44,4 +45,4 @@ def generate_caption(image_path, prompt=None):
 
 
 def unload_model():
-    requests.get("http://localhost:8007/unload-model", timeout=HEALTH_CHECK)
+    requests.get(sidecar_url(8007, "/unload-model"), timeout=HEALTH_CHECK)

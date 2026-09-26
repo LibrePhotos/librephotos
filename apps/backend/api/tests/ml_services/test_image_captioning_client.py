@@ -118,5 +118,5 @@ class UnloadModelTest(TestCase):
     def test_unload_model_hits_the_sidecar(self, mock_get):
         self.assertIsNone(unload_model())
         mock_get.assert_called_once_with(
-            "http://localhost:8007/unload-model", timeout=HEALTH_CHECK
+            "http://127.0.0.1:8007/unload-model", timeout=HEALTH_CHECK
         )

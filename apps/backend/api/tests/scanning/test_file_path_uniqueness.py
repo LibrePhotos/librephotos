@@ -118,6 +118,22 @@ class FileCreateMethodTestCase(TestCase):
         # Should only have one File in database
         self.assertEqual(File.objects.filter(path=path).count(), 1)
 
+    def test_create_uses_the_hash_it_is_given(self):
+        """The scan has already hashed the file; reading it twice was waste."""
+        from unittest import mock
+
+        from api.models.file import calculate_hash
+
+        path = self._create_test_file("given.jpg")
+        known = calculate_hash(self.user, path)
+
+        with mock.patch("api.models.file.calculate_hash") as hash_again:
+            file = File.create(path, self.user, known)
+
+        hash_again.assert_not_called()
+        self.assertEqual(File.objects.get(path=path).hash, known)
+        self.assertEqual(file.type, File.IMAGE)
+
     def test_create_creates_new_file_for_different_path(self):
         """Test that File.create() creates new File for different path."""
         path1 = self._create_test_file("test1.jpg", b"content1")
