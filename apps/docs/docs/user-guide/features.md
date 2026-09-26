@@ -7,10 +7,10 @@ sidebar_position: 26
 ## Features compared to competitors
 
 <table>
-    <p hidden>Contributors to table
+    {/* Contributors to table
     1. derneuere - Initial .md list
     2. Quartztester - html refactor, add programs, add categories
-    </p>
+    */}
     <tr>
         <th >Feature</th>
         <th><a href="https://github.com/LibrePhotos/LibrePhotos">LibrePhotos</a></th>
