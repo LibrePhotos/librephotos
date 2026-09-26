@@ -307,3 +307,14 @@ class AddFaceWithoutTheFaceServiceTest(AddFaceTestBase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Face.objects.get().encoding, "")
+
+    @patch("api.models.face.get_face_encodings", return_value=[None])
+    def test_the_face_gets_no_encoding_when_no_face_is_detected_there(
+        self, mock_encodings
+    ):
+        # Storing some other face's embedding would put the person with a
+        # stranger; without one the label waits for a face the model can see.
+        response = self._post()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Face.objects.get().encoding, "")

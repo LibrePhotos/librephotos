@@ -12,6 +12,10 @@ app = Flask(__name__)
 last_request_time = None
 face_analysis_models = {}
 DEFAULT_MODEL_NAME = "buffalo_sc"
+# How much a requested region (drawn by hand, or read from XMP) must overlap a
+# detected face to take its embedding. A drawn box is looser than the
+# detector's, so this is well below 1; a neighbour's face shares far less.
+MIN_FACE_MATCH_IOU = 0.3
 # The sidecars never load Django, so the data root comes in as BASE_DATA (see
 # api.services._service_environment). Unset, this is the Docker layout under /.
 FACE_MODEL_ROOT = os.path.join(
@@ -91,21 +95,28 @@ def _iou(face_location, detected_location):
 
 
 def _find_best_face_match(face_locations, detected_faces):
+    """The detected face at each requested location, None where there is none.
+
+    One entry per location, in order. A location no detected face overlaps by
+    MIN_FACE_MATCH_IOU is left unmatched rather than handed whichever face is
+    left: its embedding would file the region under somebody else.
+    """
     matches = []
     remaining_indices = set(range(len(detected_faces)))
 
     for face_location in face_locations:
         best_index = None
-        best_score = -1.0
+        best_score = MIN_FACE_MATCH_IOU
         for detected_index in remaining_indices:
             score = _iou(
                 face_location, _to_face_location(detected_faces[detected_index].bbox)
             )
-            if score > best_score:
+            if score >= best_score:
                 best_score = score
                 best_index = detected_index
 
         if best_index is None:
+            matches.append(None)
             continue
 
         remaining_indices.discard(best_index)
@@ -133,12 +144,15 @@ def create_face_encodings():
         face_analysis = _get_face_analysis(model_name)
         detected_faces = face_analysis.get(image)
         matched_faces = _find_best_face_match(face_locations, detected_faces)
-        face_encodings_list = [face.embedding.tolist() for face in matched_faces]
+        face_encodings_list = [
+            None if face is None else face.embedding.tolist() for face in matched_faces
+        ]
     except Exception as exc:
         log(f"error creating face_encodings for {source}: {exc}")
         return {"error": str(exc)}, 500
 
-    log(f"created face_encodings={len(face_encodings_list)}")
+    matched = sum(encoding is not None for encoding in face_encodings_list)
+    log(f"created face_encodings={matched}/{len(face_encodings_list)}")
     return {"encodings": face_encodings_list}, 201
 
 

@@ -25,8 +25,10 @@ from api.face_recognition import (
     FACE_MAX_ATTEMPTS,
     _post_to_face_service,
     detect_faces,
+    get_face_encodings,
     get_face_locations,
 )
+from api.models.face import Face
 
 
 class FaceRecognitionClientTest(SimpleTestCase):
@@ -133,6 +135,35 @@ class DetectFacesTest(SimpleTestCase):
 
         self.assertEqual(detect_faces("/tmp/image.jpg"), [([1, 2, 3, 4], None)])
         self.assertEqual(get_face_locations("/tmp/image.jpg"), [[1, 2, 3, 4]])
+
+
+class GetFaceEncodingsTest(SimpleTestCase):
+    """A region the sidecar found no face at comes back as None, in its slot."""
+
+    @patch("api.face_recognition.requests.post")
+    @patch("api.face_recognition.site_config")
+    def test_an_unmatched_region_is_none(self, mock_site_config, mock_post):
+        mock_site_config.FACE_RECOGNITION_MODEL = "buffalo_sc"
+        mock_post.return_value = _ok_response({"encodings": [None, [1.0, 2.0]]})
+
+        encodings = get_face_encodings("/tmp/image.jpg", [(0, 1, 1, 0), (2, 3, 3, 2)])
+
+        self.assertIsNone(encodings[0])
+        self.assertEqual(encodings[1].tolist(), [1.0, 2.0])
+
+
+class GenerateEncodingTest(SimpleTestCase):
+    """Face.generate_encoding stores nothing for a region with no face in it."""
+
+    def test_an_unmatched_region_raises_and_saves_nothing(self):
+        face = MagicMock(id=7, encoding="")
+
+        with patch("api.models.face.get_face_encodings", return_value=[None]):
+            with self.assertRaisesRegex(ValueError, "no face"):
+                Face.generate_encoding(face)
+
+        self.assertEqual(face.encoding, "")
+        face.save.assert_not_called()
 
 
 def _ok_response(json_body=None):
