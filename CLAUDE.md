@@ -9,7 +9,7 @@ apps/
 ├── backend/   Django 5 + Postgres + django-q2. See apps/backend/CLAUDE.md for backend-specific commands.
 ├── frontend/  React 18 + Vite + TanStack + Mantine + i18next. Yarn.
 ├── mobile/    Expo (React Native) app, offline-first sync. npm workspace with packages/*. See apps/mobile/README.md.
-└── docs/      Docusaurus 2. Yarn. Deployed to docs.librephotos.com via GitHub Pages.
+└── docs/      Docusaurus 3. Yarn. Deployed to docs.librephotos.com via GitHub Pages.
 deploy/
 ├── docker/    Dockerfiles and entrypoints for backend, backend-gpu, frontend, proxy (incl. its nginx config), unified.
 ├── compose/   docker-compose.yml, docker-compose.dev.yml, docker-compose.e2e.yml, librephotos.env.

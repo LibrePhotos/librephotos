@@ -1,4 +1,4 @@
-import React from "react";
+import React, { type ReactNode } from "react";
 import clsx from "clsx";
 import Link from "@docusaurus/Link";
 import useBaseUrl from "@docusaurus/useBaseUrl";
@@ -276,7 +276,7 @@ function BuiltOnAndCommunity() {
   );
 }
 
-export default function Home(): JSX.Element {
+export default function Home(): ReactNode {
   return (
     <Layout title="Self-hosted photo management" description={DESCRIPTION}>
       <Hero />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, type ReactNode } from "react";
 import useBaseUrl from "@docusaurus/useBaseUrl";
 import { useColorMode } from "@docusaurus/theme-common";
 import styles from "./landing.module.css";
@@ -43,7 +43,7 @@ const STOPS: Stop[] = [
   },
 ];
 
-export default function Tour(): JSX.Element {
+export default function Tour(): ReactNode {
   const [active, setActive] = useState(STOPS[0]);
   const { colorMode } = useColorMode();
   const base = useBaseUrl("/img/shots/");
