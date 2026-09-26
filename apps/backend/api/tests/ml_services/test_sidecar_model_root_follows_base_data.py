@@ -146,6 +146,17 @@ class SidecarModelRootFollowsBaseDataTest(SimpleTestCase):
             os.path.join(DOCKER_MODELS_ROOT, "ocr", "ppocrv6_small"),
         )
 
+    def test_thumbnail_media_root(self):
+        # Where the RAW thumbnail sidecar is allowed to write.
+        module = _load_fresh("thumbnail/main.py", {"BASE_DATA": self.base_data})
+        self.assertEqual(
+            module.MEDIA_ROOT, os.path.join(self.base_data, "protected_media")
+        )
+
+    def test_thumbnail_defaults_to_docker_layout(self):
+        module = _load_fresh("thumbnail/main.py", {})
+        self.assertEqual(module.MEDIA_ROOT, os.path.join(os.sep, "protected_media"))
+
 
 class ServiceEnvironmentPassesBaseDataTest(SimpleTestCase):
     def test_base_data_comes_from_settings_not_the_ambient_environment(self):

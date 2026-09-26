@@ -66,9 +66,9 @@ def health():
 
 def serve():
     log("service starting")
-    # 0.0.0.0 inside the containers, as always; the standalone build sets
-    # SERVICE_HOST to loopback (librephotos.standalone.prepare_environment).
-    server = WSGIServer((os.environ.get("SERVICE_HOST", "0.0.0.0"), 8007), app)
+    # Loopback: the backend calls the sidecars on 127.0.0.1 (api.sidecars), and
+    # they have no authentication. SERVICE_HOST overrides it.
+    server = WSGIServer((os.environ.get("SERVICE_HOST", "127.0.0.1"), 8007), app)
     server_thread = gevent.spawn(server.serve_forever)
     gevent.joinall([server_thread])
 
