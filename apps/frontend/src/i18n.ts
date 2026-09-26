@@ -1,150 +1,80 @@
-import i18n from "i18next";
+import i18n, { type BackendModule, type ResourceKey } from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { DateTime } from "luxon";
 import { initReactI18next } from "react-i18next";
-import translationAr from "./locales/ar/translation.json";
-import translationCa from "./locales/ca/translation.json";
-import translationCs from "./locales/cs/translation.json";
-import translationDe from "./locales/de/translation.json";
 import translationEn from "./locales/en/translation.json";
-import translationEo from "./locales/eo/translation.json";
-import translationEs from "./locales/es/translation.json";
-import translationEt from "./locales/et/translation.json";
-import translationEu from "./locales/eu/translation.json";
-import translationFi from "./locales/fi/translation.json";
-import translationFr from "./locales/fr/translation.json";
-import translationHi from "./locales/hi/translation.json";
-import translationHu from "./locales/hu/translation.json";
-import translationIt from "./locales/it/translation.json";
-import translationJa from "./locales/ja/translation.json";
-import translationKo from "./locales/ko/translation.json";
-import translationNb_NO from "./locales/nb_NO/translation.json";
-import translationNl from "./locales/nl/translation.json";
-import translationPl from "./locales/pl/translation.json";
-import translationPt_BR from "./locales/pt_BR/translation.json";
-import translationPt from "./locales/pt/translation.json";
-import translationRo from "./locales/ro/translation.json";
-import translationRu from "./locales/ru/translation.json";
-import translationSk from "./locales/sk/translation.json";
-import translationSv from "./locales/sv/translation.json";
-import translationTa from "./locales/ta/translation.json";
-import translationTr from "./locales/tr/translation.json";
-import translationUK from "./locales/uk/translation.json";
-import translationUr from "./locales/ur/translation.json";
-import translationVi from "./locales/vi/translation.json";
-import translationZh_Hans from "./locales/zh_Hans/translation.json";
-import translationZh_Hant from "./locales/zh_Hant/translation.json";
 
 export const i18nResolvedLanguage = () => (i18n.resolvedLanguage ? i18n.resolvedLanguage.replace("_", "-") : "en");
 
-const resources = {
-  en: {
-    translation: translationEn,
-  },
-  de: {
-    translation: translationDe,
-  },
-  es: {
-    translation: translationEs,
-  },
-  ca: {
-    translation: translationCa,
-  },
-  eo: {
-    translation: translationEo,
-  },
-  et: {
-    translation: translationEt,
-  },
-  fr: {
-    translation: translationFr,
-  },
-  it: {
-    translation: translationIt,
-  },
-  nb_NO: {
-    translation: translationNb_NO,
-  },
-  zh_Hant: {
-    translation: translationZh_Hant,
-  },
-  zh_Hans: {
-    translation: translationZh_Hans,
-  },
-  ru: {
-    translation: translationRu,
-  },
-  ja: {
-    translation: translationJa,
-  },
-  sv: {
-    translation: translationSv,
-  },
-  pl: {
-    translation: translationPl,
-  },
-  nl: {
-    translation: translationNl,
-  },
-  cs: {
-    translation: translationCs,
-  },
-  pt: {
-    translation: translationPt,
-  },
-  fi: {
-    translation: translationFi,
-  },
-  eu: {
-    translation: translationEu,
-  },
-  hu: {
-    translation: translationHu,
-  },
-  uk: {
-    translation: translationUK,
-  },
-  vi: {
-    translation: translationVi,
-  },
-  ar: {
-    translation: translationAr,
-  },
-  ko: {
-    translation: translationKo,
-  },
-  pt_BR: {
-    translation: translationPt_BR,
-  },
-  ro: {
-    translation: translationRo,
-  },
-  sk: {
-    translation: translationSk,
-  },
-  ur: {
-    translation: translationUr,
-  },
-  hi: {
-    translation: translationHi,
-  },
-  ta: {
-    translation: translationTa,
-  },
-  tr: {
-    translation: translationTr,
+// English ships in the main bundle: it is the fallback language and the one
+// most people use. Every other locale is its own chunk, fetched the first time
+// that language is needed (initial detection or a switch in the settings).
+const localeLoaders: Record<string, () => Promise<{ default: ResourceKey }>> = {
+  ar: () => import("./locales/ar/translation.json"),
+  ca: () => import("./locales/ca/translation.json"),
+  cs: () => import("./locales/cs/translation.json"),
+  de: () => import("./locales/de/translation.json"),
+  eo: () => import("./locales/eo/translation.json"),
+  es: () => import("./locales/es/translation.json"),
+  et: () => import("./locales/et/translation.json"),
+  eu: () => import("./locales/eu/translation.json"),
+  fi: () => import("./locales/fi/translation.json"),
+  fr: () => import("./locales/fr/translation.json"),
+  hi: () => import("./locales/hi/translation.json"),
+  hu: () => import("./locales/hu/translation.json"),
+  it: () => import("./locales/it/translation.json"),
+  ja: () => import("./locales/ja/translation.json"),
+  ko: () => import("./locales/ko/translation.json"),
+  nb_NO: () => import("./locales/nb_NO/translation.json"),
+  nl: () => import("./locales/nl/translation.json"),
+  pl: () => import("./locales/pl/translation.json"),
+  pt: () => import("./locales/pt/translation.json"),
+  pt_BR: () => import("./locales/pt_BR/translation.json"),
+  ro: () => import("./locales/ro/translation.json"),
+  ru: () => import("./locales/ru/translation.json"),
+  sk: () => import("./locales/sk/translation.json"),
+  sv: () => import("./locales/sv/translation.json"),
+  ta: () => import("./locales/ta/translation.json"),
+  tr: () => import("./locales/tr/translation.json"),
+  uk: () => import("./locales/uk/translation.json"),
+  ur: () => import("./locales/ur/translation.json"),
+  vi: () => import("./locales/vi/translation.json"),
+  zh_Hans: () => import("./locales/zh_Hans/translation.json"),
+  zh_Hant: () => import("./locales/zh_Hant/translation.json"),
+};
+
+const lazyLocaleBackend: BackendModule = {
+  type: "backend",
+  init: () => {},
+  read(language, _namespace, callback) {
+    const load = localeLoaders[language];
+    if (!load) {
+      // Region variants ("de-DE", "en-US") and unknown codes have no file of
+      // their own; an empty bundle lets i18next fall through to "de" / "en".
+      callback(null, {});
+      return;
+    }
+    load().then(
+      module => callback(null, module.default),
+      error => callback(error, false)
+    );
   },
 };
-i18n
+
+/** Resolves once the detected (or saved) language has been loaded. */
+export const i18nReady = i18n
   // detect user language
   // learn more: https://github.com/i18next/i18next-browser-languageDetector
   .use(LanguageDetector)
+  .use(lazyLocaleBackend)
   // pass the i18n instance to react-i18next.
   .use(initReactI18next)
   // init i18next
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    resources,
+    resources: { en: { translation: translationEn } },
+    // Load everything that is not in `resources` through lazyLocaleBackend.
+    partialBundledLanguages: true,
     debug: process.env.NODE_ENV === "development",
     fallbackLng: "en",
     interpolation: {
