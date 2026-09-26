@@ -210,6 +210,61 @@ class DownloadModelUnpackTest(TestCase):
             self.assertEqual(b"onnx-bytes", extracted.read_bytes())
             self.assertFalse((model_folder / "nested" / "custom_zip.zip").exists())
 
+    def test_zip_with_a_wrapper_folder_is_flattened_into_target_dir(self):
+        # antelopev2.zip and buffalo_m.zip wrap their files in a folder named
+        # after the model; FaceAnalysis only globs target_dir/*.onnx (#2073).
+        payload = _make_zip_bytes(
+            {
+                "antelopev2/": b"",
+                "antelopev2/glintr100.onnx": b"rec",
+                "antelopev2/scrfd_10g_bnkps.onnx": b"det",
+            }
+        )
+        model = {
+            "id": 902,
+            "name": "wrapped_zip",
+            "url": "https://example.invalid/antelopev2.zip",
+            "type": "custom",
+            "unpack-command": "zip",
+            "target-dir": "face_recognition/models/antelopev2",
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            target_dir = media_root / "data_models" / model["target-dir"]
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                with patch("api.ml_models.requests.get", _responder(payload)):
+                    download_model(model)
+
+            self.assertEqual(
+                ["glintr100.onnx", "scrfd_10g_bnkps.onnx"],
+                sorted(p.name for p in target_dir.iterdir()),
+            )
+            self.assertEqual(b"rec", (target_dir / "glintr100.onnx").read_bytes())
+
+    def test_member_named_like_its_wrapper_folder_is_kept(self):
+        payload = _make_zip_bytes({"m/m": b"inner", "m/a.onnx": b"a"})
+        model = {
+            "id": 903,
+            "name": "self_named",
+            "url": "https://example.invalid/m.zip",
+            "type": "custom",
+            "unpack-command": "zip",
+            "target-dir": "m",
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            target_dir = media_root / "data_models" / "m"
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                with patch("api.ml_models.requests.get", _responder(payload)):
+                    download_model(model)
+
+            self.assertEqual(
+                ["a.onnx", "m"], sorted(p.name for p in target_dir.iterdir())
+            )
+            self.assertEqual(b"inner", (target_dir / "m").read_bytes())
+
     def test_plain_file_model_lands_at_target_dir_without_unpacking(self):
         payload = b"plain model bytes"
         model = {
@@ -401,6 +456,45 @@ class DownloadModelFaceRecognitionExistsTest(TestCase):
                         download_model(model)
 
             self.assertEqual(1, download_file.call_count)
+
+    @override_config(FACE_RECOGNITION_MODEL="antelopev2")
+    def test_nested_install_is_flattened_instead_of_re_downloaded(self):
+        # Installs unpacked before #2073 have models/antelopev2/antelopev2/*.onnx.
+        model = _model_by_name("antelopev2")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            target_dir = media_root / "data_models" / model["target-dir"]
+            (target_dir / "antelopev2").mkdir(parents=True)
+            (target_dir / "antelopev2" / "glintr100.onnx").write_bytes(b"rec")
+
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                with patch("api.ml_models._download_file") as download_file:
+                    download_model(model)
+
+            download_file.assert_not_called()
+            self.assertEqual(
+                ["glintr100.onnx"], sorted(p.name for p in target_dir.iterdir())
+            )
+
+    @override_config(FACE_RECOGNITION_MODEL="buffalo_sc")
+    def test_flat_install_is_left_alone(self):
+        model = _model_by_name("buffalo_sc")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            media_root = Path(temp_dir) / "protected_media"
+            target_dir = media_root / "data_models" / model["target-dir"]
+            target_dir.mkdir(parents=True)
+            (target_dir / "det_500m.onnx").write_bytes(b"det")
+            (target_dir / "w600k_mbf.onnx").write_bytes(b"rec")
+
+            with override_settings(MEDIA_ROOT=str(media_root)):
+                with patch("api.ml_models._download_file") as download_file:
+                    download_model(model)
+
+            download_file.assert_not_called()
+            self.assertEqual(
+                ["det_500m.onnx", "w600k_mbf.onnx"],
+                sorted(p.name for p in target_dir.iterdir()),
+            )
 
 
 # ---------------------------------------------------------------------------
