@@ -21,6 +21,9 @@ class AlbumUser(models.Model):
     )
 
     shared_to = models.ManyToManyField(User, related_name="album_user_shared_to")
+    # Delta-sync ordering key (mobile v2, doc 04). Bumped on save and on
+    # membership / sharing changes via m2m_changed receivers (api/sync_signals.py).
+    last_modified = models.DateTimeField(auto_now=True, db_index=True)
 
     def __str__(self):
         return f"{self.title} ({self.owner.username})"

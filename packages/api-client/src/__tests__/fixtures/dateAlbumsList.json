@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "id": "2024-06-15",
+      "date": "2024-06-15",
+      "location": "Berlin, Germany",
+      "incomplete": true,
+      "numberOfItems": 42,
+      "items": [
+        {
+          "id": "11111111-1111-1111-1111-111111111111",
+          "image_hash": "abcdef0123456789hash1",
+          "aspectRatio": 1.5,
+          "type": "image",
+          "rating": 0,
+          "url": "abcdef0123456789hash1;something"
+        },
+        {
+          "id": "22222222-2222-2222-2222-222222222222",
+          "image_hash": "abcdef0123456789hash2",
+          "aspectRatio": 0.66,
+          "type": "video",
+          "video_length": "12.5",
+          "rating": 4
+        }
+      ]
+    },
+    {
+      "id": "no-timestamp",
+      "date": null,
+      "location": null,
+      "incomplete": true,
+      "numberOfItems": 3,
+      "items": []
+    }
+  ]
+}

@@ -191,15 +191,19 @@ class AlbumM2MUniqueConstraintTest(TestCase):
 
     def test_add_stops_duplicating_once_the_constraint_is_back(self):
         # Why the constraint matters rather than merely being tidy: adding to
-        # an auto-created M2M inserts with ``ignore_conflicts=True`` and, with
-        # no listener on ``m2m_changed``, without checking what is already
-        # there. Nothing to conflict against means nothing is ignored.
+        # an auto-created M2M inserts with ``ignore_conflicts=True``, and
+        # nothing to conflict against means nothing is ignored. ``add()`` only
+        # looks at what is already there while ``m2m_changed`` has a listener
+        # (the delta-sync signals in api/sync_signals.py connect one), so the
+        # duplicate is seeded through the through model, the way an install
+        # that predates those signals got it.
         album, field_name = self.album_for("api_albumuser_photos")
         table, album_column = "api_albumuser_photos", "albumuser_id"
         self.drop_unique_indexes(table, album_column)
+        through = through_model(type(album), field_name)
 
-        getattr(album, field_name).add(self.photo)
-        getattr(album, field_name).add(self.photo)
+        for _ in range(2):
+            through.objects.create(albumuser=album, photo=self.photo)
         self.assertEqual(len(self.link_rows(table, album_column, album)), 2)
 
         migration_module.add_unique_indexes(None, CursorExecutor())

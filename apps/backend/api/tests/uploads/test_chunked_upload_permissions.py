@@ -262,17 +262,17 @@ class AuthenticateUploadRequestTest(TestCase):
         self.assertEqual(self.user.pk, returned.pk)
         self.assertEqual(self.user.username, returned.username)
 
-    def test_ignores_the_authorization_header(self):
-        # Only the "jwt" cookie is consulted; a bearer header does not help.
+    def test_accepts_the_authorization_header(self):
+        # Native clients cannot set the "jwt" cookie reliably, so a bearer
+        # header authenticates the upload too (it is checked before the cookie).
         request = RequestFactory().post(
             "/api/chunked_upload/complete/",
             HTTP_AUTHORIZATION=f"Bearer {token_for(self.user)}",
         )
 
-        with self.assertRaises(ChunkedUploadError) as ctx:
-            authenticate_upload_request(request)
+        returned = authenticate_upload_request(request)
 
-        self.assertEqual(NOT_PROVIDED, ctx.exception.data["detail"])
+        self.assertEqual(self.user.pk, returned.pk)
 
     def test_token_without_user_id_claim_raises_keyerror_not_403(self):
         # Pinned bug: a token missing the user_id claim escapes as a raw

@@ -15,6 +15,7 @@ This separation allows:
 import uuid
 
 from django.db import models
+from django.utils import timezone
 
 from api.models.photo_stack import PhotoStack
 from api.models.user import User, get_deleted_user
@@ -176,7 +177,11 @@ class StackReview(models.Model):
             )
 
             affected_tag_ids = tag_ids_for_photos(other_photos)
-            self.trashed_count = other_photos.update(in_trashcan=True)
+            # A queryset update skips auto_now; bump last_modified by hand so
+            # the delta-sync feed (api/views/sync.py) carries the change.
+            self.trashed_count = other_photos.update(
+                in_trashcan=True, last_modified=timezone.now()
+            )
             refresh_tag_photo_counts(affected_tag_ids)
 
         self.save()
@@ -203,7 +208,7 @@ class StackReview(models.Model):
 
         # Restore trashed photos in this stack (using ManyToMany relationship)
         restored_count = self.stack.photos.filter(in_trashcan=True).update(
-            in_trashcan=False
+            in_trashcan=False, last_modified=timezone.now()
         )
 
         # Reset to pending

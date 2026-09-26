@@ -14,6 +14,8 @@ class AlbumPlace(models.Model):
     )
 
     shared_to = models.ManyToManyField(User, related_name="album_place_shared_to")
+    # Delta-sync ordering key (mobile v2, doc 04).
+    last_modified = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         unique_together = ("title", "owner")

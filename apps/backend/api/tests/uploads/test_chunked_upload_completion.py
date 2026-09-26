@@ -51,6 +51,10 @@ class FakeUploadedFile:
     def seek(self, *args):
         return self._buf.seek(*args)
 
+    def close(self):
+        # on_completion releases its handle before deleting the staged file.
+        self._buf.close()
+
 
 @override_config(ALLOW_UPLOAD=True)
 class UploadPhotosChunkedCheckPermissionsTest(TestCase):
@@ -286,7 +290,9 @@ class OnCompletionBodyTest(OnCompletionTestBase):
         create_new_image.assert_called_once_with(self.user, expected_path)
 
         chain = chain_cls.return_value
-        self.assertEqual(5, chain.append.call_count)
+        # import, device-timestamp fallback, captions, geolocate, album
+        # dates, faces
+        self.assertEqual(6, chain.append.call_count)
         chain.run.assert_called_once_with()
         first_call = chain.append.call_args_list[0][0]
         self.assertEqual(self.user, first_call[1])
