@@ -17,6 +17,11 @@
       "enabled": false
     },
     {
+      "description": "ruff is pinned in four places that must move together: required-version in apps/backend/pyproject.toml, requirements.dev.txt, .pre-commit-config.yaml and .github/workflows/lint-backend.yml (not seen by Renovate). A minor ruff release can change the default rules and the formatter: 0.16.3 reports 687 findings on a tree 0.15.22 passes and reformats Markdown code blocks. Bump it by hand together with the fixes.",
+      "matchPackageNames": ["ruff", "astral-sh/ruff-pre-commit"],
+      "enabled": false
+    },
+    {
       "description": "insightface has no wheels on PyPI; requirements.txt pins wheels built by the prebuilt-wheels workflow next to the PyPI pin. Bump them together by hand and re-run the workflow.",
       "matchPackageNames": ["insightface"],
       "enabled": false
