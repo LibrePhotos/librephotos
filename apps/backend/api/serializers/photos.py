@@ -4,6 +4,8 @@ from rest_framework import serializers
 
 from api.geocode.geocode import reverse_geocode
 from api.geocode import GEOCODE_VERSION
+from api.geocode.photo_location import find_album_places
+from api.metadata.photo_datetime import extract_date_time
 from api import util
 
 from api.image_similarity import search_similar_image
@@ -243,12 +245,12 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             return
         instance.timestamp = validated_data.pop("exif_timestamp")
         instance.save()
-        instance._extract_date_time_from_exif()
+        extract_date_time(instance)
 
     def _apply_gps_location(self, instance, lat, lon):
         try:
             # Track old places to update album place relations
-            old_album_places = instance._find_album_place()
+            old_album_places = find_album_places(instance)
 
             instance.exif_gps_lat = float(lat)
             instance.exif_gps_lon = float(lon)

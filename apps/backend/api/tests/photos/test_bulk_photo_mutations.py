@@ -159,7 +159,7 @@ class WritePhotoRatingsJobTest(TestCase):
         Photo.objects.filter(pk__in=[p.pk for p in self.photos]).update(rating=4)
 
     def test_writes_the_current_rating_like_save_does(self):
-        with patch("api.models.photo.write_metadata") as write:
+        with patch("api.metadata.photo_writer.write_metadata") as write:
             write_photo_ratings([p.pk for p in self.photos], True)
 
         self.assertEqual(write.call_count, 2)
@@ -170,7 +170,8 @@ class WritePhotoRatingsJobTest(TestCase):
 
     def test_one_failing_photo_does_not_stop_the_rest(self):
         with patch(
-            "api.models.photo.write_metadata", side_effect=[OSError("locked"), None]
+            "api.metadata.photo_writer.write_metadata",
+            side_effect=[OSError("locked"), None],
         ) as write:
             write_photo_ratings([p.pk for p in self.photos], False)
         self.assertEqual(write.call_count, 2)

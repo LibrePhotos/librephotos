@@ -3,7 +3,7 @@
 from django.test import TestCase
 
 from api.admin import deduplicate_faces_function
-from api.models.photo import _overlaps_existing_face
+from api.photo_faces import overlaps_existing_face
 from api.tests.utils import (
     create_test_face,
     create_test_person,
@@ -78,23 +78,23 @@ class CalculateIoUTest(TestCase):
 
 
 class OverlapsExistingFaceTest(TestCase):
-    """Tests for _overlaps_existing_face in the photo model."""
+    """Tests for overlaps_existing_face in api.photo_faces."""
 
     def test_no_existing_faces(self):
         """When no faces exist on the photo, should return False."""
-        self.assertFalse(_overlaps_existing_face([], 100, 300, 300, 100))
+        self.assertFalse(overlaps_existing_face([], 100, 300, 300, 100))
 
     def test_overlapping_face_detected(self):
         """A new face that overlaps significantly with an existing face should be rejected."""
         existing = [(100, 300, 300, 100)]
         # Slightly shifted face — high IoU
-        self.assertTrue(_overlaps_existing_face(existing, 110, 310, 310, 110))
+        self.assertTrue(overlaps_existing_face(existing, 110, 310, 310, 110))
 
     def test_non_overlapping_face_allowed(self):
         """A new face far away from the existing face should not be rejected."""
         existing = [(100, 300, 300, 100)]
         # Completely different region
-        self.assertFalse(_overlaps_existing_face(existing, 500, 700, 700, 500))
+        self.assertFalse(overlaps_existing_face(existing, 500, 700, 700, 500))
 
     def test_same_face_different_model_sizes(self):
         """A tighter or wider bounding box around the same face should be detected."""
@@ -106,7 +106,7 @@ class OverlapsExistingFaceTest(TestCase):
         # Box1 area: 300x300 = 90000
         # Union: 90000 + 40000 - 40000 = 90000
         # IoU: 40000 / 90000 ≈ 0.444
-        self.assertTrue(_overlaps_existing_face(existing, 100, 300, 300, 100))
+        self.assertTrue(overlaps_existing_face(existing, 100, 300, 300, 100))
 
 
 class DeduplicateFacesFunctionTest(TestCase):

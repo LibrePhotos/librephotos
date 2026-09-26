@@ -1,13 +1,14 @@
-"""Characterization tests for ``Photo._add_to_album_thing`` and ``Photo.rotate``.
+"""Characterization tests for ``add_photo_to_album_things`` and ``Photo.rotate``.
 
-These pin the CURRENT behaviour of two high-CRAP methods on
-``api.models.photo.Photo`` before they are refactored.
+These pin the behaviour of two high-CRAP functions:
+``api.autoalbum.add_photo_to_album_things`` (formerly
+``Photo._add_to_album_thing``) and ``Photo.rotate``.
 
 Everything expensive is mocked: ``Thumbnail._regenerate_thumbnails`` and
-``api.models.photo.write_metadata`` (exiftool). No network, no ML models.
+``api.metadata.photo_writer.write_metadata`` (exiftool). No network, no ML models.
 
 Quirks deliberately pinned (see inline comments):
-  * ``_add_to_album_thing`` reads the tags the ACTIVE tagging model stored
+  * ``add_photo_to_album_things`` reads the tags the ACTIVE tagging model stored
     for the photo (``captions_json[TAGGING_MODEL]["tags"]``) and files the
     photo under ``<model>_tag`` albums, looked up by title, owner AND
     thing_type -- so repeated titles, second photos and reruns are all
@@ -34,6 +35,7 @@ from unittest.mock import patch
 from constance.test import override_config
 from django.test import TestCase
 
+from api.autoalbum import add_photo_to_album_things
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
@@ -60,20 +62,20 @@ class AddToAlbumThingTest(TestCase):
         photo = create_test_photo(owner=self.user)
         self.assertFalse(hasattr(photo, "caption_instance"))
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
     def test_empty_captions_json_is_noop(self):
         photo = self._photo({})
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
     def test_captions_json_without_active_model_is_noop(self):
         photo = self._photo({"im2txt": "a dog", "siglip2": {"tags": ["dog"]}})
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
@@ -83,20 +85,20 @@ class AddToAlbumThingTest(TestCase):
         PhotoCaption.objects.create(photo=photo, captions_json=["mobileclip_s2"])
 
         photo.refresh_from_db()
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
     def test_non_dict_tag_result_is_noop(self):
         photo = self._photo({"mobileclip_s2": "nope"})
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
     def test_missing_tags_key_and_empty_list_create_nothing(self):
-        self._photo({"mobileclip_s2": {}})._add_to_album_thing()
-        self._photo(_tags([]))._add_to_album_thing()
+        add_photo_to_album_things(self._photo({"mobileclip_s2": {}}))
+        add_photo_to_album_things(self._photo(_tags([])))
 
         self.assertEqual(AlbumThing.objects.count(), 0)
 
@@ -105,7 +107,7 @@ class AddToAlbumThingTest(TestCase):
     def test_creates_one_typed_album_per_tag(self):
         photo = self._photo(_tags(["sunny", "natural light", "beach"]))
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.count(), 3)
         for title in ("sunny", "natural light", "beach"):
@@ -120,7 +122,7 @@ class AddToAlbumThingTest(TestCase):
             {"mobileclip_s2": {"tags": ["beach"]}, "siglip2": {"tags": ["dog"]}}
         )
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         thing = AlbumThing.objects.get()
         self.assertEqual((thing.title, thing.thing_type), ("dog", "siglip2_tag"))
@@ -128,7 +130,7 @@ class AddToAlbumThingTest(TestCase):
     def test_photo_count_receiver_updates_count(self):
         photo = self._photo(_tags(["sunny"]))
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.get(title="sunny").photo_count, 1)
 
@@ -136,8 +138,8 @@ class AddToAlbumThingTest(TestCase):
         first = self._photo(_tags(["sunny"]))
         second = self._photo(_tags(["sunny"]))
 
-        first._add_to_album_thing()
-        second._add_to_album_thing()
+        add_photo_to_album_things(first)
+        add_photo_to_album_things(second)
 
         thing = AlbumThing.objects.get(title="sunny")
         self.assertEqual(set(thing.photos.all()), {first, second})
@@ -145,8 +147,8 @@ class AddToAlbumThingTest(TestCase):
     def test_rerunning_for_same_photo_is_idempotent(self):
         photo = self._photo(_tags(["sunny", "sunny"]))
 
-        photo._add_to_album_thing()
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
+        add_photo_to_album_things(photo)
 
         thing = AlbumThing.objects.get(title="sunny")
         self.assertEqual(list(thing.photos.all()), [photo])
@@ -166,7 +168,7 @@ class AddToAlbumThingTest(TestCase):
         )
         thing.photos.add(twin)
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 1)
         self.assertEqual(list(thing.photos.all()), [twin])
@@ -178,7 +180,7 @@ class AddToAlbumThingTest(TestCase):
         )
         photo = self._photo(_tags(["sunny"]))
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 2)
         mine = AlbumThing.objects.get(title="sunny", owner=self.user)
@@ -191,7 +193,7 @@ class AddToAlbumThingTest(TestCase):
         legacy = AlbumThing.objects.create(title="sunny", owner=self.user)
         photo = self._photo(_tags(["sunny"]))
 
-        photo._add_to_album_thing()
+        add_photo_to_album_things(photo)
 
         legacy.refresh_from_db()
         self.assertEqual(legacy.photos.count(), 0)
@@ -307,14 +309,14 @@ class RotateCharacterizationTest(TestCase):
     def _written(self, write_metadata):
         return list(write_metadata.call_args[0][1].values())
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_save_metadata_off_does_not_write(self, regen, write_metadata):
         self.photo.rotate(90)
 
         write_metadata.assert_not_called()
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_media_file_mode_writes_without_sidecar(self, regen, write_metadata):
         photo = self._media_file_photo()
@@ -328,7 +330,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(list(args[1].values()), [6])
         self.assertFalse(kwargs["use_sidecar"])
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_sidecar_mode_sets_use_sidecar(self, regen, write_metadata):
         self.user.save_metadata_to_disk = User.SaveMetadata.SIDECAR_FILE
@@ -340,7 +342,7 @@ class RotateCharacterizationTest(TestCase):
 
         self.assertTrue(write_metadata.call_args.kwargs["use_sidecar"])
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_a_confirmed_write_moves_the_rotation_into_the_file(
         self, regen, write_metadata
@@ -360,7 +362,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(photo.local_orientation, 1)
         self.assertEqual(photo.metadata.orientation, 6)
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_written_value_starts_from_the_files_own_orientation(
         self, regen, write_metadata
@@ -381,7 +383,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(photo.local_orientation, 1)
         self.assertEqual(photo.metadata.orientation, 3)
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_media_file_rotate_does_not_stack_on_a_second_rotate(
         self, regen, write_metadata
@@ -402,7 +404,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(self._written(write_metadata), [3])
         self.assertEqual(photo.local_orientation, 1)
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_a_write_that_does_not_land_keeps_local_orientation(
         self, regen, write_metadata
@@ -422,7 +424,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(photo.metadata.orientation, 1)
 
     @patch("api.thumbnails.renders_exif_orientation", return_value=False)
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_a_format_that_ignores_exif_orientation_keeps_local_orientation(
         self, regen, write_metadata, renders
@@ -441,7 +443,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(photo.local_orientation, 6)
         self.assertEqual(photo.metadata.orientation, 1)
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_an_unreadable_file_is_not_folded(self, regen, write_metadata):
         photo = self._media_file_photo()
@@ -453,7 +455,7 @@ class RotateCharacterizationTest(TestCase):
         photo.refresh_from_db()
         self.assertEqual(photo.local_orientation, 6)
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_sidecar_rotate_keeps_local_orientation(self, regen, write_metadata):
         """A sidecar leaves the image bytes alone, so the renderer still needs
@@ -474,7 +476,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(photo.metadata.orientation, 1)
 
     @patch("api.thumbnails.renders_exif_orientation", return_value=False)
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_missing_metadata_row_defaults_exif_orientation_to_1(
         self, regen, write_metadata, renders
@@ -491,7 +493,7 @@ class RotateCharacterizationTest(TestCase):
         self.assertEqual(self._written(write_metadata), [6])
 
     @patch("api.thumbnails.renders_exif_orientation", return_value=False)
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_null_exif_orientation_falls_back_to_1(
         self, regen, write_metadata, renders
@@ -502,7 +504,7 @@ class RotateCharacterizationTest(TestCase):
 
         self.assertEqual(self._written(write_metadata), [3])
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.models.thumbnail.Thumbnail._regenerate_thumbnails")
     def test_thumbnails_regenerated_before_metadata_write(self, regen, write_metadata):
         """Ordering contract: the DB save + thumbnail regeneration happen

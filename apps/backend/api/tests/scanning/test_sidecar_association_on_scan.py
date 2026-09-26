@@ -258,7 +258,7 @@ class SidecarsSurviveSlowIngestTest(TestCase):
                     patch("api.models.thumbnail.Thumbnail._calculate_aspect_ratio"),
                     patch("api.models.thumbnail.Thumbnail._get_dominant_color"),
                     patch("api.models.photo_metadata.PhotoMetadata.extract_exif_data"),
-                    patch("api.models.photo.Photo._extract_date_time_from_exif"),
+                    patch("api.directory_watcher.file_handlers.extract_date_time"),
                 ):
                     from api.directory_watcher import scan_photos
 

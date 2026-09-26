@@ -25,6 +25,7 @@ from api.directory_watcher.file_grouping import (
     select_main_file,
 )
 from api.directory_watcher.utils import update_scan_counter
+from api.metadata.photo_datetime import extract_date_time
 from api.models import File, Person, Photo, Thumbnail
 from api.models.file import (
     calculate_hash,
@@ -112,7 +113,7 @@ def _picture_verdict(photo: Photo | None, path: str) -> str:
 
     A MEDIA_FILE rotate of a format that renders its EXIF orientation moves the
     rotation into the file and resets ``local_orientation`` to 1
-    (``Photo._fold_rotation_into_file``), so those photos do take the
+    (``api.metadata.photo_writer._fold_rotation_into_file``), so those photos do take the
     comparison.
     """
     stored = photo.perceptual_hash if photo else None
@@ -445,7 +446,7 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
 
     # Check if a Photo already exists with any of these files. Matching on
     # main_file as well as the files m2m re-adopts photos whose file went
-    # missing and reappeared: _check_files detaches a missing file from the
+    # missing and reappeared: detach_missing_files detaches a missing file from the
     # m2m but keeps main_file pointing at it, so without that match a
     # reappearing file would spawn a duplicate Photo with the same image_hash.
     # Sidecars are left out of the match: File rows are keyed by content hash,
@@ -634,7 +635,7 @@ def apply_device_timestamp_fallback(photo, device_created_at, device_modified_at
     if photo.exif_timestamp is not None:
         return photo
     photo.timestamp = device_created_at
-    photo._extract_date_time_from_exif(commit=True)
+    extract_date_time(photo, commit=True)
     return photo
 
 
@@ -791,13 +792,13 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
     # Categorise the photo (screenshot/document) from the freshly extracted
     # metadata. A manual correction ("user") is never overwritten by a rescan.
     # The value is persisted by the full ``photo.save()`` inside the
-    # ``_extract_date_time_from_exif`` call immediately below.
+    # ``extract_date_time`` call immediately below.
     if photo.category_source != "user":
         from api.screenshot_detection import classify
 
         photo.is_screenshot = classify(photo)
 
-    photo._extract_date_time_from_exif(True)
+    extract_date_time(photo, True)
     elapsed = (datetime.datetime.now() - start).total_seconds()
     util.logger.info(f"job {job_id}: extract date time: {path}, elapsed: {elapsed}")
 

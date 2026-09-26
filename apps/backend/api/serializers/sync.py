@@ -80,7 +80,7 @@ def serialize_photo_row(row):
         # ``Photo.exif_timestamp`` is the photo's effective capture time: the
         # scan writes the extracted EXIF date there, and a user-supplied or
         # device-supplied date arrives via ``Photo.timestamp`` and is folded in
-        # by the datetime rules (see Photo._extract_date_time_from_exif and
+        # by the datetime rules (see api.metadata.photo_datetime.extract_date_time and
         # apply_device_timestamp_fallback). ``Photo.timestamp`` on its own is
         # only the *input* override and is null on almost every photo, so
         # reading it alone made every scanned photo look undated. Keep it as the

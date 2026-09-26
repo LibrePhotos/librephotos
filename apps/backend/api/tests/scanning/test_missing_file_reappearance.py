@@ -4,6 +4,7 @@ from django.test import TestCase
 
 from api.directory_watcher.file_handlers import group_files_into_photo
 from api.models import File, Photo
+from api.photo_files import detach_missing_files
 from api.tests.utils import create_test_photo, create_test_user
 
 
@@ -60,7 +61,7 @@ class MissingFileReappearanceTest(TestCase):
         # The file disappears (unmounted share, removed drive) and a
         # "scan missing photos" run flags it.
         os.remove(path)
-        photo._check_files()
+        detach_missing_files(photo)
         file.refresh_from_db()
         self.assertTrue(file.missing)
         self.assertEqual(0, photo.files.count())

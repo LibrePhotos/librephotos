@@ -22,6 +22,7 @@ from api.geocode.geocode import reverse_geocode, search_location
 from api.models import Face, LongRunningJob
 from api.models.file import is_valid_media
 from api.models.photo_caption import PhotoCaption
+from api.photo_faces import extract_faces
 from api.tests.utils import (
     ONE_PIXEL_PNG,
     create_test_file,
@@ -211,22 +212,22 @@ class FaceDetectionFeatureFlagTest(TestCase):
         self.client.force_authenticate(user=self.user)
         self.photo = create_test_photo(owner=self.user)
 
-    @patch("api.models.photo.PIL.Image.open")
-    @patch("api.models.photo.face_extractor")
+    @patch("api.photo_faces.PIL.Image.open")
+    @patch("api.photo_faces.face_extractor")
     def test_faces_are_extracted_by_default(self, face_extractor_mock, image_open_mock):
         face_extractor_mock.extract.return_value = []
 
-        self.photo._extract_faces()
+        extract_faces(self.photo)
         face_extractor_mock.extract.assert_called_once()
 
     @override_settings(FEATURE_FACE_DETECTION=False)
-    @patch("api.models.photo.PIL.Image.open")
-    @patch("api.models.photo.face_extractor")
+    @patch("api.photo_faces.PIL.Image.open")
+    @patch("api.photo_faces.face_extractor")
     def test_faces_are_not_extracted_when_disabled(
         self, face_extractor_mock, image_open_mock
     ):
         """The upload pipeline calls this directly, bypassing the scan gates."""
-        self.photo._extract_faces()
+        extract_faces(self.photo)
 
         face_extractor_mock.extract.assert_not_called()
         self.assertEqual(0, Face.objects.filter(photo=self.photo).count())

@@ -4,7 +4,7 @@ Pins the CURRENT behaviour of ``generate_tags`` and ``scan_faces`` before
 refactoring. These tests deliberately assert what the code does today,
 including a couple of quirks that are called out in comments.
 
-All ML work is mocked: ``Photo._extract_faces`` is patched, ``AsyncTask`` is
+All ML work is mocked: ``extract_faces`` is patched, ``AsyncTask`` is
 patched, and the face-embedding / clustering tail calls of ``scan_faces`` are
 patched at module level. Nothing here touches the network or a model file.
 """
@@ -255,7 +255,7 @@ class ScanFacesCharacterizationTest(TestCase):
         with (
             embed as mock_embed,
             cluster as mock_cluster,
-            patch.object(Photo, "_extract_faces") as extract,
+            patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)
 
@@ -305,7 +305,7 @@ class ScanFacesCharacterizationTest(TestCase):
         with (
             embed,
             cluster,
-            patch.object(Photo, "_extract_faces") as extract,
+            patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)
 
@@ -320,7 +320,7 @@ class ScanFacesCharacterizationTest(TestCase):
         with (
             embed,
             cluster,
-            patch.object(Photo, "_extract_faces") as extract,
+            patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)
 
@@ -336,7 +336,9 @@ class ScanFacesCharacterizationTest(TestCase):
             embed,
             cluster,
             patch.object(
-                Photo, "_extract_faces", side_effect=[ValueError("bad face"), None]
+                processing_jobs,
+                "extract_faces",
+                side_effect=[ValueError("bad face"), None],
             ) as extract,
         ):
             scan_faces(self.user, self.job_id)
@@ -359,7 +361,9 @@ class ScanFacesCharacterizationTest(TestCase):
         with (
             embed,
             cluster,
-            patch.object(Photo, "_extract_faces", side_effect=RuntimeError("nope")),
+            patch.object(
+                processing_jobs, "extract_faces", side_effect=RuntimeError("nope")
+            ),
         ):
             scan_faces(self.user, self.job_id)
 
@@ -376,7 +380,7 @@ class ScanFacesCharacterizationTest(TestCase):
         with (
             embed as mock_embed,
             cluster as mock_cluster,
-            patch.object(Photo, "_extract_faces") as extract,
+            patch.object(processing_jobs, "extract_faces") as extract,
             patch.object(processing_jobs, "is_job_cancelled", return_value=True),
         ):
             scan_faces(self.user, self.job_id)
@@ -400,7 +404,7 @@ class ScanFacesCharacterizationTest(TestCase):
                 "close_all",
                 side_effect=RuntimeError("boom"),
             ),
-            patch.object(Photo, "_extract_faces") as extract,
+            patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id)  # must not raise
 
@@ -436,8 +440,8 @@ class ScanFacesCharacterizationTest(TestCase):
             embed,
             cluster,
             patch.object(
-                Photo,
-                "_extract_faces",
+                processing_jobs,
+                "extract_faces",
                 autospec=True,
                 side_effect=lambda s: seen.append(s.pk),
             ),
@@ -465,7 +469,7 @@ class ScanFacesCharacterizationTest(TestCase):
         with (
             embed,
             cluster,
-            patch.object(Photo, "_extract_faces") as extract,
+            patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id, full_scan=True)
 
@@ -489,7 +493,7 @@ class ScanFacesCharacterizationTest(TestCase):
         with (
             embed,
             cluster,
-            patch.object(Photo, "_extract_faces") as extract,
+            patch.object(processing_jobs, "extract_faces") as extract,
         ):
             scan_faces(self.user, self.job_id, full_scan=False)
 

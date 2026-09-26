@@ -13,7 +13,7 @@ class EditPhotoDetailsTest(TestCase):
         self.user2 = create_test_user()
         self.client.force_authenticate(user=self.user1)
 
-    @patch("api.models.Photo._extract_date_time_from_exif", autospec=True)
+    @patch("api.serializers.photos.extract_date_time", autospec=True)
     def test_should_update_timestamp(self, extract_date_time_from_exif_mock):
         photo = create_test_photo(owner=self.user1)
 
@@ -37,7 +37,7 @@ class EditPhotoDetailsTest(TestCase):
         self.assertFalse(data["video"])
         extract_date_time_from_exif_mock.assert_called()
 
-    @patch("api.models.Photo._extract_date_time_from_exif", autospec=True)
+    @patch("api.serializers.photos.extract_date_time", autospec=True)
     def test_should_not_update_other_properties(self, extract_date_time_from_exif_mock):
         photo = create_test_photo(owner=self.user1)
 

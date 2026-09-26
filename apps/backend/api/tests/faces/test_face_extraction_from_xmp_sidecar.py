@@ -11,6 +11,7 @@ from faker import Faker
 from rest_framework.test import APIClient
 
 from api.models import File, Person, Photo
+from api.photo_faces import extract_faces
 from api.tests.utils import create_test_user
 
 
@@ -80,7 +81,7 @@ class ReadFacesFromPhotosTest(TestCase):
             aspect_ratio=1.0,
         )
 
-        photo._extract_faces()
+        extract_faces(photo)
 
         # To Debug Face Extraction: Look at the actual produced thumbnail
         # Thumbnail is wrong at the moment, need to create a correct face tag first, where I know the face is correct

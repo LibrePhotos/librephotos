@@ -2,6 +2,7 @@ from django.test import TestCase
 from django.utils import timezone
 from django.core.exceptions import FieldDoesNotExist
 
+from api.geocode.photo_location import add_location_to_album_dates
 from api.models import Photo, AlbumDate
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_search import PhotoSearch
@@ -89,7 +90,7 @@ class PhotoModelIntegrationTest(TestCase):
         self.assertIn("Beautiful landscape", search.search_captions)
 
     def test_geolocate_updates_search_location(self):
-        """Test that _geolocate method updates search location"""
+        """Test that geolocate_photo updates search location"""
         # Mock geolocation data
         geolocation_data = {
             "features": [
@@ -339,7 +340,7 @@ class PhotoModelIntegrationTest(TestCase):
 
 
 class AddLocationToAlbumDatesTest(TestCase):
-    """Regression tests for Photo._add_location_to_album_dates (issue #1268).
+    """Regression tests for add_location_to_album_dates (issue #1268).
 
     The function reaches into geolocation_json["places"][-2] to pick a city name.
     Real-world data is messy: photos may have no geolocation, a partial geocode
@@ -353,26 +354,26 @@ class AddLocationToAlbumDatesTest(TestCase):
 
     def test_does_not_crash_when_geolocation_json_is_none(self):
         self.photo.geolocation_json = None
-        self.photo._add_location_to_album_dates()
+        add_location_to_album_dates(self.photo)
 
     def test_does_not_crash_when_geolocation_json_is_empty_dict(self):
         self.photo.geolocation_json = {}
-        self.photo._add_location_to_album_dates()
+        add_location_to_album_dates(self.photo)
 
     def test_does_not_crash_when_places_key_is_missing(self):
         # Legacy-format records seen in long-lived databases (the schema
         # carried a top-level "city" before commit 134e8847 in 2023).
         self.photo.geolocation_json = {"city": "Berlin", "_v": "1"}
-        self.photo._add_location_to_album_dates()
+        add_location_to_album_dates(self.photo)
 
     def test_does_not_crash_when_places_is_empty(self):
         self.photo.geolocation_json = {"places": []}
-        self.photo._add_location_to_album_dates()
+        add_location_to_album_dates(self.photo)
 
     def test_does_not_crash_when_places_has_one_entry(self):
         # Remote locations where the geocoder only resolves the country.
         self.photo.geolocation_json = {"places": ["Antarctica"]}
-        self.photo._add_location_to_album_dates()
+        add_location_to_album_dates(self.photo)
 
     def test_writes_city_to_album_date_location(self):
         album_date = AlbumDate.objects.create(
@@ -381,7 +382,7 @@ class AddLocationToAlbumDatesTest(TestCase):
         album_date.photos.add(self.photo)
 
         self.photo.geolocation_json = {"places": ["Berlin", "Germany"]}
-        self.photo._add_location_to_album_dates()
+        add_location_to_album_dates(self.photo)
 
         album_date.refresh_from_db()
         self.assertEqual(album_date.location, {"places": ["Berlin"]})

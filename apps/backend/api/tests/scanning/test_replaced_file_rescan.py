@@ -295,7 +295,7 @@ class MetadataWriteIsNotAReplacementTest(ReplacedFileTestCase):
         built in memory would silently write nothing.
         """
         loaded = Photo.objects.get(pk=photo.pk)
-        with patch("api.models.photo.write_metadata", write_metadata_mock):
+        with patch("api.metadata.photo_writer.write_metadata", write_metadata_mock):
             loaded.rating = 4
             loaded.save()
         return loaded
@@ -513,7 +513,9 @@ class RotationIsNotAReplacementTest(ReplacedFileTestCase):
         create_test_face(photo=photo)
 
         loaded = Photo.objects.get(pk=photo.pk)
-        with patch("api.models.photo.write_metadata", side_effect=_append_a_byte):
+        with patch(
+            "api.metadata.photo_writer.write_metadata", side_effect=_append_a_byte
+        ):
             loaded.rotate(-90)
 
         self.assertEqual(1, read_orientation(self.path))

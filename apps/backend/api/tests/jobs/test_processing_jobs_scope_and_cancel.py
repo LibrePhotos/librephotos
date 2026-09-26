@@ -124,7 +124,7 @@ class CancelledJobWorkerTest(TestCase):
 
     def test_geolocation_job_skips_work(self):
         job = self._cancelled_job(LongRunningJob.JOB_ADD_GEOLOCATION)
-        with patch.object(Photo, "_geolocate") as geolocate:
+        with patch.object(processing_jobs, "geolocate_photo") as geolocate:
             geolocation_job(self.photo.pk, job.job_id)
         geolocate.assert_not_called()
 
@@ -136,7 +136,7 @@ class CancelledJobWorkerTest(TestCase):
 
     def test_cancelled_worker_does_not_touch_the_progress_counter(self):
         job = self._cancelled_job(LongRunningJob.JOB_ADD_GEOLOCATION)
-        with patch.object(Photo, "_geolocate"):
+        with patch.object(processing_jobs, "geolocate_photo"):
             geolocation_job(self.photo.pk, job.job_id)
         job.refresh_from_db()
         self.assertEqual(job.progress_current, 0)
@@ -150,8 +150,8 @@ class WorkerLoadsPhotoByIdTest(TestCase):
     def test_geolocation_job_works_from_the_id(self):
         job = _job(self.user, LongRunningJob.JOB_ADD_GEOLOCATION)
         with (
-            patch.object(Photo, "_geolocate", autospec=True) as geolocate,
-            patch.object(Photo, "_add_location_to_album_dates"),
+            patch.object(processing_jobs, "geolocate_photo") as geolocate,
+            patch.object(processing_jobs, "add_location_to_album_dates"),
         ):
             geolocation_job(self.photo.pk, job.job_id)
         self.assertEqual(geolocate.call_args.args[0].pk, self.photo.pk)
@@ -164,7 +164,7 @@ class WorkerLoadsPhotoByIdTest(TestCase):
         photo_id = self.photo.pk
         Photo.objects.filter(pk=photo_id).delete()
 
-        with patch.object(Photo, "_geolocate") as geolocate:
+        with patch.object(processing_jobs, "geolocate_photo") as geolocate:
             geolocation_job(photo_id, job.job_id)
 
         geolocate.assert_not_called()

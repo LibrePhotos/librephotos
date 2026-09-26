@@ -25,8 +25,8 @@ from api.face_classify import cluster_all_faces
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Face, Photo, User
 from api.models.person import Person, get_or_create_person
-from api.models.photo import _overlaps_existing_face
 from api.models.photo_search import PhotoSearch
+from api.photo_faces import overlaps_existing_face, save_detected_face
 from api.serializers.face import (
     FaceListSerializer,
     IncompletePersonFaceListSerializer,
@@ -523,7 +523,7 @@ class AddFaceView(APIView):
             existing = photo.faces.filter(deleted=False).values_list(
                 "location_top", "location_right", "location_bottom", "location_left"
             )
-            if _overlaps_existing_face(existing, top, right, bottom, left):
+            if overlaps_existing_face(existing, top, right, bottom, left):
                 return Response(
                     {
                         "status": False,
@@ -537,7 +537,8 @@ class AddFaceView(APIView):
             person = get_or_create_person(
                 name=person_name, owner=request.user, kind=Person.KIND_USER
             )
-            face = photo._save_detected_face(
+            face = save_detected_face(
+                photo,
                 face_image,
                 f"{photo.image_hash}_manual_{uuid.uuid4().hex[:8]}.jpg",
                 person,

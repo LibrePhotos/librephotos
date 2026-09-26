@@ -192,7 +192,7 @@ class ScanTimeHookTest(TestCase):
                 side_effect=lambda path, tags, **kwargs: [None] * len(tags),
             ),
             patch(
-                "api.models.photo.get_metadata",
+                "api.metadata.photo_datetime.get_metadata",
                 side_effect=lambda path, tags, **kwargs: [None] * len(tags),
             ),
         ):
