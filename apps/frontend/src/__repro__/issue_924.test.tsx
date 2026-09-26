@@ -85,7 +85,11 @@ beforeAll(async () => {
   // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
-});
+  // Pay for the cold import of the route module here, under a generous hook
+  // timeout, rather than inside the first test's 5 s budget: under full-suite
+  // load it alone can take longer than that.
+  await import("../routes/login");
+}, 30_000);
 
 async function renderLoginPage() {
   // The route component renders the sign-in form when this is not a first-time setup,
