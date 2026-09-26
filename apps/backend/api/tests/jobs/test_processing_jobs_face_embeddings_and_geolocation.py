@@ -81,8 +81,8 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         self.assertIsNotNone(job.started_at)
         self.assertEqual(len(faces), 3)
 
-    def test_pending_faces_of_other_users_are_also_processed(self):
-        """QUIRK: the queryset is global - ``user`` only owns the job row."""
+    def test_pending_faces_of_other_users_are_left_alone(self):
+        """Only faces on the job owner's photos are encoded."""
         other = create_test_user()
         _face_without_encoding(other)
         _face_without_encoding(self.user)
@@ -90,9 +90,9 @@ class GenerateFaceEmbeddingsCharacterizationTest(TestCase):
         with patch.object(Face, "generate_encoding") as gen:
             generate_face_embeddings(self.user, self.job_id)
 
-        self.assertEqual(gen.call_count, 2)
+        self.assertEqual(gen.call_count, 1)
         job = _job(self.job_id)
-        self.assertEqual(job.progress_target, 2)
+        self.assertEqual(job.progress_target, 1)
         self.assertEqual(job.started_by_id, self.user.id)
 
     # ---- per-face errors ---------------------------------------------
@@ -222,10 +222,10 @@ class AddGeolocationCharacterizationTest(TestCase):
         self.assertEqual(async_task.call_count, 3)
         queued = set()
         for call in async_task.call_args_list:
-            func, photo, job_id = call.args
+            func, photo_id, job_id = call.args
             self.assertIs(func, processing_jobs.geolocation_job)
             self.assertEqual(job_id, self.job_id)
-            queued.add(photo.pk)
+            queued.add(photo_id)
         self.assertEqual(queued, {p.pk for p in photos})
         # Each AsyncTask is dispatched immediately via .run().
         self.assertEqual(async_task.return_value.run.call_count, 3)
@@ -249,7 +249,7 @@ class AddGeolocationCharacterizationTest(TestCase):
             add_geolocation(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1].pk, photo.pk)
+        self.assertEqual(async_task.call_args.args[1], photo.pk)
 
     def test_no_photos_completes_job_with_zero_target(self):
         with patch.object(processing_jobs, "AsyncTask") as async_task:
@@ -272,7 +272,7 @@ class AddGeolocationCharacterizationTest(TestCase):
             add_geolocation(self.user, self.job_id)
 
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1].pk, mine.pk)
+        self.assertEqual(async_task.call_args.args[1], mine.pk)
 
     # ---- incremental vs full scan ------------------------------------
 
@@ -300,7 +300,7 @@ class AddGeolocationCharacterizationTest(TestCase):
             add_geolocation(self.user, self.job_id, full_scan=False)
 
         self.assertEqual(async_task.call_count, 1)
-        self.assertEqual(async_task.call_args.args[1].pk, new.pk)
+        self.assertEqual(async_task.call_args.args[1], new.pk)
         self.assertEqual(_job(self.job_id).progress_target, 1)
 
     def test_full_scan_ignores_the_last_scan_cutoff(self):
