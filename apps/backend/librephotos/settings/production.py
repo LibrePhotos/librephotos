@@ -154,6 +154,12 @@ FEATURE_IMAGE_CAPTIONING = _env_flag("FEATURE_IMAGE_CAPTIONING")
 FEATURE_REVERSE_GEOCODING = _env_flag("FEATURE_REVERSE_GEOCODING")
 FEATURE_SCENE_CLASSIFICATION = _env_flag("FEATURE_SCENE_CLASSIFICATION")
 
+# Whether a user's Nextcloud server address may resolve to a private network
+# address (LAN, Docker network, Tailscale). On by default because that is where
+# most self-hosted Nextcloud instances live; loopback, link-local and other
+# special addresses are refused either way. See nextcloud/server_address.py.
+NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES = _env_flag("NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES")
+
 if os.environ.get("SECRET_KEY"):
     SECRET_KEY = os.environ["SECRET_KEY"]
     print("use SECRET_KEY from env")

@@ -1,7 +1,3 @@
-import ipaddress
-import uuid
-from urllib.parse import urlparse
-
 import owncloud as nextcloud
 import requests
 from django_q.tasks import AsyncTask
@@ -12,42 +8,17 @@ from rest_framework.views import APIView
 
 from api.permissions import IsNextcloudEnabled
 from api.util import logger
+from api.views.views import start_job
 from nextcloud.directory_watcher import scan_photos
+from nextcloud.server_address import (
+    UnsafeServerAddress,
+    connect,
+    validate_server_address,
+)
 
-_ALLOWED_SCHEMES = {"http", "https"}
 
-
-def valid_url(url: str) -> bool:
-    """Return True only for public, routable http/https URLs.
-
-    Blocks loopback, private, link-local, and reserved addresses so that
-    user-supplied Nextcloud server addresses cannot be used as an SSRF vector
-    to reach internal services or cloud metadata endpoints.
-    """
-    try:
-        parsed = urlparse(url)
-        if parsed.scheme not in _ALLOWED_SCHEMES:
-            return False
-        host = parsed.hostname
-        if not host:
-            return False
-        try:
-            addr = ipaddress.ip_address(host)
-            if (
-                addr.is_loopback
-                or addr.is_private
-                or addr.is_link_local
-                or addr.is_reserved
-                or addr.is_multicast
-            ):
-                return False
-        except ValueError:
-            # hostname (not a bare IP) — allow; DNS rebind risk is accepted
-            # as mitigated by the scheme + port restrictions above
-            pass
-        return True
-    except Exception:
-        return False
+def _rejected_address(error):
+    return Response({"status": False, "message": str(error)}, status=400)
 
 
 class ListDir(APIView):
@@ -58,19 +29,14 @@ class ListDir(APIView):
             return Response([])
         path = request.query_params["fpath"]
 
-        if not request.user.nextcloud_server_address or not valid_url(
-            request.user.nextcloud_server_address
-        ):
+        if not request.user.nextcloud_server_address:
             return Response([])
 
         # Logging in has to happen inside the try as well: it is the call
         # nextcloud answers with an HTTP error when the app password is wrong,
         # and it is the first one to fail when the server is unreachable.
         try:
-            nc = nextcloud.Client(request.user.nextcloud_server_address)
-            nc.login(
-                request.user.nextcloud_username, request.user.nextcloud_app_password
-            )
+            nc = connect(request.user)
             return Response(
                 [
                     {
@@ -82,6 +48,8 @@ class ListDir(APIView):
                     if p.is_dir()
                 ]
             )
+        except UnsafeServerAddress as e:
+            return _rejected_address(e)
         except nextcloud.ResponseError as e:
             logger.warning(f"Nextcloud responded with an error: {e}")
             return Response({"status": False, "message": str(e)}, status=400)
@@ -112,9 +80,10 @@ class ScanPhotosView(APIView):
 
     def _scan_photos(self, request):
         try:
-            job_id = uuid.uuid4()
-            AsyncTask(scan_photos, request.user, job_id).run()
-            return Response({"status": True, "job_id": job_id})
-        except BaseException:
-            logger.exception("An Error occurred")
-            return Response({"status": False})
+            validate_server_address(request.user.nextcloud_server_address)
+        except UnsafeServerAddress as e:
+            return _rejected_address(e)
+        return start_job(
+            lambda job_id: AsyncTask(scan_photos, request.user, job_id).run(),
+            "the Nextcloud scan",
+        )
