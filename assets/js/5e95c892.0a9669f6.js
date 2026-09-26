@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunklibrephotos_docs||=[]).push([[9647],{7121(e,s,r){r.r(s),r.d(s,{default:()=>d});r(6540);var a=r(4164),c=r(7559),o=r(5500),t=r(2831),u=r(1656),l=r(4848);function d(e){return(0,l.jsx)(o.e3,{className:(0,a.A)(c.G.wrapper.docsPages),children:(0,l.jsx)(u.A,{children:(0,t.v)(e.route.routes)})})}}}]);

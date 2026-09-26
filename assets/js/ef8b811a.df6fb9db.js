@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunklibrephotos_docs||=[]).push([[8947],{6600(e){e.exports=JSON.parse('{"authors":[{"name":"Niaz Faridani-Rad","title":"Maintainer of LibrePhotos","url":"https://github.com/derneuere","imageURL":"https://github.com/derneuere.png","key":"niaz","page":null,"count":37}]}')}}]);
