@@ -16,7 +16,7 @@ COPY apps/frontend/ ./
 ARG GIT_HASH=unknown
 RUN yarn run build && echo "${GIT_HASH}" > dist/git_hash.txt
 
-FROM halverneus/static-file-server
+FROM halverneus/static-file-server:v1.8.12
 ENV PORT 3000
 EXPOSE 3000
 
