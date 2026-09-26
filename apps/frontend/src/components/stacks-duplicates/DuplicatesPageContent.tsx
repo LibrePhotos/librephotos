@@ -60,6 +60,7 @@ import type { Duplicate, DuplicatePhoto, DuplicateType, ReviewStatus } from "../
 import { duplicateTypeLabels } from "../../api_client/duplicates/types";
 import { useFetchUserSelfDetailsQuery } from "../../api_client/user/hooks";
 import { parsePhotoTimestamp } from "../../util/dateUtils";
+import { PLACEHOLDER_IMAGE } from "../../util/placeholderImage";
 import { Lightbox } from "../lightbox";
 
 function formatFileSize(bytes: number): string {
@@ -146,7 +147,7 @@ function DuplicatePhotoCard({
           <Image
             src={thumbnailUrl}
             alt="Duplicate photo"
-            fallbackSrc="https://placehold.co/200x200?text=No+Preview"
+            fallbackSrc={PLACEHOLDER_IMAGE}
             fit="contain"
             h={200}
             style={{
@@ -523,7 +524,7 @@ function DuplicateCard({
             h={100}
             w="50%"
             alt="Preview"
-            fallbackSrc="https://placehold.co/100x100?text=?"
+            fallbackSrc={PLACEHOLDER_IMAGE}
             style={{
               opacity: isResolved || isDismissed ? 0.6 : 1,
             }}

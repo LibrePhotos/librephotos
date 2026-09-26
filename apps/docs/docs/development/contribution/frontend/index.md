@@ -26,7 +26,7 @@ Prettier through the `prettier/prettier` rule, so linting also flags unformatted
 
 The repository ships a `husky` pre-commit hook (`apps/frontend/.husky/pre-commit`, which runs
 `lint-staged`), but it is currently inactive in the monorepo: `yarn install` runs the `prepare`
-script — `husky install` — with the working directory set to `apps/frontend`, which has no `.git` of
+script — `husky` — with the working directory set to `apps/frontend`, which has no `.git` of
 its own, so husky exits without registering the hook. Don't rely on it; lint before you commit.
 
 ## 🐛 Debugging
