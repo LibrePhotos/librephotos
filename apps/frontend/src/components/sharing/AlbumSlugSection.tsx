@@ -213,6 +213,9 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
     if (!sharingOptionsDirty && album.public_sharing_options) {
       setSharingOptions(album.public_sharing_options);
     }
+    // Sync from the server copy whenever it changes, but never over a field the
+    // user is editing: the dirty flags are guards here, not triggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [album?.public_slug, album?.public_expires_at, album?.public_sharing_options]);
 
   // validation handled in SlugSetting; availability via query in that component updates parent through setters
@@ -267,6 +270,7 @@ export function AlbumSlugSection({ albumID, album, isPublic, showSettings, refet
     sharingOptions,
     toggleAlbumPublic,
     refetch,
+    t,
   ]);
 
   const openLink = useCallback(() => {

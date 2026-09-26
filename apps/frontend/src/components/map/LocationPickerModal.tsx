@@ -13,7 +13,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { IconCurrentLocation, IconSearch } from "@tabler/icons-react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import MapGL, {
   AttributionControl,
@@ -53,7 +53,8 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
 
   const { data: searchResults, isLoading: isSearching } = useGeocodeSearchQuery(debouncedSearch);
 
-  const initialCenter = useMemo<[number, number]>(() => position ?? [48.8566, 2.3522], []);
+  // Only the first position centres the map; later picks move the marker, not the view.
+  const [initialCenter] = useState<[number, number]>(() => position ?? [48.8566, 2.3522]);
   const initialZoom = position ? 13 : 3;
 
   const { mutateAsync, isPending } = useUpdatePhotoMutation();
@@ -139,6 +140,9 @@ export function LocationPickerModal({ imageHash, onClose, initialLat, initialLon
         { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
       );
     }
+    // Mount only: a coarse "near you" pan when the photo has no location yet.
+    // Re-running on every picked position would yank the map away from the pick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const searchOptions = searchResults?.map(result => (

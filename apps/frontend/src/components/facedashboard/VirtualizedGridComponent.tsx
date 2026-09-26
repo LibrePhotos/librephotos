@@ -99,6 +99,9 @@ export function VirtualizedGridComponent({
         </div>
       );
     },
+    // `width` is not read, but a new renderer is what makes the (pure) Grid redraw
+    // its visible cells when the container is resized.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       activeTab,
       width,

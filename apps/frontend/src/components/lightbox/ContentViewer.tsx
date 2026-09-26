@@ -129,11 +129,15 @@ export function ContentViewer({
 
   // Copy to clipboard: a toolbar button and Ctrl/Cmd+C, for still photos on
   // pages that have an image clipboard at all (secure contexts only).
-  const copyPhoto = useCopyPhotoToClipboard();
-  const canCopyPhoto = copyPhoto.supported && type === "photo";
+  const {
+    supported: canCopyToClipboard,
+    isCopying: isCopyingToClipboard,
+    copy: copyPhotoToClipboard,
+  } = useCopyPhotoToClipboard();
+  const canCopyPhoto = canCopyToClipboard && type === "photo";
   const handleCopyPhoto = useCallback(() => {
-    if (canCopyPhoto) copyPhoto.copy({ imageHash: mainSrcHash, cacheKey: imageCacheKey });
-  }, [canCopyPhoto, copyPhoto.copy, mainSrcHash, imageCacheKey]);
+    if (canCopyPhoto) copyPhotoToClipboard({ imageHash: mainSrcHash, cacheKey: imageCacheKey });
+  }, [canCopyPhoto, copyPhotoToClipboard, mainSrcHash, imageCacheKey]);
 
   // Reset playing state when slide changes
   useEffect(() => {
@@ -267,7 +271,10 @@ export function ContentViewer({
     embla.on("select", onSlideChange);
     // eslint-disable-next-line consistent-return
     return () => embla.off("select", onSlideChange);
-  }, [embla, onMovePrevRequest, onMoveNextRequest]);
+    // prevSrc/nextSrc must be deps: the handler decides from them whether a swipe
+    // can move at all, and a handler registered on the first photo would otherwise
+    // keep seeing "no previous photo" after navigating forward.
+  }, [embla, prevSrc, nextSrc, onMovePrevRequest, onMoveNextRequest]);
 
   const toggleZoom = () => {
     const newZoomState = !isZoomed;
@@ -444,7 +451,7 @@ export function ContentViewer({
               showOcrText={showOcrText}
               toggleOcrText={toggleOcrText}
               onCopyToClipboard={canCopyPhoto ? handleCopyPhoto : undefined}
-              isCopyingToClipboard={copyPhoto.isCopying}
+              isCopyingToClipboard={isCopyingToClipboard}
             />
 
             {/* Main photo/video with swipe navigation */}

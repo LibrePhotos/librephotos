@@ -17,6 +17,13 @@ type DirectoryPickerProps = Readonly<{
   missingPathError?: string;
 }>;
 
+const convertTree = (data: DirTree[]): Array<{ value: string; label: string; children?: any[] }> =>
+  data.map(item => ({
+    value: item.absolute_path,
+    label: item.title,
+    children: item.children.length > 0 ? convertTree(item.children) : undefined,
+  }));
+
 const findPath = (tree: DirTree[], path: string): boolean => {
   let result = false;
   tree.forEach(folder => {
@@ -67,13 +74,6 @@ export function DirectoryPicker(props: DirectoryPickerProps) {
       setPath(value);
     }
   }, [value, path]);
-
-  const convertTree = (data: DirTree[]): Array<{ value: string; label: string; children?: any[] }> =>
-    data.map(item => ({
-      value: item.absolute_path,
-      label: item.title,
-      children: item.children.length > 0 ? convertTree(item.children) : undefined,
-    }));
 
   const mantineTreeData = useMemo(() => convertTree(treeData), [treeData]);
 
