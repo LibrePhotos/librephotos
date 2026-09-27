@@ -1,13 +1,12 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { recordRecentlyTaggedPerson } from "../../../util/recentlyTaggedPeople";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
-import { PersonFaceList } from "../types";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
 
@@ -17,29 +16,13 @@ export const SetFacesLabelRequest = z.object({
   personName: z.string(),
 });
 
-export type SetFacesLabelResponse = z.infer<typeof SetFacesLabelResponse>;
-export const SetFacesLabelResponse = z.object({
-  status: z.boolean(),
-  results: PersonFaceList,
-  updated: PersonFaceList,
-  not_updated: PersonFaceList,
-});
+export { SetFacesLabelResponse } from "@librephotos/api-client";
 
 const setFacesPersonLabel = (data: SetFacesLabelRequest) =>
-  fetchClient
-    .post<SetFacesLabelResponse>("/labelfaces", {
-      person_name: data.personName,
-      face_ids: data.faceIds,
-    })
-    .then(response => {
-      const payload = parseWithNotification(
-        SetFacesLabelResponse,
-        response,
-        "Failed to parse set faces label response"
-      );
-      notification.addFacesToPerson(payload.results[0].person_name ?? "unknown", payload.results.length);
-      return payload;
-    });
+  endpoints.labelFaces(apiClient, data.faceIds, data.personName).then(payload => {
+    notification.addFacesToPerson(payload.results[0]?.person_name ?? "unknown", payload.results.length);
+    return payload;
+  });
 
 export const useSetFacesPersonLabelMutation = () =>
   useMutation({

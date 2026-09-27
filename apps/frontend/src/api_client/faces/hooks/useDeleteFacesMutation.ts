@@ -1,8 +1,8 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { parseWithNotification } from "../../../util/zodUtils";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { PhotoDetailsQueryKeys } from "../../photos/hooks/useFetchPhotoDetailsQuery";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
@@ -15,19 +15,9 @@ export const DeleteFacesRequest = z.object({
   faceIds: z.array(z.number()),
 });
 
-export type DeleteFacesResponse = z.infer<typeof DeleteFacesResponse>;
-// To-Do: Should be siilar to SetFacesLabelResponse
-export const DeleteFacesResponse = z.object({
-  status: z.boolean(),
-  results: z.array(z.string()),
-  deleted: z.array(z.string()),
-  not_deleted: z.array(z.string()),
-});
+export { DeleteFacesResponse } from "@librephotos/api-client";
 
-const deleteFaces = (data: DeleteFacesRequest) =>
-  fetchClient
-    .post<DeleteFacesResponse>("/deletefaces", { face_ids: data.faceIds })
-    .then(response => parseWithNotification(DeleteFacesResponse, response, "Failed to parse delete faces response"));
+const deleteFaces = (data: DeleteFacesRequest) => endpoints.deleteFaces(apiClient, data.faceIds);
 
 export const useDeleteFacesMutation = () =>
   useMutation({
