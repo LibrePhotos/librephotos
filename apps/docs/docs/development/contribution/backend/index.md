@@ -59,6 +59,8 @@ This exposes all the commands that you can use via the command line. If you want
 
 Every time we change our models, we have to migrate the database. We use Django migration feature to create migration files to migrate without the headaches.
 
+Migrations 0001 to 0100 are squashed into `0001_squashed_0100`, so the folder starts there and new migrations keep counting up from the newest file. Keep its `replaces` list: existing databases have the original names recorded and rely on it. A new migration that depends on anything up to 0100 depends on `("api", "0001_squashed_0100")`. Why older installs have to upgrade in two steps is explained in [Upgrading](../../../installation/upgrading.md#old-releases).
+
 #### models
 
 Here are the actual data types. If you want to figure out how a photo works or how faces are connected to persons, then this is your folder.

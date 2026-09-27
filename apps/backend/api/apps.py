@@ -20,10 +20,14 @@ class ApiConfig(AppConfig):
 
         from django.core import checks
 
-        from api.checks import check_default_db_password
+        from api.checks import (
+            check_default_db_password,
+            check_squashed_migration_history,
+        )
         from api.util import LoggingNotConfiguredError, reconfigure_logging
 
         checks.register(check_default_db_password, checks.Tags.security)
+        checks.register(check_squashed_migration_history, checks.Tags.database)
 
         # Delta-sync bookkeeping: last_modified bumps + tombstone writers
         # (mobile v2, doc 04). Registered here so all models are loaded first.

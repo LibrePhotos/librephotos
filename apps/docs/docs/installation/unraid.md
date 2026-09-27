@@ -91,6 +91,8 @@ docker-compose up -d
 
 Running `docker-compose pull` on its own only downloads the new images; the containers keep running the old ones until they are recreated, so pull the images and then bring the stack back up.
 
+If your install is on 2025w44 or older, go through release 1.1.0 first; see [Upgrading from a release older than 2026w10](upgrading.md#old-releases).
+
 ## docker-compose issues when rebooting
 
 After a reboot, docker-compose is not installed anymore, since unRAID loads everything from ram. Someone created a Docker Compose Manager app in the Apps catalog for unRAID. This makes sure docker-compose is installed every time you reboot unRAID, and they are currently working on a Web GUI.

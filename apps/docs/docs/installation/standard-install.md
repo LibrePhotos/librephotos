@@ -63,6 +63,12 @@ docker compose pull # only refreshes the container images
 docker compose up -d
 ```
 
+:::caution Coming from 2025w44 or older?
+
+Releases after 1.1.0 cannot upgrade a database from before 2026w10 directly. Go through 1.1.0 first, as described in [Upgrading from a release older than 2026w10](upgrading.md#old-releases).
+
+:::
+
 :::note
 
 `docker compose pull` only downloads newer container images. `docker-compose.yml` is a tracked file in the repository and gains new settings over time. Recent versions, for example, added the lines that pass `workerConcurrency` and `frontendBaseUrl` from your `.env` through to the backend, and changed the database volume path for Postgres v18+. If your `docker-compose.yml` predates those changes, setting the matching variables in `.env` has no effect until you `git pull`.
