@@ -23,13 +23,27 @@
  * clip-only. It should pass once the action column is allowed to size to its content
  * (or the label is allowed to wrap).
  */
-import "@mantine/core/styles.css";
+// Only the stylesheets the assertions read: the Button label rules and the Grid
+// column rules, plus Mantine's required base layers. jsdom's getComputedStyle
+// matches every selector of every loaded stylesheet against the element, so
+// with the full @mantine/core/styles.css (about 1,200 rules) reading the
+// buttons' styles took three times as long and pushed this test near its 5 s
+// timeout in a parallel run.
+import "@mantine/core/styles/baseline.css";
+import "@mantine/core/styles/default-css-variables.css";
+import "@mantine/core/styles/global.css";
+import "@mantine/core/styles/Button.css";
+import "@mantine/core/styles/Grid.css";
 import { MantineProvider } from "@mantine/core";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Library } from "../components/settings/Library";
 import i18n from "../i18n";
+// Statically imported so the French strings load while the file is collected,
+// which has no time limit. Otherwise i18n's lazy backend fetches the locale
+// module in the middle of the test.
+import translationFr from "../locales/fr/translation.json";
 
 const stubs = vi.hoisted(() => ({
   noopMutation: { mutate: () => {}, mutateAsync: async () => {}, isPending: false },
@@ -98,6 +112,8 @@ beforeAll(() => {
   });
   // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  // With the bundle already in the store, changeLanguage("fr") has nothing to fetch.
+  i18n.addResourceBundle("fr", "translation", translationFr);
 });
 
 type ActionButton = {
