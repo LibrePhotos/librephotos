@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createApiClient } from "../transport";
 import type { TokenSupplier } from "../transport";
 import * as endpoints from "../endpoints";
+import { ResponseParseError } from "../util/parse";
 
 const FUTURE_JWT =
   "eyJhbGciOiJIUzI1NiJ9." +
@@ -50,6 +51,25 @@ describe("album detail endpoints", () => {
     const { client, calls } = harness({ results: { id: 7, name: "sunset", grouped_photos: [] } });
     await endpoints.fetchTagAlbum(client, 7);
     expect(calls[0]!.url).toBe("https://demo.example.com/api/tags/7/");
+  });
+});
+
+describe("album media filters", () => {
+  it("passes the media-type filter to thing and place albums", async () => {
+    const { client, calls } = harness({ results: { id: "5", title: "Dog", grouped_photos: [] } });
+    await endpoints.fetchThingAlbum(client, 5, { video: true });
+    await endpoints.fetchPlaceAlbum(client, 5, { is_screenshot: true });
+    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/thing/5/?video=true");
+    expect(calls[1]!.url).toBe("https://demo.example.com/api/albums/place/5/?is_screenshot=true");
+  });
+
+  it("reads a user album through its public link", async () => {
+    const owner = { id: 1, username: "ann", first_name: "", last_name: "" };
+    const { client, calls } = harness({ id: "9", title: "T", owner, date: "2024", location: null, grouped_photos: [] });
+    await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann" });
+    await endpoints.fetchUserAlbum(client, 9);
+    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann");
+    expect(calls[1]!.url).toBe("https://demo.example.com/api/albums/user/9/");
   });
 });
 
@@ -138,5 +158,17 @@ describe("admin/jobs endpoints", () => {
     const res = await endpoints.fetchWorkerAvailability(client);
     expect(calls[0]!.url).toBe("https://demo.example.com/api/rqavailable/");
     expect(res.queue_can_accept_job).toBe(true);
+  });
+});
+
+describe("response parsing", () => {
+  it("rejects a drifted response with a ResponseParseError naming the endpoint and the issue", async () => {
+    const { client } = harness({ results: [{ id: "not-a-number", title: "Dog" }] });
+    const error = await endpoints.fetchThingAlbumsList(client).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ResponseParseError);
+    const { context, issues, message } = error as ResponseParseError;
+    expect(context).toBe("thing albums");
+    expect(issues).toContain("results.0.id");
+    expect(message).toBe(`Failed to parse thing albums: ${issues}`);
   });
 });

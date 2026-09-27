@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DatePhotosGroup, IncompleteDatePhotosGroup, PhotoHash, SimpleUser } from "./common";
+import { Person } from "./persons";
 
 /* ---- Date albums (the timeline) ---------------------------------------- */
 
@@ -53,11 +54,22 @@ const UserAlbumDetails = z.object({
   location: z.string().nullable(),
 });
 
+/** Per-album overrides of the owner's public sharing defaults; null = use the default. */
+export const PublicSharingOptions = z.object({
+  share_location: z.boolean().nullable().optional(),
+  share_camera_info: z.boolean().nullable().optional(),
+  share_timestamps: z.boolean().nullable().optional(),
+  share_captions: z.boolean().nullable().optional(),
+  share_faces: z.boolean().nullable().optional(),
+});
+export type PublicSharingOptions = z.infer<typeof PublicSharingOptions>;
+
 export const UserAlbum = UserAlbumDetails.extend({
   grouped_photos: DatePhotosGroup.array(),
   public: z.boolean().optional(),
   public_slug: z.string().optional(),
   public_expires_at: z.string().nullable().optional(),
+  public_sharing_options: PublicSharingOptions.nullable().optional(),
 });
 export type UserAlbum = z.infer<typeof UserAlbum>;
 
@@ -84,6 +96,7 @@ export const FetchAutoAlbumsListResponse = z.object({
 export type FetchAutoAlbumsListResponse = z.infer<typeof FetchAutoAlbumsListResponse>;
 
 export const PhotoSimple = z.object({
+  id: z.string().uuid(),
   square_thumbnail: z.string(),
   image_hash: z.string(),
   exif_timestamp: z.string(),
@@ -104,6 +117,8 @@ export const AutoAlbum = z.object({
   created_on: z.string(),
   gps_lat: z.number().nullable(),
   gps_lon: z.number().nullable(),
+  /** The people whose (non-deleted) faces appear in the album's photos. */
+  people: Person.array(),
   photos: PhotoSimple.array(),
 });
 export type AutoAlbum = z.infer<typeof AutoAlbum>;
@@ -118,8 +133,14 @@ export const AlbumInfo = z.object({
 });
 export type AlbumInfo = z.infer<typeof AlbumInfo>;
 
+/** `thing_type` is where the label came from, e.g. "places365_attribute" or "hashtag_attribute". */
+export const ThingAlbumInfo = AlbumInfo.extend({
+  thing_type: z.string().nullable(),
+});
+export type ThingAlbumInfo = z.infer<typeof ThingAlbumInfo>;
+
 export const FetchThingAlbumsListResponse = z.object({
-  results: AlbumInfo.array(),
+  results: ThingAlbumInfo.array(),
 });
 export type FetchThingAlbumsListResponse = z.infer<typeof FetchThingAlbumsListResponse>;
 

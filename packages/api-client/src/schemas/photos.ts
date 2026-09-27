@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Media, PigPhoto, SimpleUser } from "./common";
+import { Media, PigPhoto, SimpleUser, StackTypeEnum } from "./common";
 
 export const People = z.object({
   name: z.string(),
@@ -47,6 +47,49 @@ export const PhotoOcrData = z.object({
 });
 export type PhotoOcrData = z.infer<typeof PhotoOcrData>;
 
+/**
+ * One stored file of a photo: the same capture moment as a different format
+ * (RAW next to its JPEG, the video half of a Live Photo, an XMP sidecar).
+ */
+export const FileVariantTypeEnum = z.enum(["image", "video", "raw", "metadata", "unknown"]);
+export type FileVariantTypeEnum = z.infer<typeof FileVariantTypeEnum>;
+
+export const FileVariant = z.object({
+  hash: z.string(),
+  path: z.string(),
+  type: FileVariantTypeEnum,
+  type_id: z.number(),
+  is_main: z.boolean(),
+  filename: z.string().nullable(),
+});
+export type FileVariant = z.infer<typeof FileVariant>;
+
+/** One member photo of a stack, as listed on the photo detail. */
+export const StackPhotoDetail = z.object({
+  id: z.string().uuid(),
+  image_hash: z.string(),
+  is_primary: z.boolean(),
+  thumbnail_url: z.string().nullable(),
+  size: z.number().nullable(),
+  width: z.number().nullable(),
+  height: z.number().nullable(),
+});
+export type StackPhotoDetail = z.infer<typeof StackPhotoDetail>;
+
+/**
+ * A stack (burst, bracket, manual) the photo belongs to. Duplicates are a
+ * separate model, and RAW+JPEG pairs / Live Photos are file variants.
+ */
+export const PhotoStackDetail = z.object({
+  id: z.string().uuid(),
+  type: StackTypeEnum,
+  type_display: z.string(),
+  photo_count: z.number(),
+  is_primary: z.boolean(),
+  photos: StackPhotoDetail.array(),
+});
+export type PhotoStackDetail = z.infer<typeof PhotoStackDetail>;
+
 /** Full photo-detail response from GET /api/photos/{hash}/. */
 export const Photo = z.object({
   id: z.string().uuid(),
@@ -86,6 +129,8 @@ export const Photo = z.object({
   digitalZoomRatio: z.number().nullable(),
   lens: z.string().nullable(),
   embedded_media: z.object({ id: z.string(), type: z.nativeEnum(Media) }).array(),
+  file_variants: FileVariant.array().nullable().optional(),
+  stacks: PhotoStackDetail.array().nullable().optional(),
   metadata: PhotoMetadataSummary.nullable().optional(),
   ocr: PhotoOcrData.nullable().optional(),
 });
@@ -97,11 +142,12 @@ export const RecentlyAddedPhotosResponse = z.object({
 });
 export type RecentlyAddedPhotosResponse = z.infer<typeof RecentlyAddedPhotosResponse>;
 
+/** GET /api/photos/notimestamp/: DRF page-number pagination, 100 per page. */
 export const PhotosWithoutTimestampResponse = z.object({
   results: PigPhoto.array(),
-  count: z.number().optional(),
-  next: z.string().nullable().optional(),
-  previous: z.string().nullable().optional(),
+  count: z.number(),
+  next: z.string().nullable(),
+  previous: z.string().nullable(),
 });
 export type PhotosWithoutTimestampResponse = z.infer<typeof PhotosWithoutTimestampResponse>;
 

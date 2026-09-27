@@ -127,3 +127,158 @@ describe("createApiClient transport", () => {
     expect(fetchMock.mock.calls[1]![0]).toBe("https://two.example.com/api/x");
   });
 });
+
+describe("createApiClient errors", () => {
+  const client = (response: Response, extra: Partial<Parameters<typeof createApiClient>[0]> = {}) =>
+    createApiClient({
+      baseUrl: "https://demo.example.com",
+      tokens: makeTokens().tokens,
+      fetch: mockFetch(async () => response.clone()),
+      ...extra,
+    });
+
+  async function rejection(promise: Promise<unknown>): Promise<ApiError> {
+    const error = await promise.then(
+      () => {
+        throw new Error("expected the request to reject");
+      },
+      (e: unknown) => e
+    );
+    expect(error).toBeInstanceOf(ApiError);
+    return error as ApiError;
+  }
+
+  it("takes serverMessage from the first DRF errors[] message", async () => {
+    const response = jsonResponse(
+      { errors: [{ field: "scan_directory", message: "Scan directory does not exist" }, { message: "DEBUG help" }] },
+      400
+    );
+    const error = await rejection(client(response).get("/manage/user/1/"));
+    expect(error.status).toBe(400);
+    expect(error.endpoint).toBe("/manage/user/1/");
+    expect(error.serverMessage).toBe("Scan directory does not exist");
+    expect(error.message).toBe("API error: 400 ");
+  });
+
+  it("falls back to a string detail", async () => {
+    const error = await rejection(client(jsonResponse({ detail: "No permission." }, 403)).get("/x/"));
+    expect(error.serverMessage).toBe("No permission.");
+    expect(error.body).toEqual({ detail: "No permission." });
+  });
+
+  it("leaves serverMessage null for an empty or non-JSON body", async () => {
+    const empty = await rejection(client(new Response(null, { status: 400 })).get("/x/"));
+    expect(empty.serverMessage).toBeNull();
+    const html = await rejection(
+      client(new Response("<html>Bad Gateway</html>", { status: 502, headers: { "content-type": "text/html" } })).get(
+        "/x/"
+      )
+    );
+    expect(html.serverMessage).toBeNull();
+  });
+
+  it("never reports a server message for a 500, and hands onServerError a readable response", async () => {
+    const onServerError = vi.fn(async (_endpoint: string, response: Response) => response.json());
+    const error = await rejection(
+      client(jsonResponse({ errors: [{ message: "boom" }] }, 500), { onServerError }).get("/x/")
+    );
+    expect(error.serverMessage).toBeNull();
+    expect(onServerError).toHaveBeenCalledWith("/x/", expect.any(Response));
+    await expect(onServerError.mock.results[0]!.value).resolves.toEqual({ errors: [{ message: "boom" }] });
+  });
+
+  it("lets onUnauthorized replace the default 401 handling, for the login endpoint too", async () => {
+    const { tokens } = makeTokens();
+    const onAuthError = vi.fn();
+    const seen: unknown[] = [];
+    const onUnauthorized = vi.fn(async (endpoint: string, response: Response) => {
+      seen.push([endpoint, await response.json()]);
+    });
+    const fetchMock = mockFetch(async () => jsonResponse({ detail: "No active account" }, 401));
+    const api = createApiClient({
+      baseUrl: "https://demo.example.com",
+      tokens,
+      fetch: fetchMock,
+      onAuthError,
+      onUnauthorized,
+    });
+
+    const error = await rejection(api.post("/auth/token/obtain/", { username: "u", password: "p" }));
+
+    expect(error.status).toBe(401);
+    expect(seen).toEqual([["/auth/token/obtain/", { detail: "No active account" }]]);
+    expect(tokens.clearTokens).not.toHaveBeenCalled();
+    expect(onAuthError).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the error onUnauthorized throws", async () => {
+    const boom = new Error("logged out");
+    const api = client(jsonResponse({}, 401), {
+      onUnauthorized: () => {
+        throw boom;
+      },
+    });
+    await expect(api.get("/auth/token/obtain/")).rejects.toBe(boom);
+  });
+});
+
+describe("createApiClient bodies and response types", () => {
+  function harness(response: () => Response = () => jsonResponse({ ok: true })) {
+    const fetchMock = mockFetch(async () => response());
+    const api = createApiClient({ baseUrl: "", tokens: makeTokens().tokens, fetch: fetchMock });
+    return { api, fetchMock };
+  }
+
+  it("sends a JSON Content-Type for a string body", async () => {
+    const { api, fetchMock } = harness();
+    await api.request("/photos/edit/", { method: "POST", body: JSON.stringify({ caption: "FormData" }) });
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(init!.body).toBe(JSON.stringify({ caption: "FormData" }));
+    expect(new Headers(init!.headers).get("Content-Type")).toBe("application/json");
+  });
+
+  it("keeps an explicit Content-Type for a string body", async () => {
+    const { api, fetchMock } = harness();
+    await api.request("/x/", { method: "POST", body: "a=b", headers: { "Content-Type": "text/plain" } });
+    expect(new Headers(fetchMock.mock.calls[0]![1]!.headers).get("Content-Type")).toBe("text/plain");
+  });
+
+  it("leaves Content-Type unset for FormData so the runtime adds the boundary", async () => {
+    const { api, fetchMock } = harness();
+    const form = new FormData();
+    form.append("file", new Blob(["x"]), "x.jpg");
+    await api.post("/upload/", form);
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(init!.body).toBe(form);
+    expect(new Headers(init!.headers).has("Content-Type")).toBe(false);
+  });
+
+  it("returns a Blob from getBlob whatever the Content-Type, without forwarding responseType", async () => {
+    const { api, fetchMock } = harness(
+      () => new Response("log line", { status: 200, headers: { "content-type": "text/plain" } })
+    );
+    const blob = await api.getBlob("/serverlogs");
+    expect(blob.type).toBe("text/plain");
+    expect(await blob.text()).toBe("log line");
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("/api/serverlogs");
+    expect(init).not.toHaveProperty("responseType");
+  });
+
+  it("returns text when asked, even for a JSON response", async () => {
+    const { api } = harness();
+    await expect(api.request("/x/", { responseType: "text" })).resolves.toBe(JSON.stringify({ ok: true }));
+  });
+
+  it("uses the global fetch at call time when none is injected", async () => {
+    const api = createApiClient({ baseUrl: "https://demo.example.com", tokens: makeTokens().tokens });
+    const stub = mockFetch(async () => jsonResponse({ late: true }));
+    vi.stubGlobal("fetch", stub);
+    try {
+      await expect(api.get("/x/")).resolves.toEqual({ late: true });
+      expect(stub).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

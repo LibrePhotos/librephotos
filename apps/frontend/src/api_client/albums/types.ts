@@ -1,7 +1,37 @@
+import { PhotoHash, SimpleUser, type BulkPhotoQuery, type UserAlbum } from "@librephotos/api-client";
 import { z } from "zod";
-import type { BulkPhotoQuery } from "../photos/types";
-import { DatePhotosGroup, IncompleteDatePhotosGroup, PhotoHash, SimpleUser } from "../photos/types";
 
+// The album schemas are shared with the mobile app and live in
+// packages/api-client; this module re-exports them under their old names.
+export {
+  AlbumInfo,
+  AutoAlbum,
+  AutoAlbumInfo,
+  FetchAutoAlbumsListResponse,
+  FetchDateAlbumResponse,
+  FetchDateAlbumsListResponse,
+  FetchPlaceAlbumResponse,
+  FetchPlaceAlbumsListResponse,
+  FetchThingAlbumResponse,
+  FetchThingAlbumsListResponse,
+  FetchUserAlbumsListResponse,
+  FetchUserAlbumsSharedResponse,
+  Person,
+  PersonList,
+  PhotoSimple,
+  PhotoSuperSimple,
+  PlaceAlbum,
+  PlaceAlbumInfo,
+  PublicSharingOptions,
+  ThingAlbum,
+  ThingAlbumInfo,
+  UserAlbum,
+  UserAlbumInfo,
+} from "@librephotos/api-client";
+
+// What useFetchUserAlbumsQuery parses /albums/user/list/ with. It differs from
+// the shared UserAlbumInfo (cover_photo: PhotoSuperSimple | null), which the
+// album pages are not typed for yet; see the migration checklist.
 const UserAlbumResponse = z.object({
   id: z.number(),
   title: z.string(),
@@ -65,23 +95,11 @@ export type SetUserAlbumCoverParams = {
   photo: string;
 };
 
-export const Person = z.object({
-  name: z.string(),
-  face_url: z.string().nullable(),
-  face_count: z.number(),
-  face_photo_url: z.string().nullable(),
-  video: z.boolean().optional(),
-  id: z.number(),
-  newPersonName: z.string().optional(),
-  cover_photo: z.string().optional(),
-});
-
 export const PersonInfo = z.object({
   id: z.string(),
   name: z.string(),
 });
 export type PersonInfo = z.infer<typeof PersonInfo>;
-export const PersonList = z.array(Person);
 
 export const Node = z.object({
   id: z.string(),
@@ -99,85 +117,7 @@ export const PersonDataPointList = z.object({
   links: Link.array(),
 });
 
-export const PhotoSuperSimple = z.object({
-  image_hash: z.string(),
-  exif_timestamp: z.string().nullable(),
-  rating: z.number(),
-  geolocation_json: z.any(),
-  hidden: z.boolean(),
-  public: z.boolean(),
-  video: z.boolean(),
-});
-
-const AlbumInfo = z.object({
-  id: z.number(),
-  title: z.string(),
-  cover_photos: PhotoHash.array(),
-  photo_count: z.number(),
-});
-export type AlbumInfo = z.infer<typeof AlbumInfo>;
-
-const ThingAlbum = z.object({
-  id: z.string(),
-  title: z.string(),
-  grouped_photos: DatePhotosGroup.array(),
-});
-export type ThingAlbum = z.infer<typeof ThingAlbum>;
-
-export const UserAlbumInfo = z.object({
-  id: z.number(),
-  title: z.string(),
-  cover_photo: PhotoSuperSimple.nullable(),
-  photo_count: z.number(),
-  owner: SimpleUser,
-  shared_to: SimpleUser.array(),
-  created_on: z.string(),
-  favorited: z.boolean(),
-  public: z.boolean().optional(),
-});
-export type UserAlbumInfo = z.infer<typeof UserAlbumInfo>;
-
-const UserAlbumDetails = z.object({
-  id: z.string(),
-  title: z.string(),
-  owner: SimpleUser,
-  shared_to: SimpleUser.array().optional(),
-
-  date: z.string(),
-  location: z.string().nullable(),
-});
-export type UserAlbumDetails = z.infer<typeof UserAlbumDetails>;
-
-export const UserAlbum = UserAlbumDetails.extend({
-  grouped_photos: DatePhotosGroup.array(),
-  public: z.boolean().optional(),
-  public_slug: z.string().optional(),
-  public_expires_at: z.string().nullable().optional(),
-  public_sharing_options: z
-    .object({
-      share_location: z.boolean().nullable().optional(),
-      share_camera_info: z.boolean().nullable().optional(),
-      share_timestamps: z.boolean().nullable().optional(),
-      share_captions: z.boolean().nullable().optional(),
-      share_faces: z.boolean().nullable().optional(),
-    })
-    .nullable()
-    .optional(),
-});
-
-export type UserAlbum = z.infer<typeof UserAlbum>;
-
-export const FetchThingAlbumsListResponse = z.object({
-  results: AlbumInfo.array(),
-});
-
-export const FetchThingAlbumResponse = z.object({
-  results: ThingAlbum,
-});
-
-export const FetchUserAlbumsListResponse = z.object({
-  results: UserAlbumInfo.array(),
-});
+export type UserAlbumDetails = Pick<UserAlbum, "id" | "title" | "owner" | "shared_to" | "date" | "location">;
 
 export const UserAlbumEdit = z.object({
   id: z.number(),
@@ -186,71 +126,4 @@ export const UserAlbumEdit = z.object({
   created_on: z.string(),
   favorited: z.boolean(),
   removedPhotos: z.string().array().optional(),
-});
-
-export const PlaceAlbumInfo = AlbumInfo.extend({
-  geolocation_level: z.number(),
-});
-export type PlaceAlbumInfo = z.infer<typeof PlaceAlbumInfo>;
-export const FetchPlaceAlbumsListResponse = z.object({
-  results: PlaceAlbumInfo.array(),
-});
-
-export const PlaceAlbum = z.object({
-  id: z.string(),
-  title: z.string(),
-  grouped_photos: DatePhotosGroup.array(),
-});
-
-export const PhotoSimple = z.object({
-  id: z.string().uuid(),
-  square_thumbnail: z.string(),
-  image_hash: z.string(),
-  exif_timestamp: z.string(),
-  exif_gps_lat: z.number().nullable(),
-  exif_gps_lon: z.number().nullable(),
-  rating: z.number(),
-  geolocation_json: z.any(),
-  public: z.boolean(),
-  video: z.boolean(),
-});
-
-export const AutoAlbum = z.object({
-  id: z.number(),
-  title: z.string(),
-  favorited: z.boolean(),
-  timestamp: z.string(),
-  created_on: z.string(),
-  gps_lat: z.number().nullable(),
-  people: Person.array(),
-  gps_lon: z.number().nullable(),
-  photos: PhotoSimple.array(),
-});
-export type AutoAlbum = z.infer<typeof AutoAlbum>;
-
-export const AutoAlbumInfo = z.object({
-  id: z.number(),
-  title: z.string(),
-  timestamp: z.string(),
-  photos: PhotoHash, // TODO: This is a single photo, so the property name should be corrected. Perhaps cover_photo?
-  photo_count: z.number(),
-  favorited: z.boolean(),
-});
-export type AutoAlbumInfo = z.infer<typeof AutoAlbumInfo>;
-
-// actions using new list view in backend
-
-export const FetchAutoAlbumsListResponse = z.object({
-  results: AutoAlbumInfo.array(),
-});
-
-export const FetchDateAlbumsListResponse = z.object({
-  results: IncompleteDatePhotosGroup.array(),
-});
-export const FetchDateAlbumResponse = z.object({
-  results: IncompleteDatePhotosGroup,
-});
-
-export const FetchUserAlbumsSharedResponse = z.object({
-  results: UserAlbumInfo.array(),
 });

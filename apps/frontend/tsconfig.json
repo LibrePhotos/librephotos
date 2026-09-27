@@ -17,7 +17,21 @@
     "noEmit": true,
     "noImplicitAny": false,
     "sourceMap": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    // The shared API client (packages/api-client) is consumed as TypeScript
+    // source, not as an installed package; vite.config.ts carries the same
+    // alias. Its peer dependencies are pinned to THIS app's node_modules: the
+    // package's own imports would otherwise resolve upwards from packages/,
+    // i.e. to the root npm workspace (React 19, a second react-query) when
+    // that is installed, or to nothing at all in a frontend-only checkout.
+    "paths": {
+      "@librephotos/api-client": ["../../packages/api-client/src/index.ts"],
+      "@librephotos/api-client/*": ["../../packages/api-client/src/*"],
+      "@tanstack/react-query": ["./node_modules/@tanstack/react-query"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "zod": ["./node_modules/zod"]
+    }
   },
   "include": ["./src"]
 }

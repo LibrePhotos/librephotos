@@ -1,20 +1,15 @@
+import { endpoints } from "@librephotos/api-client";
 import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
 import { notification } from "../../../service/notifications";
 import { PeopleAlbumsQueryKeys } from "../../albums/hooks/useFetchPeopleAlbumsQuery";
-import { fetchClient, queryClient } from "../../api";
+import { apiClient, queryClient } from "../../api";
 import { CountStatsQueryKeys } from "../../stats/hooks/useFetchCountStatsQuery";
 import { FacesQueryKeys } from "./useFetchFacesQuery";
 import { IncompleteFacesQueryKeys } from "./useFetchIncompleteFacesQuery";
 
-export type TrainFacesResponse = z.infer<typeof TrainFacesResponse>;
-export const TrainFacesResponse = z.object({
-  status: z.boolean(),
-  // To-Do: Why is it not a number?!?!
-  job_id: z.string().optional(),
-});
+export { JobTriggerResponse as TrainFacesResponse } from "@librephotos/api-client";
 
-export const trainFaces = () => fetchClient.post<TrainFacesResponse>("/trainfaces");
+export const trainFaces = () => endpoints.trainFaces(apiClient);
 
 export const useTrainFacesMutation = () =>
   useMutation({

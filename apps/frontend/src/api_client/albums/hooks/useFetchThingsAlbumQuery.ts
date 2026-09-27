@@ -1,32 +1,15 @@
+import { endpoints, type ThingAlbum } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
-import { mediaTypeToParams, type MediaType } from "../../../components/photolist/mediaTypeFilter";
-import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
-import { DatePhotosGroup } from "../../photos/types";
+import { mediaTypeToBulkQuery, type MediaType } from "../../../components/photolist/mediaTypeFilter";
+import { apiClient } from "../../api";
 
-const ThingsAlbum = z.object({
-  id: z.string(),
-  title: z.string(),
-  grouped_photos: DatePhotosGroup.array(),
-});
-
-export type ThingsAlbum = z.infer<typeof ThingsAlbum>;
-
-const ThingsAlbumResponse = z.object({
-  results: ThingsAlbum,
-});
+export type ThingsAlbum = ThingAlbum;
 
 export const ThingsAlbumQueryKeys = ["thingsAlbum"] as const;
 
 export const useFetchThingsAlbumQuery = (id: string, mediaType?: MediaType) =>
   useQuery({
     queryKey: [...ThingsAlbumQueryKeys, id, mediaType ?? "all"],
-    queryFn: async () => {
-      const query = new URLSearchParams(mediaTypeToParams(mediaType));
-      const suffix = query.toString() ? `?${query.toString()}` : "";
-      const response = await fetchClient.get(`/albums/thing/${id}/${suffix}`);
-      return parseWithNotification(ThingsAlbumResponse, response, "Failed to parse things album").results;
-    },
+    queryFn: () => endpoints.fetchThingAlbum(apiClient, id, mediaTypeToBulkQuery(mediaType)),
     enabled: !!id,
   });

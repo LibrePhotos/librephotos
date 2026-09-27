@@ -1,11 +1,18 @@
+import { fileURLToPath } from "node:url";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
-import { loadEnv } from "vite";
+import { loadEnv, searchForWorkspaceRoot } from "vite";
 import { configDefaults, defineConfig } from "vitest/config";
-import { tanstackRouter } from '@tanstack/router-plugin/vite'
+
+// The shared API client (packages/api-client) ships TypeScript source and is
+// compiled as part of this app, through an alias rather than an installed
+// dependency (tsconfig.json mirrors it under "paths"). This app stays a
+// standalone Yarn project; it is not part of the root npm workspace.
+const apiClientSrc = fileURLToPath(new URL("../../packages/api-client/src", import.meta.url));
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  const publicUrl = env.PUBLIC_URL || env.VITE_PUBLIC_URL || '/';
+  const env = loadEnv(mode, process.cwd(), "");
+  const publicUrl = env.PUBLIC_URL || env.VITE_PUBLIC_URL || "/";
 
   // Why Did You Render. Under the automatic JSX runtime, elements are created
   // by jsxDEV() rather than React.createElement, so the React patch that
@@ -37,16 +44,27 @@ export default defineConfig(({ mode }) => {
       // drags the whole library into the bundle. Send bare `lodash` imports to
       // the ES-module build so they tree-shake; import from "lodash-es" in new
       // code. Deep imports such as "lodash/debounce" are left alone.
-      alias: [{ find: /^lodash$/, replacement: "lodash-es" }],
+      alias: [
+        { find: /^lodash$/, replacement: "lodash-es" },
+        { find: /^@librephotos\/api-client$/, replacement: `${apiClientSrc}/index.ts` },
+        { find: /^@librephotos\/api-client\/(schemas|transport|hooks)$/, replacement: `${apiClientSrc}/$1/index.ts` },
+      ],
+      // Bare imports inside packages/api-client would otherwise resolve
+      // upwards from packages/, which finds the root npm workspace's copies
+      // (React 19, a second @tanstack/react-query whose QueryClient context the
+      // app's provider never fills) or nothing at all. Always use this app's.
+      dedupe: ["react", "react-dom", "@tanstack/react-query", "zod"],
     },
-    appType: 'spa',
+    appType: "spa",
     server: {
       host: "0.0.0.0",
       port: 3000,
       proxy,
+      // The dev server only serves files under the workspace root by default.
+      fs: { allow: [searchForWorkspaceRoot(process.cwd()), apiClientSrc] },
     },
     build: {
-      assetsDir: 'assets',
+      assetsDir: "assets",
       emptyOutDir: true,
     },
     test: {
@@ -63,5 +81,5 @@ export default defineConfig(({ mode }) => {
         exclude: [],
       },
     },
-  }
+  };
 });

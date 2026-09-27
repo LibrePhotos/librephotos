@@ -8,6 +8,7 @@ on:
     paths:
       - 'apps/backend/**'
       - 'apps/frontend/**'
+      - 'packages/api-client/**'
       - 'deploy/docker/unified/**'
       - '.github/workflows/image-unified.yml'
       - '.github/workflows/_build-image.yml'
