@@ -10,7 +10,6 @@ import {
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AutoSizer, Grid } from "react-virtualized";
 import {
   useDeletePersonAlbumMutation,
   useFetchPeopleAlbumsQuery,
@@ -20,6 +19,8 @@ import type { Person } from "../../../api_client/albums/hooks";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
+import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
+import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/persons/")({
@@ -81,7 +82,7 @@ function AlbumPeople() {
     );
   }
 
-  function renderCell({ columnIndex, key, rowIndex, style }) {
+  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
     if (!albums || albums.length === 0) {
       return null;
     }
@@ -154,22 +155,15 @@ function AlbumPeople() {
           actionLink="/faces"
         />
       ) : (
-        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-          {({ width }) => (
-            <Grid
-              style={{ outline: "none" }}
-              headerHeight={100}
-              disableHeader={false}
-              cellRenderer={props => renderCell(props)}
-              columnWidth={entrySquareSize}
-              columnCount={entriesPerRow}
-              height={gridHeight}
-              rowHeight={entrySquareSize + 60}
-              rowCount={numberOfRows}
-              width={width}
-            />
-          )}
-        </AutoSizer>
+        <VirtualGrid
+          style={{ outline: "none" }}
+          cellRenderer={renderCell}
+          columnWidth={entrySquareSize}
+          columnCount={entriesPerRow}
+          height={gridHeight}
+          rowHeight={entrySquareSize + 60}
+          rowCount={numberOfRows}
+        />
       )}
 
       <Modal

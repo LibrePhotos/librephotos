@@ -17,27 +17,22 @@ function NoTimestampPhotosView() {
   const [photosFlat, setPhotosFlat] = useState<PigPhoto[]>([]);
 
   // Fetch actual photos
-  const { data: photosData, status } = useFetchPhotosWithoutTimestampQuery(page);
+  const { data: photosData, isPlaceholderData, status } = useFetchPhotosWithoutTimestampQuery(page);
 
   useEffect(() => {
-    if (photosData) {
-      let tempPhotos: PigPhoto[];
-
-      // If we have a count but no results yet, add temp elements
-      if (page === 1) {
-        tempPhotos = addTempElementsToFlatList(photosData.count);
-      } else {
-        tempPhotos = [...photosFlat];
-      }
-      // If we have results, update the flat list
-      if (photosData.results) {
-        // a page has 100 photos, so we need to splice the results into the photosFlat
-        const index = (page - 1) * 100;
-        tempPhotos.splice(index, 100, ...photosData.results);
-        setPhotosFlat(tempPhotos);
-      }
+    // While the next page loads, the query keeps showing the previous page's photos as placeholder
+    // data. Splicing those in at the new page's offset would duplicate them over its placeholders.
+    if (!photosData || isPlaceholderData) {
+      return;
     }
-  }, [photosData]);
+    setPhotosFlat(previous => {
+      // The first page tells us the total, so it lays out a placeholder for every photo
+      const photos = page === 1 ? addTempElementsToFlatList(photosData.count) : [...previous];
+      // a page has 100 photos, so splice the results into their slots
+      photos.splice((page - 1) * 100, 100, ...photosData.results);
+      return photos;
+    });
+  }, [photosData, isPlaceholderData, page]);
 
   const getImages = (visibleItems: any) => {
     if (visibleItems.filter((i: any) => i.isTemp).length > 0) {

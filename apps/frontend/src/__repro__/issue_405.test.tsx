@@ -4,7 +4,7 @@
  *   "Let each person group on the faces page fold/unfold, so long face lists can be
  *    collapsed to just the name."
  *
- * The faces page is a `react-virtualized` Grid with a constant `rowHeight`. Its row
+ * The faces page is a virtualized grid (VirtualGrid) with a constant `rowHeight`. Its row
  * count, its scroll scrubber and its lazy page loader all read the same flattened cell
  * array that `calculateFaceGridCells` builds, so folding a group has to happen there:
  * hiding the face rows in the DOM would leave the grid claiming rows that render nothing.

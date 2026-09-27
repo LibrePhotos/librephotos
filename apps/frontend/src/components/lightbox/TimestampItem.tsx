@@ -14,7 +14,6 @@ import "dayjs/locale/en";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import "react-virtualized/styles.css";
 import { useUpdatePhotoMutation } from "../../api_client/photos/hooks";
 import { Photo } from "../../api_client/photos/types";
 import { i18nResolvedLanguage } from "../../i18n";

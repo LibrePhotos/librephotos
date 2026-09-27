@@ -7,13 +7,14 @@ import type { CircleLayer, GeoJSONSource, SymbolLayer } from "maplibre-gl";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import MapGL, { AttributionControl, Layer, MapRef, NavigationControl, Source } from "react-map-gl/maplibre";
-import { AutoSizer, Grid } from "react-virtualized";
 import type { PlaceAlbumList } from "../../../api_client/albums/hooks";
 import { useFetchLocationClustersQuery, useFetchPlacesAlbumsQuery } from "../../../api_client/albums/hooks";
 import { serverAddress } from "../../../api_client/apiClient";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { MapDisabledPlaceholder } from "../../../components/map/MapDisabledPlaceholder";
+import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
+import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { useMapStyle } from "../../../util/mapStyle";
 
@@ -166,7 +167,7 @@ function AlbumPlace({ height = 0 }: Props) {
     updateVisibleAlbums(mapRef.current);
   }, [width, height, albums, locationClusters, updateVisibleAlbums]);
 
-  function renderCell({ columnIndex, key, rowIndex, style }: any) {
+  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
     if (shownAlbums.length === 0) {
       return null;
     }
@@ -179,7 +180,7 @@ function AlbumPlace({ height = 0 }: Props) {
       <div key={key} style={style}>
         <div style={{ padding: 5 }}>
           {place.cover_photos.slice(0, 1).map(photo => (
-            <Anchor key={index} href={`/album/places/${place.id}`} pathParams={{ id: place.id }}>
+            <Anchor key={index} href={`/album/places/${place.id}`}>
               <Image
                 width={entrySquareSize - 10}
                 height={entrySquareSize - 10}
@@ -265,20 +266,15 @@ function AlbumPlace({ height = 0 }: Props) {
               </MapGL>
             )}
           </div>
-          <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-            {({ width: gridWidth }) => (
-              <Grid
-                style={{ outline: "none" }}
-                cellRenderer={props => renderCell(props)}
-                columnWidth={entrySquareSize}
-                columnCount={entriesPerRow}
-                height={gridHeight}
-                width={gridWidth}
-                rowHeight={entrySquareSize + 60}
-                rowCount={numberOfRows}
-              />
-            )}
-          </AutoSizer>
+          <VirtualGrid
+            style={{ outline: "none" }}
+            cellRenderer={renderCell}
+            columnWidth={entrySquareSize}
+            columnCount={entriesPerRow}
+            height={gridHeight}
+            rowHeight={entrySquareSize + 60}
+            rowCount={numberOfRows}
+          />
         </>
       )}
     </div>

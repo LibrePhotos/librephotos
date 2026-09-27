@@ -1,11 +1,12 @@
 import cx from "clsx";
 import React, { useCallback } from "react";
-import { GridCellProps } from "react-virtualized";
 import { FacesTab } from "../../api_client/faces/types";
-import { AutoSizer, Grid } from "../../proxy-types";
 import { ScrollScrubber } from "../scrollscrubber/ScrollScrubber";
 import { ScrollerType } from "../scrollscrubber/ScrollScrubberTypes.zod";
 import type { ScrollerData } from "../scrollscrubber/ScrollScrubberTypes.zod";
+import { AutoSizer } from "../virtual/AutoSizer";
+import { VirtualGrid } from "../virtual/VirtualGrid";
+import type { GridCellProps, SectionRenderedParams, VirtualGridHandle } from "../virtual/VirtualGrid";
 import { FaceComponent } from "./FaceComponent";
 import { HeaderComponent } from "./HeaderComponent";
 import { FaceCell, FaceSelection } from "./hooks/useVirtualizedGrid";
@@ -13,19 +14,14 @@ import classes from "./VirtualizedGridComponent.module.css";
 
 interface VirtualizedGridComponentProps {
   containerRef: React.RefObject<HTMLDivElement>;
-  gridRef: React.MutableRefObject<any>;
+  gridRef: React.RefObject<VirtualGridHandle>;
   entrySquareSize: number;
   numEntrySquaresPerRow: number;
   gridHeight: number;
   getCellContentsForTab: (tab: FacesTab) => any[][];
   getScrollPositions: () => ScrollerData[];
   handleScrubberScroll: (y: number) => void;
-  onSectionRendered: (params: {
-    rowOverscanStartIndex: number;
-    columnOverscanStartIndex: number;
-    rowOverscanStopIndex: number;
-    columnOverscanStopIndex: number;
-  }) => void;
+  onSectionRendered: (params: SectionRenderedParams) => void;
   scrollPosition: number | undefined;
   onScroll: (params: { scrollTop: number }) => void;
   handleCellClick: (e: React.MouseEvent, cell: FaceCell) => void;
@@ -33,7 +29,6 @@ interface VirtualizedGridComponentProps {
   selectMode: boolean;
   selectedFaces: FaceSelection[];
   setSelectedFaces: (faces: FaceSelection[]) => void;
-  width: number;
   activeTab: FacesTab;
   collapsedPersons: ReadonlySet<number>;
   onToggleCollapse: (personId: number) => void;
@@ -56,7 +51,6 @@ export function VirtualizedGridComponent({
   selectMode,
   selectedFaces,
   setSelectedFaces,
-  width,
   activeTab,
   collapsedPersons,
   onToggleCollapse,
@@ -99,12 +93,8 @@ export function VirtualizedGridComponent({
         </div>
       );
     },
-    // `width` is not read, but a new renderer is what makes the (pure) Grid redraw
-    // its visible cells when the container is resized.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       activeTab,
-      width,
       entrySquareSize,
       selectedFaces,
       handleCellClick,
@@ -127,10 +117,9 @@ export function VirtualizedGridComponent({
             targetHeight={gridHeight}
             type={ScrollerType.enum.alphabet}
           >
-            <Grid
+            <VirtualGrid
               ref={gridRef}
               className={cx(classes.grid, "scrollscrubbertarget")}
-              disableHeader={false}
               cellRenderer={cellRenderer}
               columnWidth={entrySquareSize}
               columnCount={numEntrySquaresPerRow}

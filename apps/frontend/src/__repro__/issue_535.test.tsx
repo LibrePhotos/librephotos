@@ -61,14 +61,6 @@ vi.mock("../api_client/albums/hooks", () => ({
   useFetchLocationClustersQuery: () => ({ data: stubs.locationClusters, isFetching: false }),
 }));
 vi.mock("../util/mapStyle", () => ({ useMapStyle: () => stubs.mapStyle }));
-// AutoSizer measures a real layout; jsdom reports 0 and the grid would render nothing.
-vi.mock("react-virtualized", async importOriginal => {
-  const actual = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...actual,
-    AutoSizer: ({ children }: any) => children({ width: 1000, height: 600 }),
-  };
-});
 
 /**
  * Stands in for react-map-gl's <Map>. It reproduces the two things that matter here:

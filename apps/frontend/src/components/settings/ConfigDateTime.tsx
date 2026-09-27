@@ -1,3 +1,4 @@
+import { arrayMove } from "@dnd-kit/sortable";
 import {
   Button,
   CloseButton,
@@ -11,22 +12,17 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 import { IconArrowBackUp as ArrowBackUp, IconCodePlus as CodePlus } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useTranslation } from "react-i18next";
 import { useFetchPredefinedRulesQuery } from "../../api_client/settings/hooks/useFetchPredefinedRulesQuery";
 import { ModalConfigDatetime } from "../modals/ModalConfigDatetime";
 import { getRuleExtraInfo } from "./date-time-settings";
 import type { DateTimeRule } from "./date-time.zod";
+import { SortableTbody, SortableTr } from "./SortableTableRows";
 
 type ConfigDateTimeProps = Readonly<{
   value: string;
   onChange: (rules: string) => void;
 }>;
-
-function cloneRules(rules: DateTimeRule[]): DateTimeRule[] {
-  // poor man's deep-copy
-  return JSON.parse(JSON.stringify(rules));
-}
 
 export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
   const { t } = useTranslation();
@@ -69,9 +65,10 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     onChange(JSON.stringify(updatedRules));
   }
 
-  function reorderRules(from: number, to: number) {
-    const tmp = cloneRules(userRules);
-    [tmp[from], tmp[to]] = [tmp[to], tmp[from]];
+  // Rules apply in order, so save the order the list shows after a drop: the dragged rule at
+  // its new place and the ones in between shifted by one.
+  function moveRule(from: number, to: number) {
+    const tmp = arrayMove(userRules, from, to);
     setUserRules(tmp);
     onChange(JSON.stringify(tmp));
   }
@@ -86,30 +83,26 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
     onChange(JSON.stringify(defaultRules));
   }
 
-  const items = userRules.map((rule, index) => (
-    <Draggable key={rule.id} index={index} draggableId={rule.id.toString()}>
-      {provided => (
-        <Table.Tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-          <Table.Td>
-            <strong>
-              {rule.name} (ID:{rule.id})
-            </strong>
-            <div
-              style={{
-                fontSize: "0.9rem",
-                color: colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
-              }}
-            >
-              {t("rules.rule_type", { rule: rule.rule_type })}
-            </div>
-            {getRuleExtraInfo(rule, t)}
-          </Table.Td>
-          <Table.Td width={40}>
-            <CloseButton title="Delete rule" size="md" onClick={() => deleteRule(rule)} />
-          </Table.Td>
-        </Table.Tr>
-      )}
-    </Draggable>
+  const items = userRules.map(rule => (
+    <SortableTr key={rule.id} id={rule.id.toString()}>
+      <Table.Td>
+        <strong>
+          {rule.name} (ID:{rule.id})
+        </strong>
+        <div
+          style={{
+            fontSize: "0.9rem",
+            color: colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.dark[3],
+          }}
+        >
+          {t("rules.rule_type", { rule: rule.rule_type })}
+        </div>
+        {getRuleExtraInfo(rule, t)}
+      </Table.Td>
+      <Table.Td width={40}>
+        <CloseButton title="Delete rule" size="md" onClick={() => deleteRule(rule)} />
+      </Table.Td>
+    </SortableTr>
   ));
 
   return (
@@ -135,18 +128,11 @@ export function ConfigDateTime({ value, onChange }: ConfigDateTimeProps) {
       </Group>
 
       <ScrollArea>
-        <DragDropContext onDragEnd={result => reorderRules(result.destination?.index || 0, result.source.index)}>
-          <Table highlightOnHover>
-            <Droppable droppableId="dnd-list" direction="vertical">
-              {provided => (
-                <Table.Tbody {...provided.droppableProps} ref={provided.innerRef}>
-                  {items}
-                  {provided.placeholder}
-                </Table.Tbody>
-              )}
-            </Droppable>
-          </Table>
-        </DragDropContext>
+        <Table highlightOnHover>
+          <SortableTbody ids={userRules.map(rule => rule.id.toString())} onMove={moveRule}>
+            {items}
+          </SortableTbody>
+        </Table>
       </ScrollArea>
 
       <ModalConfigDatetime

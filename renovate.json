@@ -108,7 +108,7 @@
       "groupName": "docs docusaurus major"
     },
     {
-      "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together (with recharts, which only @mantine/charts uses) and are blocked on replacing react-beautiful-dnd.",
+      "description": "Frontend majors are split so the safe ones can merge alone. React 19 and Mantine 9 have to ship together (with recharts, which only @mantine/charts uses). Still pinned to React 18 by react-avatar-editor 13, @visx/* 3 and @welldone-software/why-did-you-render 8, whose peer ranges stop at 18.",
       "matchFileNames": ["apps/frontend/**"],
       "matchUpdateTypes": ["major"],
       "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom", "/^@mantine\\//", "recharts", "@welldone-software/why-did-you-render"],

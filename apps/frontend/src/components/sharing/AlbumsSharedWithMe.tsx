@@ -1,28 +1,25 @@
 import { Anchor, Loader, Stack, Text } from "@mantine/core";
-import { useResizeObserver } from "@mantine/hooks";
+import { useElementSize, useViewportSize } from "@mantine/hooks";
 import { IconPolaroid as Polaroid, IconUser as User } from "@tabler/icons-react";
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { AutoSizer, Grid } from "react-virtualized";
 import { useFetchSharedAlbumsWithMeQuery } from "../../api_client/albums/hooks";
 import { useFetchUserListQuery } from "../../api_client/user/hooks";
-import { LEFT_MENU_WIDTH } from "../../ui-constants";
 import { calculateGridCellSize, calculateSharedAlbumGridCells } from "../../util/gridUtils";
 import { Tile } from "../Tile";
+import { VirtualGrid } from "../virtual/VirtualGrid";
+import type { GridCellProps } from "../virtual/VirtualGrid";
 
 const DAY_HEADER_HEIGHT = 70;
-const SIDEBAR_WIDTH = LEFT_MENU_WIDTH;
 
-export function AlbumsSharedWithMe({ showSidebar }: any) {
+export function AlbumsSharedWithMe() {
   const { t } = useTranslation();
   const [albumGridContents, setAlbumGridContents] = React.useState<any[]>([]);
-  const [entrySquareSize, setEntrySquareSize] = React.useState(200);
-  const [height, setHeight] = React.useState(window.innerHeight);
-  const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = React.useState(10);
-  const [totalListHeight, setTotalListHeight] = React.useState(0);
-  const [width, setWidth] = React.useState(window.innerWidth);
-  const photoGridRef = useRef<Grid>(null);
-  const rect = useResizeObserver()[1];
+  // Size the columns from the width the grid actually gets, less room for its scrollbar, so they
+  // fit it and follow a resize. The viewport size reads 0 until its first effect.
+  const { ref: containerRef, width } = useElementSize();
+  const height = useViewportSize().height || window.innerHeight;
+  const { entrySquareSize, numEntrySquaresPerRow } = calculateGridCellSize((width || window.innerWidth) - 20);
   const { data: albumsSharedToMe, isFetching, isSuccess } = useFetchSharedAlbumsWithMeQuery();
   const { data: users } = useFetchUserListQuery();
 
@@ -32,37 +29,18 @@ export function AlbumsSharedWithMe({ showSidebar }: any) {
     }
     const contents = calculateSharedAlbumGridCells(albumsSharedToMe, numEntrySquaresPerRow).cellContents;
     setAlbumGridContents(contents);
-    // numEntrySquaresPerRow was missing, so resizing the window kept the old
-    // column count in the cells while the Grid used the new one.
+    // Recomputed on a column count change, or the cells keep the old row layout while the grid
+    // draws the new one.
   }, [albumsSharedToMe, isSuccess, numEntrySquaresPerRow]);
 
-  useEffect(() => {
-    const listHeight = albumGridContents
-      .map(row => {
-        if (row[0].user_id) {
-          // header row
-          return DAY_HEADER_HEIGHT;
-        }
-        // photo row
-        return entrySquareSize + 40;
-      })
-      .reduce((a, b) => a + b, 0);
-    setTotalListHeight(listHeight);
-  }, [albumGridContents, entrySquareSize]);
+  const rowHeight = useCallback(
+    ({ index }: { index: number }) =>
+      // a sharer header row, or a row of album covers with their title and count
+      albumGridContents[index][0].user_id ? DAY_HEADER_HEIGHT : entrySquareSize + 40,
+    [albumGridContents, entrySquareSize]
+  );
 
-  useEffect(() => {
-    const columnWidth = window.innerWidth - 20 - (showSidebar ? SIDEBAR_WIDTH : 0);
-    const { entrySquareSize: squareSize, numEntrySquaresPerRow: squaresPerRow } = calculateGridCellSize(columnWidth);
-    setHeight(window.innerHeight);
-    setWidth(window.innerWidth);
-    setEntrySquareSize(squareSize);
-    setNumEntrySquaresPerRow(squaresPerRow);
-    if (photoGridRef.current) {
-      photoGridRef.current.recomputeGridSize();
-    }
-  }, [rect, showSidebar]);
-
-  const cellRenderer = ({ columnIndex, key, rowIndex, style }) => {
+  const cellRenderer = ({ columnIndex, key, rowIndex, style }: GridCellProps) => {
     if (albumGridContents[rowIndex][columnIndex]) {
       const cell = albumGridContents[rowIndex][columnIndex];
       if (cell.user_id) {
@@ -126,7 +104,7 @@ export function AlbumsSharedWithMe({ showSidebar }: any) {
   };
 
   return (
-    <div>
+    <div ref={containerRef}>
       {isFetching && !isSuccess && (
         <Stack align="center">
           <Loader />
@@ -138,30 +116,15 @@ export function AlbumsSharedWithMe({ showSidebar }: any) {
 
       {albumGridContents.length > 0 && (
         <div>
-          <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-            {({ width: gridWidth }) => (
-              <Grid
-                ref={photoGridRef}
-                style={{ outline: "none" }}
-                disableHeader={false}
-                cellRenderer={cellRenderer}
-                columnWidth={entrySquareSize}
-                columnCount={numEntrySquaresPerRow}
-                height={height - 45 - 60 - 40}
-                rowCount={albumGridContents.length}
-                rowHeight={({ index }) => {
-                  if (albumGridContents[index][0].user_id) {
-                    // header row
-                    return DAY_HEADER_HEIGHT;
-                  }
-                  // photo row
-                  return entrySquareSize + 40;
-                }}
-                estimatedRowSize={totalListHeight / +albumGridContents.length.toFixed(1)}
-                width={gridWidth}
-              />
-            )}
-          </AutoSizer>
+          <VirtualGrid
+            style={{ outline: "none" }}
+            cellRenderer={cellRenderer}
+            columnWidth={entrySquareSize}
+            columnCount={numEntrySquaresPerRow}
+            height={height - 45 - 60 - 40}
+            rowCount={albumGridContents.length}
+            rowHeight={rowHeight}
+          />
         </div>
       )}
     </div>
