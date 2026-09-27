@@ -26,6 +26,13 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../i18n";
+// Imported statically, like every other test's subject: loading the route's
+// module graph then happens while the file is collected, which has no time
+// limit. Under a parallel run on a busy machine it can take many seconds, and
+// in a beforeAll it kept hitting the hook timeout. The vi.mock() calls below
+// are hoisted above this import, and running the module hands its page
+// component to the createFileRoute stub.
+import "../routes/_protected/album/places.index";
 
 const stubs = vi.hoisted(() => ({
   component: null as React.ComponentType<any> | null,
@@ -117,18 +124,13 @@ beforeAll(async () => {
   // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
-  // Load the route module here rather than inside the first test: the cold
-  // import alone takes ~4-5 s, right at the default per-test timeout, and far
-  // longer when the whole suite runs in parallel, hence the generous hook timeout.
-  await import("../routes/_protected/album/places.index");
-}, 30_000);
+});
 
 beforeEach(() => {
   stubs.mapStyle = { mapStyle: "https://example.invalid/style.json", mapsDisabled: false };
 });
 
 async function renderPage() {
-  await import("../routes/_protected/album/places.index");
   const AlbumPlace = stubs.component!;
   const container = document.createElement("div");
   document.body.appendChild(container);

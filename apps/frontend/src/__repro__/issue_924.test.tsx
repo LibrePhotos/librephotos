@@ -26,6 +26,13 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import i18n from "../i18n";
+// Imported statically, like every other test's subject: loading the route's
+// module graph then happens while the file is collected, which has no time
+// limit. Under a parallel run on a busy machine it can take many seconds, and
+// in a beforeAll it kept hitting the hook timeout. The vi.mock() calls below
+// are hoisted above this import, and running the module hands its page
+// component to the createFileRoute stub.
+import "../routes/login";
 
 const stubs = vi.hoisted(() => ({
   login: vi.fn(),
@@ -69,6 +76,10 @@ vi.mock("../api_client/user/hooks", () => ({
   useUpdateUserScanDirectoryMutation: () => stubs.noopMutation,
 }));
 vi.mock("../components/setup/DirectoryPicker", () => ({ DirectoryPicker: () => null }));
+// Only reached when a sign-up or a scan-directory save fails. The real module
+// pulls in the whole @librephotos/api-client (zod schemas included) and the
+// notification service, roughly 40 modules this test never uses.
+vi.mock("../util/apiErrors", () => ({ reportSignupError: () => {}, reportUserSaveError: () => {} }));
 
 beforeAll(async () => {
   // @ts-ignore - jsdom has no matchMedia, MantineProvider needs it
@@ -85,16 +96,11 @@ beforeAll(async () => {
   // @ts-ignore
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   await i18n.changeLanguage("en");
-  // Pay for the cold import of the route module here, under a generous hook
-  // timeout, rather than inside the first test's 5 s budget: under full-suite
-  // load it alone can take longer than that.
-  await import("../routes/login");
-}, 30_000);
+});
 
 async function renderLoginPage() {
   // The route component renders the sign-in form when this is not a first-time setup,
   // which the useIsFirstTimeSetupQuery mock above guarantees.
-  await import("../routes/login");
   const LoginPage = stubs.component!;
   const container = document.createElement("div");
   document.body.appendChild(container);
