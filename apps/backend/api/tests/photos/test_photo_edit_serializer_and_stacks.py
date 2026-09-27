@@ -8,8 +8,8 @@ These are behavior snapshots taken before refactoring - they encode what the
 code does today, including quirks noted in the docstrings below.
 
 Heavy dependencies are mocked: ``reverse_geocode`` is patched at the
-``api.serializers.photos`` import site and ``_extract_date_time_from_exif`` is
-patched on the model, so no exiftool binary or network access is required.
+``api.serializers.photos`` import site and ``extract_date_time`` is
+patched there too, so no exiftool binary or network access is required.
 """
 
 from unittest.mock import patch
@@ -17,7 +17,6 @@ from unittest.mock import patch
 from django.test import TestCase
 
 from api.models.album_place import AlbumPlace, get_album_place
-from api.models.photo import Photo
 from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_search import PhotoSearch
 from api.models.photo_stack import PhotoStack
@@ -121,30 +120,30 @@ class PhotoEditSerializerTimestampTestCase(TestCase):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
-    @patch.object(Photo, "_extract_date_time_from_exif")
+    @patch("api.serializers.photos.extract_date_time")
     def test_exif_timestamp_is_written_to_timestamp_field(self, extract):
         result = _edit(self.photo, {"exif_timestamp": "2020-01-02T03:04:05Z"})
 
         self.assertIsNotNone(result.timestamp)
         self.assertEqual(result.timestamp.year, 2020)
         self.assertEqual(result.timestamp.month, 1)
-        extract.assert_called_once_with()
+        extract.assert_called_once_with(self.photo)
 
         self.photo.refresh_from_db()
         self.assertEqual(self.photo.timestamp.year, 2020)
 
-    @patch.object(Photo, "_extract_date_time_from_exif")
+    @patch("api.serializers.photos.extract_date_time")
     def test_exif_timestamp_absent_does_not_call_extractor(self, extract):
         _edit(self.photo, {"is_screenshot": True})
         extract.assert_not_called()
 
-    @patch.object(Photo, "_extract_date_time_from_exif")
+    @patch("api.serializers.photos.extract_date_time")
     def test_exif_timestamp_none_is_accepted_and_clears_timestamp(self, extract):
         """exif_timestamp is nullable, so an explicit null flows through."""
         result = _edit(self.photo, {"exif_timestamp": None})
 
         self.assertIsNone(result.timestamp)
-        extract.assert_called_once_with()
+        extract.assert_called_once_with(self.photo)
 
 
 class PhotoEditSerializerGpsTestCase(TestCase):
@@ -273,7 +272,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
         geocode.assert_not_called()
 
     @patch("api.serializers.photos.reverse_geocode", return_value=dict(GEO_RESULT))
-    @patch.object(Photo, "_extract_date_time_from_exif")
+    @patch("api.serializers.photos.extract_date_time")
     def test_category_timestamp_and_gps_can_be_combined(self, extract, geocode):
         result = _edit(
             self.photo,
@@ -285,7 +284,7 @@ class PhotoEditSerializerGpsTestCase(TestCase):
             },
         )
 
-        extract.assert_called_once_with()
+        extract.assert_called_once_with(self.photo)
         geocode.assert_called_once_with(52.5, 13.4)
         self.photo.refresh_from_db()
         self.assertTrue(self.photo.is_screenshot)

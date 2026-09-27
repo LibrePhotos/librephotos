@@ -17,10 +17,12 @@ from django_q.tasks import AsyncTask
 from api import sidecars, util
 from api.document_detection import classify_document
 from api.face_classify import cluster_all_faces
+from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.models import Face, LongRunningJob, Photo
 from api.models.album_thing import AlbumThing
 from api.models.photo_caption import PhotoCaption
 from api.models.photo_ocr import PhotoOcr
+from api.photo_faces import extract_faces
 from api.directory_watcher.utils import (
     CANCELLATION_CHECK_INTERVAL,
     is_job_cancelled,
@@ -627,8 +629,8 @@ def geolocation_job(photo_id, job_id: UUID):
     failed = False
     error = None
     try:
-        photo._geolocate()
-        photo._add_location_to_album_dates()
+        geolocate_photo(photo)
+        add_location_to_album_dates(photo)
     except Exception as err:
         util.logger.exception("An error occurred: ")
         failed = True
@@ -641,7 +643,7 @@ def _extract_faces_for_photo(photo: Photo, job_id: UUID):
     failed = False
     error = None
     try:
-        photo._extract_faces()
+        extract_faces(photo)
     except Exception as err:
         failed = True
         error = _record_photo_error(photo, err)

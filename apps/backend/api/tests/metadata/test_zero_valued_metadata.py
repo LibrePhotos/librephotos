@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
+from api.geocode.photo_location import geolocate_photo
 from api.models.photo_metadata import EXIF_VALUE_NAMES, PhotoMetadata
 from api.tests.utils import create_test_photo, create_test_user
 
@@ -21,31 +22,31 @@ class GeolocateZeroCoordinateTestCase(TestCase):
         self.user = create_test_user()
         self.photo = create_test_photo(owner=self.user)
 
-    @patch("api.models.photo.reverse_geocode", return_value={})
-    @patch("api.models.photo.get_metadata", return_value=(0.0, 11.5))
+    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
+    @patch("api.geocode.photo_location.get_metadata", return_value=(0.0, 11.5))
     def test_geolocate_keeps_zero_latitude(self, _get_metadata, reverse_geocode):
         """A photo on the equator (lat == 0.0) must still be geocoded."""
-        self.photo._geolocate(commit=False)
+        geolocate_photo(self.photo, commit=False)
 
         reverse_geocode.assert_called_once()
         self.assertEqual(self.photo.exif_gps_lat, 0.0)
         self.assertEqual(self.photo.exif_gps_lon, 11.5)
 
-    @patch("api.models.photo.reverse_geocode", return_value={})
-    @patch("api.models.photo.get_metadata", return_value=(51.48, 0.0))
+    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
+    @patch("api.geocode.photo_location.get_metadata", return_value=(51.48, 0.0))
     def test_geolocate_keeps_zero_longitude(self, _get_metadata, reverse_geocode):
         """A photo on the prime meridian (lon == 0.0) must still be geocoded."""
-        self.photo._geolocate(commit=False)
+        geolocate_photo(self.photo, commit=False)
 
         reverse_geocode.assert_called_once()
         self.assertEqual(self.photo.exif_gps_lat, 51.48)
         self.assertEqual(self.photo.exif_gps_lon, 0.0)
 
-    @patch("api.models.photo.reverse_geocode", return_value={})
-    @patch("api.models.photo.get_metadata", return_value=(0.0, 0.0))
+    @patch("api.geocode.photo_location.reverse_geocode", return_value={})
+    @patch("api.geocode.photo_location.get_metadata", return_value=(0.0, 0.0))
     def test_geolocate_skips_null_island(self, _get_metadata, reverse_geocode):
         """The (0, 0) default written when there is no GPS fix is rejected."""
-        self.photo._geolocate(commit=False)
+        geolocate_photo(self.photo, commit=False)
 
         reverse_geocode.assert_not_called()
         self.assertIsNone(self.photo.exif_gps_lat)

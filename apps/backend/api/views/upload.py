@@ -20,9 +20,11 @@ from api import util
 from api.authentication import JWTCookieAuthentication
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
+from api.geocode.photo_location import add_location_to_album_dates, geolocate_photo
 from api.models import Photo
 from api.models.file import calculate_hash, calculate_hash_b64
 from api.models.photo_caption import PhotoCaption
+from api.photo_faces import extract_faces
 
 
 def parse_device_timestamp(raw):
@@ -198,9 +200,9 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
             device_modified_at,
         )
         chain.append(generate_captions_wrapper, photo, True)
-        chain.append(photo._geolocate)
-        chain.append(photo._add_location_to_album_dates)
-        chain.append(photo._extract_faces)
+        chain.append(geolocate_photo, photo)
+        chain.append(add_location_to_album_dates, photo)
+        chain.append(extract_faces, photo)
         chain.run()
 
     def on_completion(self, uploaded_file, request):

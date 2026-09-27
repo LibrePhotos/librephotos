@@ -548,7 +548,7 @@ class DeviceTimestampFallbackTest(TestCase):
         )
         # The file carries no date; the exif service is not running here.
         with patch(
-            "api.models.photo.get_metadata",
+            "api.metadata.photo_datetime.get_metadata",
             side_effect=lambda path, tags, **kwargs: [None] * len(tags),
         ):
             apply_device_timestamp_fallback(photo, device_time)

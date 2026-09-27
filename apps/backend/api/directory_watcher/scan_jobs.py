@@ -23,6 +23,7 @@ from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.file import is_metadata
+from api.photo_files import detach_missing_files
 
 from api.directory_watcher.file_grouping import (
     get_file_grouping_key,
@@ -461,7 +462,7 @@ def scan_missing_photos(user, job_id: UUID):
                 util.logger.info("Scan missing photos job cancelled")
                 return
             for existing_photo in paginator.page(page).object_list:
-                existing_photo._check_files()
+                detach_missing_files(existing_photo)
 
             update_scan_counter(job_id)
 

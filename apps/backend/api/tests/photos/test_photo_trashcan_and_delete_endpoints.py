@@ -141,7 +141,7 @@ class DeletePhotosTest(TestCase):
 
         payload = {"image_hashes": image_hashes}
         headers = {"Content-Type": "application/json"}
-        with patch("api.models.photo.os.remove", side_effect=remove_unless_protected):
+        with patch("api.photo_files.os.remove", side_effect=remove_unless_protected):
             response = self.client.delete(
                 "/api/photosedit/delete/", format="json", data=payload, headers=headers
             )
@@ -177,7 +177,7 @@ class DeletePhotosTest(TestCase):
 
         payload = {"select_all": True, "query": {}}
         headers = {"Content-Type": "application/json"}
-        with patch("api.models.photo.os.remove", side_effect=remove_unless_protected):
+        with patch("api.photo_files.os.remove", side_effect=remove_unless_protected):
             response = self.client.delete(
                 "/api/photosedit/delete/", format="json", data=payload, headers=headers
             )

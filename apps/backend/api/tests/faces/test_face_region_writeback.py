@@ -478,7 +478,7 @@ class TestSaveMetadataIntegration(TestCase):
     def setUp(self):
         self.user = create_test_user()
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.metadata.face_regions.get_metadata")
     @patch("api.metadata.face_regions.PIL.Image.open")
     def test_save_metadata_with_face_tags(
@@ -512,7 +512,7 @@ class TestSaveMetadataIntegration(TestCase):
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         self.assertIn("Test Person", tags["XMP-mwg-rs:RegionInfo"])
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     def test_save_metadata_default_does_not_write_face_tags(self, mock_write_metadata):
         """_save_metadata() with default args should NOT write face tags."""
         photo = create_test_photo(owner=self.user)
@@ -537,7 +537,7 @@ class TestSaveMetadataIntegration(TestCase):
             tags = mock_write_metadata.call_args[0][1]
             self.assertNotIn("XMP-mwg-rs:RegionInfo", tags)
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     @patch("api.metadata.face_regions.get_metadata")
     @patch("api.metadata.face_regions.PIL.Image.open")
     def test_save_metadata_combined_types(
@@ -574,7 +574,7 @@ class TestSaveMetadataIntegration(TestCase):
         self.assertIn("XMP-mwg-rs:RegionInfo", tags)
         self.assertIn("Alice", tags["XMP-mwg-rs:RegionInfo"])
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     def test_save_metadata_timestamp_writes_date_created(self, mock_write_metadata):
         """A timestamp edit is persisted as XMP:DateCreated, not an EXIF date.
 
@@ -598,7 +598,7 @@ class TestSaveMetadataIntegration(TestCase):
         self.assertNotIn(Tags.DATE_TIME, tags)
         self.assertNotIn("EXIF:DateTime", tags)
 
-    @patch("api.models.photo.write_metadata")
+    @patch("api.metadata.photo_writer.write_metadata")
     def test_save_metadata_clears_date_created_when_timestamp_is_removed(
         self, mock_write_metadata
     ):

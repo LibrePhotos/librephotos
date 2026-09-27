@@ -1,51 +1,12 @@
-import json
-import os
 import uuid
-from io import BytesIO
 
-import numpy as np
-import PIL
-from django.conf import settings
-from django.core.files.base import ContentFile
 from django.db import models
 from django.db.models import Q
-from django.db.utils import IntegrityError
 
-import api.models
-from api import date_time_extractor, face_extractor, transcode_cache, util
-from api.geocode import GEOCODE_VERSION
-from api.geocode.geocode import reverse_geocode
-from api.metadata.reader import get_metadata
-from api.metadata.tags import Tags
-from api.metadata.writer import write_metadata
+from api import photo_files
+from api.metadata.photo_writer import write_orientation_to_disk, write_photo_metadata
 from api.models.file import File
 from api.models.user import User, get_deleted_user
-from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou, logger
-
-
-def _overlaps_existing_face(existing_face_locations, top, right, bottom, left):
-    """Return True if a new face region overlaps significantly with any
-    existing face (IoU >= FACE_OVERLAP_IOU_THRESHOLD).
-
-    *existing_face_locations* is an iterable of (top, right, bottom, left) tuples.
-    """
-    for ex_top, ex_right, ex_bottom, ex_left in existing_face_locations:
-        iou = calculate_iou(
-            top, right, bottom, left, ex_top, ex_right, ex_bottom, ex_left
-        )
-        if iou >= FACE_OVERLAP_IOU_THRESHOLD:
-            return True
-    return False
-
-
-def _has_usable_coordinates(lat, lon):
-    """Reject missing coordinates and the (0, 0) "null island" default that
-    cameras write when there is no fix. A single zero axis (the equator or the
-    prime meridian) is a valid location and must be kept.
-    """
-    if lat is None or lon is None:
-        return False
-    return not (float(lat) == 0.0 and float(lon) == 0.0)
 
 
 class PhotoQuerySet(models.QuerySet):
@@ -183,8 +144,6 @@ class Photo(models.Model):
     objects = PhotoQuerySet.as_manager()
     visible = VisiblePhotoManager()
 
-    _loaded_values = {}
-
     class Meta:
         indexes = [
             # Keyset pagination for the delta-sync photo feed (doc 04 §3):
@@ -213,14 +172,17 @@ class Photo(models.Model):
         """Set clip embeddings, automatically handling storage format"""
         self.clip_embeddings = embeddings if embeddings else None
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The row as loaded from the database, which save() diffs against to
+        # find the fields to write to disk. Per instance: from_db() fills it,
+        # and an instance built in memory has nothing to diff against.
+        self._loaded_values = {}
+
     @classmethod
     def from_db(cls, db, field_names, values):
         instance = super().from_db(db, field_names, values)
-
-        # save original values, when model is loaded from database,
-        # in a separate attribute on the model
         instance._loaded_values = dict(zip(field_names, values))
-
         return instance
 
     def save(
@@ -236,12 +198,12 @@ class Photo(models.Model):
             for field_name, value in self._loaded_values.items()
             if value != getattr(self, field_name)
         ]
-        user = User.objects.get(username=self.owner)
-        if save_metadata and user.save_metadata_to_disk != User.SaveMetadata.OFF:
-            self._save_metadata(
-                modified_fields,
-                user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE,
-            )
+        if save_metadata:
+            mode = self.owner.save_metadata_to_disk
+            if mode != User.SaveMetadata.OFF:
+                self._save_metadata(
+                    modified_fields, mode == User.SaveMetadata.SIDECAR_FILE
+                )
         return super().save(
             force_insert=force_insert,
             force_update=force_update,
@@ -254,466 +216,22 @@ class Photo(models.Model):
     ):
         """Write metadata tags to the photo's file or sidecar.
 
-        Args:
-            modified_fields: List of changed field names (from Photo.save() diff).
-                When None, writes all applicable tags unconditionally.
-            use_sidecar: Write to XMP sidecar file if True, media file if False.
-            metadata_types: List of metadata categories to write, e.g.
-                ["ratings", "face_tags"]. When None, uses default behavior
-                (ratings/timestamps only, for backward compatibility).
+        Kept for its many callers; see
+        ``api.metadata.photo_writer.write_photo_metadata``.
         """
-        tags_to_write = {}
-
-        write_ratings = metadata_types is None or "ratings" in metadata_types
-        write_face_tags = metadata_types is not None and "face_tags" in metadata_types
-
-        if write_ratings:
-            if modified_fields is None or "rating" in modified_fields:
-                tags_to_write[Tags.RATING] = self.rating
-            if modified_fields is not None and "timestamp" in modified_fields:
-                # XMP:DateCreated is used rather than an EXIF date tag because
-                # EXIF tags cannot be written into an XMP sidecar (exiftool
-                # silently leaves the sidecar unchanged), and because writing it
-                # preserves the camera's original EXIF:DateTimeOriginal.
-                # Serialized in exiftool's canonical form; ``self.timestamp`` is
-                # local time carrying a UTC tzinfo, so the offset is dropped
-                # rather than written out as a misleading "+00:00".
-                tags_to_write[Tags.DATE_CREATED] = (
-                    self.timestamp.strftime("%Y:%m:%d %H:%M:%S")
-                    if self.timestamp
-                    else ""
-                )
-
-        if write_face_tags:
-            from api.metadata.face_regions import get_face_region_tags
-
-            tags_to_write.update(get_face_region_tags(self))
-
-        if tags_to_write:
-            write_metadata(self.main_file.path, tags_to_write, use_sidecar=use_sidecar)
-
-    def _find_album_place(self):
-        return api.models.album_place.AlbumPlace.objects.filter(
-            Q(photos__in=[self])
-        ).all()
-
-    def _find_album_date(self):
-        old_album_date = None
-        if self.exif_timestamp:
-            possible_old_album_date = api.models.album_date.get_album_date(
-                date=self.exif_timestamp.date(), owner=self.owner
-            )
-            if (
-                possible_old_album_date is not None
-                and possible_old_album_date.photos.filter(
-                    image_hash=self.image_hash
-                ).exists()
-            ):
-                old_album_date = possible_old_album_date
-        else:
-            possible_old_album_date = api.models.album_date.get_album_date(
-                date=None, owner=self.owner
-            )
-            if (
-                possible_old_album_date is not None
-                and possible_old_album_date.photos.filter(
-                    image_hash=self.image_hash
-                ).exists()
-            ):
-                old_album_date = possible_old_album_date
-        return old_album_date
-
-    def _extract_date_time_from_exif(self, commit=True):
-        def exif_getter(tags):
-            return get_metadata(self.main_file.path, tags=tags, try_sidecar=True)
-
-        datetime_config = json.loads(self.owner.datetime_rules)
-        extracted_local_time = date_time_extractor.extract_local_date_time(
-            self.main_file.path,
-            date_time_extractor.as_rules(datetime_config),
-            exif_getter,
-            self.exif_gps_lat,
-            self.exif_gps_lon,
-            self.owner.default_timezone,
-            self.timestamp,
+        write_photo_metadata(
+            self,
+            modified_fields=modified_fields,
+            use_sidecar=use_sidecar,
+            metadata_types=metadata_types,
         )
-
-        old_album_date = self._find_album_date()
-        if self.exif_timestamp != extracted_local_time:
-            self.exif_timestamp = extracted_local_time
-
-        if old_album_date is not None:
-            old_album_date.photos.remove(self)
-            old_album_date.save()
-
-        album_date = None
-
-        if self.exif_timestamp:
-            album_date = api.models.album_date.get_or_create_album_date(
-                date=self.exif_timestamp.date(), owner=self.owner
-            )
-            album_date.photos.add(self)
-        else:
-            album_date = api.models.album_date.get_or_create_album_date(
-                date=None, owner=self.owner
-            )
-            album_date.photos.add(self)
-
-        if commit:
-            self.save()
-        album_date.save()
-
-    def _geolocate(self, commit=True):
-        old_gps_lat = self.exif_gps_lat
-        old_gps_lon = self.exif_gps_lon
-        new_gps_lat, new_gps_lon = get_metadata(
-            self.main_file.path,
-            tags=[Tags.LATITUDE, Tags.LONGITUDE],
-            try_sidecar=True,
-        )
-        old_album_places = self._find_album_place()
-        if not _has_usable_coordinates(new_gps_lat, new_gps_lon):
-            return
-        if (
-            old_gps_lat == float(new_gps_lat)
-            and old_gps_lon == float(new_gps_lon)
-            and old_album_places.exists()
-            and self._has_current_geolocation()
-        ):
-            return
-        self.exif_gps_lon = float(new_gps_lon)
-        self.exif_gps_lat = float(new_gps_lat)
-        if commit:
-            self.save()
-
-        res = self._reverse_geocode_safely(new_gps_lat, new_gps_lon)
-        if not res:
-            return
-
-        self.geolocation_json = res
-        self._update_search_location(res)
-        self._move_to_album_places(old_album_places)
-
-        if commit:
-            self.save()
-
-    def _has_current_geolocation(self):
-        return bool(
-            self.geolocation_json
-            and "_v" in self.geolocation_json
-            and self.geolocation_json["_v"] == GEOCODE_VERSION
-        )
-
-    def _reverse_geocode_safely(self, lat, lon):
-        try:
-            return reverse_geocode(lat, lon)
-        except Exception as e:
-            util.logger.warning(e)
-            util.logger.warning("Something went wrong with geolocating")
-            return None
-
-    def _update_search_location(self, res):
-        from api.models.photo_search import PhotoSearch
-
-        search_instance, _ = PhotoSearch.objects.get_or_create(photo=self)
-        search_instance.update_search_location(res)
-        search_instance.save()
-
-    def _move_to_album_places(self, old_album_places):
-        # Delete photo from album places if location has changed
-        if old_album_places is not None:
-            for old_album_place in old_album_places:
-                old_album_place.photos.remove(self)
-                old_album_place.save()
-
-        features = self.geolocation_json["features"]
-        for geolocation_level, feature in enumerate(features):
-            if "text" not in feature.keys() or feature["text"].isnumeric():
-                continue
-            album_place = api.models.album_place.get_album_place(
-                feature["text"], owner=self.owner
-            )
-            if not album_place.photos.filter(image_hash=self.image_hash).exists():
-                album_place.geolocation_level = len(features) - geolocation_level
-            album_place.photos.add(self)
-            album_place.save()
-
-    def _add_location_to_album_dates(self):
-        places = (self.geolocation_json or {}).get("places") or []
-        if len(places) < 2:
-            return
-
-        album_date = self._find_album_date()
-        city_name = places[-2]
-        if album_date.location and len(album_date.location) > 0:
-            prev_value = album_date.location
-            new_value = prev_value
-            if city_name not in prev_value["places"]:
-                new_value["places"].append(city_name)
-                new_value["places"] = list(set(new_value["places"]))
-                album_date.location = new_value
-        else:
-            album_date.location = {"places": [city_name]}
-        # Safe geolocation_json
-        album_date.save()
-
-    def _extract_faces(self, second_try=False):
-        if not settings.FEATURE_FACE_DETECTION:
-            logger.info("Face detection is disabled")
-            return
-
-        unknown_cluster: api.models.cluster.Cluster = (
-            api.models.cluster.get_unknown_cluster(user=self.owner)
-        )
-        try:
-            self._detect_and_save_faces(unknown_cluster)
-        except IntegrityError:
-            self._retry_face_extraction(second_try)
-        except Exception as e:
-            logger.error(f"image {self}: scan face failed")
-            raise e
-
-    def _detect_and_save_faces(self, unknown_cluster):
-        big_thumbnail_image = np.array(
-            PIL.Image.open(self.thumbnail.thumbnail_big.path)
-        )
-
-        face_locations = face_extractor.extract(
-            self.main_file.path, self.thumbnail.thumbnail_big.path, self.owner
-        )
-
-        if len(face_locations) == 0:
-            return
-
-        # Fetch existing face locations once to avoid repeated DB queries.
-        existing_face_locations = list(
-            api.models.face.Face.objects.filter(photo=self).values_list(
-                "location_top", "location_right", "location_bottom", "location_left"
-            )
-        )
-
-        for idx_face, face_location in enumerate(face_locations):
-            # Faces from the face service carry their encoding; XMP regions
-            # get one later from generate_face_embeddings.
-            top, right, bottom, left, person_name, *encoding = face_location
-            person = self._get_or_create_named_person(person_name)
-
-            face_image = big_thumbnail_image[top:bottom, left:right]
-            face_image = PIL.Image.fromarray(face_image)
-
-            image_path = self.image_hash + "_" + str(idx_face) + ".jpg"
-
-            if _overlaps_existing_face(
-                existing_face_locations, top, right, bottom, left
-            ):
-                if person is not None:
-                    self._reconcile_xmp_face_name(
-                        person, person_name, (top, right, bottom, left)
-                    )
-                continue
-
-            self._save_detected_face(
-                face_image,
-                image_path,
-                person,
-                unknown_cluster,
-                (top, right, bottom, left),
-                encoding[0] if encoding else None,
-            )
-            if person_name:
-                person._calculate_face_count()
-                person._set_default_cover_photo()
-            existing_face_locations.append((top, right, bottom, left))
-        logger.info(f"image {self.image_hash}: {len(face_locations)} face(s) saved")
-
-    def _get_or_create_named_person(self, person_name):
-        if not person_name:
-            return None
-        person = api.models.person.get_or_create_person(
-            name=person_name,
-            owner=self.owner,
-            kind=api.models.person.Person.KIND_USER,
-        )
-        person.save()
-        return person
-
-    def _reconcile_xmp_face_name(self, person, person_name, location):
-        top, right, bottom, left = location
-        for existing_face in api.models.face.Face.objects.filter(photo=self):
-            existing_location = (
-                existing_face.location_top,
-                existing_face.location_right,
-                existing_face.location_bottom,
-                existing_face.location_left,
-            )
-            if not _overlaps_existing_face(
-                [existing_location], top, right, bottom, left
-            ):
-                continue
-            if existing_face.person_id is None:
-                existing_face.person = person
-                existing_face.save(update_fields=["person"])
-                person._calculate_face_count()
-                person._set_default_cover_photo()
-                logger.warning(
-                    f"XMP face reconciliation: assigned {person_name} "
-                    f"to existing face {existing_face.id}"
-                )
-            break
-
-    def _save_detected_face(
-        self, face_image, image_path, person, cluster, location, encoding=None
-    ):
-        top, right, bottom, left = location
-        face = api.models.face.Face(
-            photo=self,
-            location_top=top,
-            location_right=right,
-            location_bottom=bottom,
-            location_left=left,
-            # As Face.generate_encoding stores it.
-            encoding="" if encoding is None else encoding.tobytes().hex(),
-            person=person,
-            cluster=cluster,
-        )
-        face_io = BytesIO()
-        if face_image.mode in ("RGBA", "P"):
-            face_image = face_image.convert("RGB")
-        face_image.save(face_io, format="JPEG")
-        face.image.save(image_path, ContentFile(face_io.getvalue()))
-        face_io.close()
-        face.save()
-        return face
-
-    def _retry_face_extraction(self, second_try):
-        # When using multiple processes, then we can save at the same time, which leads to this error
-        if self.files.exists():
-            # print out the location of the image only if we have a path
-            logger.info(f"image {self.main_file.path}: rescan face failed")
-        if not second_try:
-            self._extract_faces(True)
-        elif self.files.exists():
-            logger.error(f"image {self.main_file.path}: rescan face failed")
-        else:
-            logger.error(f"image {self}: rescan face failed")
-
-    def _active_model_tags(self):
-        """Tags the active tagging model stored for this photo, or None."""
-        from constance import config as site_config
-
-        caption_instance = getattr(self, "caption_instance", None)
-        if not caption_instance:
-            return None
-        captions_json = caption_instance.captions_json
-        if not captions_json or type(captions_json) is not dict:
-            return None
-        tag_result = captions_json.get(site_config.TAGGING_MODEL)
-        if not isinstance(tag_result, dict):
-            return None
-        return tag_result.get("tags", [])
-
-    def _add_to_album_things(self, titles, thing_type):
-        for title in titles:
-            album_thing = api.models.album_thing.get_album_thing(
-                title=title,
-                owner=self.owner,
-                thing_type=thing_type,
-            )
-            if not album_thing.photos.filter(image_hash=self.image_hash).exists():
-                album_thing.photos.add(self)
-                album_thing.save()
-
-    def _add_to_album_thing(self):
-        """File the photo under the Things albums of its active-model tags."""
-        from constance import config as site_config
-
-        from api.models.photo_caption import tag_thing_type
-
-        tags = self._active_model_tags()
-        if tags is None:
-            return
-        self._add_to_album_things(tags, tag_thing_type(site_config.TAGGING_MODEL))
-
-    def _check_files(self):
-        for file in self.files.all():
-            if not file.path or not os.path.exists(file.path):
-                self.files.remove(file)
-                file.missing = True
-                file.save()
-        self.save()
 
     def manual_delete(self):
-        # Store stack references before cleanup (ManyToMany)
-        photo_stacks = list(self.stacks.all())
+        """Delete the files only this photo uses and mark it removed.
 
-        # Store duplicate group references before cleanup (ManyToMany)
-        photo_duplicates = list(self.duplicates.all())
-
-        # Handle file cleanup - only delete files not shared with other Photos
-        for file in self.files.all():
-            # Check if this file is used by other Photos (via files M2M or as main_file)
-            other_photos_using_file = (
-                file.photo_set.exclude(pk=self.pk).exists()
-                or file.main_photo.exclude(pk=self.pk).exists()
-            )
-
-            if other_photos_using_file:
-                # File is shared - just unlink from this photo, don't delete
-                logger.info(
-                    f"File {file.path} is shared with other photos, unlinking only"
-                )
-                self.files.remove(file)
-            else:
-                # File is only used by this photo - safe to delete
-                if os.path.isfile(file.path):
-                    logger.info(f"Removing photo {file.path}")
-                    os.remove(file.path)
-                file.delete()
-
-        self.files.set([])
-        self.main_file = None
-        self.removed = True
-
-        # A cached transcode outlives the photo otherwise: it is named after the
-        # image hash, which no longer belongs to anything, so nothing would ever
-        # serve it and nothing would ever reclaim it until the cache filled up.
-        transcode_cache.discard(self.image_hash)
-
-        # Clear all stack references from this photo (ManyToMany)
-        self.stacks.clear()
-
-        # Clear all duplicate group references from this photo (ManyToMany)
-        self.duplicates.clear()
-
-        result = self.save()
-
-        # Clean up stacks if they're now empty or have only one photo left
-        for photo_stack in photo_stacks:
-            remaining_photos = photo_stack.photos.filter(removed=False).count()
-            if remaining_photos <= 1:
-                # If 0 or 1 photos left, delete the stack (no longer a valid grouping)
-                logger.info(
-                    f"Deleting photo stack {photo_stack.id} - only {remaining_photos} photos remaining"
-                )
-                # Unlink remaining photos from stack first
-                for remaining_photo in photo_stack.photos.all():
-                    remaining_photo.stacks.remove(photo_stack)
-                photo_stack.delete()
-
-        # Clean up duplicate groups if they're now empty or have only one photo left
-        for duplicate in photo_duplicates:
-            remaining_photos = duplicate.photos.filter(removed=False).count()
-            if remaining_photos <= 1:
-                # If 0 or 1 photos left, delete the duplicate group (no longer valid)
-                logger.info(
-                    f"Deleting duplicate group {duplicate.id} - only {remaining_photos} photos remaining"
-                )
-                # Unlink remaining photos from duplicate first
-                for remaining_photo in duplicate.photos.all():
-                    remaining_photo.duplicates.remove(duplicate)
-                duplicate.delete()
-
-        return result
+        Kept for its many callers; see ``api.photo_files.remove_photo``.
+        """
+        return photo_files.remove_photo(self)
 
     def rotate(self, angle: int = 0, flip_horizontal: bool = False) -> None:
         """Rotate the photo non-destructively.
@@ -758,114 +276,7 @@ class Photo(models.Model):
         # Regenerate thumbnails so the UI sees the updated orientation.
         self.thumbnail._regenerate_thumbnails()
 
-        self._write_orientation_to_disk(angle, flip_horizontal)
-
-    def _write_orientation_to_disk(self, angle: int, flip_horizontal: bool) -> None:
-        """Write the combined orientation to the file / sidecar when the user
-        has opted into persisting metadata to disk.
-
-        A media-file write the renderer picks up is folded into the file (see
-        ``_fold_rotation_into_file``). Anything else keeps the rotation in
-        ``local_orientation`` and writes the tag for other viewers only.
-        """
-        user = self.owner
-        if user.save_metadata_to_disk == User.SaveMetadata.OFF:
-            return
-
-        use_sidecar = user.save_metadata_to_disk == User.SaveMetadata.SIDECAR_FILE
-        if not use_sidecar and self._fold_rotation_into_file():
-            return
-
-        from api.util import compose_orientation
-
-        try:
-            exif_orientation = self.metadata.orientation or 1
-        except Exception:
-            exif_orientation = 1
-
-        # Compose the user's local rotation with the original EXIF orientation
-        # so a standards-compliant viewer shows the image correctly without
-        # relying on LibrePhotos-specific DB fields.
-        combined = compose_orientation(
-            exif_orientation,
-            delta_angle_cw=angle,
-            flip_h=flip_horizontal,
-        )
-        write_metadata(
-            self.main_file.path,
-            {Tags.ORIENTATION: combined},
-            use_sidecar=use_sidecar,
-        )
-
-    def _fold_rotation_into_file(self) -> bool:
-        """Move the rotation into the file's own EXIF Orientation (#2050).
-
-        Once the file carries the rotation, the renderer applies it by itself,
-        so ``local_orientation`` has to go back to 1 or every later thumbnail
-        rebuild applies it a second time. The value written is the one that
-        makes the file render exactly like the thumbnails ``rotate`` has just
-        rebuilt (``exif_orientation_showing``), so the stored perceptual hash
-        still matches the file and the next scan sees the same picture.
-
-        Only when
-
-        * the format's decode path honours an EXIF Orientation written into
-          it (``renders_exif_orientation``: not HEIC, AVIF, RAW, ...), and
-        * the value is really on disk afterwards. exiftool reports a failed
-          write (read-only library, locked file, unwritable format) on stdout
-          and PyExifTool does not raise, so the file is read back.
-
-        The file's own tag is the starting point, not ``PhotoMetadata.orientation``,
-        which the scan never fills in: a photo shot in portrait (EXIF 6) would
-        otherwise be written back as if it were upright.
-
-        Returns False, having written nothing, when the file cannot be folded
-        into, so the caller keeps the rotation in ``local_orientation`` as
-        before. Returns True once the write was attempted; a write that did not
-        land is logged and leaves ``local_orientation`` alone.
-        """
-        from api.metadata.writer import read_orientation
-        from api.thumbnails import exif_orientation_showing, renders_exif_orientation
-
-        path = self.main_file.path
-        if not renders_exif_orientation(path):
-            return False
-        on_disk = read_orientation(path)
-        if on_disk is None:
-            return False
-
-        combined = exif_orientation_showing(on_disk, self.local_orientation)
-        write_metadata(path, {Tags.ORIENTATION: combined}, use_sidecar=False)
-
-        written = read_orientation(path)
-        if written != combined:
-            logger.warning(
-                f"orientation {combined} was not written to {path} "
-                f"(the file says {written}); keeping the rotation in the database"
-            )
-            return True
-
-        self._adopt_written_orientation(combined)
-        return True
-
-    def _adopt_written_orientation(self, combined: int) -> None:
-        """Fold a confirmed media-file orientation write back into the DB.
-
-        The file's own EXIF now carries the whole rotation: ``local_orientation``
-        goes back to 1 so the renderer does not apply it twice, and
-        ``PhotoMetadata.orientation`` records what the file says.
-        """
-        if self.local_orientation != 1:
-            self.local_orientation = 1
-            self.save(save_metadata=False, update_fields=["local_orientation"])
-
-        metadata = getattr(self, "metadata", None)
-        if metadata is not None and metadata.orientation != combined:
-            metadata.orientation = combined
-            metadata.save(update_fields=["orientation"])
-
-    def _set_embedded_media(self, obj):
-        return obj.main_file.embedded_media
+        write_orientation_to_disk(self, angle, flip_horizontal)
 
     def __str__(self):
         main_file_path = (
