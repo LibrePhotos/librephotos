@@ -21,7 +21,7 @@ from unittest import mock
 from django.test import SimpleTestCase, override_settings
 
 from api import ffmpeg_budget
-from api.views import views
+from api.views import media
 
 
 def _split(command):
@@ -125,7 +125,7 @@ class SupportsTest(SimpleTestCase):
 class BuildLiveCommandTest(SimpleTestCase):
     def setUp(self):
         self.supports = mock.patch.object(
-            views.ffmpeg_budget, "supports", return_value=True
+            media.ffmpeg_budget, "supports", return_value=True
         )
         self.supports.start()
         self.addCleanup(self.supports.stop)
@@ -140,41 +140,41 @@ class BuildLiveCommandTest(SimpleTestCase):
         unbounded, 2.58 with -threads after the input alone, 2.44 with it on
         both sides. See api.ffmpeg_budget for the whole table.
         """
-        before, after = _split(views.build_live_command("/x.mp4"))
+        before, after = _split(media.build_live_command("/x.mp4"))
         self.assertEqual(before[before.index("-threads") + 1], "4")
         self.assertEqual(after[after.index("-threads") + 1], "4")
 
     def test_the_filter_pool_is_capped_as_well(self):
         """-threads does not reach it: it defaults to one thread per core."""
-        before, after = _split(views.build_live_command("/x.mp4"))
+        before, after = _split(media.build_live_command("/x.mp4"))
         self.assertEqual(before[before.index("-filter_threads") + 1], "4")
         self.assertNotIn("-filter_threads", after)
 
     def test_the_filter_pool_follows_the_same_fraction(self):
         with override_settings(TRANSCODE_LIVE_CPU_FRACTION=4):
-            before, _ = _split(views.build_live_command("/x.mp4"))
+            before, _ = _split(media.build_live_command("/x.mp4"))
         self.assertEqual(before[before.index("-filter_threads") + 1], "2")
 
     def test_an_ffmpeg_without_filter_threads_still_gets_the_rest(self):
         """Old enough to lack it, and it would exit rather than ignore it."""
         with mock.patch.object(
-            views.ffmpeg_budget,
+            media.ffmpeg_budget,
             "supports",
             side_effect=lambda option: option != "filter_threads",
         ):
-            command = views.build_live_command("/x.mp4")
+            command = media.build_live_command("/x.mp4")
         self.assertNotIn("-filter_threads", command)
         self.assertIn("-threads", command)
         self.assertIn("-readrate", command)
 
     def test_the_fraction_decides_how_many_cores(self):
         with override_settings(TRANSCODE_LIVE_CPU_FRACTION=4):
-            before, _ = _split(views.build_live_command("/x.mp4"))
+            before, _ = _split(media.build_live_command("/x.mp4"))
         self.assertEqual(before[before.index("-threads") + 1], "2")
 
     def test_rate_limit_and_burst_are_input_options(self):
         """They govern how fast the input is read, so after -i they do nothing."""
-        before, after = _split(views.build_live_command("/x.mp4"))
+        before, after = _split(media.build_live_command("/x.mp4"))
         self.assertEqual(float(before[before.index("-readrate") + 1]), 2.0)
         self.assertEqual(
             float(before[before.index("-readrate_initial_burst") + 1]), 30.0
@@ -183,20 +183,20 @@ class BuildLiveCommandTest(SimpleTestCase):
 
     def test_a_zero_readrate_converts_flat_out(self):
         with override_settings(TRANSCODE_LIVE_READRATE=0):
-            command = views.build_live_command("/x.mp4")
+            command = media.build_live_command("/x.mp4")
         self.assertNotIn("-readrate", command)
         self.assertNotIn("-readrate_initial_burst", command)
 
     def test_a_zero_burst_still_rate_limits(self):
         with override_settings(TRANSCODE_LIVE_BURST_SECONDS=0):
-            command = views.build_live_command("/x.mp4")
+            command = media.build_live_command("/x.mp4")
         self.assertIn("-readrate", command)
         self.assertNotIn("-readrate_initial_burst", command)
 
     def test_an_ffmpeg_without_readrate_gets_neither_option(self):
         """Unknown options make ffmpeg exit, which would break every video."""
-        with mock.patch.object(views.ffmpeg_budget, "supports", return_value=False):
-            command = views.build_live_command("/x.mp4")
+        with mock.patch.object(media.ffmpeg_budget, "supports", return_value=False):
+            command = media.build_live_command("/x.mp4")
         self.assertNotIn("-readrate", command)
         self.assertNotIn("-readrate_initial_burst", command)
         self.assertNotIn("-filter_threads", command)
@@ -205,33 +205,33 @@ class BuildLiveCommandTest(SimpleTestCase):
     def test_an_ffmpeg_with_readrate_but_no_burst_keeps_the_rate_limit(self):
         """ffmpeg 5.x: -readrate exists, -readrate_initial_burst arrived in 6.1."""
         with mock.patch.object(
-            views.ffmpeg_budget,
+            media.ffmpeg_budget,
             "supports",
             side_effect=lambda option: option == "readrate",
         ):
-            command = views.build_live_command("/x.mp4")
+            command = media.build_live_command("/x.mp4")
         self.assertIn("-readrate", command)
         self.assertNotIn("-readrate_initial_burst", command)
 
     def test_progress_output_is_turned_off(self):
         """It is written to a pipe nothing drains; see the stderr tests below."""
-        command = views.build_live_command("/x.mp4")
+        command = media.build_live_command("/x.mp4")
         self.assertEqual(command[command.index("-loglevel") + 1], "error")
 
     def test_the_height_is_still_a_ceiling_and_not_a_target(self):
-        command = views.build_live_command("/x.mp4")
+        command = media.build_live_command("/x.mp4")
         self.assertIn("scale=-2:'min(720,ih)'", command)
 
     def test_the_conversion_being_watched_is_not_niced(self):
         """Unlike the cached copy: somebody is waiting for this one."""
         self.assertTrue(
-            views.build_live_command("/x.mp4")[0].endswith(
+            media.build_live_command("/x.mp4")[0].endswith(
                 ("ffmpeg", "ffmpeg.EXE", "ffmpeg.exe")
             )
         )
 
     def test_the_path_is_the_input(self):
-        command = views.build_live_command("/library/clip.mkv")
+        command = media.build_live_command("/library/clip.mkv")
         self.assertEqual(command[command.index("-i") + 1], "/library/clip.mkv")
         self.assertEqual(command[-1], "-")
 
@@ -279,9 +279,9 @@ def _only_the_conversion_is_fake(process):
     is what these tests are about, so both are given directly.
     """
     return (
-        mock.patch.object(views.subprocess, "Popen", return_value=process),
+        mock.patch.object(media.subprocess, "Popen", return_value=process),
         mock.patch.object(ffmpeg_budget, "_run", return_value=""),
-        mock.patch.object(views.video_color, "is_hdr", return_value=False),
+        mock.patch.object(media.video_color, "is_hdr", return_value=False),
     )
 
 
@@ -290,14 +290,14 @@ class VideoTranscoderStderrTest(SimpleTestCase):
         with contextlib.ExitStack() as stack:
             for patch in _only_the_conversion_is_fake(process):
                 stack.enter_context(patch)
-            return views.VideoTranscoder("/x.mp4")
+            return media.VideoTranscoder("/x.mp4")
 
     def test_stderr_is_drained_so_a_full_pipe_cannot_stall_the_video(self):
         """FakePopen withholds stdout until stderr is read, as a full pipe does."""
         process = FakePopen([b"noise" * 100], [b"frame\n"])
         transcoder = self._transcoder(process)
         transcoder._drain.join(timeout=5)
-        self.assertEqual(list(views.gen(transcoder)), [b"frame\n"])
+        self.assertEqual(list(media.gen(transcoder)), [b"frame\n"])
 
     def test_reading_the_tail_waits_for_the_drain_to_finish(self):
         """A deque may be extended from another thread but not read mid-extend."""
@@ -316,7 +316,7 @@ class VideoTranscoderStderrTest(SimpleTestCase):
             popen = stack.enter_context(patches[0])
             for patch in patches[1:]:
                 stack.enter_context(patch)
-            transcoder = views.VideoTranscoder("/x.mp4")
+            transcoder = media.VideoTranscoder("/x.mp4")
         transcoder._drain.join(timeout=5)
         self.assertEqual(popen.call_args.kwargs["stderr"], subprocess.PIPE)
 
@@ -326,7 +326,7 @@ class VideoTranscoderStderrTest(SimpleTestCase):
 
     def test_only_the_tail_is_kept_however_much_is_written(self):
         """A file that errors on every frame must not grow this without bound."""
-        limit = views.VideoTranscoder.STDERR_TAIL_BYTES
+        limit = media.VideoTranscoder.STDERR_TAIL_BYTES
         transcoder = self._transcoder(FakePopen([b"e" * (limit * 3)], []))
         self.assertEqual(len(transcoder.stderr_tail()), limit)
 
@@ -336,19 +336,19 @@ class GenTest(SimpleTestCase):
         with contextlib.ExitStack() as stack:
             for patch in _only_the_conversion_is_fake(process):
                 stack.enter_context(patch)
-            return views.VideoTranscoder("/x.mp4")
+            return media.VideoTranscoder("/x.mp4")
 
     def test_a_successful_conversion_says_nothing(self):
         transcoder = self._transcoder(FakePopen([], [b"a\n", b"b\n"]))
-        with mock.patch.object(views, "logger") as logger:
-            self.assertEqual(list(views.gen(transcoder)), [b"a\n", b"b\n"])
+        with mock.patch.object(media, "logger") as logger:
+            self.assertEqual(list(media.gen(transcoder)), [b"a\n", b"b\n"])
         logger.warning.assert_not_called()
 
     def test_a_failed_conversion_is_logged_with_the_reason(self):
         """It reaches the browser as a video that stops; the log is the only place left."""
         process = FakePopen([b"Invalid data found\n"], [], returncode=1)
         transcoder = self._transcoder(process)
-        with mock.patch.object(views, "logger") as logger:
-            list(views.gen(transcoder))
+        with mock.patch.object(media, "logger") as logger:
+            list(media.gen(transcoder))
         logger.warning.assert_called_once()
         self.assertIn("Invalid data found", logger.warning.call_args.args[2])

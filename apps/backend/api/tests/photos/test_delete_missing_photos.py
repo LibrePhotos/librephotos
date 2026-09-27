@@ -29,7 +29,7 @@ class DeleteMissingPhotosAsyncTaskTest(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_post_queues_async_task_and_returns_immediately(self):
-        with patch("api.views.views.AsyncTask") as async_task_cls:
+        with patch("api.views.scan_triggers.AsyncTask") as async_task_cls:
             response = self.client.post("/api/deletemissingphotos/")
 
         self.assertEqual(response.status_code, 200)

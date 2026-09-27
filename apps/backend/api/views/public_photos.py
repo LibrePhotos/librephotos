@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from api.models import Photo
 from api.models.photo_share import PhotoShare
 from api.serializers.photos import PublicPhotoDetailSerializer
-from api.views.views import UnifiedMediaAccessView
+from api.views.media import UnifiedMediaAccessView
 
 SHARE_ACTIONS = ("enable", "rotate", "disable")
 

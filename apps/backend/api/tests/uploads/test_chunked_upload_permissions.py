@@ -25,7 +25,7 @@ from unittest.mock import patch
 from chunked_upload.exceptions import ChunkedUploadError
 from constance.test import override_config
 from django.test import RequestFactory, TestCase
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from api.tests.utils import create_test_user
@@ -181,15 +181,18 @@ class CheckPermissionsTest(TestCase):
         self.assertFalse(hasattr(request, "user_from_upload"))
         self.assertNotIsInstance(getattr(request, "user", None), type(self.user))
 
-    def test_inactive_user_is_still_allowed(self):
-        # Pinned bug: the lookup is a bare ``User.objects.filter(id=...)`` with
-        # no ``is_active`` check, so a deactivated account can still upload.
+    def test_inactive_user_is_rejected(self):
+        # Used to be a pinned bug: the lookup had no ``is_active`` check, so a
+        # deactivated account could still upload. The shared
+        # JWTCookieAuthentication rejects it, as every other endpoint does.
         self.user.is_active = False
         self.user.save()
 
-        self.assertIsNone(
+        with self.assertRaises(ChunkedUploadError) as ctx:
             self.view.check_permissions(make_request(jwt=token_for(self.user)))
-        )
+
+        self.assertEqual(403, ctx.exception.status_code)
+        self.assertEqual(NOT_PROVIDED, ctx.exception.data["detail"])
 
     def test_scan_directory_is_not_validated_here(self):
         # Quirk: an unusable scan_directory only surfaces later, in
@@ -274,26 +277,39 @@ class AuthenticateUploadRequestTest(TestCase):
 
         self.assertEqual(self.user.pk, returned.pk)
 
-    def test_token_without_user_id_claim_raises_keyerror_not_403(self):
-        # Pinned bug: a token missing the user_id claim escapes as a raw
-        # KeyError, which the chunked-upload machinery turns into a 500 rather
-        # than a 403.
+    def test_token_without_user_id_claim_is_403_invalid(self):
+        # Used to be a pinned bug: a token missing the user_id claim escaped as
+        # a raw KeyError (a 500). simplejwt reports it as an invalid token.
         token = AccessToken.for_user(self.user)
         del token.payload["user_id"]
 
-        with self.assertRaises(KeyError):
+        with self.assertRaises(ChunkedUploadError) as ctx:
             authenticate_upload_request(make_request(jwt=str(token)))
 
-    def test_only_tokenerror_is_converted_to_403(self):
-        # Any other exception from AccessToken() propagates untouched.
-        with patch("api.views.upload.AccessToken", side_effect=ValueError("boom")):
+        self.assertEqual(403, ctx.exception.status_code)
+        self.assertEqual(INVALID, ctx.exception.data["detail"])
+
+    def test_only_authentication_failures_are_converted_to_403(self):
+        # Any other exception from token validation propagates untouched.
+        validate = "api.authentication.JWTCookieAuthentication.get_validated_token"
+        with patch(validate, side_effect=ValueError("boom")):
             with self.assertRaises(ValueError):
                 authenticate_upload_request(make_request(jwt="whatever"))
 
-        with patch("api.views.upload.AccessToken", side_effect=TokenError("nope")):
+        with patch(validate, side_effect=InvalidToken("nope")):
             with self.assertRaises(ChunkedUploadError) as ctx:
                 authenticate_upload_request(make_request(jwt="whatever"))
         self.assertEqual(INVALID, ctx.exception.data["detail"])
+
+    def test_header_wins_over_the_cookie(self):
+        other = create_test_user()
+        request = RequestFactory().post(
+            "/api/chunked_upload/complete/",
+            HTTP_AUTHORIZATION=f"Bearer {token_for(self.user)}",
+        )
+        request.COOKIES["jwt"] = token_for(other)
+
+        self.assertEqual(self.user.pk, authenticate_upload_request(request).pk)
 
 
 class ErrorHelperTest(TestCase):

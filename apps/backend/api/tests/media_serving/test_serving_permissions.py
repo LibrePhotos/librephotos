@@ -38,7 +38,7 @@ from api.serving_permissions import (
     diagnose_media_path,
 )
 from api.tests.utils import create_test_photo, create_test_user
-from api.views.views import UnifiedMediaAccessView
+from api.views.media import UnifiedMediaAccessView
 
 # Neither of these can match the uid running the suite, so the "other" bits are
 # what decide -- which is exactly the situation in a real install, where nginx

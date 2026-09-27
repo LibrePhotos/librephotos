@@ -236,7 +236,7 @@ The same receiver runs for every `Thumbnail` delete, including the scheduled tra
 
 **Endpoint**: `POST /api/deletemissingphotos`
 
-**Implementation**: `DeleteMissingPhotosView` in `apps/backend/api/views/views.py`
+**Implementation**: `DeleteMissingPhotosView` in `apps/backend/api/views/scan_triggers.py`
 
 ```python
 class DeleteMissingPhotosView(APIView):
@@ -478,7 +478,7 @@ The English strings `settings.missingphotos`, `settings.missingphotosbutton`, an
   - `apps/backend/api/autoalbum.py` — `delete_missing_photos` function
 
 - **API Views**:
-  - `apps/backend/api/views/views.py` — delete missing photos endpoint
+  - `apps/backend/api/views/scan_triggers.py` — delete missing photos endpoint
   - `apps/backend/api/views/photos.py` — photo operations
 
 - **Statistics**:

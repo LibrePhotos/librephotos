@@ -14,13 +14,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django_q.tasks import Chain
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 
 from api import util
+from api.authentication import JWTCookieAuthentication
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
-from api.models import Photo, User
+from api.models import Photo
 from api.models.file import calculate_hash, calculate_hash_b64
 from api.models.photo_caption import PhotoCaption
 
@@ -50,16 +50,6 @@ def parse_device_timestamp(raw):
     if parsed.tzinfo is None:
         parsed = _tz.make_aware(parsed, _dt.timezone.utc)
     return parsed
-
-
-def _bearer_token(request):
-    """Extract the raw JWT from an ``Authorization: Bearer <token>`` header."""
-    header = request.META.get("HTTP_AUTHORIZATION") or ""
-    prefix = "bearer "
-    if header.lower().startswith(prefix):
-        token = header[len(prefix) :].strip()
-        return token or None
-    return None
 
 
 def generate_captions_wrapper(photo, commit=True):
@@ -92,21 +82,22 @@ def authenticate_upload_request(request):
     ``/api/upload/complete/`` answered 403.
 
     The header is therefore checked first and the cookie kept as a fallback, so
-    the web frontend is unaffected. Raises ``ChunkedUploadError`` (403) when no
-    usable credential is present.
+    the web frontend is unaffected (``JWTCookieAuthentication``). These are
+    plain Django views, not DRF ones, so the class is called directly and its
+    failures are reported the way the chunked-upload client expects: as
+    ``ChunkedUploadError`` (403).
     """
-    raw = _bearer_token(request)
-    if raw is None:
-        raw = request.COOKIES.get("jwt")
-    if raw is None:
-        raise _forbidden("Authentication credentials were not provided")
     try:
-        token = AccessToken(raw)
-    except TokenError:
+        credentials = JWTCookieAuthentication().authenticate_strict(request)
+    except InvalidToken:
         raise _forbidden("Authentication credentials were invalid")
-    user = User.objects.filter(id=token["user_id"]).first()
-    if not user or not user.is_authenticated:
+    except AuthenticationFailed:
+        # A malformed header, or a token for an account that is gone or
+        # deactivated.
         raise _forbidden("Authentication credentials were not provided")
+    if credentials is None:
+        raise _forbidden("Authentication credentials were not provided")
+    user, _token = credentials
     return user
 
 

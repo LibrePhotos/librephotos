@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from api.permissions import IsNextcloudEnabled
 from api.util import logger
-from api.views.views import start_job
+from api.views.scan_triggers import start_job
 from nextcloud.directory_watcher import scan_photos
 from nextcloud.server_address import (
     UnsafeServerAddress,

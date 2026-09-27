@@ -199,7 +199,7 @@ class CrossTenantWriteTest(TestCase):
         disk = patch("shutil.disk_usage")
         disk.start().return_value.free = 10**12
         self.addCleanup(disk.stop)
-        self.download_job = patch("api.views.views.create_download_job").start()
+        self.download_job = patch("api.views.zip_downloads.create_download_job").start()
         self.download_job.return_value = "job"
         self.addCleanup(patch.stopall)
 

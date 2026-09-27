@@ -1,7 +1,10 @@
+from django.core.cache import cache
 from django.db.models import Prefetch
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
+from api.api_util import get_search_term_examples
 from api.filters import SemanticSearchFilter
 from api.models import File, Photo, User
 from api.serializers.photos import GroupedPhotosSerializer, PhotoSummarySerializer
@@ -115,3 +118,22 @@ class SearchListViewSet(ListViewSet):
             )
             serializer = PhotoSummarySerializer(queryset, many=True)
             return Response({"results": serializer.data})
+
+
+SEARCH_TERM_EXAMPLES_CACHE_SECONDS = 60 * 60 * 2
+
+
+class SearchTermExamples(APIView):
+    def get(self, request, format=None):
+        # The examples are built from the caller's own photos, people and places,
+        # so the cache is keyed on the user. cache_page + vary_on_cookie keyed
+        # it on the request instead, which says nothing about who a
+        # header-authenticated client is.
+        cache_key = f"search_term_examples:{request.user.pk}"
+        search_term_examples = cache.get(cache_key)
+        if search_term_examples is None:
+            search_term_examples = get_search_term_examples(request.user)
+            cache.set(
+                cache_key, search_term_examples, SEARCH_TERM_EXAMPLES_CACHE_SECONDS
+            )
+        return Response({"results": search_term_examples})

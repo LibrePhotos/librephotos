@@ -19,9 +19,9 @@ from unittest.mock import MagicMock, patch
 from django.http import HttpResponse
 from django.test import SimpleTestCase, override_settings
 
-from api.views.views import UnifiedMediaAccessView
+from api.views.media import UnifiedMediaAccessView
 
-VIEWS = "api.views.views"
+VIEWS = "api.views.media"
 
 
 class FakeField:

@@ -22,7 +22,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api import transcode_cache
-from api.views import views
+from api.views import media
 from api.tests.utils import create_test_file, create_test_photo, create_test_user
 
 GB = transcode_cache.BYTES_PER_GB
@@ -328,7 +328,7 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
     def test_the_file_is_served_instead_of_a_conversion_being_started(self):
         _write(transcode_cache.final_path(self.photo.image_hash), b"cached mp4")
 
-        with mock.patch.object(views, "VideoTranscoder") as transcoder:
+        with mock.patch.object(media, "VideoTranscoder") as transcoder:
             response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 
         transcoder.assert_not_called()
@@ -341,7 +341,7 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
         # until there is a file there is no seeking.
         _write(transcode_cache.final_path(self.photo.image_hash), b"0123456789")
 
-        with mock.patch.object(views, "VideoTranscoder"):
+        with mock.patch.object(media, "VideoTranscoder"):
             response = self.client.get(
                 f"/media/photos/{self.photo.image_hash}", HTTP_RANGE="bytes=4-6"
             )
@@ -357,7 +357,7 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
         with override_settings(MEDIA_ROOT=self.directory.name):
             _write(transcode_cache.final_path(self.photo.image_hash), b"cached mp4")
 
-            with mock.patch.object(views, "VideoTranscoder") as transcoder:
+            with mock.patch.object(media, "VideoTranscoder") as transcoder:
                 response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 
         transcoder.assert_not_called()
@@ -369,9 +369,9 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
 
     def test_the_first_play_still_streams_live(self):
         with (
-            mock.patch.object(views, "VideoTranscoder"),
-            mock.patch.object(views.transcode_cache, "ensure_cached"),
-            mock.patch.object(views, "gen", return_value=iter([b"live"])),
+            mock.patch.object(media, "VideoTranscoder"),
+            mock.patch.object(media.transcode_cache, "ensure_cached"),
+            mock.patch.object(media, "gen", return_value=iter([b"live"])),
         ):
             response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 
@@ -389,9 +389,9 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
         # thing somebody is waiting for -- on two cores, half of it, which is
         # enough to make a video that used to start at once look stuck.
         with (
-            mock.patch.object(views, "VideoTranscoder"),
-            mock.patch.object(views.transcode_cache, "ensure_cached") as ensure_cached,
-            mock.patch.object(views, "gen", return_value=iter([b"x"])),
+            mock.patch.object(media, "VideoTranscoder"),
+            mock.patch.object(media.transcode_cache, "ensure_cached") as ensure_cached,
+            mock.patch.object(media, "gen", return_value=iter([b"x"])),
         ):
             response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 
@@ -403,9 +403,9 @@ class ServingACachedTranscodeTest(CacheDirectoryTestCase):
         # Closing the response closes the generator, so the copy is asked for
         # whether the video ran to the end or the tab was shut after a second.
         with (
-            mock.patch.object(views, "VideoTranscoder"),
-            mock.patch.object(views.transcode_cache, "ensure_cached") as ensure_cached,
-            mock.patch.object(views, "gen", return_value=iter([b"a", b"b", b"c"])),
+            mock.patch.object(media, "VideoTranscoder"),
+            mock.patch.object(media.transcode_cache, "ensure_cached") as ensure_cached,
+            mock.patch.object(media, "gen", return_value=iter([b"a", b"b", b"c"])),
         ):
             response = self.client.get(f"/media/photos/{self.photo.image_hash}")
 

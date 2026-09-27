@@ -15,13 +15,13 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from api.tests.utils import create_test_user
-from api.views import views
+from api.views import server_info
 
 
 class ImageTagViewTest(TestCase):
     def setUp(self):
-        views.read_git_hash.cache_clear()
-        self.addCleanup(views.read_git_hash.cache_clear)
+        server_info.read_git_hash.cache_clear()
+        self.addCleanup(server_info.read_git_hash.cache_clear)
         self.client = APIClient()
         self.client.force_authenticate(user=create_test_user())
 
@@ -30,7 +30,7 @@ class ImageTagViewTest(TestCase):
         self.assertEqual(200, response.status_code)
         return response.json()
 
-    @patch("api.views.views.subprocess")
+    @patch("api.views.server_info.subprocess")
     def test_git_hash_from_env_skips_git(self, subprocess_mock):
         with patch.dict(os.environ, {"IMAGE_TAG": "2026w38", "GIT_HASH": "abc1234"}):
             data = self._get()
@@ -38,8 +38,8 @@ class ImageTagViewTest(TestCase):
         subprocess_mock.run.assert_not_called()
         subprocess_mock.check_output.assert_not_called()
 
-    @patch("api.views.views.subprocess.check_output", return_value=b"def5678\n")
-    @patch("api.views.views.subprocess.run")
+    @patch("api.views.server_info.subprocess.check_output", return_value=b"def5678\n")
+    @patch("api.views.server_info.subprocess.run")
     def test_git_fallback_never_mutates_global_config(self, run_mock, check_output):
         environment = {k: v for k, v in os.environ.items() if k != "GIT_HASH"}
         with patch.dict(os.environ, environment, clear=True):
@@ -54,7 +54,7 @@ class ImageTagViewTest(TestCase):
         self.assertTrue(command[2].startswith("safe.directory="))
 
     @patch(
-        "api.views.views.subprocess.check_output",
+        "api.views.server_info.subprocess.check_output",
         side_effect=FileNotFoundError("git"),
     )
     def test_no_git_falls_back_to_image_tag(self, _check_output):

@@ -39,7 +39,8 @@ class StartJobTest(TestCase):
         for url in ASYNC_JOB_URLS:
             with self.subTest(url=url):
                 with patch(
-                    "api.views.views.AsyncTask", side_effect=RuntimeError("queue down")
+                    "api.views.scan_triggers.AsyncTask",
+                    side_effect=RuntimeError("queue down"),
                 ):
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 500)
@@ -51,7 +52,7 @@ class StartJobTest(TestCase):
     def test_async_job_start_success_returns_the_job_id(self):
         for url in ASYNC_JOB_URLS:
             with self.subTest(url=url):
-                with patch("api.views.views.AsyncTask") as async_task:
+                with patch("api.views.scan_triggers.AsyncTask") as async_task:
                     response = self.client.post(url)
                 self.assertEqual(response.status_code, 200)
                 data = response.json()
@@ -64,8 +65,10 @@ class StartJobTest(TestCase):
         for url in SCAN_URLS:
             with self.subTest(url=url):
                 with (
-                    patch("api.views.views.Chain") as chain,
-                    patch("api.views.views.do_all_models_exist", return_value=True),
+                    patch("api.views.scan_triggers.Chain") as chain,
+                    patch(
+                        "api.views.scan_triggers.do_all_models_exist", return_value=True
+                    ),
                 ):
                     chain.return_value.run.side_effect = RuntimeError("queue down")
                     response = self.client.post(url)
@@ -74,7 +77,7 @@ class StartJobTest(TestCase):
                 self.assertTrue(response.json()["message"])
 
     def test_a_non_exception_base_exception_is_not_swallowed(self):
-        with patch("api.views.views.AsyncTask", side_effect=KeyboardInterrupt):
+        with patch("api.views.scan_triggers.AsyncTask", side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):
                 self.client.post("/api/deletemissingphotos/")
 
@@ -124,7 +127,7 @@ class FullScanValidatesScanDirectoryTest(TestCase):
     def _full_scan(self, scan_directory):
         user = create_test_user(scan_directory=scan_directory)
         self.client.force_authenticate(user=user)
-        with patch("api.views.views.Chain") as chain:
+        with patch("api.views.scan_triggers.Chain") as chain:
             response = self.client.post("/api/fullscanphotos/")
         return response, chain
 
@@ -144,7 +147,7 @@ class FullScanValidatesScanDirectoryTest(TestCase):
     def test_starts_a_full_scan_of_a_valid_directory(self):
         directory = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, directory, True)
-        with patch("api.views.views.do_all_models_exist", return_value=True):
+        with patch("api.views.scan_triggers.do_all_models_exist", return_value=True):
             response, chain = self._full_scan(directory)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["status"])

@@ -21,7 +21,7 @@ def _examples_for(user):
     return [f"examples of {user.username}"]
 
 
-@patch("api.views.views.get_search_term_examples", side_effect=_examples_for)
+@patch("api.views.search.get_search_term_examples", side_effect=_examples_for)
 class SearchTermExamplesPerUserCacheTest(TestCase):
     def setUp(self):
         cache.clear()

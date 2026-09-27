@@ -67,17 +67,20 @@ curl -H 'Authorization: Bearer <access_token>' \
   "http://<backend>/api/photos/"
 ```
 
-In a browser, the `jwt` cookie set by the obtain and refresh endpoints is sent automatically, which is how the cookie-only media endpoints authenticate. For the standard JSON endpoints the frontend still adds an `Authorization: Bearer` header, just as a script would. From a script, use the `Authorization` header shown above for the standard JSON endpoints such as `/api/photos/`. A few endpoints accept *only* the cookie — see [Endpoints that require the `jwt` cookie](#endpoints-that-require-the-jwt-cookie) below.
+In a browser, the `jwt` cookie set by the obtain and refresh endpoints is sent automatically, which is how `<img>` and `<video>` requests for media authenticate. For the standard JSON endpoints the frontend adds an `Authorization: Bearer` header, just as a script would, and those endpoints ignore the cookie. A few endpoints accept the cookie as well — see [Endpoints that also accept the `jwt` cookie](#endpoints-that-also-accept-the-jwt-cookie) below.
 
-### Endpoints that require the `jwt` cookie
+### Endpoints that also accept the `jwt` cookie
 
-A few endpoints do not use the standard authentication and read the `jwt` cookie directly. An `Authorization: Bearer <access_token>` header or `curl -u user:pass` is ignored there, and you get a 403 when the cookie is missing:
+These endpoints accept an `Authorization: Bearer <access_token>` header like every other endpoint, and fall back to the `jwt` cookie when there is no bearer header. When both are sent, the header wins:
 
-- Media files — `GET /media/photos/<image_hash>` (originals), plus the thumbnail, square-thumbnail, face-crop and avatar paths (`/media/thumbnails_big/...`, `/media/square_thumbnails/...`, `/media/faces/...`, `/media/avatars/...`) and generated archives at `/media/zip/<name>`. These are all served by one view that authenticates only from the cookie.
+- Media files — `GET /media/photos/<image_hash>` (originals), plus the thumbnail, square-thumbnail, face-crop, avatar and embedded-media paths (`/media/thumbnails_big/...`, `/media/square_thumbnails/...`, `/media/faces/...`, `/media/avatars/...`, `/media/embedded_media/...`) and generated archives at `/media/zip/<name>`. Basic auth (`curl -u user:pass`) works here too.
 - Chunked uploads — `POST /api/upload/` and `POST /api/upload/complete/`.
-- Zip deletion — `DELETE /api/delete/zip/<name>`. This one needs the cookie *in addition to* a normal token: without a Bearer/Basic credential you get 401, and without the cookie you get 403, so send both.
 
-Two exceptions: media belonging to an active public or shared album is served without any credential, and `/media/embedded_media/...` does honour the normal authenticated user.
+Media belonging to an active public or shared album, and photos made public, are served without any credential. An expired or otherwise unusable cookie counts as no credential there: public media is still served, and anything else answers 403 with an `X-Media-Error: authentication` header, telling you to sign in again. An invalid bearer *header* answers 401, as on every other endpoint.
+
+:::note
+Servers released before this change read only the cookie on the media endpoints and ignore the header there. The cookie works on every version.
+:::
 
 From a script, capture the cookie when you obtain the token and replay it:
 
@@ -97,7 +100,7 @@ or send it explicitly with `-H "Cookie: jwt=<access_token>"`. The cookie carries
 curl -u myuser:mypassword "http://<backend>/api/photos/"
 ```
 
-Basic auth works on the standard DRF endpoints, but not on the cookie-only endpoints listed above.
+Basic auth works on the standard DRF endpoints and on the media endpoints, but not on the chunked uploads.
 
 ### Helpful endpoints
 
@@ -114,7 +117,7 @@ For the same reason, the extra `auth` hint that development builds append to a 4
 
 - Ensure you are including `Authorization: Bearer <access_token>` or using Basic auth.
 - Verify the access token is current; refresh if needed.
-- A 403 from `/media/...`, `/api/upload/...` or `/api/delete/zip/...` is not fixed by adding an `Authorization` header — those endpoints need the `jwt` cookie instead (see [Endpoints that require the `jwt` cookie](#endpoints-that-require-the-jwt-cookie)).
+- A 403 from `/media/...` carrying an `X-Media-Error: authentication` header means the request had no usable credential: send a current bearer token or `jwt` cookie (see [Endpoints that also accept the `jwt` cookie](#endpoints-that-also-accept-the-jwt-cookie)). A 404 there means you are signed in but may not see that photo.
 - If testing cross-origin from a separate frontend, ensure CORS and credentials are configured properly and that cookies are allowed if relying on the `jwt` cookie.
 
 

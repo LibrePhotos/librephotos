@@ -1,4 +1,6 @@
 from django.db.models import Count, Prefetch, Q
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from api.models import AlbumUser, Photo, User
 from api.serializers.album_user import AlbumUserListSerializer
@@ -6,6 +8,7 @@ from api.serializers.photos import (
     PhotoSummarySerializer,
     SharedFromMePhotoThroughSerializer,
 )
+from api.util import logger
 from api.views.albums import with_album_user_list_relations
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
@@ -85,3 +88,50 @@ class SharedFromMeAlbumUserListViewSet(ListViewSet):
             .filter(owner=self.request.user.id)
             .order_by("id")
         )
+
+
+class SetUserAlbumShared(APIView):
+    def post(self, request, format=None):
+        data = dict(request.data)
+        shared = data["shared"]  # bool
+        target_user_id = data["target_user_id"]  # user pk, int
+        user_album_id = data["album_id"]
+
+        try:
+            target_user = User.objects.get(id=target_user_id)
+        except User.DoesNotExist:
+            logger.warning(
+                f"Cannot share album to user: target user_id {target_user_id} does not exist"
+            )
+            return Response({"status": False, "message": "No such user"}, status=400)
+
+        try:
+            user_album_to_share = AlbumUser.objects.get(id=user_album_id)
+        except AlbumUser.DoesNotExist:
+            logger.warning(
+                f"Cannot share album to user: source user_album_id {user_album_id} does not exist"
+            )
+            return Response({"status": False, "message": "No such album"}, status=400)
+
+        if user_album_to_share.owner != request.user:
+            logger.warning(
+                f"Cannot share album to user: source user_album_id {user_album_id} does not belong to user_id {request.user.id}"
+            )
+            return Response(
+                {"status": False, "message": "You cannot share an album you don't own"},
+                status=400,
+            )
+
+        if shared:
+            user_album_to_share.shared_to.add(target_user)
+            logger.info(
+                f"Shared user {request.user.id}'s album {user_album_id} to user {target_user_id}"
+            )
+        else:
+            user_album_to_share.shared_to.remove(target_user)
+            logger.info(
+                f"Unshared user {request.user.id}'s album {user_album_id} to user {target_user_id}"
+            )
+
+        user_album_to_share.save()
+        return Response(AlbumUserListSerializer(user_album_to_share).data)

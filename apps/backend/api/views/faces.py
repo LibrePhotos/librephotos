@@ -36,7 +36,7 @@ from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import RegularResultsSetPagination
 from api.views.photos import _get_photo_filter_kwargs
-from api.views.views import start_job
+from api.views.scan_triggers import start_job
 
 
 class ScanFacesView(APIView):

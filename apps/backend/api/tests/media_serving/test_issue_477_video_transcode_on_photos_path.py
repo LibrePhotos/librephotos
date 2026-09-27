@@ -54,7 +54,7 @@ class FakeTranscoderProcess:
 
 
 class FakeVideoTranscoder:
-    """Stand-in for api.views.views.VideoTranscoder (no real ffmpeg needed)."""
+    """Stand-in for api.views.media.VideoTranscoder (no real ffmpeg needed)."""
 
     def __init__(self, path):
         self.path = path
@@ -79,7 +79,7 @@ class AlwaysTranscodeVideosIgnoredInPhotosTabTest(TestCase):
     def test_photos_tab_video_is_transcoded_when_setting_enabled(self):
         """`/media/photos/<hash>.mp4` must honour "Always transcode videos"."""
         with patch(
-            "api.views.views.VideoTranscoder", side_effect=FakeVideoTranscoder
+            "api.views.media.VideoTranscoder", side_effect=FakeVideoTranscoder
         ) as transcoder:
             response = self.client.get(f"/media/photos/{self.photo.image_hash}.mp4")
 
@@ -106,7 +106,7 @@ class AlwaysTranscodeVideosIgnoredInPhotosTabTest(TestCase):
         `path == "photos"` branch used by the lightbox skips it.
         """
         with patch(
-            "api.views.views.VideoTranscoder", side_effect=FakeVideoTranscoder
+            "api.views.media.VideoTranscoder", side_effect=FakeVideoTranscoder
         ) as transcoder:
             response = self.client.get(f"/media/video/{self.photo.image_hash}.mp4")
 

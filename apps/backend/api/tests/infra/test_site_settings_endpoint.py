@@ -20,7 +20,7 @@ class SiteSettingsTest(TestCase):
         self.assertEqual(response.json()["face_recognition_model"], "buffalo_sc")
 
     @override_config(FACE_RECOGNITION_MODEL="buffalo_sc")
-    @patch("api.views.views.do_all_models_exist", return_value=True)
+    @patch("api.views.site_settings.do_all_models_exist", return_value=True)
     def test_post_updates_face_recognition_model(self, _mock_do_all_models_exist):
         response = self.client.post(
             "/api/sitesettings",
@@ -35,7 +35,7 @@ class SiteSettingsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["map_tile_provider"], "photoprism")
 
-    @patch("api.views.views.do_all_models_exist", return_value=True)
+    @patch("api.views.site_settings.do_all_models_exist", return_value=True)
     def test_post_updates_map_tile_provider(self, _mock_do_all_models_exist):
         response = self.client.post(
             "/api/sitesettings",
