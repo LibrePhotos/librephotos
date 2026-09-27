@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.16093fa7.css">
-<script src="/assets/js/runtime~main.760c6516.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.1a0bf984.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -66,7 +66,7 @@
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="environment-variables">Environment Variables<a href="#environment-variables" class="hash-link" aria-label="Direct link to Environment Variables" title="Direct link to Environment Variables" translate="no">​</a></h2>
 <p>Environment variables are loaded from the <code>.env</code> file. Key variables for Docker:</p>
 <table><thead><tr><th>Variable</th><th>Purpose</th><th>Default</th></tr></thead><tbody><tr><td><code>tag</code></td><td>Docker image tag to use</td><td><code>latest</code></td></tr><tr><td><code>httpPort</code></td><td>Host port for the application</td><td><code>3000</code></td></tr><tr><td><code>scanDirectory</code></td><td>Path to photo library</td><td>-</td></tr><tr><td><code>data</code></td><td>Path to persistent data</td><td>-</td></tr></tbody></table>
-<p>The dev overlay bind-mounts <code>apps/backend</code> and <code>apps/frontend</code> by path relative to <code>deploy/compose/</code>, so there is no environment variable for the source-code location.</p>
+<p>The dev overlay bind-mounts <code>apps/backend</code>, <code>apps/frontend</code> and <code>packages</code> (the frontend compiles the shared <code>packages/api-client</code> from source) by path relative to <code>deploy/compose/</code>, so there is no environment variable for the source-code location.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="testing-changes">Testing Changes<a href="#testing-changes" class="hash-link" aria-label="Direct link to Testing Changes" title="Direct link to Testing Changes" translate="no">​</a></h2>
 <p>Before submitting a PR, from <code>deploy/compose/</code>. Include the dev overlay on every command — the base <code>docker-compose.yml</code> uses published images and defines no <code>build:</code> sections, so <code>docker compose build</code> on its own rebuilds nothing and starts the images pulled from Docker Hub instead of your change:</p>
 <ol>
