@@ -13,7 +13,7 @@ import { FaceCell, FaceSelection } from "./hooks/useVirtualizedGrid";
 import classes from "./VirtualizedGridComponent.module.css";
 
 interface VirtualizedGridComponentProps {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.Ref<HTMLDivElement>;
   gridRef: React.RefObject<VirtualGridHandle>;
   entrySquareSize: number;
   numEntrySquaresPerRow: number;

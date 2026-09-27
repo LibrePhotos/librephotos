@@ -1,9 +1,9 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-type Size = Readonly<{ width: number; height: number }>;
+export type Size = Readonly<{ width: number; height: number }>;
 
-function measureContentBox(element: HTMLElement): Size {
+export function measureContentBox(element: HTMLElement): Size {
   const style = window.getComputedStyle(element);
   const px = (value: string) => Number.parseFloat(value) || 0;
   return {
