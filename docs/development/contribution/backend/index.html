@@ -12,8 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.16093fa7.css">
-<script src="/assets/js/runtime~main.aae166c2.js" defer="defer"></script>
-<script src="/assets/js/main.4936c2a0.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.b22e45ed.js" defer="defer"></script>
+<script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -47,6 +47,7 @@
 <p>This exposes all the commands that you can use via the command line. If you want a new command, that&#x27;s the place to add it.</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="migrations">migrations<a href="#migrations" class="hash-link" aria-label="Direct link to migrations" title="Direct link to migrations" translate="no">​</a></h4>
 <p>Every time we change our models, we have to migrate the database. We use Django migration feature to create migration files to migrate without the headaches.</p>
+<p>Migrations 0001 to 0100 are squashed into <code>0001_squashed_0100</code>, so the folder starts there and new migrations keep counting up from the newest file. Keep its <code>replaces</code> list: existing databases have the original names recorded and rely on it. A new migration that depends on anything up to 0100 depends on <code>(&quot;api&quot;, &quot;0001_squashed_0100&quot;)</code>. Why older installs have to upgrade in two steps is explained in <a class="" href="/docs/installation/upgrading#old-releases">Upgrading</a>.</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="models">models<a href="#models" class="hash-link" aria-label="Direct link to models" title="Direct link to models" translate="no">​</a></h4>
 <p>Here are the actual data types. If you want to figure out how a photo works or how faces are connected to persons, then this is your folder.</p>
 <h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="views">views<a href="#views" class="hash-link" aria-label="Direct link to views" title="Direct link to views" translate="no">​</a></h4>
