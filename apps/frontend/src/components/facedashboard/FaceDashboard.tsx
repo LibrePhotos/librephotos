@@ -1,5 +1,4 @@
 import { RemoveScroll, Stack } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
 import { IconFaceId } from "@tabler/icons-react";
 import { getRouteApi } from "@tanstack/react-router";
 import { debounce } from "lodash-es";
@@ -16,6 +15,7 @@ import { TOP_MENU_HEIGHT } from "../../ui-constants";
 import { EmptyState } from "../common/EmptyState";
 import { Lightbox } from "../lightbox";
 import { ModalPersonEdit } from "../modals/ModalPersonEdit";
+import { useContentBoxSize } from "../virtual/useContentBoxSize";
 import { HeaderButtons } from "./HeaderButtons";
 import { useCollapsedPersons } from "./hooks/useCollapsedPersons";
 import { useFaceDataFetching } from "./hooks/useFaceDataFetching";
@@ -28,7 +28,8 @@ import { VirtualizedGridComponent } from "./VirtualizedGridComponent";
 const routeApi = getRouteApi("/_protected/faces");
 
 export function FaceDashboard() {
-  const { ref, width } = useElementSize();
+  // Columns are laid out in the grid's content box (the container pads it), so size them from that
+  const { ref, width } = useContentBoxSize<HTMLDivElement>();
   const { t } = useTranslation();
 
   const { tab: activeTab, method: analysisMethod, orderBy, minConfidence } = routeApi.useSearch();

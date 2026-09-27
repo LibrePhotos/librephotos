@@ -65,13 +65,13 @@ function AlbumPeople() {
     if (album.name === "unknown") {
       // if (album.text === "unknown") {
       return (
-        <Link to={`/album/persons/${album.id}`} pathParams={{ id: album.id }}>
+        <Link to="/album/persons/$id" params={{ id: album.id }}>
           <Image height={entrySquareSize - 10} width={entrySquareSize - 10} src="/unknown_user.jpg" />
         </Link>
       );
     }
     return (
-      <Link to={`/album/persons/${album.id}`} pathParams={{ id: album.id }}>
+      <Link to="/album/persons/$id" params={{ id: album.id }}>
         <Tile
           video={album.video}
           height={entrySquareSize - 10}

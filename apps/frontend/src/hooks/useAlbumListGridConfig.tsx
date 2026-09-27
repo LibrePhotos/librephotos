@@ -9,7 +9,7 @@ interface AlbumGridConfig {
   gridHeight: number;
 }
 
-function calculateGridValues(width: number): { columnWidth: number; squareSize: number } {
+function calculateGridValues(width: number): { entries: number; squareSize: number } {
   let entries = 6;
   if (width < 600) {
     entries = 2;
@@ -24,28 +24,24 @@ function calculateGridValues(width: number): { columnWidth: number; squareSize: 
   if (width >= 700) {
     columnWidth -= LEFT_MENU_WIDTH;
   }
-  return { columnWidth, squareSize: columnWidth / entries };
+  return { entries, squareSize: columnWidth / entries };
 }
 
 export function useAlbumListGridConfig(albums: Object[]): AlbumGridConfig {
   const { width, height } = useViewportSize();
   const [entriesPerRow, setEntriesPerRow] = useState(0);
   const [entrySquareSize, setEntrySquareSize] = useState(200);
-  const [numberOfRows, setNumberOfRows] = useState(0);
   const [gridHeight, setGridHeight] = useState(0);
 
   useEffect(() => {
-    const { columnWidth, squareSize } = calculateGridValues(width);
-    setEntriesPerRow(columnWidth / squareSize);
+    const { entries, squareSize } = calculateGridValues(width);
+    setEntriesPerRow(entries);
     setEntrySquareSize(squareSize);
     setGridHeight(height - TOP_MENU_HEIGHT - 60);
   }, [width, height]);
 
-  useEffect(() => {
-    if (albums && albums.length > 0 && entriesPerRow > 0) {
-      setNumberOfRows(Math.ceil(albums.length / entriesPerRow));
-    }
-  }, [albums, entriesPerRow]);
+  // Derived on every render, so a list that shrinks (or empties) never keeps a stale row count
+  const numberOfRows = entriesPerRow > 0 ? Math.ceil(albums.length / entriesPerRow) : 0;
 
   return { entriesPerRow, entrySquareSize, numberOfRows, gridHeight };
 }
