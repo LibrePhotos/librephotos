@@ -77,11 +77,12 @@ function AlbumPlace({ height = 0 }: Props) {
   const { data: albums, isFetching: isFetchingAlbums } = useFetchPlacesAlbumsQuery();
   const { data: locationClusters, isFetching: isFetchingLocationClusters } = useFetchLocationClustersQuery();
   const { mapStyle, mapsDisabled } = useMapStyle();
-  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(albums || []);
   const shownAlbums = useMemo(
     () => visibleAlbums ?? sortBy(albums ?? [], ["geolocation_level", "photo_count"]),
     [visibleAlbums, albums]
   );
+  // The grid only shows the places inside the map bounds, so size it from those
+  const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(shownAlbums);
 
   // Convert locationClusters to GeoJSON FeatureCollection
   const geojsonData = useMemo(() => {
