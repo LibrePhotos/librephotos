@@ -126,6 +126,27 @@ export async function fetchPhotosWithoutTimestamp(
 
 /* ---- albums (user / auto / thing / place) ----------------------------- */
 
+/** The media-type filter album detail views accept (`?photo=true` etc.). */
+export type AlbumMediaFilter = {
+  photo?: boolean;
+  video?: boolean;
+  is_screenshot?: boolean;
+};
+
+function albumMediaQuery(filter: AlbumMediaFilter) {
+  return {
+    photo: filter.photo ? "true" : undefined,
+    video: filter.video ? "true" : undefined,
+    is_screenshot: filter.is_screenshot ? "true" : undefined,
+  };
+}
+
+export type UserAlbumOptions = AlbumMediaFilter & {
+  /** Read the album through its public link, as `username`'s album. */
+  public?: boolean;
+  username?: string;
+};
+
 export async function fetchUserAlbumsList(client: ApiClient): Promise<S.FetchUserAlbumsListResponse["results"]> {
   const res = await client.get<unknown>("/albums/user/list/");
   return parseResponse(S.FetchUserAlbumsListResponse, res, "user albums").results;
@@ -137,8 +158,17 @@ export async function fetchAutoAlbumsList(client: ApiClient): Promise<S.FetchAut
 }
 
 /** Full user-album detail incl. grouped photos (drives membership mirroring). */
-export async function fetchUserAlbum(client: ApiClient, id: number | string): Promise<S.UserAlbum> {
-  const res = await client.get<unknown>(`/albums/user/${id}/`);
+export async function fetchUserAlbum(
+  client: ApiClient,
+  id: number | string,
+  options: UserAlbumOptions = {}
+): Promise<S.UserAlbum> {
+  const query = buildQuery({
+    ...albumMediaQuery(options),
+    public: options.public ? "true" : undefined,
+    username: options.username,
+  });
+  const res = await client.get<unknown>(`/albums/user/${id}/${query}`);
   return parseResponse(S.UserAlbum, res, "user album detail");
 }
 
@@ -164,14 +194,22 @@ export async function fetchTagAlbumsList(client: ApiClient): Promise<S.TagListRe
 }
 
 /** Photo grid (grouped by date) for one thing album. */
-export async function fetchThingAlbum(client: ApiClient, id: number | string): Promise<S.ThingAlbum> {
-  const res = await client.get<unknown>(`/albums/thing/${id}/`);
+export async function fetchThingAlbum(
+  client: ApiClient,
+  id: number | string,
+  filter: AlbumMediaFilter = {}
+): Promise<S.ThingAlbum> {
+  const res = await client.get<unknown>(`/albums/thing/${id}/${buildQuery(albumMediaQuery(filter))}`);
   return parseResponse(S.FetchThingAlbumResponse, res, "thing album detail").results;
 }
 
 /** Photo grid (grouped by date) for one place album. */
-export async function fetchPlaceAlbum(client: ApiClient, id: number | string): Promise<S.PlaceAlbum> {
-  const res = await client.get<unknown>(`/albums/place/${id}/`);
+export async function fetchPlaceAlbum(
+  client: ApiClient,
+  id: number | string,
+  filter: AlbumMediaFilter = {}
+): Promise<S.PlaceAlbum> {
+  const res = await client.get<unknown>(`/albums/place/${id}/${buildQuery(albumMediaQuery(filter))}`);
   return parseResponse(S.FetchPlaceAlbumResponse, res, "place album detail").results;
 }
 

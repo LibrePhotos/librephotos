@@ -54,6 +54,25 @@ describe("album detail endpoints", () => {
   });
 });
 
+describe("album media filters", () => {
+  it("passes the media-type filter to thing and place albums", async () => {
+    const { client, calls } = harness({ results: { id: "5", title: "Dog", grouped_photos: [] } });
+    await endpoints.fetchThingAlbum(client, 5, { video: true });
+    await endpoints.fetchPlaceAlbum(client, 5, { is_screenshot: true });
+    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/thing/5/?video=true");
+    expect(calls[1]!.url).toBe("https://demo.example.com/api/albums/place/5/?is_screenshot=true");
+  });
+
+  it("reads a user album through its public link", async () => {
+    const owner = { id: 1, username: "ann", first_name: "", last_name: "" };
+    const { client, calls } = harness({ id: "9", title: "T", owner, date: "2024", location: null, grouped_photos: [] });
+    await endpoints.fetchUserAlbum(client, 9, { photo: true, public: true, username: "ann" });
+    await endpoints.fetchUserAlbum(client, 9);
+    expect(calls[0]!.url).toBe("https://demo.example.com/api/albums/user/9/?photo=true&public=true&username=ann");
+    expect(calls[1]!.url).toBe("https://demo.example.com/api/albums/user/9/");
+  });
+});
+
 describe("sharing endpoints", () => {
   it("sends share photos payload", async () => {
     const { client, calls } = harness({ status: true, count: 1 });
