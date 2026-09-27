@@ -164,6 +164,11 @@ class UserSerializerUpdateTest(TestCase):
         self.assertTrue(reloaded.public_sharing)
         self.assertEqual(reloaded.llm_settings, {"enabled": True})
 
+    def test_burst_detection_rules_are_saved(self):
+        rules = [{"id": 3, "enabled": False}, {"id": 1, "enabled": True}]
+        self._update(burst_detection_rules=rules)
+        self.assertEqual(User.objects.get(id=self.user.id).burst_detection_rules, rules)
+
     def test_raw_slideshow_and_duplicate_fields_are_saved(self):
         self._update(
             skip_raw_files=True,

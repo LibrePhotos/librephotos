@@ -39,6 +39,7 @@ USER_UPDATE_FIELDS = (
     ("text_alignment", "Updated text_alignment for user {value}"),
     ("header_size", "Updated header_size for user {value}"),
     ("datetime_rules", "Updated datetime_rules for user {value}"),
+    ("burst_detection_rules", "Updated burst_detection_rules for user {username}"),
     ("default_timezone", "Updated default_timezone for user {value}"),
     ("public_sharing", None),
     ("min_cluster_size", None),
