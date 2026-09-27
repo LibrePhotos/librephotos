@@ -1,19 +1,11 @@
+import { endpoints } from "@librephotos/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { parseWithNotification } from "../../../util/zodUtils";
-import { fetchClient } from "../../api";
-import { FetchAutoAlbumsListResponse } from "../types";
+import { apiClient } from "../../api";
 
 export const AutoAlbumsQueryKeys = ["autoAlbums"] as const;
 
-const fetchAutoAlbums = () =>
-  fetchClient
-    .get("/albums/auto/list/")
-    .then(
-      response => parseWithNotification(FetchAutoAlbumsListResponse, response, "Failed to parse auto albums").results
-    );
-
 export const useFetchAutoAlbumsQuery = () =>
   useQuery({
-    queryKey: ["autoAlbums"],
-    queryFn: fetchAutoAlbums,
+    queryKey: [...AutoAlbumsQueryKeys],
+    queryFn: () => endpoints.fetchAutoAlbumsList(apiClient),
   });
