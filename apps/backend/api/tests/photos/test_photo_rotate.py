@@ -1,21 +1,9 @@
-"""Characterization tests for ``add_photo_to_album_things`` and ``Photo.rotate``.
-
-These pin the behaviour of two high-CRAP functions:
-``api.autoalbum.add_photo_to_album_things`` (formerly
-``Photo._add_to_album_thing``) and ``Photo.rotate``.
+"""Characterization tests for ``Photo.rotate``, a high-CRAP function.
 
 Everything expensive is mocked: ``Thumbnail._regenerate_thumbnails`` and
 ``api.metadata.photo_writer.write_metadata`` (exiftool). No network, no ML models.
 
 Quirks deliberately pinned (see inline comments):
-  * ``add_photo_to_album_things`` reads the tags the ACTIVE tagging model stored
-    for the photo (``captions_json[TAGGING_MODEL]["tags"]``) and files the
-    photo under ``<model>_tag`` albums, looked up by title, owner AND
-    thing_type -- so repeated titles, second photos and reruns are all
-    idempotent (the old Places365 code looked albums up without a type and
-    hit the unique constraint on every repeat).
-  * ``captions_json`` that is a non-dict (e.g. a list) is rejected by the
-    ``type(...) is dict`` check.
   * ``rotate`` normalises the angle with ``% 360`` BEFORE the multiple-of-90
     validation, so ``angle=-90`` is valid (becomes 270) and ``angle=360``
     becomes a no-op.
@@ -32,172 +20,11 @@ Quirks deliberately pinned (see inline comments):
 
 from unittest.mock import patch
 
-from constance.test import override_config
 from django.test import TestCase
 
-from api.autoalbum import add_photo_to_album_things
-from api.models.album_thing import AlbumThing
-from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.user import User
 from api.tests.utils import create_test_photo, create_test_user
-from api.util import logger
-
-
-def _tags(tags, model="mobileclip_s2"):
-    return {model: {"tags": tags}}
-
-
-@override_config(TAGGING_MODEL="mobileclip_s2")
-class AddToAlbumThingTest(TestCase):
-    def setUp(self):
-        self.user = create_test_user()
-
-    def _photo(self, captions_json):
-        return create_test_photo(owner=self.user, captions_json=captions_json)
-
-    # ---- guard clauses (no album things created) ----------------------
-
-    def test_no_caption_instance_is_noop(self):
-        photo = create_test_photo(owner=self.user)
-        self.assertFalse(hasattr(photo, "caption_instance"))
-
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.count(), 0)
-
-    def test_empty_captions_json_is_noop(self):
-        photo = self._photo({})
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.count(), 0)
-
-    def test_captions_json_without_active_model_is_noop(self):
-        photo = self._photo({"im2txt": "a dog", "siglip2": {"tags": ["dog"]}})
-
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.count(), 0)
-
-    def test_non_dict_captions_json_is_noop(self):
-        """``type(x) is dict`` rejects lists (and dict subclasses)."""
-        photo = create_test_photo(owner=self.user)
-        PhotoCaption.objects.create(photo=photo, captions_json=["mobileclip_s2"])
-
-        photo.refresh_from_db()
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.count(), 0)
-
-    def test_non_dict_tag_result_is_noop(self):
-        photo = self._photo({"mobileclip_s2": "nope"})
-
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.count(), 0)
-
-    def test_missing_tags_key_and_empty_list_create_nothing(self):
-        add_photo_to_album_things(self._photo({"mobileclip_s2": {}}))
-        add_photo_to_album_things(self._photo(_tags([])))
-
-        self.assertEqual(AlbumThing.objects.count(), 0)
-
-    # ---- happy path ---------------------------------------------------
-
-    def test_creates_one_typed_album_per_tag(self):
-        photo = self._photo(_tags(["sunny", "natural light", "beach"]))
-
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.count(), 3)
-        for title in ("sunny", "natural light", "beach"):
-            thing = AlbumThing.objects.get(title=title)
-            self.assertEqual(thing.thing_type, "mobileclip_s2_tag")
-            self.assertEqual(thing.owner, self.user)
-            self.assertEqual(list(thing.photos.all()), [photo])
-
-    @override_config(TAGGING_MODEL="siglip2")
-    def test_active_model_decides_which_tags_and_which_type(self):
-        photo = self._photo(
-            {"mobileclip_s2": {"tags": ["beach"]}, "siglip2": {"tags": ["dog"]}}
-        )
-
-        add_photo_to_album_things(photo)
-
-        thing = AlbumThing.objects.get()
-        self.assertEqual((thing.title, thing.thing_type), ("dog", "siglip2_tag"))
-
-    def test_photo_count_receiver_updates_count(self):
-        photo = self._photo(_tags(["sunny"]))
-
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.get(title="sunny").photo_count, 1)
-
-    def test_second_photo_with_same_title_joins_the_same_album(self):
-        first = self._photo(_tags(["sunny"]))
-        second = self._photo(_tags(["sunny"]))
-
-        add_photo_to_album_things(first)
-        add_photo_to_album_things(second)
-
-        thing = AlbumThing.objects.get(title="sunny")
-        self.assertEqual(set(thing.photos.all()), {first, second})
-
-    def test_rerunning_for_same_photo_is_idempotent(self):
-        photo = self._photo(_tags(["sunny", "sunny"]))
-
-        add_photo_to_album_things(photo)
-        add_photo_to_album_things(photo)
-
-        thing = AlbumThing.objects.get(title="sunny")
-        self.assertEqual(list(thing.photos.all()), [photo])
-
-    def test_membership_check_uses_image_hash_not_pk(self):
-        """The existence check filters on ``image_hash``: a *different* photo
-        sharing the hash counts as already-present, so the new photo is never
-        added.
-        """
-        photo = self._photo(_tags(["sunny"]))
-        twin = create_test_photo(owner=self.user)
-        twin.image_hash = photo.image_hash
-        twin.save()
-
-        thing = AlbumThing.objects.create(
-            title="sunny", owner=self.user, thing_type="mobileclip_s2_tag"
-        )
-        thing.photos.add(twin)
-
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 1)
-        self.assertEqual(list(thing.photos.all()), [twin])
-
-    def test_albums_are_scoped_to_the_photo_owner(self):
-        other = create_test_user()
-        AlbumThing.objects.create(
-            title="sunny", owner=other, thing_type="mobileclip_s2_tag"
-        )
-        photo = self._photo(_tags(["sunny"]))
-
-        add_photo_to_album_things(photo)
-
-        self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 2)
-        mine = AlbumThing.objects.get(title="sunny", owner=self.user)
-        self.assertEqual(list(mine.photos.all()), [photo])
-        theirs = AlbumThing.objects.get(title="sunny", owner=other)
-        self.assertEqual(theirs.photos.count(), 0)
-
-    def test_untyped_album_with_same_title_is_left_alone(self):
-        """A legacy NULL-typed album is a different row from the typed one."""
-        legacy = AlbumThing.objects.create(title="sunny", owner=self.user)
-        photo = self._photo(_tags(["sunny"]))
-
-        add_photo_to_album_things(photo)
-
-        legacy.refresh_from_db()
-        self.assertEqual(legacy.photos.count(), 0)
-        self.assertEqual(AlbumThing.objects.filter(title="sunny").count(), 2)
 
 
 class RotateCharacterizationTest(TestCase):
@@ -414,7 +241,7 @@ class RotateCharacterizationTest(TestCase):
         rotation must stay in the database."""
         photo = self._media_file_photo()
 
-        with self.assertLogs(logger, "WARNING") as logs:
+        with self.assertLogs("api.metadata.photo_writer", "WARNING") as logs:
             photo.rotate(-90)
 
         write_metadata.assert_called_once()

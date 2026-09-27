@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import os
+import re
 import shutil
 import tempfile
 from contextlib import contextmanager
@@ -24,6 +25,7 @@ from librephotos.logging_bootstrap import (
     build_logging_config,
     ensure_logs_root,
     resolve_level,
+    resolve_logger_levels,
     take_deferred_warnings,
 )
 
@@ -40,6 +42,7 @@ def temporary_logging(**kwargs):
     """
     logs_root = tempfile.mkdtemp(prefix="librephotos-logtest-")
     kwargs.setdefault("to_console", False)
+    kwargs.setdefault("logger_levels", {})
     try:
         logging.config.dictConfig(build_logging_config(logs_root=logs_root, **kwargs))
         yield os.path.join(logs_root, LOG_FILENAME)
@@ -140,11 +143,13 @@ class LogLevelTest(SimpleTestCase):
     def test_debug_level_reaches_the_project_logger(self):
         # The acceptance criterion is the logger.debug() calls in
         # api/face_extractor.py, api/models/photo_search.py, api/geocode/geocode.py,
-        # api/stacks/live_photo.py and api/stack_detection.py - all of them go
-        # through the "ownphotos" logger and were unreachable before.
+        # api/stacks/live_photo.py and api/stack_detection.py - they were
+        # unreachable before LOG_LEVEL existed.
+        from api import face_extractor
+
         with temporary_logging(level="DEBUG") as log_file:
-            self.assertEqual(util.logger.getEffectiveLevel(), logging.DEBUG)
-            util.logger.debug("region_info debug line")
+            self.assertEqual(face_extractor.logger.getEffectiveLevel(), logging.DEBUG)
+            face_extractor.logger.debug("region_info debug line")
             flush_root_handlers()
             with open(log_file, encoding="utf-8") as f:
                 self.assertIn("region_info debug line", f.read())
@@ -196,6 +201,80 @@ class LogLevelTest(SimpleTestCase):
         self.assertEqual(take_deferred_warnings(), [])
 
 
+class LoggerLevelsTest(SimpleTestCase):
+    """LOG_LEVELS turns one module up or down without touching the rest."""
+
+    def setUp(self):
+        take_deferred_warnings()
+
+    def tearDown(self):
+        take_deferred_warnings()
+
+    def test_parses_comma_separated_pairs(self):
+        self.assertEqual(
+            resolve_logger_levels(" api.directory_watcher=debug , nextcloud=WARNING,"),
+            {"api.directory_watcher": "DEBUG", "nextcloud": "WARNING"},
+        )
+        self.assertEqual(take_deferred_warnings(), [])
+
+    def test_empty_is_no_overrides(self):
+        self.assertEqual(resolve_logger_levels(""), {})
+        self.assertEqual(take_deferred_warnings(), [])
+
+    def test_malformed_entries_are_skipped_and_reported(self):
+        levels = resolve_logger_levels("api=LOUD,nextcloud,=DEBUG,api.util=ERROR")
+        self.assertEqual(levels, {"api.util": "ERROR"})
+        warnings = take_deferred_warnings()
+        self.assertEqual(len(warnings), 3, warnings)
+        self.assertTrue(all("LOG_LEVELS" in w for w in warnings), warnings)
+
+    def test_reads_the_environment_by_default(self):
+        with patch.dict(os.environ, {"LOG_LEVELS": "api.services=DEBUG"}):
+            config = build_logging_config(level="INFO")
+        self.assertEqual(config["loggers"]["api.services"], {"level": "DEBUG"})
+
+    def test_without_overrides_the_handlers_keep_the_global_level(self):
+        # No LOG_LEVELS, no change: what reaches the file is exactly what did
+        # before per-module loggers existed.
+        config = build_logging_config(level="WARNING", logger_levels={})
+        for handler in config["handlers"].values():
+            self.assertEqual(handler["level"], "WARNING")
+        self.assertEqual(config["root"]["level"], "WARNING")
+
+    def test_override_beats_a_third_party_floor(self):
+        config = build_logging_config(level="INFO", logger_levels={"django_q": "DEBUG"})
+        self.assertEqual(config["loggers"]["django_q"]["level"], "DEBUG")
+
+    def test_one_module_at_debug_reaches_the_file_and_the_rest_stays_quiet(self):
+        with temporary_logging(
+            level="INFO",
+            logger_levels={"api.directory_watcher": "DEBUG"},
+        ) as log_file:
+            logging.getLogger("api.directory_watcher.scan_jobs").debug(
+                "scan debug line"
+            )
+            logging.getLogger("api.services").debug("services debug line")
+            logging.getLogger("api.services").info("services info line")
+            flush_root_handlers()
+            with open(log_file, encoding="utf-8") as f:
+                contents = f.read()
+        self.assertIn("scan debug line", contents)
+        self.assertNotIn("services debug line", contents)
+        self.assertIn("services info line", contents)
+
+    def test_one_module_can_be_turned_down(self):
+        with temporary_logging(
+            level="INFO", logger_levels={"api.services": "ERROR"}
+        ) as log_file:
+            logging.getLogger("api.services").warning("services warning line")
+            logging.getLogger("api.thumbnails").warning("thumbnails warning line")
+            flush_root_handlers()
+            with open(log_file, encoding="utf-8") as f:
+                contents = f.read()
+        self.assertNotIn("services warning line", contents)
+        self.assertIn("thumbnails warning line", contents)
+
+
 class ModuleLoggerReachabilityTest(SimpleTestCase):
     """The getLogger(__name__) modules have to reach the file handler.
 
@@ -210,6 +289,10 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
         "api.apps",
         "api.views.email_config",
         "api.views.password_reset",
+        # Formerly routed through the shared "ownphotos" logger.
+        "api.directory_watcher.scan_jobs",
+        "api.services",
+        "nextcloud.views",
     )
 
     def test_module_loggers_reach_the_file_handler(self):
@@ -231,13 +314,45 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
     def test_the_modules_really_use_those_logger_names(self):
         # The assertions above are only worth anything if these are the loggers
         # the modules actually log through.
-        from api import apps, mail
+        from api import apps, mail, services
+        from api.directory_watcher import scan_jobs
         from api.views import email_config, password_reset
+        from nextcloud import views as nextcloud_views
 
         self.assertEqual(mail.logger.name, "api.mail")
         self.assertEqual(apps.logger.name, "api.apps")
         self.assertEqual(email_config.logger.name, "api.views.email_config")
         self.assertEqual(password_reset.logger.name, "api.views.password_reset")
+        self.assertEqual(scan_jobs.logger.name, "api.directory_watcher.scan_jobs")
+        self.assertEqual(services.logger.name, "api.services")
+        self.assertEqual(nextcloud_views.logger.name, "nextcloud.views")
+
+    def test_no_module_logs_through_a_shared_logger(self):
+        # One logger for the whole backend made per-module levels impossible:
+        # a module that borrows another module's logger (or the old shared
+        # "ownphotos" one) cannot be turned up or down on its own.
+        backend_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        )
+        shared = re.compile(
+            r"from api\.util import[^\n]*\blogger\b"
+            r"|\butil\.logger\b"
+            r"""|getLogger\(["']ownphotos["']\)"""
+        )
+        offenders = []
+        for package in ("api", "nextcloud", "librephotos"):
+            for dirpath, dirnames, filenames in os.walk(
+                os.path.join(backend_root, package)
+            ):
+                dirnames[:] = [d for d in dirnames if d not in ("tests", "migrations")]
+                for filename in filenames:
+                    if not filename.endswith(".py"):
+                        continue
+                    path = os.path.join(dirpath, filename)
+                    with open(path, encoding="utf-8") as f:
+                        if shared.search(f.read()):
+                            offenders.append(os.path.relpath(path, backend_root))
+        self.assertEqual(offenders, [])
 
 
 class EnsureLogsRootTest(SimpleTestCase):

@@ -19,6 +19,7 @@ Burst detection uses a rules-based system with two categories:
 - Soft criteria: Estimation (timestamp proximity, visual similarity)
 """
 
+import logging
 from collections import defaultdict
 
 from django.db.models import Q
@@ -35,7 +36,8 @@ from api.burst_detection_rules import (
     group_photos_by_visual_similarity,
     BurstRuleTypes,
 )
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def clear_stacks_of_type(user, stack_type):

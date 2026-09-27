@@ -39,9 +39,6 @@ ignore = [
   # together with that area's log-level review, not in one sweeping commit.
   "G004",
 ]
-# Covers both `from api.util import logger` and `from api import util;
-# util.logger.info(...)`.
-logger-objects = ["api.util.logger"]
 
 [tool.ruff.format]
 quote-style = "double"

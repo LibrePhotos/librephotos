@@ -1,10 +1,13 @@
+import logging
+
 import numpy as np
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import models
 
 from api.models.person import Person
 from api.models.user import User, get_deleted_user
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 UNKNOWN_CLUSTER_ID = -1
 UNKNOWN_CLUSTER_NAME = "Other Unknown Cluster"

@@ -1,5 +1,6 @@
 """Zip downloads: start an archive job, poll it, delete the archive."""
 
+import logging
 import uuid
 
 from django.db.models import Sum
@@ -8,7 +9,8 @@ from rest_framework.views import APIView
 
 from api.all_tasks import create_download_job, delete_zip_file, zip_file_name
 from api.models import LongRunningJob, Photo
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class ZipListPhotosView_V2(APIView):

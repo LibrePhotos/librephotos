@@ -97,7 +97,7 @@ class IdleSidecarTest(SimpleTestCase):
 
         with (
             patch("api.services.is_service_enabled", side_effect=lambda s: s == "ocr"),
-            self.assertLogs("ownphotos", "WARNING") as logs,
+            self.assertLogs("api.services", "WARNING") as logs,
         ):
             services.check_services()
 

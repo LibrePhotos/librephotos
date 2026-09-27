@@ -71,7 +71,7 @@ class CreateNewImageTests(FileHandlerTestBase):
         child = File.create(child_path, self.user)
         parent.embedded_media.add(child)
 
-        with patch(f"{MODULE}.util.logger") as logger:
+        with patch(f"{MODULE}.logger") as logger:
             self.assertIsNone(create_new_image(self.user, child_path))
 
         self.assertEqual(0, Photo.objects.count())
@@ -97,7 +97,7 @@ class CreateNewImageTests(FileHandlerTestBase):
     def test_metadata_file_without_matching_photo_creates_no_file(self):
         xmp_path = _write_bytes(self.p("orphan.xmp"), b"<x:xmpmeta/>")
 
-        with patch(f"{MODULE}.util.logger") as logger:
+        with patch(f"{MODULE}.logger") as logger:
             self.assertIsNone(create_new_image(self.user, xmp_path))
 
         self.assertEqual(0, Photo.objects.count())
@@ -112,7 +112,7 @@ class CreateNewImageTests(FileHandlerTestBase):
         self.assertIsNotNone(other_photo)
 
         xmp_path = _write_bytes(self.p("IMG_200.xmp"), b"<x:xmpmeta/>")
-        with patch(f"{MODULE}.util.logger") as logger:
+        with patch(f"{MODULE}.logger") as logger:
             self.assertIsNone(create_new_image(self.user, xmp_path))
 
         self.assertFalse(other_photo.files.filter(path=xmp_path).exists())
@@ -124,7 +124,7 @@ class CreateNewImageTests(FileHandlerTestBase):
         self.assertIsNotNone(prefixed)
 
         xmp_path = _write_bytes(self.p("IMG_1.xmp"), b"<x:xmpmeta/>")
-        with patch(f"{MODULE}.util.logger") as logger:
+        with patch(f"{MODULE}.logger") as logger:
             self.assertIsNone(create_new_image(self.user, xmp_path))
 
         self.assertFalse(prefixed.files.filter(path=xmp_path).exists())
@@ -372,7 +372,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
         bad_path = _write_bytes(self.p("garbage.txt"), b"nope")
         self._make_job()
 
-        with patch(f"{MODULE}.util.logger") as logger:
+        with patch(f"{MODULE}.logger") as logger:
             handle_file_group(self.user, [bad_path], self.job_id)
 
         self.assertEqual(0, Photo.objects.count())
@@ -385,7 +385,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
         xmp_path = _write_bytes(self.p("only.xmp"), b"<x:xmpmeta/>")
         self._make_job()
 
-        with patch(f"{MODULE}.util.logger") as logger:
+        with patch(f"{MODULE}.logger") as logger:
             handle_file_group(self.user, [xmp_path], self.job_id)
 
         self.assertEqual(0, Photo.objects.count())
@@ -441,7 +441,7 @@ class HandleFileGroupTests(FileHandlerTestBase):
 
         with (
             patch(f"{MODULE}.group_files_into_photo", side_effect=RuntimeError("boom")),
-            patch(f"{MODULE}.util.logger") as logger,
+            patch(f"{MODULE}.logger") as logger,
         ):
             handle_file_group(self.user, [path], self.job_id)  # must not raise
 

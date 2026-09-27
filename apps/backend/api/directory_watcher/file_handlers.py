@@ -6,6 +6,7 @@ them into Photo objects.
 """
 
 import datetime
+import logging
 import os
 import tempfile
 from functools import partial
@@ -15,7 +16,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from api import transcode_cache, util
+from api import transcode_cache
 from api.directory_watcher.file_grouping import (
     FILE_TYPE_PRIORITY,
     find_matching_image_for_video,
@@ -45,6 +46,8 @@ from api.stacks.live_photo import (
 )
 from api.thumbnails import render_big_thumbnail_to
 
+logger = logging.getLogger(__name__)
+
 
 def _content_changed(stored_hash: str, disk_hash: str) -> bool:
     """Do these two hashes mean "same path, different bytes"?
@@ -62,7 +65,7 @@ def _remove_file(path: str) -> None:
         try:
             os.remove(path)
         except OSError:
-            util.logger.error(f"could not remove stale file {path}")
+            logger.error(f"could not remove stale file {path}")
 
 
 # What a byte change costs the photos holding the file.
@@ -89,7 +92,7 @@ def _rendered_perceptual_hash(
             render_big_thumbnail_to(path, rendered, local_orientation, legacy)
             return calculate_perceptual_hash(rendered)
     except Exception:
-        util.logger.exception(f"could not render {path} to compare it with the index")
+        logger.exception(f"could not render {path} to compare it with the index")
         return None
 
 
@@ -234,7 +237,7 @@ def _regenerate_thumbnails(photo: Photo) -> None:
         thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
         thumbnail._regenerate_thumbnails()
     except Exception:
-        util.logger.warning(
+        logger.warning(
             f"could not regenerate thumbnails for photo {photo.pk} "
             f"({photo.image_hash})",
             exc_info=True,
@@ -266,13 +269,13 @@ def reindex_replaced_file(user, path, hash_value) -> Photo | None:
         return None
 
     if hash_owner_part(existing.hash) != hash_owner_part(hash_value):
-        util.logger.info(
+        logger.info(
             f"{path} is indexed under another user's hash, leaving it to their scan"
         )
         return None
 
     if File.objects.filter(hash=hash_value).exists():
-        util.logger.error(
+        logger.error(
             f"changed file {path} matches an already indexed file, not re-indexing"
         )
         return None
@@ -298,9 +301,7 @@ def reindex_replaced_file(user, path, hash_value) -> Photo | None:
     )
 
     verdict = _picture_verdict(_photo_to_compare(affected, user, old_hash), path)
-    util.logger.info(
-        f"content of {path} changed ({verdict}), re-keying as {hash_value}"
-    )
+    logger.info(f"content of {path} changed ({verdict}), re-keying as {hash_value}")
 
     main_photo = None
     rebuild_photo_ids = []
@@ -363,7 +364,7 @@ def create_file_record(user, path) -> File | None:
 
     # Skip if this is embedded media (already attached to another file)
     if File.embedded_media.through.objects.filter(Q(to_file_id=hash_value)).exists():
-        util.logger.warning(f"embedded content file found {path}")
+        logger.warning(f"embedded content file found {path}")
         return None
 
     reindex_replaced_file(user, path, hash_value)
@@ -397,7 +398,7 @@ def _adopt_files_into_photo(photo: Photo, files: list[File], main_file: File, jo
     for f in files:
         if not photo.files.filter(hash=f.hash).exists():
             photo.files.add(f)
-            util.logger.info(
+            logger.info(
                 f"job {job_id}: Attached file {f.path} to existing Photo {photo.image_hash}"
             )
 
@@ -436,7 +437,7 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
 
     if not non_metadata_files:
         # Only metadata files - no photo to create
-        util.logger.warning(f"job {job_id}: Only metadata files in group, skipping")
+        logger.warning(f"job {job_id}: Only metadata files in group, skipping")
         return None
 
     # Select main file based on priority
@@ -480,7 +481,7 @@ def group_files_into_photo(user, files: list[File], job_id) -> Photo | None:
     if _attach_embedded_motion_video(user, photo, main_file):
         photo.save()
 
-    util.logger.info(
+    logger.info(
         f"job {job_id}: Created Photo {photo.image_hash} with {len(files)} file(s)"
     )
     return photo
@@ -512,7 +513,7 @@ def _attach_metadata_sidecar(user, path) -> None:
     photo = _find_photo_for_sidecar(user, path)
 
     if not photo:
-        util.logger.warning(f"no photo to metadata file found {path}")
+        logger.warning(f"no photo to metadata file found {path}")
         return
 
     photo.files.add(File.create(path, user))
@@ -526,9 +527,7 @@ def _attach_file_variant(user, path, photo: Photo, label, keep_image=False) -> P
         if keep_image:
             photo.video = False
         photo.save()
-        util.logger.info(
-            f"Attached {label} {path} to existing Photo {photo.image_hash}"
-        )
+        logger.info(f"Attached {label} {path} to existing Photo {photo.image_hash}")
     return photo
 
 
@@ -578,7 +577,7 @@ def create_new_image(user, path) -> Photo | None:
         return None
     hash_value = calculate_hash(user, path)
     if File.embedded_media.through.objects.filter(Q(to_file_id=hash_value)).exists():
-        util.logger.warning(f"embedded content file found {path}")
+        logger.warning(f"embedded content file found {path}")
         return None
 
     if is_metadata(path):
@@ -658,18 +657,18 @@ def handle_new_image(user, path, job_id, photo=None):
         if photo is None:
             photo = create_new_image(user, path)
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(f"job {job_id}: save image: {path}, elapsed: {elapsed}")
+            logger.info(f"job {job_id}: save image: {path}, elapsed: {elapsed}")
         if photo:
             _process_photo(photo, path, job_id, start)
 
     except Exception as e:
         error = _describe_failure(path, e)
         try:
-            util.logger.exception(
+            logger.exception(
                 f"job {job_id}: could not load image {path}. reason: {str(e)}"
             )
         except Exception:
-            util.logger.exception(f"job {job_id}: could not load image {path}")
+            logger.exception(f"job {job_id}: could not load image {path}")
     finally:
         update_scan_counter(job_id, failed=error is not None, error=error)
 
@@ -693,11 +692,11 @@ def _describe_failure(path, error: Exception) -> str:
 
 def _log_file_group_failure(job_id, file_paths, error: Exception):
     try:
-        util.logger.exception(
+        logger.exception(
             f"job {job_id}: could not process file group {file_paths}. reason: {str(error)}"
         )
     except Exception:
-        util.logger.exception(f"job {job_id}: could not process file group")
+        logger.exception(f"job {job_id}: could not process file group")
 
 
 def handle_file_group(user, file_paths: list[str], job_id):
@@ -719,7 +718,7 @@ def handle_file_group(user, file_paths: list[str], job_id):
         files = _collect_file_records(user, file_paths)
         if not files:
             error = f"No valid files in group: {file_paths}"
-            util.logger.warning(f"job {job_id}: {error}")
+            logger.warning(f"job {job_id}: {error}")
             return
 
         # Group files into a Photo
@@ -727,11 +726,11 @@ def handle_file_group(user, file_paths: list[str], job_id):
 
         if not photo:
             error = f"Could not create photo for files: {file_paths}"
-            util.logger.warning(f"job {job_id}: {error}")
+            logger.warning(f"job {job_id}: {error}")
             return
 
         elapsed = (datetime.datetime.now() - start).total_seconds()
-        util.logger.info(
+        logger.info(
             f"job {job_id}: created photo with {len(files)} files, elapsed: {elapsed}"
         )
 
@@ -758,19 +757,17 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
         job_id: Job ID for logging
         start: Start time for elapsed time calculation
     """
-    util.logger.info(f"job {job_id}: handling image {path}")
+    logger.info(f"job {job_id}: handling image {path}")
 
     # Create or get thumbnail instance
     thumbnail, _ = Thumbnail.objects.get_or_create(photo=photo)
     thumbnail._generate_thumbnail()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    util.logger.info(f"job {job_id}: generate thumbnails: {path}, elapsed: {elapsed}")
+    logger.info(f"job {job_id}: generate thumbnails: {path}, elapsed: {elapsed}")
 
     thumbnail._calculate_aspect_ratio()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    util.logger.info(
-        f"job {job_id}: calculate aspect ratio: {path}, elapsed: {elapsed}"
-    )
+    logger.info(f"job {job_id}: calculate aspect ratio: {path}, elapsed: {elapsed}")
 
     # Calculate perceptual hash for duplicate detection
     if thumbnail.thumbnail_big and os.path.exists(thumbnail.thumbnail_big.path):
@@ -779,7 +776,7 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
             photo.perceptual_hash = phash
             photo.save(update_fields=["perceptual_hash"])
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
+            logger.info(
                 f"job {job_id}: calculate perceptual hash: {path}, elapsed: {elapsed}"
             )
 
@@ -787,7 +784,7 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
 
     PhotoMetadata.extract_exif_data(photo, commit=True)
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    util.logger.info(f"job {job_id}: extract exif data: {path}, elapsed: {elapsed}")
+    logger.info(f"job {job_id}: extract exif data: {path}, elapsed: {elapsed}")
 
     # Categorise the photo (screenshot/document) from the freshly extracted
     # metadata. A manual correction ("user") is never overwritten by a rescan.
@@ -800,16 +797,14 @@ def _process_photo(photo: Photo, path: str, job_id, start: datetime.datetime):
 
     extract_date_time(photo, True)
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    util.logger.info(f"job {job_id}: extract date time: {path}, elapsed: {elapsed}")
+    logger.info(f"job {job_id}: extract date time: {path}, elapsed: {elapsed}")
 
     thumbnail._get_dominant_color()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    util.logger.info(f"job {job_id}: get dominant color: {path}, elapsed: {elapsed}")
+    logger.info(f"job {job_id}: get dominant color: {path}, elapsed: {elapsed}")
 
     search_instance, created = PhotoSearch.objects.get_or_create(photo=photo)
     search_instance.recreate_search_captions()
     search_instance.save()
     elapsed = (datetime.datetime.now() - start).total_seconds()
-    util.logger.info(
-        f"job {job_id}: search caption recreated: {path}, elapsed: {elapsed}"
-    )
+    logger.info(f"job {job_id}: search caption recreated: {path}, elapsed: {elapsed}")

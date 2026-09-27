@@ -6,9 +6,11 @@ rating with a single queryset ``update()``, which skips ``save()``; they queue
 ``write_photo_ratings`` instead so the file ends up the same either way.
 """
 
+import logging
+
 from django_q.tasks import AsyncTask
 
-from api.util import logger
+logger = logging.getLogger(__name__)
 
 
 def queue_rating_write(user, photo_ids):

@@ -1,3 +1,4 @@
+import logging
 import os
 from functools import partial
 
@@ -14,7 +15,8 @@ from api.thumbnails import (
     does_static_thumbnail_exist,
     does_video_thumbnail_exist,
 )
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 # Static thumbnails are webp; the animated ones videos get instead are mp4.
 STATIC_THUMBNAIL_DIRS = (

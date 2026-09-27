@@ -1,3 +1,4 @@
+import logging
 import os
 
 from django.conf import settings
@@ -12,8 +13,10 @@ from api.batch_jobs import batch_calculate_clip_embedding
 from api.ml_models import do_all_models_exist, download_models
 from api.models import Photo, User
 from api.serializers.simple import PhotoSuperSimpleSerializer
-from api.util import is_valid_path, logger
+from api.util import is_valid_path
 from nextcloud.server_address import UnsafeServerAddress, validate_server_address
+
+logger = logging.getLogger(__name__)
 
 # (field name, log message template) in the order the fields are applied.
 USER_UPDATE_FIELDS = (

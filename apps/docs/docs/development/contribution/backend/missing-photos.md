@@ -124,14 +124,14 @@ def scan_missing_photos(user, job_id: UUID):
         for page in range(1, paginator.num_pages + 1):
             # Allow the job to be cancelled from the UI between pages
             if is_job_cancelled(job_id):
-                util.logger.info("Scan missing photos job cancelled")
+                logger.info("Scan missing photos job cancelled")
                 return
             for existing_photo in paginator.page(page).object_list:
                 existing_photo._check_files()
 
             update_scan_counter(job_id)
     except Exception as e:
-        util.logger.exception("An error occurred: ")
+        logger.exception("An error occurred: ")
         lrj.fail(error=e)
 ```
 

@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import uuid
 import zipfile
@@ -7,8 +8,9 @@ from django.conf import settings
 from django.utils import timezone
 from django_q.tasks import AsyncTask, schedule
 
-from api import util
 from api.models.long_running_job import LongRunningJob
+
+logger = logging.getLogger(__name__)
 
 
 def zip_file_name(file_uuid, user_id):
@@ -96,7 +98,7 @@ def _zippable_path(file_obj, files_added):
     if not file_obj or not file_obj.path:
         return None
     if not os.path.exists(file_obj.path):
-        util.logger.warning(f"File not found, skipping: {file_obj.path}")
+        logger.warning(f"File not found, skipping: {file_obj.path}")
         return None
     if file_obj.path in files_added:
         return None
@@ -140,7 +142,7 @@ def zip_photos_task(job_id, user, photos, filename):
             output_file.write(mf.getvalue())
 
     except Exception as e:
-        util.logger.error(f"Error while converting files to zip: {e}")
+        logger.error(f"Error while converting files to zip: {e}")
 
     lrj.complete()
     # scheduling a task to delete the zip file after a day
@@ -153,17 +155,17 @@ def delete_zip_file(filename):
     zip_dir = os.path.realpath(os.path.join(settings.MEDIA_ROOT, "zip"))
     file_path = os.path.realpath(os.path.join(zip_dir, filename))
     if os.path.dirname(file_path) != zip_dir:
-        util.logger.error(f"Refusing to delete zip outside {zip_dir}: {filename!r}")
+        logger.error(f"Refusing to delete zip outside {zip_dir}: {filename!r}")
         return
     try:
         if not os.path.exists(file_path):
-            util.logger.error(f"Error while deleting file not found at : {file_path}")
+            logger.error(f"Error while deleting file not found at : {file_path}")
             return
         else:
             os.remove(file_path)
-            util.logger.info(f"file deleted sucessfully at path : {file_path}")
+            logger.info(f"file deleted sucessfully at path : {file_path}")
             return
 
     except Exception as e:
-        util.logger.error(f"Error while deleting file: {e}")
+        logger.error(f"Error while deleting file: {e}")
         return e

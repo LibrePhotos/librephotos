@@ -1,4 +1,5 @@
 import collections
+import logging
 import os
 
 from django.conf import settings
@@ -19,8 +20,9 @@ from api.stats import (
 
 from api.face_classify import cluster_faces
 from api.social_graph import build_social_graph
-from api.util import logger
 from librephotos.logging_bootstrap import LOG_FILENAME
+
+logger = logging.getLogger(__name__)
 
 
 class ClusterFaceView(APIView):

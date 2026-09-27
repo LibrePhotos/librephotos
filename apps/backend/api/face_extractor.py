@@ -1,10 +1,14 @@
+import logging
+
 import numpy as np
 import PIL
 
 from api.face_recognition import detect_faces
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
-from api.util import is_number, logger
+from api.util import is_number
+
+logger = logging.getLogger(__name__)
 
 
 ORIENTATION_TRANSFORMS = {

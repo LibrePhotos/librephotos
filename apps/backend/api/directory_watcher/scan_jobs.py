@@ -6,6 +6,7 @@ two-phase scan architecture to avoid race conditions with RAW+JPEG grouping.
 """
 
 import datetime
+import logging
 import os
 import uuid
 from collections import defaultdict
@@ -18,7 +19,6 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django_q.tasks import AsyncTask, Chain
 
-from api import util
 from api.metadata.reader import get_sidecar_files_in_priority_order
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.models import LongRunningJob, Photo, Thumbnail
@@ -44,6 +44,8 @@ from api.directory_watcher.utils import (
     update_job_result,
     update_scan_counter,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # Number of file groups whose known-paths are resolved in a single DB query
@@ -169,7 +171,7 @@ def backfill_missing_aspect_ratios(user):
     if not photos_with_missing_aspect_ratio.exists():
         return 0
 
-    util.logger.info(
+    logger.info(
         f"Found {photos_with_missing_aspect_ratio.count()} photos with missing aspect ratios"
     )
     for photo in photos_with_missing_aspect_ratio:
@@ -178,14 +180,14 @@ def backfill_missing_aspect_ratios(user):
             if thumbnail and isinstance(thumbnail, Thumbnail):
                 thumbnail._calculate_aspect_ratio()
         except Exception as e:
-            util.logger.exception(
+            logger.exception(
                 f"Could not calculate aspect ratio for photo {photo.image_hash}: {str(e)}"
             )
 
     # ``.all()`` re-queries: iterating above cached the pre-repair rows.
     still_missing = photos_with_missing_aspect_ratio.all().count()
     if still_missing:
-        util.logger.warning(
+        logger.warning(
             f"{still_missing} photos still have no aspect ratio after the repair "
             "pass; they will not appear in the timeline or album views until it "
             "can be calculated"
@@ -259,7 +261,7 @@ def _queue_scan_work(
         ).run()
 
     if metadata_paths:
-        util.logger.info(
+        logger.info(
             f"Processing {len(metadata_paths)} metadata files for photos outside this scan"
         )
     for path in metadata_paths:
@@ -310,7 +312,7 @@ def queue_scan_followups(job_id):
     added_photo_count = (
         Photo.objects.owned_by(user).count() - options["photo_count_before"]
     )
-    util.logger.info(f"Added {added_photo_count} photos")
+    logger.info(f"Added {added_photo_count} photos")
 
     _queue_followup_jobs(user, options["full_scan"], options["scan_missing_photos"])
 
@@ -409,7 +411,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         lrj.update_progress(current=0, target=total_groups)
         db.connections.close_all()
 
-        util.logger.info(
+        logger.info(
             f"Grouped {files_found} files into {len(file_groups)} groups, {len(groups_to_process)} need processing"
         )
 
@@ -420,7 +422,7 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
             user, groups_to_process, metadata_paths, full_scan, last_scan, job_id
         )
 
-        util.logger.info(f"Scanned {files_found} files in : {scan_directory}")
+        logger.info(f"Scanned {files_found} files in : {scan_directory}")
 
         # If no files were queued for processing (empty directory or all files
         # already processed) no worker will ever finish the job, so finish it
@@ -428,13 +430,13 @@ def scan_photos(user, full_scan, job_id, scan_directory="", scan_files=None):
         # completes the last queued item does both.
         finish_job_if_complete(job_id)
 
-        util.logger.info("Finished updating album things")
+        logger.info("Finished updating album things")
 
         # Check for photos with missing aspect ratios but existing thumbnails
         backfill_missing_aspect_ratios(user)
 
     except Exception as e:
-        util.logger.exception("An error occurred: ")
+        logger.exception("An error occurred: ")
         lrj.fail(error=e)
 
 
@@ -459,14 +461,14 @@ def scan_missing_photos(user, job_id: UUID):
         for page in range(1, paginator.num_pages + 1):
             # Check for cancellation
             if is_job_cancelled(job_id):
-                util.logger.info("Scan missing photos job cancelled")
+                logger.info("Scan missing photos job cancelled")
                 return
             for existing_photo in paginator.page(page).object_list:
                 detach_missing_files(existing_photo)
 
             update_scan_counter(job_id)
 
-        util.logger.info("Finished checking paths for missing photos")
+        logger.info("Finished checking paths for missing photos")
     except Exception as e:
-        util.logger.exception("An error occurred: ")
+        logger.exception("An error occurred: ")
         lrj.fail(error=e)

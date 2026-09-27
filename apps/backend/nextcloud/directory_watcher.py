@@ -1,14 +1,16 @@
+import logging
 import os
 import uuid
 
 from django.conf import settings
 
-from api import util
 from api.directory_watcher import handle_new_image
 from api.image_similarity import build_image_similarity_index
 from api.models import LongRunningJob
 from api.models.file import is_metadata, is_raw
 from nextcloud.server_address import connect
+
+logger = logging.getLogger(__name__)
 
 
 def isValidNCMedia(file_obj):
@@ -28,12 +30,12 @@ def isValidNCMedia(file_obj):
             return True
         if is_raw(file_obj.path) or is_metadata(file_obj.path):
             return True
-        util.logger.info(
+        logger.info(
             f"Skipping {file_obj.path}, because '{filetype}' is not a media type"
         )
         return False
     except Exception:
-        util.logger.exception("An image thrown an exception")
+        logger.exception("An image thrown an exception")
         return False
 
 
@@ -125,7 +127,7 @@ def scan_photos(user, job_id):
         for photo in photos:
             local_path = local_path_for(root, photo)
             if local_path is None:
-                util.logger.warning(
+                logger.warning(
                     "Skipping Nextcloud file %r: it would be stored outside %s",
                     photo,
                     root,
@@ -134,27 +136,25 @@ def scan_photos(user, job_id):
 
             if not os.path.exists(local_path):
                 if not download(nc, photo, local_path):
-                    util.logger.warning(
-                        "Nextcloud did not return %r, skipping it", photo
-                    )
+                    logger.warning("Nextcloud did not return %r, skipping it", photo)
                     continue
-                util.logger.info("Downloaded photo from nextcloud to %s", local_path)
+                logger.info("Downloaded photo from nextcloud to %s", local_path)
             paths.append(local_path)
 
         paths.sort()
 
         to_add_count = len(paths)
         for idx, image_path in enumerate(paths):
-            util.logger.info("begin handling of photo %d/%d", idx + 1, to_add_count)
+            logger.info("begin handling of photo %d/%d", idx + 1, to_add_count)
             handle_new_image(user, image_path, job_id)
             lrj.update_progress(current=idx + 1, target=to_add_count)
 
-        util.logger.info(f"Added {len(paths)} photos")
+        logger.info(f"Added {len(paths)} photos")
         build_image_similarity_index(user)
 
         lrj.complete()
     except Exception as e:
-        util.logger.exception(str(e))
+        logger.exception(str(e))
         lrj.fail(error=e)
         return {"status": False}
     return {"status": True}

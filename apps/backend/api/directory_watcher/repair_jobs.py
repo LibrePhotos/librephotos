@@ -6,11 +6,13 @@ RAW files that weren't properly grouped with their JPEG counterparts
 due to race conditions in previous scans.
 """
 
+import logging
 from uuid import UUID
 
-from api import util
 from api.models import File, LongRunningJob, Photo
 from api.directory_watcher.file_grouping import find_matching_jpeg_photo
+
+logger = logging.getLogger(__name__)
 
 
 def _promote_image_main_file(raw_photo) -> bool:
@@ -35,7 +37,7 @@ def _merge_raw_into_jpeg_photo(raw_photo, user, job_id: UUID) -> bool:
 
     jpeg_photo.save()
     raw_photo.delete()
-    util.logger.info(
+    logger.info(
         f"job {job_id}: Merged RAW photo into JPEG photo {jpeg_photo.image_hash}"
     )
     return True
@@ -80,12 +82,12 @@ def repair_ungrouped_file_variants(user, job_id: UUID):
             elif _merge_raw_into_jpeg_photo(raw_photo, user, job_id):
                 merged_count += 1
 
-        util.logger.info(
+        logger.info(
             f"job {job_id}: Repaired {merged_count} ungrouped file variants, "
             f"fixed {fixed_main_file_count} main_file priorities"
         )
         lrj.complete()
 
     except Exception as e:
-        util.logger.exception(f"job {job_id}: Error repairing file variants: {e}")
+        logger.exception(f"job {job_id}: Error repairing file variants: {e}")
         lrj.fail(error=e)

@@ -1,4 +1,5 @@
 import json
+import logging
 import math
 import os
 import pathlib
@@ -8,7 +9,8 @@ from datetime import datetime
 import pytz
 
 from api.metadata.tags import Tags
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def _regexp_group_range(a, b):

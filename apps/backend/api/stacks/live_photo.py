@@ -10,6 +10,7 @@ This module moves embedded media extraction from directory_watcher to
 a dedicated stacks-aware component for better organization.
 """
 
+import logging
 import os
 from mmap import ACCESS_READ, mmap
 from pathlib import Path
@@ -20,7 +21,8 @@ from django.conf import settings
 from api.mime import mime_type
 from api.models.file import File
 from api.models.photo_stack import PhotoStack
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from api.models.photo import Photo

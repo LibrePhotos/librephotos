@@ -538,7 +538,7 @@ class FollowUpTasksTest(ScanPhotosCharacterizationBase):
         with (
             patch.object(scan_jobs, "AsyncTask", TaskRecorder(self.tasks)),
             patch.object(scan_jobs, "Chain", ChainRecorder),
-            self.assertLogs("ownphotos", level="INFO") as logs,
+            self.assertLogs("api.directory_watcher.scan_jobs", level="INFO") as logs,
         ):
             self.finish_queued_work()
 

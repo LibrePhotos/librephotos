@@ -1,8 +1,10 @@
+import logging
+
 from django.core.management.base import BaseCommand
 from django_q.models import Schedule
 from django_q.tasks import schedule
 
-from api.util import logger
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):

@@ -15,12 +15,14 @@ By default, only hard criteria rules are enabled.
 """
 
 import json
+import logging
 import os
 import re
 from datetime import timedelta
 
 from api.metadata.tags import Tags
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class BurstRuleTypes:

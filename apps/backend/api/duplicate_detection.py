@@ -22,6 +22,7 @@ With 300k photos:
 - New: ~100-200MB RAM (batch + hash list only)
 """
 
+import logging
 from collections import defaultdict
 
 from django.db.models import Q
@@ -31,7 +32,8 @@ from api.models.duplicate import Duplicate
 from api.models.file import File
 from api.models.long_running_job import LongRunningJob
 from api.perceptual_hash import DEFAULT_HAMMING_THRESHOLD, hamming_distance
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class BKTree:

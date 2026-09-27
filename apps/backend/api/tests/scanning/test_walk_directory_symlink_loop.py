@@ -46,7 +46,7 @@ class SymlinkLoopTest(TestCase):
         self._link(os.path.join(self.album, "loop"), self.root)
 
         found = []
-        with self.assertLogs("ownphotos", level="WARNING") as logs:
+        with self.assertLogs("api.directory_watcher.utils", level="WARNING") as logs:
             walk_directory(self.root, found)
 
         self.assertEqual(found, [self.photo])

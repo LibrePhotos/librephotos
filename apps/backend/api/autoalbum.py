@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -5,7 +6,6 @@ import pytz
 from django.db import transaction
 from django.db.models import Q
 
-import api.models
 from api.models import (
     AlbumAuto,
     AlbumThing,
@@ -14,7 +14,8 @@ from api.models import (
     Photo,
 )
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 # Batch size for delete_missing_photos. The function snapshots a list of
 # affected AlbumThing ids per batch and then bulk-deletes the batch, so a
@@ -271,43 +272,3 @@ def delete_missing_photos(user, job_id):
         logger.exception("An error occurred")
         lrj.fail(error=e)
     return 1
-
-
-def _active_model_tags(photo):
-    """Tags the active tagging model stored for this photo, or None."""
-    from constance import config as site_config
-
-    caption_instance = getattr(photo, "caption_instance", None)
-    if not caption_instance:
-        return None
-    captions_json = caption_instance.captions_json
-    if not captions_json or type(captions_json) is not dict:
-        return None
-    tag_result = captions_json.get(site_config.TAGGING_MODEL)
-    if not isinstance(tag_result, dict):
-        return None
-    return tag_result.get("tags", [])
-
-
-def _add_to_album_things(photo, titles, thing_type):
-    for title in titles:
-        album_thing = api.models.album_thing.get_album_thing(
-            title=title,
-            owner=photo.owner,
-            thing_type=thing_type,
-        )
-        if not album_thing.photos.filter(image_hash=photo.image_hash).exists():
-            album_thing.photos.add(photo)
-            album_thing.save()
-
-
-def add_photo_to_album_things(photo):
-    """File the photo under the Things albums of its active-model tags."""
-    from constance import config as site_config
-
-    from api.models.photo_caption import tag_thing_type
-
-    tags = _active_model_tags(photo)
-    if tags is None:
-        return
-    _add_to_album_things(photo, tags, tag_thing_type(site_config.TAGGING_MODEL))

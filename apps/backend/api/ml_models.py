@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import math
 import os
 import tarfile
@@ -9,9 +10,10 @@ import requests
 from constance import config as site_config
 from django.conf import settings
 
-from api import util
 from api.http_timeouts import MODEL_DOWNLOAD
 from api.models.long_running_job import LongRunningJob
+
+logger = logging.getLogger(__name__)
 
 
 class MlTypes:
@@ -328,7 +330,7 @@ def _flatten_wrapper_dir(target_dir):
 def download_model(model):
     model = model.copy()
     if not _is_model_selected(model):
-        util.logger.info(f"Skipping unselected model {model['name']}")
+        logger.info(f"Skipping unselected model {model['name']}")
         return
 
     model_folder = Path(settings.MEDIA_ROOT) / "data_models"
@@ -339,10 +341,10 @@ def download_model(model):
         _flatten_wrapper_dir(model_folder / model["target-dir"])
 
     if _model_target_exists(model_folder, model):
-        util.logger.info(f"Model {model['name']} already downloaded")
+        logger.info(f"Model {model['name']} already downloaded")
         return
 
-    util.logger.info(f"Downloading model {model['name']}")
+    logger.info(f"Downloading model {model['name']}")
     target_path = _get_download_target(model_folder, model)
 
     _download_file(model["url"], target_path, model["name"], model.get("sha256"))
@@ -378,7 +380,7 @@ def _log_download_progress(
         return previous_percentage
     percentage = math.floor((current_progress / total_size) * 100)
     if percentage != previous_percentage:
-        util.logger.info(
+        logger.info(
             f"Downloading {model_name}: {current_progress}/{total_size} ({percentage}%)"
         )
     return percentage
@@ -407,7 +409,7 @@ def _stream_to_partial(response, partial_path, model_name, hasher):
 
 def _verify_checksum(hasher, expected_sha256, model_name, url):
     if hasher is None:
-        util.logger.debug(f"No sha256 pin for {model_name}; skipping verification")
+        logger.debug(f"No sha256 pin for {model_name}; skipping verification")
         return
 
     actual_sha256 = hasher.hexdigest()
@@ -421,7 +423,7 @@ def _verify_checksum(hasher, expected_sha256, model_name, url):
         f"Checksum mismatch for {model_name} from {url}: "
         f"expected sha256 {expected}, got {actual_sha256}"
     )
-    util.logger.error(message)
+    logger.error(message)
     raise ModelChecksumError(message)
 
 
@@ -476,7 +478,7 @@ def _download_file(url, target_path, model_name, expected_sha256=None):
         _verify_checksum(hasher, expected_sha256, model_name, url)
 
         if total_size == 0:
-            util.logger.info(
+            logger.info(
                 f"Downloaded {model_name}: {current_progress} bytes (size unknown during transfer)"
             )
 
@@ -505,7 +507,7 @@ def download_models(user):
             # download_models is chained ahead of scans and setup steps, so a
             # single unavailable model must not take the rest of the chain -
             # or the job status - down with it.
-            util.logger.exception(f"Failed to download model {model['name']}")
+            logger.exception(f"Failed to download model {model['name']}")
             failures.append(f"{model['name']}: {error}")
         lrj.update_progress(current=idx + 1)
 
@@ -554,5 +556,5 @@ def start_model_download(user):
         AsyncTask(download_models, user).run()
         return True
     except Exception:
-        util.logger.exception("Failed to queue the model download")
+        logger.exception("Failed to queue the model download")
         return False

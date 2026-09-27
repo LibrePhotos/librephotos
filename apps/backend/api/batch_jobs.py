@@ -1,11 +1,13 @@
+import logging
 import os
 
 
-from api import util
 from api.image_similarity import build_image_similarity_index
 from api.models.long_running_job import LongRunningJob
 from api.models.photo import Photo
 from api.semantic_search import create_clip_embeddings
+
+logger = logging.getLogger(__name__)
 
 
 def photos_missing_clip_embeddings(user):
@@ -31,7 +33,7 @@ def store_clip_embeddings(objs):
         if img_emb is None:
             # The sidecar could not read this thumbnail; leave the photo for
             # a later run rather than storing somebody else's embedding.
-            util.logger.warning(
+            logger.warning(
                 f"No CLIP embedding for {obj.image_hash}: unreadable thumbnail"
             )
             continue
@@ -73,7 +75,7 @@ def batch_calculate_clip_embedding(user):
             if valid_objs:
                 store_clip_embeddings(valid_objs)
         except Exception as e:
-            util.logger.error(f"Error calculating clip embeddings: {e}")
+            logger.error(f"Error calculating clip embeddings: {e}")
 
         lrj.update_progress(current=done_count, target=count)
 
@@ -82,7 +84,7 @@ def batch_calculate_clip_embedding(user):
     except Exception as e:
         # The embeddings are stored; only the index is stale. Say so rather
         # than report a job that left similar-photo search behind as done.
-        util.logger.error(f"Error building the similarity index: {e}")
+        logger.error(f"Error building the similarity index: {e}")
         lrj.fail(e)
         raise
     lrj.complete()

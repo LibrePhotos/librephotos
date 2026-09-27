@@ -11,7 +11,7 @@ from librephotos.logging_bootstrap import (
     LOG_FILE_HANDLER_NAME,
 )
 
-logger = logging.getLogger("ownphotos")
+logger = logging.getLogger(__name__)
 
 
 class LoggingNotConfiguredError(RuntimeError):

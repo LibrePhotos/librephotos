@@ -92,6 +92,35 @@ def resolve_level(raw=None) -> str:
     return level
 
 
+def resolve_logger_levels(raw=None) -> dict[str, str]:
+    """Parse per-logger level overrides from ``LOG_LEVELS``.
+
+    The format is a comma-separated list of ``logger=LEVEL`` pairs, for
+    example ``api.directory_watcher=DEBUG,nextcloud=WARNING``. Every module logs
+    through ``logging.getLogger(__name__)``, so a package name covers all of its
+    modules. Malformed entries are skipped and reported once logging works, for
+    the same reason an unknown LOG_LEVEL is.
+    """
+    if raw is None:
+        raw = os.environ.get("LOG_LEVELS", "")
+    levels = {}
+    for entry in str(raw).split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        name, sep, level = entry.partition("=")
+        name = name.strip()
+        level = level.strip().upper()
+        if not sep or not name or level not in VALID_LEVELS:
+            _deferred_warnings.append(
+                f"ignoring LOG_LEVELS entry {entry!r}; expected logger=LEVEL "
+                f"with LEVEL one of {', '.join(VALID_LEVELS)}"
+            )
+            continue
+        levels[name] = level
+    return levels
+
+
 def resolve_to_console(raw=None) -> bool:
     """Whether to mirror the log to stdout as well as to the file.
 
@@ -150,6 +179,10 @@ def _more_restrictive(level_a: str, level_b: str) -> str:
     )
 
 
+def _most_verbose(levels) -> str:
+    return min(levels, key=lambda name: getattr(logging, name))
+
+
 def build_logging_config(
     logs_root=None,
     level=None,
@@ -157,6 +190,7 @@ def build_logging_config(
     max_bytes=DEFAULT_LOG_MAX_BYTES,
     backup_count=DEFAULT_LOG_BACKUP_COUNT,
     filename=None,
+    logger_levels=None,
 ):
     """Build the dictConfig every LibrePhotos process is configured from.
 
@@ -165,8 +199,17 @@ def build_logging_config(
     ``max_bytes``/``backup_count`` are the boot-time defaults; the constance
     settings are applied on top of the live handler once the database is
     reachable (see api.util.reconfigure_logging).
+
+    ``logger_levels`` (default: parsed from ``LOG_LEVELS``) sets individual
+    loggers above or below ``level``. The handlers filter at the most verbose
+    level in play, so ``api.directory_watcher=DEBUG`` actually reaches the file
+    while everything else stays at ``level``; without overrides the handlers sit
+    at ``level`` exactly as before.
     """
     level = resolve_level(level)
+    if logger_levels is None:
+        logger_levels = resolve_logger_levels()
+    handler_level = _most_verbose([level, *logger_levels.values()])
     log_file = os.path.join(resolve_logs_root(logs_root), filename or LOG_FILENAME)
 
     handlers = {
@@ -180,7 +223,7 @@ def build_logging_config(
             "maxBytes": max_bytes,
             "backupCount": backup_count,
             "formatter": FORMATTER_NAME,
-            "level": level,
+            "level": handler_level,
         },
     }
     root_handlers = [LOG_FILE_HANDLER_NAME]
@@ -189,9 +232,17 @@ def build_logging_config(
         handlers[CONSOLE_HANDLER_NAME] = {
             "class": "logging.StreamHandler",
             "formatter": FORMATTER_NAME,
-            "level": level,
+            "level": handler_level,
         }
         root_handlers.append(CONSOLE_HANDLER_NAME)
+
+    loggers = {
+        name: {"level": _more_restrictive(level, floor)}
+        for name, floor in THIRD_PARTY_LEVELS.items()
+    }
+    # An explicit override beats a third-party floor: whoever sets
+    # LOG_LEVELS=django_q=DEBUG is asking for exactly that chatter.
+    loggers.update({name: {"level": lvl} for name, lvl in logger_levels.items()})
 
     return {
         "version": 1,
@@ -200,10 +251,7 @@ def build_logging_config(
         "disable_existing_loggers": False,
         "formatters": {FORMATTER_NAME: {"format": LOG_FORMAT}},
         "handlers": handlers,
-        "loggers": {
-            name: {"level": _more_restrictive(level, floor)}
-            for name, floor in THIRD_PARTY_LEVELS.items()
-        },
+        "loggers": loggers,
         "root": {"handlers": root_handlers, "level": level},
     }
 

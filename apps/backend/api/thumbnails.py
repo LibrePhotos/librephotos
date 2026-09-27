@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 
@@ -5,8 +6,10 @@ import numpy as np
 import pyvips
 from django.conf import settings
 
-from api import binaries, image_decoding, sidecars, util, video_color
+from api import binaries, image_decoding, sidecars, video_color
 from api.models.file import is_raw
+
+logger = logging.getLogger(__name__)
 
 
 _ORIENTATION_TRANSFORMS = {
@@ -240,7 +243,7 @@ def create_thumbnail(
             )
         return _resize_big_thumbnail(output_height, complete_path, hash, file_type)
     except Exception as e:
-        util.logger.error(f"Could not create thumbnail for file {input_path}")
+        logger.error(f"Could not create thumbnail for file {input_path}")
         raise e
 
 
@@ -280,7 +283,7 @@ def create_static_thumbnails(input_path, hash, output_paths, local_orientation=1
             )
             small.write_to_file(_media_path(output_path, hash, ".webp"), **WEBP)
     except Exception as e:
-        util.logger.error(f"Could not create thumbnail for file {input_path}")
+        logger.error(f"Could not create thumbnail for file {input_path}")
         raise e
 
 
@@ -356,9 +359,7 @@ def create_animated_thumbnail(input_path, output_height, output_path, hash, file
 
         _run_ffmpeg(command, output)
     except Exception as e:
-        util.logger.error(
-            f"Could not create animated thumbnail for file {input_path}: {e}"
-        )
+        logger.error(f"Could not create animated thumbnail for file {input_path}: {e}")
         raise e
 
 
@@ -384,9 +385,7 @@ def create_thumbnail_for_video(input_path, output_path, hash, file_type):
 
         _run_ffmpeg(command, output)
     except Exception as e:
-        util.logger.error(
-            f"Could not create thumbnail for video file {input_path}: {e}"
-        )
+        logger.error(f"Could not create thumbnail for video file {input_path}: {e}")
         raise e
 
 

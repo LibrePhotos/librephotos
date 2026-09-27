@@ -1,8 +1,11 @@
+import logging
+
 import numpy as np
 from django.db import connection
 
 from api.models import Person
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class _Graph:

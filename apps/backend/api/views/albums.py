@@ -1,3 +1,4 @@
+import logging
 import re
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
@@ -41,12 +42,14 @@ from api.serializers.album_user import (
 )
 from api.serializers.person import GroupedPersonPhotosSerializer, PersonSerializer
 from api.serializers.photos import PhotoSummarySerializer
-from api.util import folder_path_q, logger
+from api.util import folder_path_q
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # To-Do: Not used as far as I can tell, only in mobile app

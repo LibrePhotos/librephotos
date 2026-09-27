@@ -8,10 +8,13 @@ Uses pHash (perceptual hash) algorithm which is robust to:
 - Small crops (up to ~15% border removal)
 """
 
+import logging
+
 import imagehash
 from PIL import Image
 
-from api.util import logger
+logger = logging.getLogger(__name__)
+
 
 # Threshold for considering two images as duplicates
 # pHash produces 64-bit hashes, Hamming distance <= 10 indicates high similarity

@@ -1,5 +1,6 @@
 """Endpoints that start background jobs, and the ``start_job`` helper they share."""
 
+import logging
 import os
 import uuid
 
@@ -11,7 +12,8 @@ from rest_framework.views import APIView
 from api.autoalbum import delete_missing_photos
 from api.directory_watcher import scan_photos
 from api.ml_models import do_all_models_exist, download_models
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def _validate_scan_directory(user):

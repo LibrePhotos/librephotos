@@ -1,10 +1,13 @@
+import logging
+
 import PIL
 
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.models.face import Face
 from api.models.person import Person
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def thumbnail_coords_to_normalized(top, right, bottom, left, thumb_width, thumb_height):

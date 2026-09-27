@@ -250,7 +250,7 @@ class BatchCalculateClipEmbeddingTestCase(TestCase):
         """A sidecar failure is logged, not raised; the job completes as success."""
         photos = create_test_photos(number_of_photos=2, owner=self.user)
 
-        with patch.object(batch_jobs.util.logger, "error") as m_error:
+        with patch.object(batch_jobs.logger, "error") as m_error:
             m_embed, m_index = self.run_job(
                 embeddings_side_effect=RuntimeError("clip sidecar down")
             )

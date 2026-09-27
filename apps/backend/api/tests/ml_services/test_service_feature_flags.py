@@ -97,7 +97,7 @@ class StartServiceTest(SimpleTestCase):
 
     @override_settings(FEATURE_IMAGE_CAPTIONING=False)
     def test_the_refusal_is_logged_at_info(self, popen_mock):
-        with self.assertLogs("ownphotos", level="INFO") as logs:
+        with self.assertLogs("api.services", level="INFO") as logs:
             start_service("image_captioning")
 
         self.assertTrue(
@@ -203,7 +203,7 @@ class CheckServicesTest(SimpleTestCase):
         self, start_mock, stop_mock, _healthy
     ):
         """It runs every minute; a skip line per service would flood the log."""
-        with self.assertLogs("ownphotos", level="INFO") as logs:
+        with self.assertLogs("api.services", level="INFO") as logs:
             check_services()
 
         self.assertFalse(
@@ -270,7 +270,7 @@ class OcrSiteGateTest(TestCase):
             self.assertTrue(is_service_enabled("ocr"))
 
     def test_the_refusal_names_the_site_setting_rather_than_a_flag(self, popen_mock):
-        with self.assertLogs("ownphotos", level="INFO") as logs:
+        with self.assertLogs("api.services", level="INFO") as logs:
             start_service("ocr")
 
         self.assertTrue(

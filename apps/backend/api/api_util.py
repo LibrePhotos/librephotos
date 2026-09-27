@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 import stat
@@ -5,7 +6,8 @@ import stat
 from api.models import (
     Photo,
 )
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def shuffle(list):
