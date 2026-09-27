@@ -34,7 +34,7 @@ function AlbumThing() {
       <div key={key} style={style}>
         <div style={{ padding: 5 }}>
           {album.cover_photos.slice(0, 1).map(photo => (
-            <Link key={album.id} to={`/album/things/${album.id}`} pathParams={{ id: album.id }}>
+            <Link key={album.id} to="/album/things/$id" params={{ id: album.id.toString() }}>
               <Tile
                 video={photo.video === true}
                 height={entrySquareSize - 10}
