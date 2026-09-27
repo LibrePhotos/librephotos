@@ -1,4 +1,5 @@
 import json
+import logging
 
 from rest_framework import serializers
 
@@ -6,7 +7,6 @@ from api.geocode.geocode import reverse_geocode
 from api.geocode import GEOCODE_VERSION
 from api.geocode.photo_location import find_album_places
 from api.metadata.photo_datetime import extract_date_time
-from api import util
 
 from api.image_similarity import search_similar_image
 from api.models import AlbumDate, File, Photo
@@ -15,6 +15,8 @@ from api.models.photo_metadata import PhotoMetadata
 from api.models.photo_ocr import PhotoOcr
 from api.serializers.photo_metadata import PhotoMetadataSummarySerializer
 from api.serializers.simple import SimpleUserSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class PhotoSummarySerializer(serializers.ModelSerializer):
@@ -260,7 +262,7 @@ class PhotoEditSerializer(serializers.ModelSerializer):
                 instance.exif_gps_lat, instance.exif_gps_lon
             )
             if not geocode_result:
-                util.logger.warning(
+                logger.warning(
                     "Reverse geocoding returned no result for provided coordinates"
                 )
                 return
@@ -271,8 +273,8 @@ class PhotoEditSerializer(serializers.ModelSerializer):
             self._rebuild_album_places(instance, geocode_result, old_album_places)
             instance.save()
         except Exception as e:
-            util.logger.warning(e)
-            util.logger.warning("Failed to update GPS location for photo")
+            logger.warning(e)
+            logger.warning("Failed to update GPS location for photo")
 
     def _update_search_location(self, instance, geocode_result):
         from api.models.photo_search import PhotoSearch

@@ -13,17 +13,19 @@ Benefits over current approach:
 - Clear separation between camera metadata and derived metadata
 """
 
+import logging
 import numbers
 import uuid
 from fractions import Fraction
 
 from django.db import models
 
-from api import util
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
 from api.models.tag import link_tags_from_keywords
 from api.models.user import User, get_deleted_user
+
+logger = logging.getLogger(__name__)
 
 # The value names below line up positionally with EXIF_TAGS: get_metadata returns
 # one value per requested tag, in the order the tags were asked for.
@@ -529,7 +531,7 @@ class PhotoMetadata(models.Model):
         try:
             caption_instance.apply_user_caption(description, commit=True)
         except Exception:
-            util.logger.exception(
+            logger.exception(
                 f"could not import the description of photo {photo.image_hash} "
                 "as its caption"
             )

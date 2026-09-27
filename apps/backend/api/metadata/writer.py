@@ -1,3 +1,4 @@
+import logging
 import os
 
 import exiftool
@@ -5,7 +6,8 @@ import exiftool
 from api import binaries
 
 from api.metadata.reader import get_sidecar_files_in_priority_order
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def write_metadata(media_file, tags, use_sidecar=True):

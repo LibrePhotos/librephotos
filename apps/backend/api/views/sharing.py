@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import Count, Prefetch, Q
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,10 +10,11 @@ from api.serializers.photos import (
     PhotoSummarySerializer,
     SharedFromMePhotoThroughSerializer,
 )
-from api.util import logger
 from api.views.albums import with_album_user_list_relations
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import HugeResultsSetPagination
+
+logger = logging.getLogger(__name__)
 
 
 class SharedToMePhotoSuperSimpleListViewSet(ListViewSet):

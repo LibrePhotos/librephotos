@@ -1,3 +1,4 @@
+import logging
 import uuid
 from collections import defaultdict
 
@@ -28,13 +29,14 @@ from api.serializers.photos import (
     PhotoSerializer,
     PhotoSummarySerializer,
 )
-from api.util import logger
 from api.views.custom_api_view import ListViewSet
 from api.views.pagination import (
     HugeResultsSetPagination,
     RegularResultsSetPagination,
     StandardResultsSetPagination,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _get_photo_filter_kwargs(lookup_value):

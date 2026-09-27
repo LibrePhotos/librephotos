@@ -3,6 +3,7 @@ Utility functions for directory scanning and job management.
 """
 
 import copy
+import logging
 import os
 import stat
 
@@ -10,8 +11,9 @@ from constance import config as site_config
 from django.db.models import F, Q
 from django.utils import timezone
 
-from api import util
 from api.models import LongRunningJob
+
+logger = logging.getLogger(__name__)
 
 # How often (in loop iterations) to check the DB for job cancellation.
 # Lower values are more responsive but increase DB load.
@@ -114,7 +116,7 @@ def _directory_identity(path):
 def _walk_directory(directory, callback, skip_list, ancestors):
     identity = _directory_identity(directory)
     if identity in ancestors:
-        util.logger.warning(
+        logger.warning(
             f"skipping {directory}: symlink loop back to a directory already "
             "being scanned"
         )
@@ -130,7 +132,7 @@ def _walk_directory(directory, callback, skip_list, ancestors):
             elif os.path.isfile(fpath):
                 callback.append(fpath)
             else:
-                util.logger.warning(
+                logger.warning(
                     f"skipping {fpath}: neither a file nor a directory (broken symlink?)"
                 )
     finally:
@@ -194,7 +196,7 @@ def update_job_result(job_id, mutate):
         ).update(result=result, **other_fields)
         if written:
             return job
-    util.logger.error(
+    logger.error(
         f"job {job_id}: gave up updating its result after "
         f"{RESULT_UPDATE_ATTEMPTS} conflicting writes"
     )
@@ -263,7 +265,7 @@ def _on_job_finished(job_id):
     try:
         queue_scan_followups(job_id)
     except Exception:
-        util.logger.exception(f"job {job_id}: could not queue the scan follow-ups")
+        logger.exception(f"job {job_id}: could not queue the scan follow-ups")
 
 
 def update_scan_counter(job_id, failed=False, error=None):

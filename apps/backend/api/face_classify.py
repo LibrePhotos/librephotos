@@ -1,4 +1,5 @@
 import datetime
+import logging
 import uuid
 
 import numpy as np
@@ -16,7 +17,8 @@ from api.color_palettes import hex_palette
 from api.models import Face, LongRunningJob, Person
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.user import User, get_deleted_user
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 FACE_CLASSIFY_COLUMNS = [
     "person",

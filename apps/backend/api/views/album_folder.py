@@ -1,3 +1,4 @@
+import logging
 import os
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -6,8 +7,10 @@ from rest_framework.response import Response
 from django.conf import settings
 from django.db.models import Count
 
-from api.util import folder_path_q, is_valid_path, logger
+from api.util import folder_path_q, is_valid_path
 from api.models.photo import Photo
+
+logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 100
 

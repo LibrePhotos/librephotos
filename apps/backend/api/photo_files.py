@@ -4,10 +4,12 @@ together with the files only it uses.
 Moved out of ``Photo``; every function takes the photo as its first argument.
 """
 
+import logging
 import os
 
 from api import transcode_cache
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def detach_missing_files(photo):

@@ -5,15 +5,18 @@ Moved out of ``Photo`` so the model does not make network calls. Every function
 takes the photo as its first argument.
 """
 
+import logging
+
 from django.db.models import Q
 
 import api.models
-from api import util
 from api.geocode import GEOCODE_VERSION
 from api.geocode.geocode import reverse_geocode
 from api.metadata.photo_datetime import find_album_date
 from api.metadata.reader import get_metadata
 from api.metadata.tags import Tags
+
+logger = logging.getLogger(__name__)
 
 
 def _has_usable_coordinates(lat, lon):
@@ -83,8 +86,8 @@ def _reverse_geocode_safely(lat, lon):
     try:
         return reverse_geocode(lat, lon)
     except Exception as e:
-        util.logger.warning(e)
-        util.logger.warning("Something went wrong with geolocating")
+        logger.warning(e)
+        logger.warning("Something went wrong with geolocating")
         return None
 
 

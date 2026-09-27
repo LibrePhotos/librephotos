@@ -1,3 +1,4 @@
+import logging
 import os
 from collections import Counter
 from datetime import datetime
@@ -11,7 +12,6 @@ import random
 import re
 
 from api.color_palettes import hex_palette
-from api.util import logger
 
 from api.models import (
     AlbumAuto,
@@ -26,6 +26,8 @@ from api.models import (
     User,
 )
 from api.models.user import get_deleted_user
+
+logger = logging.getLogger(__name__)
 
 
 def _is_sqlite() -> bool:

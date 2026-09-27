@@ -1,3 +1,4 @@
+import logging
 from collections import Counter
 
 from django.db import models
@@ -6,6 +7,8 @@ from api import util
 from api.models.person import Person
 from api.models.photo import Photo
 from api.models.user import User, get_deleted_user
+
+logger = logging.getLogger(__name__)
 
 TIME_OF_DAY = (
     (5, "Early Morning"),
@@ -133,7 +136,7 @@ class AlbumAuto(models.Model):
             self.title = title
             self.save()
         except Exception as e:
-            util.logger.exception(e)
+            logger.exception(e)
             # Set a fallback title if something goes wrong
             self.title = f"Album from {self.timestamp.strftime('%Y-%m-%d')}"
             self.save()

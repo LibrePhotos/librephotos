@@ -1,4 +1,5 @@
 import datetime
+import logging
 import operator
 from functools import reduce
 
@@ -7,9 +8,10 @@ from django.db import connection
 from django.db.models import Q
 from rest_framework import filters
 
-from api import util
 from api.image_similarity import search_similar_embedding
 from api.semantic_search import calculate_query_embeddings
+
+logger = logging.getLogger(__name__)
 
 # OCR text is multilingual, so we deliberately use the "simple" text-search
 # config (no language-specific stemming, which would be wrong for text that may
@@ -93,7 +95,7 @@ class SemanticSearchFilter(filters.SearchFilter):
             start = datetime.datetime.now()
             emb, magnitude = calculate_query_embeddings(query)
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info(
+            logger.info(
                 "finished calculating query embedding - took %.2f seconds", elapsed
             )
             start = datetime.datetime.now()
@@ -101,7 +103,7 @@ class SemanticSearchFilter(filters.SearchFilter):
                 request.user.id, emb, request.user.semantic_search_topk, threshold=27
             )
             elapsed = (datetime.datetime.now() - start).total_seconds()
-            util.logger.info("search similar embedding - took %.2f seconds", elapsed)
+            logger.info("search similar embedding - took %.2f seconds", elapsed)
         conditions = []
         for search_term in search_terms:
             queries = [Q(**{orm_lookup: search_term}) for orm_lookup in orm_lookups]

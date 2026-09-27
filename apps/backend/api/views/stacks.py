@@ -12,6 +12,8 @@ separately by the duplicates API in api/views/duplicates.py.
 Stacks are for organization, duplicates are for storage cleanup.
 """
 
+import logging
+
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django_q.tasks import async_task
@@ -23,7 +25,8 @@ from rest_framework.views import APIView
 
 from api.models import Photo
 from api.models.photo_stack import PhotoStack
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class PhotoStackListView(APIView):

@@ -4,10 +4,13 @@ Ratings, capture dates, face regions and rotations. Moved out of ``Photo``;
 every function takes the photo as its first argument.
 """
 
+import logging
+
 from api.metadata.tags import Tags
 from api.metadata.writer import write_metadata
 from api.models.user import User
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def write_photo_metadata(

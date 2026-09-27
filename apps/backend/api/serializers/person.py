@@ -1,3 +1,5 @@
+import logging
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
 from rest_framework import serializers
@@ -5,7 +7,8 @@ from rest_framework import serializers
 from api.models import Person, Photo
 from api.serializers.photos import GroupedPhotosSerializer
 from api.serializers.PhotosGroupedByDate import get_photos_ordered_by_date
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class GroupedPersonPhotosSerializer(serializers.ModelSerializer):

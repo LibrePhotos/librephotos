@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 
 from chunked_upload.constants import http_status
@@ -16,7 +17,6 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 
-from api import util
 from api.authentication import JWTCookieAuthentication
 from api.directory_watcher import create_new_image, handle_new_image, is_valid_media
 from api.directory_watcher.file_handlers import apply_device_timestamp_fallback
@@ -25,6 +25,8 @@ from api.models import Photo
 from api.models.file import calculate_hash, calculate_hash_b64
 from api.models.photo_caption import PhotoCaption
 from api.photo_faces import extract_faces
+
+logger = logging.getLogger(__name__)
 
 
 def parse_device_timestamp(raw):
@@ -164,7 +166,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
     def target_path(self, user, device, filename, image_hash):
         """Destination for the upload, or "" when it is a known duplicate."""
         if Photo.objects.filter(image_hash=image_hash).exists():
-            util.logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+            logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
             return ""
 
         upload_dir = os.path.join(user.scan_directory, "uploads", device)
@@ -174,7 +176,7 @@ class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
 
         if calculate_hash(user, photo_path) == image_hash:
             # File already exist, do not copy it in the upload folder
-            util.logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
+            logger.info(f"Photo {filename} duplicated with hash {image_hash} ")
             return ""
 
         file_name, file_name_extension = os.path.splitext(os.path.basename(filename))

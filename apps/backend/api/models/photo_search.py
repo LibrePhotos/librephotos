@@ -1,6 +1,8 @@
+import logging
+
 from django.db import models
 
-from api import util
+logger = logging.getLogger(__name__)
 
 
 class PhotoSearch(models.Model):
@@ -89,9 +91,7 @@ class PhotoSearch(models.Model):
 
         self.search_captions = search_captions.strip()
 
-        util.logger.debug(
-            f"Recreated search captions for image {self.photo.image_hash}."
-        )
+        logger.debug(f"Recreated search captions for image {self.photo.image_hash}.")
 
     def update_search_location(self, geolocation_json):
         """Update search location from geolocation data"""
@@ -107,6 +107,6 @@ class PhotoSearch(models.Model):
         else:
             self.search_location = ""
 
-        util.logger.debug(
+        logger.debug(
             f"Updated search location for image {self.photo.image_hash}: {self.search_location}"
         )

@@ -10,6 +10,8 @@ Duplicates are separate from Stacks because they have different purposes:
 - Stacks: Photo organization (browse related photos like RAW+JPEG, bursts)
 """
 
+import logging
+
 from django.core.paginator import Paginator
 from django.db.models import Count, Sum
 from django_q.tasks import async_task
@@ -21,7 +23,8 @@ from rest_framework.views import APIView
 
 from api.models import Photo
 from api.models.duplicate import Duplicate
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class DuplicateListView(APIView):

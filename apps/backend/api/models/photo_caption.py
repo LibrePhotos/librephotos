@@ -1,12 +1,16 @@
+import logging
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
 
 import api.models
-from api import sidecars, util
+from api import sidecars
 from api.image_captioning import generate_caption
 from api.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def tag_thing_type(tagging_model):
@@ -37,15 +41,13 @@ class PhotoCaption(models.Model):
     def _resolve_thumbnail_path(self):
         """Path of the big thumbnail, or None when it is missing or unreadable"""
         if not self.photo.thumbnail or not self.photo.thumbnail.thumbnail_big:
-            util.logger.warning(
-                f"No thumbnail available for photo {self.photo.image_hash}"
-            )
+            logger.warning(f"No thumbnail available for photo {self.photo.image_hash}")
             return None
 
         try:
             return self.photo.thumbnail.thumbnail_big.path
         except Exception:
-            util.logger.warning(
+            logger.warning(
                 f"Cannot access thumbnail path for photo {self.photo.image_hash}"
             )
             return None
@@ -117,7 +119,7 @@ class PhotoCaption(models.Model):
         settings allow it.
         """
         if not settings.FEATURE_IMAGE_CAPTIONING:
-            util.logger.info("Image captioning is disabled")
+            logger.info("Image captioning is disabled")
             return False
 
         image_path = self._resolve_thumbnail_path()
@@ -132,23 +134,23 @@ class PhotoCaption(models.Model):
             from constance import config as site_config
 
             if str(site_config.CAPTIONING_MODEL).lower() == "none":
-                util.logger.info("Generating captions is disabled")
+                logger.info("Generating captions is disabled")
                 return False
 
             llm_settings = User.objects.get(username=self.photo.owner).llm_settings
             context = self._caption_context(llm_settings)
             prompt = self._caption_prompt(context)
-            util.logger.info(f"Caption prompt: {prompt}")
+            logger.info(f"Caption prompt: {prompt}")
 
             caption = generate_caption(image_path=image_path, prompt=prompt)
             caption = caption.replace("<start>", "").replace("<end>", "").strip()
 
             self._store_generated_caption(captions, caption, commit)
 
-            util.logger.info(f"generated caption for image {image_path}: {caption}")
+            logger.info(f"generated caption for image {image_path}: {caption}")
             return True
         except Exception:
-            util.logger.exception(f"could not generate caption for image {image_path}")
+            logger.exception(f"could not generate caption for image {image_path}")
             return False
 
     def save_user_caption(self, caption, commit=True):
@@ -159,12 +161,12 @@ class PhotoCaption(models.Model):
 
         try:
             caption = self.apply_user_caption(caption, commit=commit)
-            util.logger.info(
+            logger.info(
                 f"saved captions for image {image_path}. caption: {caption}. captions_json: {self.captions_json}."
             )
             return True
         except Exception:
-            util.logger.exception(f"could not save captions for image {image_path}")
+            logger.exception(f"could not save captions for image {image_path}")
             return False
 
     def apply_user_caption(self, caption, commit=True):
@@ -249,7 +251,7 @@ class PhotoCaption(models.Model):
         switching models -- only the active model's tags are generated / visible.
         """
         if not settings.FEATURE_SCENE_CLASSIFICATION:
-            util.logger.info("Scene classification is disabled")
+            logger.info("Scene classification is disabled")
             return
 
         from constance import config as site_config
@@ -283,7 +285,7 @@ class PhotoCaption(models.Model):
                     "tags", "/generate-tags", json=json_data, timeout=TAGS
                 )
             except requests.HTTPError as error:
-                util.logger.warning(
+                logger.warning(
                     f"Tag service returned status {error.response.status_code} "
                     f"for image {image_path}: {sidecars.error_detail(error)}"
                 )
@@ -292,7 +294,7 @@ class PhotoCaption(models.Model):
             try:
                 response_json = response.json()
             except (ValueError, RuntimeError):
-                util.logger.warning(
+                logger.warning(
                     f"Tag service returned non-JSON response for image {image_path}"
                 )
                 return
@@ -311,9 +313,9 @@ class PhotoCaption(models.Model):
 
             if commit:
                 self.save()
-            util.logger.info(f"generated {tagging_model} tags for image {image_path}.")
+            logger.info(f"generated {tagging_model} tags for image {image_path}.")
         except Exception as e:
-            util.logger.exception(
+            logger.exception(
                 f"could not generate tags for image "
                 f"{self.photo.main_file.path if self.photo.main_file else 'no main file'}"
             )

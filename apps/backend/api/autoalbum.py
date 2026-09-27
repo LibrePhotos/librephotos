@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -14,7 +15,8 @@ from api.models import (
     Photo,
 )
 from api.models.tag import refresh_tag_photo_counts, tag_ids_for_photos
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 # Batch size for delete_missing_photos. The function snapshots a list of
 # affected AlbumThing ids per batch and then bulk-deletes the batch, so a

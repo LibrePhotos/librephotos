@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -19,7 +21,9 @@ from api.serializers.user import (
     SignupUserSerializer,
     UserSerializer,
 )
-from api.util import is_valid_path, logger
+from api.util import is_valid_path
+
+logger = logging.getLogger(__name__)
 
 
 class DefaultRulesView(APIView):

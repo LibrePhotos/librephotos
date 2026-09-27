@@ -6,6 +6,7 @@ already found. Moved out of ``Photo``; every function taking a photo takes it
 as its first argument.
 """
 
+import logging
 from io import BytesIO
 
 import numpy as np
@@ -16,7 +17,9 @@ from django.db.utils import IntegrityError
 
 import api.models
 from api import face_extractor
-from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou, logger
+from api.util import FACE_OVERLAP_IOU_THRESHOLD, calculate_iou
+
+logger = logging.getLogger(__name__)
 
 
 def overlaps_existing_face(existing_face_locations, top, right, bottom, left):

@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import time
@@ -11,9 +12,10 @@ from django.utils import timezone
 from api import sidecars
 from api.models import Photo
 from api.sidecars import SERVICES, sidecar_url
-from api.util import logger
 from librephotos.logging_bootstrap import DEFAULT_LOG_LEVEL
 from librephotos.standalone import named_executable
+
+logger = logging.getLogger(__name__)
 
 # apps/backend: where _service_script's relative paths and the service package live.
 BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

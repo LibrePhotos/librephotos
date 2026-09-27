@@ -2,6 +2,7 @@
 avatars and embedded media, plus the live video transcoder behind them."""
 
 import collections
+import logging
 import os
 import subprocess
 import threading
@@ -22,7 +23,8 @@ from api.authentication import JWTCookieAuthentication
 from api.http_range import file_size, ranged_response
 from api.mime import mime_type
 from api.models import AlbumUser, Photo
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 def build_live_command(path):

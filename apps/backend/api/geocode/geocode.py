@@ -1,13 +1,14 @@
+import logging
 from typing import List
 
 import geopy
 from constance import config as site_config
 from django.conf import settings
 
-from api import util
-
 from .config import get_provider_config, get_provider_parser
 from .rate_limit import wait as wait_for_provider
+
+logger = logging.getLogger(__name__)
 
 
 class Geocode:
@@ -24,7 +25,7 @@ class Geocode:
             and "api_key" in self._provider_config["geocode_args"]
             and self._provider_config["geocode_args"]["api_key"] is None
         ):
-            util.logger.warning(
+            logger.warning(
                 "No API key found for map provider. Please set MAP_API_KEY in the admin panel or switch map provider."
             )
             return {}
@@ -37,7 +38,7 @@ class Geocode:
             "api_key" in self._provider_config
             and self._provider_config["api_key"] is None
         ):
-            util.logger.warning(
+            logger.warning(
                 "No API key found for map provider. Please set MAP_API_KEY in the admin panel or switch map provider."
             )
             return []
@@ -56,14 +57,14 @@ class Geocode:
 
 def reverse_geocode(lat: float, lon: float) -> dict:
     if not settings.FEATURE_REVERSE_GEOCODING:
-        util.logger.debug("Reverse geocoding is disabled")
+        logger.debug("Reverse geocoding is disabled")
         return {}
     provider = site_config.MAP_API_PROVIDER
     wait_for_provider(provider)
     try:
         return Geocode(provider).reverse(lat, lon)
     except Exception as e:
-        util.logger.warning(f"Error while reverse geocoding: {e}")
+        logger.warning(f"Error while reverse geocoding: {e}")
         return {}
 
 
@@ -74,5 +75,5 @@ def search_location(query: str, limit: int = 5) -> List[dict]:
     try:
         return Geocode(provider).search(query, limit)
     except Exception as e:
-        util.logger.warning(f"Error while searching location: {e}")
+        logger.warning(f"Error while searching location: {e}")
         return []

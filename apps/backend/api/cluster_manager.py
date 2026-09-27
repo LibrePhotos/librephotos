@@ -1,10 +1,13 @@
+import logging
+
 import numpy as np
 
 from api.models.cluster import UNKNOWN_CLUSTER_ID, Cluster, get_unknown_cluster
 from api.models.face import Face
 from api.models.person import Person, get_or_create_person
 from api.models.user import User
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 
 class ClusterManager:

@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import serializers
 
 from api.models import AlbumUser
@@ -8,8 +10,9 @@ from api.serializers.PhotosGroupedByDate import (
     get_photos_ordered_by_date,
 )
 from api.serializers.simple import PhotoSuperSimpleSerializer, SimpleUserSerializer
-from api.util import logger
 from api.views.photo_filters import build_photo_queryset
+
+logger = logging.getLogger(__name__)
 
 
 class AlbumUserSerializer(serializers.ModelSerializer):

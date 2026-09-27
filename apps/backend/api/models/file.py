@@ -1,11 +1,14 @@
 import hashlib
+import logging
 import os
 
 from django.conf import settings
 from django.db import models, transaction
 
-from api import image_decoding, util
+from api import image_decoding
 from api.mime import sniffed_mime_type
+
+logger = logging.getLogger(__name__)
 
 # Most optimal value for performance/memory. Found here:
 # https://stackoverflow.com/questions/17731660/hashlib-optimal-size-of-chunks-to-be-used-in-md5-update
@@ -181,7 +184,7 @@ def is_video(path):
         # Sniffed only: a corrupt file with a video extension must not become a video.
         return (sniffed_mime_type(path) or "").find("video") != -1
     except Exception:
-        util.logger.error(f"Error while checking if file is video: {path}")
+        logger.error(f"Error while checking if file is video: {path}")
         return False
 
 
@@ -240,7 +243,7 @@ def is_metadata(path):
 def is_valid_media(path, user) -> bool:
     if is_video(path=path):
         if not settings.FEATURE_VIDEO:
-            util.logger.info(f"Video support is disabled, skipping {path}")
+            logger.info(f"Video support is disabled, skipping {path}")
             return False
         return True
     if is_metadata(path=path):
@@ -250,10 +253,10 @@ def is_valid_media(path, user) -> bool:
     try:
         if image_decoding.can_decode(path):
             return True
-        util.logger.info(f"Could not handle {path}: no loader recognises it")
+        logger.info(f"Could not handle {path}: no loader recognises it")
         return False
     except Exception as e:
-        util.logger.info(f"Could not handle {path}, because {str(e)}")
+        logger.info(f"Could not handle {path}, because {str(e)}")
         return False
 
 
@@ -265,7 +268,7 @@ def calculate_hash(user, path):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest() + str(user.id)
     except Exception as e:
-        util.logger.error(f"Could not calculate hash for file {path}")
+        logger.error(f"Could not calculate hash for file {path}")
         raise e
 
 

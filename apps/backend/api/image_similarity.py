@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 import numpy as np
@@ -7,7 +8,8 @@ from django.core.paginator import Paginator
 from api import sidecars
 from api.http_timeouts import SIMILARITY
 from api.models import Photo
-from api.util import logger
+
+logger = logging.getLogger(__name__)
 
 # Embeddings per request of an index rebuild.
 INDEX_PAGE_SIZE = 5000
