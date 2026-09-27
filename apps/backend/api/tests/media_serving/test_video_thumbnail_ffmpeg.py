@@ -58,7 +58,7 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
     def test_a_failed_run_raises_with_the_end_of_stderr(self):
         with (
             mock.patch.object(thumbnails.subprocess, "run", side_effect=_failed_run),
-            self.assertLogs("ownphotos", "ERROR") as logs,
+            self.assertLogs("api.thumbnails", "ERROR") as logs,
         ):
             with self.assertRaises(thumbnails.VideoThumbnailError) as raised:
                 thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
@@ -77,7 +77,7 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
             mock.patch.object(
                 thumbnails.subprocess, "run", side_effect=hang_after_writing
             ),
-            self.assertLogs("ownphotos", "ERROR"),
+            self.assertLogs("api.thumbnails", "ERROR"),
         ):
             with self.assertRaisesRegex(thumbnails.VideoThumbnailError, "300 s"):
                 thumbnails.create_thumbnail_for_video("/v.mov", "out", "h", ".webp")
@@ -87,7 +87,7 @@ class VideoThumbnailFfmpegTest(SimpleTestCase):
     def test_the_animated_thumbnail_fails_the_same_way(self):
         with (
             mock.patch.object(thumbnails.subprocess, "run", side_effect=_failed_run),
-            self.assertLogs("ownphotos", "ERROR"),
+            self.assertLogs("api.thumbnails", "ERROR"),
         ):
             with self.assertRaises(thumbnails.VideoThumbnailError):
                 thumbnails.create_animated_thumbnail("/v.mov", 250, "out", "h", ".mp4")

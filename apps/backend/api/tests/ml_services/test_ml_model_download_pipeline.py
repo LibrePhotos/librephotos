@@ -514,7 +514,7 @@ class DownloadFileProgressTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
             with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.util.logger") as logger:
+                with patch("api.ml_models.logger") as logger:
                     _download_file("https://example.invalid/x", target, "m")
 
             messages = [call.args[0] for call in logger.info.call_args_list]
@@ -546,7 +546,7 @@ class DownloadFileProgressTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
             with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.util.logger") as logger:
+                with patch("api.ml_models.logger") as logger:
                     _download_file("https://example.invalid/x", target, "m")
 
             self.assertEqual(payload, target.read_bytes())
@@ -643,7 +643,7 @@ class DownloadFileProgressTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
             with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.util.logger") as logger:
+                with patch("api.ml_models.logger") as logger:
                     with self.assertRaises(ModelChecksumError) as ctx:
                         _download_file("https://example.invalid/x", target, "m", wrong)
 
@@ -661,7 +661,7 @@ class DownloadFileProgressTest(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             target = Path(temp_dir) / "model.bin"
             with patch("api.ml_models.requests.get", return_value=response):
-                with patch("api.util.logger") as logger:
+                with patch("api.ml_models.logger") as logger:
                     _download_file("https://example.invalid/x", target, "m")
 
             logger.debug.assert_called_once_with(

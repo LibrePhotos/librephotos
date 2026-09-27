@@ -335,7 +335,7 @@ class GenerateTitleTestCase(TestCase):
         generic fallback is used."""
         album = self.make_album(utc(2022, 1, 3, 8, 0))
         self.add_photo(album, exif_timestamp=None)
-        with patch("api.util.logger") as mock_logger:
+        with patch("api.models.album_auto.logger") as mock_logger:
             album._generate_title()
         self.assertEqual(album.title, "Album from 2022-01-03")
         self.assertTrue(mock_logger.exception.called)
@@ -353,7 +353,7 @@ class GenerateTitleTestCase(TestCase):
             patch(
                 "api.models.album_auto.Counter", side_effect=RuntimeError("boom")
             ) as mock_counter,
-            patch("api.util.logger") as mock_logger,
+            patch("api.models.album_auto.logger") as mock_logger,
         ):
             self.add_photo(
                 album,

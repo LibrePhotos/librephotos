@@ -93,7 +93,7 @@ class ZipPhotosTaskTestBase(TestCase):
         self.mock_schedule = schedule_patcher.start()
         self.addCleanup(schedule_patcher.stop)
 
-        logger_patcher = patch("api.all_tasks.util.logger")
+        logger_patcher = patch("api.all_tasks.logger")
         self.mock_logger = logger_patcher.start()
         self.addCleanup(logger_patcher.stop)
 

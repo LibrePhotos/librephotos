@@ -171,7 +171,7 @@ class CreateThumbnailNonRawTests(SimpleTestCase):
     def test_exception_is_logged_and_reraised(self):
         boom = RuntimeError("vips exploded")
         self.decode.side_effect = boom
-        with mock.patch("api.thumbnails.util.logger") as logger:
+        with mock.patch("api.thumbnails.logger") as logger:
             with self.assertRaises(RuntimeError) as ctx:
                 create_thumbnail("/data/photo.jpg", 200, "thumbnails_big", "h", ".webp")
         self.assertIs(ctx.exception, boom)
@@ -279,7 +279,7 @@ class CreateThumbnailRawTests(SimpleTestCase):
     def test_raw_service_error_is_logged_and_reraised(self):
         boom = ValueError("service down")
         self.requests.post.side_effect = boom
-        with mock.patch("api.thumbnails.util.logger") as logger:
+        with mock.patch("api.thumbnails.logger") as logger:
             with self.assertRaises(ValueError) as ctx:
                 create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h", ".webp")
         self.assertIs(ctx.exception, boom)
@@ -289,6 +289,6 @@ class CreateThumbnailRawTests(SimpleTestCase):
 
     def test_missing_thumbnail_key_in_response_raises_keyerror(self):
         self.requests.post.return_value.json.return_value = {}
-        with mock.patch("api.thumbnails.util.logger"):
+        with mock.patch("api.thumbnails.logger"):
             with self.assertRaises(KeyError):
                 create_thumbnail(self.RAW_PATH, 800, "thumbnails_big", "h", ".webp")

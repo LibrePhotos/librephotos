@@ -67,31 +67,6 @@ def _ensure_stub_modules():
             "api", loader=None, is_package=True
         )
 
-        util_module = types.ModuleType("api.util")
-
-        class Logger:
-            # api/models/file.py logs at info() as well as error(); a stub with
-            # only error() turns a log line into an AttributeError on the paths
-            # that skip a file.
-            def error(self, *args, **kwargs):
-                pass
-
-            def warning(self, *args, **kwargs):
-                pass
-
-            def info(self, *args, **kwargs):
-                pass
-
-            def debug(self, *args, **kwargs):
-                pass
-
-            def exception(self, *args, **kwargs):
-                pass
-
-        util_module.logger = Logger()
-        util_module.__spec__ = importlib.machinery.ModuleSpec("api.util", loader=None)
-        util_module.__file__ = "<stub>"
-
         models_module = types.ModuleType("api.models")
         models_module.__path__ = []
         models_module.__spec__ = importlib.machinery.ModuleSpec(
@@ -103,12 +78,10 @@ def _ensure_stub_modules():
         mime_module.sniffed_mime_type = lambda path: None
         mime_module.__spec__ = importlib.machinery.ModuleSpec("api.mime", loader=None)
 
-        api_module.util = util_module
         api_module.models = models_module
         api_module.mime = mime_module
 
         sys.modules["api"] = api_module
-        sys.modules["api.util"] = util_module
         sys.modules["api.models"] = models_module
         sys.modules["api.mime"] = mime_module
 

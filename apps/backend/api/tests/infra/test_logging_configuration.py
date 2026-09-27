@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import os
+import re
 import shutil
 import tempfile
 from contextlib import contextmanager
@@ -140,11 +141,13 @@ class LogLevelTest(SimpleTestCase):
     def test_debug_level_reaches_the_project_logger(self):
         # The acceptance criterion is the logger.debug() calls in
         # api/face_extractor.py, api/models/photo_search.py, api/geocode/geocode.py,
-        # api/stacks/live_photo.py and api/stack_detection.py - all of them go
-        # through the "ownphotos" logger and were unreachable before.
+        # api/stacks/live_photo.py and api/stack_detection.py - they were
+        # unreachable before LOG_LEVEL existed.
+        from api import face_extractor
+
         with temporary_logging(level="DEBUG") as log_file:
-            self.assertEqual(util.logger.getEffectiveLevel(), logging.DEBUG)
-            util.logger.debug("region_info debug line")
+            self.assertEqual(face_extractor.logger.getEffectiveLevel(), logging.DEBUG)
+            face_extractor.logger.debug("region_info debug line")
             flush_root_handlers()
             with open(log_file, encoding="utf-8") as f:
                 self.assertIn("region_info debug line", f.read())
@@ -210,6 +213,10 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
         "api.apps",
         "api.views.email_config",
         "api.views.password_reset",
+        # Formerly routed through the shared "ownphotos" logger.
+        "api.directory_watcher.scan_jobs",
+        "api.services",
+        "nextcloud.views",
     )
 
     def test_module_loggers_reach_the_file_handler(self):
@@ -231,13 +238,45 @@ class ModuleLoggerReachabilityTest(SimpleTestCase):
     def test_the_modules_really_use_those_logger_names(self):
         # The assertions above are only worth anything if these are the loggers
         # the modules actually log through.
-        from api import apps, mail
+        from api import apps, mail, services
+        from api.directory_watcher import scan_jobs
         from api.views import email_config, password_reset
+        from nextcloud import views as nextcloud_views
 
         self.assertEqual(mail.logger.name, "api.mail")
         self.assertEqual(apps.logger.name, "api.apps")
         self.assertEqual(email_config.logger.name, "api.views.email_config")
         self.assertEqual(password_reset.logger.name, "api.views.password_reset")
+        self.assertEqual(scan_jobs.logger.name, "api.directory_watcher.scan_jobs")
+        self.assertEqual(services.logger.name, "api.services")
+        self.assertEqual(nextcloud_views.logger.name, "nextcloud.views")
+
+    def test_no_module_logs_through_a_shared_logger(self):
+        # One logger for the whole backend made per-module levels impossible:
+        # a module that borrows another module's logger (or the old shared
+        # "ownphotos" one) cannot be turned up or down on its own.
+        backend_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        )
+        shared = re.compile(
+            r"from api\.util import[^\n]*\blogger\b"
+            r"|\butil\.logger\b"
+            r"""|getLogger\(["']ownphotos["']\)"""
+        )
+        offenders = []
+        for package in ("api", "nextcloud", "librephotos"):
+            for dirpath, dirnames, filenames in os.walk(
+                os.path.join(backend_root, package)
+            ):
+                dirnames[:] = [d for d in dirnames if d not in ("tests", "migrations")]
+                for filename in filenames:
+                    if not filename.endswith(".py"):
+                        continue
+                    path = os.path.join(dirpath, filename)
+                    with open(path, encoding="utf-8") as f:
+                        if shared.search(f.read()):
+                            offenders.append(os.path.relpath(path, backend_root))
+        self.assertEqual(offenders, [])
 
 
 class EnsureLogsRootTest(SimpleTestCase):

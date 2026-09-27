@@ -41,7 +41,6 @@ from api.models.photo_caption import PhotoCaption
 from api.models.photo_metadata import PhotoMetadata
 from api.models.user import User
 from api.tests.utils import create_test_photo, create_test_user
-from api.util import logger
 
 
 def _tags(tags, model="mobileclip_s2"):
@@ -414,7 +413,7 @@ class RotateCharacterizationTest(TestCase):
         rotation must stay in the database."""
         photo = self._media_file_photo()
 
-        with self.assertLogs(logger, "WARNING") as logs:
+        with self.assertLogs("api.metadata.photo_writer", "WARNING") as logs:
             photo.rotate(-90)
 
         write_metadata.assert_called_once()
