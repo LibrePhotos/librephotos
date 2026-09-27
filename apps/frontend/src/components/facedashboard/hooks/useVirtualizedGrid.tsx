@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaceAnalysisMethod, FacesTab } from "../../../api_client/faces";
 import { calculateFaceGridCells, calculateFaceGridCellSize } from "../../../util/gridUtils";
 import type { ScrollerData } from "../../scrollscrubber/ScrollScrubberTypes.zod";
+import type { SectionRenderedParams, VirtualGridHandle } from "../../virtual/VirtualGrid";
 
 export type FaceCell = {
   id: number;
@@ -19,12 +20,7 @@ export type FaceSelection = {
   face_url: string;
 };
 
-type RenderedSection = {
-  rowOverscanStartIndex: number;
-  columnOverscanStartIndex: number;
-  rowOverscanStopIndex: number;
-  columnOverscanStopIndex: number;
-};
+type RenderedSection = SectionRenderedParams;
 
 // Custom hook to manage grid functionality
 export function useVirtualizedGrid(
@@ -53,7 +49,7 @@ export function useVirtualizedGrid(
   width: number,
   collapsedPersons: Record<FacesTab, ReadonlySet<number>>
 ) {
-  const gridRef = useRef<any>(null);
+  const gridRef = useRef<VirtualGridHandle>(null);
   const [gridHeight, setGridHeight] = useState(0);
   const [entrySquareSize, setEntrySquareSize] = useState(0);
   const [numEntrySquaresPerRow, setNumEntrySquaresPerRow] = useState(0);

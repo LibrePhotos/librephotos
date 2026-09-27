@@ -33,7 +33,6 @@ jobs:
           node-version-file: apps/frontend/.nvmrc
           cache: yarn
           cache-dependency-path: apps/frontend/yarn.lock
-      # yarn install runs the postinstall script (patch-package) itself.
       - name: install dependencies
         run: yarn install --frozen-lockfile --network-timeout 1000000
       - name: lint

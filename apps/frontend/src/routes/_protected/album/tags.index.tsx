@@ -10,7 +10,6 @@ import {
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AutoSizer, Grid } from "react-virtualized";
 import {
   useDeleteTagMutation,
   useFetchTagsQuery,
@@ -20,6 +19,8 @@ import {
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
+import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
+import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/tags/")({
@@ -62,7 +63,7 @@ function AlbumTag() {
     openDelete();
   }
 
-  function renderCell({ columnIndex, key, rowIndex, style }) {
+  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
     if (!tags || tags.length === 0) {
       return null;
     }
@@ -145,21 +146,15 @@ function AlbumTag() {
           actionLink="/library"
         />
       ) : (
-        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-          {({ width: containerWidth }) => (
-            <Grid
-              style={{ outline: "none" }}
-              disableHeader={false}
-              cellRenderer={props => renderCell(props)}
-              columnWidth={entrySquareSize}
-              columnCount={entriesPerRow}
-              height={gridHeight}
-              rowHeight={entrySquareSize + 60}
-              rowCount={numberOfRows}
-              width={containerWidth}
-            />
-          )}
-        </AutoSizer>
+        <VirtualGrid
+          style={{ outline: "none" }}
+          cellRenderer={renderCell}
+          columnWidth={entrySquareSize}
+          columnCount={entriesPerRow}
+          height={gridHeight}
+          rowHeight={entrySquareSize + 60}
+          rowCount={numberOfRows}
+        />
       )}
 
       <Modal size="sm" opened={isRenameOpen} onClose={closeRename} title={t("tagalbum.renametag")}>

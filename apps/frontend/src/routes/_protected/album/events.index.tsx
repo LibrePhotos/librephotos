@@ -9,12 +9,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AutoSizer, Grid } from "react-virtualized";
 import { useDeleteAutoAlbumMutation, useFetchAutoAlbumsQuery } from "../../../api_client/albums/hooks";
 import { useGenerateAutoAlbumsMutation } from "../../../api_client/jobs/hooks";
 import { EmptyState } from "../../../components/common/EmptyState";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { Tile } from "../../../components/Tile";
+import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
+import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 import { i18nResolvedLanguage } from "../../../i18n";
 
@@ -39,7 +40,7 @@ function AlbumAuto() {
     showDeleteDialog();
   }
 
-  function cellRenderer({ columnIndex, key, rowIndex, style }) {
+  function cellRenderer({ columnIndex, key, rowIndex, style }: GridCellProps) {
     if (!albums || albums.length === 0) {
       return null;
     }
@@ -113,21 +114,15 @@ function AlbumAuto() {
           onAction={() => generateAutoAlbums()}
         />
       ) : (
-        <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-          {({ width: containerWidth }) => (
-            <Grid
-              style={{ outline: "none" }}
-              disableHeader={false}
-              cellRenderer={props => cellRenderer(props)}
-              columnWidth={entrySquareSize}
-              columnCount={entriesPerRow}
-              height={gridHeight}
-              rowHeight={entrySquareSize + 60}
-              rowCount={numberOfRows}
-              width={containerWidth}
-            />
-          )}
-        </AutoSizer>
+        <VirtualGrid
+          style={{ outline: "none" }}
+          cellRenderer={cellRenderer}
+          columnWidth={entrySquareSize}
+          columnCount={entriesPerRow}
+          height={gridHeight}
+          rowHeight={entrySquareSize + 60}
+          rowCount={numberOfRows}
+        />
       )}
 
       <Modal opened={deleteDialogVisible} title={t("autoalbum.delete")} onClose={closeDeleteDialog}>

@@ -3,9 +3,10 @@ import { IconFolder as Folder } from "@tabler/icons-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { AutoSizer, Grid } from "react-virtualized";
 import { useFetchFolderSubfoldersQuery } from "../../../api_client/albums/hooks";
 import { HeaderComponent } from "../../../components/HeaderComponent";
+import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
+import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/folder/")({
@@ -18,7 +19,7 @@ function AlbumFolder() {
   const subfolders = folderData?.subfolders ?? [];
   const { entriesPerRow, entrySquareSize, numberOfRows, gridHeight } = useAlbumListGridConfig(subfolders);
 
-  function renderCell({ columnIndex, key, rowIndex, style }) {
+  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
     if (!subfolders || subfolders.length === 0) {
       // Show a message when there are no subfolders
       if (columnIndex === 0 && rowIndex === 0) {
@@ -99,21 +100,15 @@ function AlbumFolder() {
         })}
       />
 
-      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width }) => (
-          <Grid
-            style={{ outline: "none" }}
-            disableTitle={false}
-            cellRenderer={props => renderCell(props)}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            height={gridHeight}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
-            width={width}
-          />
-        )}
-      </AutoSizer>
+      <VirtualGrid
+        style={{ outline: "none" }}
+        cellRenderer={renderCell}
+        columnWidth={entrySquareSize}
+        columnCount={entriesPerRow}
+        height={gridHeight}
+        rowHeight={entrySquareSize + 60}
+        rowCount={numberOfRows}
+      />
     </div>
   );
 }

@@ -11,7 +11,6 @@ import {
 } from "@mantine/core";
 import { IconX as X } from "@tabler/icons-react";
 import React, { useState } from "react";
-import "react-virtualized/styles.css";
 import { useSetFacesPersonLabelMutation } from "../../api_client/faces";
 import { useFetchPhotoDetailsQuery, useFetchPublicPhotoDetailQuery } from "../../api_client/photos/hooks";
 import { notification } from "../../service/notifications";

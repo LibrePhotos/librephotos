@@ -262,7 +262,6 @@ export function FaceDashboard() {
             selectMode={virtualGrid.selectMode}
             selectedFaces={virtualGrid.selectedFaces}
             setSelectedFaces={virtualGrid.setSelectedFaces}
-            width={virtualGrid.width}
             activeTab={activeTab}
             collapsedPersons={collapsedInActiveTab}
             onToggleCollapse={handleToggleCollapse}

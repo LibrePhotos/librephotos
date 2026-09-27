@@ -4,7 +4,6 @@ import { IconAlbum as Album } from "@tabler/icons-react";
 import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AutoSizer, Grid } from "react-virtualized";
 import {
   useDeleteUserAlbumMutation,
   useFetchUserAlbumsQuery,
@@ -13,6 +12,8 @@ import {
 import { UserAlbumCard } from "../../../components/album/UserAlbumCard";
 import { HeaderComponent } from "../../../components/HeaderComponent";
 import { ModalAlbumShare } from "../../../components/sharing/ModalAlbumShare";
+import { VirtualGrid } from "../../../components/virtual/VirtualGrid";
+import type { GridCellProps } from "../../../components/virtual/VirtualGrid";
 import { useAlbumListGridConfig } from "../../../hooks/useAlbumListGridConfig";
 
 export const Route = createFileRoute("/_protected/album/user/")({
@@ -53,7 +54,7 @@ function AlbumUser() {
     if (album) setAlbumOwner(album.owner.username);
   };
 
-  function renderCell({ columnIndex, key, rowIndex, style }) {
+  function renderCell({ columnIndex, key, rowIndex, style }: GridCellProps) {
     if (!albums || albums.length === 0) {
       return null;
     }
@@ -148,21 +149,15 @@ function AlbumUser() {
           </Group>
         </Stack>
       </Modal>
-      <AutoSizer disableHeight style={{ outline: "none", padding: 0, margin: 0 }}>
-        {({ width }) => (
-          <Grid
-            style={{ outline: "none" }}
-            disableTitle={false}
-            cellRenderer={props => renderCell(props)}
-            columnWidth={entrySquareSize}
-            columnCount={entriesPerRow}
-            height={gridHeight}
-            rowHeight={entrySquareSize + 60}
-            rowCount={numberOfRows}
-            width={width}
-          />
-        )}
-      </AutoSizer>
+      <VirtualGrid
+        style={{ outline: "none" }}
+        cellRenderer={renderCell}
+        columnWidth={entrySquareSize}
+        columnCount={entriesPerRow}
+        height={gridHeight}
+        rowHeight={entrySquareSize + 60}
+        rowCount={numberOfRows}
+      />
     </div>
   );
 }
