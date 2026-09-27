@@ -22,4 +22,6 @@ LOGGING = build_logging_config(
     logs_root=LOGS_ROOT,
     level="CRITICAL",
     to_console=False,
+    # A developer's LOG_LEVELS must not switch loggers back on mid-suite.
+    logger_levels={},
 )

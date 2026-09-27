@@ -39,6 +39,21 @@ Debug as normal in pdb!
 
 When you're done debugging, continue execution (c) and press Ctrl-P followed by Ctrl-Q to detach from the container without stopping it.
 
+### Turning up the log for one module
+
+Every backend module logs through its own `logging.getLogger(__name__)`, so the logger name is the module path: `api.directory_watcher.scan_jobs`, `api.services`, `nextcloud.views`. Loggers form a tree along the dots, which means a package name covers every module below it.
+
+To see the `DEBUG` lines of just the part you are working on, set `LOG_LEVELS` on the backend container instead of raising `LOG_LEVEL` for everything:
+
+```yaml
+services:
+  backend:
+    environment:
+      - LOG_LEVELS=api.directory_watcher=DEBUG
+```
+
+Several overrides are comma-separated (`api.directory_watcher=DEBUG,api.services=WARNING`), and they work in both directions - use `WARNING` or `ERROR` to quiet a noisy module. The output still goes to `ownphotos.log` under `BASE_LOGS` and to the console, in the usual format. When you run the backend outside Docker, export the variable in the shell that starts `manage.py`. The whole configuration is built in `librephotos/logging_bootstrap.py`.
+
 ### Using silk
 
 In order to debug queries, start the backend container in dev mode. Then you can access silk under /api/silk. Silk is a live profiling and inspection tool for the Django framework. Silk intercepts and stores HTTP requests and database queries before presenting them in a user interface for further inspection.

@@ -555,7 +555,8 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # The whole log configuration lives in librephotos/logging_bootstrap.py so the
-# non-Django processes can share it. LOG_LEVEL and LOG_TO_CONSOLE are read from
+# non-Django processes can share it. LOG_LEVEL, LOG_LEVELS (per-logger
+# overrides, parsed inside build_logging_config) and LOG_TO_CONSOLE are read from
 # the environment rather than from constance: the qcluster workers and the ML
 # services need the same answer and several of them never touch the database.
 # Rotation size and backup count start at the defaults here and are refined from

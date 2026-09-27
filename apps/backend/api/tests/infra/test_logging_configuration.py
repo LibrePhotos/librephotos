@@ -25,6 +25,7 @@ from librephotos.logging_bootstrap import (
     build_logging_config,
     ensure_logs_root,
     resolve_level,
+    resolve_logger_levels,
     take_deferred_warnings,
 )
 
@@ -41,6 +42,7 @@ def temporary_logging(**kwargs):
     """
     logs_root = tempfile.mkdtemp(prefix="librephotos-logtest-")
     kwargs.setdefault("to_console", False)
+    kwargs.setdefault("logger_levels", {})
     try:
         logging.config.dictConfig(build_logging_config(logs_root=logs_root, **kwargs))
         yield os.path.join(logs_root, LOG_FILENAME)
@@ -197,6 +199,80 @@ class LogLevelTest(SimpleTestCase):
     def test_empty_level_is_info(self):
         self.assertEqual(resolve_level(""), "INFO")
         self.assertEqual(take_deferred_warnings(), [])
+
+
+class LoggerLevelsTest(SimpleTestCase):
+    """LOG_LEVELS turns one module up or down without touching the rest."""
+
+    def setUp(self):
+        take_deferred_warnings()
+
+    def tearDown(self):
+        take_deferred_warnings()
+
+    def test_parses_comma_separated_pairs(self):
+        self.assertEqual(
+            resolve_logger_levels(" api.directory_watcher=debug , nextcloud=WARNING,"),
+            {"api.directory_watcher": "DEBUG", "nextcloud": "WARNING"},
+        )
+        self.assertEqual(take_deferred_warnings(), [])
+
+    def test_empty_is_no_overrides(self):
+        self.assertEqual(resolve_logger_levels(""), {})
+        self.assertEqual(take_deferred_warnings(), [])
+
+    def test_malformed_entries_are_skipped_and_reported(self):
+        levels = resolve_logger_levels("api=LOUD,nextcloud,=DEBUG,api.util=ERROR")
+        self.assertEqual(levels, {"api.util": "ERROR"})
+        warnings = take_deferred_warnings()
+        self.assertEqual(len(warnings), 3, warnings)
+        self.assertTrue(all("LOG_LEVELS" in w for w in warnings), warnings)
+
+    def test_reads_the_environment_by_default(self):
+        with patch.dict(os.environ, {"LOG_LEVELS": "api.services=DEBUG"}):
+            config = build_logging_config(level="INFO")
+        self.assertEqual(config["loggers"]["api.services"], {"level": "DEBUG"})
+
+    def test_without_overrides_the_handlers_keep_the_global_level(self):
+        # No LOG_LEVELS, no change: what reaches the file is exactly what did
+        # before per-module loggers existed.
+        config = build_logging_config(level="WARNING", logger_levels={})
+        for handler in config["handlers"].values():
+            self.assertEqual(handler["level"], "WARNING")
+        self.assertEqual(config["root"]["level"], "WARNING")
+
+    def test_override_beats_a_third_party_floor(self):
+        config = build_logging_config(level="INFO", logger_levels={"django_q": "DEBUG"})
+        self.assertEqual(config["loggers"]["django_q"]["level"], "DEBUG")
+
+    def test_one_module_at_debug_reaches_the_file_and_the_rest_stays_quiet(self):
+        with temporary_logging(
+            level="INFO",
+            logger_levels={"api.directory_watcher": "DEBUG"},
+        ) as log_file:
+            logging.getLogger("api.directory_watcher.scan_jobs").debug(
+                "scan debug line"
+            )
+            logging.getLogger("api.services").debug("services debug line")
+            logging.getLogger("api.services").info("services info line")
+            flush_root_handlers()
+            with open(log_file, encoding="utf-8") as f:
+                contents = f.read()
+        self.assertIn("scan debug line", contents)
+        self.assertNotIn("services debug line", contents)
+        self.assertIn("services info line", contents)
+
+    def test_one_module_can_be_turned_down(self):
+        with temporary_logging(
+            level="INFO", logger_levels={"api.services": "ERROR"}
+        ) as log_file:
+            logging.getLogger("api.services").warning("services warning line")
+            logging.getLogger("api.thumbnails").warning("thumbnails warning line")
+            flush_root_handlers()
+            with open(log_file, encoding="utf-8") as f:
+                contents = f.read()
+        self.assertNotIn("services warning line", contents)
+        self.assertIn("thumbnails warning line", contents)
 
 
 class ModuleLoggerReachabilityTest(SimpleTestCase):

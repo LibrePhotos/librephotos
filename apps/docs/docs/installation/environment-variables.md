@@ -278,13 +278,14 @@ The backend writes its log files into the directory named by `BASE_LOGS`. `ownph
 | --- | --- | --- |
 | `BASE_LOGS` | `/logs/` | Directory the log files are written to. It is created on startup if it is missing; if it cannot be created the backend stops with an error naming the path it tried, rather than starting up with no log at all. With the bundled Compose setup you do not need to set this - the path inside the container is fixed at `/logs`, and the host directory behind it follows `data` from your `.env` (`${data}/logs:/logs`). Set it when you run the backend outside that setup, for example directly on the host. |
 | `LOG_LEVEL` | `INFO` | Lowest level that gets written. One of `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`. An unrecognised value falls back to `INFO` and says so in the log. |
+| `LOG_LEVELS` | _(empty)_ | Per-logger overrides of `LOG_LEVEL`, as comma-separated `logger=LEVEL` pairs, for example `api.directory_watcher=DEBUG,nextcloud=WARNING`. Logger names are Python module paths, so a package name covers every module in it. A malformed entry is skipped and says so in the log. |
 | `LOG_TO_CONSOLE` | `1` | Also send the log to the container's standard output, where `docker logs backend` (or `kubectl logs`) can read it. Set it to `0` to write only the file. Accepted "on" values are the same as for the feature switches above. |
 
-`LOG_LEVEL=DEBUG` adds per-photo and per-request detail. That is what you want while reproducing a bug, but on a large library the file grows quickly - put it back afterwards.
+`LOG_LEVEL=DEBUG` adds per-photo and per-request detail. That is what you want while reproducing a bug, but on a large library the file grows quickly - put it back afterwards. If you already know which part is misbehaving, `LOG_LEVELS=api.directory_watcher=DEBUG` (the scanner, in this example) keeps the rest of the log at its usual volume.
 
 Keep `LOG_TO_CONSOLE` on if the log directory does not survive a restart. On Kubernetes `/logs` is often an `emptyDir`, and then standard output is the only copy of the log that outlives the pod.
 
-None of the three is in the bundled `.env` file; pass them to the backend container directly:
+None of these is in the bundled `.env` file; pass them to the backend container directly:
 
 ```yaml
 services:

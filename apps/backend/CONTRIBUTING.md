@@ -276,7 +276,7 @@ import logging
 logger = logging.getLogger(__name__)
 ```
 
-Use this in new code and in code you are already touching. `from api.util import logger` still works and is what most modules do today; it is not deprecated. The module-scoped logger just tells you where a line came from and lets one noisy module be silenced on its own.
+Every module gets its own logger this way; do not import another module's `logger`. The logger name is the module path (`api.directory_watcher.scan_jobs`), so one module or a whole package can be turned up or down on its own with `LOG_LEVELS` (see below). The records still propagate to the root logger, which owns the handlers, so they land in `ownphotos.log` and on the console like everything else.
 
 ### Levels
 
@@ -305,7 +305,7 @@ The rule a reviewer actually applies: **`INFO` volume must be O(number of jobs/r
 
 - **No personal data above `DEBUG`.** Usernames, absolute media paths, captions, LLM prompts, addresses and search terms do not belong at `INFO` or above - log the user id and the `image_hash` instead. Plenty of existing code predates this rule; do not add more.
 
-Set `LOG_LEVEL=DEBUG` on the backend container to see the verbose stream.
+Set `LOG_LEVEL=DEBUG` on the backend container to see the verbose stream, or `LOG_LEVELS=api.directory_watcher=DEBUG` to see it for one package only (comma-separate several `logger=LEVEL` pairs).
 
 ---
 
