@@ -464,13 +464,24 @@ class PhotoViewSet(viewsets.ModelViewSet):
     def albums(self, request, pk):
         """Return user albums that contain this photo."""
         filter_kwargs = _get_photo_filter_kwargs(pk)
-        photo = Photo.objects.filter(**filter_kwargs).first()
+        user = request.user
+        # Only resolve photos the requester may see -- their own, shared to
+        # them, public, or in one of their own or shared-to-them albums. An
+        # unscoped lookup answered 200 for anyone's hash and 404 for an unknown
+        # one, telling strangers which files others have (GHSA-hq2w-x39h-8wmp).
+        if user.is_authenticated:
+            user_albums = AlbumUser.objects.filter(Q(owner=user) | Q(shared_to=user))
+            candidates = Photo.objects.visible_to(user) | Photo.objects.filter(
+                albumuser__in=user_albums
+            )
+        else:
+            user_albums = AlbumUser.objects.none()
+            candidates = Photo.objects.visible_to(None)
+        photo = candidates.filter(**filter_kwargs).distinct().first()
 
         if not photo:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        albums = AlbumUser.objects.filter(
-            Q(photos=photo) & (Q(owner=request.user) | Q(shared_to=request.user))
-        ).distinct()
+        albums = user_albums.filter(photos=photo).distinct()
         serializer = AlbumUserListSerializer(albums, many=True)
         return Response({"results": serializer.data})
 

@@ -697,13 +697,25 @@ class UnifiedMediaAccessView(APIView):
         response["X-Accel-Redirect"] = iri_to_uri(internal_path)
         return response
 
+    def _refuse(self, user):
+        """Refuse a photo the requester may not see, or a hash matching nothing.
+
+        Both get the same answer: a sign-in refusal for an anonymous caller, a
+        404 otherwise. Answering 403 for a private photo and 404 for an unknown
+        hash told anyone holding a file whether it sits in some user's library
+        (GHSA-hq2w-x39h-8wmp).
+        """
+        if user is None:
+            return self._forbidden_unauthenticated()
+        return HttpResponse(status=404)
+
     def _serve_derived_media(self, request, image_hash, path, fname, use_proxy):
         # The requester is resolved up front so that a hash shared by several
         # Photo rows can be resolved in their favour.
         user = self._requester(request)
         photo = self._lookup_photo(image_hash, user, allow_uuid=True)
         if photo is None:
-            return HttpResponse(status=404)
+            return self._refuse(user)
 
         if self._in_public_album(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
@@ -721,15 +733,13 @@ class UnifiedMediaAccessView(APIView):
         if self._is_public_photo(photo):
             return self._generate_response(photo, path, fname, False, use_proxy)
 
-        if user is None:
-            return self._forbidden_unauthenticated()
-        return HttpResponse(status=404)
+        return self._refuse(user)
 
     def _serve_original_media(self, request, image_hash, use_proxy):
         user = self._requester(request)
         photo = self._lookup_photo(image_hash, user)
         if photo is None:
-            return HttpResponse(status=404)
+            return self._refuse(user)
 
         if self._in_public_album(photo):
             return self._generate_response_original(photo, use_proxy, False)
@@ -749,9 +759,7 @@ class UnifiedMediaAccessView(APIView):
         if self._is_public_photo(photo):
             return self._generate_response_original(photo, use_proxy, False)
 
-        if user is None:
-            return self._forbidden_unauthenticated()
-        return HttpResponse(status=404)
+        return self._refuse(user)
 
     def get(self, request, path, fname, album_id=None, format=None):
         use_proxy = self._should_use_proxy()

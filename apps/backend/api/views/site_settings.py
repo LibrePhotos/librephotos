@@ -29,7 +29,11 @@ class SiteSettingsView(APIView):
         out["skip_patterns"] = site_config.SKIP_PATTERNS
         out["heavyweight_process"] = 0
         out["map_api_provider"] = site_config.MAP_API_PROVIDER
-        out["map_api_key"] = site_config.MAP_API_KEY
+        # This GET is anonymous (the login page reads it), but the key is the
+        # admin's credential for a paid geocoding provider that only the
+        # backend and the admin's own settings form use. Blank rather than
+        # absent so clients that require the field keep parsing.
+        out["map_api_key"] = site_config.MAP_API_KEY if request.user.is_staff else ""
         out["map_tile_provider"] = site_config.MAP_TILE_PROVIDER
         out["captioning_model"] = site_config.CAPTIONING_MODEL
         # There is no LLM any more; older mobile clients still expect the key.
