@@ -118,18 +118,30 @@ fn push_photo_conditions(qb: &mut QueryBuilder<'_, Postgres>, p: &str, f: &Timel
 
 /// The day's place: the stored `location.places[0]`, or in the public view
 /// the city of its first geotagged public photo (`_public_place`).
+/// `places` is free-form JSON: a scalar must neither reach
+/// `jsonb_array_length` (a query error that took down the whole public
+/// timeline) nor be skipped, since Python indexes a string like a list.
+/// Only `CASE` fixes the evaluation order, so every guard is one.
 fn location_sql(a: &str, public: bool) -> String {
     if public {
+        let places = "lp.geolocation_json->'places'";
         format!(
-            "COALESCE((SELECT lp.geolocation_json->'places'->>(jsonb_array_length(lp.geolocation_json->'places') - 2) \
+            "COALESCE((SELECT CASE jsonb_typeof({places}) \
+                 WHEN 'array' THEN {places}->>(jsonb_array_length({places}) - 2) \
+                 ELSE substr({places} #>> '{{}}', length({places} #>> '{{}}') - 1, 1) END \
                FROM api_albumdate_photos lap JOIN api_photo lp ON lp.id = lap.photo_id \
                WHERE lap.albumdate_id = {a}.id AND lp.public AND NOT lp.hidden AND NOT lp.in_trashcan \
-                 AND NOT lp.removed AND jsonb_typeof(lp.geolocation_json->'places') = 'array' \
-                 AND jsonb_array_length(lp.geolocation_json->'places') >= 2 \
+                 AND NOT lp.removed AND CASE jsonb_typeof({places}) \
+                   WHEN 'array' THEN jsonb_array_length({places}) >= 2 \
+                   WHEN 'string' THEN length({places} #>> '{{}}') >= 2 ELSE false END \
                ORDER BY lp.exif_timestamp, lp.id LIMIT 1), '')"
         )
     } else {
-        format!("COALESCE({a}.location->'places'->>0, '')")
+        let places = format!("{a}.location->'places'");
+        format!(
+            "COALESCE(CASE jsonb_typeof({places}) WHEN 'string' THEN substr({places} #>> '{{}}', 1, 1) \
+             ELSE {places}->>0 END, '')"
+        )
     }
 }
 

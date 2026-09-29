@@ -302,6 +302,20 @@ fn py_number_str(n: &serde_json::Number) -> String {
     }
 }
 
+/// Python's `int()`/`float()` take `_` between two digits; drop those, and
+/// refuse any other `_`.
+fn py_digits(s: &str) -> Option<String> {
+    let b = s.as_bytes();
+    for (i, c) in b.iter().enumerate() {
+        if *c == b'_'
+            && !(i > 0 && b[i - 1].is_ascii_digit() && b.get(i + 1).is_some_and(u8::is_ascii_digit))
+        {
+            return None;
+        }
+    }
+    Some(s.replace('_', ""))
+}
+
 /// DRF field validation of one value (`allow_null` everywhere).
 fn validate(kind: Kind, v: &Value) -> Result<MetaValue, String> {
     if v.is_null() {
@@ -334,7 +348,7 @@ fn validate(kind: Kind, v: &Value) -> Result<MetaValue, String> {
             let n: i64 = match v {
                 Value::Number(n) => match (n.as_i64(), n.as_f64()) {
                     (Some(i), _) => i,
-                    (None, Some(f)) if f.fract() == 0.0 && f.abs() < 9.2e18 => f as i64,
+                    (None, Some(f)) if f.fract() == 0.0 && f.abs() < 1e16 => f as i64,
                     _ => return Err(INVALID.into()),
                 },
                 Value::String(s) => {
@@ -343,7 +357,9 @@ fn validate(kind: Kind, v: &Value) -> Result<MetaValue, String> {
                         .find('.')
                         .filter(|i| t[i + 1..].bytes().all(|b| b == b'0'))
                         .map_or(t, |i| &t[..i]);
-                    t.trim().parse().map_err(|_| INVALID.to_string())?
+                    py_digits(t.trim())
+                        .and_then(|t| t.parse().ok())
+                        .ok_or_else(|| INVALID.to_string())?
                 }
                 _ => return Err(INVALID.into()),
             };
@@ -359,7 +375,7 @@ fn validate(kind: Kind, v: &Value) -> Result<MetaValue, String> {
             let f = match v {
                 Value::Number(n) => n.as_f64(),
                 Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
-                Value::String(s) => s.trim().parse::<f64>().ok(),
+                Value::String(s) => py_digits(s.trim()).and_then(|t| t.parse::<f64>().ok()),
                 _ => None,
             };
             f.filter(|f| f.is_finite())
@@ -459,6 +475,11 @@ mod tests {
         assert!(validate(Kind::Int, &json!(4.5)).is_err());
         assert!(validate(Kind::Int, &json!(true)).is_err());
         assert!(validate(Kind::Int, &json!(3_000_000_000i64)).is_err());
+        // str(1e16) is "1e+16": not an integer to DRF.
+        assert_eq!(
+            validate(Kind::Int, &json!(1e16)).unwrap_err(),
+            "A valid integer is required."
+        );
         assert_eq!(
             validate(Kind::Text(Some(5)), &json!("  ab  ")).unwrap(),
             MetaValue::Text(Some("ab".into()))
@@ -475,5 +496,15 @@ mod tests {
             validate(Kind::Float, &json!("1.5")).unwrap(),
             MetaValue::Float(Some(1.5))
         );
+        assert_eq!(
+            validate(Kind::Float, &json!("1_000.5")).unwrap(),
+            MetaValue::Float(Some(1000.5))
+        );
+        assert_eq!(
+            validate(Kind::Int, &json!("1_0")).unwrap(),
+            MetaValue::Int(Some(10))
+        );
+        assert!(validate(Kind::Int, &json!("1__0")).is_err());
+        assert!(validate(Kind::Int, &json!("_10")).is_err());
     }
 }

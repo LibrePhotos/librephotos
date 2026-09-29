@@ -201,6 +201,70 @@ async fn date_page_paging_and_authz() {
     app.cleanup().await;
 }
 
+/// `_public_place` indexes whatever `places` holds: a scalar used to make
+/// `jsonb_array_length` fail, a 500 for the whole public timeline.
+#[tokio::test]
+async fn public_place_tolerates_scalar_places() {
+    let app = TestApp::new().await;
+    let (day, photo): (i32, Uuid) = sqlx::query_as(
+        "SELECT ap.albumdate_id, p.id FROM api_albumdate_photos ap JOIN api_photo p ON p.id = ap.photo_id \
+         WHERE p.public AND NOT p.hidden AND NOT p.in_trashcan ORDER BY p.id LIMIT 1",
+    )
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
+    // Leave this photo the only geotagged public one of its day.
+    sqlx::query(
+        "UPDATE api_photo SET geolocation_json = '{}' WHERE id IN \
+         (SELECT photo_id FROM api_albumdate_photos WHERE albumdate_id = $1)",
+    )
+    .bind(day)
+    .execute(app.pool())
+    .await
+    .unwrap();
+    sqlx::query(r#"UPDATE api_photo SET geolocation_json = '{"places": "ab"}' WHERE id = $1"#)
+        .bind(photo)
+        .execute(app.pool())
+        .await
+        .unwrap();
+    sqlx::query(r#"UPDATE api_albumdate SET location = '{"places": "Xyz"}' WHERE id = $1"#)
+        .bind(day)
+        .execute(app.pool())
+        .await
+        .unwrap();
+
+    let res = app.get("/api/albums/date/list/?public=true", None).await;
+    assert_eq!(res.status, StatusCode::OK);
+    let group = res.json()["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["id"].as_str() == Some(day.to_string().as_str()))
+        .cloned()
+        .expect("public day listed");
+    assert_eq!(group["location"], "a");
+    let res = app
+        .get(&format!("/api/albums/date/{day}?public=true"), None)
+        .await;
+    assert_eq!(res.status, StatusCode::OK);
+    assert_eq!(res.json()["results"]["location"], "a");
+
+    let owner = sqlx::query_scalar::<_, String>(
+        "SELECT u.username FROM api_albumdate a JOIN api_user u ON u.id = a.owner_id WHERE a.id = $1",
+    )
+    .bind(day)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
+    let tok = token(&app, &owner).await;
+    let res = app
+        .get(&format!("/api/albums/date/{day}"), Some(&tok))
+        .await;
+    assert_eq!(res.status, StatusCode::OK);
+    assert_eq!(res.json()["results"]["location"], "X");
+    app.cleanup().await;
+}
+
 #[tokio::test]
 async fn recently_added_and_no_timestamp() {
     let app = TestApp::shared().await;

@@ -13,8 +13,9 @@ pub mod lists;
 pub mod memories;
 pub mod metadata;
 
-/// `_get_photo_filter_kwargs`: a 36-char hyphenated UUID looks up `pk`,
-/// anything else `image_hash`.
+/// `_get_photo_filter_kwargs`: 36 chars with four hyphens that Python's
+/// `uuid.UUID` accepts look up `pk`, anything else `image_hash`. Python drops
+/// the hyphens wherever they sit, so only the 32 hex digits left count.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PhotoLookup {
     Id(uuid::Uuid),
@@ -23,11 +24,13 @@ pub enum PhotoLookup {
 
 impl PhotoLookup {
     pub fn parse(raw: &str) -> Self {
-        if raw.len() == 36
-            && raw.matches('-').count() == 4
-            && let Ok(id) = uuid::Uuid::parse_str(raw)
-        {
-            return PhotoLookup::Id(id);
+        if raw.chars().count() == 36 && raw.matches('-').count() == 4 {
+            let hex: String = raw.chars().filter(|c| *c != '-').collect();
+            if hex.bytes().all(|b| b.is_ascii_hexdigit())
+                && let Ok(id) = uuid::Uuid::parse_str(&hex)
+            {
+                return PhotoLookup::Id(id);
+            }
         }
         PhotoLookup::Hash(raw.to_string())
     }
@@ -80,6 +83,10 @@ mod tests {
             PhotoLookup::parse("zzze4567-e89b-12d3-a456-426614174000"),
             PhotoLookup::Hash(_)
         ));
+        assert_eq!(
+            PhotoLookup::parse("123e4567e89b-12d3-a456-4266-14174000"),
+            PhotoLookup::parse(id)
+        );
     }
 
     #[test]

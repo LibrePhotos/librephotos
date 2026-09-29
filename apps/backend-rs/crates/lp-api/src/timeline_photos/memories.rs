@@ -80,6 +80,57 @@ fn month_windows(reference: NaiveDate, first_year: i32) -> Vec<Window> {
         .collect()
 }
 
+/// CPython 3.11+ `date.fromisoformat`: `YYYY-MM-DD`, `YYYYMMDD` and the ISO
+/// week forms (`YYYY-Www[-D]`, `YYYYWww[D]`). Like CPython, only lengths 7,
+/// 8 and 10 are tried and a tail after a complete date is not checked.
+fn py_date_fromisoformat(s: &str) -> Option<NaiveDate> {
+    let b = s.as_bytes();
+    if !matches!(b.len(), 7 | 8 | 10) {
+        return None;
+    }
+    let digits = |from: usize, n: usize| -> Option<u32> {
+        let part = b.get(from..from + n)?;
+        part.iter().all(u8::is_ascii_digit).then(|| {
+            part.iter()
+                .fold(0u32, |acc, d| acc * 10 + u32::from(d - b'0'))
+        })
+    };
+    let year = digits(0, 4)?;
+    let sep = b.get(4) == Some(&b'-');
+    let mut p = if sep { 5 } else { 4 };
+    if b.get(p) == Some(&b'W') {
+        p += 1;
+        let week = digits(p, 2)?;
+        p += 2;
+        let day = if p < b.len() {
+            if sep {
+                if b[p] != b'-' {
+                    return None;
+                }
+                p += 1;
+            }
+            digits(p, 1)?
+        } else {
+            1
+        };
+        if year == 0 || !(1..=7).contains(&day) {
+            return None;
+        }
+        let weekday = chrono::Weekday::try_from(u8::try_from(day - 1).ok()?).ok()?;
+        return NaiveDate::from_isoywd_opt(i32::try_from(year).ok()?, week, weekday);
+    }
+    let month = digits(p, 2)?;
+    p += 2;
+    if sep {
+        if b.get(p) != Some(&b'-') {
+            return None;
+        }
+        p += 1;
+    }
+    let day = digits(p, 2)?;
+    NaiveDate::from_ymd_opt(i32::try_from(year).ok()?, month, day).filter(|_| year > 0)
+}
+
 fn iso(d: &NaiveDate) -> String {
     d.format("%Y-%m-%d").to_string()
 }
@@ -211,7 +262,7 @@ pub async fn memories(
 ) -> ApiResult<Response> {
     let reference = q
         .get("date")
-        .and_then(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok())
+        .and_then(py_date_fromisoformat)
         .unwrap_or_else(|| today_for_user(&user));
     let window_days = clamp_int(q.get("window"), DEFAULT_WINDOW_DAYS, 0, MAX_WINDOW_DAYS);
     let fallback = parse_flag(q.get("fallback"), true);
@@ -272,6 +323,43 @@ mod tests {
         );
         let m = month_windows(d(2024, 2, 5), 2023);
         assert_eq!(m[0].3, d(2023, 2, 28));
+    }
+
+    #[test]
+    fn iso_dates_like_python() {
+        let ok = [
+            ("2025-05-12", d(2025, 5, 12)),
+            ("20250512", d(2025, 5, 12)),
+            ("2025-W20-1", d(2025, 5, 12)),
+            ("2025W201", d(2025, 5, 12)),
+            ("2025-W20", d(2025, 5, 12)),
+            ("2025W20", d(2025, 5, 12)),
+            ("2020-W53-7", d(2021, 1, 3)),
+            ("20250512ab", d(2025, 5, 12)),
+            ("2025W2012x", d(2025, 5, 12)),
+            ("0001-W01-1", d(1, 1, 1)),
+        ];
+        for (s, want) in ok {
+            assert_eq!(py_date_fromisoformat(s), Some(want), "{s}");
+        }
+        for s in [
+            "2025-5-12",
+            " 2025-05-12",
+            "2025-05-12 ",
+            "2025-W53-1",
+            "2025-W20-8",
+            "2025-W20-0",
+            "2025-W00-1",
+            "2025-W2012",
+            "2025-W20x",
+            "0000-01-01",
+            "2025-02-29",
+            "2025-13-01",
+            "2025-05",
+            "",
+        ] {
+            assert_eq!(py_date_fromisoformat(s), None, "{s}");
+        }
     }
 
     #[test]

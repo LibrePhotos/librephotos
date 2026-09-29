@@ -85,6 +85,12 @@ describe.skipIf(!hasBase)("timeline_photos: GET /api/memories", () => {
     { date: "2026-05-13" },
     { date: "2028-02-29" },
     { date: "bogus", window: "x", size: "y" },
+    // Python's date.fromisoformat: basic and ISO-week forms parse, sloppy ones fall back to today.
+    { date: "20250804" },
+    { date: "2025-W32-1" },
+    { date: "2025W32" },
+    { date: "2025-8-4" },
+    { date: " 2025-08-04" },
   ];
 
   it("contract: parses", async () => {
