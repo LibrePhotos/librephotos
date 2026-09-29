@@ -24,6 +24,7 @@ from api.models.photo_stack import PhotoStack
 from api.serializers.album_date import (
     AlbumDateSerializer,
     IncompleteAlbumDateSerializer,
+    prefetch_public_photos,
 )
 from api.serializers.album_place import (
     AlbumPlaceListSerializer,
@@ -612,7 +613,14 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
     )
     def retrieve(self, *args, **kwargs):
         album_date, photos, count = self.get_queryset()
-        serializer = AlbumDateSerializer(album_date, context={"request": self.request})
+        serializer = AlbumDateSerializer(
+            album_date,
+            context={
+                "request": self.request,
+                # The public view may only name places of public photos.
+                "public": bool(self.request.query_params.get("public")),
+            },
+        )
         serializer_data = serializer.data
         serializer_data["items"] = PhotoSummarySerializer(
             photos, many=True
@@ -739,7 +747,14 @@ class AlbumDateListViewSet(ListViewSet):
         description="Gives you a list of days with the number of elements. This is not paginated and can be large.",
     )
     def list(self, *args, **kwargs):
-        serializer = IncompleteAlbumDateSerializer(self.get_queryset(), many=True)
+        queryset = self.get_queryset()
+        public = bool(self.request.query_params.get("public"))
+        if public:
+            # The public view may only name places of public photos.
+            queryset = queryset.prefetch_related(prefetch_public_photos())
+        serializer = IncompleteAlbumDateSerializer(
+            queryset, many=True, context={"public": public}
+        )
         return Response({"results": serializer.data})
 
 

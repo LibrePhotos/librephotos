@@ -3,9 +3,11 @@ import logging
 from rest_framework import serializers
 
 from api.models import AlbumUser
+from api.models.user import get_default_public_sharing_settings
 from api.serializers.fields import OwnedPhotoField
 from api.serializers.photos import GroupedPhotosSerializer
 from api.serializers.PhotosGroupedByDate import (
+    PhotosGroupedByDate,
     filter_photos_by_media_type,
     get_photos_ordered_by_date,
 )
@@ -306,14 +308,42 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
             "-exif_timestamp"
         )
 
+    def _sharing_settings(self, obj) -> dict:
+        # What the owner chose to publish. The grid used to ignore it and hand
+        # every visitor the GPS position, place and capture time of each photo
+        # even though location and timestamps are opt-in (all off by default).
+        share = getattr(obj, "share", None)
+        if share is None:
+            return get_default_public_sharing_settings()
+        return share.get_effective_sharing_settings()
+
     def get_grouped_photos(self, obj) -> GroupedPhotosSerializer(many=True):
+        sharing = self._sharing_settings(obj)
         photos = filter_photos_by_media_type(
             self._filtered_photos(obj), self.context.get("request")
         )
-        grouped_photos = get_photos_ordered_by_date(photos)
-        return GroupedPhotosSerializer(grouped_photos, many=True).data
+        if sharing.get("share_timestamps"):
+            grouped_photos = get_photos_ordered_by_date(photos)
+        else:
+            # Day groups would publish the capture date as the group header,
+            # so without timestamps everything goes into one undated group.
+            photos = list(photos)
+            grouped_photos = [PhotosGroupedByDate("", None, photos)] if photos else []
+        groups = GroupedPhotosSerializer(grouped_photos, many=True).data
+        for group in groups:
+            for item in group["items"]:
+                if not sharing.get("share_location"):
+                    item["exif_gps_lat"] = None
+                    item["exif_gps_lon"] = None
+                    item["location"] = ""
+                if not sharing.get("share_timestamps"):
+                    item["date"] = ""
+                    item["birthTime"] = ""
+        return groups
 
     def get_location(self, obj) -> str:
+        if not self._sharing_settings(obj).get("share_location"):
+            return ""
         for photo in self._filtered_photos(obj):
             if (
                 photo
@@ -325,6 +355,8 @@ class AlbumUserPublicSerializer(serializers.ModelSerializer):
         return ""
 
     def get_date(self, obj) -> str:
+        if not self._sharing_settings(obj).get("share_timestamps"):
+            return ""
         for photo in self._filtered_photos(obj):
             if photo and photo.exif_timestamp:
                 return photo.exif_timestamp
