@@ -9,7 +9,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -477,11 +477,13 @@ class PhotoViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ("list", "retrieve", "summary", "albums"):
             permission_classes = [IsPhotoOrAlbumSharedTo]
-        else:  # pragma: no cover - unused
-            if getattr(self.request, "user", None) and self.request.user.is_staff:
-                permission_classes = [IsAdminUser]
-            else:
-                permission_classes = [IsOwnerOrReadOnly]
+        else:
+            # Writes are the owner's alone, staff included: IsAdminUser has no
+            # object check, so it let staff edit or delete any photo they could
+            # read (public ones, ones shared to them). IsOwnerOrReadOnly only
+            # checks objects, so IsAuthenticated keeps anonymous callers out of
+            # create(), which has no object.
+            permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
