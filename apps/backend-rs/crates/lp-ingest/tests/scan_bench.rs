@@ -95,6 +95,18 @@ async fn scan_database() {
     for (id, name) in users {
         let job = uuid::Uuid::new_v4().to_string();
         let t = Instant::now();
+        if env("LP_SCAN_MISSING").is_some() {
+            // The missing-file check and delete_missing_photos instead of a scan.
+            lp_ingest::repair::scan_missing_photos(&pipeline, id, &job)
+                .await
+                .expect("scan missing");
+            let del = uuid::Uuid::new_v4().to_string();
+            lp_ingest::repair::delete_missing_photos(&pipeline, id, &del)
+                .await
+                .expect("delete missing");
+            report.push(serde_json::json!({"user": name, "seconds": t.elapsed().as_secs_f64()}));
+            continue;
+        }
         scan::scan_user(
             &pipeline,
             id,

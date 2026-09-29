@@ -257,11 +257,16 @@ pub async fn delete_missing_photos(p: &Pipeline, user_id: i32, job_id: &str) -> 
             .execute(&mut *tx)
             .await?;
         }
-        let files: Vec<String> =
-            sqlx::query_scalar("SELECT hash FROM api_file WHERE hash LIKE $1 AND missing")
-                .bind(format!("%{user_id}"))
-                .fetch_all(&mut *tx)
-                .await?;
+        // The hash is the 32-char md5 followed by the owner id. Django's
+        // `hash__endswith=str(user.id)` also takes user 11's and 21's missing
+        // files for user 1, which cost those users the re-adoption of files
+        // that come back; match the whole suffix instead.
+        let files: Vec<String> = sqlx::query_scalar(
+            "SELECT hash FROM api_file WHERE missing AND length(hash) > 32 AND substr(hash, 33) = $1",
+        )
+        .bind(user_id.to_string())
+        .fetch_all(&mut *tx)
+        .await?;
         delete_files(&mut tx, &files).await?;
         tx.commit().await?;
         db::lrj_complete(pool, job_id).await?;

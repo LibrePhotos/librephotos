@@ -48,6 +48,8 @@ pub enum ExifError {
     Closed,
     #[error("exif service could not read the metadata of {file}: {detail}")]
     Read { file: String, detail: String },
+    #[error("exiftool argument contains a line break: {0:?}")]
+    LineBreak(String),
 }
 
 /// A command slower than this is stuck on the file (the sidecar had no
@@ -124,6 +126,12 @@ impl ExifPool {
 
     /// Run one command (the arguments before `-execute`) and return its stdout.
     pub async fn execute(&self, structured: bool, args: &[String]) -> Result<Vec<u8>, ExifError> {
+        // Arguments go to exiftool's `-@ -` argfile one per line: a file
+        // name with a line break would smuggle in options of its own
+        // (`-o`, `-w`, `-TagsFromFile`, ...).
+        if let Some(bad) = args.iter().find(|a| a.contains(['\n', '\r'])) {
+            return Err(ExifError::LineBreak(bad.clone()));
+        }
         let lane = self.lane(structured);
         let _permit = lane
             .permits
@@ -584,5 +592,18 @@ mod tests {
                 PathBuf::from("/p/IMG_1.JPG.XMP"),
             ]
         );
+    }
+
+    #[tokio::test]
+    async fn line_breaks_never_reach_the_argfile() {
+        let pool = ExifPool::new(ExifConfig {
+            exiftool: PathBuf::from("does-not-exist-exiftool"),
+            pool_size: 1,
+        });
+        let args = vec!["/p/a.jpg\n-o\n/etc/x".to_string()];
+        assert!(matches!(
+            pool.execute(false, &args).await,
+            Err(ExifError::LineBreak(_))
+        ));
     }
 }

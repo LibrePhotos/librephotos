@@ -2,6 +2,7 @@
 
     python django_scan.py users <data_root>   # create the fixture users (empty DB)
     python django_scan.py scan                # scan every user, print timings
+    python django_scan.py missing             # scan_missing_photos + delete_missing_photos
 
 Runs under the lp_twin_settings environment (fixture/env.sh
 ``lp_django_env``). ``scan`` calls the real ``scan_photos`` with every queued
@@ -82,8 +83,21 @@ def scan():
     )
 
 
+def missing():
+    """scan_missing_photos + delete_missing_photos for every user."""
+    _route_exif_in_process()
+    from api.autoalbum import delete_missing_photos
+
+    for user in User.objects.exclude(scan_directory="").order_by("id"):
+        scan_jobs.scan_missing_photos(user, uuid.uuid4())
+        delete_missing_photos(user, uuid.uuid4())
+    print("MISSING_DONE")
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "users":
         create_users(sys.argv[2])
+    elif sys.argv[1] == "missing":
+        missing()
     else:
         scan()

@@ -13,8 +13,8 @@ source "$HERE/../fixture/env.sh"
 RUNS="${1:-$LP_RUNS_ROOT/rs_ingest_scan}"
 SOURCE="${LP_SCAN_SOURCE:-$LP_FIXTURE_ROOT/data}"
 CONC="${2:-12}"
-REF=lp_mut_rs_ingest_ref
-RS=lp_mut_rs_ingest_rs
+REF="${LP_SCAN_REF_DB:-lp_mut_rs_ingest_ref}"
+RS="${LP_SCAN_RS_DB:-lp_mut_rs_ingest_rs}"
 V="$(dirname "$(dirname "$LP_DJANGO_PY")")/Lib/site-packages"
 RS_DIR="$LP_REPO_ROOT/apps/backend-rs"
 

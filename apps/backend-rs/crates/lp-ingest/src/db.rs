@@ -132,6 +132,21 @@ pub async fn file_create(
         }
         return Ok(existing);
     }
+    // Django's `file.save()` on a hash that is already a row is an UPDATE
+    // (the pk has no default, so save() tries UPDATE before INSERT): the row
+    // moves to the path seen last, and is no longer missing.
+    let moved = sqlx::query_as::<_, FileRow>(
+        "UPDATE api_file SET path = $2, type = $3, missing = FALSE WHERE hash = $1 \
+         AND NOT EXISTS (SELECT 1 FROM api_file WHERE path = $2) RETURNING hash, path, type, missing",
+    )
+    .bind(hash)
+    .bind(path)
+    .bind(kind)
+    .fetch_optional(&mut *db)
+    .await?;
+    if let Some(f) = moved {
+        return Ok(f);
+    }
     let inserted = sqlx::query_as::<_, FileRow>(
         "INSERT INTO api_file (hash, path, type, missing) VALUES ($1, $2, $3, FALSE) \
          ON CONFLICT DO NOTHING RETURNING hash, path, type, missing",

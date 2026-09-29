@@ -170,16 +170,50 @@ pub async fn process_upload(
     ];
     for (on, kind, jt) in jobs {
         if on {
-            lp_jobs::enqueue(
-                &p.state,
-                kind,
-                json!({"user_id": user_id}),
-                EnqueueOptions::tracked(jt, user_id),
-            )
-            .await?;
+            enqueue_unless_queued(p, kind, user_id, jt).await?;
         }
     }
     Ok(())
+}
+
+/// Django runs these per uploaded photo inside the upload's own chain; here
+/// they are user-wide jobs that pick up every photo still missing the data.
+/// One still waiting in the queue covers this photo too, so a batch of
+/// uploads queues (and shows on the jobs page) one job per kind, not one per
+/// file.
+async fn enqueue_unless_queued(
+    p: &Pipeline,
+    kind: &str,
+    user_id: i32,
+    job_type: JobType,
+) -> anyhow::Result<bool> {
+    let mut tx = p.state.db.begin().await?;
+    sqlx::query("SELECT pg_advisory_xact_lock(7340033, hashtext($1 || ':' || $2::text))")
+        .bind(kind)
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+    let queued: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM job_queue WHERE status = 'queued' AND kind = $1 \
+         AND payload->>'user_id' = $2::text)",
+    )
+    .bind(kind)
+    .bind(user_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    if queued {
+        return Ok(false);
+    }
+    lp_jobs::enqueue_in(
+        &mut tx,
+        kind,
+        json!({"user_id": user_id}),
+        &EnqueueOptions::tracked(job_type, user_id),
+    )
+    .await?;
+    tx.commit().await?;
+    lp_jobs::wake(&p.state);
+    Ok(true)
 }
 
 /// `apply_device_timestamp_fallback`: an EXIF-less upload takes the

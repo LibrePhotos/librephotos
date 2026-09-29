@@ -149,7 +149,10 @@ async fn upload_user(state: &AppState, headers: &HeaderMap) -> UploadResult<User
     };
     let claims = lp_auth::jwt::decode(&state.jwt, &token, lp_auth::jwt::ACCESS)
         .map_err(|_| forbidden("Authentication credentials were invalid"))?;
-    let uid = claims.user_id().ok_or_else(not_provided)?;
+    // simplejwt's get_user raises InvalidToken for a token without a user id.
+    let uid = claims
+        .user_id()
+        .ok_or_else(|| forbidden("Authentication credentials were invalid"))?;
     let user = lp_db::users::by_id(&state.db, uid)
         .await?
         .ok_or_else(not_provided)?;
@@ -413,7 +416,11 @@ async fn upload_complete_inner(
     if &actual != md5 {
         return Err(bad_request("md5 checksum does not match"));
     }
-    lp_db::write::upload::mark_complete(&state.db, upload.id, Utc::now()).await?;
+    // Two concurrent completions both pass the status check above; only the
+    // one that flips the row imports the file.
+    if !lp_db::write::upload::mark_complete(&state.db, upload.id, Utc::now()).await? {
+        return Err(bad_request("Upload has already been marked as complete"));
+    }
     match on_completion(state, &user, &upload, &staged, &actual, &form).await {
         Ok(()) => Ok((StatusCode::OK, Json(json!({}))).into_response()),
         Err(Completion::Refused(e)) => {
