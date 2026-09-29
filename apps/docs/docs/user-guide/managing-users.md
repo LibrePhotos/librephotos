@@ -29,8 +29,6 @@ The separation will also not keep the photos "private" as the admin of the host 
 
 ## Giving each user their own folder automatically
 
-*Unreleased — this is on `dev` and is not in a released version yet.*
-
 Admin Area → Site settings has a **Create a folder for each new user** switch, off by default. With it on, creating a user — from the admin panel, from self registration, or through single sign-on — also creates `/data/<username>` and assigns it as that user's scan directory, so you no longer have to make the folder on the host and assign it by hand for every account.
 
 It only works when your own scan directory is a subfolder such as `/data/admin`, not `/data` itself. Scan directories of different users cannot overlap (see above), so while any user scans `/data`, every `/data/<username>` folder is refused.

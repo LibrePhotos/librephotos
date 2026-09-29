@@ -131,10 +131,6 @@ Tags are yours to type: a place name, a project, "to print", whatever you sort b
 
 ### Tagging a selection
 
-:::note
-Tagging several photos at once is not in a released image yet. It is available on the `dev` branch and will appear in the next release.
-:::
-
 Anywhere you can select photos — the timeline, a search result, a person, place, thing or user album, or a folder — you can tag the whole selection at once:
 
 1. Select the photos and videos you want to tag.

@@ -6,10 +6,6 @@ sidebar_position: 5
 
 # Memories
 
-:::note
-Memories is not in a released image yet. It is available on the `dev` branch and will appear in the next release.
-:::
-
 **Memories** answers "what was I doing a year ago today?". It collects the photos you took around this date in each earlier year and lets you play them back as a slideshow.
 
 Open it from **Memories** in the sidebar, or type "memories" (or "on this day", "years ago") into the [spotlight search](./search.md).
