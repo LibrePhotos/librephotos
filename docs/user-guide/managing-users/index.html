@@ -11,8 +11,8 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.16093fa7.css">
-<script src="/assets/js/runtime~main.e36c941e.js" defer="defer"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.a1e92a76.css">
+<script src="/assets/js/runtime~main.4ad911a2.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -32,7 +32,6 @@ In LibrePhotos, the file system acts as the definitive source of photo organizat
 <p>While the application saves metadata (e.g., tags, albums, facial recognition data) on a per-user basis in its database, it doesn’t inherently restrict access to the photos themselves. Access permissions must be managed through the file system / paths.</p>
 <p>The separation will also not keep the photos &quot;private&quot; as the admin of the host system can see all the images.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="giving-each-user-their-own-folder-automatically">Giving each user their own folder automatically<a href="#giving-each-user-their-own-folder-automatically" class="hash-link" aria-label="Direct link to Giving each user their own folder automatically" title="Direct link to Giving each user their own folder automatically" translate="no">​</a></h2>
-<p><em>Unreleased — this is on <code>dev</code> and is not in a released version yet.</em></p>
 <p>Admin Area → Site settings has a <strong>Create a folder for each new user</strong> switch, off by default. With it on, creating a user — from the admin panel, from self registration, or through single sign-on — also creates <code>/data/&lt;username&gt;</code> and assigns it as that user&#x27;s scan directory, so you no longer have to make the folder on the host and assign it by hand for every account.</p>
 <p>It only works when your own scan directory is a subfolder such as <code>/data/admin</code>, not <code>/data</code> itself. Scan directories of different users cannot overlap (see above), so while any user scans <code>/data</code>, every <code>/data/&lt;username&gt;</code> folder is refused.</p>
 <p>What it deliberately does not do:</p>
