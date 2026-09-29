@@ -204,12 +204,12 @@ async fn run_job(
     let started = std::time::Instant::now();
     let handler = registry.get(&job.kind).cloned();
     let hb_stop = CancellationToken::new();
-    let hb = tokio::spawn(heartbeat(
+    let mut hb = AbortOnDrop(tokio::spawn(heartbeat(
         state.clone(),
         id,
         timing.heartbeat,
         hb_stop.clone(),
-    ));
+    )));
 
     let outcome: Result<(), String> = match handler {
         None => Err(format!("no handler for job kind {kind:?}")),
@@ -218,7 +218,10 @@ async fn run_job(
                 state: state.clone(),
                 job: job.clone(),
             };
-            match tokio::spawn(h(ctx)).await {
+            // Aborting run_job (shutdown past its grace) must stop the handler
+            // too: its row is handed back and would otherwise run twice.
+            let mut handle = AbortOnDrop(tokio::spawn(h(ctx)));
+            match (&mut handle.0).await {
                 Ok(Ok(())) => Ok(()),
                 Ok(Err(e)) => Err(format!("{e:#}")),
                 Err(e) if e.is_panic() => Err(format!("job panicked: {}", panic_message(e))),
@@ -227,7 +230,7 @@ async fn run_job(
         }
     };
     hb_stop.cancel();
-    let _ = hb.await;
+    let _ = (&mut hb.0).await;
 
     let record = async {
         let mut conn = state.db.acquire().await?;
@@ -263,6 +266,14 @@ async fn run_job(
         tracing::error!(job = id, error = %e, "recording the job outcome failed");
     }
     in_flight.lock().expect("in-flight lock").remove(&id);
+}
+
+struct AbortOnDrop<T>(tokio::task::JoinHandle<T>);
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
 }
 
 async fn heartbeat(state: AppState, id: i64, every: Duration, stop: CancellationToken) {

@@ -212,17 +212,28 @@ pub const STALE_EXTRA_ATTEMPTS: i32 = 2;
 /// `max_attempts + STALE_EXTRA_ATTEMPTS` times is failed instead, so a job
 /// that kills its worker cannot loop forever. Returns `(requeued, failed)`.
 pub async fn requeue_stale(conn: &mut PgConnection, stale_secs: i64) -> sqlx::Result<(u64, u64)> {
-    let failed = sqlx::query(
-        "UPDATE job_queue SET status = 'failed', finished_at = now(), locked_by = NULL, \
-           last_error = 'worker lost (stale heartbeat)' \
-         WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1) \
-           AND attempts >= max_attempts + $2",
+    // Like a final failed attempt, a lost job fails its LongRunningJob
+    // (except fan-out children), or the UI would show it running for 24 h.
+    let failed: i64 = sqlx::query_scalar(
+        "WITH lost AS ( \
+           UPDATE job_queue SET status = 'failed', finished_at = now(), locked_by = NULL, \
+             last_error = 'worker lost (stale heartbeat)' \
+           WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1) \
+             AND attempts >= max_attempts + $2 \
+           RETURNING lrj_id, group_id), \
+         lrj AS ( \
+           UPDATE api_longrunningjob SET failed = TRUE, finished = TRUE, finished_at = now(), \
+             result = '{\"status\": \"failed\", \"error\": \"worker lost (stale heartbeat)\"}'::jsonb \
+           WHERE NOT finished AND job_id IN \
+             (SELECT lrj_id FROM lost WHERE lrj_id IS NOT NULL AND group_id IS NULL) \
+           RETURNING 1) \
+         SELECT count(*) FROM lost",
     )
     .bind(stale_secs as f64)
     .bind(STALE_EXTRA_ATTEMPTS)
-    .execute(&mut *conn)
-    .await?
-    .rows_affected();
+    .fetch_one(&mut *conn)
+    .await?;
+    let failed = failed as u64;
     let requeued = sqlx::query(
         "UPDATE job_queue SET status = 'queued', locked_by = NULL \
          WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1)",

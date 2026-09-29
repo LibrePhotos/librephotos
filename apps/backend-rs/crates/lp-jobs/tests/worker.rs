@@ -392,10 +392,34 @@ async fn stale_rows_are_requeued_and_capped() {
         .fetch_one(app.pool())
         .await
         .unwrap();
+    // A hopeless row tracked by a LongRunningJob must not leave that job
+    // unfinished: the worker indicator would show it busy for 24 h.
+    let owner = app.create_user("stale_owner", "pw", false).await;
+    let tracked_lrj = lrj::create(app.pool(), JobType::ScanPhotos, owner.id)
+        .await
+        .unwrap();
+    let tracked: i64 = sqlx::query_scalar(
+        "INSERT INTO job_queue (kind, status, locked_by, heartbeat_at, started_at, attempts, \
+           max_attempts, lrj_id) \
+         VALUES ($1, 'running', 'dead-worker', now() - interval '1 hour', \
+           now() - interval '1 hour', 3, 1, $2) RETURNING id",
+    )
+    .bind(&kind)
+    .bind(&tracked_lrj)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
     let w = start(&app.state, reg, 2, fast());
     wait_status(app.pool(), lost, "done").await;
     wait_status(app.pool(), hopeless, "failed").await;
+    wait_status(app.pool(), tracked, "failed").await;
     assert_eq!(runs.load(Ordering::SeqCst), 1);
+    let job = lrj::get(app.pool(), &tracked_lrj).await.unwrap().unwrap();
+    assert!(
+        job.finished && job.failed,
+        "lost job's LongRunningJob is failed"
+    );
+    assert_eq!(job.result.as_ref().unwrap()["status"], "failed");
     let err: String = sqlx::query_scalar("SELECT last_error FROM job_queue WHERE id = $1")
         .bind(hopeless)
         .fetch_one(app.pool())
@@ -455,10 +479,16 @@ async fn notify_wakes_the_worker_and_slots_bound_concurrency() {
 async fn shutdown_hands_running_jobs_back() {
     let app = lp_testkit::TestApp::shared().await;
     let kind = unique("slow");
+    let finished = Arc::new(AtomicUsize::new(0));
     let mut reg = HandlerRegistry::new();
-    reg.register(&kind, |_ctx: JobCtx| async move {
-        tokio::time::sleep(Duration::from_secs(60)).await;
-        Ok(())
+    let f = finished.clone();
+    reg.register(&kind, move |_ctx: JobCtx| {
+        let f = f.clone();
+        async move {
+            tokio::time::sleep(Duration::from_secs(2)).await;
+            f.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
     });
     let w = start(&app.state, reg, 1, fast());
     let e = lp_jobs::enqueue(&app.state, &kind, json!({}), EnqueueOptions::default())
@@ -475,6 +505,14 @@ async fn shutdown_hands_running_jobs_back() {
             .await
             .unwrap();
     assert_eq!((status.as_str(), attempts, locked), ("queued", 0, None));
+    // The handed-back job must really stop, or it runs twice once another
+    // worker claims the row.
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    assert_eq!(
+        finished.load(Ordering::SeqCst),
+        0,
+        "aborted handler kept running"
+    );
     sqlx::query("DELETE FROM job_queue WHERE id = $1")
         .bind(e.id)
         .execute(app.pool())
