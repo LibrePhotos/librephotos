@@ -20,6 +20,7 @@ from django.db.models import Q
 from django_q.tasks import AsyncTask, Chain
 
 from api.metadata.reader import get_sidecar_files_in_priority_order
+from api import video_color
 from api.batch_jobs import batch_calculate_clip_embedding
 from api.models import LongRunningJob, Photo, Thumbnail
 from api.models.file import is_metadata
@@ -33,7 +34,9 @@ from api.directory_watcher.file_handlers import handle_new_image, handle_file_gr
 from api.directory_watcher.processing_jobs import (
     generate_tags,
     add_geolocation,
+    probe_videos,
     scan_faces,
+    videos_to_probe,
 )
 from api.directory_watcher.repair_jobs import repair_ungrouped_file_variants
 from api.directory_watcher.utils import (
@@ -325,6 +328,11 @@ def _queue_followup_jobs(user, full_scan, scan_missing):
     # Run repair job to fix any previously ungrouped file variants
     # This handles race conditions from previous scans and incremental adds
     AsyncTask(repair_ungrouped_file_variants, user, uuid.uuid4()).run()
+
+    # Only while there is something to do, so a library whose videos have all
+    # been probed -- or that has none -- does not get an empty job every scan.
+    if video_color.can_probe() and videos_to_probe(user).exists():
+        AsyncTask(probe_videos, user, uuid.uuid4()).run()
 
     if settings.FEATURE_SCENE_CLASSIFICATION:
         AsyncTask(generate_tags, user, uuid.uuid4(), full_scan).run()
