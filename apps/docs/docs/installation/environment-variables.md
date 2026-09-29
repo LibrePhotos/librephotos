@@ -306,7 +306,7 @@ That fallback is wrong behind the bundled proxy, which forwards `/api/` to the b
 
 So set this whenever LibrePhotos has to hand a URL to something outside the container:
 
-- **Password-reset emails** — the link in the email. Without it the fallback can produce a link pointing at `http://backend/...`, which no mail recipient can open.
+- **Password-reset emails** — the link in the email. Without it the fallback can produce a link pointing at `http://backend/...`, which no mail recipient can open. The unified and standalone images accept any `Host` header, so there the request's origin is only used when it is listed in `CSRF_TRUSTED_ORIGINS`; otherwise no reset email is sent and the backend log asks for `FRONTEND_BASE_URL`. A link built from a `Host` header the requester chose would hand the reset token to whatever site they named.
 - **Single sign-on** — the OAuth `redirect_uri` sent to your identity provider, which the browser has to follow and the provider has to recognise. SSO refuses to start rather than send a broken one, so this is effectively required for [OIDC](../user-guide/settings/single-sign-on.md).
 
 ### Trusted origins for the Django admin

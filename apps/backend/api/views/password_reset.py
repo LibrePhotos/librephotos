@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from api.public_url import public_base_url
+from api.public_url import trusted_public_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +45,19 @@ class PasswordResetView(APIView):
         )
 
     def _send_reset_email(self, request, user):
+        base = trusted_public_base_url(request)
+        if not base:
+            # The only other source for the link is the Host header, which the
+            # caller chooses. Sending that would mail the victim a real token
+            # pointing at the attacker's site.
+            logger.error(
+                "Password reset for user %s not sent: set FRONTEND_BASE_URL to "
+                "the address users browse to, so the emailed link can be trusted.",
+                user.pk,
+            )
+            return
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        base = public_base_url(request)
         link = f"{base}/password-reset/confirm/{uid}/{token}"
 
         subject = "Reset your LibrePhotos password"
