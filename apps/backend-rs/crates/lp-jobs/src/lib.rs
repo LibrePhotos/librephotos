@@ -11,6 +11,8 @@ pub mod registry;
 pub mod worker;
 
 pub use lrj::{JobErrors, JobType, LongRunningJob, Progress};
-pub use queue::{EnqueueOptions, Enqueued, LrjSpec, QueuedJob, enqueue, enqueue_in, wake};
+pub use queue::{
+    EnqueueOptions, Enqueued, LrjSpec, QueuedJob, enqueue, enqueue_in, enqueue_many_in, wake,
+};
 pub use registry::{HandlerRegistry, JobCtx};
 pub use worker::Worker;

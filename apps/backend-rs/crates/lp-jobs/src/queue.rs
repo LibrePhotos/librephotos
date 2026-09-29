@@ -111,6 +111,33 @@ pub async fn enqueue_in(
     Ok(Enqueued { id, lrj_id })
 }
 
+/// Enqueue one untracked job of `kind` per payload in a single INSERT (and
+/// one NOTIFY), inside the caller's transaction. Returns the number queued.
+pub async fn enqueue_many_in(
+    conn: &mut PgConnection,
+    kind: &str,
+    payloads: &[Value],
+) -> sqlx::Result<u64> {
+    if payloads.is_empty() {
+        return Ok(0);
+    }
+    let n = sqlx::query(
+        "INSERT INTO job_queue (kind, payload, run_after, max_attempts) \
+         SELECT $1, p, now(), 1 FROM unnest($2::jsonb[]) AS p",
+    )
+    .bind(kind)
+    .bind(payloads)
+    .execute(&mut *conn)
+    .await?
+    .rows_affected();
+    sqlx::query("SELECT pg_notify($1, $2)")
+        .bind(NOTIFY_CHANNEL)
+        .bind(kind)
+        .execute(&mut *conn)
+        .await?;
+    Ok(n)
+}
+
 /// Enqueue as its own transaction and wake the local worker.
 pub async fn enqueue(
     state: &AppState,
