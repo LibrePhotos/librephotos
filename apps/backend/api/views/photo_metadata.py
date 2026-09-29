@@ -46,20 +46,18 @@ class PhotoMetadataViewSet(ViewSet):
         # Python's uuid.UUID() accepts both, so we need to check format explicitly
         is_uuid_format = len(photo_id) == 36 and photo_id.count("-") == 4
 
-        if is_uuid_format:
-            photo = get_object_or_404(Photo, pk=photo_id)
+        # Staff may read and edit any photo's metadata. Everyone else only
+        # looks among their own photos, so another user's photo is a 404 like
+        # an unknown one: a 403 would confirm it exists, and image_hash (the
+        # file's MD5 plus the owner id) is computable by anyone with the file.
+        if request.user.is_staff:
+            photos = Photo.objects.all()
         else:
-            photo = get_object_or_404(Photo, image_hash=photo_id)
+            photos = Photo.objects.owned_by(request.user)
 
-        # Check ownership
-        if photo.owner != request.user and not request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
-
-            raise PermissionDenied(
-                "You don't have permission to access this photo's metadata."
-            )
-
-        return photo
+        if is_uuid_format:
+            return get_object_or_404(photos, pk=photo_id)
+        return get_object_or_404(photos, image_hash=photo_id)
 
     def _get_or_create_metadata(self, photo: Photo) -> PhotoMetadata:
         """Get or create PhotoMetadata for a photo."""

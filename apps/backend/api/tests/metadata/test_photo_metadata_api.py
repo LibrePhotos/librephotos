@@ -62,12 +62,12 @@ class PhotoMetadataRetrieveTestCase(APITestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_get_metadata_other_user_forbidden(self):
-        """Test that users cannot access other users' photo metadata."""
+        """Other users' photo metadata is a 404, as if the photo did not exist."""
         other_user = create_test_user()
         other_photo = create_test_photo(owner=other_user)
 
         response = self.client.get(f"/api/photos/{other_photo.pk}/metadata/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
     def test_get_metadata_admin_can_access_any(self):
         """Test that admin can access any photo's metadata."""
@@ -165,7 +165,7 @@ class PhotoMetadataUpdateTestCase(APITestCase):
         self.assertEqual(metadata.version, initial_version + 1)
 
     def test_update_metadata_forbidden_for_other_user(self):
-        """Test that users cannot update other users' photo metadata."""
+        """Other users' photo metadata cannot be updated; 404, not 403."""
         other_user = create_test_user()
         other_photo = create_test_photo(owner=other_user)
 
@@ -174,7 +174,7 @@ class PhotoMetadataUpdateTestCase(APITestCase):
             {"title": "Hacked Title"},
             format="json",
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
 
 class PhotoMetadataHistoryTestCase(APITestCase):

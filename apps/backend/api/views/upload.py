@@ -124,15 +124,39 @@ class UploadPhotoExists(viewsets.ViewSet):
         return Response({"exists": exists})
 
 
-@method_decorator(csrf_exempt, name="dispatch")
-class UploadPhotosChunked(ChunkedUploadView):
-    model = ChunkedUpload
+class UploaderScopedMixin:
+    """Tie a chunked upload to the user who authenticated the request.
+
+    The vendored views record ``request.user`` on a new upload and resolve
+    ``upload_id`` among ``request.user``'s uploads, but only when
+    ``request.user`` is authenticated. These are plain Django views that
+    authenticate the JWT themselves and never set it, so uploads were stored
+    without a user and any authenticated caller holding an ``upload_id`` could
+    append to or complete someone else's upload (completion imports the staged
+    file as the caller).
+    """
+
+    upload_user = None
 
     def check_permissions(self, request):
         if not site_config.ALLOW_UPLOAD:
             raise _forbidden("Uploading is not allowed")
-        # To-Do: Check if file is allowed type
-        authenticate_upload_request(request)
+        self.upload_user = authenticate_upload_request(request)
+
+    def get_queryset(self, request):
+        if self.upload_user is None:
+            return self.model.objects.none()
+        return self.model.objects.filter(user=self.upload_user)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class UploadPhotosChunked(UploaderScopedMixin, ChunkedUploadView):
+    model = ChunkedUpload
+
+    # To-Do: Check if file is allowed type
+
+    def get_extra_attrs(self, request):
+        return {"user": self.upload_user}
 
     def create_chunked_upload(self, save=False, **attrs):
         """Creates new chunked upload instance. Called if no 'upload_id' is
@@ -145,17 +169,12 @@ class UploadPhotosChunked(ChunkedUploadView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class UploadPhotosChunkedComplete(ChunkedUploadCompleteView):
+class UploadPhotosChunkedComplete(UploaderScopedMixin, ChunkedUploadCompleteView):
     model = ChunkedUpload
-
-    def check_permissions(self, request):
-        if not site_config.ALLOW_UPLOAD:
-            raise _forbidden("Uploading is not allowed")
-        authenticate_upload_request(request)
 
     def delete_chunked_upload(self, request, uploaded_file):
         chunked_upload = get_object_or_404(
-            ChunkedUpload, upload_id=request.POST.get("upload_id")
+            self.get_queryset(request), upload_id=request.POST.get("upload_id")
         )
         # Release our handle on the staged file before removing it; a
         # still-open handle makes the delete fail outright on Windows and
