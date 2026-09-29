@@ -7,10 +7,9 @@ use lp_core::extract::py_truthy;
 use lp_core::{ApiError, ApiJson, ApiResult, AppState};
 use lp_db::write::photo_edits::bulk::{self as svc, Flag};
 use lp_db::write::photo_edits::sharing;
-use lp_jobs::EnqueueOptions;
 use serde_json::{Map, Value, json};
 
-use super::{django_bool, metadata_to_disk, required, selection};
+use super::{metadata_to_disk, model_bool, required, selection};
 
 pub(super) fn object(body: Value) -> ApiResult<Map<String, Value>> {
     match body {
@@ -34,7 +33,7 @@ async fn run(
     let value = if flag == Flag::Favorite {
         py_truthy(raw)
     } else {
-        django_bool(raw)
+        model_bool(raw)
             .ok_or_else(|| ApiError::bad_request(value_field, "Must be a valid boolean."))?
     };
     let sel = selection(&body, false)?;
@@ -51,15 +50,12 @@ async fn run(
     .await?;
     let queued = flag == Flag::Favorite && metadata_to_disk(user) && !out.touched.is_empty();
     if queued {
-        for id in &out.touched {
-            lp_jobs::enqueue_in(
-                &mut tx,
-                "metadata.write",
-                json!({"photo_id": id, "fields": ["rating"]}),
-                &EnqueueOptions::default(),
-            )
-            .await?;
-        }
+        let payloads: Vec<Value> = out
+            .touched
+            .iter()
+            .map(|id| json!({"photo_id": id, "fields": ["rating"]}))
+            .collect();
+        lp_jobs::enqueue_many_in(&mut tx, "metadata.write", &payloads).await?;
     }
     tx.commit().await?;
     if queued {
@@ -116,8 +112,8 @@ pub(super) async fn share(
     ApiJson(body): ApiJson<Value>,
 ) -> ApiResult<Json<Value>> {
     let body = object(body)?;
-    let shared = django_bool(required(&body, "val_shared")?)
-        .ok_or_else(|| ApiError::bad_request("val_shared", "Must be a valid boolean."))?;
+    // `if shared:` on the raw value.
+    let shared = py_truthy(required(&body, "val_shared")?);
     let target = required(&body, "target_user_id")?;
     let target_user_id = match target {
         Value::Number(n) => n.as_i64(),

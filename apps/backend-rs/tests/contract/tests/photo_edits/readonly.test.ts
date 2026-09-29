@@ -143,6 +143,16 @@ const noop: NoopCase[] = [
     req: { method: "PATCH", path: `/api/photos/edit/${e01.image_hash}/`, body: { rating: "five", exif_gps_lat: "north" } },
   },
   {
+    name: "PATCH errors come in serializer field order",
+    roles: ["alice"],
+    req: { method: "PATCH", path: `/api/photos/edit/${e03.image_hash}/`, body: { is_screenshot: "maybe", rating: 1.5, image_hash: true } },
+  },
+  ...[[1], "x", 5, 2.5, null, true].map((body, i) => ({
+    name: `PATCH with a body that is not an object #${i}`,
+    roles: ["alice"] as Role[],
+    req: { method: "PATCH" as const, path: `/api/photos/edit/${e03.image_hash}/`, body },
+  })),
+  {
     name: "public link for alice's photo",
     roles: [...strangers, "anonymous"],
     req: { method: "POST", path: "/api/photo/share", body: { photo_id: e01.image_hash, action: "enable" } },

@@ -17,9 +17,8 @@ use lp_jobs::EnqueueOptions;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
-use super::bulk::object;
 use super::datetime_rules::{RuleInput, extract_local_date_time, parse_rules};
-use super::{django_bool, metadata_to_disk};
+use super::{drf_bool, metadata_to_disk};
 
 /// `PhotoEditSerializer` fields, in order.
 #[derive(Serialize)]
@@ -105,6 +104,53 @@ fn datetime_field(v: &Value) -> Result<Option<DateTime<Utc>>, &'static str> {
     }
 }
 
+/// `PhotoEditSerializer` writable fields, in the order DRF validates (and
+/// reports) them.
+const FIELDS: [&str; 12] = [
+    "image_hash",
+    "hidden",
+    "rating",
+    "in_trashcan",
+    "removed",
+    "video",
+    "exif_timestamp",
+    "timestamp",
+    "exif_gps_lat",
+    "exif_gps_lon",
+    "is_screenshot",
+    "is_document",
+];
+
+/// DRF `IntegerField` over a model `IntegerField` (32-bit range validators).
+fn integer_field(v: &Value) -> Result<(), &'static str> {
+    const INVALID: &str = "A valid integer is required.";
+    let n: i128 = match v {
+        Value::Null => return Err("This field may not be null."),
+        Value::Number(n) => match (n.as_i64(), n.as_f64()) {
+            (Some(i), _) => i128::from(i),
+            (None, Some(f)) if f.fract() == 0.0 && f.abs() < 1e15 => f as i128,
+            _ => return Err(INVALID),
+        },
+        // `int(re.sub(r"\.0*\s*$", "", data))`
+        Value::String(s) => {
+            let t = s.trim_end();
+            let t = match t.rfind('.') {
+                Some(i) if t[i + 1..].bytes().all(|b| b == b'0') => &t[..i],
+                _ => t,
+            };
+            t.trim().replace('_', "").parse().map_err(|_| INVALID)?
+        }
+        _ => return Err(INVALID),
+    };
+    if n > i128::from(i32::MAX) {
+        Err("Ensure this value is less than or equal to 2147483647.")
+    } else if n < i128::from(i32::MIN) {
+        Err("Ensure this value is greater than or equal to -2147483648.")
+    } else {
+        Ok(())
+    }
+}
+
 /// DRF validation of the `PhotoEditSerializer` fields present in the body.
 fn validate(body: &Map<String, Value>) -> ApiResult<EditInput> {
     let mut input = EditInput::default();
@@ -114,8 +160,11 @@ fn validate(body: &Map<String, Value>) -> ApiResult<EditInput> {
             errors.push(field_err(field, m));
         }
     };
-    for (field, v) in body {
-        match field.as_str() {
+    for field in FIELDS {
+        let Some(v) = body.get(field) else {
+            continue;
+        };
+        match field {
             "exif_timestamp" => check(
                 field,
                 datetime_field(v).map(|d| input.exif_timestamp = Some(d)),
@@ -123,50 +172,33 @@ fn validate(body: &Map<String, Value>) -> ApiResult<EditInput> {
             "timestamp" => check(field, datetime_field(v).map(|_| ())),
             "exif_gps_lat" => check(field, float_field(v).map(|f| input.gps_lat = Some(f))),
             "exif_gps_lon" => check(field, float_field(v).map(|f| input.gps_lon = Some(f))),
-            "is_screenshot" | "is_document" | "hidden" | "in_trashcan" | "removed" | "video" => {
+            "rating" => check(field, integer_field(v)),
+            "image_hash" => {
+                let res = match v {
+                    Value::Null => Err("This field may not be null."),
+                    Value::String(s) if s.trim().is_empty() => Err("This field may not be blank."),
+                    Value::String(s) if s.trim().chars().count() > 64 => {
+                        Err("Ensure this field has no more than 64 characters.")
+                    }
+                    Value::String(_) | Value::Number(_) => Ok(()),
+                    _ => Err("Not a valid string."),
+                };
+                check(field, res)
+            }
+            _ => {
                 let parsed = match v {
                     Value::Null => Err("This field may not be null."),
-                    other => django_bool(other).ok_or("Must be a valid boolean."),
+                    other => drf_bool(other).ok_or("Must be a valid boolean."),
                 };
                 check(
                     field,
-                    parsed.map(|b| match field.as_str() {
+                    parsed.map(|b| match field {
                         "is_screenshot" => input.is_screenshot = Some(b),
                         "is_document" => input.is_document = Some(b),
                         _ => {}
                     }),
                 )
             }
-            "rating" => {
-                let ok = match v {
-                    Value::Number(n) => {
-                        n.as_i64().is_some() || n.as_f64().is_some_and(|f| f.fract() == 0.0)
-                    }
-                    Value::String(s) => s.trim().parse::<i64>().is_ok(),
-                    _ => false,
-                };
-                check(
-                    field,
-                    if ok {
-                        Ok(())
-                    } else {
-                        Err("A valid integer is required.")
-                    },
-                )
-            }
-            "image_hash" => {
-                let res = match v {
-                    Value::Null => Err("This field may not be null."),
-                    Value::String(s) if s.trim().is_empty() => Err("This field may not be blank."),
-                    Value::String(s) if s.chars().count() > 64 => {
-                        Err("Ensure this field has no more than 64 characters.")
-                    }
-                    Value::String(_) | Value::Number(_) | Value::Bool(_) => Ok(()),
-                    _ => Err("Not a valid string."),
-                };
-                check(field, res)
-            }
-            _ => {}
         }
     }
     if errors.is_empty() {
@@ -174,6 +206,22 @@ fn validate(body: &Map<String, Value>) -> ApiResult<EditInput> {
     } else {
         Err(ApiError::fields(StatusCode::BAD_REQUEST, errors))
     }
+}
+
+/// The serializer's `data`: DRF refuses anything but an object.
+fn serializer_data(body: Value) -> ApiResult<Map<String, Value>> {
+    let got = match body {
+        Value::Object(m) => return Ok(m),
+        Value::Null => return Err(ApiError::validation("No data provided")),
+        Value::Array(_) => "list",
+        Value::String(_) => "str",
+        Value::Bool(_) => "bool",
+        Value::Number(n) if n.is_f64() => "float",
+        Value::Number(_) => "int",
+    };
+    Err(ApiError::validation(format!(
+        "Invalid data. Expected a dictionary, but got {got}."
+    )))
 }
 
 pub(super) async fn patch_photo(
@@ -185,7 +233,7 @@ pub(super) async fn patch_photo(
     let photo = reads::edit_target(&state.db, user.id, &lookup)
         .await?
         .ok_or_else(ApiError::not_found)?;
-    let body = object(body)?;
+    let body = serializer_data(body)?;
     let input = validate(&body)?;
 
     if input.is_screenshot.is_some() || input.is_document.is_some() {
@@ -306,7 +354,14 @@ mod tests {
         let body = json!({"rating": "x", "hidden": "maybe", "exif_timestamp": "nope", "exif_gps_lat": "1.5"});
         let err = validate(body.as_object().unwrap()).unwrap_err();
         let fields: Vec<_> = err.errors.iter().map(|e| e.field.as_str()).collect();
-        assert_eq!(fields, vec!["rating", "hidden", "exif_timestamp"]);
+        assert_eq!(fields, vec!["hidden", "rating", "exif_timestamp"]);
+        for ok in [json!(5), json!("5.00 "), json!(" -3"), json!(4.0)] {
+            assert_eq!(integer_field(&ok), Ok(()), "{ok}");
+        }
+        for bad in [json!(1.5), json!("1.5"), json!(true), json!("x")] {
+            assert!(integer_field(&bad).is_err(), "{bad}");
+        }
+        assert!(integer_field(&json!(3_000_000_000_i64)).is_err());
 
         let body = json!({"exif_timestamp": null, "exif_gps_lat": "1.5", "exif_gps_lon": 2, "is_document": true});
         let ok = validate(body.as_object().unwrap()).unwrap();

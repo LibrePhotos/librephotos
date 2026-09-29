@@ -98,10 +98,14 @@ pub struct OwnedPhoto {
     /// `None` when the photo has no thumbnail row at all.
     pub thumbnail_big: Option<String>,
     pub has_thumbnail_row: bool,
+    pub main_file_path: Option<String>,
 }
 
 const OWNED_COLUMNS: &str = "p.id, p.image_hash, p.video, p.local_orientation, p.last_modified, \
-    t.thumbnail_big, (t.photo_id IS NOT NULL) AS has_thumbnail_row";
+    t.thumbnail_big, (t.photo_id IS NOT NULL) AS has_thumbnail_row, mf.path AS main_file_path";
+
+const OWNED_FROM: &str = "FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id \
+    LEFT JOIN api_file mf ON mf.hash = p.main_file_id";
 
 /// `Photo.objects.owned_by(user).filter(image_hash=h).first()`.
 pub async fn owned_by_hash<'e>(
@@ -110,7 +114,7 @@ pub async fn owned_by_hash<'e>(
     image_hash: &str,
 ) -> sqlx::Result<Option<OwnedPhoto>> {
     sqlx::query_as::<_, OwnedPhoto>(&format!(
-        "SELECT {OWNED_COLUMNS} FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id \
+        "SELECT {OWNED_COLUMNS} {OWNED_FROM} \
          WHERE p.owner_id = $1 AND p.image_hash = $2 ORDER BY p.id LIMIT 1"
     ))
     .bind(user_id)
@@ -127,8 +131,7 @@ pub async fn owned_by_id_or_hash<'e>(
 ) -> sqlx::Result<Option<OwnedPhoto>> {
     if let Ok(pk) = Uuid::parse_str(photo_id) {
         let found = sqlx::query_as::<_, OwnedPhoto>(&format!(
-            "SELECT {OWNED_COLUMNS} FROM api_photo p LEFT JOIN api_thumbnail t ON t.photo_id = p.id \
-             WHERE p.owner_id = $1 AND p.id = $2"
+            "SELECT {OWNED_COLUMNS} {OWNED_FROM} WHERE p.owner_id = $1 AND p.id = $2"
         ))
         .bind(user_id)
         .bind(pk)
@@ -139,6 +142,19 @@ pub async fn owned_by_id_or_hash<'e>(
         }
     }
     owned_by_hash(db, user_id, photo_id).await
+}
+
+/// `PhotoMetadata.orientation`; `None` when the photo has no metadata row.
+pub async fn metadata_orientation<'e>(
+    db: impl PgExecutor<'e>,
+    photo_id: Uuid,
+) -> sqlx::Result<Option<Option<i32>>> {
+    sqlx::query_scalar::<_, Option<i32>>(
+        "SELECT orientation FROM api_photometadata WHERE photo_id = $1",
+    )
+    .bind(photo_id)
+    .fetch_optional(db)
+    .await
 }
 
 /// One `PhotoShare` row joined to its photo's hash.

@@ -66,8 +66,9 @@ fn required<'a>(body: &'a Map<String, Value>, key: &str) -> ApiResult<&'a Value>
         .ok_or_else(|| ApiError::bad_request(key, "This field is required."))
 }
 
-/// Django `BooleanField.to_python`.
-fn django_bool(v: &Value) -> Option<bool> {
+/// Django's model `BooleanField.to_python` (what a queryset filter or
+/// UPDATE does with the raw value): no lowercase "true"/"false".
+fn model_bool(v: &Value) -> Option<bool> {
     match v {
         Value::Bool(b) => Some(*b),
         Value::Number(n) => match n.as_f64() {
@@ -76,8 +77,26 @@ fn django_bool(v: &Value) -> Option<bool> {
             _ => None,
         },
         Value::String(s) => match s.as_str() {
-            "t" | "True" | "true" | "1" => Some(true),
-            "f" | "False" | "false" | "0" => Some(false),
+            "t" | "True" | "1" => Some(true),
+            "f" | "False" | "0" => Some(false),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// DRF `serializers.BooleanField.to_internal_value` (case-insensitive words).
+fn drf_bool(v: &Value) -> Option<bool> {
+    match v {
+        Value::Bool(b) => Some(*b),
+        Value::Number(n) => match n.as_f64() {
+            Some(1.0) => Some(true),
+            Some(0.0) => Some(false),
+            _ => None,
+        },
+        Value::String(s) => match s.to_lowercase().as_str() {
+            "t" | "y" | "yes" | "true" | "on" | "1" => Some(true),
+            "f" | "n" | "no" | "false" | "off" | "0" => Some(false),
             _ => None,
         },
         _ => None,
@@ -99,7 +118,9 @@ fn string_list(v: Option<&Value>, field: &str) -> ApiResult<Vec<String>> {
     match v {
         None | Some(Value::Null) => Ok(Vec::new()),
         Some(Value::Array(a)) => Ok(a.iter().map(py_str).collect()),
-        Some(Value::String(s)) => Ok(vec![s.clone()]),
+        // Django iterates a string given where a list is expected (`__in`,
+        // `dict.fromkeys`), so it names one-character hashes, not itself.
+        Some(Value::String(s)) => Ok(s.chars().map(String::from).collect()),
         Some(_) => Err(ApiError::bad_request(field, "Expected a list of items.")),
     }
 }
@@ -138,10 +159,15 @@ mod tests {
 
     #[test]
     fn bools_follow_django() {
-        assert_eq!(django_bool(&json!(true)), Some(true));
-        assert_eq!(django_bool(&json!("False")), Some(false));
-        assert_eq!(django_bool(&json!(1)), Some(true));
-        assert_eq!(django_bool(&json!("yes")), None);
+        assert_eq!(model_bool(&json!(true)), Some(true));
+        assert_eq!(model_bool(&json!("False")), Some(false));
+        assert_eq!(model_bool(&json!(1)), Some(true));
+        assert_eq!(model_bool(&json!("false")), None);
+        assert_eq!(model_bool(&json!("yes")), None);
+        assert_eq!(drf_bool(&json!("YES")), Some(true));
+        assert_eq!(drf_bool(&json!("false")), Some(false));
+        assert_eq!(drf_bool(&json!(0.0)), Some(false));
+        assert_eq!(drf_bool(&json!("maybe")), None);
     }
 
     #[test]
@@ -164,5 +190,9 @@ mod tests {
             _ => panic!("select_all"),
         }
         assert!(selection(json!({}).as_object().unwrap(), false).is_err());
+        match selection(json!({"image_hashes": "ab"}).as_object().unwrap(), false).unwrap() {
+            Selection::Hashes(h) => assert_eq!(h, vec!["a", "b"]),
+            _ => panic!("string"),
+        }
     }
 }

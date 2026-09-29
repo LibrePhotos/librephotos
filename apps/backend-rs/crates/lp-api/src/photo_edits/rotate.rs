@@ -1,6 +1,7 @@
 //! `POST /photosedit/rotate/` (`RotatePhotoView`): non-destructive rotation.
 //! The thumbnails are rebuilt by the `thumbnails.rerender` job instead of
-//! inside the request.
+//! inside the request. With `save_metadata_to_disk` on, the orientation is
+//! written to the file or sidecar in the request, as Django does.
 
 use axum::Json;
 use axum::extract::State;
@@ -16,7 +17,8 @@ use lp_jobs::EnqueueOptions;
 use serde_json::{Value, json};
 
 use super::bulk::object;
-use super::{py_str, status_message};
+use super::exif;
+use super::{metadata_to_disk, py_str, status_message};
 
 /// EXIF orientation 1-8 as `(n, m)`: `n` 90° CW steps, then `m` horizontal flips.
 const ORIENTATION_TO_PARAMS: [(i32, (i32, i32)); 8] = [
@@ -47,6 +49,115 @@ pub fn compose_orientation(current: i32, delta_angle_cw: i32, flip_h: bool) -> i
         .find(|(_, p)| *p == (result_n, result_m))
         .map(|(o, _)| *o)
         .unwrap_or(1)
+}
+
+/// `api.thumbnails.exif_orientation_showing(exif, local)`, tabulated from
+/// libvips: row = the file's EXIF orientation, column = `local_orientation`.
+const EXIF_ORIENTATION_SHOWING: [[i32; 8]; 8] = [
+    [1, 2, 3, 4, 5, 8, 7, 6],
+    [2, 1, 4, 3, 8, 5, 6, 7],
+    [3, 4, 1, 2, 7, 6, 5, 8],
+    [4, 3, 2, 1, 6, 7, 8, 5],
+    [5, 6, 7, 8, 1, 4, 3, 2],
+    [6, 5, 8, 7, 4, 1, 2, 3],
+    [7, 8, 5, 6, 3, 2, 1, 4],
+    [8, 7, 6, 5, 2, 3, 4, 1],
+];
+
+/// libvips treats an orientation outside 1-8 as upright.
+pub fn exif_orientation_showing(exif_orientation: i64, local_orientation: i32) -> i32 {
+    let idx = |o: i64| {
+        if (1..=8).contains(&o) {
+            (o - 1) as usize
+        } else {
+            0
+        }
+    };
+    EXIF_ORIENTATION_SHOWING[idx(exif_orientation)][idx(i64::from(local_orientation))]
+}
+
+/// `_EXIF_ORIENTED_EXTENSIONS` (none of them is a RAW extension).
+fn renders_exif_orientation(path: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase())
+        .is_some_and(|e| {
+            matches!(
+                e.as_str(),
+                "jpg" | "jpeg" | "jpe" | "jfif" | "tif" | "tiff" | "png" | "webp"
+            )
+        })
+}
+
+/// `_fold_rotation_into_file`: `None` when the file cannot take the rotation
+/// (nothing written), else the `local_orientation` to report.
+async fn fold_rotation_into_file(
+    state: &AppState,
+    conn: &mut sqlx::PgConnection,
+    photo_id: uuid::Uuid,
+    path: &str,
+    local: i32,
+) -> anyhow::Result<Option<i32>> {
+    let exiftool = &state.config.binaries.exiftool;
+    if !renders_exif_orientation(path) {
+        return Ok(None);
+    }
+    let Some(on_disk) = exif::read_orientation(exiftool, path).await else {
+        return Ok(None);
+    };
+    let combined = exif_orientation_showing(on_disk, local);
+    exif::write_tag(exiftool, path, "EXIF:Orientation", combined.into(), false).await?;
+    let written = exif::read_orientation(exiftool, path).await;
+    if written != Some(i64::from(combined)) {
+        tracing::warn!(
+            path,
+            combined,
+            ?written,
+            "orientation was not written; keeping the rotation in the database"
+        );
+        return Ok(Some(local));
+    }
+    svc::adopt_written_orientation(conn, photo_id, combined).await?;
+    Ok(Some(1))
+}
+
+/// `write_orientation_to_disk` for an owner with `save_metadata_to_disk` on.
+/// Returns the `local_orientation` the photo ends up with.
+async fn write_orientation_to_disk(
+    state: &AppState,
+    conn: &mut sqlx::PgConnection,
+    user: &lp_db::users::User,
+    photo: &reads::OwnedPhoto,
+    angle: i32,
+    flip: bool,
+    local: i32,
+) -> anyhow::Result<i32> {
+    let use_sidecar = user.save_metadata_to_disk == "SIDECAR_FILE";
+    let path = photo
+        .main_file_path
+        .as_deref()
+        .ok_or_else(|| anyhow::anyhow!("photo has no main file"))?;
+    if !use_sidecar
+        && let Some(shown) = fold_rotation_into_file(state, conn, photo.id, path, local).await?
+    {
+        return Ok(shown);
+    }
+    let exif_orientation = reads::metadata_orientation(&mut *conn, photo.id)
+        .await?
+        .flatten()
+        .filter(|o| *o != 0)
+        .unwrap_or(1);
+    let combined = compose_orientation(exif_orientation, angle, flip);
+    exif::write_tag(
+        &state.config.binaries.exiftool,
+        path,
+        "EXIF:Orientation",
+        combined.into(),
+        use_sidecar,
+    )
+    .await?;
+    Ok(local)
 }
 
 /// `_parse_rotation_angle`: Python `int(raw)`.
@@ -106,10 +217,34 @@ pub(super) async fn rotate(
     let (orientation, last_modified) = if angle == 0 && !flip {
         (photo.local_orientation, photo.last_modified)
     } else {
-        let orientation = compose_orientation(photo.local_orientation, angle, flip);
         let mut tx = state.db.begin().await?;
+        let current = svc::lock_local_orientation(&mut tx, photo.id).await?;
+        let orientation = compose_orientation(current, angle, flip);
         let last_modified = svc::set_local_orientation(&mut tx, photo.id, orientation).await?;
+        let mut shown = orientation;
+        let mut disk_failed = false;
         if photo.has_thumbnail_row {
+            // Before the commit: the rerender job must not see the file
+            // rotated while `local_orientation` still carries the turn.
+            if metadata_to_disk(&user) {
+                match write_orientation_to_disk(
+                    &state,
+                    &mut tx,
+                    &user,
+                    &photo,
+                    angle,
+                    flip,
+                    orientation,
+                )
+                .await
+                {
+                    Ok(o) => shown = o,
+                    Err(e) => {
+                        tracing::warn!(error = %e, image_hash, "Failed to rotate photo");
+                        disk_failed = true;
+                    }
+                }
+            }
             lp_jobs::enqueue_in(
                 &mut tx,
                 "thumbnails.rerender",
@@ -119,15 +254,18 @@ pub(super) async fn rotate(
             .await?;
         }
         tx.commit().await?;
-        if !photo.has_thumbnail_row {
-            // Django saved the orientation, then failed regenerating thumbnails.
+        if photo.has_thumbnail_row {
+            lp_jobs::wake(&state);
+        }
+        if !photo.has_thumbnail_row || disk_failed {
+            // Django saved the orientation, then failed regenerating the
+            // thumbnails or writing the file.
             return Ok(status_message(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "failed to rotate photo",
             ));
         }
-        lp_jobs::wake(&state);
-        (orientation, last_modified)
+        (shown, last_modified)
     };
     Ok(Json(json!({
         "status": true,
@@ -173,6 +311,22 @@ mod tests {
             );
             assert_eq!(compose_orientation(o, 360, false), o);
         }
+    }
+
+    #[test]
+    fn orientation_shown_by_file() {
+        for o in 1..=8 {
+            assert_eq!(exif_orientation_showing(o, 1), o as i32);
+            assert_eq!(
+                exif_orientation_showing(1, o as i32),
+                [1, 2, 3, 4, 5, 8, 7, 6][o as usize - 1]
+            );
+        }
+        assert_eq!(exif_orientation_showing(0, 6), 8);
+        assert_eq!(exif_orientation_showing(6, 6), 1);
+        assert!(renders_exif_orientation("C:\\x\\a.JPG"));
+        assert!(!renders_exif_orientation("/x/a.heic"));
+        assert!(!renders_exif_orientation("/x/a.dng"));
     }
 
     #[test]

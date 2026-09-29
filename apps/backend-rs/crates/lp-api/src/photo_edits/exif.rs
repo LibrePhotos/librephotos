@@ -51,6 +51,73 @@ fn name_matches(requested: &str, returned: &str) -> bool {
     }
 }
 
+/// One exiftool run with `args` (one per line of an argfile, so paths are
+/// passed as UTF-8). The exit status is not checked: exiftool reports a
+/// failed write on stdout, as PyExifTool leaves it.
+async fn run_exiftool(exiftool: &Path, args: &[&str]) -> anyhow::Result<Vec<u8>> {
+    let mut argfile = String::new();
+    for a in args {
+        argfile.push_str(a);
+        argfile.push('\n');
+    }
+    let mut child = tokio::process::Command::new(PathBuf::from(exiftool))
+        .args(["-charset", "filename=utf8", "-@", "-"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .with_context(|| format!("starting {}", exiftool.display()))?;
+    let mut stdin = child.stdin.take().context("exiftool stdin")?;
+    stdin.write_all(argfile.as_bytes()).await?;
+    drop(stdin);
+    Ok(child.wait_with_output().await?.stdout)
+}
+
+/// `api.metadata.writer.read_orientation`: the file's own EXIF Orientation
+/// (1 when absent), `None` when it cannot be read.
+pub async fn read_orientation(exiftool: &Path, media_file: &str) -> Option<i64> {
+    let out = run_exiftool(
+        exiftool,
+        &["-j", "-G", "-n", "-EXIF:Orientation", media_file],
+    )
+    .await
+    .ok()?;
+    let per_file: Vec<serde_json::Map<String, Value>> = serde_json::from_slice(&out).ok()?;
+    let first = per_file.into_iter().next()?;
+    match first.into_iter().find(|(k, _)| k != "SourceFile") {
+        None | Some((_, Value::Null)) => Some(1),
+        Some((_, Value::Number(n))) => n.as_i64(),
+        Some(_) => None,
+    }
+}
+
+/// `api.metadata.writer.write_metadata(media_file, {tag: value}, use_sidecar)`.
+pub async fn write_tag(
+    exiftool: &Path,
+    media_file: &str,
+    tag: &str,
+    value: i64,
+    use_sidecar: bool,
+) -> anyhow::Result<()> {
+    let target = if use_sidecar {
+        let path = Path::new(media_file);
+        match path.extension() {
+            Some(_) => format!("{}.xmp", path.with_extension("").display()),
+            None => format!("{media_file}.xmp"),
+        }
+    } else {
+        media_file.to_string()
+    };
+    let assignment = format!("-{tag}={value}");
+    run_exiftool(
+        exiftool,
+        &["-G", "-n", &assignment, "-overwrite_original", &target],
+    )
+    .await?;
+    Ok(())
+}
+
 /// One value per tag (None when absent); a later file wins, as in the exif
 /// sidecar's `highest_priority_values`.
 pub async fn get_metadata(

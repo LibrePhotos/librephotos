@@ -291,6 +291,39 @@ pub async fn apply_geocode(
     Ok(())
 }
 
+/// The current `local_orientation`, row-locked so concurrent rotations
+/// compose instead of overwriting each other.
+pub async fn lock_local_orientation(conn: &mut PgConnection, photo_id: Uuid) -> sqlx::Result<i32> {
+    sqlx::query_scalar("SELECT local_orientation FROM api_photo WHERE id = $1 FOR UPDATE")
+        .bind(photo_id)
+        .fetch_one(&mut *conn)
+        .await
+}
+
+/// `_adopt_written_orientation`: the file now carries the whole rotation.
+/// Both saves use `update_fields`, so no `last_modified`/`updated_at` bump.
+pub async fn adopt_written_orientation(
+    conn: &mut PgConnection,
+    photo_id: Uuid,
+    combined: i32,
+) -> sqlx::Result<()> {
+    sqlx::query(
+        "UPDATE api_photo SET local_orientation = 1 WHERE id = $1 AND local_orientation <> 1",
+    )
+    .bind(photo_id)
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query(
+        "UPDATE api_photometadata SET orientation = $2 \
+         WHERE photo_id = $1 AND orientation IS DISTINCT FROM $2",
+    )
+    .bind(photo_id)
+    .bind(combined)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+
 /// `Photo.rotate`'s DB part; returns the new `last_modified`.
 pub async fn set_local_orientation(
     conn: &mut PgConnection,
