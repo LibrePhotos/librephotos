@@ -83,6 +83,17 @@ describe.skipIf(!hasBase)("authz: stacks", () => {
       expect: { bob: 404 },
     },
     {
+      name: "add without photo_hashes",
+      req: { method: "POST", path: `/api/stacks/${burst()}/add/`, body: { photo_hashes: [] } },
+      expect: { alice: 400, bob: 404, anonymous: 401 },
+    },
+    {
+      name: "add to someone else's stack",
+      roles: others,
+      req: { method: "POST", path: `/api/stacks/${burst()}/add/`, body: { photo_hashes: [h("alice/e2e_01")] } },
+      expect: { bob: 404, admin: 404, anonymous: 401 },
+    },
+    {
       name: "delete someone else's stack",
       roles: others,
       req: { method: "DELETE", path: `/api/stacks/${burst()}/` },

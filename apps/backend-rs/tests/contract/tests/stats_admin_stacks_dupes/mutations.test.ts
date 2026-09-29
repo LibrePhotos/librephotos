@@ -3,6 +3,7 @@
 // clones (each with its own media copy); state parity is then checked with
 // fixture/dump_state.py (see tests/README.md §4).
 import {
+  AddToStackResponseSchema,
   CreateManualStackResponseSchema,
   DeleteStackResponse,
   MergeStacksResponseSchema,
@@ -49,6 +50,8 @@ describe.skipIf(!enabled)("stack and duplicate mutations", () => {
 
   it("stacks", async () => {
     await both({ method: "POST", path: `/api/stacks/${burst()}/primary/`, body: { photo_hash: h("alice/burst_1") } }, SetPrimaryResponse);
+    await both({ method: "POST", path: `/api/stacks/${burst()}/remove/`, body: { photo_hashes: [h("alice/burst_1")] } }, RemoveFromStackResponseSchema);
+    await both({ method: "POST", path: `/api/stacks/${burst()}/add/`, body: { photo_hashes: [h("alice/burst_1"), h("bob/own_01")] } }, AddToStackResponseSchema);
     await both({ method: "POST", path: `/api/stacks/${burst()}/remove/`, body: { photo_hashes: [h("alice/burst_1")] } }, RemoveFromStackResponseSchema);
     const made = await both(
       { method: "POST", path: "/api/stacks/manual/", body: { photo_hashes: [h("alice/e2e_01"), h("alice/e2e_02")] } },

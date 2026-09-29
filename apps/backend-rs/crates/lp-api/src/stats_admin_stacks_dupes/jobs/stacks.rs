@@ -65,26 +65,36 @@ pub async fn detect(
     let user = lp_db::users::by_id(&state.db, user_id)
         .await?
         .with_context(|| format!("user {user_id} not found"))?;
-    let mut tx = state.db.begin().await?;
-    write::clear_type(&mut tx, user_id, BURST).await?;
     let rules = match burst::parse_rules(&user.burst_detection_rules) {
         Ok(r) => r,
         Err(e) => {
             // Django clears the old bursts before it reads the rules.
+            let mut tx = state.db.begin().await?;
+            write::clear_type(&mut tx, user_id, BURST).await?;
             tx.commit().await?;
             anyhow::bail!("invalid burst_detection_rules: {e}");
         }
     };
     let hard: Vec<&Rule> = rules.iter().filter(|r| r.is_hard()).collect();
     let soft: Vec<&Rule> = rules.iter().filter(|r| r.is_soft()).collect();
+    // The EXIF reads take minutes on a big library: do them before the
+    // transaction, so its locks on the user's burst stacks stay short.
+    let hard_groups = if hard.is_empty() {
+        Vec::new()
+    } else {
+        hard_groups(state, user_id, &hard, lrj).await?
+    };
+    let mut tx = state.db.begin().await?;
+    write::clear_type(&mut tx, user_id, BURST).await?;
     let mut stacker = Stacker {
         conn: &mut tx,
         owner: user_id,
         stacked: HashSet::new(),
         created: 0,
     };
-    if !hard.is_empty() {
-        hard_criteria(state, user_id, &hard, &mut stacker, lrj).await?;
+    for members in &hard_groups {
+        let refs: Vec<&BurstCandidate> = members.iter().collect();
+        stacker.create(&refs).await?;
     }
     if !soft.is_empty() {
         soft_criteria(user_id, &soft, &mut stacker).await?;
@@ -94,17 +104,20 @@ pub async fn detect(
     Ok(created)
 }
 
-async fn hard_criteria(
+/// Hard-criteria bursts of two or more photos, each in stack order.
+async fn hard_groups(
     state: &AppState,
     user_id: i32,
     rules: &[&Rule],
-    stacker: &mut Stacker<'_>,
     lrj: Option<&str>,
-) -> anyhow::Result<()> {
-    let photos = detect::burst_hard_candidates(stacker.conn, user_id).await?;
+) -> anyhow::Result<Vec<Vec<BurstCandidate>>> {
+    let photos = {
+        let mut conn = state.db.acquire().await?;
+        detect::burst_hard_candidates(&mut conn, user_id).await?
+    };
     let total = photos.len();
     if total == 0 {
-        return Ok(());
+        return Ok(Vec::new());
     }
     progress(state, lrj, STAGE, 0, total, 0).await;
     let mut tags: Vec<String> = Vec::new();
@@ -141,13 +154,14 @@ async fn hard_criteria(
         }
     }
     progress(state, lrj, STAGE, total, total, groups.len()).await;
-    for (_, mut members) in groups {
-        if members.len() >= 2 {
+    Ok(groups
+        .into_values()
+        .filter(|members| members.len() >= 2)
+        .map(|mut members| {
             members.sort_by_key(|p| p.exif_timestamp.unwrap_or(p.added_on));
-            stacker.create(&members).await?;
-        }
-    }
-    Ok(())
+            members.into_iter().cloned().collect()
+        })
+        .collect())
 }
 
 fn number(rule: &Rule, key: &str, default: f64) -> f64 {

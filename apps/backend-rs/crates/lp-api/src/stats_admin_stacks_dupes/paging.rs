@@ -100,13 +100,11 @@ pub fn hash_list(v: Option<&Value>) -> Vec<String> {
         Some(Value::Object(o)) => o.keys().cloned().collect(),
         _ => Vec::new(),
     };
-    let mut out: Vec<String> = Vec::with_capacity(items.len());
-    for h in items {
-        if !out.contains(&h) {
-            out.push(h);
-        }
-    }
-    out
+    let mut seen = std::collections::HashSet::with_capacity(items.len());
+    items
+        .into_iter()
+        .filter(|h| seen.insert(h.clone()))
+        .collect()
 }
 
 /// Python `int(value)` for a JSON body field.

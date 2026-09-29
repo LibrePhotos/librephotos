@@ -2,7 +2,7 @@
 //! `/api/photomonthcounts/`, `/api/wordcloud/`, `/api/socialgraph/`,
 //! `/api/locationsunburst/`, `/api/locationtimeline/`.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use axum::Json;
 use axum::extract::State;
@@ -221,27 +221,31 @@ pub struct SocialGraph {
     pub links: Vec<GraphLink>,
 }
 
+fn node_slot<'a>(index: &mut IndexMap<&'a str, Vec<usize>>, name: &'a str) -> usize {
+    match index.get_index_of(name) {
+        Some(i) => i,
+        None => index.insert_full(name, Vec::new()).0,
+    }
+}
+
 /// `build_social_graph`: nodes in first-seen order, one link per unordered pair.
 pub fn social_graph(links: &[(String, String)]) -> SocialGraph {
     let mut index: IndexMap<&str, Vec<usize>> = IndexMap::new();
+    let mut linked: HashSet<(usize, usize)> = HashSet::new();
     for (a, b) in links {
         for (u, v) in [(a, b), (b, a)] {
-            index.entry(u.as_str()).or_default();
-            let vi = match index.get_index_of(v.as_str()) {
-                Some(i) => i,
-                None => index.insert_full(v.as_str(), Vec::new()).0,
-            };
-            let adj = &mut index[u.as_str()];
-            if !adj.contains(&vi) {
-                adj.push(vi);
+            let ui = node_slot(&mut index, u);
+            let vi = node_slot(&mut index, v);
+            if linked.insert((ui, vi)) {
+                index[ui].push(vi);
             }
         }
     }
     let mut edges: Vec<(usize, usize)> = Vec::new();
+    let mut seen: HashSet<(usize, usize)> = HashSet::new();
     for (u, adj) in index.values().enumerate() {
         for &v in adj {
-            let key = (u.min(v), u.max(v));
-            if !edges.iter().any(|&(a, b)| (a.min(b), a.max(b)) == key) {
+            if seen.insert((u.min(v), u.max(v))) {
                 edges.push((u, v));
             }
         }

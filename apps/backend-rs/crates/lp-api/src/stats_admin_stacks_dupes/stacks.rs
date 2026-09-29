@@ -280,6 +280,32 @@ pub async fn set_primary(
     }
 }
 
+/// `POST /api/stacks/{id}/add/` (`AddToStackView`).
+pub async fn add(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(id): Path<String>,
+    ApiJson(body): ApiJson<Value>,
+) -> ApiResult<Json<Value>> {
+    let id = parse_id(&id, NOT_FOUND)?;
+    let raw = field(&body, "photo_hashes");
+    if !raw.is_some_and(py_truthy) {
+        if !db::exists(&state.db, user.id, id).await? {
+            return Err(ApiError::not_found_msg(NOT_FOUND));
+        }
+        return Err(ApiError::bad_request(
+            "photo_hashes",
+            "photo_hashes is required",
+        ));
+    }
+    let (added, total) = write::add_to_stack(&state.db, user.id, id, &hash_list(raw))
+        .await?
+        .ok_or_else(|| ApiError::not_found_msg(NOT_FOUND))?;
+    Ok(Json(
+        json!({"status": "updated", "added_count": added, "total_count": total}),
+    ))
+}
+
 pub async fn remove(
     State(state): State<AppState>,
     user: AuthUser,

@@ -29,6 +29,19 @@ fn sidecars(media: &str) -> Vec<String> {
     ]
 }
 
+/// Whether `tag` is a plain `[Group:]Name` ExifTool can only read. Rule tags
+/// come from the user's `burst_detection_rules`; anything else (`=`, spaces,
+/// line breaks, a leading `-`) would inject options into the argfile, e.g.
+/// `FileName=...` renames files and `-if` evaluates Perl.
+pub fn is_safe_tag(tag: &str) -> bool {
+    !tag.is_empty()
+        && tag.len() <= 128
+        && !tag.starts_with(['-', ':'])
+        && tag
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ':' | '*' | '?' | '#'))
+}
+
 fn split_tag(tag: &str) -> (String, String) {
     let (g, n) = tag.rsplit_once(':').unwrap_or(("", tag));
     (g.to_lowercase(), n.to_lowercase())
@@ -39,6 +52,9 @@ fn split_tag(tag: &str) -> (String, String) {
 fn attribute(data: &serde_json::Map<String, Value>, tags: &[String]) -> Vec<Option<Value>> {
     tags.iter()
         .map(|tag| {
+            if !is_safe_tag(tag) {
+                return None;
+            }
             let (group, name) = split_tag(tag);
             data.iter()
                 .filter(|(k, _)| k.as_str() != "SourceFile")
@@ -111,12 +127,15 @@ pub async fn read_tags(
     tags: &[String],
     concurrency: usize,
 ) -> HashMap<String, Vec<Option<Value>>> {
-    if tags.is_empty() || media.is_empty() {
+    let safe: Vec<String> = tags.iter().filter(|t| is_safe_tag(t)).cloned().collect();
+    if safe.is_empty() || media.is_empty() {
         return HashMap::new();
     }
     let mut sources: Vec<String> = Vec::with_capacity(media.len());
     let mut plan: Vec<(String, Vec<String>)> = Vec::with_capacity(media.len());
-    for m in media {
+    // One argfile line per path: a line break in a file name would be an
+    // option of its own.
+    for m in media.iter().filter(|m| !m.contains(['\n', '\r'])) {
         let mut files = vec![m.clone()];
         let existing: Vec<String> = sidecars(m)
             .into_iter()
@@ -133,7 +152,7 @@ pub async fn read_tags(
     let chunks: Vec<Vec<String>> = sources.chunks(CHUNK).map(|c| c.to_vec()).collect();
     let mut pending = futures::stream::iter(chunks.into_iter().map(|c| {
         let exiftool = exiftool.clone();
-        let tags = tags.to_vec();
+        let tags = safe.clone();
         async move { run_chunk(&exiftool, &c, &tags).await }
     }))
     .buffer_unordered(concurrency.max(1));
@@ -174,6 +193,34 @@ mod tests {
         assert_eq!(
             attribute(data.as_object().unwrap(), &tags),
             vec![Some(json!(1)), Some(json!("X")), None]
+        );
+    }
+
+    #[test]
+    fn only_plain_tag_names_reach_exiftool() {
+        for ok in [
+            "MakerNotes:BurstMode",
+            "XMP-dc:Description-*",
+            "EXIF:Model#",
+            "Model",
+        ] {
+            assert!(is_safe_tag(ok), "{ok}");
+        }
+        for bad in [
+            "",
+            "FileName=../../x.jpg",
+            "all=",
+            "EXIF:Model\n-if\nsystem('x')",
+            "-execute",
+            "EXIF:Model -o",
+            "@",
+        ] {
+            assert!(!is_safe_tag(bad), "{bad:?}");
+        }
+        let data = json!({"SourceFile": "a.jpg", "EXIF:Model": "X"});
+        assert_eq!(
+            attribute(data.as_object().unwrap(), &["EXIF:Model=Y".to_string()]),
+            vec![None]
         );
     }
 

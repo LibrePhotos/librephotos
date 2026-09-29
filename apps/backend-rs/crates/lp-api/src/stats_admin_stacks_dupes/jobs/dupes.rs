@@ -15,7 +15,7 @@ use lp_db::write::stats_admin_stacks_dupes::dupes as write;
 use serde_json::Value;
 use uuid::Uuid;
 
-use super::phash::{BkTree, MAX_DISTANCE, PHash, hamming};
+use super::phash::{BkTree, MAX_DISTANCE, PHash};
 use super::{option_flag, progress};
 use crate::stats_admin_stacks_dupes::paging::json_int;
 
@@ -79,19 +79,31 @@ impl<T: Hash + Eq + Clone> UnionFind<T> {
 /// sit at distance 64 from everything, as in Django.
 pub fn visual_pairs(hashes: &[&str], threshold: i64) -> Vec<(usize, usize)> {
     let mut pairs = Vec::new();
+    for_each_visual_pair(hashes, threshold, |i, j| pairs.push((i, j)));
+    pairs
+}
+
+/// [`visual_pairs`] without collecting them: a large threshold pairs nearly
+/// everything, and n² pairs of a big library would not fit in memory.
+pub fn for_each_visual_pair(hashes: &[&str], threshold: i64, mut f: impl FnMut(usize, usize)) {
+    if threshold < 0 {
+        return;
+    }
     if threshold >= i64::from(MAX_DISTANCE) {
         // Everything within 64 of everything else: no pruning is possible.
-        for i in 0..hashes.len() {
+        let parsed: Vec<Option<PHash>> = hashes.iter().map(|h| PHash::parse(h)).collect();
+        for i in 0..parsed.len() {
             for j in 0..i {
-                if i64::from(hamming(hashes[i], hashes[j])) <= threshold {
-                    pairs.push((i, j));
+                let d = match (&parsed[i], &parsed[j]) {
+                    (Some(a), Some(b)) => a.distance(b),
+                    _ => MAX_DISTANCE,
+                };
+                if i64::from(d) <= threshold {
+                    f(i, j);
                 }
             }
         }
-        return pairs;
-    }
-    if threshold < 0 {
-        return pairs;
+        return;
     }
     let threshold = threshold as u32;
     let mut trees: HashMap<usize, BkTree> = HashMap::new();
@@ -103,10 +115,11 @@ pub fn visual_pairs(hashes: &[&str], threshold: i64) -> Vec<(usize, usize)> {
         let tree = trees.entry(h.len()).or_default();
         found.clear();
         tree.search(&parsed, threshold, &mut found);
-        pairs.extend(found.iter().map(|&j| (i, j)));
+        for &j in &found {
+            f(i, j);
+        }
         tree.insert(parsed, i);
     }
-    pairs
 }
 
 pub async fn detect(
@@ -158,12 +171,13 @@ pub async fn detect(
             let pairs = state
                 .blocking(move || {
                     let hashes: Vec<&str> = candidates.iter().map(|(_, h)| h.as_str()).collect();
-                    let pairs = visual_pairs(&hashes, threshold);
                     let mut uf = UnionFind::default();
-                    for &(a, b) in &pairs {
+                    let mut pair_count = 0usize;
+                    for_each_visual_pair(&hashes, threshold, |a, b| {
+                        pair_count += 1;
                         uf.union(&candidates[a].0, &candidates[b].0);
-                    }
-                    (pairs.len(), uf.groups())
+                    });
+                    (pair_count, uf.groups())
                 })
                 .await?;
             let (pair_count, groups): (usize, Vec<Vec<Uuid>>) = pairs;
@@ -187,6 +201,7 @@ pub async fn detect(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::stats_admin_stacks_dupes::jobs::phash::hamming;
 
     #[test]
     fn union_find_groups() {

@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use lp_core::extract::py_truthy;
 use lp_db::stats_admin_stacks_dupes::detect::BurstCandidate;
@@ -52,11 +52,21 @@ fn suffix_re(with_cover: bool) -> &'static Regex {
 
 /// `re.search` with a user-supplied (Python-syntax) pattern; an invalid
 /// pattern never matches.
+/// Compiled once per pattern: rules are checked for every photo.
 fn search(pattern: &str, text: &str) -> bool {
-    fancy_regex::Regex::new(pattern)
-        .ok()
-        .and_then(|re| re.is_match(text).ok())
-        .unwrap_or(false)
+    type Cache = Mutex<HashMap<String, Option<Arc<fancy_regex::Regex>>>>;
+    static CACHE: OnceLock<Cache> = OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    let re = {
+        let mut c = cache.lock().unwrap_or_else(|e| e.into_inner());
+        if c.len() > 256 {
+            c.clear();
+        }
+        c.entry(pattern.to_string())
+            .or_insert_with(|| fancy_regex::Regex::new(pattern).ok().map(Arc::new))
+            .clone()
+    };
+    re.and_then(|re| re.is_match(text).ok()).unwrap_or(false)
 }
 
 /// EXIF values of one photo: every requested tag (None when absent), or

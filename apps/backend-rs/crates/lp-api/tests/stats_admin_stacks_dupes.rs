@@ -397,6 +397,47 @@ async fn stack_mutations() {
     assert_ne!(d["primary_photo_hash"], json!(b1));
     assert!(d["primary_photo_hash"].is_string());
 
+    // add it back; someone else's photo or stack adds nothing
+    let url = format!("/api/stacks/{burst}/add/");
+    assert_eq!(
+        app.post_json(&url, &json!({"photo_hashes": []}), Some(&alice))
+            .await
+            .status,
+        400
+    );
+    assert_eq!(
+        app.post_json(&url, &json!({"photo_hashes": [b1]}), Some(&bob))
+            .await
+            .status,
+        404
+    );
+    let bobs = hash(&m, "bob/own_01");
+    let r = app
+        .post_json(&url, &json!({"photo_hashes": [b1, b1, bobs]}), Some(&alice))
+        .await;
+    assert_eq!(
+        r.json(),
+        json!({"status": "updated", "added_count": 1, "total_count": 4})
+    );
+    let r = app
+        .post_json(&url, &json!({"photo_hashes": [b1]}), Some(&alice))
+        .await;
+    assert_eq!(
+        r.json(),
+        json!({"status": "updated", "added_count": 0, "total_count": 4})
+    );
+    let r = app
+        .post_json(
+            &format!("/api/stacks/{burst}/remove/"),
+            &json!({"photo_hashes": [b1]}),
+            Some(&alice),
+        )
+        .await;
+    assert_eq!(
+        r.json(),
+        json!({"status": "updated", "removed_count": 1, "total_count": 3})
+    );
+
     // manual: validation, then a new stack
     let e1 = hash(&m, "alice/e2e_01");
     let e2 = hash(&m, "alice/e2e_02");

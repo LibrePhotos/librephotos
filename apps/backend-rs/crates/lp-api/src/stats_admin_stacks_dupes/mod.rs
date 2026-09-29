@@ -43,6 +43,7 @@ pub fn routes() -> Router<AppState> {
             get(stacks::detail).delete(stacks::delete),
         )
         .route("/api/stacks/{id}/delete", delete(stacks::delete))
+        .route("/api/stacks/{id}/add", post(stacks::add))
         .route("/api/stacks/{id}/remove", post(stacks::remove))
         .route("/api/stacks/{id}/primary", post(stacks::set_primary))
         .route("/api/duplicates", get(dupes::list))

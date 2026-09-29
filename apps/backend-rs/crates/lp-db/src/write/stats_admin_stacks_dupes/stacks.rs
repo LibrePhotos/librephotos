@@ -188,7 +188,9 @@ pub async fn owned_photos_by_hash(
     Ok(rows.into_iter().map(|r| r.0).collect())
 }
 
-/// Link `photos` to `stack` unless already linked (M2M `add`).
+/// Link `photos` to `stack` unless already linked (M2M `add`). Photos
+/// deleted meanwhile are skipped: burst detection reads its candidates
+/// before its transaction.
 pub async fn add_photos(
     conn: &mut PgConnection,
     stack: Uuid,
@@ -198,6 +200,7 @@ pub async fn add_photos(
         "INSERT INTO api_photo_stacks (photo_id, photostack_id) \
          SELECT DISTINCT ON (u.id) u.id, $1 FROM unnest($2::uuid[]) WITH ORDINALITY AS u(id, ord) \
          WHERE NOT EXISTS (SELECT 1 FROM api_photo_stacks x WHERE x.photostack_id = $1 AND x.photo_id = u.id) \
+         AND EXISTS (SELECT 1 FROM api_photo p WHERE p.id = u.id) \
          ORDER BY u.id",
     )
     .bind(stack)
@@ -205,6 +208,25 @@ pub async fn add_photos(
     .execute(conn)
     .await?
     .rows_affected())
+}
+
+/// `POST /api/stacks/{id}/add/`: link the user's photos with `hashes`;
+/// `(added, total)`, None if the user has no such stack.
+pub async fn add_to_stack(
+    db: &PgPool,
+    owner: i32,
+    id: Uuid,
+    hashes: &[String],
+) -> sqlx::Result<Option<(i64, i64)>> {
+    let mut tx = db.begin().await?;
+    if owned_stack_type(&mut tx, owner, id).await?.is_none() {
+        return Ok(None);
+    }
+    let photos = owned_photos_by_hash(&mut tx, owner, hashes).await?;
+    let added = add_photos(&mut tx, id, &photos).await? as i64;
+    let total = member_count(&mut tx, id).await?;
+    tx.commit().await?;
+    Ok(Some((added, total)))
 }
 
 /// `POST /api/stacks/{id}/remove/`.
