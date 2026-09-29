@@ -4,10 +4,10 @@ description: "One folder with librephotos.exe: the server, the frontend and the 
 sidebar_position: 5
 ---
 
-:::info Unreleased
-The standalone build is on the `dev` branch and not part of a release yet. It is produced by the
-`standalone-windows` GitHub Actions workflow; download the `librephotos-windows-x64` artifact from a
-workflow run, or the zip attached to the release the run was pointed at.
+:::tip Download
+[**librephotos-windows-x64.zip**](https://github.com/LibrePhotos/librephotos/releases/latest/download/librephotos-windows-x64.zip)
+from the latest release (64-bit Windows). Every release since 1.2.0 carries it under
+**Assets** on the [releases page](https://github.com/LibrePhotos/librephotos/releases).
 :::
 
 ## What it is
@@ -23,7 +23,7 @@ of the Docker deployments.
 
 ## Running it
 
-1. Unzip `librephotos-windows-x64.zip` anywhere, for example `C:\Program Files\LibrePhotos` or a
+1. Download `librephotos-windows-x64.zip` (see above) and unzip it anywhere, for example `C:\Program Files\LibrePhotos` or a
    folder in your home directory.
 2. Double-click `librephotos.exe`. No window opens: LibrePhotos runs in the background with an icon
    in the notification area (the tray, bottom right), and after the first migrations your browser

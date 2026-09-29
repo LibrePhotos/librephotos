@@ -74,7 +74,7 @@ services:
       - ONNX_PROVIDERS=CPUExecutionProvider
 ```
 
-*Unreleased: before this change every model ran on the CPU, even in the GPU image. It is on `dev` and will appear in the next release.*
+*Before 1.2.0, every model ran on the CPU, even in the GPU image.*
 
 ### Limiting CPU and memory usage
 
@@ -138,7 +138,7 @@ services:
 
 #### Threads per model
 
-Each machine learning service is a separate process, and by default each model in it may use one thread per physical core. With several of them busy during a scan they compete for the same cores. `ONNX_INTRA_OP_THREADS` caps every model at that many threads (`0` or unset keeps the default), which pairs well with a `cpus:` limit: set it to the number of cores you give the container, or fewer. The face recognition models are the exception, because the library that loads them does not pass the setting through. *Unreleased, on `dev`.*
+Each machine learning service is a separate process, and by default each model in it may use one thread per physical core. With several of them busy during a scan they compete for the same cores. `ONNX_INTRA_OP_THREADS` caps every model at that many threads (`0` or unset keeps the default), which pairs well with a `cpus:` limit: set it to the number of cores you give the container, or fewer. The face recognition models are the exception, because the library that loads them does not pass the setting through.
 
 :::warning
 Do not cap the container so hard that the first scan cannot finish. Face detection and captioning load sizeable models; below roughly 2 GB of memory the backend will be killed by the kernel — and *that* really is an out-of-memory kill.
@@ -188,7 +188,7 @@ services:
 #### The machine learning services follow the switches
 
 :::note
-This part is not in a released image yet. It is available on the `dev` branch and will appear in the next release; on 1.1.0 the switches stop the processing, but the services still start.
+Since 1.2.0. On 1.1.0 the switches stop the processing, but the services still start.
 :::
 
 The backend runs its heavy models in separate sidecar processes, and a watchdog restarts any of them that dies. A switch that is off keeps its service from being started at all, and the watchdog leaves it alone rather than bringing it back a minute later — which is where the memory saving actually comes from, since a loaded model costs its memory whether or not anything asks it a question.
@@ -246,13 +246,9 @@ The backend talks to its helper services (thumbnails, metadata, faces, tags, cap
 | --- | --- | --- |
 | `SERVICE_HOST` | `127.0.0.1` | Address the helper services listen on. The backend always calls them on `127.0.0.1`, so there is rarely a reason to change it; anything else exposes unauthenticated services to whatever can reach that address. |
 
-*Unreleased: released images listen on `0.0.0.0`. The change is on `dev` and will appear in the next release.*
+*Releases before 1.2.0 listen on `0.0.0.0`.*
 
 ### Which Nextcloud servers may be contacted
-
-:::note
-This is not in a released image yet. It is available on the `dev` branch and will appear in the next release.
-:::
 
 With the Nextcloud integration switched on, every user enters their own Nextcloud server address, and it is the backend that connects to it. So that this cannot be used to make the backend reach things only it can reach, LibrePhotos looks up the address before each connection and before saving it, and refuses it if the host name resolves to any of these:
 
@@ -320,7 +316,7 @@ csrfTrustedOrigins=https://photos.example.com,https://photos.internal.lan
 Each entry must match the address in the browser exactly, scheme and port included. The photo app itself authenticates with JWT and is not affected by this setting.
 
 :::note
-Older releases treated the whole value as a single origin, so a comma-separated list only worked with the [unified image](unified-deployment.md). This part is not in a released image yet; it is available on the `dev` branch.
+Releases before 1.2.0 treated the whole value as a single origin, so a comma-separated list only worked with the [unified image](unified-deployment.md).
 :::
 
 ### Database password

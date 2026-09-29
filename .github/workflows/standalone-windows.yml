@@ -3,7 +3,11 @@ name: standalone-windows
 # Compiles the backend and the frontend build into one self-contained Windows
 # program (apps/backend/scripts/build_standalone.py, Nuitka) and publishes the
 # zip as a workflow artifact, or attaches it to a release when a tag is given.
+# Every published (non-pre-)release gets the zip, so the landing page's
+# releases/latest/download link keeps resolving.
 on:
+  release:
+    types: [created]
   workflow_dispatch:
     inputs:
       tag:
@@ -19,6 +23,7 @@ permissions:
 
 jobs:
   build:
+    if: github.event_name != 'release' || !github.event.release.prerelease
     runs-on: windows-latest
     timeout-minutes: 300
     steps:
@@ -51,7 +56,7 @@ jobs:
           restore-keys: nuitka-${{ runner.os }}-
       - name: Build
         working-directory: apps/backend
-        run: python scripts/build_standalone.py --zip --version "${{ inputs.version || '0.0.0' }}"
+        run: python scripts/build_standalone.py --zip --version "${{ inputs.version || github.event.release.tag_name || '0.0.0' }}"
       - name: Smoke test
         working-directory: apps/backend/build/standalone/librephotos
         shell: bash
@@ -66,10 +71,10 @@ jobs:
           if-no-files-found: error
           compression-level: 0
       - name: Attach to the release
-        if: inputs.tag != ''
+        if: inputs.tag != '' || github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
         shell: bash
         run: |
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --prerelease \

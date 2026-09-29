@@ -14,6 +14,8 @@ const DESCRIPTION =
 
 const SPONSORS_URL = "https://github.com/sponsors/derneuere";
 const PAYPAL_URL = "https://www.paypal.com/donate/?hosted_button_id=5JWVM2UR4LM96";
+// Every release from 1.2.0 on carries the zip (standalone-windows workflow), so /latest/download always resolves.
+const WINDOWS_ZIP_URL = "https://github.com/LibrePhotos/librephotos/releases/latest/download/librephotos-windows-x64.zip";
 
 function DiamondMotif() {
   return (
@@ -50,6 +52,31 @@ function HeroShot() {
   );
 }
 
+function WindowsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M3 5.5 10.5 4.5v7H3zM11.5 4.4 21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z" />
+    </svg>
+  );
+}
+
+function WindowsDownload() {
+  return (
+    <div className={styles.windows}>
+      <a className={styles.windowsLink} href={WINDOWS_ZIP_URL}>
+        <WindowsIcon />
+        <span>
+          <strong>Download for Windows</strong>
+          <span className={styles.windowsSub}>One program, no Docker or Python needed</span>
+        </span>
+      </a>
+      <Link to="/docs/installation/windows-standalone" className={styles.heroNoteLink}>
+        How it works
+      </Link>
+    </div>
+  );
+}
+
 function Hero() {
   return (
     <header className={styles.hero}>
@@ -71,8 +98,9 @@ function Hero() {
               See it in action
             </a>
           </div>
+          <WindowsDownload />
           <p className={styles.heroNote}>
-            Runs with Docker, Kubernetes or Unraid. Android app included. Built by volunteers, so{" "}
+            Runs with Docker, Kubernetes or Unraid, or as a standalone program on Windows. Android app included. Built by volunteers, so{" "}
             <Link href={SPONSORS_URL} className={styles.heroNoteLink}>
               sponsoring
             </Link>{" "}
@@ -109,7 +137,7 @@ type Path = { title: string; body: string; to: string; cta: string };
 const PATHS: Path[] = [
   {
     title: "Install",
-    body: "Pick a deployment: a single container, Docker Compose, Kubernetes or Unraid. Most people are done in ten minutes.",
+    body: "Pick a deployment: a single container, Docker Compose, Kubernetes, Unraid, or the standalone Windows build. Most people are done in ten minutes.",
     to: "/docs/installation",
     cta: "Installation guides",
   },
