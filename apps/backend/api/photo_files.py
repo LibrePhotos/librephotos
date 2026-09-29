@@ -13,13 +13,26 @@ logger = logging.getLogger(__name__)
 
 
 def detach_missing_files(photo):
-    """Unlink files that are gone from disk and flag them missing."""
+    """Unlink files that are gone from disk and flag them missing.
+
+    The scan runs this over every photo in the library, from rows it loaded
+    in pages of thousands. Saving each one whole wrote those old values back
+    over anything that changed in the meantime -- a rating given while the
+    scan ran, a field another job had just filled in -- and bumped every
+    ``last_modified``, so a removed photo never got old enough for
+    ``cleanup_deleted_photos``. Only a photo that actually lost a file is
+    touched, and only its ``last_modified``: the relation itself is already
+    written by ``remove()``, and the bump is what tells the sync feed.
+    """
+    detached = False
     for file in photo.files.all():
         if not file.path or not os.path.exists(file.path):
             photo.files.remove(file)
             file.missing = True
             file.save()
-    photo.save()
+            detached = True
+    if detached:
+        photo.save(save_metadata=False, update_fields=["last_modified"])
 
 
 def remove_photo(photo):

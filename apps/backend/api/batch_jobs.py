@@ -39,7 +39,15 @@ def store_clip_embeddings(objs):
             continue
         obj.clip_embeddings = img_emb.tolist()
         obj.clip_embeddings_magnitude = magnitude
-        obj.save()
+        # Only these columns: ``obj`` was loaded before the sidecar call, and a
+        # whole-row save would put back whatever the rest of the row held then.
+        obj.save(
+            update_fields=[
+                "clip_embeddings",
+                "clip_embeddings_magnitude",
+                "last_modified",
+            ]
+        )
 
 
 def batch_calculate_clip_embedding(user):
