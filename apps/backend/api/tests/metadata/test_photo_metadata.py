@@ -421,12 +421,12 @@ class PhotoMetadataAPITestCase(TestCase):
         self.assertTrue(PhotoMetadata.objects.filter(photo=photo2).exists())
 
     def test_retrieve_metadata_other_user_forbidden(self):
-        """Test retrieving other user's photo metadata is forbidden."""
+        """Another user's photo metadata is a 404, as if the photo did not exist."""
         other_photo = create_test_photo(owner=self.other_user)
 
         response = self.client.get(f"/api/photos/{other_photo.id}/metadata")
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_update_metadata(self):
         """Test updating metadata fields."""
