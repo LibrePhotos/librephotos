@@ -163,7 +163,10 @@ class FolderNavigationViewSet(viewsets.ViewSet):
 
         base_path = request.query_params.get("path", default_path)
 
-        error = _validate_path(base_path) or _check_access(request, base_path, is_admin)
+        # Access first: validating first answered "does not exist" or "is not
+        # a directory" for paths the caller may not see, which made this an
+        # existence oracle for the whole filesystem.
+        error = _check_access(request, base_path, is_admin) or _validate_path(base_path)
         if error:
             return error
 

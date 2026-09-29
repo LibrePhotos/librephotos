@@ -13,6 +13,7 @@ branches the routed endpoint's permission classes make unreachable.
 import datetime
 
 from django.contrib.auth.models import AnonymousUser
+from django.http import Http404
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.request import Request
@@ -122,6 +123,10 @@ class AlbumDateGetQuerysetFilterTest(AlbumDateGetQuerysetTestBase):
         self.assertEqual(count, 2)
 
     def test_public_with_username_restricts_to_that_owner(self):
+        # ``username`` names the owner of the day album as well, so the album
+        # has to be theirs to be found at all.
+        self.album.owner = self.other
+        self.album.save(update_fields=["owner"])
         self.photo(public=True)
         other_public = self.photo(owner=self.other, public=True)
 
@@ -355,14 +360,19 @@ class AlbumDateGetQuerysetPaginationTest(AlbumDateGetQuerysetTestBase):
 
 
 class AlbumDateGetQuerysetMissingAlbumTest(AlbumDateGetQuerysetTestBase):
-    def test_unknown_album_pk_raises_attribute_error(self):
-        """Known rough edge: a missing album is not turned into a 404.
-
-        ``AlbumDate.objects.filter(...).first()`` returns ``None`` and the very
-        next line dereferences ``album_date.photos``.
-        """
+    def test_unknown_album_pk_raises_http404(self):
         user = create_test_user()
         view = self.make_view(user, 999999)
 
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(Http404):
+            view.get_queryset()
+
+    def test_another_users_album_pk_raises_http404(self):
+        """The album itself is scoped, not only its photos: see
+        test_album_date_detail_owner_scope."""
+        owner = create_test_user()
+        album = AlbumDate.objects.create(owner=owner, date=datetime.date(2000, 1, 1))
+        view = self.make_view(create_test_user(), album.id)
+
+        with self.assertRaises(Http404):
             view.get_queryset()
