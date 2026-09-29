@@ -764,3 +764,116 @@ async fn add_face_draws_a_labelled_face() {
     );
     app.cleanup().await;
 }
+
+#[tokio::test]
+async fn person_create_put_and_rename_captions() {
+    let app = TestApp::new().await;
+    let m = manifest();
+    let alice = token(&app, "alice").await;
+    let bob = token(&app, "bob").await;
+    let ben = m["persons"]["ben"]["id"].as_i64().unwrap();
+    let anna = m["persons"]["anna"]["id"].as_i64().unwrap();
+    let path = format!("/api/persons/{ben}/");
+
+    // The list's search narrows the detail routes, as DRF's get_object does.
+    let res = app
+        .get(&format!("/api/persons/{anna}/?search=zzz"), Some(&alice))
+        .await;
+    assert_eq!(res.status, StatusCode::NOT_FOUND);
+
+    // Rename rebuilds the search captions of the photos Ben is labelled on (S19).
+    let ben_photo: uuid::Uuid = sqlx::query_scalar(
+        "SELECT photo_id FROM api_face WHERE person_id = $1 ORDER BY id LIMIT 1",
+    )
+    .bind(ben as i32)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
+    let before = captions(&app, &ben_photo.to_string()).await;
+    assert!(!before.contains("Benjamin"), "{before}");
+    let res = app
+        .patch_json(&path, &json!({"newPersonName": "Benjamin"}), Some(&alice))
+        .await;
+    assert_eq!(res.status, StatusCode::OK, "{}", res.text());
+    assert!(
+        captions(&app, &ben_photo.to_string())
+            .await
+            .contains("Benjamin")
+    );
+
+    // The serializer's model fields are validated even though update ignores them.
+    let res = app
+        .patch_json(
+            &path,
+            &json!({"name": "", "face_count": "abc"}),
+            Some(&alice),
+        )
+        .await;
+    assert_eq!(res.status, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        res.json(),
+        json!({"errors": [
+            {"field": "name", "message": "This field may not be blank."},
+            {"field": "face_count", "message": "A valid integer is required."}
+        ]})
+    );
+
+    // PUT needs `name`; `newPersonName` renames, its absence changes nothing.
+    let put = |body: Value, tok: String| {
+        let app = &app;
+        let path = path.clone();
+        async move {
+            app.send(axum::http::Method::PUT, &path, Some(&body), Some(&tok))
+                .await
+        }
+    };
+    let res = put(json!({}), alice.clone()).await;
+    assert_eq!(res.status, StatusCode::BAD_REQUEST);
+    assert_eq!(res.json()["errors"][0]["field"], "name");
+    assert_eq!(
+        put(json!({"name": "x"}), bob.clone()).await.status,
+        StatusCode::NOT_FOUND
+    );
+    let res = put(json!({"name": "x"}), alice.clone()).await;
+    assert_eq!(res.status, StatusCode::OK, "{}", res.text());
+    assert_eq!(res.json()["name"], "Benjamin");
+    let res = put(json!({"name": "x", "newPersonName": "Ben"}), alice.clone()).await;
+    assert_eq!(res.json()["name"], "Ben");
+    assert_eq!(person_row(&app, ben).await.0, "Ben");
+
+    // POST finds the requester's person of that name (any kind) or makes one.
+    let res = app
+        .post_json("/api/persons/", &json!({}), Some(&alice))
+        .await;
+    assert_eq!(res.status, StatusCode::BAD_REQUEST);
+    let res = app
+        .post_json("/api/persons/", &json!({"name": " Zoe "}), Some(&alice))
+        .await;
+    assert_eq!(res.status, StatusCode::CREATED, "{}", res.text());
+    let zoe = res.json();
+    assert_eq!(zoe["name"], "Zoe");
+    assert_eq!(zoe["face_count"], 0);
+    assert_eq!(zoe["face_url"], "");
+    assert_eq!(zoe["video"], false);
+    let again = app
+        .post_json("/api/persons/", &json!({"name": "Zoe"}), Some(&alice))
+        .await;
+    assert_eq!(again.status, StatusCode::CREATED);
+    assert_eq!(again.json()["id"], zoe["id"]);
+    let res = app
+        .post_json("/api/persons/", &json!({"name": "Cluster 1"}), Some(&alice))
+        .await;
+    assert_eq!(res.json()["id"], m["persons"]["cluster_1"]["id"]);
+    // Bob gets his own Zoe.
+    let res = app
+        .post_json("/api/persons/", &json!({"name": "Zoe"}), Some(&bob))
+        .await;
+    assert_ne!(res.json()["id"], zoe["id"]);
+    assert_eq!(
+        app.post_json("/api/persons/", &json!({"name": "Zoe"}), None)
+            .await
+            .status,
+        StatusCode::UNAUTHORIZED
+    );
+    app.cleanup().await;
+}

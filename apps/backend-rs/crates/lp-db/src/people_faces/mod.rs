@@ -33,7 +33,7 @@ pub struct PersonRow {
     pub total: i64,
 }
 
-fn person_select(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32) {
+fn person_select(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32, user_kind_only: bool) {
     qb.push(
         "SELECT p.id, p.name, p.face_count, p.cover_face_id, cf.image AS cover_face_image, \
            cp.image_hash AS cover_photo_hash, cp.video AS cover_photo_video, \
@@ -47,8 +47,11 @@ fn person_select(qb: &mut QueryBuilder<'_, Postgres>, user_id: i32) {
              WHERE f.person_id = p.id AND ",
     );
     scope::owned_by(qb, "ph", user_id);
-    qb.push(" ORDER BY f.id LIMIT 1) ff ON TRUE WHERE p.kind = 'USER' AND p.cluster_owner_id = ");
+    qb.push(" ORDER BY f.id LIMIT 1) ff ON TRUE WHERE p.cluster_owner_id = ");
     qb.push_bind(user_id);
+    if user_kind_only {
+        qb.push(" AND p.kind = 'USER'");
+    }
 }
 
 /// DRF `SearchFilter` on `name`: every term must be contained, any case.
@@ -69,7 +72,7 @@ pub async fn list_persons<'e>(
     offset: i64,
 ) -> sqlx::Result<Vec<PersonRow>> {
     let mut qb = QueryBuilder::new("");
-    person_select(&mut qb, user_id);
+    person_select(&mut qb, user_id, true);
     push_search(&mut qb, search);
     qb.push(" ORDER BY p.name, p.id LIMIT ");
     qb.push_bind(limit);
@@ -91,14 +94,31 @@ pub async fn count_persons<'e>(
     qb.build_query_scalar::<i64>().fetch_one(db).await
 }
 
-/// `PersonViewSet.get_object()`: a user-labelled person of the requester.
+/// `PersonViewSet.get_object()`: a user-labelled person of the requester
+/// (the list's `?search=` narrows the detail routes too, as in DRF).
 pub async fn person_for_owner<'e>(
+    db: impl PgExecutor<'e>,
+    user_id: i32,
+    person_id: i64,
+    search: &[String],
+) -> sqlx::Result<Option<PersonRow>> {
+    let mut qb = QueryBuilder::new("");
+    person_select(&mut qb, user_id, true);
+    qb.push(" AND p.id = ");
+    qb.push_bind(person_id);
+    push_search(&mut qb, search);
+    qb.build_query_as::<PersonRow>().fetch_optional(db).await
+}
+
+/// A person of the requester of any kind (`PersonSerializer.create` can
+/// hand back a cluster that already carries the name).
+pub async fn owned_person_any_kind<'e>(
     db: impl PgExecutor<'e>,
     user_id: i32,
     person_id: i32,
 ) -> sqlx::Result<Option<PersonRow>> {
     let mut qb = QueryBuilder::new("");
-    person_select(&mut qb, user_id);
+    person_select(&mut qb, user_id, false);
     qb.push(" AND p.id = ");
     qb.push_bind(person_id);
     qb.build_query_as::<PersonRow>().fetch_optional(db).await
@@ -351,13 +371,15 @@ pub struct VizFace {
 
 /// `collect_visualizable_faces`: the requester's non-deleted faces carrying
 /// an encoding. Same statement shape (and so the same row order) as the
-/// unordered queryset Django pages through.
+/// unordered queryset Django pages through. Not prepared: a cached generic
+/// plan joins the other way round and so returns the rows in another order.
 pub async fn viz_faces<'e>(db: impl PgExecutor<'e>, user_id: i32) -> sqlx::Result<Vec<VizFace>> {
     sqlx::query_as::<_, VizFace>(
         "SELECT api_face.id, api_face.image, api_face.encoding, api_face.person_id FROM api_face \
          INNER JOIN api_photo ON (api_face.photo_id = api_photo.id) \
          WHERE (api_photo.owner_id = $1 AND NOT api_face.deleted)",
     )
+    .persistent(false)
     .bind(user_id)
     .fetch_all(db)
     .await
@@ -371,7 +393,8 @@ pub async fn viz_faces<'e>(db: impl PgExecutor<'e>, user_id: i32) -> sqlx::Resul
 
 /// `build_person_color_map`: persons with a face on the requester's photos,
 /// in the order Postgres returns Django's `DISTINCT` query (colors are
-/// assigned in that order, so the statement is kept identical).
+/// assigned in that order, so the statement is kept identical and, like
+/// [`viz_faces`], unprepared).
 pub async fn viz_persons<'e>(
     db: impl PgExecutor<'e>,
     user_id: i32,
@@ -384,6 +407,7 @@ pub async fn viz_persons<'e>(
          INNER JOIN api_photo ON (api_face.photo_id = api_photo.id) \
          WHERE api_photo.owner_id = $1",
     )
+    .persistent(false)
     .bind(user_id)
     .fetch_all(db)
     .await

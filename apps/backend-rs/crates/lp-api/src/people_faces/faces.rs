@@ -105,18 +105,28 @@ pub async fn list(
     uri: Uri,
     q: QueryMap,
 ) -> ApiResult<Json<DrfPage<FaceOut>>> {
+    // "0" means None; any other value goes to the ORM as is, which parses it
+    // like `int()` and crashes (500) on anything else. An empty value is only
+    // falsy where the view tests it (the inferred branches).
     let person = match q.get("person").unwrap_or("0") {
         "0" => None,
-        // Django hands the raw value to the ORM, which crashes on non-integers.
-        p => Some(
-            p.parse::<i32>()
-                .map_err(|_| ApiError::internal(format!("person {p:?} is not a number")))?,
-        ),
+        p => Some(p),
     };
     let min = min_confidence(&q)?;
     // An empty analysis_method is falsy in Django: the labelled-face query.
-    let labeled = (q.get("inferred").unwrap_or("").to_lowercase() == "false" && person.is_some())
+    let labeled = (q.get("inferred").unwrap_or("").to_lowercase() == "false"
+        && person.is_some_and(|p| !p.is_empty()))
         || q.get("analysis_method") == Some("");
+    let person = match person {
+        Some("") if !labeled => None,
+        Some(p) => Some(
+            p.trim()
+                .replace('_', "")
+                .parse::<i32>()
+                .map_err(|_| ApiError::internal(format!("person {p:?} is not a number")))?,
+        ),
+        None => None,
+    };
     let filter = if labeled {
         FaceFilter::Labeled(person)
     } else {

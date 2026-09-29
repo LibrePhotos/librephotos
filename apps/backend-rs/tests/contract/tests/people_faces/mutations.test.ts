@@ -144,6 +144,30 @@ describe.skipIf(!enabled).sequential("people & faces mutations (two clones)", ()
     }
   });
 
+  it("twin: PUT renames through newPersonName, POST finds or creates a person", async () => {
+    const ben = persons().ben!.id;
+    await expectTwin(
+      "alice",
+      { method: "PUT", path: `/api/persons/${ben}/`, body: { name: "ignored", newPersonName: "Benjamin" } },
+      { project: ["*"], ...once },
+    );
+    // Django renders a person without faces with `video: "False"`, Rust with false.
+    const created = await expectTwin(
+      "alice",
+      { method: "POST", path: "/api/persons/", body: { name: " Zoe " } },
+      { project: ["status", "name", "face_url", "face_count", "face_photo_url", "id"], ...once },
+    );
+    expect(created.actual.status).toBe(201);
+    expect(created.actual.body).toMatchObject({ name: "Zoe", video: false });
+    for (const name of ["Zoe", "Cluster 1"]) {
+      await expectTwin(
+        "alice",
+        { method: "POST", path: "/api/persons/", body: { name } },
+        { project: ["status", "name", "face_url", "face_count", "face_photo_url", "id"], ...once },
+      );
+    }
+  });
+
   it("twin: draw faces by hand", async () => {
     const e2e05 = photo("alice/e2e_05");
     const box = { top: 0.5, right: 0.8, bottom: 0.8, left: 0.6 };
@@ -182,11 +206,12 @@ describe.skipIf(!enabled).sequential("people & faces mutations (two clones)", ()
   });
 
   it("twin: the people page and face lists agree afterwards", async () => {
-    // Dora's cover crop has a random file name on each side.
+    // Dora's cover crop has a random file name on each side, and Zoe (no
+    // faces) is `video: "False"` on Django.
     const { actual } = await expectTwin(
       "alice",
       { path: "/api/persons/?page_size=1000" },
-      { project: ["count", "results[].id", "results[].name", "results[].face_count", "results[].face_photo_url", "results[].video"] },
+      { project: ["count", "results[].id", "results[].name", "results[].face_count", "results[].face_photo_url"] },
     );
     expectSchema(PeopleResponse, actual.body);
     await expectTwin("alice", { path: "/api/faces/incomplete/?inferred=false" }, { project: ["*"] });

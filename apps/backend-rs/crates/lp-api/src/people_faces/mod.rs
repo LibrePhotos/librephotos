@@ -25,11 +25,12 @@ mod persons;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
-        .route("/api/persons", get(persons::list))
+        .route("/api/persons", get(persons::list).post(persons::create))
         .route(
             "/api/persons/{id}",
             get(persons::retrieve)
                 .patch(persons::update)
+                .put(persons::replace)
                 .delete(persons::destroy),
         )
         .route("/api/faces/incomplete", get(faces::incomplete))

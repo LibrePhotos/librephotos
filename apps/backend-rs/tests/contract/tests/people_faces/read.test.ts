@@ -48,6 +48,31 @@ describe.skipIf(!hasBase)("GET /api/persons/?page_size=1000", () => {
     await expectTwin("alice", { path: "/api/persons/", query: { search: "müller anna" } }, { project: ["*"] });
   });
 
+  it("twin: ?search= narrows the detail route too; oversized ids are a query miss", async () => {
+    await expectTwin("alice", { path: `/api/persons/${persons().anna!.id}/`, query: { search: "zzz" } }, { project: ["*"] });
+    await expectTwin("alice", { path: `/api/persons/${persons().ben!.id}/`, query: { search: "BEN" } }, { project: ["*"] });
+    await expectTwin("alice", { path: "/api/persons/99999999999/" }, { project: ["*"] });
+  });
+
+  it("twin: PATCH/PUT/POST validation errors (DRF field order, no writes)", async () => {
+    const anna = `/api/persons/${persons().anna!.id}/`;
+    for (const [method, path, body] of [
+      ["PATCH", anna, { name: "" }],
+      ["PATCH", anna, { name: null, face_count: "abc", newPersonName: "", cover_photo: null }],
+      ["PATCH", anna, { face_count: 3.5 }],
+      ["PATCH", anna, { face_count: 99999999999 }],
+      ["PATCH", anna, { name: "x".repeat(129) }],
+      ["PUT", anna, {}],
+      ["PUT", anna, { name: "", face_count: "z" }],
+      ["POST", "/api/persons/", {}],
+      ["POST", "/api/persons/", { name: "  " }],
+      ["POST", "/api/persons/", []],
+    ] as const) {
+      const { actual } = await expectTwin("alice", { method, path, body }, { project: ["*"] });
+      expect(actual.status).toBe(400);
+    }
+  });
+
   it("twin: one person (the viewset's detail route)", async () => {
     for (const role of ["alice", "bob"] as const) {
       await expectTwin(role, { path: `/api/persons/${persons().anna!.id}/` }, { project: ["*"] });
@@ -115,6 +140,10 @@ describe.skipIf(!hasBase)("GET /api/faces/", () => {
       ["past the last page", "alice", { person: anna, page: 2, inferred: "false" }],
       ["alice's person as bob", "bob", { person: anna, page: 1, inferred: "false", order_by: "confidence" }],
       ["bob's own", "bob", { person: persons().bobs_friend!.id, page: 1, inferred: "false" }],
+      // `person` reaches the ORM raw: empty is only falsy, blanks are int()-trimmed.
+      ["empty person, inferred view", "alice", { person: "", page: 1, inferred: "true" }],
+      ["empty person, labelled view", "alice", { person: "", page: 1, inferred: "false" }],
+      ["padded person id", "alice", { person: ` ${anna}`, page: 1, inferred: "false" }],
     ];
   };
 

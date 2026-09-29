@@ -10,14 +10,48 @@ use serde_json::Value;
 use sqlx::{FromRow, PgConnection, PgPool};
 use uuid::Uuid;
 
-/// `instance.name = new_name; instance.save()` (`PersonSerializer.update`).
-pub async fn rename_person(db: &PgPool, person_id: i32, name: &str) -> sqlx::Result<()> {
+/// `instance.name = new_name; instance.save()` (`PersonSerializer.update`),
+/// plus S19: the photos the person is labelled on are found by the new name.
+/// Django leaves their search captions on the old name.
+pub async fn rename_person(
+    db: &PgPool,
+    person_id: i32,
+    name: &str,
+    tagging_model: &str,
+) -> sqlx::Result<()> {
+    let mut tx = db.begin().await?;
     sqlx::query("UPDATE api_person SET name = $2, last_modified = now() WHERE id = $1")
         .bind(person_id)
         .bind(name)
-        .execute(db)
+        .execute(&mut *tx)
         .await?;
-    Ok(())
+    let photos: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT DISTINCT photo_id FROM api_face WHERE person_id = $1 AND photo_id IS NOT NULL",
+    )
+    .bind(person_id)
+    .fetch_all(&mut *tx)
+    .await?;
+    rebuild_search_captions(&mut tx, &photos, tagging_model).await?;
+    tx.commit().await
+}
+
+/// `PersonSerializer.create`: the requester's person already called `name`
+/// (of any kind), else a new user-labelled one. Returns its id.
+pub async fn create_person(db: &PgPool, user_id: i32, name: &str) -> sqlx::Result<i32> {
+    let mut tx = db.begin().await?;
+    let existing: Option<i32> = sqlx::query_scalar(
+        "SELECT id FROM api_person WHERE name = $1 AND cluster_owner_id = $2 ORDER BY id LIMIT 1",
+    )
+    .bind(name)
+    .bind(user_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    let id = match existing {
+        Some(id) => id,
+        None => get_or_create_user_person(&mut tx, user_id, name).await?,
+    };
+    tx.commit().await?;
+    Ok(id)
 }
 
 /// Cover photo + that photo's first face of the person as cover face.
