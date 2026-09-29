@@ -22,6 +22,7 @@ pub mod write;
 // One module per API area; each area owns its own directory.
 pub mod albums_tags;
 pub mod jobs_zip_services;
+pub mod media;
 pub mod people_faces;
 pub mod photo_edits;
 pub mod search_sharing_public;
