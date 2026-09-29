@@ -250,6 +250,53 @@ class DetachMissingFilesTest(TestCase):
         self.assertTrue(gone.missing)
         self.assertFalse(present.missing)
 
+    def test_an_edit_made_while_the_scan_held_the_row_survives(self):
+        """The scan loads photos in pages of thousands, then gets to each one."""
+        held_by_scan = Photo.objects.get(pk=self.photo.pk)
+        edited = Photo.objects.get(pk=self.photo.pk)
+        edited.rating = 5
+        edited.save()
+
+        detach_missing_files(held_by_scan)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.rating, 5)
+
+    def test_an_edit_survives_even_when_a_file_is_detached(self):
+        gone = create_test_file(
+            f"/tmp/{self.photo.image_hash}_gone.png", self.user, b"gone"
+        )
+        os.remove(gone.path)
+        self.photo.files.add(gone)
+        held_by_scan = Photo.objects.get(pk=self.photo.pk)
+        Photo.objects.filter(pk=self.photo.pk).update(rating=4)
+
+        detach_missing_files(held_by_scan)
+
+        self.photo.refresh_from_db()
+        self.assertEqual(self.photo.rating, 4)
+        self.assertNotIn(gone, self.photo.files.all())
+
+    def test_a_photo_that_lost_nothing_is_not_written(self):
+        """Every scan used to bump every row, so removed photos never aged out."""
+        before = Photo.objects.get(pk=self.photo.pk).last_modified
+
+        detach_missing_files(Photo.objects.get(pk=self.photo.pk))
+
+        self.assertEqual(Photo.objects.get(pk=self.photo.pk).last_modified, before)
+
+    def test_a_photo_that_lost_a_file_tells_the_sync_feed(self):
+        gone = create_test_file(
+            f"/tmp/{self.photo.image_hash}_gone.png", self.user, b"gone"
+        )
+        os.remove(gone.path)
+        self.photo.files.add(gone)
+        before = Photo.objects.get(pk=self.photo.pk).last_modified
+
+        detach_missing_files(Photo.objects.get(pk=self.photo.pk))
+
+        self.assertGreater(Photo.objects.get(pk=self.photo.pk).last_modified, before)
+
     def test_manual_delete_still_delegates_to_remove_photo(self):
         with patch("api.photo_files.remove_photo", return_value="done") as remove:
             self.assertEqual(self.photo.manual_delete(), "done")
