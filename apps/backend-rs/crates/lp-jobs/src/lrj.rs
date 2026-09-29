@@ -31,6 +31,9 @@ pub enum JobType {
     RepairFileVariants = 16,
     ClassifyMedia = 17,
     GenerateOcr = 18,
+    /// Rust-only: Django records stack detection as "Scan Photos", which
+    /// shifts the incremental scan baseline (04 §2).
+    DetectStacks = 19,
 }
 
 impl JobType {
@@ -59,6 +62,7 @@ impl JobType {
             JobType::RepairFileVariants => "Repair File Variants",
             JobType::ClassifyMedia => "Classify Media Categories",
             JobType::GenerateOcr => "Extract Text (OCR)",
+            JobType::DetectStacks => "Detect Photo Stacks",
         }
     }
 
@@ -83,6 +87,7 @@ impl JobType {
             16 => RepairFileVariants,
             17 => ClassifyMedia,
             18 => GenerateOcr,
+            19 => DetectStacks,
             _ => return None,
         })
     }
@@ -355,10 +360,10 @@ mod tests {
 
     #[test]
     fn job_type_roundtrip() {
-        for i in 1..=18 {
+        for i in 1..=19 {
             assert_eq!(JobType::from_i32(i).unwrap().as_i32(), i);
         }
-        assert!(JobType::from_i32(19).is_none());
+        assert!(JobType::from_i32(20).is_none());
     }
 
     #[test]
