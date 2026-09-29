@@ -212,12 +212,12 @@ fn walk(dir: &Path, patterns: &[String], ancestors: &mut HashSet<String>, out: &
     ancestors.remove(&identity);
 }
 
-/// `datetime.fromtimestamp(getmtime(p)).replace(tzinfo=utc)`: local wall
-/// time labelled UTC, exactly as Django compares it.
-pub fn mtime_as_django_utc(path: &Path) -> Option<DateTime<Utc>> {
+/// The file's mtime in UTC. Django compares `fromtimestamp(mtime)` (local
+/// wall time) labelled UTC, which is only right on a UTC host (its Docker
+/// image); elsewhere every file looks modified. Rust compares real instants.
+pub fn mtime_utc(path: &Path) -> Option<DateTime<Utc>> {
     let modified = std::fs::metadata(path).ok()?.modified().ok()?;
-    let local: DateTime<chrono::Local> = modified.into();
-    Some(local.naive_local().and_utc())
+    Some(modified.into())
 }
 
 /// MD5 of the whole file + `str(user_id)`.

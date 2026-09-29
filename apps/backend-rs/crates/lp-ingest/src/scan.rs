@@ -70,7 +70,7 @@ pub fn partition(paths: &[PathBuf]) -> (Vec<Group>, Vec<PathBuf>) {
 }
 
 fn modified_after(path: &Path, t: DateTime<Utc>) -> bool {
-    fsutil::mtime_as_django_utc(path).is_some_and(|m| m > t)
+    fsutil::mtime_utc(path).is_some_and(|m| m > t)
 }
 
 fn changed_since(path: &Path, t: DateTime<Utc>) -> bool {
@@ -173,6 +173,9 @@ async fn scan_inner(
     };
     let patterns = fsutil::skip_patterns(&state.settings().skip_patterns);
     let photo_list: Vec<PathBuf> = if opts.files.is_empty() {
+        // Django's walk starts with an os.stat of the directory and fails the job.
+        std::fs::metadata(&scan_directory)
+            .map_err(|e| anyhow!("{e}: '{}'", scan_directory.display()))?;
         let dir = scan_directory.clone();
         state
             .blocking(move || fsutil::walk_directory(&dir, &patterns))

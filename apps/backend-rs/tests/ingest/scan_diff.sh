@@ -9,7 +9,9 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/../fixture/env.sh"
 
+# LP_SCAN_SOURCE: the photo tree to scan (default: the fixture's data/).
 RUNS="${1:-$LP_RUNS_ROOT/rs_ingest_scan}"
+SOURCE="${LP_SCAN_SOURCE:-$LP_FIXTURE_ROOT/data}"
 CONC="${2:-12}"
 REF=lp_mut_rs_ingest_ref
 RS=lp_mut_rs_ingest_rs
@@ -23,7 +25,8 @@ done
 rm -rf "$RUNS"
 for side in ref rs; do
     mkdir -p "$RUNS/$side/protected_media" "$RUNS/$side/logs"
-    cp -r "$LP_FIXTURE_ROOT/data" "$RUNS/$side/"
+    cp -r "$SOURCE" "$RUNS/$side/data"
+    for u in admin alice bob carol dave; do mkdir -p "$RUNS/$side/data/$u"; done
 done
 
 django() { # db side args...
