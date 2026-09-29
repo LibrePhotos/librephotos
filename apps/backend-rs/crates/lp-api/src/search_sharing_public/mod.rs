@@ -9,6 +9,7 @@ use axum::routing::get;
 use lp_core::AppState;
 use lp_jobs::HandlerRegistry;
 
+mod auth;
 mod examples;
 mod geocode;
 mod public;

@@ -5,11 +5,11 @@
 use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 
+use super::auth::ApiUser;
 use axum::Json;
 use axum::extract::State;
 use chrono::Datelike;
 use dashmap::DashMap;
-use lp_auth::AuthUser;
 use lp_core::{ApiResult, AppState};
 use lp_db::search_sharing_public::examples::{self, ExampleSample};
 use rand::Rng;
@@ -34,7 +34,7 @@ static CACHE: LazyLock<Cache> = LazyLock::new(DashMap::new);
 
 pub(super) async fn search_term_examples(
     State(state): State<AppState>,
-    AuthUser(user): AuthUser,
+    ApiUser(user): ApiUser,
 ) -> ApiResult<Json<Results<Arc<Vec<String>>>>> {
     let key = (state.config.db.name.clone(), user.id);
     if let Some(hit) = CACHE.get(&key)

@@ -1,10 +1,10 @@
 //! `GET /api/photos/shared/tome/` and `/api/photos/shared/fromme/`
 //! (api/views/sharing.py, `HugeResultsSetPagination`: 2500 per page, `page_size` ≤ 5000).
 
+use super::auth::ApiUser;
 use axum::Json;
 use axum::extract::State;
 use axum::http::{HeaderMap, Uri};
-use lp_auth::AuthUser;
 use lp_core::{ApiResult, AppState, QueryMap};
 use lp_db::pig::PigPhoto;
 use lp_db::search_sharing_public::sharing;
@@ -33,7 +33,7 @@ fn django_uri(uri: &Uri) -> Uri {
 
 pub(super) async fn shared_to_me(
     State(state): State<AppState>,
-    AuthUser(user): AuthUser,
+    ApiUser(user): ApiUser,
     headers: HeaderMap,
     uri: Uri,
     q: QueryMap,
@@ -65,7 +65,7 @@ pub(super) struct SharedFromMeItem {
 
 pub(super) async fn shared_from_me(
     State(state): State<AppState>,
-    AuthUser(user): AuthUser,
+    ApiUser(user): ApiUser,
     headers: HeaderMap,
     uri: Uri,
     q: QueryMap,

@@ -613,3 +613,57 @@ async fn bad_token_on_public_photo_is_401() {
     assert_eq!(app.request(req).await.status, StatusCode::UNAUTHORIZED);
     app.cleanup().await;
 }
+
+/// DRF's default authentication: the `jwt` cookie counts on media and upload
+/// views only, and simplejwt's header scheme is exactly `Bearer`.
+#[tokio::test]
+async fn only_the_bearer_header_authenticates() {
+    let app = TestApp::shared().await;
+    let m = manifest();
+    let bob = token(&app, "bob").await;
+    let send = |path: String, name: &'static str, value: String| {
+        let app = &app;
+        async move {
+            let req = Request::get(path)
+                .header(name, value)
+                .body(Body::empty())
+                .unwrap();
+            app.request(req).await.status
+        }
+    };
+    for path in [
+        "/api/photos/searchlist/?search=a",
+        "/api/searchtermexamples/",
+        "/api/photos/shared/tome/",
+        "/api/photos/shared/fromme/",
+        "/api/geocode/search?q=",
+    ] {
+        let cookie = send(path.into(), "cookie", format!("jwt={bob}")).await;
+        assert_eq!(cookie, StatusCode::UNAUTHORIZED, "jwt cookie on {path}");
+        let lower = send(path.into(), "authorization", format!("bearer {bob}")).await;
+        assert_eq!(
+            lower,
+            StatusCode::UNAUTHORIZED,
+            "lowercase scheme on {path}"
+        );
+        let ok = send(path.into(), "authorization", format!("Bearer {bob}")).await;
+        assert_eq!(ok, StatusCode::OK, "Bearer header on {path}");
+    }
+    let public = [
+        format!(
+            "/api/public/albums/s/{}/",
+            m["shares"]["public_album"]["slug"].as_str().unwrap()
+        ),
+        format!(
+            "/api/public/photo/{}/",
+            m["shares"]["photo_share"]["slug"].as_str().unwrap()
+        ),
+    ];
+    for path in public {
+        let foreign = send(path.clone(), "authorization", "BEARER nope".into()).await;
+        assert_eq!(foreign, StatusCode::OK, "foreign scheme on {path}");
+        let cookie = send(path.clone(), "cookie", "jwt=nope".into()).await;
+        assert_eq!(cookie, StatusCode::OK, "junk cookie on {path}");
+    }
+    app.cleanup().await;
+}
