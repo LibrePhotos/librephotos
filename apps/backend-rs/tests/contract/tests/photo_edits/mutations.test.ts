@@ -83,7 +83,7 @@ describe.skipIf(!enabled)("photo_edits mutations (twin, one pass)", () => {
     await step(post("/api/photosedit/savecaption/", { image_hash: h("alice/no_thumbnail"), caption: "x" }), SaveCaptionResponse);
   });
 
-  it("rotate (thumbnails: Django rebuilds inline, Rust queues thumbnails.rerender)", async () => {
+  it("rotate (both rebuild the thumbnails inline)", async () => {
     await step(
       post("/api/photosedit/rotate/", { image_hash: h("alice/e2e_06"), angle: 90 }),
       RotatePhotosResponse,

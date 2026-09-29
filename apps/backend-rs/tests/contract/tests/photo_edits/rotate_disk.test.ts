@@ -4,7 +4,7 @@
 // MEDIA_FILE, LP_ROTATE_DISK=sidecar for SIDECAR_FILE. Then diff both
 // databases and media trees with fixture/dump_state.py (files --content):
 // the originals and sidecars must match byte for byte; only thumbnails differ
-// (Django rebuilds them inline, Rust queues thumbnails.rerender).
+// (both rebuild them inline, with different encoders).
 import { describe, it } from "vitest";
 
 import { call } from "../../src/client";
