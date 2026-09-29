@@ -8,6 +8,12 @@ import { copyToClipboard } from "../../util/util";
 
 type VideoPlayerProps = {
   url: string;
+  /**
+   * Where to get this video converted, for when the browser turns out not to
+   * decode the original after all: a file served whole that still will not
+   * play. Tried once, before any error is shown.
+   */
+  fallbackUrl?: string;
   posterUrl?: string;
   height: string;
   controls: boolean;
@@ -107,6 +113,7 @@ const REMEDY_KEYS: Record<string, string> = {
  */
 export const VideoPlayer = memo(function VideoPlayer({
   url,
+  fallbackUrl,
   posterUrl,
   height,
   controls,
@@ -125,6 +132,11 @@ export const VideoPlayer = memo(function VideoPlayer({
   const [retryCount, setRetryCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const readyFiredRef = useRef(false);
+  // Whether the original was refused and the converted copy is playing instead.
+  // Mirrored in a ref for the probe, which outlives the render it started in.
+  const [usingFallback, setUsingFallback] = useState(false);
+  const usingFallbackRef = useRef(false);
+  const src = usingFallback && fallbackUrl ? fallbackUrl : url;
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Bumped on every probe so a stale answer cannot overwrite a newer one after
   // the user has already navigated to a different video.
@@ -149,6 +161,8 @@ export const VideoPlayer = memo(function VideoPlayer({
     setProbing(false);
     setRetryCount(0);
     setSeekHint(null);
+    setUsingFallback(false);
+    usingFallbackRef.current = false;
     readyFiredRef.current = false;
     probeRef.current += 1;
   }, [url]);
@@ -224,7 +238,7 @@ export const VideoPlayer = memo(function VideoPlayer({
       try {
         // HEAD, not GET: the status is all we need, and a GET would re-download
         // the whole file in the one case where it did arrive intact.
-        const response = await fetch(url, { method: "HEAD", credentials: "include" });
+        const response = await fetch(src, { method: "HEAD", credentials: "include" });
         status = response.status;
         kind = classifyVideoFailure(response.status, response.headers.get("X-Media-Error"));
       } catch {
@@ -233,13 +247,24 @@ export const VideoPlayer = memo(function VideoPlayer({
         kind = "unknown";
       }
       if (probeRef.current !== probeId) return;
+      // The file arrived whole and the browser still refused it, which is the
+      // one failure a conversion fixes -- so convert before saying anything.
+      if (kind === "format" && fallbackUrl && !usingFallbackRef.current) {
+        usingFallbackRef.current = true;
+        readyFiredRef.current = false;
+        setUsingFallback(true);
+        setErrorKind(null);
+        setProbing(false);
+        setLoading(true);
+        return;
+      }
       setErrorKind(kind);
       setErrorStatus(status);
       setProbing(false);
     };
 
     void probe();
-  }, [url]);
+  }, [src, fallbackUrl]);
 
   const handleRetry = useCallback(() => {
     setErrorKind(null);
@@ -275,7 +300,9 @@ export const VideoPlayer = memo(function VideoPlayer({
       case "missing":
         return t("lightbox.videoerror.missing");
       case "format":
-        return t("lightbox.videoerror.format");
+        // Already converted and still refused: advising a conversion would
+        // send the user to a switch that cannot help.
+        return src.includes("transcode=1") ? t("lightbox.videoerror.formatconverted") : t("lightbox.videoerror.format");
       case "server":
         return t("lightbox.videoerror.server", { status: errorStatus ?? "" });
       case "session":
@@ -451,8 +478,8 @@ export const VideoPlayer = memo(function VideoPlayer({
       )}
       <video
         ref={videoRef}
-        key={`${url}-${retryCount}`}
-        src={url}
+        key={`${src}-${retryCount}`}
+        src={src}
         poster={posterUrl}
         controls={controls}
         autoPlay={playing}

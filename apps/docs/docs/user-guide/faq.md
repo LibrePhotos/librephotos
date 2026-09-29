@@ -80,7 +80,7 @@ This is not yet handled gracefully, which means, you will probably just get non-
 ## Videos are not playing and showing a 404 error
 
 ### Reason 1:
-The video may be encoded in h.265 format, which is not supported by your browser. You can enable "Always transcode videos" under Experimental Settings to resolve this issue. On the other hand, this will be quite CPU heavy.
+The video may be in a format your browser cannot decode, most often H.265 (HEVC) in Firefox, or in Chrome on a machine without a hardware decoder for it. LibrePhotos converts such a video for your browser as it plays, without any setting (see [Videos your browser cannot play](viewing-photos.md#videos-your-browser-cannot-play)). On a version before that, enable "Always transcode videos" under Experimental Settings instead; it converts every video, so it is quite CPU heavy.
 
 ### Reason 2:
 The issue could be caused by incorrect file permissions. You can resolve this by adjusting the permissions using the following commands:

@@ -740,24 +740,39 @@ class UnifiedMediaAccessView(APIView):
 
         return self._refuse(user)
 
+    @staticmethod
+    def _transcode_for(user, request):
+        """Whether ``user``'s request for a video is to be converted.
+
+        Always, with "Always transcode videos" on. Otherwise when the frontend
+        asks, with ``?transcode=1``: it does that only for a video this browser
+        says it cannot play (see :mod:`api.video_playback`). Only for a signed-in
+        requester -- a public album or public photo is still served as it is,
+        since a conversion is the most expensive thing anyone can make this
+        server do, and nobody is signed in to be accountable for it.
+        """
+        return user.transcode_videos or request.GET.get("transcode") == "1"
+
     def _serve_original_media(self, request, image_hash, use_proxy):
         user = self._requester(request)
         photo = self._lookup_photo(image_hash, user)
         if photo is None:
             return self._refuse(user)
 
-        if self._in_public_album(photo):
-            return self._generate_response_original(photo, use_proxy, False)
-
+        # The requester's own access first, as on the derived-media route: a
+        # video that is also in a public album would otherwise be served
+        # unconverted to its own owner, who may need it converted to see it.
         if user is not None:
+            transcode = self._transcode_for(user, request)
             if photo.owner_id == user.id or photo.shared_to.filter(id=user.id).exists():
                 return self._generate_response_original(
-                    photo, use_proxy, user.transcode_videos, inline=True
+                    photo, use_proxy, transcode, inline=True
                 )
             if self._may_access(photo, user):
-                return self._generate_response_original(
-                    photo, use_proxy, user.transcode_videos
-                )
+                return self._generate_response_original(photo, use_proxy, transcode)
+
+        if self._in_public_album(photo):
+            return self._generate_response_original(photo, use_proxy, False)
 
         # Same grant, and same placement, as on the derived-media route: a
         # public video plays from here (see ``_is_public_photo``).

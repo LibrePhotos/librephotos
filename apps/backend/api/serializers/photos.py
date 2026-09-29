@@ -3,7 +3,7 @@ import logging
 
 from rest_framework import serializers
 
-from api import video_color
+from api import video_color, video_playback
 from api.geocode.geocode import reverse_geocode
 from api.geocode import GEOCODE_VERSION
 from api.geocode.photo_location import find_album_places
@@ -363,6 +363,9 @@ class PhotoSerializer(serializers.ModelSerializer):
     metadata = serializers.SerializerMethodField()
     # OCR text and normalized block geometry for the "live text" overlay
     ocr = serializers.SerializerMethodField()
+    # What the video is, in the form the browser's canPlayType() takes, so the
+    # frontend asks for a conversion only when this browser cannot play it.
+    video_playback_type = serializers.SerializerMethodField()
 
     # Backwards-compatible fields from PhotoMetadata (for API compatibility)
     height = serializers.SerializerMethodField()
@@ -417,6 +420,7 @@ class PhotoSerializer(serializers.ModelSerializer):
             "digitalZoomRatio",
             "subjectDistance",
             "embedded_media",
+            "video_playback_type",
             "file_variants",
             "stacks",
             "metadata",
@@ -437,6 +441,9 @@ class PhotoSerializer(serializers.ModelSerializer):
         """Return a single field from PhotoMetadata, or *default* when absent."""
         metadata = self._get_metadata(obj)
         return getattr(metadata, field, default) if metadata else default
+
+    def get_video_playback_type(self, obj) -> str | None:
+        return video_playback.playback_type(obj)
 
     def get_height(self, obj) -> int:
         return self._get_metadata_field(obj, "height", default=0)
