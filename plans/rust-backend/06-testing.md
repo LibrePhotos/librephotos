@@ -120,7 +120,7 @@ functions and emit JSON that Rust unit tests assert against.
   from migrations plus the fixture.
 - insta snapshots for response DTOs.
 - proptest for filter builders and codecs.
-- `cargo clippy -D warnings`, `cargo sqlx prepare --check`, and `cargo deny`.
+- `cargo clippy -D warnings` and `cargo deny` (no `sqlx prepare`: queries are runtime-checked, 02 §2).
 
 ## CI
 

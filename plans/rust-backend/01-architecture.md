@@ -73,7 +73,7 @@ depend on `lp-db`/`lp-auth`/`lp-media`, never the other way round.
 | Concern | Choice | Why |
 | --- | --- | --- |
 | HTTP | **axum 0.8**, tokio, tower-http (trace, timeout, cors, request-id) | Default modern stack; tower-http `ServeFile` gives range support for direct media |
-| DB | **sqlx 0.8 (Postgres)**, `query_as!` compile-time checked against the baseline schema, `QueryBuilder` for dynamic filters | Postgres-only makes compile-time checking possible, and no ORM layer means no ORM overhead in a speed experiment. `.sqlx/` offline data is committed so CI and agents build without a DB. |
+| DB | **sqlx 0.8 (Postgres)**, runtime-checked `query_as::<_, T>` + `FromRow`, `QueryBuilder` for dynamic filters (02 §2) | No ORM layer means no ORM overhead in a speed experiment. Runtime checking lets parallel agents build without a database or `.sqlx/` files. |
 | JSON | serde + serde_json | Struct field order is preserved. Swap in simd-json/sonic-rs only if profiling says so. |
 | Auth | jsonwebtoken, argon2, pbkdf2 + sha2 | Existing users log in with their Django password hashes |
 | Time | jiff (or chrono + chrono-tz), tzf-rs | tzf-rs replaces `timezonefinder` (loaded once, not per call) |

@@ -9,7 +9,7 @@ M1 is designed to produce real numbers early, so the rest can be re-planned
 1. **Workspace and CI.**
    - `apps/backend-rs` workspace, `rust-toolchain.toml`, `clippy.toml`
      (`disallowed-methods`), `cargo-deny`.
-   - CI: build, clippy, tests, `sqlx prepare --check`.
+   - CI: build, clippy, tests.
 2. **Schema:** `migrations/0000_baseline.sql` from Django at api.0142, plus
    `librephotos-rs migrate` / `adopt`. Additive migrations for
    `site_settings`, `refresh_token` and `job_queue`.

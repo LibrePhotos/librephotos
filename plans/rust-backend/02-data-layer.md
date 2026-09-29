@@ -1,8 +1,7 @@
 # 02 — Data Layer
 
 **Postgres only.** SQLite (unified image, Windows standalone) is out of scope
-for the experiment. Dropping it is what makes compile-time-checked sqlx
-queries possible.
+for the experiment.
 
 ## 1. Adopting the existing schema
 
@@ -47,15 +46,22 @@ Rust's delete code handles all of this explicitly (§5).
 
 ## 2. sqlx conventions
 
-- **Static queries:** `sqlx::query_as!` against the baseline, with `.sqlx/`
-  offline data committed. CI runs `cargo sqlx prepare --check` against a DB
-  built from the migrations.
+- **Runtime-checked queries (deviation, decided in M0):**
+  `sqlx::query_as::<_, Row>(sql)` with `#[derive(FromRow)]` row structs, not
+  the `query!`/`query_as!` macros. About 11 agents implement areas in
+  parallel worktrees; runtime checking means no `DATABASE_URL` at build time
+  and no `.sqlx/` offline files to conflict on. The cost is that a column
+  typo fails at test time instead of compile time, so every query needs a
+  test that runs it (lp-testkit makes that cheap).
 - **Dynamic filters** (the photo filter builder, search, list endpoints with
-  optional params): `sqlx::QueryBuilder`, wrapped in small typed builders in
-  `lp-db::filter`. Handlers never concatenate SQL.
-- **Layout:** one module per area (`lp-db::photos`, `albums`, `people`, …)
-  returning row structs. `lp-api` maps rows to response DTOs, so shapes the
-  frontend needs don't leak into queries.
+  optional params): `sqlx::QueryBuilder`, with the authz and filter
+  fragments in `lp_db::scope`. Handlers never concatenate SQL; clippy
+  `disallowed-methods` keeps `sqlx::query*` out of `lp-api`, `lp-media` and
+  `lp-auth`.
+- **Layout:** one module per area (`lp_db::<area>` for reads,
+  `lp_db::write::<area>` for writes) returning row structs. `lp-api` maps
+  rows to response DTOs, so shapes the frontend needs don't leak into
+  queries. The shared photo summary is `lp_db::pig`.
 - **Big lists** (timeline pages of up to 5000 items, album lists) are
   fetched with one query each plus at most one batched follow-up per
   relation (`= ANY($1)`), never per row.
@@ -72,7 +78,7 @@ Rust's delete code handles all of this explicitly (§5).
 | `JsonCol<T>` | jsonb | Distinguish SQL NULL from JSON `null`; Django filters treat them differently |
 | `VideoLength` | text | Yes, text |
 | Timestamps | `timestamptz` | UTC everywhere, like Django `USE_TZ=True` |
-| Encrypted fields | django-cryptography pickles (Nextcloud app password, SMTP secret) | **Not readable from Rust.** Adopted installs re-enter them once. Rust stores them AES-256-GCM in new nullable columns, keyed by HKDF from `SECRET_KEY`. |
+| Encrypted fields | django-cryptography pickles (Nextcloud app password, SMTP secret) | Readable and writable from Rust: `lp_core::django_crypto` ports the Fernet variant (AES-256-CBC, key = PBKDF2(SECRET_KEY), HMAC-SHA256 with SECRET_KEY) and pickles only `str`. New users get an encrypted `""`, which Django decrypts. |
 
 **Site settings:** `adopt` imports constance rows into `site_settings` once,
 by decoding constance 4.x's JSON codec. Inspect real rows first: the 0127 and
