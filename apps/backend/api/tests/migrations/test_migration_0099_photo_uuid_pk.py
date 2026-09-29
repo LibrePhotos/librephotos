@@ -379,6 +379,17 @@ class TestSQLiteMigration0099(TestCase):
         ids = [r[0] for r in cur.fetchall()]
         self.assertEqual(len(ids), len(set(ids)))
 
+    def test_ids_are_stored_the_way_uuidfield_looks_them_up(self):
+        # UUIDField stores and compares uuid.hex on SQLite; str(uuid4()),
+        # which 0099 used to write, is never matched by a lookup.
+        cur = self._cursor()
+        cur.execute('SELECT "id" FROM api_photo')
+        ids = [r[0] for r in cur.fetchall()]
+        cur.execute("SELECT photo_id FROM api_face")
+        face_photo_ids = [r[0] for r in cur.fetchall()]
+        for value in ids + face_photo_ids:
+            self.assertEqual(value, uuid.UUID(value).hex)
+
     def test_face_fk_translated(self):
         """Faces should join to photos via the new UUID id."""
         cur = self._cursor()
