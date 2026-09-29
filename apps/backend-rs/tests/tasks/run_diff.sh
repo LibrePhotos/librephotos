@@ -10,6 +10,8 @@
 # face_cluster sidecar on $LP_TASKS_FC_PORT (start_services.sh).
 #
 #   LP_DIFF_KEEP=1    keep the clones
+#   LP_DIFF_PREFIX    clone name prefix (default rs_tasks_)
+#   LP_DIFF_PRESQL    SQL run on both clones before the task (a starting state)
 #   LP_DIFF_IGNORE    `compare.py --ignore` entries (table or table.column)
 #   LP_DIFF_COUNT_ONLY  link tables compared by rows per parent (`--count-only`)
 set -euo pipefail
@@ -24,11 +26,13 @@ user="${3:-alice}"
 shift $(( $# < 3 ? $# : 3 ))
 MOCK="http://127.0.0.1:${LP_TASKS_MOCK_PORT:-18120}"
 FC="http://127.0.0.1:${LP_TASKS_FC_PORT:-18121}"
-ROOT="$LP_RUNS_ROOT/rs_tasks"
+P="${LP_DIFF_PREFIX:-rs_tasks_}"
+ROOT="$LP_RUNS_ROOT/${P%_}"
 OUT="${OUT:-$ROOT/$dj}"
-REF=rs_tasks_${dj}_ref
-RS=rs_tasks_${dj}_rs
-export LP_CLONE_PREFIXES="rs_tasks_"
+REF=${P}${dj}_ref
+RS=${P}${dj}_rs
+BASE=${P}baseline
+export LP_CLONE_PREFIXES="$P"
 mkdir -p "$OUT"
 # The Django args the Rust side mirrors: --setting K=V, --incremental.
 settings=""
@@ -44,6 +48,7 @@ for db in "$REF" "$RS"; do
     lp_psql -d postgres -c "DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" >/dev/null
     rm -rf "${ROOT:?}/media_$db"
     "$F/clone_db.sh" "$db" "$ROOT/media_$db" >/dev/null
+    if [ -n "${LP_DIFF_PRESQL:-}" ]; then lp_psql -d "$db" -c "$LP_DIFF_PRESQL" >/dev/null; fi
 done
 
 SITE="$(cygpath -u "$(dirname "$LP_DJANGO_PY")")/../Lib/site-packages"
@@ -79,9 +84,9 @@ echo "== rust $kind"
 echo "== diff"
 D="$(lp_win_path "$F/dump_state.py")"
 status=0
-# rs_tasks_baseline: an untouched clone, so nothing connects to the template.
-if ! lp_db_exists rs_tasks_baseline; then "$F/clone_db.sh" rs_tasks_baseline >/dev/null; fi
-"$LP_DJANGO_PY" "$(lp_win_path "$HERE/compare.py")" "$REF" "$RS" --baseline rs_tasks_baseline \
+# $BASE: an untouched clone, so nothing connects to the template.
+if ! lp_db_exists "$BASE"; then "$F/clone_db.sh" "$BASE" >/dev/null; fi
+"$LP_DJANGO_PY" "$(lp_win_path "$HERE/compare.py")" "$REF" "$RS" --baseline "$BASE" \
     --ref-media "$(lp_win_path "$ROOT/media_$REF")" --rs-media "$(lp_win_path "$ROOT/media_$RS")" \
     ${LP_DIFF_IGNORE:+--ignore $LP_DIFF_IGNORE} ${LP_DIFF_COUNT_ONLY:+--count-only $LP_DIFF_COUNT_ONLY}     > "$OUT/db.diff" 2>&1 || status=1
 "$LP_DJANGO_PY" "$D" files "$(lp_win_path "$ROOT/media_$REF")" -o "$(lp_win_path "$OUT/ref-files.json")"

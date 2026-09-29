@@ -28,6 +28,9 @@ tests/tasks/run_diff.sh train faces.train alice
 LP_DIFF_IGNORE=api_photo_search.search_captions LP_DIFF_COUNT_ONLY=api_albumthing_cover_photos \
   tests/tasks/run_diff.sh tags tags.generate alice
 P=<photo uuid>; LP_DIFF_PHOTO=$P tests/tasks/run_diff.sh caption captions.generate alice --photo $P
+# a starting state on both clones, own clone names:
+LP_DIFF_PREFIX=rs_rev_tasks_ LP_DIFF_PRESQL="UPDATE api_albumdate SET location = NULL" \
+  tests/tasks/run_diff.sh geo geo.locate alice
 ```
 
 Known, accepted differences:

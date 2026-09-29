@@ -285,7 +285,15 @@ async fn geo_locate_reverse_geocodes_into_places() {
             .contains(&json!("Berlin"))
     );
 
-    // Up to date: an incremental run changes nothing and calls nobody.
+    // Up to date: a second run calls nobody, but (as Django's
+    // geolocation_job) still files the stored city under the day album.
+    sqlx::query(
+        "UPDATE api_albumdate SET location = NULL WHERE id IN (            SELECT albumdate_id FROM api_albumdate_photos WHERE photo_id = $1)",
+    )
+    .bind(berlin)
+    .execute(&db)
+    .await
+    .unwrap();
     t.mock.clear();
     let (res, _) = run_job(
         &t.state,
@@ -296,6 +304,19 @@ async fn geo_locate_reverse_geocodes_into_places() {
     .await;
     res.unwrap();
     assert!(t.mock.calls_to("/reverse").is_empty());
+    let loc: Option<Value> = sqlx::query_scalar(
+        "SELECT a.location FROM api_albumdate a JOIN api_albumdate_photos l ON l.albumdate_id = a.id          WHERE l.photo_id = $1",
+    )
+    .bind(berlin)
+    .fetch_one(&db)
+    .await
+    .unwrap();
+    assert!(
+        loc.expect("day album location")["places"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("Berlin"))
+    );
 
     // Forward search for /api/geocode/search.
     let found = lp_tasks::geocode::search_location(&t.state, "Berlin", 5).await;

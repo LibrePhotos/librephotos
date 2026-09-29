@@ -146,19 +146,39 @@ pub fn usable_coordinates(lat: Option<f64>, lon: Option<f64>) -> bool {
     matches!((lat, lon), (Some(a), Some(b)) if !(a == 0.0 && b == 0.0))
 }
 
-/// `geolocation_job` for one photo: `geolocate_photo` + `add_location_to_album_dates`.
+/// `geolocation_job` for one photo: `geolocate_photo`, then
+/// `add_location_to_album_dates` from the stored geolocation, which also
+/// runs when the photo was up to date or the geocoder gave nothing.
 pub async fn geolocate_photo(state: &AppState, photo_id: Uuid) -> anyhow::Result<()> {
-    let Some(photo) = sqlx::query_as::<_, GeoPhoto>(
+    let Some(photo) = load_geo_photo(&state.db, photo_id).await? else {
+        return Ok(());
+    };
+    geolocate(state, photo_id, &photo).await?;
+    let Some(photo) = load_geo_photo(&state.db, photo_id).await? else {
+        return Ok(());
+    };
+    let Some(res) = photo.geolocation_json.clone() else {
+        return Ok(());
+    };
+    let mut tx = state.db.begin().await?;
+    add_location_to_album_date(&mut tx, &photo, &res).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+async fn load_geo_photo(db: &sqlx::PgPool, photo_id: Uuid) -> sqlx::Result<Option<GeoPhoto>> {
+    sqlx::query_as::<_, GeoPhoto>(
         "SELECT p.image_hash, p.owner_id, p.exif_gps_lat, p.exif_gps_lon, p.exif_timestamp, \
            p.geolocation_json, f.path AS main_path \
          FROM api_photo p LEFT JOIN api_file f ON f.hash = p.main_file_id WHERE p.id = $1",
     )
     .bind(photo_id)
-    .fetch_optional(&state.db)
-    .await?
-    else {
-        return Ok(());
-    };
+    .fetch_optional(db)
+    .await
+}
+
+/// `geolocate_photo`.
+async fn geolocate(state: &AppState, photo_id: Uuid, photo: &GeoPhoto) -> anyhow::Result<()> {
     let fail = |msg: String| anyhow::anyhow!("Photo {}: {msg}", photo.image_hash);
     let main = photo
         .main_path
@@ -218,7 +238,6 @@ pub async fn geolocate_photo(state: &AppState, photo_id: Uuid) -> anyhow::Result
         .await?;
     update_search_location(&mut tx, photo_id, &res).await?;
     move_to_album_places(&mut tx, photo_id, &photo.image_hash, photo.owner_id, &res).await?;
-    add_location_to_album_date(&mut tx, &photo, &res).await?;
     tx.commit().await?;
     Ok(())
 }
