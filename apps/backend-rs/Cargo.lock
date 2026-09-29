@@ -2366,6 +2366,7 @@ dependencies = [
  "libloading",
  "lp-core",
  "lp-db",
+ "lp-sidecars",
  "lp-testkit",
  "md-5",
  "memchr",

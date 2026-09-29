@@ -255,6 +255,16 @@ pub async fn cancel<'e>(db: impl PgExecutor<'e>, job_id: &str) -> sqlx::Result<b
     Ok(n > 0)
 }
 
+/// The cancel endpoint: cancel the LongRunningJob and its queued/running
+/// `job_queue` rows in one transaction. False when it had already finished.
+pub async fn cancel_with_queue(db: &PgPool, job_id: &str) -> sqlx::Result<bool> {
+    let mut tx = db.begin().await?;
+    let won = cancel(&mut *tx, job_id).await?;
+    crate::queue::cancel_for_lrj(&mut tx, job_id).await?;
+    tx.commit().await?;
+    Ok(won)
+}
+
 pub async fn is_cancelled<'e>(db: impl PgExecutor<'e>, job_id: &str) -> sqlx::Result<bool> {
     Ok(
         sqlx::query_scalar::<_, bool>("SELECT cancelled FROM api_longrunningjob WHERE job_id = $1")
