@@ -2,6 +2,8 @@
 //! (port of `api/autoalbum.py` `generate_event_albums` /
 //! `regenerate_event_titles` and `AlbumAuto._generate_title`).
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 use sqlx::{FromRow, PgConnection, PgPool};
 use uuid::Uuid;
@@ -284,16 +286,16 @@ async fn generate_title(
     .bind(&ids)
     .fetch_all(&mut *conn)
     .await?;
+    let mut people_of: HashMap<Uuid, Vec<String>> = HashMap::new();
+    for (photo_id, name) in faces {
+        people_of.entry(photo_id).or_default().push(name);
+    }
     let details: Vec<TitleInput> = photos
         .into_iter()
         .map(|p| TitleInput {
             exif_timestamp: p.exif_timestamp,
             geolocation_json: p.geolocation_json,
-            people: faces
-                .iter()
-                .filter(|(pid, _)| *pid == p.id)
-                .map(|(_, n)| n.clone())
-                .collect(),
+            people: people_of.remove(&p.id).unwrap_or_default(),
         })
         .collect();
     Ok(event_title(&details, timestamp))

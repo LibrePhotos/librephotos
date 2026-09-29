@@ -1,5 +1,7 @@
 //! User albums: `/albums/user/*`, `/useralbum/share`, `/useralbum/makepublic`.
 
+use std::collections::HashMap;
+
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode, Uri};
@@ -10,11 +12,14 @@ use lp_core::extract::py_truthy;
 use lp_core::time::drf_datetime;
 use lp_core::{ApiError, ApiJson, ApiResult, AppState, QueryMap};
 use lp_db::albums_tags::misc::owned_photo_ids;
-use lp_db::albums_tags::things_places::{AlbumPhotos, album_photos};
+use lp_db::albums_tags::things_places::{
+    AlbumPhotos, MediaFilter, album_photos, user_albums_photos,
+};
 use lp_db::albums_tags::user_albums::{
-    self as reads, DetailScope, UserAlbumDetailRow, UserAlbumListKind,
+    self as reads, DetailScope, UserAlbumDetailRow, UserAlbumEditRow, UserAlbumListKind,
 };
 use lp_db::albums_tags::{self, Paged};
+use lp_db::pig::PigPhoto;
 use lp_db::scope::PhotoFilterParams;
 use lp_db::users::User;
 use lp_db::write::albums_tags::PhotoSelection;
@@ -25,23 +30,29 @@ use serde::Serialize;
 use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
-use super::dto::{Group, SharingOptions, UserAlbumListItem, grouped, media_filter};
+use super::dto::{
+    Group, SharingOptions, UserAlbumListItem, drf_page, fetch_page, grouped, media_filter,
+};
 use super::validate::{self as v, Errors};
 use crate::common::{DrfPage, PageRequest};
 
-fn page(
+async fn page(
+    state: &AppState,
     headers: &HeaderMap,
     uri: &Uri,
     req: PageRequest,
-    paged: Paged<lp_db::albums_tags::user_albums::UserAlbumListRow>,
+    kind: UserAlbumListKind<'_>,
 ) -> ApiResult<Json<DrfPage<UserAlbumListItem>>> {
-    req.valid_for(paged.total)?;
+    let (req, paged): (_, Paged<_>) = fetch_page(req, |limit, offset| {
+        reads::list(&state.db, kind.clone(), limit, offset)
+    })
+    .await?;
     let results = paged
         .rows
         .into_iter()
         .map(UserAlbumListItem::from)
         .collect();
-    Ok(Json(DrfPage::new(headers, uri, req, paged.total, results)))
+    Ok(Json(drf_page(headers, uri, req, paged.total, results)))
 }
 
 /// `GET /api/albums/user/list/` (`AlbumUserListViewSet`).
@@ -54,17 +65,11 @@ pub async fn list(
 ) -> ApiResult<Json<DrfPage<UserAlbumListItem>>> {
     let req = PageRequest::from_query(&q, "page_size", 1000, 2000)?;
     let search = albums_tags::search_terms(q.get("search"));
-    let paged = reads::list(
-        &state.db,
-        UserAlbumListKind::Owned {
-            owner_id: user.id,
-            search: &search,
-        },
-        req.page_size,
-        req.offset(),
-    )
-    .await?;
-    page(&headers, &uri, req, paged)
+    let kind = UserAlbumListKind::Owned {
+        owner_id: user.id,
+        search: &search,
+    };
+    page(&state, &headers, &uri, req, kind).await
 }
 
 /// `GET /api/albums/user/shared/fromme/`.
@@ -76,14 +81,8 @@ pub async fn shared_from_me(
     uri: Uri,
 ) -> ApiResult<Json<DrfPage<UserAlbumListItem>>> {
     let req = PageRequest::from_query(&q, "page_size", 2500, 5000)?;
-    let paged = reads::list(
-        &state.db,
-        UserAlbumListKind::SharedFromMe { owner_id: user.id },
-        req.page_size,
-        req.offset(),
-    )
-    .await?;
-    page(&headers, &uri, req, paged)
+    let kind = UserAlbumListKind::SharedFromMe { owner_id: user.id };
+    page(&state, &headers, &uri, req, kind).await
 }
 
 /// `GET /api/albums/user/shared/tome/`.
@@ -95,14 +94,8 @@ pub async fn shared_to_me(
     uri: Uri,
 ) -> ApiResult<Json<DrfPage<UserAlbumListItem>>> {
     let req = PageRequest::from_query(&q, "page_size", 2500, 5000)?;
-    let paged = reads::list(
-        &state.db,
-        UserAlbumListKind::SharedToMe { user_id: user.id },
-        req.page_size,
-        req.offset(),
-    )
-    .await?;
-    page(&headers, &uri, req, paged)
+    let kind = UserAlbumListKind::SharedToMe { user_id: user.id };
+    page(&state, &headers, &uri, req, kind).await
 }
 
 /// `AlbumUserSerializer`.
@@ -167,22 +160,18 @@ fn effective(row: &UserAlbumDetailRow) -> (bool, bool) {
     (location, timestamps)
 }
 
-async fn detail_response(
-    state: &AppState,
-    row: UserAlbumDetailRow,
-    q: &QueryMap,
-) -> ApiResult<Response> {
-    let photos = album_photos(
-        &state.db,
-        AlbumPhotos::User {
-            album_id: row.id,
-            public: false,
-        },
-        media_filter(q),
-    )
-    .await?;
+fn keep(media: MediaFilter, p: &PigPhoto) -> bool {
+    match media {
+        MediaFilter::All => true,
+        MediaFilter::Videos => p.video,
+        MediaFilter::Photos => !p.video,
+    }
+}
+
+/// `AlbumUserSerializer` of `row` with its members (already media-filtered).
+fn detail_body(row: UserAlbumDetailRow, photos: Vec<PigPhoto>) -> UserAlbumDetail {
     let has_share = row.share_id.is_some();
-    Ok(Json(UserAlbumDetail {
+    UserAlbumDetail {
         id: row.id.to_string(),
         title: row.title,
         owner: row.owner.0,
@@ -204,26 +193,13 @@ async fn detail_response(
             share_captions: row.share_captions,
             share_faces: row.share_faces,
         }),
-    })
-    .into_response())
+    }
 }
 
-async fn public_response(
-    state: &AppState,
-    row: UserAlbumDetailRow,
-    q: &QueryMap,
-) -> ApiResult<Response> {
+/// `AlbumUserPublicSerializer` of `row` with all its non-hidden, untrashed
+/// members, newest first (Postgres sorts NULL timestamps first on DESC).
+fn public_body(row: UserAlbumDetailRow, all: Vec<PigPhoto>, media: MediaFilter) -> UserAlbumPublic {
     let (share_location, share_timestamps) = effective(&row);
-    // Newest first; Postgres sorts NULL timestamps first on DESC.
-    let all = album_photos(
-        &state.db,
-        AlbumPhotos::User {
-            album_id: row.id,
-            public: true,
-        },
-        lp_db::albums_tags::things_places::MediaFilter::All,
-    )
-    .await?;
     let date = if share_timestamps {
         all.iter()
             .find_map(|p| p.exif_timestamp.as_ref().map(drf_datetime))
@@ -239,15 +215,7 @@ async fn public_response(
     } else {
         String::new()
     };
-    let media = media_filter(q);
-    let photos: Vec<_> = all
-        .into_iter()
-        .filter(|p| match media {
-            lp_db::albums_tags::things_places::MediaFilter::All => true,
-            lp_db::albums_tags::things_places::MediaFilter::Videos => p.video,
-            lp_db::albums_tags::things_places::MediaFilter::Photos => !p.video,
-        })
-        .collect();
+    let photos: Vec<_> = all.into_iter().filter(|p| keep(media, p)).collect();
     let mut groups = if share_timestamps {
         grouped(photos)
     } else if photos.is_empty() {
@@ -272,15 +240,156 @@ async fn public_response(
             }
         }
     }
-    Ok(Json(UserAlbumPublic {
+    UserAlbumPublic {
         id: row.id.to_string(),
         title: row.title,
         owner: row.owner.0,
         date,
         location,
         grouped_photos: groups,
+    }
+}
+
+async fn detail_response(
+    state: &AppState,
+    row: UserAlbumDetailRow,
+    q: &QueryMap,
+) -> ApiResult<Response> {
+    let photos = album_photos(
+        &state.db,
+        AlbumPhotos::User {
+            album_id: row.id,
+            public: false,
+        },
+        media_filter(q),
+    )
+    .await?;
+    Ok(Json(detail_body(row, photos)).into_response())
+}
+
+async fn public_response(
+    state: &AppState,
+    row: UserAlbumDetailRow,
+    q: &QueryMap,
+) -> ApiResult<Response> {
+    let all = album_photos(
+        &state.db,
+        AlbumPhotos::User {
+            album_id: row.id,
+            public: true,
+        },
+        MediaFilter::All,
+    )
+    .await?;
+    Ok(Json(public_body(row, all, media_filter(q))).into_response())
+}
+
+/// Every album's members for a page of albums: two queries, not one per album.
+async fn members_by_album(
+    state: &AppState,
+    rows: &[UserAlbumDetailRow],
+    public: bool,
+) -> ApiResult<HashMap<i32, Vec<PigPhoto>>> {
+    let ids: Vec<i32> = rows.iter().map(|r| r.id).collect();
+    let (photos, links) = tokio::try_join!(
+        user_albums_photos(&state.db, &ids, public),
+        reads::members(&state.db, &ids),
+    )?;
+    let mut albums_of: HashMap<Uuid, Vec<i32>> = HashMap::new();
+    for (album_id, photo_id) in links {
+        albums_of.entry(photo_id).or_default().push(album_id);
+    }
+    let mut out: HashMap<i32, Vec<PigPhoto>> = HashMap::new();
+    for photo in photos {
+        if let Some(albums) = albums_of.get(&photo.id) {
+            for album_id in albums {
+                out.entry(*album_id).or_default().push(photo.clone());
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// `GET /api/albums/user/` (`AlbumUserViewSet.list`): the albums the user
+/// owns or was shared, newest first; `?public=` lists every active public
+/// share (optionally of `username`) to anyone.
+pub async fn viewset_list(
+    State(state): State<AppState>,
+    OptionalUser(user): OptionalUser,
+    q: QueryMap,
+    headers: HeaderMap,
+    uri: Uri,
+) -> ApiResult<Response> {
+    let public = q.flag("public");
+    let username = q.get("username").filter(|u| !u.is_empty());
+    let scope = if public {
+        DetailScope::Public { username }
+    } else {
+        let user = user.ok_or_else(ApiError::not_authenticated)?;
+        DetailScope::Visible {
+            user_id: user.id,
+            write: false,
+        }
+    };
+    let req = PageRequest::from_query(&q, "page_size", 1000, 2000)?;
+    let (req, paged) = fetch_page(req, |limit, offset| {
+        reads::detail_list(&state.db, scope, limit, offset)
     })
-    .into_response())
+    .await?;
+    let mut members = members_by_album(&state, &paged.rows, public).await?;
+    let media = media_filter(&q);
+    let total = paged.total;
+    if public {
+        let results: Vec<UserAlbumPublic> = paged
+            .rows
+            .into_iter()
+            .map(|row| {
+                let all = members.remove(&row.id).unwrap_or_default();
+                public_body(row, all, media)
+            })
+            .collect();
+        return Ok(Json(drf_page(&headers, &uri, req, total, results)).into_response());
+    }
+    let results: Vec<UserAlbumDetail> = paged
+        .rows
+        .into_iter()
+        .map(|row| {
+            let photos = members
+                .remove(&row.id)
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|p| keep(media, p))
+                .collect();
+            detail_body(row, photos)
+        })
+        .collect();
+    Ok(Json(drf_page(&headers, &uri, req, total, results)).into_response())
+}
+
+/// `POST /api/albums/user/` (`AlbumUserViewSet.create`): an empty album
+/// titled `title`, answered with its `AlbumUserSerializer` (201).
+pub async fn viewset_create(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    q: QueryMap,
+    ApiJson(body): ApiJson<Value>,
+) -> ApiResult<Response> {
+    let obj = v::body_object(&body)?;
+    let mut errors = Errors::default();
+    let title = match obj.get("title") {
+        Some(t) => errors.check("title", v::char_field(t, 512)),
+        None => {
+            errors.add("title", v::REQUIRED);
+            None
+        }
+    };
+    errors.into_result()?;
+    let id = writes::create_empty(&state.db, user.id, &title.unwrap_or_default()).await?;
+    let row = owned_detail(&state, &user, &id.to_string()).await?;
+    let response = detail_response(&state, row, &q).await?;
+    let (mut parts, body) = response.into_parts();
+    parts.status = StatusCode::CREATED;
+    Ok(Response::from_parts(parts, body))
 }
 
 /// `GET /api/albums/user/{id}/` (bare object). `?public=` makes it an
@@ -332,6 +441,31 @@ async fn owned_detail(
     .ok_or_else(not_found_album)
 }
 
+async fn save_title(
+    state: &AppState,
+    user: &User,
+    raw_id: &str,
+    q: &QueryMap,
+    body: &Value,
+    partial: bool,
+) -> ApiResult<Response> {
+    let row = owned_detail(state, user, raw_id).await?;
+    let obj = v::body_object(body)?;
+    let mut errors = Errors::default();
+    let title = match obj.get("title") {
+        Some(t) => errors.check("title", v::char_field(t, 512)),
+        None if !partial => {
+            errors.add("title", v::REQUIRED);
+            None
+        }
+        None => None,
+    };
+    errors.into_result()?;
+    writes::rename(&state.db, row.id, title.as_deref()).await?;
+    let row = owned_detail(state, user, raw_id).await?;
+    detail_response(state, row, q).await
+}
+
 /// `PATCH /api/albums/user/{id}/`: rename (owner only; recipients get 404).
 pub async fn rename(
     State(state): State<AppState>,
@@ -340,17 +474,18 @@ pub async fn rename(
     q: QueryMap,
     ApiJson(body): ApiJson<Value>,
 ) -> ApiResult<Response> {
-    let row = owned_detail(&state, &user, &raw_id).await?;
-    let obj = v::body_object(&body)?;
-    let mut errors = Errors::default();
-    let title = match obj.get("title") {
-        Some(t) => errors.check("title", v::char_field(t, 512)),
-        None => None,
-    };
-    errors.into_result()?;
-    writes::rename(&state.db, row.id, title.as_deref()).await?;
-    let row = owned_detail(&state, &user, &raw_id).await?;
-    detail_response(&state, row, &q).await
+    save_title(&state, &user, &raw_id, &q, &body, true).await
+}
+
+/// `PUT /api/albums/user/{id}/`: the same with `title` required.
+pub async fn replace(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    Path(raw_id): Path<String>,
+    q: QueryMap,
+    ApiJson(body): ApiJson<Value>,
+) -> ApiResult<Response> {
+    save_title(&state, &user, &raw_id, &q, &body, false).await
 }
 
 /// `DELETE /api/albums/user/{id}/` (owner only).
@@ -376,16 +511,21 @@ pub struct EditOut {
     cover_photo: Option<Uuid>,
 }
 
+impl From<UserAlbumEditRow> for EditOut {
+    fn from(r: UserAlbumEditRow) -> Self {
+        EditOut {
+            id: r.id,
+            title: r.title,
+            photos: r.photos,
+            created_on: r.created_on,
+            favorited: r.favorited,
+            cover_photo: r.cover_photo_id,
+        }
+    }
+}
+
 async fn edit_out(state: &AppState, id: i32) -> ApiResult<EditOut> {
-    let r = reads::edit_row(&state.db, id).await?;
-    Ok(EditOut {
-        id: r.id,
-        title: r.title,
-        photos: r.photos,
-        created_on: r.created_on,
-        favorited: r.favorited,
-        cover_photo: r.cover_photo_id,
-    })
+    Ok(reads::edit_row(&state.db, id).await?.into())
 }
 
 /// Validated `AlbumUserEditSerializer` input.
@@ -535,14 +675,78 @@ pub async fn edit_update(
     Path(raw_id): Path<String>,
     ApiJson(body): ApiJson<Value>,
 ) -> ApiResult<Json<EditOut>> {
-    let id = parse_pk(&raw_id)?;
-    let id = reads::owned_id(&state.db, id, user.id)
+    save_edit(&state, &user, &raw_id, &body, true).await
+}
+
+/// `PUT /api/albums/user/edit/{id}/`: the same with `title` and `photos`
+/// required.
+pub async fn edit_replace(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    Path(raw_id): Path<String>,
+    ApiJson(body): ApiJson<Value>,
+) -> ApiResult<Json<EditOut>> {
+    save_edit(&state, &user, &raw_id, &body, false).await
+}
+
+async fn owned_edit_id(state: &AppState, user: &User, raw_id: &str) -> ApiResult<i32> {
+    let id = parse_pk(raw_id)?;
+    reads::owned_id(&state.db, id, user.id)
         .await?
-        .ok_or_else(not_found_album)?;
-    let input = validate_edit(&state, &user, &body, false).await?;
-    let edit = to_edit(&user, input)?;
+        .ok_or_else(not_found_album)
+}
+
+async fn save_edit(
+    state: &AppState,
+    user: &User,
+    raw_id: &str,
+    body: &Value,
+    partial: bool,
+) -> ApiResult<Json<EditOut>> {
+    let id = owned_edit_id(state, user, raw_id).await?;
+    let input = validate_edit(state, user, body, !partial).await?;
+    let edit = to_edit(user, input)?;
     writes::update(&state.db, id, &edit).await?;
+    Ok(Json(edit_out(state, id).await?))
+}
+
+/// `GET /api/albums/user/edit/` (`AlbumUserEditViewSet.list`): the owner's
+/// albums by title.
+pub async fn edit_list(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    q: QueryMap,
+    headers: HeaderMap,
+    uri: Uri,
+) -> ApiResult<Json<DrfPage<EditOut>>> {
+    let req = PageRequest::from_query(&q, "page_size", 1000, 2000)?;
+    let (req, paged) = fetch_page(req, |limit, offset| {
+        reads::edit_list(&state.db, user.id, limit, offset)
+    })
+    .await?;
+    let results = paged.rows.into_iter().map(EditOut::from).collect();
+    Ok(Json(drf_page(&headers, &uri, req, paged.total, results)))
+}
+
+/// `GET /api/albums/user/edit/{id}/`.
+pub async fn edit_retrieve(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    Path(raw_id): Path<String>,
+) -> ApiResult<Json<EditOut>> {
+    let id = owned_edit_id(&state, &user, &raw_id).await?;
     Ok(Json(edit_out(&state, id).await?))
+}
+
+/// `DELETE /api/albums/user/edit/{id}/`.
+pub async fn edit_delete(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    Path(raw_id): Path<String>,
+) -> ApiResult<StatusCode> {
+    let id = owned_edit_id(&state, &user, &raw_id).await?;
+    writes::delete(&state.db, id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 fn status_message(code: StatusCode, message: &str) -> Response {
@@ -660,7 +864,7 @@ pub async fn make_public(
         }
     }
     if let Some(Value::String(s)) = obj.get("expires_at") {
-        edit.expires_at = Some(lp_core::time::parse_client_datetime(s));
+        edit.expires_at = v::django_parse_datetime(s);
     }
     if let Some(Value::Object(opts)) = obj.get("sharing_options") {
         for (i, field) in SHARING_OPTION_FIELDS.iter().enumerate() {

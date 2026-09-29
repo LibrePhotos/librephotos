@@ -13,7 +13,7 @@ use lp_db::albums_tags::things_places::{
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use super::dto::{Group, grouped, media_filter};
+use super::dto::{Group, drf_page, fetch_page, grouped, media_filter};
 use crate::common::{DrfPage, PageRequest};
 
 /// `AlbumThingListSerializer`.
@@ -47,16 +47,10 @@ pub async fn thing_list(
     let req = PageRequest::from_query(&q, "page_size", 1000, 2000)?;
     let types = active_thing_types(&state.settings().tagging_model);
     let search = search_terms(q.get("search"));
-    let paged = reads::thing_list(
-        &state.db,
-        user.id,
-        &types,
-        &search,
-        req.page_size,
-        req.offset(),
-    )
+    let (req, paged) = fetch_page(req, |limit, offset| {
+        reads::thing_list(&state.db, user.id, &types, &search, limit, offset)
+    })
     .await?;
-    let req = req.valid_for(paged.total)?;
     let results = paged
         .rows
         .into_iter()
@@ -68,13 +62,7 @@ pub async fn thing_list(
             thing_type: r.thing_type,
         })
         .collect();
-    Ok(Json(DrfPage::new(
-        &headers,
-        &uri,
-        req,
-        paged.total,
-        results,
-    )))
+    Ok(Json(drf_page(&headers, &uri, req, paged.total, results)))
 }
 
 /// `GET /api/albums/place/list/`.
@@ -87,8 +75,10 @@ pub async fn place_list(
 ) -> ApiResult<Json<DrfPage<PlaceItem>>> {
     let req = PageRequest::from_query(&q, "page_size", 1000, 2000)?;
     let search = search_terms(q.get("search"));
-    let paged = reads::place_list(&state.db, user.id, &search, req.page_size, req.offset()).await?;
-    let req = req.valid_for(paged.total)?;
+    let (req, paged) = fetch_page(req, |limit, offset| {
+        reads::place_list(&state.db, user.id, &search, limit, offset)
+    })
+    .await?;
     let results = paged
         .rows
         .into_iter()
@@ -100,13 +90,7 @@ pub async fn place_list(
             photo_count: r.photo_count,
         })
         .collect();
-    Ok(Json(DrfPage::new(
-        &headers,
-        &uri,
-        req,
-        paged.total,
-        results,
-    )))
+    Ok(Json(drf_page(&headers, &uri, req, paged.total, results)))
 }
 
 /// `Grouped{Thing,Place}PhotosSerializer`: `{id: "<id>", title, grouped_photos}`.

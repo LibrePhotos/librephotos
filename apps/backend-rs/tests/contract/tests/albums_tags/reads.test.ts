@@ -271,6 +271,51 @@ describe.skipIf(!hasBase)("location clusters and folders", () => {
   });
 });
 
+// Viewset reads the frontend does not use, and `page=last` / huge pages on
+// the paginated lists.
+describe.skipIf(!hasBase)("viewset reads and page edges", () => {
+  const detailItems = { unordered: ["results[].shared_to", "results[].grouped_photos[].items"] };
+
+  it.each([...USERS, "anonymous"] as Role[])("twin: /albums/user/ as %s", async role => {
+    await expectTwin(role, { path: "/api/albums/user/" }, { project: ["*"], ...detailItems });
+    await expectTwin(role, { path: "/api/albums/user/", query: { public: "true" } }, { project: ["*"], ...detailItems });
+  });
+
+  it("twin: /albums/user/ filters", async () => {
+    for (const query of [{ video: "true" }, { photo: "true" }, { public: "true", username: "alice" }, { public: "true", username: "bob" }]) {
+      await expectTwin("alice", { path: "/api/albums/user/", query }, { project: ["*"], ...detailItems });
+    }
+  });
+
+  it.each(USERS)("twin: /albums/user/edit/ list and retrieve as %s", async role => {
+    const spec = { project: ["*"], unordered: ["results[].photos", "photos"] };
+    await expectTwin(role, { path: "/api/albums/user/edit/" }, spec);
+    for (const album of Object.values(albums().user)) {
+      await expectTwin(role, { path: `/api/albums/user/edit/${album.id}/` }, spec);
+    }
+    await expectTwin(role, { path: "/api/albums/user/edit/abc/" }, spec);
+  });
+
+  it("twin: page=last and pages past any end", async () => {
+    const lists = [
+      "/api/albums/user/list/",
+      "/api/albums/user/shared/fromme/",
+      "/api/albums/auto/list/",
+      "/api/albums/thing/list/",
+      "/api/albums/place/list/",
+      "/api/tags/",
+      "/api/albums/user/edit/",
+    ];
+    for (const path of lists) {
+      for (const query of [{ page: "last", page_size: "2" }, { page: "99999999999999999" }, { page: "9223372036854775806" }]) {
+        await expectTwin("alice", { path, query }, {
+          project: ["count", "next", "previous", "results[].id", "errors"],
+        });
+      }
+    }
+  });
+});
+
 describe.skipIf(!hasBase)("authz: albums & tags reads", () => {
   const a = () => manifest().albums;
   const cases: AuthzCase[] = [

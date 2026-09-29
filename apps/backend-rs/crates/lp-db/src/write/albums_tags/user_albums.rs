@@ -105,6 +105,19 @@ pub async fn create(
     Ok(id)
 }
 
+/// `AlbumUserSerializer.create`: a plain `AlbumUser.objects.create` (an
+/// existing title is a unique violation, a 500 in Django too).
+pub async fn create_empty(db: &PgPool, owner_id: i32, title: &str) -> sqlx::Result<i32> {
+    sqlx::query_scalar(
+        "INSERT INTO api_albumuser (title, created_on, favorited, owner_id, cover_photo_id, last_modified) \
+         VALUES ($1, now(), FALSE, $2, NULL, now()) RETURNING id",
+    )
+    .bind(title)
+    .bind(owner_id)
+    .fetch_one(db)
+    .await
+}
+
 /// `AlbumUserEditSerializer.update` on the owner's album.
 pub async fn update(db: &PgPool, album_id: i32, edit: &AlbumEdit) -> sqlx::Result<()> {
     let mut tx = db.begin().await?;

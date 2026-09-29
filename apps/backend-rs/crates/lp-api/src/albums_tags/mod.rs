@@ -20,17 +20,28 @@ mod validate;
 pub fn routes() -> Router<AppState> {
     Router::new()
         // User albums.
+        .route(
+            "/api/albums/user",
+            get(user_albums::viewset_list).post(user_albums::viewset_create),
+        )
         .route("/api/albums/user/list", get(user_albums::list))
         .route(
             "/api/albums/user/{id}",
             get(user_albums::detail)
+                .put(user_albums::replace)
                 .patch(user_albums::rename)
                 .delete(user_albums::delete),
         )
-        .route("/api/albums/user/edit", post(user_albums::edit_create))
+        .route(
+            "/api/albums/user/edit",
+            get(user_albums::edit_list).post(user_albums::edit_create),
+        )
         .route(
             "/api/albums/user/edit/{id}",
-            axum::routing::patch(user_albums::edit_update),
+            get(user_albums::edit_retrieve)
+                .put(user_albums::edit_replace)
+                .patch(user_albums::edit_update)
+                .delete(user_albums::edit_delete),
         )
         .route(
             "/api/albums/user/shared/fromme",
@@ -69,7 +80,10 @@ pub fn routes() -> Router<AppState> {
         .route("/api/tags", get(tags::list).post(tags::create))
         .route(
             "/api/tags/{id}",
-            get(tags::detail).patch(tags::rename).delete(tags::delete),
+            get(tags::detail)
+                .put(tags::replace)
+                .patch(tags::rename)
+                .delete(tags::delete),
         )
         .route("/api/tags/{id}/add", post(tags::add))
         .route("/api/tags/{id}/remove", post(tags::remove))

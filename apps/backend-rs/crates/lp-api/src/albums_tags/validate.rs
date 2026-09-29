@@ -2,6 +2,7 @@
 //! messages (the UI shows the first one).
 
 use axum::http::StatusCode;
+use chrono::{DateTime, FixedOffset, NaiveDate, TimeZone, Utc};
 use lp_core::{ApiError, FieldError};
 use serde_json::Value;
 use uuid::Uuid;
@@ -235,6 +236,100 @@ pub fn py_int(v: &Value) -> Option<i64> {
     }
 }
 
+/// Digits at the start of `s[*i..]`, between `min` and `max` of them.
+fn take_digits(s: &[u8], i: &mut usize, min: usize, max: usize) -> Option<u32> {
+    let start = *i;
+    while *i < s.len() && *i - start < max && s[*i].is_ascii_digit() {
+        *i += 1;
+    }
+    if *i - start < min {
+        return None;
+    }
+    std::str::from_utf8(&s[start..*i]).ok()?.parse().ok()
+}
+
+/// Django's `datetime_re` fallback of `parse_datetime`: `None` when the text
+/// does not match, `Some(Err)` when it matches but names no real instant
+/// (Python's `datetime(...)` raises).
+fn datetime_re(text: &str) -> Option<Result<DateTime<Utc>, ()>> {
+    let s = text.as_bytes();
+    let mut i = 0;
+    let expect = |i: &mut usize, c: &[u8]| -> Option<()> {
+        (*i < s.len() && c.contains(&s[*i])).then(|| *i += 1)
+    };
+    let year = take_digits(s, &mut i, 4, 4)?;
+    expect(&mut i, b"-")?;
+    let month = take_digits(s, &mut i, 1, 2)?;
+    expect(&mut i, b"-")?;
+    let day = take_digits(s, &mut i, 1, 2)?;
+    expect(&mut i, b"T ")?;
+    let hour = take_digits(s, &mut i, 1, 2)?;
+    expect(&mut i, b":")?;
+    let minute = take_digits(s, &mut i, 1, 2)?;
+    let mut second = 0;
+    let mut micro = 0;
+    if i < s.len() && s[i] == b':' {
+        i += 1;
+        second = take_digits(s, &mut i, 1, 2)?;
+        if i < s.len() && (s[i] == b'.' || s[i] == b',') {
+            i += 1;
+            let start = i;
+            let digits = take_digits(s, &mut i, 1, 6)?;
+            micro = digits * 10u32.pow(6 - (i - start) as u32);
+            while i < s.len() && i - start < 12 && s[i].is_ascii_digit() {
+                i += 1;
+            }
+        }
+    }
+    while i < s.len() && s[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    let mut offset = Some(0);
+    if i < s.len() {
+        match s[i] {
+            b'Z' => i += 1,
+            b'+' | b'-' => {
+                let sign = if s[i] == b'-' { -1 } else { 1 };
+                i += 1;
+                let h = take_digits(s, &mut i, 2, 2)?;
+                let mut m = 0;
+                if i < s.len() && (s[i] == b':' || s[i].is_ascii_digit()) {
+                    if s[i] == b':' {
+                        i += 1;
+                    }
+                    m = take_digits(s, &mut i, 2, 2)?;
+                }
+                offset = FixedOffset::east_opt(sign * (h as i32 * 3600 + m as i32 * 60))
+                    .map(|o| o.local_minus_utc());
+            }
+            _ => return None,
+        }
+    }
+    if i != s.len() {
+        return None;
+    }
+    let built = NaiveDate::from_ymd_opt(year as i32, month, day)
+        .and_then(|d| d.and_hms_micro_opt(hour, minute, second, micro))
+        .zip(offset.and_then(FixedOffset::east_opt))
+        .and_then(|(naive, tz)| tz.from_local_datetime(&naive).single())
+        .map(|dt| dt.with_timezone(&Utc));
+    Some(built.ok_or(()))
+}
+
+/// `share.expires_at = parse_datetime(value)` inside `try/except: pass`:
+/// `Some(x)` is what Django stores (`None` for text it cannot read), `None`
+/// leaves the old value (a well-formed but impossible date raises).
+pub fn django_parse_datetime(text: &str) -> Option<Option<DateTime<Utc>>> {
+    if let Some(dt) = lp_core::time::parse_client_datetime(text) {
+        return Some(Some(dt));
+    }
+    match datetime_re(text) {
+        None => Some(None),
+        Some(Ok(dt)) => Some(Some(dt)),
+        Some(Err(())) => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -261,5 +356,22 @@ mod tests {
         assert!(py_uuid(&json!("{853CC5B1-8c82-4daf-8254-049e7cf1829a}")).is_ok());
         assert_eq!(py_int(&json!("3")), Some(3));
         assert_eq!(py_int(&json!("x")), None);
+    }
+
+    #[test]
+    fn expiry_dates() {
+        let at = |s| django_parse_datetime(s).map(|d| d.map(|d| d.to_rfc3339()));
+        assert_eq!(
+            at("2026-10-01T12:00:00.000Z"),
+            Some(Some("2026-10-01T12:00:00+00:00".into()))
+        );
+        assert_eq!(
+            at("2026-1-5 3:04:05,5 +0200"),
+            Some(Some("2026-01-05T01:04:05.500+00:00".into()))
+        );
+        // No match: Django stores None.
+        assert_eq!(at("next week"), Some(None));
+        // Matches the pattern but is no date: Django keeps the old value.
+        assert_eq!(at("2026-13-45T00:00"), None);
     }
 }

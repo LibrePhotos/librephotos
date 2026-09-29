@@ -229,4 +229,51 @@ describe.skipIf(!enabled)("albums_tags mutations (twin)", () => {
       { role: "alice", req: { path: "/api/albums/auto/list/" }, spec: { project: ["count", "results[].id"] } },
     ]);
   });
+
+  // Viewset methods the frontend does not call (list/create on the album
+  // viewset, the edit viewset's list/retrieve/PUT/DELETE, PUT on albums and
+  // tags), and how makepublic reads expires_at.
+  it("viewset methods and share expiry", async () => {
+    const m = manifest();
+    const vacation = m.albums.user.vacation!.id;
+    const fixtureTag = m.tags.find(t => t.name === "Fixture")!;
+    await run([
+      { role: "alice", req: { method: "POST", path: "/api/albums/user/", body: { title: "Viewset Album" } }, spec: DETAIL },
+      { role: "alice", req: { method: "POST", path: "/api/albums/user/", body: {} } },
+      { role: "anonymous", req: { method: "POST", path: "/api/albums/user/", body: { title: "x" } } },
+    ]);
+    const edits = await call<{ results: { id: number; title: string }[] }>("alice", { path: "/api/albums/user/edit/" });
+    const created = edits.body.results.find(a => a.title === "Viewset Album")!.id;
+    await run([
+      { role: "alice", req: { method: "PUT", path: `/api/albums/user/${created}/`, body: { title: "Viewset Album 2" } }, spec: DETAIL },
+      { role: "alice", req: { method: "PUT", path: `/api/albums/user/${created}/`, body: {} } },
+      { role: "carol", req: { method: "PUT", path: `/api/albums/user/${m.albums.user.shared_to_carol!.id}/`, body: { title: "mine" } } },
+      { role: "alice", req: { method: "PUT", path: `/api/albums/user/edit/${created}/`, body: { title: "Viewset Album 3" } } },
+      {
+        role: "alice",
+        req: { method: "PUT", path: `/api/albums/user/edit/${created}/`, body: { title: "Viewset Album 3", photos: [id("alice/e2e_03")] } },
+        spec: EDIT,
+      },
+      { role: "alice", req: { path: `/api/albums/user/edit/${created}/` }, spec: EDIT },
+      { role: "bob", req: { path: `/api/albums/user/edit/${created}/` } },
+      { role: "alice", req: { path: "/api/albums/user/edit/" }, spec: { project: ["count", "results[].id", "results[].title", "results[].photos"], unordered: ["results[].photos"] } },
+      {
+        role: "alice",
+        req: { path: "/api/albums/user/" },
+        spec: { project: ["count", "results[].id", "results[].title", "results[].grouped_photos"], unordered: ["results[].grouped_photos[].items"] },
+      },
+      { role: "bob", req: { method: "DELETE", path: `/api/albums/user/edit/${created}/` } },
+      { role: "alice", req: { method: "DELETE", path: `/api/albums/user/edit/${created}/` } },
+      { role: "alice", req: { method: "PUT", path: `/api/tags/${fixtureTag.id}/`, body: {} } },
+      { role: "alice", req: { method: "PUT", path: `/api/tags/${fixtureTag.id}/`, body: { name: "Fixture 2" } } },
+      { role: "bob", req: { method: "PUT", path: `/api/tags/${fixtureTag.id}/`, body: { name: "x" } } },
+      ...["2031-05-06T07:08:09Z", "2031-13-45T00:00", "2031-05-06 07:08", "soon"].map(expires_at => ({
+        role: "alice" as Role,
+        req: { method: "POST" as const, path: "/api/useralbum/makepublic", body: { album_id: vacation, val_public: true, expires_at } },
+        spec: { project: ["status", "album.public", "album.public_expires_at"] },
+      })),
+      // Revoke again: the minted slugs are random on each side.
+      { role: "alice", req: { method: "POST", path: "/api/useralbum/makepublic", body: { album_id: vacation, val_public: false } }, spec: { project: ["status", "album.public_expires_at"] } },
+    ]);
+  });
 });

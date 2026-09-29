@@ -5,16 +5,16 @@ use uuid::Uuid;
 
 use crate::scope::{folder_path_prefixes, like_escape};
 
-/// `geolocation_json -> 'features'` of every photo of the owner that has
-/// geolocation, in table order (the first occurrence of a place wins).
+/// `(text, center)` of every object feature in `geolocation_json.features`
+/// of the owner's photos, photo by photo in table order and features in list
+/// order (the first occurrence of a place wins). Only these two keys leave
+/// the database, not the whole geolocation document.
 pub async fn geolocation_features<'e>(
     db: impl PgExecutor<'e>,
     owner_id: i32,
-) -> sqlx::Result<Vec<Option<serde_json::Value>>> {
-    sqlx::query_scalar(
-        "SELECT CASE WHEN jsonb_typeof(geolocation_json) = 'object' \
-                THEN geolocation_json -> 'features' END \
-         FROM api_photo WHERE owner_id = $1 AND geolocation_json IS NOT NULL",
+) -> sqlx::Result<Vec<(Option<serde_json::Value>, Option<serde_json::Value>)>> {
+    sqlx::query_as(
+        "SELECT f.value -> 'text', f.value -> 'center'          FROM api_photo p CROSS JOIN LATERAL jsonb_array_elements(            CASE WHEN jsonb_typeof(p.geolocation_json) = 'object'                  AND jsonb_typeof(p.geolocation_json -> 'features') = 'array'                 THEN p.geolocation_json -> 'features' ELSE '[]'::jsonb END) WITH ORDINALITY AS f(value, ord)          WHERE p.owner_id = $1 AND p.geolocation_json IS NOT NULL AND jsonb_typeof(f.value) = 'object'",
     )
     .bind(owner_id)
     .fetch_all(db)

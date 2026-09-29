@@ -77,6 +77,30 @@ pub async fn album_photos<'e>(
     pig::fetch(&mut qb, db).await
 }
 
+/// The members of every user album in `album_ids` (the public view's rule
+/// when `public`), ordered like [`album_photos`]; pair them up with
+/// `user_albums::members`.
+pub async fn user_albums_photos<'e>(
+    db: impl PgExecutor<'e>,
+    album_ids: &[i32],
+    public: bool,
+) -> sqlx::Result<Vec<PigPhoto>> {
+    if album_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut qb = pig::query();
+    qb.push(
+        " WHERE p.id IN (SELECT l.photo_id FROM api_albumuser_photos l WHERE l.albumuser_id = ANY(",
+    );
+    qb.push_bind(album_ids.to_vec());
+    qb.push("))");
+    if public {
+        qb.push(" AND NOT p.hidden AND NOT p.in_trashcan");
+    }
+    qb.push(" ORDER BY p.exif_timestamp DESC, p.id");
+    pig::fetch(&mut qb, db).await
+}
+
 /// `AlbumThingListSerializer` / `AlbumPlaceListSerializer` row.
 #[derive(Debug, Clone, FromRow)]
 pub struct CoverAlbumRow {

@@ -19,7 +19,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use super::dto::{Group, grouped, media_filter};
+use super::dto::{Group, drf_page, fetch_page, grouped, media_filter};
 use super::validate::{self as v, Errors};
 use crate::common::{DrfPage, PageRequest};
 
@@ -43,16 +43,10 @@ pub async fn list(
     let req = PageRequest::from_query(&q, "page_size", 1000, 2000)?;
     let photo = q.non_empty("photo").map(PhotoRef::parse);
     let search = search_terms(q.get("search"));
-    let paged = reads::list(
-        &state.db,
-        user.id,
-        photo.as_ref(),
-        &search,
-        req.page_size,
-        req.offset(),
-    )
+    let (req, paged) = fetch_page(req, |limit, offset| {
+        reads::list(&state.db, user.id, photo.as_ref(), &search, limit, offset)
+    })
     .await?;
-    let req = req.valid_for(paged.total)?;
     let results = paged
         .rows
         .into_iter()
@@ -63,13 +57,7 @@ pub async fn list(
             cover_photos: r.cover_photos.0,
         })
         .collect();
-    Ok(Json(DrfPage::new(
-        &headers,
-        &uri,
-        req,
-        paged.total,
-        results,
-    )))
+    Ok(Json(drf_page(&headers, &uri, req, paged.total, results)))
 }
 
 fn not_found_tag() -> ApiError {
@@ -156,6 +144,25 @@ pub async fn create(
     Ok((StatusCode::CREATED, Json(tag)).into_response())
 }
 
+async fn save_name(
+    state: &AppState,
+    user: &User,
+    raw_id: &str,
+    body: &Value,
+    partial: bool,
+) -> ApiResult<Json<TagRow>> {
+    let tag = owned_tag(state, user, raw_id).await?;
+    let obj = v::body_object(body)?;
+    let name = match obj.get("name") {
+        Some(raw) => Some(validate_name(state, user, raw, Some(tag.id)).await?),
+        None if !partial => return Err(ApiError::bad_request("name", v::REQUIRED)),
+        None => None,
+    };
+    Ok(Json(
+        writes::rename(&state.db, tag.id, name.as_deref()).await?,
+    ))
+}
+
 /// `PATCH /api/tags/{id}/`.
 pub async fn rename(
     State(state): State<AppState>,
@@ -163,15 +170,17 @@ pub async fn rename(
     Path(raw_id): Path<String>,
     ApiJson(body): ApiJson<Value>,
 ) -> ApiResult<Json<TagRow>> {
-    let tag = owned_tag(&state, &user, &raw_id).await?;
-    let obj = v::body_object(&body)?;
-    let name = match obj.get("name") {
-        Some(raw) => Some(validate_name(&state, &user, raw, Some(tag.id)).await?),
-        None => None,
-    };
-    Ok(Json(
-        writes::rename(&state.db, tag.id, name.as_deref()).await?,
-    ))
+    save_name(&state, &user, &raw_id, &body, true).await
+}
+
+/// `PUT /api/tags/{id}/`: the same with `name` required.
+pub async fn replace(
+    State(state): State<AppState>,
+    AuthUser(user): AuthUser,
+    Path(raw_id): Path<String>,
+    ApiJson(body): ApiJson<Value>,
+) -> ApiResult<Json<TagRow>> {
+    save_name(&state, &user, &raw_id, &body, false).await
 }
 
 /// `DELETE /api/tags/{id}/`.

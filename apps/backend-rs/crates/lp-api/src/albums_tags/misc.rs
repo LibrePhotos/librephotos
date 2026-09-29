@@ -14,9 +14,8 @@ use serde_json::{Value, json};
 
 /// `_location_cluster_row`: `[lat, lon, text]` from a feature with a
 /// non-numeric `text` and a `center` of at least two numbers.
-fn cluster_row(feature: &Value) -> Option<(f64, f64, String)> {
-    let obj = feature.as_object()?;
-    let text = match obj.get("text")? {
+fn cluster_row(text: Option<&Value>, center: Option<&Value>) -> Option<(f64, f64, String)> {
+    let text = match text? {
         Value::String(s) if !s.is_empty() => s.clone(),
         _ => return None,
     };
@@ -24,7 +23,7 @@ fn cluster_row(feature: &Value) -> Option<(f64, f64, String)> {
     if !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) {
         return None;
     }
-    let center = obj.get("center")?.as_array()?;
+    let center = center?.as_array()?;
     if center.len() < 2 {
         return None;
     }
@@ -50,14 +49,9 @@ pub async fn location_clusters(
         .blocking(move || {
             let mut by_name: std::collections::BTreeMap<String, (f64, f64, String)> =
                 std::collections::BTreeMap::new();
-            for features in rows.into_iter().flatten() {
-                let Some(list) = features.as_array() else {
-                    continue;
-                };
-                for feature in list {
-                    if let Some(row) = cluster_row(feature) {
-                        by_name.entry(row.2.clone()).or_insert(row);
-                    }
+            for (text, center) in &rows {
+                if let Some(row) = cluster_row(text.as_ref(), center.as_ref()) {
+                    by_name.entry(row.2.clone()).or_insert(row);
                 }
             }
             by_name.into_values().collect::<Vec<_>>()
@@ -316,10 +310,14 @@ mod tests {
 
     #[test]
     fn cluster_rows() {
-        let f = json!({"text": "Berlin", "center": [13.4, 52.5]});
-        assert_eq!(cluster_row(&f), Some((52.5, 13.4, "Berlin".into())));
-        assert_eq!(cluster_row(&json!({"text": "-12", "center": [1, 2]})), None);
-        assert_eq!(cluster_row(&json!({"text": "X", "center": [1]})), None);
+        let row = |t: Value, c: Value| cluster_row(Some(&t), Some(&c));
+        assert_eq!(
+            row(json!("Berlin"), json!([13.4, 52.5])),
+            Some((52.5, 13.4, "Berlin".into()))
+        );
+        assert_eq!(row(json!("-12"), json!([1, 2])), None);
+        assert_eq!(row(json!("X"), json!([1])), None);
+        assert_eq!(cluster_row(None, Some(&json!([1, 2]))), None);
     }
 
     #[test]

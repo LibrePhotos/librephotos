@@ -3,6 +3,7 @@
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode, Uri};
+use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Utc};
 use lp_auth::AuthUser;
 use lp_core::{ApiError, ApiResult, AppState, QueryMap};
@@ -15,6 +16,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
+use super::dto::{drf_page, fetch_page};
 use crate::common::{DrfPage, PageRequest};
 
 pub const GENERATE: &str = "albums.auto_generate";
@@ -42,8 +44,10 @@ pub async fn list(
 ) -> ApiResult<Json<DrfPage<AutoAlbumListItem>>> {
     let req = PageRequest::from_query(&q, "page_size", 1000, 2000)?;
     let search = search_terms(q.get("search"));
-    let paged = reads::list(&state.db, user.id, &search, req.page_size, req.offset()).await?;
-    let req = req.valid_for(paged.total)?;
+    let (req, paged) = fetch_page(req, |limit, offset| {
+        reads::list(&state.db, user.id, &search, limit, offset)
+    })
+    .await?;
     let results = paged
         .rows
         .into_iter()
@@ -57,13 +61,7 @@ pub async fn list(
             favorited: r.favorited,
         })
         .collect();
-    Ok(Json(DrfPage::new(
-        &headers,
-        &uri,
-        req,
-        paged.total,
-        results,
-    )))
+    Ok(Json(drf_page(&headers, &uri, req, paged.total, results)))
 }
 
 /// `PhotoSimpleSerializer`.
@@ -238,40 +236,60 @@ pub async fn delete_all(
     Ok(Json(json!("success")))
 }
 
+/// `start_job`: `{status, job_id}`, or a 500 `{status: false, message}` when
+/// the job cannot be queued.
 async fn start(
     state: &AppState,
     user_id: i32,
     kind: &str,
     job_type: JobType,
-) -> ApiResult<Json<Value>> {
-    let queued = lp_jobs::enqueue(
+    description: &str,
+) -> Response {
+    match lp_jobs::enqueue(
         state,
         kind,
         json!({ "user_id": user_id }),
         EnqueueOptions::tracked(job_type, user_id),
     )
     .await
-    .map_err(|e| {
-        tracing::error!(error = %e, "could not enqueue {kind}");
-        ApiError::internal(e)
-    })?;
-    Ok(Json(json!({ "status": true, "job_id": queued.lrj_id })))
+    {
+        Ok(queued) => Json(json!({ "status": true, "job_id": queued.lrj_id })).into_response(),
+        Err(e) => {
+            tracing::error!(error = %e, "Could not start {description}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "status": false, "message": format!("Could not start {description}.") })),
+            )
+                .into_response()
+        }
+    }
 }
 
 /// `POST /api/autoalbumgen/` (GET kept as Django does).
-pub async fn generate(
-    State(state): State<AppState>,
-    AuthUser(user): AuthUser,
-) -> ApiResult<Json<Value>> {
-    start(&state, user.id, GENERATE, JobType::GenerateAutoAlbums).await
+pub async fn generate(State(state): State<AppState>, AuthUser(user): AuthUser) -> Response {
+    start(
+        &state,
+        user.id,
+        GENERATE,
+        JobType::GenerateAutoAlbums,
+        "the auto album generation",
+    )
+    .await
 }
 
 /// `POST /api/autoalbumtitlegen/`.
 pub async fn regenerate_titles(
     State(state): State<AppState>,
     AuthUser(user): AuthUser,
-) -> ApiResult<Json<Value>> {
-    start(&state, user.id, TITLES, JobType::GenerateAutoAlbumTitles).await
+) -> Response {
+    start(
+        &state,
+        user.id,
+        TITLES,
+        JobType::GenerateAutoAlbumTitles,
+        "the auto album title regeneration",
+    )
+    .await
 }
 
 fn user_id(ctx: &JobCtx) -> anyhow::Result<i32> {

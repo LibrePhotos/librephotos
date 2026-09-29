@@ -1,13 +1,71 @@
 //! Response shapes, in Django serializer field order.
 
+use std::future::Future;
+
+use axum::http::{HeaderMap, Uri};
 use chrono::{DateTime, Utc};
-use lp_core::QueryMap;
 use lp_core::time::drf_datetime;
+use lp_core::{ApiError, ApiResult, QueryMap};
+use lp_db::albums_tags::Paged;
 use lp_db::albums_tags::things_places::MediaFilter;
 use lp_db::albums_tags::user_albums::UserAlbumListRow;
 use lp_db::pig::{self, PigPhoto};
 use serde::Serialize;
 use serde_json::{Value, json};
+
+use crate::common::{DrfPage, PageRequest};
+
+/// `DrfPage::new` with the path as Django routed it: every paginated list
+/// here is a router path ending in `/`, which the server strips before
+/// matching, and DRF's `next` / `previous` links repeat it.
+pub fn drf_page<T: Serialize>(
+    headers: &HeaderMap,
+    uri: &Uri,
+    req: PageRequest,
+    count: i64,
+    results: Vec<T>,
+) -> DrfPage<T> {
+    let path = uri.path();
+    let slashed = if path.ends_with('/') {
+        None
+    } else {
+        let pq = match uri.query() {
+            Some(q) => format!("{path}/?{q}"),
+            None => format!("{path}/"),
+        };
+        pq.parse::<Uri>().ok()
+    };
+    DrfPage::new(
+        headers,
+        slashed.as_ref().unwrap_or(uri),
+        req,
+        count,
+        results,
+    )
+}
+
+/// Fetches the page `req` names with `fetch(limit, offset)` and checks it
+/// against the total. `page=last` has to learn the total first, and a page
+/// whose offset does not fit an `i64` is past any end ("Invalid page.").
+pub async fn fetch_page<T, F, Fut>(
+    mut req: PageRequest,
+    fetch: F,
+) -> ApiResult<(PageRequest, Paged<T>)>
+where
+    F: Fn(i64, i64) -> Fut,
+    Fut: Future<Output = sqlx::Result<Paged<T>>>,
+{
+    if req.page == i64::MAX {
+        let probe = fetch(1, 0).await?;
+        req = req.valid_for(probe.total)?;
+    }
+    let offset = (req.page - 1)
+        .checked_mul(req.page_size)
+        .ok_or_else(|| ApiError::not_found_msg("Invalid page."))?;
+    let paged = fetch(req.page_size, offset).await?;
+    let req = req.valid_for(paged.total)?;
+    Ok((req, paged))
+}
 
 /// `filter_photos_by_media_type` reads `video`, then `photo` (not
 /// `is_screenshot`, which album details ignore).

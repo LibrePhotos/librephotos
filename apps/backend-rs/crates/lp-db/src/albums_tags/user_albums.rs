@@ -6,6 +6,7 @@ use sqlx::types::Json;
 use sqlx::{FromRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
 
+use super::things_places::{HasTotal, fetch_paged};
 use super::{Paged, push_search, simple_user_json};
 
 /// One `AlbumUserListSerializer` row.
@@ -167,6 +168,8 @@ pub struct UserAlbumDetailRow {
     /// answers in heap order, hence `ctid` order.
     pub first_timestamp: Option<DateTime<Utc>>,
     pub first_location: Option<String>,
+    #[sqlx(default)]
+    pub total_count: Option<i64>,
 }
 
 /// Who may open the album detail.
@@ -178,12 +181,9 @@ pub enum DetailScope<'a> {
     Public { username: Option<&'a str> },
 }
 
-pub async fn detail<'e>(
-    db: impl PgExecutor<'e>,
-    id: i32,
-    scope: DetailScope<'_>,
-) -> sqlx::Result<Option<UserAlbumDetailRow>> {
-    let mut qb = QueryBuilder::new(format!(
+/// `SELECT` of [`UserAlbumDetailRow`] up to `WHERE `.
+fn detail_select<'a>() -> QueryBuilder<'a, Postgres> {
+    QueryBuilder::new(format!(
         "SELECT a.id, a.title, a.owner_id, {ow} AS owner, ow.public_sharing_defaults AS owner_sharing_defaults, \
            (SELECT COALESCE(json_agg({st} ORDER BY st_l.id), '[]'::json) \
               FROM api_albumuser_shared_to st_l JOIN api_user st ON st.id = st_l.user_id \
@@ -196,15 +196,19 @@ pub async fn detail<'e>(
            (SELECT ps.search_location FROM api_albumuser_photos l JOIN api_photo p ON p.id = l.photo_id \
               JOIN api_photo_search ps ON ps.photo_id = p.id \
               WHERE l.albumuser_id = a.id AND ps.search_location IS NOT NULL AND ps.search_location <> '' \
-              ORDER BY p.ctid LIMIT 1) AS first_location \
+              ORDER BY p.ctid LIMIT 1) AS first_location, \
+           count(*) OVER () AS total_count \
          FROM api_albumuser a \
          JOIN api_user ow ON ow.id = a.owner_id \
          LEFT JOIN api_albumusershare s ON s.album_id = a.id \
-         WHERE a.id = ",
+         WHERE ",
         ow = simple_user_json("ow"),
         st = simple_user_json("st"),
-    ));
-    qb.push_bind(id);
+    ))
+}
+
+/// ` AND <scope>` over album `a`, share `s` and owner `ow`.
+fn push_detail_scope(qb: &mut QueryBuilder<'_, Postgres>, scope: DetailScope<'_>) {
     match scope {
         DetailScope::Visible { user_id, write } => {
             qb.push(" AND (a.owner_id = ");
@@ -227,7 +231,92 @@ pub async fn detail<'e>(
             }
         }
     }
+}
+
+pub async fn detail<'e>(
+    db: impl PgExecutor<'e>,
+    id: i32,
+    scope: DetailScope<'_>,
+) -> sqlx::Result<Option<UserAlbumDetailRow>> {
+    let mut qb = detail_select();
+    qb.push("a.id = ");
+    qb.push_bind(id);
+    push_detail_scope(&mut qb, scope);
     qb.build_query_as().fetch_optional(db).await
+}
+
+/// A page of the albums `scope` lets the requester see, newest first
+/// (`AlbumUserViewSet.list`).
+pub async fn detail_list<'e, E>(
+    db: E,
+    scope: DetailScope<'_>,
+    limit: i64,
+    offset: i64,
+) -> sqlx::Result<Paged<UserAlbumDetailRow>>
+where
+    E: PgExecutor<'e> + Copy,
+{
+    let build = |limit: i64, offset: i64| {
+        let mut qb = detail_select();
+        qb.push("TRUE");
+        push_detail_scope(&mut qb, scope);
+        qb.push(" ORDER BY a.id DESC LIMIT ");
+        qb.push_bind(limit);
+        qb.push(" OFFSET ");
+        qb.push_bind(offset);
+        qb
+    };
+    fetch_paged(db, build, limit, offset).await
+}
+
+impl HasTotal for UserAlbumDetailRow {
+    fn total(&self) -> i64 {
+        self.total_count.unwrap_or(0)
+    }
+}
+
+impl HasTotal for UserAlbumEditRow {
+    fn total(&self) -> i64 {
+        self.total_count.unwrap_or(0)
+    }
+}
+
+/// `AlbumUserEditViewSet.list`: the owner's albums by title.
+pub async fn edit_list<'e, E>(
+    db: E,
+    owner_id: i32,
+    limit: i64,
+    offset: i64,
+) -> sqlx::Result<Paged<UserAlbumEditRow>>
+where
+    E: PgExecutor<'e> + Copy,
+{
+    let build = |limit: i64, offset: i64| {
+        let mut qb = QueryBuilder::new(format!(
+            "{EDIT_SELECT}, count(*) OVER () AS total_count FROM api_albumuser a WHERE a.owner_id = "
+        ));
+        qb.push_bind(owner_id);
+        qb.push(" ORDER BY a.title, a.id LIMIT ");
+        qb.push_bind(limit);
+        qb.push(" OFFSET ");
+        qb.push_bind(offset);
+        qb
+    };
+    fetch_paged(db, build, limit, offset).await
+}
+
+/// `(album id, photo id)` memberships of `album_ids`.
+pub async fn members<'e>(
+    db: impl PgExecutor<'e>,
+    album_ids: &[i32],
+) -> sqlx::Result<Vec<(i32, Uuid)>> {
+    sqlx::query_as(
+        "SELECT albumuser_id, photo_id FROM api_albumuser_photos \
+         WHERE albumuser_id = ANY($1) AND photo_id IS NOT NULL",
+    )
+    .bind(album_ids)
+    .fetch_all(db)
+    .await
 }
 
 /// `AlbumUserEditSerializer` output row.
@@ -239,16 +328,19 @@ pub struct UserAlbumEditRow {
     pub created_on: DateTime<Utc>,
     pub favorited: bool,
     pub cover_photo_id: Option<Uuid>,
+    #[sqlx(default)]
+    pub total_count: Option<i64>,
 }
 
+const EDIT_SELECT: &str = "SELECT a.id, a.title, \
+    ARRAY(SELECT l.photo_id FROM api_albumuser_photos l \
+      WHERE l.albumuser_id = a.id AND l.photo_id IS NOT NULL ORDER BY l.id) AS photos, \
+    a.created_on, a.favorited, a.cover_photo_id";
+
 pub async fn edit_row<'e>(db: impl PgExecutor<'e>, id: i32) -> sqlx::Result<UserAlbumEditRow> {
-    sqlx::query_as(
-        "SELECT a.id, a.title, \
-           ARRAY(SELECT l.photo_id FROM api_albumuser_photos l \
-             WHERE l.albumuser_id = a.id AND l.photo_id IS NOT NULL ORDER BY l.id) AS photos, \
-           a.created_on, a.favorited, a.cover_photo_id \
-         FROM api_albumuser a WHERE a.id = $1",
-    )
+    sqlx::query_as(&format!(
+        "{EDIT_SELECT} FROM api_albumuser a WHERE a.id = $1"
+    ))
     .bind(id)
     .fetch_one(db)
     .await
