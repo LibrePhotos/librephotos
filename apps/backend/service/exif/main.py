@@ -9,6 +9,7 @@ from service._common import (
     logger,
     serve_forever,
 )
+from service.exif.tag_validation import is_safe_media_path, is_safe_tag_name
 
 # Absolute path: the exiftool-bin wheel is on PATH, but Windows searches System32 first.
 EXIFTOOL = shutil.which("exiftool") or "exiftool"
@@ -133,19 +134,44 @@ def get_tags():
         return "", 400
     files_by_reverse_priority, tags, struct = payload
 
+    # A line break in a path would inject ExifTool options into the argument
+    # stream just as a bad tag would. Paths are not user-typed, so a line
+    # break means something is wrong; refuse the whole request rather than
+    # silently reading a different file.
+    if any(not is_safe_media_path(file) for file in files_by_reverse_priority):
+        log(
+            f"refusing a request with a line break in a path: {files_by_reverse_priority}"
+        )
+        return {"error": "media path contains a line break"}, 400
+
     et = running_exiftool(struct)
 
-    if not tags or not files_by_reverse_priority:
+    # Defense in depth: the serializer already rejects unsafe tag names when a
+    # rule is saved, but a tag that reaches ExifTool as "-<tag>" with an "="
+    # (a write/rename) or a line break (option injection, e.g. -if <perl>)
+    # would turn a metadata read into a write or arbitrary code. Drop unsafe
+    # tags and answer None in their place, keeping the values aligned to the
+    # requested tags positionally as callers unpack them.
+    safe = [is_safe_tag_name(tag) for tag in tags]
+    if not all(safe):
+        dropped = [tag for tag, ok in zip(tags, safe) if not ok]
+        log(f"ignoring unsafe tag name(s): {dropped}")
+    safe_tags = [tag for tag, ok in zip(tags, safe) if ok]
+
+    if not safe_tags or not files_by_reverse_priority:
         return {"values": [None] * len(tags)}, 200
 
     try:
-        values = highest_priority_values(et, tags, files_by_reverse_priority)
+        safe_values = highest_priority_values(et, safe_tags, files_by_reverse_priority)
     except Exception as exc:
         # Not an empty answer: that reads as "no tags", and the photo would be
         # stored without a date or location that a rescan never comes back for.
         log(f"error reading tags from {files_by_reverse_priority}: {exc}")
         return {"error": str(exc)}, 500
 
+    # Splice the safe-tag values back into the full requested order.
+    safe_values = iter(safe_values)
+    values = [next(safe_values) if ok else None for ok in safe]
     return {"values": values}, 200
 
 
