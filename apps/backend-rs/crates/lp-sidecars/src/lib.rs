@@ -7,6 +7,8 @@
 
 #![allow(clippy::disallowed_methods)] // not a handler crate: SQL allowed here
 
+pub mod supervisor;
+
 use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

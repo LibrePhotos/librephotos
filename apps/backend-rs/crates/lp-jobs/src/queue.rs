@@ -183,9 +183,11 @@ pub async fn heartbeat(conn: &mut PgConnection, id: i64) -> sqlx::Result<()> {
     Ok(())
 }
 
+/// Only a row still `running` moves, so a cancelled row stays cancelled.
 pub async fn mark_done(conn: &mut PgConnection, id: i64) -> sqlx::Result<()> {
     sqlx::query(
-        "UPDATE job_queue SET status = 'done', finished_at = now(), locked_by = NULL WHERE id = $1",
+        "UPDATE job_queue SET status = 'done', finished_at = now(), locked_by = NULL \
+         WHERE id = $1 AND status = 'running'",
     )
     .bind(id)
     .execute(conn)
@@ -193,27 +195,28 @@ pub async fn mark_done(conn: &mut PgConnection, id: i64) -> sqlx::Result<()> {
     Ok(())
 }
 
-/// Record a failure: re-queue with `retry_after` if attempts remain, else `failed`.
+/// Record a failure: re-queue with `retry_after` if attempts remain, else
+/// `failed`. Returns true when the row is now finally `failed`.
 pub async fn mark_failed(
     conn: &mut PgConnection,
     id: i64,
     error: &str,
     retry_after: Option<DateTime<Utc>>,
-) -> sqlx::Result<()> {
-    sqlx::query(
+) -> sqlx::Result<bool> {
+    let status: Option<String> = sqlx::query_scalar(
         "UPDATE job_queue SET \
            status = CASE WHEN attempts < max_attempts THEN 'queued' ELSE 'failed' END, \
            run_after = CASE WHEN attempts < max_attempts THEN COALESCE($3, now()) ELSE run_after END, \
            finished_at = CASE WHEN attempts < max_attempts THEN NULL ELSE now() END, \
            locked_by = NULL, last_error = $2 \
-         WHERE id = $1",
+         WHERE id = $1 AND status = 'running' RETURNING status",
     )
     .bind(id)
     .bind(error)
     .bind(retry_after)
-    .execute(conn)
+    .fetch_optional(conn)
     .await?;
-    Ok(())
+    Ok(status.as_deref() == Some("failed"))
 }
 
 /// Cancel queued/running rows of a LongRunningJob (the cancel endpoint).
@@ -228,14 +231,66 @@ pub async fn cancel_for_lrj(conn: &mut PgConnection, lrj_id: &str) -> sqlx::Resu
     .rows_affected())
 }
 
-/// Crash recovery: running rows whose heartbeat is older than `stale_secs` go back to queued.
-pub async fn requeue_stale(conn: &mut PgConnection, stale_secs: i64) -> sqlx::Result<u64> {
-    Ok(sqlx::query(
+/// Extra claims a job gets beyond `max_attempts` when its worker dies.
+pub const STALE_EXTRA_ATTEMPTS: i32 = 2;
+
+/// Crash recovery: running rows whose heartbeat is older than `stale_secs`
+/// go back to queued. A row that already lost its worker
+/// `max_attempts + STALE_EXTRA_ATTEMPTS` times is failed instead, so a job
+/// that kills its worker cannot loop forever. Returns `(requeued, failed)`.
+pub async fn requeue_stale(conn: &mut PgConnection, stale_secs: i64) -> sqlx::Result<(u64, u64)> {
+    // Like a final failed attempt, a lost job fails its LongRunningJob
+    // (except fan-out children), or the UI would show it running for 24 h.
+    let failed: i64 = sqlx::query_scalar(
+        "WITH lost AS ( \
+           UPDATE job_queue SET status = 'failed', finished_at = now(), locked_by = NULL, \
+             last_error = 'worker lost (stale heartbeat)' \
+           WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1) \
+             AND attempts >= max_attempts + $2 \
+           RETURNING lrj_id, group_id), \
+         lrj AS ( \
+           UPDATE api_longrunningjob SET failed = TRUE, finished = TRUE, finished_at = now(), \
+             result = '{\"status\": \"failed\", \"error\": \"worker lost (stale heartbeat)\"}'::jsonb \
+           WHERE NOT finished AND job_id IN \
+             (SELECT lrj_id FROM lost WHERE lrj_id IS NOT NULL AND group_id IS NULL) \
+           RETURNING 1) \
+         SELECT count(*) FROM lost",
+    )
+    .bind(stale_secs as f64)
+    .bind(STALE_EXTRA_ATTEMPTS)
+    .fetch_one(&mut *conn)
+    .await?;
+    let failed = failed as u64;
+    let requeued = sqlx::query(
         "UPDATE job_queue SET status = 'queued', locked_by = NULL \
          WHERE status = 'running' AND heartbeat_at < now() - make_interval(secs => $1)",
     )
     .bind(stale_secs as f64)
+    .execute(&mut *conn)
+    .await?
+    .rows_affected();
+    Ok((requeued, failed))
+}
+
+/// Graceful shutdown: hand unfinished rows back to the queue without
+/// counting the interrupted attempt.
+pub async fn release(conn: &mut PgConnection, ids: &[i64]) -> sqlx::Result<u64> {
+    Ok(sqlx::query(
+        "UPDATE job_queue SET status = 'queued', locked_by = NULL, \
+           attempts = GREATEST(attempts - 1, 0) \
+         WHERE id = ANY($1) AND status = 'running'",
+    )
+    .bind(ids)
     .execute(conn)
     .await?
     .rows_affected())
+}
+
+pub async fn get(conn: &mut PgConnection, id: i64) -> sqlx::Result<Option<QueuedJob>> {
+    sqlx::query_as::<_, QueuedJob>(&format!(
+        "SELECT {JOB_COLUMNS} FROM job_queue WHERE id = $1"
+    ))
+    .bind(id)
+    .fetch_optional(conn)
+    .await
 }
