@@ -74,6 +74,7 @@ class Thumbnail(models.Model):
                     output_path="thumbnails_big",
                     hash=photo_hash,
                     file_type=".webp",
+                    transfer=self.photo.video_color_transfer,
                 )
 
             if self.photo.video and not does_video_thumbnail_exist(
@@ -85,6 +86,7 @@ class Thumbnail(models.Model):
                     output_path="square_thumbnails",
                     hash=photo_hash,
                     file_type=".mp4",
+                    transfer=self.photo.video_color_transfer,
                 )
 
             if self.photo.video and not does_video_thumbnail_exist(
@@ -96,6 +98,7 @@ class Thumbnail(models.Model):
                     output_path="square_thumbnails_small",
                     hash=photo_hash,
                     file_type=".mp4",
+                    transfer=self.photo.video_color_transfer,
                 )
             filetype = ".webp"
             if self.photo.video:

@@ -132,6 +132,7 @@ class RecentlyAddedPhotoListViewSet(ListViewSet):
                 "in_trashcan",
                 "exif_timestamp",
                 "video_length",
+                "video_color_transfer",
             )
             .order_by("-added_on")
         )
@@ -197,6 +198,7 @@ class NoTimestampPhotoViewSet(ListViewSet):
                 "in_trashcan",
                 "exif_timestamp",
                 "video_length",
+                "video_color_transfer",
             )
             .order_by("added_on")
         )

@@ -27,7 +27,7 @@ from api.models import AlbumUser, Photo
 logger = logging.getLogger(__name__)
 
 
-def build_live_command(path):
+def build_live_command(path, transfer=None):
     """The conversion a viewer is waiting on, bounded so it cannot take the host.
 
     Unbounded, this is one person's playback against everybody else's: ffmpeg
@@ -87,9 +87,7 @@ def build_live_command(path):
     # exactly that. Upscaling costs bandwidth and CPU to add nothing a viewer
     # can see. An HDR source needs tonemapping after it, or the browser reads a
     # PQ curve as bt709 and shows it washed out; see :mod:`api.video_color`.
-    video_filter = video_color.video_filter(path, "scale=-2:'min(720,ih)'")
-    if video_filter:
-        command += ["-filter:v", video_filter]
+    command += video_color.h264_video_args(path, "scale=-2:'min(720,ih)'", transfer)
 
     return command + ["-f", "mp4", "-"]
 
@@ -124,9 +122,9 @@ class VideoTranscoder:
 
     process = ""
 
-    def __init__(self, path):
+    def __init__(self, path, transfer=None):
         self.process = subprocess.Popen(
-            build_live_command(path),
+            build_live_command(path, transfer),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -268,7 +266,8 @@ class UnifiedMediaAccessView(APIView):
 
         response = StreamingHttpResponse(
             self._cache_after_streaming(
-                gen(VideoTranscoder(photo.main_file.path)), photo
+                gen(VideoTranscoder(photo.main_file.path, photo.video_color_transfer)),
+                photo,
             ),
             content_type="video/mp4",
         )
@@ -674,7 +673,13 @@ class UnifiedMediaAccessView(APIView):
         try:
             photo = (
                 album.photos.filter(owner_id=album.owner_id)
-                .only("image_hash", "video", "main_file", "thumbnail")
+                .only(
+                    "image_hash",
+                    "video",
+                    "video_color_transfer",
+                    "main_file",
+                    "thumbnail",
+                )
                 .get(image_hash=image_hash)
             )
         except Photo.DoesNotExist:

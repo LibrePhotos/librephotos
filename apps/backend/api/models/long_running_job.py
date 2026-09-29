@@ -28,6 +28,7 @@ class LongRunningJob(models.Model):
     JOB_REPAIR_FILE_VARIANTS = 16
     JOB_CLASSIFY_MEDIA = 17
     JOB_GENERATE_OCR = 18
+    JOB_PROBE_VIDEOS = 19
 
     JOB_TYPES = (
         (JOB_SCAN_PHOTOS, "Scan Photos"),
@@ -48,6 +49,7 @@ class LongRunningJob(models.Model):
         (JOB_REPAIR_FILE_VARIANTS, "Repair File Variants"),
         (JOB_CLASSIFY_MEDIA, "Classify Media Categories"),
         (JOB_GENERATE_OCR, "Extract Text (OCR)"),
+        (JOB_PROBE_VIDEOS, "Probe Videos"),
     )
 
     job_type = models.PositiveIntegerField(
