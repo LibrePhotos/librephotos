@@ -162,7 +162,36 @@ enum Opened {
     },
 }
 
+/// `path` made absolute, symlinks left alone; on Windows also case-folded
+/// with one separator style. None for a path with `..` in it: behind a link
+/// `..` climbs from the link's target, so it cannot be resolved as text.
+fn lexical(path: &Path) -> Option<PathBuf> {
+    use std::path::Component;
+    if path.components().any(|c| c == Component::ParentDir) {
+        return None;
+    }
+    let out = std::path::absolute(path).ok()?;
+    if cfg!(windows) {
+        let folded = out.to_string_lossy().replace('/', "\\").to_lowercase();
+        let folded = folded.strip_prefix(r"\\?\").unwrap_or(&folded).to_string();
+        return Some(PathBuf::from(folded));
+    }
+    Some(out)
+}
+
+/// Whether `path` lies under one of `roots`. The scanner follows symlinks
+/// and installs link thumbnail or library folders to other disks, so a path
+/// passes when it is inside a root as written (with no `..`), or after
+/// resolving every link on both sides.
 fn confined(path: &Path, roots: &[PathBuf]) -> bool {
+    if let Some(p) = lexical(path)
+        && roots
+            .iter()
+            .filter_map(|r| lexical(r))
+            .any(|root| p.starts_with(&root))
+    {
+        return true;
+    }
     let Ok(real) = path.canonicalize() else {
         return false;
     };

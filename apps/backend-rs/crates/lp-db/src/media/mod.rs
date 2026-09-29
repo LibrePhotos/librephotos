@@ -4,7 +4,7 @@
 use sqlx::{FromRow, PgExecutor};
 use uuid::Uuid;
 
-use crate::scope::{PhotoGrants, photo_grants_select};
+use crate::scope::{PhotoGrants, has_thumbnail_sql, photo_grants_select};
 
 /// A photo as the media views need it, plus the requester's grants on it.
 #[derive(Debug, Clone, FromRow)]
@@ -104,14 +104,21 @@ struct PathRow {
 /// Path of the first embedded file (by `File` pk) of the first photo (by
 /// pk) matching `key` among the owner's photos, or among public photos for
 /// an anonymous requester. `Some(None)` = the photo exists but embeds nothing.
+///
+/// "Public" is `Photo.visible.visible_to(None)`, as for every other media
+/// kind; Django's bare `public=True` here kept serving the motion video of a
+/// public photo after it was hidden, trashed or removed.
 pub async fn embedded_media_path<'e>(
     db: impl PgExecutor<'e>,
     key: PhotoKey<'_>,
     user_id: Option<i32>,
 ) -> sqlx::Result<Option<Option<String>>> {
     let scope = match user_id {
-        None => "p.public",
-        Some(_) => "p.owner_id = $2",
+        None => format!(
+            "(p.public AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed AND {})",
+            has_thumbnail_sql("p")
+        ),
+        Some(_) => "p.owner_id = $2".to_string(),
     };
     let key_sql = match key {
         PhotoKey::Id(_) => "p.id = $1",

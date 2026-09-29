@@ -205,6 +205,48 @@ async fn files_under_a_writable_media_root() {
         StatusCode::NOT_FOUND
     );
 
+    // Anonymous: public photos only, and only while they are public in the
+    // photo API's sense (Django checks the bare `public` flag here, so a
+    // trashed or hidden public photo kept serving its motion video).
+    let embedded_url = format!("/media/embedded_media/{}", p.hash);
+    sqlx::query("UPDATE api_photo SET public = TRUE WHERE id = $1::uuid")
+        .bind(&p.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert_eq!(direct.get(&embedded_url, None).await.status, StatusCode::OK);
+    for column in ["in_trashcan", "hidden", "removed"] {
+        sqlx::query(&format!(
+            "UPDATE api_photo SET {column} = TRUE WHERE id = $1::uuid"
+        ))
+        .bind(&p.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            direct.get(&embedded_url, None).await.status,
+            StatusCode::NOT_FOUND,
+            "public but {column}"
+        );
+        assert_eq!(
+            direct.get(&embedded_url, Some(&alice)).await.status,
+            StatusCode::OK,
+            "the owner still gets it ({column})"
+        );
+        sqlx::query(&format!(
+            "UPDATE api_photo SET {column} = FALSE WHERE id = $1::uuid"
+        ))
+        .bind(&p.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    sqlx::query("UPDATE api_photo SET public = FALSE WHERE id = $1::uuid")
+        .bind(&p.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
     // Legacy jpg thumbnails: every variant falls back to the big jpg.
     std::fs::create_dir_all(media.join("thumbnails_big")).unwrap();
     let big = media.join("thumbnails_big").join(format!("{}.jpg", p.hash));
@@ -401,5 +443,119 @@ async fn transcoding_streams_live_then_serves_the_cached_copy() {
 
     direct.cleanup().await;
     accel.cleanup().await;
+    db.cleanup().await;
+}
+
+/// A directory link (symlink, or a junction on Windows) from `link` to `target`.
+fn link_dir(target: &std::path::Path, link: &std::path::Path) {
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(target, link).unwrap();
+    #[cfg(windows)]
+    {
+        let ok = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok, "mklink /J {}", link.display());
+    }
+}
+
+#[tokio::test]
+async fn linked_folders_are_served_in_direct_mode() {
+    let db = TestDb::new().await;
+    let m = manifest();
+    let tmp = tempfile::tempdir().unwrap();
+    let base = tmp.path().join("base");
+    let media = base.join("protected_media");
+    let elsewhere = tmp.path().join("other_disk");
+    std::fs::create_dir_all(&media).unwrap();
+    std::fs::create_dir_all(elsewhere.join("thumbs")).unwrap();
+    std::fs::create_dir_all(elsewhere.join("library")).unwrap();
+    let p = photo(&m, "alice/e2e_01");
+
+    // protected_media/thumbnails_big lives on another disk.
+    let thumb_bytes = std::fs::read(
+        fixture_root()
+            .join("protected_media/thumbnails_big")
+            .join(format!("{}.webp", p.hash)),
+    )
+    .unwrap();
+    std::fs::write(
+        elsewhere.join("thumbs").join(format!("{}.webp", p.hash)),
+        &thumb_bytes,
+    )
+    .unwrap();
+    link_dir(&elsewhere.join("thumbs"), &media.join("thumbnails_big"));
+
+    // A folder inside alice's library is a link the scanner followed.
+    let scan = tmp.path().join("scan");
+    std::fs::create_dir_all(&scan).unwrap();
+    link_dir(&elsewhere.join("library"), &scan.join("linked"));
+    let original = std::fs::read(&p.path).unwrap();
+    std::fs::write(elsewhere.join("library").join("e2e_01.jpg"), &original).unwrap();
+
+    let base_s = base.to_string_lossy().replace('\\', "/");
+    let direct = app_on(&db.name, "direct", Some(&base_s)).await;
+    let pool = direct.pool().clone();
+    sqlx::query("UPDATE api_user SET scan_directory = $1 WHERE username = 'alice'")
+        .bind(scan.to_string_lossy().to_string())
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query(
+        "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2::uuid)",
+    )
+    .bind(scan.join("linked").join("e2e_01.jpg").to_string_lossy().to_string())
+    .bind(&p.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let alice = token(&direct, "alice").await;
+
+    let res = direct
+        .get(&format!("/media/thumbnails_big/{}", p.hash), Some(&alice))
+        .await;
+    assert_eq!(res.status, StatusCode::OK, "linked thumbnail folder");
+    assert_eq!(res.body.as_ref(), thumb_bytes.as_slice());
+    let res = direct
+        .get(&format!("/media/photos/{}", p.hash), Some(&alice))
+        .await;
+    assert_eq!(
+        res.status,
+        StatusCode::OK,
+        "original behind a linked folder"
+    );
+    assert_eq!(res.body.as_ref(), original.as_slice());
+
+    // `..` behind a link still resolves physically, never as text.
+    sqlx::query(
+        "UPDATE api_file SET path = $1 WHERE hash = (SELECT main_file_id FROM api_photo WHERE id = $2::uuid)",
+    )
+    .bind(
+        scan.join("linked")
+            .join("..")
+            .join("library")
+            .join("e2e_01.jpg")
+            .to_string_lossy()
+            .to_string(),
+    )
+    .bind(&p.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let res = direct
+        .get(&format!("/media/photos/{}", p.hash), Some(&alice))
+        .await;
+    assert_eq!(
+        res.status,
+        StatusCode::NOT_FOUND,
+        "escape via .. behind a link"
+    );
+
+    direct.cleanup().await;
     db.cleanup().await;
 }

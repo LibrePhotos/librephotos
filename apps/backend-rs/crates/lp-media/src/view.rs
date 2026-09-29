@@ -243,9 +243,14 @@ async fn generate_proxy(
     }
 }
 
-/// `_thumbnail_response_direct`.
-async fn thumbnail_direct(ctx: &Ctx, photo: &MediaPhoto, path: &str, fname: &str) -> Response {
-    let config = &ctx.config;
+/// `_thumbnail_response_direct`: which file to serve (stats the disk, so
+/// run it off the async runtime). None = 404.
+fn thumbnail_direct_file(
+    config: &Config,
+    photo: &MediaPhoto,
+    path: &str,
+    fname: &str,
+) -> Option<FileRequest> {
     let big_jpg = |fallback: &str| {
         let big = thumbnail_field(photo, "thumbnails_big").unwrap_or(fallback);
         stored(config, big, Some("image/jpg"))
@@ -254,21 +259,18 @@ async fn thumbnail_direct(ctx: &Ctx, photo: &MediaPhoto, path: &str, fname: &str
     if let Some(thumb) = thumbnail_field(photo, path) {
         let e = ext(thumb);
         if e.contains("jpg") {
-            return ctx.file(big_jpg(thumb)).await;
+            return Some(big_jpg(thumb));
         }
-        let file = config.media_root.join(thumb);
-        if file.exists() {
+        if config.media_root.join(thumb).exists() {
             let ct = if e.contains("mp4") {
                 "video/mp4"
             } else {
                 "image/webp"
             };
-            return ctx.file(stored(config, thumb, Some(ct))).await;
+            return Some(stored(config, thumb, Some(ct)));
         }
     }
-    let Some(requested) = protected(config, path, fname) else {
-        return empty(StatusCode::NOT_FOUND);
-    };
+    let requested = protected(config, path, fname)?;
     if !requested.file.exists() {
         for (suffix, ct) in [(".webp", "image/webp"), (".mp4", "video/mp4")] {
             if fname.ends_with(suffix) {
@@ -276,23 +278,33 @@ async fn thumbnail_direct(ctx: &Ctx, photo: &MediaPhoto, path: &str, fname: &str
             }
             let candidate = requested.root.join(format!("{fname}{suffix}"));
             if candidate.exists() {
-                return ctx
-                    .file(FileRequest::new(
-                        candidate,
-                        requested.root.clone(),
-                        Some(ct),
-                    ))
-                    .await;
+                return Some(FileRequest::new(candidate, requested.root, Some(ct)));
             }
         }
     }
     if let Some(square) = thumbnail_field(photo, "square_thumbnails")
         && ext(square).contains("jpg")
     {
-        return ctx.file(big_jpg(square)).await;
+        return Some(big_jpg(square));
     }
-    ctx.file(FileRequest::new(requested.file, requested.root, None))
-        .await
+    Some(FileRequest::new(requested.file, requested.root, None))
+}
+
+async fn thumbnail_direct(ctx: &Ctx, photo: &MediaPhoto, path: &str, fname: &str) -> Response {
+    let (config, photo, path, fname) = (
+        ctx.config.clone(),
+        photo.clone(),
+        path.to_string(),
+        fname.to_string(),
+    );
+    let req =
+        tokio::task::spawn_blocking(move || thumbnail_direct_file(&config, &photo, &path, &fname))
+            .await;
+    match req {
+        Ok(Some(req)) => ctx.file(req).await,
+        Ok(None) => empty(StatusCode::NOT_FOUND),
+        Err(_) => empty(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
 
 /// `_generate_response_direct`.
