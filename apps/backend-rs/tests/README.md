@@ -119,6 +119,14 @@ server with `LP_MEDIA_ROOT=<media_dir> run_django.sh <db> <port>`.
 The Rust server should get the same `DB_*`-equivalent database, `BASE_DATA`
 (= the fixture root or your media copy) and `SECRET_KEY`.
 
+`librephotos-rs serve` runs the job worker in-process, so jobs a case starts
+(scans, delete-missing, stack detection, uploads) really run on the Rust
+clone, while Django under `run_django.sh` has no qcluster and leaves them
+queued. Give each area directory its own fresh pair of clones: run in one
+pass, the jobs-list twins also see the LongRunningJob rows other areas'
+cases created up front on the Rust side. `run_django.sh` execs Python, so
+`$!` is not the uvicorn PID: stop Django by the PID that listens on its port.
+
 ## 3. Contract and twin harness
 
 ```bash
