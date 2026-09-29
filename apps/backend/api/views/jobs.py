@@ -105,13 +105,20 @@ class QueueAvailabilityView(APIView):
             .order_by("-started_at")
             .last()
         )
-        if running_job:
+        # The queue is shared, so whether it is busy stays a global answer, but
+        # the job itself (type, progress, who started it) follows the #1861
+        # rule above: its starter and staff see it, nobody else does.
+        busy = running_job is not None
+        user = request.user
+        if busy and (
+            running_job.started_by_id == user.id or user.is_staff or user.is_superuser
+        ):
             job_detail = LongRunningJobSerializer(running_job).data
 
         return Response(
             {
                 "status": True,
-                "queue_can_accept_job": job_detail is None,
+                "queue_can_accept_job": not busy,
                 "job_detail": job_detail,
             }
         )
