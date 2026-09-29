@@ -13,9 +13,9 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
-use super::auth::ApiUser;
 use axum::Json;
 use axum::extract::State;
+use lp_auth::AuthUser;
 use lp_core::{ApiError, ApiResult, AppState, QueryMap};
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use serde::Serialize;
@@ -56,7 +56,7 @@ fn py_int(s: &str) -> Option<i64> {
 
 pub(super) async fn geocode_search(
     State(state): State<AppState>,
-    ApiUser(_user): ApiUser,
+    AuthUser(_user): AuthUser,
     q: QueryMap,
 ) -> ApiResult<Json<Vec<GeocodeResult>>> {
     let query = q.get("q").unwrap_or("").trim_matches(py_space).to_string();

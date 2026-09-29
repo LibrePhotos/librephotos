@@ -6,7 +6,7 @@ use axum::extract::{Path as UrlPath, State};
 use axum::http::header::CACHE_CONTROL;
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode};
 use axum::response::Response;
-use lp_auth::OptionalUser;
+use lp_auth::CookieOptionalUser;
 use lp_core::AppState;
 use lp_db::media as q;
 
@@ -16,7 +16,7 @@ use crate::view::{Ctx, generate, generate_original};
 pub async fn public_photo_media(
     State(state): State<AppState>,
     // Authentication still runs (a bad bearer token is a 401, as on Django).
-    _user: OptionalUser,
+    _user: CookieOptionalUser,
     method: Method,
     headers: HeaderMap,
     UrlPath((slug, kind)): UrlPath<(String, String)>,

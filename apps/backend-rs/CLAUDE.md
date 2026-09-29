@@ -69,9 +69,13 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
 
 - Extractors (`lp_auth`): `AuthUser` (401 if anonymous), `OptionalUser`, `AdminUser`
   (403 unless `is_staff`, i.e. DRF `IsAdminUser`). All deref to `lp_db::users::User`
-  (every `api_user` column). Token from `Authorization: Bearer` (case-insensitive),
-  else the `jwt` cookie. A bad header token is a 401 even on anonymous endpoints; a
-  bad cookie is just anonymous. The JWT `is_admin` claim is `is_superuser`.
+  (every `api_user` column). Like DRF's default authentication they read only
+  `Authorization: Bearer` (exact scheme); the ambient `jwt` cookie is ignored, so
+  cross-site requests carry no credentials. `CookieUser` / `CookieOptionalUser`
+  (Django's `JWTCookieAuthentication`, for media and downloads only) also accept
+  any-case `bearer` and fall back to the `jwt` cookie. A bad header token is a 401
+  even on anonymous endpoints; a bad cookie is just anonymous. The JWT `is_admin`
+  claim is `is_superuser`.
 - Tokens are interchangeable with Django (same `SECRET_KEY`, simplejwt claim layout,
   `user_id` as a string). Verified both directions against a running Django.
 - Passwords: `lp_auth::password::{verify, hash}` (Django argon2 / pbkdf2_sha256 / sha1);
@@ -139,8 +143,9 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
   `ctx.state`, `ctx.job.payload`, `ctx.job.lrj_id`.
 - Progress/results: `lp_jobs::lrj::{start, set_target, set_step, set_result, finish, fail,
   cancel, is_cancelled}`, batched `Progress`, `JobErrors` (04 §2 result shape).
-- The worker loop itself is still a TODO (`lp_jobs::Worker::run`): jobs stay queued until
-  the jobs agent lands it.
+- `serve` embeds the worker (`worker` runs it alone). It claims only registered kinds,
+  runs the `maintenance.*` schedules, and fails a handler's LongRunningJob only after
+  the last attempt; handlers finish their own LRJ.
 
 ## Testing
 

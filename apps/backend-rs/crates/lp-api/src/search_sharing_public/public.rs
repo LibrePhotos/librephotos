@@ -2,14 +2,14 @@
 //! `/api/public/albums/s/{slug}/photos/{photo_id}/` (api/views/public_albums.py)
 //! and `/api/public/photo/{slug}/` (api/views/public_photos.py).
 //!
-//! `ApiOptionalUser` is extracted only for DRF's behaviour on `AllowAny` views: a
+//! `OptionalUser` is extracted only for DRF's behaviour on `AllowAny` views: a
 //! bad `Authorization` header is still a 401.
 
-use super::auth::ApiOptionalUser;
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use lp_auth::OptionalUser;
 use lp_core::extract::py_truthy;
 use lp_core::time::drf_datetime;
 use lp_core::{ApiError, ApiResult, AppState, QueryMap};
@@ -127,7 +127,7 @@ struct WithSettings<T: Serialize> {
 
 pub(super) async fn album_by_slug(
     State(state): State<AppState>,
-    _user: ApiOptionalUser,
+    _user: OptionalUser,
     Path(slug): Path<String>,
     q: QueryMap,
 ) -> ApiResult<Response> {
@@ -220,7 +220,7 @@ fn not_found_json(message: &str) -> Response {
 
 pub(super) async fn album_photo_by_slug(
     State(state): State<AppState>,
-    _user: ApiOptionalUser,
+    _user: OptionalUser,
     Path((slug, photo_id)): Path<(String, String)>,
 ) -> ApiResult<Response> {
     let Some(album) = db::active_album(&state.db, &slug).await? else {
@@ -401,7 +401,7 @@ fn shared_photo_media_url(slug: &str, kind: &str) -> String {
 
 pub(super) async fn photo_by_slug(
     State(state): State<AppState>,
-    _user: ApiOptionalUser,
+    _user: OptionalUser,
     Path(slug): Path<String>,
 ) -> ApiResult<Response> {
     let Some(share) = db::active_photo_share(&state.db, &slug).await? else {

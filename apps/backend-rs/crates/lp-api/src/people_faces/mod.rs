@@ -49,7 +49,7 @@ pub fn routes() -> Router<AppState> {
         )
 }
 
-/// Face jobs (`faces.scan`, `faces.train`) are owned by `lp-tasks`.
+/// Face jobs (`faces.scan`, `faces.cluster`, `faces.train`) are owned by `lp-tasks`.
 pub fn register_jobs(_reg: &mut HandlerRegistry) {}
 
 /// `{"status": false, "message": ...}` with `status`, as the face views answer.

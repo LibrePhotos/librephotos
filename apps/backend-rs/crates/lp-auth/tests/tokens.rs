@@ -6,7 +6,7 @@ use axum::http::{Request, StatusCode};
 use axum::routing::get;
 use http_body_util::BodyExt;
 use lp_auth::jwt::{self, ACCESS};
-use lp_auth::{AdminUser, AuthUser, OptionalUser};
+use lp_auth::{AdminUser, AuthUser, CookieOptionalUser, CookieUser, OptionalUser};
 use lp_testkit::TestApp;
 use serde_json::json;
 use tower::ServiceExt;
@@ -158,6 +158,16 @@ async fn extractors_header_cookie_admin() {
             "/admin",
             get(|AdminUser(u): AdminUser| async move { u.username }),
         )
+        .route(
+            "/cookie",
+            get(|CookieUser(u): CookieUser| async move { u.username }),
+        )
+        .route(
+            "/cookie-maybe",
+            get(|CookieOptionalUser(u): CookieOptionalUser| async move {
+                u.map(|u| u.username).unwrap_or_else(|| "anon".into())
+            }),
+        )
         .with_state(app.state.clone());
     let t = app.token_for(&alice);
     let req = |path: &str, auth: Option<String>, cookie: Option<String>| {
@@ -175,15 +185,44 @@ async fn extractors_header_cookie_admin() {
         call(&router, req("/me", Some(format!("Bearer {t}")), None)).await,
         (StatusCode::OK, alice.username.clone())
     );
+    // DRF endpoints: simplejwt's exact scheme, and the ambient cookie is ignored.
     assert_eq!(
         call(&router, req("/me", Some(format!("bearer {t}")), None))
             .await
             .0,
-        StatusCode::OK
+        StatusCode::UNAUTHORIZED
     );
     assert_eq!(
-        call(&router, req("/me", None, Some(format!("a=b; jwt={t}")))).await,
+        call(&router, req("/me", None, Some(format!("a=b; jwt={t}"))))
+            .await
+            .0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        call(&router, req("/maybe", None, Some(format!("jwt={t}")))).await,
+        (StatusCode::OK, "anon".into())
+    );
+    // Media-style endpoints: any-case scheme, else the cookie.
+    assert_eq!(
+        call(&router, req("/cookie", Some(format!("bearer {t}")), None)).await,
         (StatusCode::OK, alice.username.clone())
+    );
+    assert_eq!(
+        call(&router, req("/cookie", None, Some(format!("a=b; jwt={t}")))).await,
+        (StatusCode::OK, alice.username.clone())
+    );
+    assert_eq!(
+        call(&router, req("/cookie-maybe", None, Some("jwt=nope".into()))).await,
+        (StatusCode::OK, "anon".into())
+    );
+    assert_eq!(
+        call(
+            &router,
+            req("/cookie-maybe", Some("Bearer nope".into()), None)
+        )
+        .await
+        .0,
+        StatusCode::UNAUTHORIZED
     );
     let (s, body) = call(&router, req("/me", None, None)).await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);

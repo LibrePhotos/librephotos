@@ -6,7 +6,7 @@
 use axum::extract::{Path as UrlPath, State};
 use axum::http::{HeaderMap, Method, StatusCode};
 use axum::response::Response;
-use lp_auth::AuthUser;
+use lp_auth::CookieUser;
 use lp_core::AppState;
 
 use crate::serve::{FileRequest, empty, x_accel};
@@ -14,7 +14,7 @@ use crate::view::{Ctx, zip_file_name};
 
 pub async fn download(
     State(state): State<AppState>,
-    user: AuthUser,
+    user: CookieUser,
     method: Method,
     headers: HeaderMap,
     UrlPath(name): UrlPath<String>,

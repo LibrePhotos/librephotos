@@ -29,18 +29,7 @@ fn sidecars(media: &str) -> Vec<String> {
     ]
 }
 
-/// Whether `tag` is a plain `[Group:]Name` ExifTool can only read. Rule tags
-/// come from the user's `burst_detection_rules`; anything else (`=`, spaces,
-/// line breaks, a leading `-`) would inject options into the argfile, e.g.
-/// `FileName=...` renames files and `-if` evaluates Perl.
-pub fn is_safe_tag(tag: &str) -> bool {
-    !tag.is_empty()
-        && tag.len() <= 128
-        && !tag.starts_with(['-', ':'])
-        && tag
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ':' | '*' | '?' | '#'))
-}
+pub use lp_exif::is_safe_tag;
 
 fn split_tag(tag: &str) -> (String, String) {
     let (g, n) = tag.rsplit_once(':').unwrap_or(("", tag));

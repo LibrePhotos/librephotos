@@ -67,8 +67,9 @@ impl PageRequest {
         Ok(self)
     }
 
+    /// Saturates for an unresolved `last` (call [`PageRequest::valid_for`] first).
     pub fn offset(&self) -> i64 {
-        (self.page - 1) * self.page_size
+        (self.page - 1).saturating_mul(self.page_size)
     }
 }
 
@@ -105,14 +106,20 @@ fn with_query(url: &str, key: &str, value: Option<&str>) -> String {
     }
 }
 
-/// DRF `get_next_link` / `get_previous_link` for the current request.
+/// DRF `get_next_link` / `get_previous_link` for the current request. The
+/// middleware strips the trailing slash before routing, but every Django list
+/// URL ends in one, so the links get it back.
 pub fn page_links(
     headers: &HeaderMap,
     uri: &Uri,
     page: i64,
     num_pages: i64,
 ) -> (Option<String>, Option<String>) {
-    let url = absolute_uri(headers, uri);
+    let mut url = absolute_uri(headers, uri);
+    let path_end = url.find('?').unwrap_or(url.len());
+    if !url[..path_end].ends_with('/') {
+        url.insert(path_end, '/');
+    }
     let next = (page < num_pages).then(|| with_query(&url, "page", Some(&(page + 1).to_string())));
     let previous = (page > 1).then(|| {
         if page - 1 == 1 {
@@ -162,6 +169,10 @@ mod tests {
         );
         let (next, _) = page_links(&h, &uri, 3, 3);
         assert!(next.is_none());
+        let stripped: Uri = "/api/jobs?page=2".parse().unwrap();
+        let (next, prev) = page_links(&h, &stripped, 2, 3);
+        assert_eq!(next.unwrap(), "http://example.com/api/jobs/?page=3");
+        assert_eq!(prev.unwrap(), "http://example.com/api/jobs/");
     }
 
     #[test]
@@ -170,6 +181,14 @@ mod tests {
         let r = PageRequest::from_query(&q, "page_size", 20, 1000).unwrap();
         assert_eq!((r.page, r.page_size, r.offset()), (2, 1000, 1000));
         assert!(r.valid_for(500).is_err());
+        let last = PageRequest::from_query(
+            &lp_core::QueryMap::parse(Some("page=last")),
+            "page_size",
+            20,
+            100,
+        )
+        .unwrap();
+        assert_eq!(last.offset(), i64::MAX);
         assert!(
             PageRequest::from_query(
                 &lp_core::QueryMap::parse(Some("page=0")),

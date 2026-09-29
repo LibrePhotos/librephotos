@@ -1,7 +1,8 @@
 //! `POST /photosedit/rotate/` (`RotatePhotoView`): non-destructive rotation.
-//! The thumbnails are rebuilt by the `thumbnails.rerender` job instead of
-//! inside the request. With `save_metadata_to_disk` on, the orientation is
-//! written to the file or sidecar in the request, as Django does.
+//! The thumbnails are rebuilt inside the request, as Django does, so the UI
+//! reloads the rotated ones; a failed render falls back to the
+//! `thumbnails.rerender` job. With `save_metadata_to_disk` on, the
+//! orientation is written to the file or sidecar in the request.
 
 use axum::Json;
 use axum::extract::State;
@@ -99,7 +100,7 @@ async fn fold_rotation_into_file(
     path: &str,
     local: i32,
 ) -> anyhow::Result<Option<i32>> {
-    let exiftool = &state.config.binaries.exiftool;
+    let exiftool = &state.exif;
     if !renders_exif_orientation(path) {
         return Ok(None);
     }
@@ -150,7 +151,7 @@ async fn write_orientation_to_disk(
         .unwrap_or(1);
     let combined = compose_orientation(exif_orientation, angle, flip);
     exif::write_tag(
-        &state.config.binaries.exiftool,
+        &state.exif,
         path,
         "EXIF:Orientation",
         combined.into(),
@@ -224,8 +225,8 @@ pub(super) async fn rotate(
         let mut shown = orientation;
         let mut disk_failed = false;
         if photo.has_thumbnail_row {
-            // Before the commit: the rerender job must not see the file
-            // rotated while `local_orientation` still carries the turn.
+            // Before the commit: the render must not see the file rotated
+            // while `local_orientation` still carries the turn.
             if metadata_to_disk(&user) {
                 match write_orientation_to_disk(
                     &state,
@@ -245,17 +246,10 @@ pub(super) async fn rotate(
                     }
                 }
             }
-            lp_jobs::enqueue_in(
-                &mut tx,
-                "thumbnails.rerender",
-                json!({"photo_id": photo.id}),
-                &EnqueueOptions::default(),
-            )
-            .await?;
         }
         tx.commit().await?;
         if photo.has_thumbnail_row {
-            lp_jobs::wake(&state);
+            regenerate_thumbnails(&state, photo.id).await?;
         }
         if !photo.has_thumbnail_row || disk_failed {
             // Django saved the orientation, then failed regenerating the
@@ -274,6 +268,24 @@ pub(super) async fn rotate(
         "last_modified": py_isoformat(&last_modified),
     }))
     .into_response())
+}
+
+async fn regenerate_thumbnails(state: &AppState, photo_id: uuid::Uuid) -> ApiResult<()> {
+    let Err(e) = lp_ingest::Pipeline::new(state.clone())
+        .regenerate_thumbnails(photo_id)
+        .await
+    else {
+        return Ok(());
+    };
+    tracing::warn!(error = %e, %photo_id, "thumbnail render failed, queueing thumbnails.rerender");
+    lp_jobs::enqueue(
+        state,
+        "thumbnails.rerender",
+        json!({"photo_id": photo_id}),
+        EnqueueOptions::default(),
+    )
+    .await?;
+    Ok(())
 }
 
 #[cfg(test)]

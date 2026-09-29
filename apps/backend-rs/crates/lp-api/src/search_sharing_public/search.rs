@@ -1,9 +1,9 @@
 //! `GET /api/photos/searchlist/?search=[&photo|video|is_screenshot|is_document=…]`
 //! (api/views/search.py `SearchListViewSet.list` + api/filters.py).
 
-use super::auth::ApiUser;
 use axum::Json;
 use axum::extract::State;
+use lp_auth::AuthUser;
 use lp_core::{ApiError, ApiResult, AppState, QueryMap};
 use lp_db::pig::{self, DateGroup, PigPhoto};
 use lp_db::search_sharing_public::search::{self, MediaFilter, SearchQuery};
@@ -25,7 +25,7 @@ pub(super) enum SearchResults {
 
 pub(super) async fn search_list(
     State(state): State<AppState>,
-    ApiUser(user): ApiUser,
+    AuthUser(user): AuthUser,
     q: QueryMap,
 ) -> ApiResult<Json<Results<SearchResults>>> {
     let media = MediaFilter {

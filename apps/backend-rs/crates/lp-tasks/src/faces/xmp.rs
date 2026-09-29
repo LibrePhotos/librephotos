@@ -1,8 +1,6 @@
 //! Face regions written by other tools (MWG `XMP:RegionInfo`), as
 //! `face_extractor.extract_from_exif` reads them.
 
-use std::path::Path;
-
 use serde_json::Value;
 
 use crate::exif::{self, MetadataError};
@@ -11,16 +9,11 @@ use lp_sidecars::FaceBox;
 /// `get_metadata(path, [XMP:RegionInfo, EXIF:Orientation], try_sidecar=True,
 /// struct=True)`: `(region_info, orientation)`, `None` without ExifTool.
 pub async fn read_region_info(
-    exiftool: &Path,
+    exif: &lp_exif::ExifPool,
     media: &str,
 ) -> Result<Option<(Option<Value>, Option<Value>)>, MetadataError> {
-    let Some(mut values) = exif::get_tags(
-        exiftool,
-        media,
-        &["XMP:RegionInfo", "EXIF:Orientation"],
-        true,
-    )
-    .await?
+    let Some(mut values) =
+        exif::get_tags(exif, media, &["XMP:RegionInfo", "EXIF:Orientation"], true).await?
     else {
         return Ok(None);
     };

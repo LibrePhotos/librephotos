@@ -282,10 +282,11 @@ async fn apply_timestamp(
         user_default_tz: &user.default_timezone,
         user_defined: timestamp,
     };
-    let exiftool = state.config.binaries.exiftool.clone();
+    let pool = state.exif.clone();
     let extracted = extract_local_date_time(&rules, &input, |tags| {
         let path = path.clone();
-        async move { super::exif::get_metadata(&exiftool, &path, &tags).await }
+        let pool = pool.clone();
+        async move { super::exif::get_metadata(&pool, &path, &tags).await }
     })
     .await
     .map_err(ApiError::internal)?;

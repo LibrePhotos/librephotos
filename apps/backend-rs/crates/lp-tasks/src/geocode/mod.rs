@@ -185,7 +185,7 @@ async fn geolocate(state: &AppState, photo_id: Uuid, photo: &GeoPhoto) -> anyhow
         .clone()
         .ok_or_else(|| fail("'NoneType' object has no attribute 'path'".into()))?;
     let values = exif::get_tags(
-        &state.config.binaries.exiftool,
+        &state.exif,
         &main,
         &["Composite:GPSLatitude", "Composite:GPSLongitude"],
         false,

@@ -349,10 +349,12 @@ async fn face_jobs() {
         .unwrap()
         .unwrap();
     let alice = app.token_for(&alice_user);
-    for (method_post, path, kind, job_type) in [
-        (false, "/api/scanfaces", "faces.scan", 7),
-        (true, "/api/scanfaces", "faces.scan", 7),
-        (true, "/api/trainfaces", "faces.train", 4),
+    let scan = json!({"user_id": alice_user.id, "full_scan": true});
+    let cluster = json!({"user_id": alice_user.id});
+    for (method_post, path, kind, job_type, want) in [
+        (false, "/api/scanfaces", "faces.scan", 7, &scan),
+        (true, "/api/scanfaces", "faces.scan", 7, &scan),
+        (true, "/api/trainfaces", "faces.cluster", 8, &cluster),
     ] {
         let res = if method_post {
             app.post_json(path, &json!({}), Some(&alice)).await
@@ -370,7 +372,7 @@ async fn face_jobs() {
                 .await
                 .unwrap();
         assert_eq!(k, kind);
-        assert_eq!(payload, json!({"user_id": alice_user.id}));
+        assert_eq!(&payload, want);
         let jt: i32 =
             sqlx::query_scalar("SELECT job_type FROM api_longrunningjob WHERE job_id = $1")
                 .bind(&job_id)

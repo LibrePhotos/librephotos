@@ -106,10 +106,20 @@ impl SupervisorConfig {
 
     pub fn script(&self, name: &str) -> PathBuf {
         if name == "image_similarity" {
-            self.backend_dir.join("image_similarity").join("main.py")
-        } else {
-            self.backend_dir.join("service").join(name).join("main.py")
+            return self.backend_dir.join("image_similarity").join("main.py");
         }
+        let script = self.backend_dir.join("service").join(name).join("main.py");
+        if name == "face_cluster" && !script.exists() {
+            // Only the Rust port has it: apps/backend-rs/sidecars/face_cluster.
+            if let Some(apps) = self.backend_dir.parent() {
+                return apps
+                    .join("backend-rs")
+                    .join("sidecars")
+                    .join(name)
+                    .join("main.py");
+            }
+        }
+        script
     }
 
     fn flag_on(&self, flag: Option<&str>) -> bool {

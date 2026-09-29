@@ -10,7 +10,7 @@ use std::sync::Arc;
 use axum::extract::{Path as UrlPath, State};
 use axum::http::{HeaderMap, Method, StatusCode, header};
 use axum::response::Response;
-use lp_auth::OptionalUser;
+use lp_auth::CookieOptionalUser;
 use lp_core::config::MediaMode;
 use lp_core::{AppState, Config};
 use lp_db::media::{self as q, MediaPhoto, PhotoKey};
@@ -616,7 +616,7 @@ fn split_rest(rest: &str) -> (&str, &str) {
 /// `GET|HEAD /media/{*rest}`.
 pub async fn media(
     State(state): State<AppState>,
-    OptionalUser(user): OptionalUser,
+    CookieOptionalUser(user): CookieOptionalUser,
     method: Method,
     headers: HeaderMap,
     UrlPath(rest): UrlPath<String>,

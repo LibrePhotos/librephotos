@@ -282,6 +282,35 @@ impl ExifPool {
         try_sidecar: bool,
         structured: bool,
     ) -> Result<Vec<Option<Value>>, ExifError> {
+        if tags.iter().all(|t| is_safe_tag(t)) {
+            return self
+                .get_safe_metadata(media_file, tags, try_sidecar, structured)
+                .await;
+        }
+        let safe: Vec<String> = tags.iter().filter(|t| is_safe_tag(t)).cloned().collect();
+        let mut got = self
+            .get_safe_metadata(media_file, &safe, try_sidecar, structured)
+            .await?
+            .into_iter();
+        Ok(tags
+            .iter()
+            .map(|t| {
+                if is_safe_tag(t) {
+                    got.next().flatten()
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    async fn get_safe_metadata(
+        &self,
+        media_file: &Path,
+        tags: &[String],
+        try_sidecar: bool,
+        structured: bool,
+    ) -> Result<Vec<Option<Value>>, ExifError> {
         if tags.is_empty() {
             return Ok(Vec::new());
         }
@@ -527,6 +556,19 @@ fn py_str(v: &Value) -> String {
 }
 
 /// `get_sidecar_files_in_priority_order`: `IMG.xmp`, `IMG.XMP`, `IMG.jpg.xmp`, `IMG.jpg.XMP`.
+/// Whether `tag` is a plain `[Group:]Name` ExifTool can only read. Tag names
+/// come from users' datetime and burst rules; anything else (`=`, spaces, a
+/// leading `-`) would inject options into the argfile, e.g. `FileName=...`
+/// renames files and `-if` evaluates Perl.
+pub fn is_safe_tag(tag: &str) -> bool {
+    !tag.is_empty()
+        && tag.len() <= 128
+        && !tag.starts_with(['-', ':'])
+        && tag
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ':' | '*' | '?' | '#'))
+}
+
 pub fn sidecar_files_in_priority_order(media_file: &Path) -> Vec<PathBuf> {
     let s = media_file.to_string_lossy();
     let base = splitext(&s).0;

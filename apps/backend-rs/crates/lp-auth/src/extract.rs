@@ -1,9 +1,15 @@
-//! Auth extractors (port of `api/authentication.py` `JWTCookieAuthentication`).
+//! Auth extractors.
 //!
-//! * `Authorization: Bearer <access>` (scheme case-insensitive) wins; a bad
-//!   header token is a 401 even on endpoints that allow anonymous access.
-//! * Otherwise the `jwt` cookie; an unusable cookie (expired, refresh token,
-//!   inactive user) authenticates nobody instead of failing the request.
+//! * [`AuthUser`] / [`OptionalUser`] / [`AdminUser`] are DRF's default
+//!   authentication (simplejwt `JWTAuthentication`): only an `Authorization`
+//!   header whose scheme is exactly `Bearer` identifies anyone; a bad token
+//!   there is a 401 even on endpoints that allow anonymous access. The ambient
+//!   `jwt` cookie is ignored, so a cross-site request carries no credentials.
+//! * [`CookieUser`] / [`CookieOptionalUser`] are `api/authentication.py`
+//!   `JWTCookieAuthentication`, for media and download requests a browser
+//!   makes without headers: the header (scheme case-insensitive) wins, else
+//!   the `jwt` cookie; an unusable cookie (expired, refresh token, inactive
+//!   user) authenticates nobody instead of failing the request.
 //! * The token's user must exist and be active.
 
 use axum::extract::FromRequestParts;
@@ -29,6 +35,21 @@ pub struct OptionalUser(pub Option<User>);
 #[derive(Debug, Clone)]
 pub struct AdminUser(pub User);
 
+/// [`AuthUser`] that also accepts the `jwt` cookie (media, downloads).
+#[derive(Debug, Clone)]
+pub struct CookieUser(pub User);
+
+/// [`OptionalUser`] that also accepts the `jwt` cookie (media).
+#[derive(Debug, Clone)]
+pub struct CookieOptionalUser(pub Option<User>);
+
+impl std::ops::Deref for CookieUser {
+    type Target = User;
+    fn deref(&self) -> &User {
+        &self.0
+    }
+}
+
 impl std::ops::Deref for AuthUser {
     type Target = User;
     fn deref(&self) -> &User {
@@ -52,15 +73,17 @@ fn invalid_token() -> ApiError {
     e
 }
 
-/// Raw bearer token from the header: `Ok(None)` when absent or another scheme.
-fn header_token(parts: &Parts) -> Result<Option<String>, ApiError> {
+/// Raw bearer token from the header: `Ok(None)` when absent or another
+/// scheme. simplejwt matches the scheme exactly, the cookie class ignoring case.
+fn header_token(parts: &Parts, any_case: bool) -> Result<Option<String>, ApiError> {
     let Some(value) = parts.headers.get(AUTHORIZATION) else {
         return Ok(None);
     };
     let text = value.to_str().unwrap_or("");
     let pieces: Vec<&str> = text.split_whitespace().collect();
     match pieces.first() {
-        Some(scheme) if scheme.eq_ignore_ascii_case("bearer") => {}
+        Some(scheme) if *scheme == "Bearer" => {}
+        Some(scheme) if any_case && scheme.eq_ignore_ascii_case("bearer") => {}
         _ => return Ok(None),
     }
     if pieces.len() != 2 {
@@ -98,12 +121,34 @@ async fn user_for_token(state: &AppState, token: &str) -> Result<User, ApiError>
     Ok(user)
 }
 
-/// The requester, or None for anonymous. Cached in the request extensions.
+#[derive(Clone)]
+struct HeaderResolved(Option<User>);
+
+#[derive(Clone)]
+struct CookieResolved(Option<User>);
+
+/// The requester by header only, or None for anonymous. Cached per request.
 async fn resolve(parts: &mut Parts, state: &AppState) -> Result<Option<User>, ApiError> {
-    if let Some(u) = parts.extensions.get::<User>() {
-        return Ok(Some(u.clone()));
+    if let Some(HeaderResolved(u)) = parts.extensions.get::<HeaderResolved>() {
+        return Ok(u.clone());
     }
-    let resolved = if let Some(token) = header_token(parts)? {
+    let resolved = match header_token(parts, false)? {
+        Some(token) => Some(user_for_token(state, &token).await?),
+        None => None,
+    };
+    parts.extensions.insert(HeaderResolved(resolved.clone()));
+    Ok(resolved)
+}
+
+/// The requester by header, else by cookie, or None for anonymous.
+async fn resolve_with_cookie(
+    parts: &mut Parts,
+    state: &AppState,
+) -> Result<Option<User>, ApiError> {
+    if let Some(CookieResolved(u)) = parts.extensions.get::<CookieResolved>() {
+        return Ok(u.clone());
+    }
+    let resolved = if let Some(token) = header_token(parts, true)? {
         Some(user_for_token(state, &token).await?)
     } else if let Some(token) = cookie_token(parts) {
         match user_for_token(state, &token).await {
@@ -114,9 +159,7 @@ async fn resolve(parts: &mut Parts, state: &AppState) -> Result<Option<User>, Ap
     } else {
         None
     };
-    if let Some(u) = &resolved {
-        parts.extensions.insert(u.clone());
-    }
+    parts.extensions.insert(CookieResolved(resolved.clone()));
     Ok(resolved)
 }
 
@@ -148,6 +191,25 @@ impl FromRequestParts<AppState> for AdminUser {
             return Err(ApiError::permission_denied());
         }
         Ok(AdminUser(u))
+    }
+}
+
+impl FromRequestParts<AppState> for CookieUser {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, ApiError> {
+        resolve_with_cookie(parts, state)
+            .await?
+            .map(CookieUser)
+            .ok_or_else(ApiError::not_authenticated)
+    }
+}
+
+impl FromRequestParts<AppState> for CookieOptionalUser {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, ApiError> {
+        Ok(CookieOptionalUser(resolve_with_cookie(parts, state).await?))
     }
 }
 

@@ -155,8 +155,7 @@ pub async fn extract_faces(state: &AppState, photo: &TaskPhoto) -> Result<usize,
         .ok_or_else(|| FaceError::Message("'NoneType' object has no attribute 'path'".into()))?;
 
     let mut found: Vec<Found> = Vec::new();
-    if let Some((Some(region), orientation)) =
-        xmp::read_region_info(&state.config.binaries.exiftool, &main).await?
+    if let Some((Some(region), orientation)) = xmp::read_region_info(&state.exif, &main).await?
         && !is_falsy(&region)
     {
         found = xmp::faces_from_region_info(

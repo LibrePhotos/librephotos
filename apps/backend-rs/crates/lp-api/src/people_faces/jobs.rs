@@ -18,7 +18,9 @@ use serde_json::{Value, json};
 use super::pca::pca_scores;
 use super::{media_url, status_message};
 
-/// `POST /api/trainfaces`: queue `faces.train` (owned by `lp-tasks`).
+/// `POST /api/trainfaces`: queue `faces.cluster` (owned by `lp-tasks`), which
+/// back-fills encodings, clusters, then queues `faces.train`; like Django the
+/// returned job id is the clustering job's.
 pub async fn train_faces(State(state): State<AppState>, user: AuthUser) -> ApiResult<Response> {
     if !state.config.features.face_cluster {
         return Ok(status_message(
@@ -28,9 +30,9 @@ pub async fn train_faces(State(state): State<AppState>, user: AuthUser) -> ApiRe
     }
     let queued = lp_jobs::enqueue(
         &state,
-        "faces.train",
+        "faces.cluster",
         json!({"user_id": user.id}),
-        EnqueueOptions::tracked(JobType::TrainFaces, user.id),
+        EnqueueOptions::tracked(JobType::ClusterAllFaces, user.id),
     )
     .await;
     Ok(match queued {
@@ -53,7 +55,7 @@ pub async fn scan_faces(State(state): State<AppState>, user: AuthUser) -> ApiRes
     let queued = lp_jobs::enqueue(
         &state,
         "faces.scan",
-        json!({"user_id": user.id}),
+        json!({"user_id": user.id, "full_scan": true}),
         EnqueueOptions::tracked(JobType::ScanFaces, user.id),
     )
     .await;
