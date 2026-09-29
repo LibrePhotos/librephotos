@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap"><link rel="stylesheet" href="/assets/css/styles.16093fa7.css">
-<script src="/assets/js/runtime~main.1a0bf984.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.e36c941e.js" defer="defer"></script>
 <script src="/assets/js/main.bd7a7c03.js" defer="defer"></script>
 </head>
 <body>
@@ -129,7 +129,7 @@ Add a <code>deploy</code> section to your Docker Compose file to allocate GPU re
 <p>That fallback is wrong behind the bundled proxy, which forwards <code>/api/</code> to the backend with the <code>Host</code> header rewritten to <code>backend</code> — a name that only resolves inside the Docker network. The rewrite is deliberate (it means Django&#x27;s host validation passes whatever domain you use), but it does mean the backend cannot work out its own public address on its own.</p>
 <p>So set this whenever LibrePhotos has to hand a URL to something outside the container:</p>
 <ul>
-<li class=""><strong>Password-reset emails</strong> — the link in the email. Without it the fallback can produce a link pointing at <code>http://backend/...</code>, which no mail recipient can open.</li>
+<li class=""><strong>Password-reset emails</strong> — the link in the email. Without it the fallback can produce a link pointing at <code>http://backend/...</code>, which no mail recipient can open. The unified and standalone images accept any <code>Host</code> header, so there the request&#x27;s origin is only used when it is listed in <code>CSRF_TRUSTED_ORIGINS</code>; otherwise no reset email is sent and the backend log asks for <code>FRONTEND_BASE_URL</code>. A link built from a <code>Host</code> header the requester chose would hand the reset token to whatever site they named.</li>
 <li class=""><strong>Single sign-on</strong> — the OAuth <code>redirect_uri</code> sent to your identity provider, which the browser has to follow and the provider has to recognise. SSO refuses to start rather than send a broken one, so this is effectively required for <a class="" href="/docs/user-guide/settings/single-sign-on">OIDC</a>.</li>
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="trusted-origins-for-the-django-admin">Trusted origins for the Django admin<a href="#trusted-origins-for-the-django-admin" class="hash-link" aria-label="Direct link to Trusted origins for the Django admin" title="Direct link to Trusted origins for the Django admin" translate="no">​</a></h3>
