@@ -125,6 +125,9 @@ debug = "line-tables-only"
 # Generic hash code is monomorphized in the calling crate, so lp-auth itself needs it too.
 [profile.dev.package.lp-auth]
 opt-level = 2
+# pHash / dominant-colour resampling and the thumbnail pipeline run per photo.
+[profile.dev.package.lp-ingest]
+opt-level = 2
 [profile.dev.package.argon2]
 opt-level = 3
 [profile.dev.package.hmac]

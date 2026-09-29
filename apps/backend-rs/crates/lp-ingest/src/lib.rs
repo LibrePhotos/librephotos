@@ -2,11 +2,32 @@
 //! motion photos, EXIF via `lp-exif`, dates, thumbnails, video, pHash,
 //! aspect ratio (`lp_core::codecs::aspect_ratio`), dominant color, follow-ups.
 //!
-//! TODO(ingest agent): implement; register job kinds in [`register_jobs`].
+//! Entry points: [`register_jobs`] (the job kinds below), [`scan::scan_user`]
+//! and [`upload`] for the chunked-upload endpoints.
 
 #![allow(clippy::disallowed_methods)] // not a handler crate: SQL allowed here
 
+pub mod color;
+pub mod dates;
+pub mod db;
+pub mod exifmap;
+pub mod fsutil;
+pub mod jobs;
+pub mod phash;
+pub mod pipeline;
+pub mod pyfmt;
+pub mod render;
+pub mod repair;
+pub mod scan;
+pub mod upload;
+pub mod vips;
+
+pub use pipeline::{Owner, Pipeline};
+
 use lp_jobs::HandlerRegistry;
 
-/// `scan.user`, `scan.file_group`, `repair.file_variants`, `delete.missing_photos`, ...
-pub fn register_jobs(_reg: &mut HandlerRegistry) {}
+/// `scan.user`, `scan.file_group`, `thumbnails.rerender`, `metadata.write`,
+/// `delete.missing_photos`, `repair.file_variants`, `upload.process`.
+pub fn register_jobs(reg: &mut HandlerRegistry) {
+    jobs::register(reg);
+}
