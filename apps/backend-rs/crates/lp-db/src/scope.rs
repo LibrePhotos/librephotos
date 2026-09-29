@@ -292,28 +292,36 @@ impl PhotoGrants {
     }
 }
 
+/// The [`PhotoGrants`] columns for photo alias `p` and the requester bound
+/// at placeholder `user` (an `int` parameter, NULL = anonymous), for queries
+/// that resolve several photos at once (media lookups by shared hash).
+pub fn photo_grants_select(p: &str, user: &str) -> String {
+    format!(
+        "COALESCE({p}.owner_id = {user}, FALSE) AS is_owner, \
+         ({user}::int IS NOT NULL AND EXISTS (SELECT 1 FROM api_photo_shared_to st \
+            WHERE st.photo_id = {p}.id AND st.user_id = {user})) AS shared_directly, \
+         ({user}::int IS NOT NULL AND EXISTS (SELECT 1 FROM api_albumuser_photos ap \
+            JOIN api_albumuser a ON a.id = ap.albumuser_id \
+            JOIN api_albumuser_shared_to ast ON ast.albumuser_id = a.id \
+            WHERE ap.photo_id = {p}.id AND a.owner_id = {p}.owner_id AND ast.user_id = {user})) AS album_shared_to_user, \
+         EXISTS (SELECT 1 FROM api_albumuser_photos ap \
+            JOIN api_albumuser a ON a.id = ap.albumuser_id \
+            JOIN api_albumusershare s ON s.album_id = a.id \
+            WHERE ap.photo_id = {p}.id AND a.owner_id = {p}.owner_id AND s.enabled \
+              AND (s.expires_at IS NULL OR s.expires_at >= now())) AS in_public_album, \
+         ({p}.public AND NOT {p}.hidden AND NOT {p}.in_trashcan AND NOT {p}.removed AND {}) AS is_public_photo",
+        has_thumbnail_sql(p)
+    )
+}
+
 pub async fn album_share_grants<'e>(
     db: impl PgExecutor<'e>,
     photo_id: Uuid,
     user_id: Option<i32>,
 ) -> sqlx::Result<Option<PhotoGrants>> {
     sqlx::query_as::<_, PhotoGrants>(&format!(
-        "SELECT \
-           COALESCE(p.owner_id = $2, FALSE) AS is_owner, \
-           ($2::int IS NOT NULL AND EXISTS (SELECT 1 FROM api_photo_shared_to st \
-              WHERE st.photo_id = p.id AND st.user_id = $2)) AS shared_directly, \
-           ($2::int IS NOT NULL AND EXISTS (SELECT 1 FROM api_albumuser_photos ap \
-              JOIN api_albumuser a ON a.id = ap.albumuser_id \
-              JOIN api_albumuser_shared_to ast ON ast.albumuser_id = a.id \
-              WHERE ap.photo_id = p.id AND a.owner_id = p.owner_id AND ast.user_id = $2)) AS album_shared_to_user, \
-           EXISTS (SELECT 1 FROM api_albumuser_photos ap \
-              JOIN api_albumuser a ON a.id = ap.albumuser_id \
-              JOIN api_albumusershare s ON s.album_id = a.id \
-              WHERE ap.photo_id = p.id AND a.owner_id = p.owner_id AND s.enabled \
-                AND (s.expires_at IS NULL OR s.expires_at >= now())) AS in_public_album, \
-           (p.public AND NOT p.hidden AND NOT p.in_trashcan AND NOT p.removed AND {}) AS is_public_photo \
-         FROM api_photo p WHERE p.id = $1",
-        has_thumbnail_sql("p")
+        "SELECT {} FROM api_photo p WHERE p.id = $1",
+        photo_grants_select("p", "$2")
     ))
     .bind(photo_id)
     .bind(user_id)
