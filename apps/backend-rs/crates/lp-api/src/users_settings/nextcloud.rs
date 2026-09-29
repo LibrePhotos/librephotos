@@ -3,7 +3,7 @@
 //! not ported). Server addresses go through the same SSRF guard as
 //! `nextcloud/server_address.py`.
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -141,6 +141,47 @@ fn refusal(addr: IpAddr, allow_private: bool) -> Option<&'static str> {
 
 /// `validate_server_address`: Err(message) when `url` must not be contacted.
 pub async fn validate_server_address(url: &str) -> Result<(), String> {
+    check_address(url).await.map(|_| ())
+}
+
+/// Resolve `host` and refuse it when any address must not be contacted.
+async fn resolve_checked(host: &str, port: u16) -> Result<Vec<SocketAddr>, String> {
+    let unresolved = || format!("The Nextcloud server address could not be resolved: {host}");
+    let addrs: Vec<SocketAddr> = match tokio::net::lookup_host((host, port)).await {
+        Ok(it) => it.collect(),
+        Err(_) => return Err(unresolved()),
+    };
+    if addrs.is_empty() {
+        return Err(unresolved());
+    }
+    let allow_private = private_addresses_allowed();
+    for addr in &addrs {
+        if let Some(kind) = refusal(addr.ip(), allow_private) {
+            let hint = if kind == "a private network" {
+                " An administrator can allow it with NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES=true."
+            } else {
+                ""
+            };
+            return Err(format!(
+                "The Nextcloud server address points to {kind} address, which LibrePhotos \
+                 does not connect to.{hint}"
+            ));
+        }
+    }
+    Ok(addrs)
+}
+
+/// A checked address: the URL as reqwest parses it, and the addresses its
+/// host resolved to (the connection is pinned to them).
+struct Checked {
+    url: reqwest::Url,
+    addrs: Vec<SocketAddr>,
+}
+
+/// The Django checks on the host Python's `urlparse` sees, then the same
+/// checks on the host reqwest (WHATWG) would dial. The two parsers disagree on
+/// inputs like `http://127.0.0.1\@example.com/`, so both hosts must pass.
+async fn check_address(url: &str) -> Result<Checked, String> {
     let url = url.trim();
     if url.is_empty() {
         return Err("No Nextcloud server address is set.".into());
@@ -174,29 +215,21 @@ pub async fn validate_server_address(url: &str) -> Result<(), String> {
         return Err("The Nextcloud server address has no host name.".into());
     }
     let port = port.unwrap_or(if scheme == "https" { 443 } else { 80 });
-    let unresolved = || format!("The Nextcloud server address could not be resolved: {host}");
-    let addrs: Vec<IpAddr> = match tokio::net::lookup_host((host.as_str(), port)).await {
-        Ok(it) => it.map(|sa| sa.ip()).collect(),
-        Err(_) => return Err(unresolved()),
+    let python_addrs = resolve_checked(&host, port).await?;
+
+    let parsed =
+        reqwest::Url::parse(url).map_err(|_| "The Nextcloud server address is not a URL.")?;
+    let Some(dial_host) = parsed.host_str() else {
+        return Err("The Nextcloud server address has no host name.".into());
     };
-    if addrs.is_empty() {
-        return Err(unresolved());
-    }
-    let allow_private = private_addresses_allowed();
-    for addr in addrs {
-        if let Some(kind) = refusal(addr, allow_private) {
-            let hint = if kind == "a private network" {
-                " An administrator can allow it with NEXTCLOUD_ALLOW_PRIVATE_ADDRESSES=true."
-            } else {
-                ""
-            };
-            return Err(format!(
-                "The Nextcloud server address points to {kind} address, which LibrePhotos \
-                 does not connect to.{hint}"
-            ));
-        }
-    }
-    Ok(())
+    let dial_host = dial_host.trim_start_matches('[').trim_end_matches(']');
+    let dial_port = parsed.port_or_known_default().unwrap_or(port);
+    let addrs = if dial_host.eq_ignore_ascii_case(&host) && dial_port == port {
+        python_addrs
+    } else {
+        resolve_checked(dial_host, dial_port).await?
+    };
+    Ok(Checked { url: parsed, addrs })
 }
 
 /// Host (lower-cased, IPv6 brackets removed) and port of an authority.
@@ -218,16 +251,20 @@ fn split_host_port(authority: &str) -> Result<(String, Option<u16>), String> {
     Ok((host.to_lowercase(), port))
 }
 
-fn client() -> &'static reqwest::Client {
-    static C: OnceLock<reqwest::Client> = OnceLock::new();
-    C.get_or_init(|| {
-        reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .connect_timeout(Duration::from_secs(10))
-            .timeout(Duration::from_secs(60))
-            .build()
-            .expect("reqwest client")
-    })
+/// A client that dials only the addresses `checked` resolved to, so a DNS
+/// answer that changes after the check cannot redirect the request.
+fn pinned_client(checked: &Checked) -> Result<reqwest::Client, DavError> {
+    let mut builder = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(60));
+    if let Some(host) = checked.url.host_str()
+        && !host.starts_with('[')
+        && host.parse::<IpAddr>().is_err()
+    {
+        builder = builder.resolve_to_addrs(host, &checked.addrs);
+    }
+    builder.build().map_err(|_| DavError::Unreachable)
 }
 
 fn rejected(message: String) -> Response {
@@ -252,8 +289,8 @@ enum DavError {
     Unreachable,
 }
 
-/// PROPFIND `path` (Depth 1) below the user's WebDAV root, following
-/// redirects only to addresses that pass the guard.
+/// PROPFIND `path` (Depth 1) below the user's WebDAV root. Every hop,
+/// redirects included, is checked and pinned before it is dialled.
 async fn propfind(base: &str, user: &str, password: &str, path: &str) -> Result<String, DavError> {
     let base = if base.ends_with('/') {
         base.to_string()
@@ -277,8 +314,9 @@ async fn propfind(base: &str, user: &str, password: &str, path: &str) -> Result<
     );
     let method = reqwest::Method::from_bytes(b"PROPFIND").expect("method");
     for _ in 0..10 {
-        let res = client()
-            .request(method.clone(), &url)
+        let checked = check_address(&url).await.map_err(DavError::Unsafe)?;
+        let res = pinned_client(&checked)?
+            .request(method.clone(), checked.url.clone())
             .basic_auth(user, Some(password))
             .header("Depth", "1")
             .send()
@@ -291,11 +329,11 @@ async fn propfind(base: &str, user: &str, password: &str, path: &str) -> Result<
                 .get(reqwest::header::LOCATION)
                 .and_then(|l| l.to_str().ok())
                 .ok_or(DavError::Status(status.as_u16()))?;
-            let next = res.url().join(loc).map_err(|_| DavError::Unreachable)?;
-            validate_server_address(next.as_str())
-                .await
-                .map_err(DavError::Unsafe)?;
-            url = next.to_string();
+            url = res
+                .url()
+                .join(loc)
+                .map_err(|_| DavError::Unreachable)?
+                .to_string();
             continue;
         }
         if status.as_u16() != 207 && !status.is_success() {
@@ -484,6 +522,20 @@ mod tests {
                 .unwrap_err()
                 .contains("not a URL")
         );
+    }
+
+    #[tokio::test]
+    async fn parser_differential_is_refused() {
+        // Python's urlparse sees host 8.8.8.8 here, reqwest dials 127.0.0.1.
+        assert!(
+            validate_server_address(r"http://127.0.0.1:8000\@8.8.8.8/")
+                .await
+                .unwrap_err()
+                .contains("a loopback address")
+        );
+        let checked = check_address("http://8.8.8.8:8080/nc").await.unwrap();
+        assert_eq!(checked.url.host_str(), Some("8.8.8.8"));
+        assert!(checked.addrs.iter().all(|a| a.port() == 8080));
     }
 
     #[test]

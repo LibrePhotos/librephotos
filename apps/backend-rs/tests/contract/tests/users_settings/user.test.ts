@@ -275,6 +275,40 @@ describe.skipIf(!hasBase)("PATCH /api/manage/user/{id}/", () => {
   });
 });
 
+describe.skipIf(!hasBase)("GET /api/manage/user/", () => {
+  it("contract + twin: list and retrieve as admin", async () => {
+    const list = await call<{ results: unknown[] }>("admin", { path: "/api/manage/user/" });
+    expect(list.status).toBe(200);
+    for (const row of list.body.results) expectSchema(ManageUser, row);
+    await expectTwin("admin", { path: "/api/manage/user/" }, { project: ["count", "results[].*"] });
+    await expectTwin("admin", { path: "/api/manage/user/", query: { limit: "2", offset: "1" } }, {
+      project: ["count", "next", "previous", "results[].*"],
+    });
+    const bob = user("bob");
+    const one = await call("admin", { path: `/api/manage/user/${bob.id}/` });
+    expectSchema(ManageUser, one.body);
+    await expectTwin("admin", { path: `/api/manage/user/${bob.id}/` }, { project: ["*"] });
+    await expectTwin("admin", { path: "/api/manage/user/99999/" }, { project: ["errors[].*"] });
+  });
+
+  it("authz: IsAdminUser", async () => {
+    const cases: AuthzCase[] = [
+      {
+        name: "manage list",
+        req: { path: "/api/manage/user/" },
+        expect: { anonymous: 401, alice: 403, bob: 403, carol: 403, dave: 403, admin: 200 },
+      },
+      {
+        name: "manage retrieve",
+        req: { path: `/api/manage/user/${user("alice").id}/` },
+        expect: { anonymous: 401, alice: 403, bob: 403, carol: 403, dave: 403, admin: 200 },
+      },
+    ];
+    const matrix = await authzMatrix(cases);
+    for (const c of cases) expect(authzProblems(c, matrix[c.name]!)).toEqual([]);
+  });
+});
+
 describe.skipIf(!hasBase)("DELETE /api/delete/user/{id}/ (non-destructive cases)", () => {
   it("authz: superuser only, never a superuser, 404 for unknown ids", async () => {
     const cases: AuthzCase[] = [

@@ -101,9 +101,15 @@ pub enum UserScope {
     Active,
     /// Anonymous callers: active users that opted into public sharing.
     PublicSharing,
+    /// Every user, inactive ones included (`ManageUserViewSet`).
+    All,
 }
 
 fn push_scope(qb: &mut QueryBuilder<'_, Postgres>, scope: UserScope) {
+    if scope == UserScope::All {
+        qb.push(" WHERE TRUE");
+        return;
+    }
     qb.push(" WHERE u.is_active");
     if scope == UserScope::PublicSharing {
         qb.push(" AND u.public_sharing");

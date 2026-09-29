@@ -1,11 +1,11 @@
 //! Area `users_settings`. User & settings (03 §5): GET/POST /user/, GET/PATCH /user/{id}/ (JSON or multipart avatar), PATCH /manage/user/{id}/, DELETE /delete/user/{id}/, GET/POST /sitesettings, email config x3, /timezones/ + /predefinedrules/ + /predefinedburstrules/ (JSON-encoded strings), /dirtree/, nextcloud x2; plus auth M5: /firsttimesetup/, /auth/sso/config/, /auth/password/reset/ + /confirm/.
 //!
-//! Not ported (left to `LP_DEV_FALLBACK`): the OIDC login/callback flow,
-//! `GET /api/manage/user/` and `/api/defaultrules`, which the frontend never calls.
-//! `POST /api/nextcloud/scanphotos/` answers 501 after Django's checks.
+//! Not ported (left to `LP_DEV_FALLBACK`): the OIDC login/callback flow, and
+//! `PUT`/`DELETE /api/manage/user/{id}/`, which the frontend never calls.
+//! `/api/nextcloud/scanphotos/` answers 501 after Django's checks.
 
 use axum::Router;
-use axum::routing::{delete, get, patch, post};
+use axum::routing::{delete, get, post};
 use lp_core::AppState;
 use lp_jobs::HandlerRegistry;
 
@@ -28,7 +28,11 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/api/user", get(user::list).post(user::create))
         .route("/api/user/{id}", get(user::retrieve).patch(user::update))
-        .route("/api/manage/user/{id}", patch(user::manage_update))
+        .route("/api/manage/user", get(user::manage_list))
+        .route(
+            "/api/manage/user/{id}",
+            get(user::manage_retrieve).patch(user::manage_update),
+        )
         .route("/api/delete/user/{id}", delete(user::destroy))
         .route("/api/firsttimesetup", get(user::first_time_setup))
         .route(
@@ -46,6 +50,11 @@ pub fn routes() -> Router<AppState> {
             "/api/predefinedburstrules",
             get(static_data::predefined_burst_rules),
         )
+        .route("/api/defaultrules", get(static_data::default_rules))
+        .route(
+            "/api/defaultburstrules",
+            get(static_data::default_burst_rules),
+        )
         .route("/api/dirtree", get(dirtree::dirtree))
         .route(
             "/api/auth/password/reset",
@@ -57,7 +66,10 @@ pub fn routes() -> Router<AppState> {
         )
         .route("/api/auth/sso/config", get(sso::config))
         .route("/api/nextcloud/listdir", get(nextcloud::listdir))
-        .route("/api/nextcloud/scanphotos", post(nextcloud::scanphotos))
+        .route(
+            "/api/nextcloud/scanphotos",
+            get(nextcloud::scanphotos).post(nextcloud::scanphotos),
+        )
 }
 
 pub fn register_jobs(_reg: &mut HandlerRegistry) {}

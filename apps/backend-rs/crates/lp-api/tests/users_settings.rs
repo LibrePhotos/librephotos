@@ -775,6 +775,19 @@ async fn email_config_and_password_reset() {
         }
     }
 
+    // An ident longer than the column is still counted, not a 500.
+    let long_ip = "1".repeat(300);
+    let res = app
+        .request(
+            Request::post("/api/auth/password/reset/")
+                .header("content-type", "application/json")
+                .header("x-forwarded-for", &long_ip)
+                .body(Body::from(r#"{"email": "nobody@fixture.invalid"}"#))
+                .unwrap(),
+        )
+        .await;
+    assert_eq!(res.status, StatusCode::OK, "{}", res.text());
+
     // Confirm with a Django-format token.
     let alice = fixture_user(&app, "alice").await;
     let token =
@@ -819,5 +832,71 @@ async fn email_config_and_password_reset() {
         res.json()["message"],
         json!("Invalid or expired reset link")
     );
+    app.cleanup().await;
+}
+
+#[tokio::test]
+async fn manage_reads() {
+    let app = TestApp::shared().await;
+    let tadmin = token(&app, "admin").await;
+    let talice = token(&app, "alice").await;
+    let bob = fixture_user(&app, "bob").await;
+
+    let res = app
+        .get("/api/manage/user/?limit=2&offset=1", Some(&tadmin))
+        .await;
+    assert_eq!(res.status, StatusCode::OK, "{}", res.text());
+    let body = res.json();
+    let total = scalar_i64(&app, "SELECT count(*) FROM api_user").await;
+    assert_eq!(body["count"], json!(total), "inactive users included");
+    assert_eq!(body["results"].as_array().unwrap().len(), 2);
+    assert!(
+        body["previous"]
+            .as_str()
+            .unwrap()
+            .ends_with("/api/manage/user/?limit=2")
+    );
+
+    let res = app
+        .get(&format!("/api/manage/user/{}/", bob.id), Some(&tadmin))
+        .await;
+    assert_eq!(res.status, StatusCode::OK);
+    let one = res.json();
+    assert_eq!(one["username"], json!("bob"));
+    assert!(one.get("password").is_none());
+    assert_eq!(
+        one["photo_count"],
+        json!(
+            scalar_i64(
+                &app,
+                &format!("SELECT count(*) FROM api_photo WHERE owner_id = {}", bob.id)
+            )
+            .await
+        )
+    );
+
+    for path in [
+        "/api/manage/user/".to_string(),
+        format!("/api/manage/user/{}/", bob.id),
+    ] {
+        assert_eq!(app.get(&path, None).await.status, StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            app.get(&path, Some(&talice)).await.status,
+            StatusCode::FORBIDDEN
+        );
+    }
+    assert_eq!(
+        app.get("/api/manage/user/99999/", Some(&tadmin))
+            .await
+            .status,
+        StatusCode::NOT_FOUND
+    );
+    for path in ["/api/defaultrules/", "/api/defaultburstrules/"] {
+        assert_eq!(app.get(path, None).await.status, StatusCode::UNAUTHORIZED);
+        let res = app.get(path, Some(&talice)).await;
+        assert_eq!(res.status, StatusCode::OK);
+        let rules: Value = serde_json::from_str(res.json().as_str().unwrap()).unwrap();
+        assert!(!rules.as_array().unwrap().is_empty());
+    }
     app.cleanup().await;
 }

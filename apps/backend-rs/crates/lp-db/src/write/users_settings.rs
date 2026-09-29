@@ -388,7 +388,8 @@ pub async fn save_email_config(pool: &PgPool, c: &EmailConfigWrite<'_>) -> sqlx:
     Ok(())
 }
 
-/// Record one rate-limited request and forget hits older than `keep_after`.
+/// Record one rate-limited request and forget every hit of `scope` older than
+/// `keep_after` (all idents, so spoofed idents cannot pile up rows).
 pub async fn record_throttle_hit(
     pool: &PgPool,
     scope: &str,
@@ -397,9 +398,8 @@ pub async fn record_throttle_hit(
     keep_after: DateTime<Utc>,
 ) -> sqlx::Result<()> {
     let mut tx = pool.begin().await?;
-    sqlx::query("DELETE FROM rate_limit_hit WHERE scope = $1 AND ident = $2 AND hit_at <= $3")
+    sqlx::query("DELETE FROM rate_limit_hit WHERE scope = $1 AND hit_at <= $2")
         .bind(scope)
-        .bind(ident)
         .bind(keep_after)
         .execute(&mut *tx)
         .await?;

@@ -81,7 +81,13 @@ describe.skipIf(!hasBase)("/api/sitesettings", () => {
 });
 
 describe.skipIf(!hasBase)("JSON-encoded string endpoints", () => {
-  it.each(["/api/timezones/", "/api/predefinedrules/", "/api/predefinedburstrules/"])(
+  it.each([
+    "/api/timezones/",
+    "/api/predefinedrules/",
+    "/api/predefinedburstrules/",
+    "/api/defaultrules/",
+    "/api/defaultburstrules/",
+  ])(
     "twin: %s is byte-identical",
     async path => {
       const ref = await call("alice", { path }, process.env.LP_REF_URL ?? process.env.LP_BASE_URL);

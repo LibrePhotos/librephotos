@@ -348,6 +348,37 @@ fn with_params(origin: &str, uri: &Uri, set: &[(&str, i64)], remove: &[&str]) ->
     }
 }
 
+/// DRF `LimitOffsetPagination.get_next_link` / `get_previous_link`.
+fn page_links(
+    origin: &str,
+    uri: &Uri,
+    limit: i64,
+    offset: i64,
+    count: i64,
+) -> (Option<String>, Option<String>) {
+    let next = (offset + limit < count).then(|| {
+        with_params(
+            origin,
+            uri,
+            &[("limit", limit), ("offset", offset + limit)],
+            &[],
+        )
+    });
+    let previous = (offset > 0).then(|| {
+        if offset - limit <= 0 {
+            with_params(origin, uri, &[("limit", limit)], &["offset"])
+        } else {
+            with_params(
+                origin,
+                uri,
+                &[("limit", limit), ("offset", offset - limit)],
+                &[],
+            )
+        }
+    });
+    (next, previous)
+}
+
 /// `GET /api/user/` (LimitOffsetPagination, default limit 20000).
 pub async fn list(
     State(state): State<AppState>,
@@ -386,26 +417,7 @@ pub async fn list(
             }
         })
         .collect();
-    let next = (offset + limit < count).then(|| {
-        with_params(
-            &origin,
-            &uri,
-            &[("limit", limit), ("offset", offset + limit)],
-            &[],
-        )
-    });
-    let previous = (offset > 0).then(|| {
-        if offset - limit <= 0 {
-            with_params(&origin, &uri, &[("limit", limit)], &["offset"])
-        } else {
-            with_params(
-                &origin,
-                &uri,
-                &[("limit", limit), ("offset", offset - limit)],
-                &[],
-            )
-        }
-    });
+    let (next, previous) = page_links(&origin, &uri, limit, offset, count);
     Ok(Json(json!({
         "count": count,
         "next": next,
@@ -747,6 +759,65 @@ pub async fn update(
         &serialize::request_origin(&headers),
     ))
     .into_response())
+}
+
+/// `GET /api/manage/user/` (admin; every user, inactive ones included).
+pub async fn manage_list(
+    State(state): State<AppState>,
+    AdminUser(_admin): AdminUser,
+    headers: HeaderMap,
+    uri: Uri,
+    q: QueryMap,
+) -> ApiResult<Response> {
+    let limit = positive_int(q.get("limit"), true).unwrap_or(PAGE_SIZE);
+    let offset = positive_int(q.get("offset"), false).unwrap_or(0);
+    let (count, users) =
+        lp_db::users_settings::list_users(&state.db, UserScope::All, limit, offset).await?;
+    let users = if count == 0 || offset > count {
+        Vec::new()
+    } else {
+        users
+    };
+    let ids: Vec<i32> = users.iter().map(|u| u.id).collect();
+    let mut stats = lp_db::users_settings::photo_stats(&state.db, &ids).await?;
+    let results: Vec<Value> = users
+        .iter()
+        .map(|u| {
+            let photo_count = stats.remove(&u.id).map_or(0, |s| s.photo_count);
+            serialize::manage(u, photo_count)
+        })
+        .collect();
+    let origin = serialize::request_origin(&headers);
+    let (next, previous) = page_links(&origin, &uri, limit, offset, count);
+    Ok(Json(json!({
+        "count": count,
+        "next": next,
+        "previous": previous,
+        "results": results,
+    }))
+    .into_response())
+}
+
+/// `GET /api/manage/user/{id}/` (admin).
+pub async fn manage_retrieve(
+    State(state): State<AppState>,
+    AdminUser(_admin): AdminUser,
+    Path(raw_id): Path<String>,
+) -> ApiResult<Response> {
+    let id = parse_id(&raw_id)?;
+    let (user, photo_count) = tokio::try_join!(
+        async {
+            lp_db::users::by_id(&state.db, id)
+                .await?
+                .ok_or_else(no_user)
+        },
+        async {
+            lp_db::users_settings::photo_count(&state.db, id)
+                .await
+                .map_err(ApiError::from)
+        }
+    )?;
+    Ok(Json(serialize::manage(&user, photo_count)).into_response())
 }
 
 /// `PATCH /api/manage/user/{id}/` (admin).

@@ -8,11 +8,12 @@
 //! shares it.
 
 use std::collections::HashSet;
+use std::net::SocketAddr;
 use std::sync::OnceLock;
 
 use axum::Json;
-use axum::extract::State;
-use axum::http::{HeaderMap, HeaderValue, StatusCode};
+use axum::extract::{ConnectInfo, State};
+use axum::http::{Extensions, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use base64::Engine;
 use chrono::{Duration, NaiveDate, Utc};
@@ -202,8 +203,9 @@ fn throttle_rate() -> Option<(usize, i64)> {
     Some((num, secs))
 }
 
-/// DRF `get_ident`: the whole `X-Forwarded-For` value without spaces.
-fn client_ident(headers: &HeaderMap) -> String {
+/// DRF `get_ident`: the whole `X-Forwarded-For` value without spaces, else
+/// the proxy's `X-Real-IP`, else the peer address (`REMOTE_ADDR`).
+fn client_ident(headers: &HeaderMap, extensions: &Extensions) -> String {
     headers
         .get("x-forwarded-for")
         .and_then(|v| v.to_str().ok())
@@ -214,6 +216,12 @@ fn client_ident(headers: &HeaderMap) -> String {
                 .get("x-real-ip")
                 .and_then(|v| v.to_str().ok())
                 .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty())
+        })
+        .or_else(|| {
+            extensions
+                .get::<ConnectInfo<SocketAddr>>()
+                .map(|c| c.0.ip().to_string())
         })
         .unwrap_or_else(|| "unknown".into())
 }
@@ -262,6 +270,20 @@ async fn throttle(state: &AppState, ident: &str) -> Result<(), ApiError> {
 
 // ------------------------------------------------------------ views
 
+/// `django.http.request.split_domain_port`: the domain of a well-formed Host
+/// header, None otherwise. Django answers 400 (`DisallowedHost`) before any
+/// view runs when this fails; here it keeps the Host out of the emailed link,
+/// e.g. `localhost:80@evil.example`, which a browser opens on `evil.example`.
+fn split_domain(host: &str) -> Option<String> {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    let re = RE.get_or_init(|| {
+        Regex::new(r"^([a-z0-9.-]+|\[[a-f0-9]*:[a-f0-9.:]+\])(:[0-9]+)?$").expect("regex")
+    });
+    let lower = host.to_lowercase();
+    let caps = re.captures(&lower)?;
+    Some(caps[1].trim_end_matches('.').to_string())
+}
+
 /// `trusted_public_base_url`: `FRONTEND_BASE_URL`, else the request origin
 /// only when its host is one Django's concrete `ALLOWED_HOSTS` would accept
 /// or an entry of `CSRF_TRUSTED_ORIGINS`.
@@ -277,9 +299,10 @@ fn trusted_base_url(headers: &HeaderMap) -> String {
     else {
         return String::new();
     };
-    let hostname = host.rsplit_once(':').map_or(host, |(h, _)| h);
     let backend = std::env::var("BACKEND_HOST").unwrap_or_else(|_| "backend".into());
-    if hostname == "localhost" || hostname == backend {
+    if let Some(domain) = split_domain(host)
+        && (domain == "localhost" || domain == backend.to_lowercase())
+    {
         return super::serialize::request_origin(headers);
     }
     let mut origins = vec!["http://localhost:3000".to_string()];
@@ -345,12 +368,17 @@ pub async fn request_reset(
     State(state): State<AppState>,
     OptionalUser(viewer): OptionalUser,
     headers: HeaderMap,
+    extensions: Extensions,
     ApiJson(data): ApiJson<Value>,
 ) -> ApiResult<Response> {
-    let ident = match &viewer {
+    let mut ident = match &viewer {
         Some(u) => u.id.to_string(),
-        None => client_ident(&headers),
+        None => client_ident(&headers, &extensions),
     };
+    // `rate_limit_hit.ident` is varchar(255); X-Forwarded-For can be longer.
+    if let Some((cut, _)) = ident.char_indices().nth(255) {
+        ident.truncate(cut);
+    }
     throttle(&state, &ident).await?;
     let email = data
         .get("email")
@@ -440,6 +468,28 @@ mod tests {
         assert_eq!(decode_uid("Mg"), Some(2));
         assert_eq!(decode_uid("Mg=="), Some(2));
         assert_eq!(decode_uid("!!"), None);
+    }
+
+    #[test]
+    fn reset_link_base_ignores_malformed_hosts() {
+        let base = |host: &str| {
+            let mut h = HeaderMap::new();
+            h.insert(
+                axum::http::header::HOST,
+                HeaderValue::from_str(host).unwrap(),
+            );
+            trusted_base_url(&h)
+        };
+        if std::env::var_os("FRONTEND_BASE_URL").is_some() {
+            return;
+        }
+        assert_eq!(base("localhost:3000"), "http://localhost:3000");
+        assert_eq!(base("LOCALHOST"), "http://LOCALHOST");
+        assert_eq!(base("localhost:80@evil.example"), "");
+        assert_eq!(base("localhost:1/@evil.example"), "");
+        assert_eq!(base("evil.example"), "");
+        assert_eq!(split_domain("[::1]:8000").as_deref(), Some("[::1]"));
+        assert_eq!(split_domain("localhost."), Some("localhost".into()));
     }
 
     #[test]

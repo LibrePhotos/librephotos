@@ -209,7 +209,9 @@ pub async fn serve(config: Config, run_migrations: bool) -> anyhow::Result<()> {
     let token = shutdown.clone();
     axum::serve(
         listener,
-        axum::ServiceExt::<Request>::into_make_service(service),
+        axum::ServiceExt::<Request>::into_make_service_with_connect_info::<std::net::SocketAddr>(
+            service,
+        ),
     )
     .with_graceful_shutdown(async move {
         let _ = tokio::signal::ctrl_c().await;
