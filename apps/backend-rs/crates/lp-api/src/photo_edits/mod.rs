@@ -4,12 +4,165 @@
 //! NO trailing slash (a middleware strips one). Reads go in
 //! `lp_db::photo_edits`, writes in `lp_db::write::photo_edits`.
 
+mod bulk;
+mod caption;
+pub mod datetime_rules;
+mod delete;
+mod edit;
+mod exif;
+mod geocode;
+mod photo_share;
+mod rotate;
+
+use axum::Json;
 use axum::Router;
-use lp_core::AppState;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::routing::{delete as delete_route, patch, post};
+use lp_core::extract::py_truthy;
+use lp_core::{ApiError, ApiResult, AppState};
+use lp_db::scope::PhotoFilterParams;
+use lp_db::write::photo_edits::bulk::Selection;
 use lp_jobs::HandlerRegistry;
+use serde_json::{Map, Value, json};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
+        .route("/api/photos/edit/{id}", patch(edit::patch_photo))
+        .route("/api/photosedit/favorite", post(bulk::favorite))
+        .route("/api/photosedit/hide", post(bulk::hide))
+        .route("/api/photosedit/setdeleted", post(bulk::set_deleted))
+        .route("/api/photosedit/makepublic", post(bulk::make_public))
+        .route("/api/photosedit/share", post(bulk::share))
+        .route("/api/photosedit/savecaption", post(caption::save_caption))
+        .route(
+            "/api/photosedit/generateim2txt",
+            post(caption::generate_im2txt),
+        )
+        .route("/api/photosedit/rotate", post(rotate::rotate))
+        .route(
+            "/api/photosedit/delete",
+            delete_route(delete::delete_photos),
+        )
+        .route(
+            "/api/photo/share/list",
+            axum::routing::get(photo_share::list),
+        )
+        .route("/api/photo/share", post(photo_share::set_share))
 }
 
 pub fn register_jobs(_reg: &mut HandlerRegistry) {}
+
+/// `{"status": false, "message": ...}` with a status, the shape these views
+/// answer failures with (not the error envelope).
+fn status_message(code: StatusCode, message: &str) -> Response {
+    (code, Json(json!({"status": false, "message": message}))).into_response()
+}
+
+/// `request.data[key]` of a JSON object body; a missing key is a 400 here
+/// (a `KeyError` 500 on Django).
+fn required<'a>(body: &'a Map<String, Value>, key: &str) -> ApiResult<&'a Value> {
+    body.get(key)
+        .ok_or_else(|| ApiError::bad_request(key, "This field is required."))
+}
+
+/// Django `BooleanField.to_python`.
+fn django_bool(v: &Value) -> Option<bool> {
+    match v {
+        Value::Bool(b) => Some(*b),
+        Value::Number(n) => match n.as_f64() {
+            Some(1.0) => Some(true),
+            Some(0.0) => Some(false),
+            _ => None,
+        },
+        Value::String(s) => match s.as_str() {
+            "t" | "True" | "true" | "1" => Some(true),
+            "f" | "False" | "false" | "0" => Some(false),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// A value Django would coerce to a string for a lookup (`str(x)`).
+fn py_str(v: &Value) -> String {
+    match v {
+        Value::String(s) => s.clone(),
+        Value::Bool(true) => "True".into(),
+        Value::Bool(false) => "False".into(),
+        Value::Null => "None".into(),
+        other => other.to_string(),
+    }
+}
+
+fn string_list(v: Option<&Value>, field: &str) -> ApiResult<Vec<String>> {
+    match v {
+        None | Some(Value::Null) => Ok(Vec::new()),
+        Some(Value::Array(a)) => Ok(a.iter().map(py_str).collect()),
+        Some(Value::String(s)) => Ok(vec![s.clone()]),
+        Some(_) => Err(ApiError::bad_request(field, "Expected a list of items.")),
+    }
+}
+
+/// `image_hashes`, or `select_all` + `query` (+ `excluded_hashes`).
+fn selection(body: &Map<String, Value>, force_trash: bool) -> ApiResult<Selection> {
+    if body.get("select_all").is_some_and(py_truthy) {
+        let query = match body.get("query") {
+            None | Some(Value::Null) => json!({}),
+            Some(q) => q.clone(),
+        };
+        let mut params = PhotoFilterParams::from_json(&query)?;
+        if force_trash {
+            params.in_trashcan = true;
+        }
+        Ok(Selection::SelectAll {
+            params,
+            excluded_hashes: string_list(body.get("excluded_hashes"), "excluded_hashes")?,
+        })
+    } else {
+        let hashes = required(body, "image_hashes")?;
+        Ok(Selection::Hashes(string_list(
+            Some(hashes),
+            "image_hashes",
+        )?))
+    }
+}
+
+fn metadata_to_disk(user: &lp_db::users::User) -> bool {
+    user.save_metadata_to_disk != "OFF"
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bools_follow_django() {
+        assert_eq!(django_bool(&json!(true)), Some(true));
+        assert_eq!(django_bool(&json!("False")), Some(false));
+        assert_eq!(django_bool(&json!(1)), Some(true));
+        assert_eq!(django_bool(&json!("yes")), None);
+    }
+
+    #[test]
+    fn selection_modes() {
+        let body = json!({"image_hashes": ["a", "b"]});
+        match selection(body.as_object().unwrap(), false).unwrap() {
+            Selection::Hashes(h) => assert_eq!(h, vec!["a", "b"]),
+            _ => panic!("hashes"),
+        }
+        let body =
+            json!({"select_all": true, "query": {"favorite": true}, "excluded_hashes": ["x"]});
+        match selection(body.as_object().unwrap(), true).unwrap() {
+            Selection::SelectAll {
+                params,
+                excluded_hashes,
+            } => {
+                assert!(params.favorite && params.in_trashcan);
+                assert_eq!(excluded_hashes, vec!["x"]);
+            }
+            _ => panic!("select_all"),
+        }
+        assert!(selection(json!({}).as_object().unwrap(), false).is_err());
+    }
+}
