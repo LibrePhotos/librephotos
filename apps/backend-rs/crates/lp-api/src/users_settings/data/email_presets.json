@@ -1,0 +1,50 @@
+{
+  "sendgrid": {
+    "label": "SendGrid",
+    "host": "smtp.sendgrid.net",
+    "port": 587,
+    "use_tls": true,
+    "use_ssl": false,
+    "default_username": "apikey",
+    "help_url": "https://app.sendgrid.com/settings/api_keys"
+  },
+  "mailgun": {
+    "label": "Mailgun",
+    "host": "smtp.mailgun.org",
+    "port": 587,
+    "use_tls": true,
+    "use_ssl": false,
+    "help_url": "https://app.mailgun.com/app/sending/domains"
+  },
+  "postmark": {
+    "label": "Postmark",
+    "host": "smtp.postmarkapp.com",
+    "port": 587,
+    "use_tls": true,
+    "use_ssl": false,
+    "help_url": "https://account.postmarkapp.com/servers"
+  },
+  "brevo": {
+    "label": "Brevo",
+    "host": "smtp-relay.brevo.com",
+    "port": 587,
+    "use_tls": true,
+    "use_ssl": false,
+    "help_url": "https://app.brevo.com/settings/keys/smtp"
+  },
+  "smtp2go": {
+    "label": "SMTP2GO",
+    "host": "mail.smtp2go.com",
+    "port": 587,
+    "use_tls": true,
+    "use_ssl": false,
+    "help_url": "https://app.smtp2go.com/settings/users/"
+  },
+  "ses": {
+    "label": "Amazon SES",
+    "port": 587,
+    "use_tls": true,
+    "use_ssl": false,
+    "help_url": "https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html"
+  }
+}
