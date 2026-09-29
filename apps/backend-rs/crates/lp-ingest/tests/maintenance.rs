@@ -130,3 +130,65 @@ async fn a_known_hash_at_a_new_path_moves_the_file_row_like_django() {
     drop(conn);
     app.cleanup().await;
 }
+
+#[tokio::test]
+async fn the_last_file_group_queues_the_follow_ups_the_scan_stored() {
+    use chrono::Utc;
+    use lp_jobs::{JobCtx, QueuedJob};
+    use serde_json::json;
+
+    let app = TestApp::new().await;
+    let user = app.create_user("fanout_fu", "pw", false).await;
+    let job = Uuid::new_v4().to_string();
+    sqlx::query(
+        "INSERT INTO api_longrunningjob (job_type, finished, failed, cancelled, job_id, queued_at, \
+           started_at, started_by_id, progress_current, progress_target, result) \
+         VALUES (1, FALSE, FALSE, FALSE, $1, now(), now(), $2, 0, 1, $3)",
+    )
+    .bind(&job)
+    .bind(user.id)
+    .bind(json!({"followups": {"full_scan": true, "scan_missing_photos": false, "photo_count_before": 0}}))
+    .execute(app.pool())
+    .await
+    .unwrap();
+    let ctx = JobCtx {
+        state: app.state.clone(),
+        job: QueuedJob {
+            id: 0,
+            kind: "scan.file_group".into(),
+            payload: json!({"user_id": user.id, "paths": []}),
+            status: "running".into(),
+            lrj_id: Some(job.clone()),
+            group_id: None,
+            run_after: Utc::now(),
+            attempts: 1,
+            max_attempts: 1,
+            locked_by: None,
+            heartbeat_at: None,
+            last_error: None,
+            created_at: Utc::now(),
+            started_at: None,
+            finished_at: None,
+        },
+    };
+    lp_ingest::jobs::scan_file_group(ctx).await.unwrap();
+
+    let (finished, result): (bool, serde_json::Value) =
+        sqlx::query_as("SELECT finished, result FROM api_longrunningjob WHERE job_id = $1")
+            .bind(&job)
+            .fetch_one(app.pool())
+            .await
+            .unwrap();
+    assert!(finished);
+    assert!(result.get("followups").is_none(), "{result}");
+    let full: Option<bool> = sqlx::query_scalar(
+        "SELECT (payload->>'full_scan')::bool FROM job_queue WHERE kind = 'tags.generate' \
+         AND payload->>'user_id' = $1::text",
+    )
+    .bind(user.id)
+    .fetch_one(app.pool())
+    .await
+    .unwrap();
+    assert_eq!(full, Some(true));
+    app.cleanup().await;
+}

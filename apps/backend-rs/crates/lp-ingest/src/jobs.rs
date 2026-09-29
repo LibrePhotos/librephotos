@@ -141,12 +141,34 @@ pub async fn scan_file_group(ctx: JobCtx) -> anyhow::Result<()> {
     .await?
     .rows_affected()
         > 0;
-    if finished
-        && lp_jobs::lrj::get(db, job)
-            .await?
-            .is_some_and(|l| l.job_type == JobType::ScanPhotos.as_i32())
-    {
-        scan::queue_followups(&pipeline, p.user_id, false, false).await?;
+    let Some(lrj) = lp_jobs::lrj::get(db, job).await? else {
+        return Ok(());
+    };
+    if finished && lrj.job_type == JobType::ScanPhotos.as_i32() {
+        // `queue_scan_followups`: the options the scan stored, taken once.
+        let opts = lrj
+            .result
+            .as_ref()
+            .and_then(|r| r.get("followups"))
+            .cloned()
+            .unwrap_or(Value::Null);
+        sqlx::query(
+            "UPDATE api_longrunningjob SET result = result - 'followups' WHERE job_id = $1 \
+             AND jsonb_typeof(result) = 'object'",
+        )
+        .bind(job)
+        .execute(db)
+        .await?;
+        if opts.as_object().is_some_and(|m| !m.is_empty()) {
+            let flag = |k: &str| opts.get(k).and_then(Value::as_bool).unwrap_or(false);
+            scan::queue_followups(
+                &pipeline,
+                p.user_id,
+                flag("full_scan"),
+                flag("scan_missing_photos"),
+            )
+            .await?;
+        }
     }
     Ok(())
 }
