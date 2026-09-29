@@ -183,6 +183,8 @@ cargo run -p lp-server -- serve          # optional LP_DEV_FALLBACK=http://127.0
 Fresh empty DB instead: `createdb` + `librephotos-rs migrate`. Other env: `LP_DB_POOL`,
 `LP_EXIF_POOL`, `WORKER_CONCURRENCY`, `LOG_LEVEL`/`RUST_LOG`, `FEATURE_*`, `TRANSCODE_*`,
 `REFRESH_TOKEN_DAYS`, `MAP_*`, `ALLOW_UPLOAD` (see `lp_core::config`).
+Logs go to stdout and to `BASE_LOGS/ownphotos.log` (Django's line layout, rotated at
+200 MB), which the admin log viewer reads.
 
 ### Django reference server (same DB, for diffs)
 

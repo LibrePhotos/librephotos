@@ -48,7 +48,7 @@ from dead code and are skipped (§8).
 | Logout | `POST /auth/token/blacklist/` `{refresh}` |
 | Claims read | `exp`, `user_id` (parsed with `parseInt`), `is_admin`, `name`. Rust keeps simplejwt's layout (`token_type`, `jti`, `iat`) so Django- and Rust-issued tokens are interchangeable, which the benchmark needs. |
 | Passwords | Verify Django's `argon2$argon2id$…` and `pbkdf2_sha256$…`; hash new ones as Django-format Argon2id |
-| Refresh-token store | New table `refresh_token(jti, user_id, expires_at, revoked_at)`. The blacklist writes `revoked_at`, and a daily job prunes it. |
+| Refresh-token store | New table `refresh_token(jti, user_id, expires_at, revoked_at)`. The blacklist writes `revoked_at`, and a daily job prunes it. Django's `token_blacklist_*` tables are neither read nor written, so a logout on one backend does not revoke the refresh token on the other; only one backend serves a library at a time. |
 | First-time setup | `GET /firsttimesetup/` → `POST /user/` → token → optional `POST /sitesettings` → `GET /dirtree/` → `PATCH /manage/user/{id}/` → optional `POST /scanphotos/` |
 | Password reset | `POST /auth/password/reset/` `{email}`, `POST /auth/password/reset/confirm/` `{uid, token, new_password}`. Rust issues its own HMAC tokens; compatibility with Django-issued links isn't needed. |
 | SSO (optional, M5) | `GET /auth/sso/config/` → a plain link to `/api/accounts/oidc/{id}/login/` → IdP → the backend sets `access`/`refresh`/`jwt` and redirects to `/`. Errors go back as `?sso_error=` with `signup_disabled \| email_not_verified \| not_authenticated \| public_url_not_configured`. |

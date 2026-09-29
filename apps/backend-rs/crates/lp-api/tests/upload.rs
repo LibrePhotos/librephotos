@@ -460,3 +460,53 @@ async fn upload_refusals() {
     assert_eq!(r.json(), json!({"detail": "Uploading is not allowed"}));
     app.cleanup().await;
 }
+
+/// Over a real socket, with the body sent after the headers (how FormData
+/// uploads stream): a refused chunk still gets its 403. Answering without
+/// reading the body made the server close a socket the client was still
+/// writing to, and Node's fetch reported ECONNABORTED instead of the 403.
+#[tokio::test]
+async fn refused_chunk_over_a_socket_gets_its_answer() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let app = TestApp::shared().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let svc = app.app.clone();
+    let server = tokio::spawn(async move {
+        axum::serve(
+            listener,
+            axum::ServiceExt::<axum::extract::Request>::into_make_service_with_connect_info::<
+                std::net::SocketAddr,
+            >(svc),
+        )
+        .await
+    });
+    for auth in ["", "Authorization: Bearer not-a-token\r\n"] {
+        let body = multipart(&[("md5", "")], Some(("c.bin", &[7u8; 64 * 1024])));
+        let head = format!(
+            "POST /api/upload/ HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n{auth}\
+             Content-Type: multipart/form-data; boundary={BOUNDARY}\r\n\
+             Content-Length: {}\r\n\r\n",
+            body.len()
+        );
+        let mut sock = tokio::net::TcpStream::connect(addr).await.unwrap();
+        sock.write_all(head.as_bytes()).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        for piece in body.chunks(8 * 1024) {
+            sock.write_all(piece)
+                .await
+                .expect("the server still reads the body");
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+        let mut answer = Vec::new();
+        sock.read_to_end(&mut answer)
+            .await
+            .expect("an answer, not a reset");
+        let answer = String::from_utf8_lossy(&answer);
+        assert!(answer.starts_with("HTTP/1.1 403"), "{answer}");
+        assert!(answer.contains("Authentication credentials"), "{answer}");
+    }
+    server.abort();
+    app.cleanup().await;
+}

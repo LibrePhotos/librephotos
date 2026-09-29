@@ -8,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
-use axum::extract::{DefaultBodyLimit, Multipart, Path as UrlPath, State};
+use axum::extract::{DefaultBodyLimit, FromRequest, Multipart, Path as UrlPath, Request, State};
 use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
@@ -26,6 +26,8 @@ use lp_auth::AuthUser;
 
 /// Chunks are 1 MB from the web client; allow generous ones from others.
 const MAX_REQUEST: usize = 512 * 1024 * 1024;
+/// How much of a refused request's body is read before answering.
+const DRAIN_LIMIT: usize = 4 * 1024 * 1024;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -237,12 +239,34 @@ fn content_range(headers: &HeaderMap) -> Option<(i64, i64, i64)> {
     Some((num(start)?, num(end)?, num(total.trim_end_matches('\n'))?))
 }
 
-async fn upload_chunk(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    mp: Multipart,
-) -> Response {
-    match upload_chunk_inner(&state, &headers, mp).await {
+/// The permission check comes before the form is read, as in Django. A
+/// refused request's body is still read (up to [`DRAIN_LIMIT`]) before the
+/// answer: a socket closed with unread data is reset, and a client still
+/// sending its chunk then sees a network error instead of the 403.
+async fn authorized_form(
+    state: &AppState,
+    req: Request,
+) -> Result<(User, HeaderMap, Multipart), Response> {
+    let headers = req.headers().clone();
+    let user = match check_permissions(state, &headers).await {
+        Ok(user) => user,
+        Err(e) => {
+            let _ = axum::body::to_bytes(req.into_body(), DRAIN_LIMIT).await;
+            return Err(e.into_response());
+        }
+    };
+    let mp = Multipart::from_request(req, state)
+        .await
+        .map_err(IntoResponse::into_response)?;
+    Ok((user, headers, mp))
+}
+
+async fn upload_chunk(State(state): State<AppState>, req: Request) -> Response {
+    let (user, headers, mp) = match authorized_form(&state, req).await {
+        Ok(parts) => parts,
+        Err(refused) => return refused,
+    };
+    match upload_chunk_inner(&state, &headers, user, mp).await {
         Ok(r) => r,
         Err(e) => e.into_response(),
     }
@@ -252,9 +276,9 @@ async fn upload_chunk(
 async fn upload_chunk_inner(
     state: &AppState,
     headers: &HeaderMap,
+    user: User,
     mp: Multipart,
 ) -> UploadResult<Response> {
-    let user = check_permissions(state, headers).await?;
     let form = read_form(mp).await?;
     let Some((chunk_name, chunk)) = form.chunk else {
         return Err(bad_request("No chunk file was submitted"));
@@ -334,12 +358,12 @@ async fn upload_chunk_inner(
     Ok((StatusCode::OK, Json(response_data(&row))).into_response())
 }
 
-async fn upload_complete(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    mp: Multipart,
-) -> Response {
-    match upload_complete_inner(&state, &headers, mp).await {
+async fn upload_complete(State(state): State<AppState>, req: Request) -> Response {
+    let (user, _headers, mp) = match authorized_form(&state, req).await {
+        Ok(parts) => parts,
+        Err(refused) => return refused,
+    };
+    match upload_complete_inner(&state, user, mp).await {
         Ok(r) => r,
         Err(e) => e.into_response(),
     }
@@ -391,10 +415,9 @@ fn parse_device_timestamp(raw: Option<&String>) -> Option<DateTime<Utc>> {
 /// `ChunkedUploadCompleteView._post` + `UploadPhotosChunkedComplete.on_completion`.
 async fn upload_complete_inner(
     state: &AppState,
-    headers: &HeaderMap,
+    user: User,
     mp: Multipart,
 ) -> UploadResult<Response> {
-    let user = check_permissions(state, headers).await?;
     let form = read_form(mp).await?;
     let upload_id = form.fields.get("upload_id").filter(|s| !s.is_empty());
     let md5 = form.fields.get("md5").filter(|s| !s.is_empty());

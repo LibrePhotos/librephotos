@@ -21,9 +21,12 @@ use tower::Layer;
 use tower::util::MapRequestLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod admin;
 pub mod dev_proxy;
+pub mod logfile;
 
 /// The request path as the client sent it, before the trailing slash was
 /// stripped (the dev proxy forwards this one).
@@ -191,7 +194,24 @@ pub fn init_tracing(config: &Config) {
         let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
             tracing_subscriber::EnvFilter::new(format!("{level},sqlx=warn,tower_http=info"))
         });
-        let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
+        let path = config.base_logs.join(logfile::LOG_FILENAME);
+        let file = match logfile::RotatingFile::open(&path, logfile::MAX_BYTES, logfile::BACKUPS) {
+            Ok(f) => Some(
+                tracing_subscriber::fmt::layer()
+                    .with_ansi(false)
+                    .event_format(logfile::DjangoFormat)
+                    .with_writer(std::sync::Arc::new(f)),
+            ),
+            Err(e) => {
+                eprintln!("not logging to {}: {e}", path.display());
+                None
+            }
+        };
+        let _ = tracing_subscriber::registry()
+            .with(filter)
+            .with(tracing_subscriber::fmt::layer())
+            .with(file)
+            .try_init();
     });
 }
 

@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { authzMatrix, authzProblems, type AuthzCase } from "../../src/authz";
 import { call } from "../../src/client";
 import { hasBase } from "../../src/env";
+import { scanDirectory } from "../../src/live";
 import { manifest, type Role } from "../../src/manifest";
 import { expectSchema } from "../../src/schema";
 import { expectTwin } from "../../src/twin";
@@ -83,7 +84,7 @@ describe.skipIf(!hasBase)("timeline_photos: GET /api/albums/date/list/", () => {
     for (const person of Object.values(manifest().persons)) {
       await expectTwin(person.owner, { path: "/api/albums/date/list/", query: { person: person.id } }, { project: GROUP });
     }
-    const folder = manifest().users.alice.scan_directory;
+    const folder = await scanDirectory("alice");
     await expectTwin("alice", { path: "/api/albums/date/list/", query: { folder } }, { project: GROUP });
     for (const role of ["admin", "bob", "carol", "dave"] as const) {
       await expectTwin(role, { path: "/api/albums/date/list/" }, { project: GROUP });

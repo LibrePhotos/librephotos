@@ -16,12 +16,13 @@ import {
 } from "@librephotos/api-client";
 import { UserAlbumListResponse } from "@fe/albums/types";
 import { TagListResponse } from "@fe/tags/types";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { authzMatrix, authzProblems, type AuthzCase } from "../../src/authz";
 import { call } from "../../src/client";
 import { hasBase } from "../../src/env";
+import { photosRoot, scanDirectory } from "../../src/live";
 import { manifest, photo, type Role } from "../../src/manifest";
 import { expectSchema } from "../../src/schema";
 import { expectTwin } from "../../src/twin";
@@ -251,13 +252,12 @@ describe.skipIf(!hasBase)("location clusters and folders", () => {
   });
 
   it("twin: subfolders of a sub-directory, a later page, and paths outside the scan directory", async () => {
-    const m = manifest();
-    const aliceDir = m.users.alice.scan_directory;
+    const aliceDir = await scanDirectory("alice");
     const cases: Record<string, string>[] = [
       { path: `${aliceDir}\\trips` },
       { path: aliceDir, page: "2" },
       { path: aliceDir, page: "x" },
-      { path: m.users.bob.scan_directory },
+      { path: await scanDirectory("bob") },
       { path: `${aliceDir}\\..\\bob` },
       { path: `${aliceDir}2` },
       { path: `${aliceDir}\\does-not-exist` },
@@ -267,7 +267,7 @@ describe.skipIf(!hasBase)("location clusters and folders", () => {
       await expectTwin("alice", { path: "/api/folders/subfolders/", query }, { project: ["*"] });
     }
     // Admins browse DATA_ROOT.
-    await expectTwin("admin", { path: "/api/folders/subfolders/", query: { path: m.photos_root } }, { project: ["*"] });
+    await expectTwin("admin", { path: "/api/folders/subfolders/", query: { path: await photosRoot() } }, { project: ["*"] });
   });
 });
 
@@ -370,10 +370,16 @@ describe.skipIf(!hasBase)("authz: albums & tags reads", () => {
     { name: "folders", req: { path: "/api/folders/subfolders/" }, expect: { alice: 200, anonymous: 401 } },
     {
       name: "folders: someone else's scan directory",
-      req: { path: "/api/folders/subfolders/", query: { path: manifest().users.bob.scan_directory } },
+      // The path is filled in by beforeAll: bob's directory on the servers, not the manifest's.
+      req: { path: "/api/folders/subfolders/", query: {} },
       expect: { alice: 403, bob: 200, admin: 200 },
     },
   ];
+
+  beforeAll(async () => {
+    const folders = cases.find(c => c.name === "folders: someone else's scan directory")!;
+    folders.req.query = { path: await scanDirectory("bob") };
+  });
 
   it.each(cases)("$name", async c => {
     const matrix = await authzMatrix([c]);

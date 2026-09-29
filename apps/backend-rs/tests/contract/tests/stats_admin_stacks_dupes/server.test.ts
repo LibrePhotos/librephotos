@@ -51,7 +51,16 @@ describe.skipIf(!hasBase)("server info", () => {
     const res = await call("admin", { path: "/api/serverlogs/view", query: { lines: 5 } });
     if (res.status === 200) expectSchema(ServerLogsViewResponse, res.body);
     await expectTwin("admin", { path: "/api/serverlogs/view", query: { lines: 1 } }, { project: ["count"] });
-    await expectTwin("admin", { path: "/api/serverlogs/view", query: { lines: "junk" } }, { project: ["count"], refStable: false });
+    // How many lines there are depends on what each server has logged; a bad
+    // `lines` must fall back to the 100-line default on both.
+    for (const base of [REF_URL, BASE_URL]) {
+      const all = await call<{ count: number }>("admin", { path: "/api/serverlogs/view", query: { lines: 1000 } }, base);
+      const junk = await call<{ count: number }>("admin", { path: "/api/serverlogs/view", query: { lines: "junk" } }, base);
+      expect(junk.status, base).toBe(all.status);
+      if (all.status !== 200) continue;
+      expect(junk.body.count, base).toBeLessThanOrEqual(100);
+      expect(junk.body.count, base).toBeGreaterThanOrEqual(Math.min(100, all.body.count));
+    }
   });
 
   it("twin: log download is an attachment", async () => {

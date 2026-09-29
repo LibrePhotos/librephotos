@@ -5,7 +5,9 @@ instance, so both get byte-identical answers.
     python mock_sidecars.py <port>
 
 Answers depend only on the file's base name (both sides render the same
-thumbnails under different media roots) or the request itself.
+thumbnails under different media roots) or the request itself. With
+MOCK_MANIFEST (the fixture's manifest.json) a similarity search answers with
+some of the user's own photos instead of nothing.
 """
 
 import hashlib
@@ -67,6 +69,35 @@ def face_locations(source):
     return reply
 
 
+_owned = None
+
+
+def owned_hashes(user_id):
+    """The image hashes of `user_id`'s photos in MOCK_MANIFEST, sorted."""
+    global _owned
+    if _owned is None:
+        _owned = {}
+        path = os.environ.get("MOCK_MANIFEST")
+        if path:
+            with open(path, encoding="utf-8") as fh:
+                m = json.load(fh)
+            ids = {u["username"]: u["id"] for u in m["users"].values()}
+            for p in m["photos"].values():
+                _owned.setdefault(ids[p["owner"]], []).append(p["image_hash"])
+            for hashes in _owned.values():
+                hashes.sort()
+    return _owned.get(user_id, [])
+
+
+def similar(body):
+    """A few of the user's photos, picked by the request (not the embedding:
+    Django and Rust serialize the same float32 values differently)."""
+    user_id = body.get("user_id")
+    n = min(int(body.get("n") or 6), 6)
+    s = f"{user_id}:{body.get('n')}:{body.get('threshold')}"
+    return sorted(owned_hashes(user_id), key=lambda h: seed(f"{s}:{h}"))[:n]
+
+
 def reverse(lat, lon):
     city, country = ("Berlin", "Deutschland") if lat > 45 else ("Tokyo", "Japan")
     return {
@@ -111,6 +142,9 @@ def answer(method, path, query, body):
             embs.append(v)
             mags.append(sum(x * x for x in v) ** 0.5)
         return 200, {"imgs_emb": embs, "magnitudes": mags}
+    if path == "/query-embeddings":
+        v = vector(f"query:{body.get('query')}")
+        return 200, {"emb": v, "magnitude": sum(x * x for x in v) ** 0.5}
     if path == "/generate-tags":
         s = seed(base(body["image_path"]))
         tags = [TAGS[s % len(TAGS)], TAGS[(s // 7 + 1) % len(TAGS)]]
@@ -137,7 +171,7 @@ def answer(method, path, query, body):
             return 200, {"status": True}
         return 200, {"status": True, "index_size": len(body.get("image_hashes", []))}
     if path == "/search/":
-        return 200, {"status": True, "result": []}
+        return 200, {"status": True, "result": similar(body)}
     if path == "/reverse":
         return 200, reverse(float(query["lat"][0]), float(query["lon"][0]))
     if path == "/search":

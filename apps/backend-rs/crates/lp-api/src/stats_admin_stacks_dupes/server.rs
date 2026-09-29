@@ -90,8 +90,10 @@ pub async fn storage_stats(
     ))
 }
 
-/// `read_git_hash`: `GIT_HASH`, else `git rev-parse --short HEAD`, else
-/// `IMAGE_TAG` or `"unknown"`; computed once.
+/// `read_git_hash`: `GIT_HASH`, else `git rev-parse --short HEAD` where the
+/// code lives (Django asks in its source root, whatever the cwd; here the
+/// binary's directory, then the cwd), else `IMAGE_TAG` or `"unknown"`;
+/// computed once.
 async fn git_hash() -> &'static str {
     static HASH: OnceCell<String> = OnceCell::const_new();
     HASH.get_or_init(|| async {
@@ -101,25 +103,38 @@ async fn git_hash() -> &'static str {
         {
             return h.trim().to_string();
         }
-        let dir = std::env::current_dir().unwrap_or_default();
-        let run = tokio::process::Command::new("git")
-            .arg("-c")
-            .arg(format!("safe.directory={}", dir.display()))
-            .args(["rev-parse", "--short", "HEAD"])
-            .current_dir(&dir)
-            .stderr(std::process::Stdio::null())
-            .output();
-        match tokio::time::timeout(Duration::from_secs(5), run).await {
-            Ok(Ok(out)) if out.status.success() => {
-                String::from_utf8_lossy(&out.stdout).trim().to_string()
+        let exe_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(Path::to_path_buf));
+        for dir in exe_dir.into_iter().chain(std::env::current_dir().ok()) {
+            if let Some(h) = rev_parse(&dir).await {
+                return h;
             }
-            _ => std::env::var("IMAGE_TAG")
-                .ok()
-                .filter(|t| !t.is_empty())
-                .unwrap_or_else(|| "unknown".into()),
         }
+        std::env::var("IMAGE_TAG")
+            .ok()
+            .filter(|t| !t.is_empty())
+            .unwrap_or_else(|| "unknown".into())
     })
     .await
+}
+
+async fn rev_parse(dir: &Path) -> Option<String> {
+    let run = tokio::process::Command::new("git")
+        .arg("-c")
+        .arg(format!("safe.directory={}", dir.display()))
+        .args(["rev-parse", "--short", "HEAD"])
+        .current_dir(dir)
+        .stdin(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output();
+    match tokio::time::timeout(Duration::from_secs(5), run).await {
+        Ok(Ok(out)) if out.status.success() => {
+            let h = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            (!h.is_empty()).then_some(h)
+        }
+        _ => None,
+    }
 }
 
 pub async fn image_tag(_user: AuthUser) -> ApiResult<Json<Value>> {

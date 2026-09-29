@@ -5,9 +5,9 @@
 // the other server's clone (tests/README.md §4).
 //
 // Django reads the EXIF tags through the exif sidecar before applying any
-// rule; the machine-wide one (port 8010) is not running here, so on Django
-// this case needs a private exif sidecar (see the photo_edits report), or it
-// answers 500 after storing `timestamp`.
+// rule, and answers 500 without one after storing `timestamp`. The machine-wide
+// sidecar port (8010) is shared, so `run_suite.sh mut:timestamp` runs Django
+// with the sidecar's code in-process (LP_DJANGO_MOCK) and diffs both clones.
 import { describe, expect, it } from "vitest";
 
 import { call } from "../../src/client";

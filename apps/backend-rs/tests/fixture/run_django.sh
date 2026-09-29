@@ -10,6 +10,9 @@
 #   LP_MEDIA_ROOT  media tree to serve (default: the shared fixture tree; pass
 #                the media_dir given to clone_db.sh for mutation tests).
 #   LP_WORKERS   uvicorn workers (default 1).
+#   LP_DJANGO_MOCK  URL of tests/tasks/mock_sidecars.py: every ML sidecar call
+#                goes there, exif sidecar calls are served in-process, and
+#                face detection, clustering, captioning and tagging are on.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
@@ -23,6 +26,10 @@ if [ "$db" = "$LP_FIXTURE_TEMPLATE" ]; then
 fi
 
 lp_django_env "$db" "${LP_MEDIA_ROOT:-$LP_FIXTURE_ROOT}" "$LP_RUNS_ROOT/$db-$port"
+if [ -n "${LP_DJANGO_MOCK:-}" ]; then
+    export FEATURE_FACE_DETECTION=1 FEATURE_FACE_CLUSTER=1 FEATURE_IMAGE_CAPTIONING=1 FEATURE_SCENE_CLASSIFICATION=1
+    export PATH="$(dirname "$LP_DJANGO_PY")/../Lib/site-packages/exiftool_bin:$PATH"
+fi
 if [ "$mode" = "direct" ]; then
     export LP_DJANGO_DIRECT=1
 else

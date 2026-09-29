@@ -250,6 +250,37 @@ Mutations that write metadata to files (XMP write-back) need the exif
 sidecar: `python apps/backend/service/exif/main.py` listens on the fixed port
 8010, shared by everything on this machine, so coordinate before starting one.
 
+## 5. The whole suite: `contract/run_suite.sh`
+
+```bash
+cargo build --release -p lp-server
+apps/backend-rs/tests/contract/run_suite.sh                  # every unit, ~30 min
+apps/backend-rs/tests/contract/run_suite.sh albums_tags mut:people_faces
+LP_SUITE_PORT=8720 LP_SUITE_OUT=.../suite-mut run_suite.sh mut:...   # a second run in parallel
+```
+
+It runs the protocol above so it is the default, one unit at a time, and
+prints a summary line per unit (exit 1 if any failed):
+
+- `<area>` (and `media@direct`): the read cases of `tests/<area>/` on a fresh
+  clone pair that shares one media copy, so path-projecting twins agree and
+  jobs the Rust worker runs cannot touch the shared fixture tree.
+- `mut:<name>`: one gated mutation file (the table at the top of the script
+  names its env flag, setup SQL and options), each server on its own clone
+  and media copy, then a `dump_state.py` diff of both databases and media
+  trees (thumbnails excluded: another encoder). Differences that are known
+  and accepted are listed with their reason in `tests/<area>/<name>.accept`
+  (grep -E patterns over the diff lines); anything else fails the unit.
+- `mut:sidecars`, `mut:timestamp` and the rotate units run both servers
+  against `tasks/mock_sidecars.py`: Rust through `LP_SIDECAR_<NAME>_URL`,
+  Django through `LP_DJANGO_MOCK` (`fixture/lp_twin_mock.py`: ML calls to the
+  mock, exif sidecar calls in-process), so sidecar-backed views are twinned
+  without the machine-wide sidecar ports.
+
+Use `tests/<area>/...` paths the way the frontend writes them; when a case
+needs a user's scan directory, ask the server (`src/live.ts`), not the
+manifest: a media-copy clone points into the copy.
+
 ## Caveats
 
 - Windows cannot store `?` in a file name, so the `%?#;` case is covered by
