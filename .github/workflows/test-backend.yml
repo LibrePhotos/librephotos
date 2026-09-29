@@ -71,4 +71,4 @@ jobs:
           DJANGO_SETTINGS_MODULE: librephotos.settings.test_sqlite
         run: |
           . .venv/bin/activate
-          python manage.py test api.tests
+          python manage.py test api.tests nextcloud
