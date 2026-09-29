@@ -3,9 +3,10 @@ import re
 
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from api.models import (
@@ -424,13 +425,12 @@ class AlbumUserViewSet(viewsets.ModelViewSet):
 
         if self.request.user.is_anonymous:
             return AlbumUser.objects.none()
-        return (
-            AlbumUser.objects.filter(
-                Q(owner=self.request.user) | Q(shared_to__exact=self.request.user.id)
-            )
-            .distinct()
-            .order_by("-id")
-        )
+        # A share is read-only: recipients may open the album, but renaming
+        # (PATCH/PUT) and deleting it stay with the owner.
+        visible = Q(owner=self.request.user)
+        if self.request.method in SAFE_METHODS:
+            visible |= Q(shared_to__exact=self.request.user.id)
+        return AlbumUser.objects.filter(visible).distinct().order_by("-id")
 
     def get_permissions(self):
         # Anonymous public access is allowed only for read actions. Write actions
@@ -557,8 +557,27 @@ class AlbumDateViewSet(viewsets.ModelViewSet):
             photos = paginator.page(paginator.num_pages)
         return photos, paginator.count
 
+    def _album_date(self):
+        """The requested day album, if the caller may see it; 404 otherwise.
+
+        The serializer renders the album's own ``date`` and ``location``, so
+        filtering only the photos is not enough. Mirror the scope of
+        ``AlbumDateListViewSet``, which hands out the ids: the caller's own
+        days, or with ``public`` the days holding a public photo (of
+        ``username``, when given).
+        """
+        params = self.request.query_params
+        albums = AlbumDate.objects.filter(id=self.kwargs["pk"])
+        if params.get("public"):
+            if params.get("username"):
+                albums = albums.filter(owner__username=params.get("username"))
+            albums = albums.filter(photos__public=True)
+        else:
+            albums = albums.filter(owner=self.request.user)
+        return get_object_or_404(albums.distinct())
+
     def get_queryset(self):
-        album_date = AlbumDate.objects.filter(id=self.kwargs["pk"]).first()
+        album_date = self._album_date()
 
         photo_qs = _with_photo_summary_relations(
             album_date.photos.filter(*self._photo_filters())
