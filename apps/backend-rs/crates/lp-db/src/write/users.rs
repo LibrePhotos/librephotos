@@ -59,7 +59,7 @@ pub async fn create_user<'e>(
            skip_raw_files, slideshow_interval, duplicate_clear_existing, duplicate_sensitivity, \
            burst_detection_rules, stack_raw_jpeg, public_sharing_defaults, save_face_tags_to_disk, \
            last_modified) \
-         VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, NULL, '', '', $10, '', 0.1, 0, $11, \
+         VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, TRUE, $8, $9, '', '', '', $10, '', 0.1, 0, $11, \
            1, 'OFF', FALSE, $12, 'UTC', 0.9, FALSE, 0.5, 'HOG', 0, 0.05, 1, $13, 'right', 'large', \
            FALSE, 5, FALSE, 'normal', $14, TRUE, $15, FALSE, $8) \
          RETURNING id",
