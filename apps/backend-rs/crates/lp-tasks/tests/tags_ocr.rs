@@ -493,3 +493,36 @@ async fn captions_respect_feature_flag_and_model() {
     assert_eq!(rows, 1, "the caption row exists either way");
     t.cleanup().await;
 }
+
+#[tokio::test]
+async fn a_cancelled_job_stops_and_stays_cancelled() {
+    let t = TasksApp::new().await;
+    t.copy_thumbnails();
+    let db = t.db().clone();
+    let alice = user_id(&db, "alice").await;
+    let model = t.state.settings().tagging_model.clone();
+    sqlx::query("UPDATE api_photo_caption SET captions_json = captions_json - $1")
+        .bind(&model)
+        .execute(&db)
+        .await
+        .unwrap();
+    let enq = lp_jobs::enqueue(
+        &t.state,
+        "tags.generate",
+        json!({"user_id": alice, "full_scan": true}),
+        EnqueueOptions::tracked(JobType::GenerateTags, alice),
+    )
+    .await
+    .unwrap();
+    let lrj = enq.lrj_id.unwrap();
+    assert!(lp_jobs::lrj::cancel(&db, &lrj).await.unwrap());
+    run_queued(&t.state, "tags.generate")
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(t.mock.calls_to("/generate-tags").is_empty());
+    let j = job(&db, &lrj).await;
+    assert!(j.cancelled && j.finished && !j.failed);
+    assert_eq!(j.result, Some(json!({"status": "cancelled"})));
+    t.cleanup().await;
+}

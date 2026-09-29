@@ -57,7 +57,7 @@ async fn scan_detects_crops_encodes_clusters_and_trains() {
     let (res, lrj) = run_job(
         &t.state,
         "faces.scan",
-        json!({"user_id": alice}),
+        json!({"user_id": alice, "full_scan": true}),
         EnqueueOptions::tracked(JobType::ScanFaces, alice),
     )
     .await;

@@ -3,7 +3,7 @@
 //!
 //! | kind | payload | Django |
 //! | --- | --- | --- |
-//! | `faces.scan` | `{user_id, full_scan?}` (full by default, like the button) | `scan_faces` |
+//! | `faces.scan` | `{user_id, full_scan?}` (`/api/scanfaces` sends `full_scan: true`) | `scan_faces` |
 //! | `faces.cluster` | `{user_id}` | `generate_face_embeddings` + `cluster_all_faces` |
 //! | `faces.train` | `{user_id}` | `train_faces` |
 //! | `tags.generate` | `{user_id, full_scan?}` | `generate_tags` |
@@ -80,7 +80,7 @@ where
 pub fn register_jobs(reg: &mut HandlerRegistry) {
     reg.register("faces.scan", |ctx: JobCtx| async move {
         let p = user_payload(&ctx)?;
-        let full = p.full_scan.unwrap_or(true);
+        let full = p.full_scan.unwrap_or(false);
         let state = ctx.state.clone();
         tracked(&ctx, JobType::ScanFaces, |job_id| async move {
             faces::scan(&state, p.user_id, full, &job_id).await

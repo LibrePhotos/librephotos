@@ -12,12 +12,13 @@
 
 #![allow(clippy::disallowed_methods)] // not a handler crate: SQL allowed here
 
-mod client;
-pub mod types;
+use std::time::Duration;
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
+
+mod client;
+pub mod types;
 
 pub use client::{SidecarError, error_detail};
 pub use types::*;
