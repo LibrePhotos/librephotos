@@ -195,7 +195,19 @@ The `f`, `h`, `p` and `d` shortcuts act on the current photo and are disabled on
 
 On macOS, `Ctrl` with the arrow keys is claimed by Mission Control for switching between desktops, so the one-minute jump may not reach the page there; `Shift` is unaffected.
 
-Seeking is unavailable while a video is still being converted for playback, which happens when you have **Always transcode videos** turned on in your settings. For as long as that conversion is running the browser is never told how long the video is or how to jump within it, so the player says so rather than ignoring the key.
+Seeking is unavailable while a video is still being converted for playback: the first time you play a video your browser cannot play as it is, or any video when you have **Always transcode videos** turned on in your settings. For as long as that conversion is running the browser is never told how long the video is or how to jump within it, so the player says so rather than ignoring the key.
+
+### Videos your browser cannot play
+
+Not every browser plays every video. H.265 (HEVC), which most phones record in, plays in Safari, and in Chrome and Edge on a machine with a hardware decoder for it, but not in Firefox or in Chrome without one. Older cameras' formats, such as MPEG-2 or Motion JPEG, play nowhere.
+
+LibrePhotos asks your browser, for each video, whether it can play it. If it can, you get the original at full resolution. If it cannot, the video is converted to H.264 for you as it plays, capped at 720 lines, and kept for the next time you watch it (see [Experimental options](./settings/index.md#experimental-options) for how converted copies are stored). A video your browser says it can play but then fails to decode is converted the same way, automatically. You do not need **Always transcode videos** for any of this.
+
+This applies to you and to anyone you share a video with who signs in. Visitors to a public album without an account are always served the original.
+
+:::note
+Not in a release yet: this arrives in the release after 1.2.1. Before it, a video your browser could not play needed **Always transcode videos**.
+:::
 
 ### HDR Videos
 

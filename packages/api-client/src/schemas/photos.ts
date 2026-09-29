@@ -133,6 +133,9 @@ export const Photo = z.object({
   stacks: PhotoStackDetail.array().nullable().optional(),
   metadata: PhotoMetadataSummary.nullable().optional(),
   ocr: PhotoOcrData.nullable().optional(),
+  // What a video is, as HTMLMediaElement.canPlayType() takes it; null until
+  // the scan has probed the video, and for anything that is not one.
+  video_playback_type: z.string().nullable().optional(),
 });
 export type Photo = z.infer<typeof Photo>;
 
