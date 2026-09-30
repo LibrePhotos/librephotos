@@ -42,6 +42,22 @@ fn jpegs_decode_like_cv2_and_read_the_same() {
     };
     assert!(lp_ingest::vips::install_ml_decoder(Some(lib)));
 
+    // A cut JPEG is refused like Pillow / cv2 do, not padded by libjpeg-turbo.
+    if let Some(first) = pipeline.cases.iter().find_map(|c| {
+        let p = Path::new(c.input["image"].as_str().unwrap());
+        p.extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("jpg"))
+            .then(|| p.to_path_buf())
+    }) {
+        let bytes = std::fs::read(&first).unwrap();
+        let cut =
+            std::env::temp_dir().join(format!("lp_ml_decoder_cut_{}.jpg", std::process::id()));
+        std::fs::write(&cut, &bytes[..bytes.len() / 2]).unwrap();
+        let err = lp_ml::preprocess::load_rgb(&cut).expect_err("truncated JPEG is refused");
+        let _ = std::fs::remove_file(&cut);
+        assert!(format!("{err:#}").contains("truncated"), "{err:#}");
+    }
+
     let mut fails = Vec::new();
     let mut jpegs = Vec::new();
     for c in &pipeline.cases {

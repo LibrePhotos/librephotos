@@ -257,6 +257,11 @@ pub fn install_ml_decoder(vips_lib: Option<std::path::PathBuf>) -> bool {
         }
         let v = get(vips_lib.as_deref())?;
         let data = std::fs::read(path).ok()?;
+        // libjpeg-turbo pads a cut JPEG with grey; Pillow and cv2 refuse it,
+        // which `load_rgb`'s own path reproduces.
+        if lp_ml::preprocess::jpeg_truncated(&data) {
+            return None;
+        }
         let (w, h, rgb) = match v.decode_rgb8(&data)? {
             Ok(d) => d,
             Err(e) => return Some(Err(anyhow::anyhow!("decoding {}: {e}", path.display()))),
