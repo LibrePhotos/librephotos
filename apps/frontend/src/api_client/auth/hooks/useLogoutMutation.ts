@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Cookies } from "react-cookie";
 import { fetchClient } from "../../api";
+import { clearAuthCookies } from "../../authCookies";
 
 const logout = () => {
   const cookies = new Cookies();
@@ -13,11 +14,11 @@ export const useLogoutMutation = () => {
 
   return useMutation({
     mutationFn: logout,
-    onSuccess: () => {
-      const cookies = new Cookies();
-      cookies.remove("access");
-      cookies.remove("refresh");
-      cookies.remove("jwt");
+    // Whatever the server said. A refresh token that is already blacklisted --
+    // a second click on Log out -- answers 401, and the user still asked to
+    // be logged out; only on success, they stayed signed in.
+    onSettled: () => {
+      clearAuthCookies();
       navigate({ to: "/login" });
     },
   });
