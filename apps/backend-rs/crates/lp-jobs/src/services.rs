@@ -45,17 +45,29 @@ pub fn in_process(state: &AppState) -> Vec<&'static str> {
         .collect()
 }
 
-/// Whether this process supervises the sidecars (`LP_SUPERVISE_SIDECARS`).
-/// Off by default: sidecar ports are fixed and shared machine-wide.
-pub fn supervise_enabled() -> bool {
-    std::env::var("LP_SUPERVISE_SIDECARS")
-        .map(|v| {
-            matches!(
-                v.trim().to_lowercase().as_str(),
-                "1" | "true" | "yes" | "on"
-            )
+/// Services opted into their Python sidecar (`LP_ML_<SERVICE>=sidecar`)
+/// that this process would run itself (not redirected to another URL).
+pub fn opted_in_sidecars(state: &AppState) -> Vec<&'static str> {
+    lp_ml::Service::ALL
+        .into_iter()
+        .filter(|s| {
+            state.ml.mode(*s) == lp_ml::Mode::Sidecar && !state.sidecars.is_redirected(s.sidecar())
         })
-        .unwrap_or(false)
+        .map(|s| s.name())
+        .collect()
+}
+
+/// Whether this process supervises the sidecars. In-process ML is the
+/// default, so only when a service opted into its sidecar
+/// ([`opted_in_sidecars`]); `LP_SUPERVISE_SIDECARS` forces it on or off.
+pub fn supervise_enabled(state: &AppState) -> bool {
+    match std::env::var("LP_SUPERVISE_SIDECARS") {
+        Ok(v) if !v.trim().is_empty() => matches!(
+            v.trim().to_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        ),
+        _ => !opted_in_sidecars(state).is_empty(),
+    }
 }
 
 /// The sidecar watchdog task, run next to the worker loop.

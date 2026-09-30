@@ -58,13 +58,14 @@ pub struct Worker {
     /// Recurring jobs this worker enqueues (those whose kind is registered).
     pub schedules: Vec<Schedule>,
     pub timing: WorkerTiming,
-    /// Run the sidecar watchdog next to the loop (`LP_SUPERVISE_SIDECARS`).
+    /// Run the sidecar watchdog next to the loop ([`crate::services::supervise_enabled`]).
     pub supervise_sidecars: bool,
 }
 
 impl Worker {
     pub fn new(state: AppState, registry: HandlerRegistry) -> Self {
         let concurrency = state.config.worker_concurrency.max(1);
+        let supervise_sidecars = crate::services::supervise_enabled(&state);
         let schedules = SCHEDULES
             .iter()
             .filter(|s| registry.get(s.kind).is_some())
@@ -82,7 +83,7 @@ impl Worker {
             ),
             schedules,
             timing: WorkerTiming::default(),
-            supervise_sidecars: crate::services::supervise_enabled(),
+            supervise_sidecars,
         }
     }
 

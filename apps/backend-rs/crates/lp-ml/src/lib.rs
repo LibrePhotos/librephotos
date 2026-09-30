@@ -8,10 +8,13 @@
 //!
 //! `LP_ML_<SERVICE>` = `inprocess` | `sidecar` | `auto` (default). `auto`
 //! runs in-process when that implementation is done
-//! (`InProcess::IMPLEMENTED`), the sidecar's URL was not redirected
-//! (`LP_SIDECAR_<NAME>_URL`, or a test's mock), and the model files are on
-//! disk; otherwise the sidecar. `<SERVICE>` is one of `CLIP`, `SIMILARITY`,
-//! `TAGS`, `OCR`, `FACE`, `CAPTION`, `FACE_CLUSTER`, `RAW_THUMBNAIL`.
+//! (`InProcess::IMPLEMENTED`) and the sidecar's URL was not redirected
+//! (`LP_SIDECAR_<NAME>_URL`, or a test's mock); otherwise the sidecar. A
+//! missing model does not fall back to a sidecar: the in-process call is
+//! `unavailable` and the triggers queue `models.download`, so the Python
+//! sidecars are an opt-in fallback (`LP_ML_<SERVICE>=sidecar`). `<SERVICE>`
+//! is one of `CLIP`, `SIMILARITY`, `TAGS`, `OCR`, `FACE`, `CAPTION`,
+//! `FACE_CLUSTER`, `RAW_THUMBNAIL`.
 //!
 //! In-process errors reuse [`SidecarError`] so callers keep one error path:
 //! bad input is a 400 `Status`, a failed inference a 500 `Status` (what the
@@ -117,7 +120,7 @@ impl Service {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Mode {
-    /// In-process when implemented, not redirected and the model is present.
+    /// In-process when implemented and not redirected.
     Auto,
     InProcess,
     Sidecar,
@@ -435,7 +438,7 @@ impl<'a> MlView<'a> {
         match self.ml.mode(s) {
             Mode::InProcess => true,
             Mode::Sidecar => false,
-            Mode::Auto => b.implemented() && !self.sidecars.is_redirected(s.sidecar()) && b.ready(),
+            Mode::Auto => b.implemented() && !self.sidecars.is_redirected(s.sidecar()),
         }
     }
 

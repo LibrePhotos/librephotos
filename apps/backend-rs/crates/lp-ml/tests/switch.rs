@@ -32,13 +32,19 @@ fn modes_parse() {
 }
 
 #[test]
-fn explicit_modes_win_and_auto_needs_implementation_and_model() {
+fn explicit_modes_win_and_auto_is_in_process() {
     let dir = tempfile::tempdir().unwrap();
     let ml = ml(dir.path());
     let sidecars = Sidecars::new(reqwest::Client::new(), "127.0.0.1");
     let view = ml.view(&sidecars);
 
-    // Empty data_models: services with a model are never picked by auto.
+    // Every service is ported, and auto serves it in-process even before its
+    // model is downloaded (the call is `unavailable`, never a sidecar).
+    for s in Service::ALL {
+        assert!(view.is_inprocess(s), "{s:?} defaults to in-process");
+        let st = view.status(s);
+        assert_eq!((st.mode, st.configured), ("inprocess", Mode::Auto));
+    }
     for s in [
         Service::Clip,
         Service::Tags,
@@ -46,19 +52,15 @@ fn explicit_modes_win_and_auto_needs_implementation_and_model() {
         Service::Face,
         Service::Caption,
     ] {
-        assert!(!view.is_inprocess(s), "{s:?} without its model");
-        assert_eq!(view.status(s).mode, "sidecar");
-        assert!(!view.status(s).ready);
+        assert!(!view.status(s).ready, "{s:?} without its model");
     }
-    // Model-free services follow their IMPLEMENTED flag.
-    assert_eq!(
-        view.is_inprocess(Service::Similarity),
-        lp_ml::similarity::InProcess::IMPLEMENTED
-    );
-    assert_eq!(
-        view.is_inprocess(Service::FaceCluster),
-        lp_ml::face_cluster::InProcess::IMPLEMENTED
-    );
+    for s in [
+        Service::Similarity,
+        Service::FaceCluster,
+        Service::RawThumbnail,
+    ] {
+        assert!(view.status(s).ready, "{s:?} needs no model");
+    }
 
     ml.set_mode(Service::Clip, Mode::InProcess);
     assert!(ml.view(&sidecars).is_inprocess(Service::Clip));

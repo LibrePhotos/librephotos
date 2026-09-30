@@ -92,6 +92,9 @@ async fn admin_starts_and_stops_a_sidecar() {
     // A spawn that fails is a 500.
     std::fs::create_dir_all(backend.path().join("service/clip_embeddings")).unwrap();
     let bad = TestApp::attach(&app.db.name, &[("LP_PYTHON", "Z:/no-such-python.exe")]).await;
+    bad.state
+        .ml
+        .set_mode(lp_ml::Service::Clip, lp_ml::Mode::Sidecar);
     let res = bad
         .post_json(
             "/api/services/clip_embeddings/start/",

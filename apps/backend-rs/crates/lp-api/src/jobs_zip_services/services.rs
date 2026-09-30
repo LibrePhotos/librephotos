@@ -1,10 +1,13 @@
 //! `ServiceViewSet` (`/api/services/`, staff only): the sidecar list, a
 //! health probe per sidecar (polled every 15 s) and start/stop.
 //!
-//! A service `lp-ml` serves in-process has no process: it is healthy when
-//! enabled, its status adds `mode`, `model_loaded`, `busy`, `last_used`
-//! (unix seconds) and the loaded `models`; start is a no-op (models load on
-//! first use) and stop unloads its models. Sidecars report `mode: "sidecar"`.
+//! Every ML service is served in-process by default and has no process: it
+//! is healthy when enabled, its status adds `mode`, `configured`
+//! (`LP_ML_<SERVICE>`), `ready` (its model is on disk), `model_loaded`,
+//! `busy`, `last_used` (unix seconds) and the loaded `models`; start is a
+//! no-op (models load on first use) and stop unloads its models. A service
+//! opted into its Python sidecar (`LP_ML_<SERVICE>=sidecar`) reports
+//! `mode: "sidecar"` and is probed.
 
 use axum::Json;
 use axum::extract::{Path, State};
@@ -59,6 +62,8 @@ pub async fn status(
             "enabled": enabled,
             "feature_flag": spec.feature_flag,
             "mode": st.mode,
+            "configured": st.configured,
+            "ready": st.ready,
             "model_loaded": st.model_loaded,
             "busy": st.busy,
             "last_used": st.last_used,

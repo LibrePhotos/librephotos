@@ -713,12 +713,27 @@ async fn services_are_staff_only() {
         (res.status.as_u16(), res.json()),
         (404, json!({"error": "Service nope not found"}))
     );
-    // Test config: FEATURE_* unset = on; OCR needs a selected model (none in the fixture).
+    // Test config: FEATURE_* unset = on; OCR needs a selected model (none in
+    // the fixture). Every ML service is in-process by default.
+    let res = app.get("/api/services/ocr/", Some(&admin)).await.json();
+    assert_eq!(
+        res,
+        json!({"service_name": "ocr", "healthy": false, "enabled": false, "feature_flag": null,
+               "mode": "inprocess", "configured": "auto", "ready": false, "model_loaded": false,
+               "busy": false, "last_used": null, "models": []})
+    );
+    // Opted into the Python sidecar: probed, the sidecar's shape.
+    app.state
+        .ml
+        .set_mode(lp_ml::Service::Ocr, lp_ml::Mode::Sidecar);
     let res = app.get("/api/services/ocr/", Some(&admin)).await.json();
     assert_eq!(
         res,
         json!({"service_name": "ocr", "healthy": false, "enabled": false, "feature_flag": null, "mode": "sidecar"})
     );
+    app.state
+        .ml
+        .set_mode(lp_ml::Service::Ocr, lp_ml::Mode::Auto);
     let res = app
         .post_json("/api/services/ocr/start/", &json!({}), Some(&admin))
         .await;
@@ -733,20 +748,30 @@ async fn services_are_staff_only() {
         .json();
     assert_eq!(
         keys(&res),
-        ["service_name", "healthy", "enabled", "feature_flag", "mode"]
+        [
+            "service_name",
+            "healthy",
+            "enabled",
+            "feature_flag",
+            "mode",
+            "configured",
+            "ready",
+            "model_loaded",
+            "busy",
+            "last_used",
+            "models"
+        ]
     );
     assert_eq!(res["feature_flag"], "FEATURE_FACE_DETECTION");
 
     // A service lp-ml serves in-process has no process: healthy when
     // enabled, model state instead of a probe; stop unloads its models.
-    app.state
-        .ml
-        .set_mode(lp_ml::Service::Similarity, lp_ml::Mode::InProcess);
     let res = app
         .get("/api/services/image_similarity/", Some(&admin))
         .await
         .json();
     assert_eq!(res["mode"], "inprocess");
+    assert_eq!(res["ready"], true, "no model needed");
     assert_eq!(res["healthy"], true);
     assert_eq!(res["model_loaded"], false);
     assert_eq!(res["busy"], false);
@@ -761,9 +786,6 @@ async fn services_are_staff_only() {
             .await;
         assert_eq!(res.status, 200, "{action}: {}", res.text());
     }
-    app.state
-        .ml
-        .set_mode(lp_ml::Service::Similarity, lp_ml::Mode::Auto);
     // Nothing was started by this process, so there is nothing to stop.
     app.state
         .ml
@@ -775,6 +797,15 @@ async fn services_are_staff_only() {
         (res.status.as_u16(), res.json()),
         (500, json!({"error": "Failed to stop service thumbnail"}))
     );
+    // Only an explicit opt-in makes the worker supervise a Python sidecar.
+    assert_eq!(
+        lp_jobs::services::opted_in_sidecars(&app.state),
+        ["thumbnail"]
+    );
+    app.state
+        .ml
+        .set_mode(lp_ml::Service::RawThumbnail, lp_ml::Mode::Auto);
+    assert!(lp_jobs::services::opted_in_sidecars(&app.state).is_empty());
     app.cleanup().await;
 }
 

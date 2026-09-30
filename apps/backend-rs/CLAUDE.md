@@ -162,9 +162,12 @@ Shared files (`lp-api/src/lib.rs`, `lp-api/src/common/`, `lp-db/src/{scope,pig,u
   (never `state.sidecars.*` or raw sidecar URLs); blocking code takes `state.ml_handle()`.
 - Selection per call: `LP_ML_<SERVICE>=inprocess|sidecar|auto` (`CLIP`, `SIMILARITY`,
   `TAGS`, `OCR`, `FACE`, `CAPTION`, `FACE_CLUSTER`, `RAW_THUMBNAIL`; default auto).
-  Auto = in-process when `InProcess::IMPLEMENTED`, the sidecar is not redirected
-  (`LP_SIDECAR_<NAME>_URL` / a test's `with_base` mock) and the model is on disk.
-  Tests override with `state.ml.set_mode(Service::Clip, Mode::Sidecar)`.
+  Auto = in-process when `InProcess::IMPLEMENTED` (all eight are) and the sidecar
+  is not redirected (`LP_SIDECAR_<NAME>_URL` / a test's `with_base` mock); a
+  missing model is `unavailable` in-process (and queues `models.download`), not
+  a sidecar fallback. The Python sidecars are opt-in (`LP_ML_<SERVICE>=sidecar`):
+  the worker supervises (starts) only those, unless `LP_SUPERVISE_SIDECARS=0|1`
+  forces it. Tests override with `state.ml.set_mode(Service::Clip, Mode::Sidecar)`.
 - Errors stay `SidecarError`: `lp_ml::bad_input` (400), `failed`/`failed_from` (500),
   `unavailable` (no model/runtime).
 - A port fills only `crates/lp-ml/src/<service>/inprocess.rs` (+ submodules): load
