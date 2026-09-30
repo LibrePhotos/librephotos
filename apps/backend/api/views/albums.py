@@ -203,6 +203,7 @@ def _with_photo_summary_relations(queryset):
             "exif_timestamp",
             "owner",
             "video_length",
+            "video_color_transfer",
             "exif_gps_lat",
             "exif_gps_lon",
             "removed",

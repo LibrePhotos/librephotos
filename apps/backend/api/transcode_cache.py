@@ -235,7 +235,7 @@ def _background_threads():
     return max(1, (os.cpu_count() or 2) // 2)
 
 
-def build_command(source, destination):
+def build_command(source, destination, transfer=None):
     """The conversion that produces a seekable file.
 
     Three deliberate differences from the live stream, all of them because
@@ -271,9 +271,7 @@ def build_command(source, destination):
 
     # An HDR source converted without tonemapping comes out washed out, because
     # the browser reads its PQ or HLG curve as bt709. See :mod:`api.video_color`.
-    video_filter = video_color.video_filter(source, "scale=-2:'min(720,ih)'")
-    if video_filter:
-        command += ["-filter:v", video_filter]
+    command += video_color.h264_video_args(source, "scale=-2:'min(720,ih)'", transfer)
 
     return command + ["-movflags", "+faststart", "-f", "mp4", destination]
 
@@ -390,5 +388,6 @@ def ensure_cached(photo, start=None):
         logger.warning("cannot write to the transcode cache at %s", root)
         return False
 
-    (start or _start_background)(build_command(source, part), part, final, root)
+    command = build_command(source, part, getattr(photo, "video_color_transfer", None))
+    (start or _start_background)(command, part, final, root)
     return True
