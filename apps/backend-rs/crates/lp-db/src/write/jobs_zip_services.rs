@@ -1,9 +1,8 @@
 //! Write services for the `jobs_zip_services` area. Conventions: see `lp_db::write`.
 
-use std::collections::BTreeSet;
 use std::path::Path;
 
-use sqlx::{PgConnection, PgPool};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::AfterCommit;
@@ -35,105 +34,6 @@ pub async fn delete_job(db: &PgPool, id: i32, scope_user: Option<i32>) -> sqlx::
     Ok(true)
 }
 
-/// `Photo.delete()` for many photos, as Django's collector does it (02 §5
-/// "Hard deletes"): the relations without a DB cascade are deleted or
-/// nulled explicitly, the rest cascades. Face crops (S4) and thumbnails no
-/// other photo still uses (S5) are returned for deletion after commit.
-pub async fn hard_delete_photos(
-    conn: &mut PgConnection,
-    ids: &[Uuid],
-    media_root: &Path,
-) -> sqlx::Result<AfterCommit> {
-    let mut after = AfterCommit::new();
-    if ids.is_empty() {
-        return Ok(after);
-    }
-    let faces: Vec<String> = sqlx::query_scalar(
-        "SELECT image FROM api_face WHERE photo_id = ANY($1) AND image IS NOT NULL AND image <> ''",
-    )
-    .bind(ids)
-    .fetch_all(&mut *conn)
-    .await?;
-    let thumbs: Vec<(String, String, String)> = sqlx::query_as(
-        "SELECT thumbnail_big, square_thumbnail, square_thumbnail_small \
-         FROM api_thumbnail WHERE photo_id = ANY($1)",
-    )
-    .bind(ids)
-    .fetch_all(&mut *conn)
-    .await?;
-
-    for table in [
-        "api_photometadata",
-        "api_metadatafile",
-        "api_metadataedit",
-        "api_photo_ocr",
-        "api_photoshare",
-        "api_tag_photos",
-        "api_photo_stacks",
-        "api_photo_duplicates",
-    ] {
-        sqlx::query(&format!("DELETE FROM {table} WHERE photo_id = ANY($1)"))
-            .bind(ids)
-            .execute(&mut *conn)
-            .await?;
-    }
-    // Faces cascade with the photo; `Person.cover_face` is SET_NULL in Django only.
-    sqlx::query(
-        "UPDATE api_person SET cover_face_id = NULL WHERE cover_face_id IN \
-         (SELECT id FROM api_face WHERE photo_id = ANY($1))",
-    )
-    .bind(ids)
-    .execute(&mut *conn)
-    .await?;
-    for table in ["api_duplicate", "api_stackreview"] {
-        sqlx::query(&format!(
-            "UPDATE {table} SET kept_photo_id = NULL WHERE kept_photo_id = ANY($1)"
-        ))
-        .bind(ids)
-        .execute(&mut *conn)
-        .await?;
-    }
-    sqlx::query("DELETE FROM api_photo WHERE id = ANY($1)")
-        .bind(ids)
-        .execute(&mut *conn)
-        .await?;
-
-    for f in faces {
-        after.delete_file(media_root.join(f));
-    }
-    let hashes: BTreeSet<String> = thumbs
-        .iter()
-        .flat_map(|(a, b, c)| [a, b, c])
-        .filter(|n| !n.is_empty())
-        .filter_map(|n| {
-            Path::new(n.as_str())
-                .file_stem()
-                .map(|s| s.to_string_lossy().into_owned())
-        })
-        .collect();
-    if !hashes.is_empty() {
-        let hashes: Vec<String> = hashes.into_iter().collect();
-        let still_used: Vec<String> = sqlx::query_scalar(
-            "SELECT DISTINCT image_hash FROM api_photo WHERE image_hash = ANY($1)",
-        )
-        .bind(&hashes)
-        .fetch_all(&mut *conn)
-        .await?;
-        for h in hashes.iter().filter(|h| !still_used.contains(h)) {
-            for (dir, ext) in [
-                ("thumbnails_big", "webp"),
-                ("square_thumbnails", "webp"),
-                ("square_thumbnails_small", "webp"),
-                ("square_thumbnails", "mp4"),
-                ("square_thumbnails_small", "mp4"),
-            ] {
-                after.delete_file(media_root.join(dir).join(format!("{h}.{ext}")));
-            }
-        }
-    }
-    Ok(after)
-}
-
 /// `api.services.cleanup_deleted_photos`: photos `removed` for more than
 /// `days` days are deleted for good. Returns how many.
 pub async fn cleanup_deleted_photos(
@@ -149,7 +49,8 @@ pub async fn cleanup_deleted_photos(
     .bind(days)
     .fetch_all(&mut *tx)
     .await?;
-    let after = hard_delete_photos(&mut tx, &ids, media_root).await?;
+    let mut after = AfterCommit::new();
+    super::photo_delete::hard_delete(&mut tx, &ids, media_root, &mut after).await?;
     tx.commit().await?;
     after.run().await;
     Ok(ids.len())

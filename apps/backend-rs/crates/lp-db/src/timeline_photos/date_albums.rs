@@ -154,33 +154,36 @@ pub struct DateGroupRow {
 }
 
 /// `GET /albums/date/list/`: every day with at least one matching photo,
-/// newest first.
+/// newest first. Counted per `albumdate_id` before the day rows join in, so
+/// the wide `location` JSON is not carried through the per-photo join.
 pub async fn list<'e>(
     db: impl PgExecutor<'e>,
     f: &TimelineFilter,
 ) -> sqlx::Result<Vec<DateGroupRow>> {
     let mut qb = QueryBuilder::new(format!(
-        "SELECT a.id, a.date, {} AS location, count(*) AS photo_count \
-         FROM api_albumdate a \
-         JOIN api_albumdate_photos ap ON ap.albumdate_id = a.id \
-         JOIN api_photo p ON p.id = ap.photo_id WHERE ",
+        "SELECT a.id, a.date, {} AS location, c.n AS photo_count \
+         FROM (SELECT ap.albumdate_id AS id, count(*) AS n FROM api_albumdate_photos ap \
+           JOIN api_photo p ON p.id = ap.photo_id WHERE ",
         location_sql("a", f.public)
     ));
-    if let Some(uid) = f.owner_scoped() {
-        qb.push("a.owner_id = ");
-        qb.push_bind(uid);
-        qb.push(" AND ");
+    let owner = f.owner_scoped();
+    if let Some(uid) = owner {
         scope::owned_by(&mut qb, "p", uid);
         qb.push(" AND ");
+    }
+    push_photo_conditions(&mut qb, "p", f);
+    qb.push(" GROUP BY 1) c JOIN api_albumdate a ON a.id = c.id WHERE TRUE");
+    if let Some(uid) = owner {
+        qb.push(" AND a.owner_id = ");
+        qb.push_bind(uid);
     }
     if f.public
         && let Some(u) = &f.username
     {
-        push_username(&mut qb, "a.owner_id", u);
         qb.push(" AND ");
+        push_username(&mut qb, "a.owner_id", u);
     }
-    push_photo_conditions(&mut qb, "p", f);
-    qb.push(" GROUP BY a.id ORDER BY a.date DESC NULLS LAST, a.id");
+    qb.push(" ORDER BY a.date DESC NULLS LAST, a.id");
     qb.build_query_as().fetch_all(db).await
 }
 

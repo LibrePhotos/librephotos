@@ -10,7 +10,6 @@ pub mod datetime_rules;
 mod delete;
 mod edit;
 mod exif;
-mod geocode;
 mod photo_share;
 mod rotate;
 

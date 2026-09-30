@@ -1,5 +1,8 @@
-//! `geo.locate` (`processing_jobs.add_geolocation` + `geocode/photo_location.py`)
-//! and forward search for `/api/geocode/search` (`geocode.search_location`).
+//! The one geocoder (`api/geocode`): `geo.locate` (`processing_jobs.add_geolocation`
+//! and `geocode/photo_location.py`), [`reverse_geocode`] for the GPS edit and
+//! [`search_location`] for `/api/geocode/search`, over every provider Django
+//! configures (nominatim, mapbox, maptiler, tomtom, opencage; `photon` was
+//! migrated to nominatim by Django and is "not found" here as there).
 
 pub mod providers;
 
@@ -14,7 +17,7 @@ use serde_json::{Value, json};
 use sqlx::{FromRow, PgConnection};
 use uuid::Uuid;
 
-pub use providers::{GEOCODE_VERSION, Provider};
+pub use providers::{GEOCODE_VERSION, Place, Provider};
 
 use crate::fanout::{PHOTO_CONCURRENCY, for_each_photo};
 use crate::{exif, run};
@@ -73,9 +76,9 @@ pub async fn reverse_geocode(state: &AppState, lat: f64, lon: f64) -> Value {
     }
 }
 
-/// `search_location` for `GET /api/geocode/search?q=`: a bare array of
-/// `{display_name, lat, lon}`, empty on any provider error.
-pub async fn search_location(state: &AppState, query: &str, limit: usize) -> Vec<Value> {
+/// `search_location` for `GET /api/geocode/search?q=`: empty on any
+/// provider error (logged), like Django.
+pub async fn search_location(state: &AppState, query: &str, limit: i64) -> Vec<Place> {
     let settings = state.settings();
     let name = settings.map_api_provider.clone();
     wait_for_provider(&name).await;

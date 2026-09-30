@@ -21,6 +21,7 @@ pub mod albums_tags;
 pub mod auth;
 pub mod jobs_zip_services;
 pub mod people_faces;
+pub mod photo_delete;
 pub mod photo_edits;
 pub mod search_sharing_public;
 pub mod settings;

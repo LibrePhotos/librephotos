@@ -23,8 +23,11 @@ PG_BIN = r"C:\Users\Niaz\librephotos\rust-pg\pginstall\bin"
 PG_LOG = r"C:\Users\Niaz\librephotos\rust-pg\pg.log"
 PG_PORT = 5433
 BASH = r"C:\Program Files\Git\bin\bash.exe"
-LPBENCH = os.path.join(HERE, "client", "target", "release", "lpbench.exe")
-RS_BIN = os.path.join(BACKEND_RS, "target", "release", "librephotos-rs.exe")
+LPBENCH = os.environ.get("LP_LPBENCH") or os.path.join(HERE, "client", "target", "release", "lpbench.exe")
+RS_BIN = os.environ.get("LP_RS_BIN") or os.path.join(BACKEND_RS, "target", "release", "librephotos-rs.exe")
+# Parallel agents: their own database prefix (lp_run_ or lp_t_*) and port block.
+RUN_PREFIX = os.environ.get("LP_BENCH_DB_PREFIX", "lp_run_")
+PORT_BASE = int(os.environ.get("LP_BENCH_PORT_BASE", "8901"))
 VENV = r"C:\Users\Niaz\librephotos\wt-windev\apps\backend\.venv-win"
 VENV_SP = os.path.join(VENV, "Lib", "site-packages")
 FIXTURE_ROOT = r"C:\Users\Niaz\librephotos\rust-pg\fixture"
@@ -73,7 +76,7 @@ def clone(template, db):
     """A run database from a benchmark template. Rust's maintenance schedules are
     marked as not due, so its in-process worker leaves the data alone (Django
     runs no qcluster either)."""
-    assert db.startswith("lp_run_"), db
+    assert db.startswith(("lp_run_", "lp_t_")) and db.startswith(RUN_PREFIX), db
     psql(f'DROP DATABASE IF EXISTS "{db}" WITH (FORCE)')
     psql(f'CREATE DATABASE "{db}" TEMPLATE "{template}"')
     names = ",".join(f"'{s}'" for s in SCHEDULES)
@@ -83,10 +86,15 @@ def clone(template, db):
         "ON CONFLICT (name) DO UPDATE SET next_run_at = EXCLUDED.next_run_at",
         db,
     )
+    # Extra schema for every clone (e.g. an index under test, so Django gets it too).
+    extra = os.environ.get("LP_BENCH_CLONE_SQL")
+    if extra:
+        with open(extra, encoding="utf-8") as f:
+            psql(f.read(), db)
 
 
 def drop(db):
-    assert db.startswith("lp_run_"), db
+    assert db.startswith(("lp_run_", "lp_t_")) and db.startswith(RUN_PREFIX), db
     psql(f'DROP DATABASE IF EXISTS "{db}" WITH (FORCE)')
 
 

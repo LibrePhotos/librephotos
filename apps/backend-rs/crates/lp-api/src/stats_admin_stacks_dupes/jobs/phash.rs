@@ -30,6 +30,11 @@ impl PHash {
         })
     }
 
+    /// The first 64 bits (the whole hash for 16 hex digits).
+    pub fn word(&self) -> u64 {
+        self.words[0]
+    }
+
     pub fn distance(&self, other: &PHash) -> u32 {
         if self.len != other.len {
             return MAX_DISTANCE;
@@ -113,6 +118,101 @@ impl BkTree {
                     .map(|(_, c)| *c),
             );
         }
+    }
+}
+
+/// Multi-index hashing over 64-bit hashes: two hashes within `threshold`
+/// agree within `threshold / 4` bits on at least one of their four 16-bit
+/// blocks (pigeonhole), so each hash only probes the buckets of its blocks'
+/// near variants instead of walking a BK-tree, which prunes almost nothing
+/// at the default radius of 10 bits out of 64.
+pub struct BlockIndex {
+    radius: u32,
+    /// Per block: bucket start offsets (65,537) into `items`.
+    offsets: Vec<Vec<u32>>,
+    items: Vec<Vec<u32>>,
+}
+
+const BLOCKS: usize = 4;
+
+fn block(h: u64, b: usize) -> u16 {
+    (h >> (16 * b)) as u16
+}
+
+impl BlockIndex {
+    /// Worth it while the per-block radius stays small.
+    pub fn supports(threshold: u32) -> bool {
+        threshold / BLOCKS as u32 <= 3
+    }
+
+    pub fn new(hashes: &[u64], threshold: u32) -> BlockIndex {
+        let mut offsets = Vec::with_capacity(BLOCKS);
+        let mut items = Vec::with_capacity(BLOCKS);
+        for b in 0..BLOCKS {
+            let mut counts = vec![0u32; 65_537];
+            for &h in hashes {
+                counts[block(h, b) as usize + 1] += 1;
+            }
+            for i in 1..counts.len() {
+                counts[i] += counts[i - 1];
+            }
+            let mut fill = counts.clone();
+            let mut list = vec![0u32; hashes.len()];
+            for (i, &h) in hashes.iter().enumerate() {
+                let k = block(h, b) as usize;
+                list[fill[k] as usize] = i as u32;
+                fill[k] += 1;
+            }
+            offsets.push(counts);
+            items.push(list);
+        }
+        BlockIndex {
+            radius: threshold / BLOCKS as u32,
+            offsets,
+            items,
+        }
+    }
+
+    /// Every `j < i` with `distance(hashes[i], hashes[j]) <= threshold`,
+    /// ascending, into `out`.
+    pub fn earlier_neighbours(
+        &self,
+        hashes: &[u64],
+        i: usize,
+        threshold: u32,
+        variants: &[u16],
+        out: &mut Vec<u32>,
+    ) {
+        let h = hashes[i];
+        for b in 0..BLOCKS {
+            let key = block(h, b);
+            let (offsets, items) = (&self.offsets[b], &self.items[b]);
+            for &flip in variants {
+                let k = (key ^ flip) as usize;
+                for &j in &items[offsets[k] as usize..offsets[k + 1] as usize] {
+                    // Buckets list items in ascending order.
+                    if j as usize >= i {
+                        break;
+                    }
+                    let other = hashes[j as usize];
+                    // Reported through the first block that matches.
+                    if (0..b).any(|e| (block(h, e) ^ block(other, e)).count_ones() <= self.radius) {
+                        continue;
+                    }
+                    if (h ^ other).count_ones() <= threshold {
+                        out.push(j);
+                    }
+                }
+            }
+        }
+        out.sort_unstable();
+    }
+
+    /// The 16-bit masks with at most `radius` bits set.
+    pub fn variants(&self) -> Vec<u16> {
+        (0..=u16::MAX)
+            .filter(|m| m.count_ones() <= self.radius)
+            .collect()
     }
 }
 
