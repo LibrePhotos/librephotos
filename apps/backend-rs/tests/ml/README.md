@@ -72,3 +72,44 @@ also skip without `LP_ORT_LIB`.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
+
+## What the tags goldens established
+
+`golden_tags.py` (both taggers, 82 images: 36 fixture JPEG originals, 37 WebP
+big thumbnails, 9 generated edge cases) and
+`cargo test -p lp-ml --test tags -- --nocapture`:
+
+- On the same pixels (JPEGs through the Pillow-decoded copies in
+  `_decoded/tags/`) both ports give the identical tag list, in the same order,
+  on 82/82 images; scores within 4.2e-6 (MobileCLIP probabilities) and 1.6e-7
+  (SigLIP 2 cosines), image embeddings at cosine 1.000000.
+- Files as they are (our zune-jpeg decoder on the JPEGs): 81/82 (MobileCLIP)
+  and 80/82 (SigLIP 2) identical tag sets; the differences are the 10th tag of
+  JPEG originals, JPEG score diffs up to 1.1e-2. `tags.generate` feeds the
+  WebP big thumbnails, which decode exactly.
+- Prompt token ids identical for all 938 prompts plus 12 edge cases, for
+  MobileCLIP (`tokenizer.json`) and SigLIP 2 (`tokenizer.model` through the
+  pure-Rust sentencepiece BPE encoder in `lp_ml::tags::spm`).
+- The tag-embedding cache rebuilt in Rust matches Python's
+  `tag_embeddings.npy` (MobileCLIP: min cosine 1.0000000, max diff 4.2e-7;
+  SigLIP 2, run with `LP_ML_SLOW_TESTS=1`: min cosine 1.0000000, max diff
+  4.2e-7). So a Rust-only install needs no Python to build the caches.
+
+The Python generator must run in UTF-8 mode (it re-executes itself with
+`-X utf8`): `siglip2.py` opens `tags.txt` with the locale encoding, which on
+Windows garbles "quinceañera". `bench_tags.py` is the Python side of the
+`bench_tagger_latency_and_memory` test.
+
+Latency and memory (2026-09-30, release test binary, CPU provider, the 37
+fixture WebP thumbnails; the 12-thread box was at 100% load from parallel
+agents, so latencies are only roughly comparable):
+
+| Tagger | Model RSS delta Rust / Python | Per photo Rust / Python |
+| --- | --- | --- |
+| MobileCLIP-S2, 1 intra-op thread, 2 interleaved runs | +177 / +161 MB loaded, +192 / +190 MB after inference | p50 883, 799 ms / 2142, 860 ms |
+| MobileCLIP-S2, ORT default threads | +178 / +162 MB, +186 / +191 MB | mean 1064 / 2920 ms |
+| SigLIP 2, ORT default threads | +380 / +389 MB, +382 / +499 MB | mean 7385 / 4883 ms |
+
+Base process: Rust 12 MB before loading (40-48 MB after unloading the model),
+the Python interpreter with numpy/onnxruntime/PIL 53 MB. The text towers
+(MobileCLIP 254 MB, SigLIP 2 1.1 GB) are never resident after the cache exists.
