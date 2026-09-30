@@ -171,23 +171,31 @@ where
     E: PgExecutor<'e> + Copy,
 {
     let build = |limit: i64, offset: i64| {
+        // One pass over the owner's place links: per-album correlated subqueries
+        // made the planner hash-join all of api_photo once per album.
         let mut qb = QueryBuilder::<Postgres>::new(format!(
-            "SELECT *, count(*) OVER () AS total_count FROM ( \
-               SELECT pl.id, pl.title, \
-                 (SELECT count(DISTINCT cp.id) FROM api_albumplace_photos cl \
-                    JOIN api_photo cp ON cp.id = cl.photo_id \
-                    WHERE cl.albumplace_id = pl.id AND NOT cp.hidden) AS photo_count, \
-                 NULL::varchar AS thing_type, pl.geolocation_level, \
-                 (SELECT COALESCE(json_agg(c.j ORDER BY c.lid), '[]'::json) FROM ( \
-                    SELECT {ph} AS j, cl.id AS lid FROM api_albumplace_photos cl \
-                      JOIN api_photo cp ON cp.id = cl.photo_id \
-                      WHERE cl.albumplace_id = pl.id AND NOT cp.hidden ORDER BY cl.id LIMIT 4) c) AS cover_photos \
-               FROM api_albumplace pl WHERE pl.owner_id = ",
+            "SELECT pl.id, pl.title, a.photo_count, NULL::varchar AS thing_type, pl.geolocation_level, \
+               COALESCE(array_to_json(a.covers), '[]'::json) AS cover_photos, \
+               count(*) OVER () AS total_count \
+             FROM api_albumplace pl \
+             JOIN (SELECT r.albumplace_id, max(r.n) AS photo_count, \
+                     array_agg(r.j ORDER BY r.lid) FILTER (WHERE r.rn <= 4) AS covers \
+                   FROM (SELECT cl.albumplace_id, cl.id AS lid, {ph} AS j, \
+                           row_number() OVER (PARTITION BY cl.albumplace_id ORDER BY cl.id) AS rn, \
+                           count(*) OVER (PARTITION BY cl.albumplace_id) AS n \
+                         FROM api_albumplace_photos cl \
+                         JOIN api_albumplace p2 ON p2.id = cl.albumplace_id AND p2.owner_id = ",
             ph = photo_hash_json("cp"),
         ));
         qb.push_bind(owner_id);
+        qb.push(
+            " JOIN api_photo cp ON cp.id = cl.photo_id AND NOT cp.hidden) r \
+               GROUP BY r.albumplace_id) a ON a.albumplace_id = pl.id \
+             WHERE pl.owner_id = ",
+        );
+        qb.push_bind(owner_id);
         push_search(&mut qb, &["pl.title"], search);
-        qb.push(") x WHERE x.photo_count > 0 ORDER BY x.title, x.id LIMIT ");
+        qb.push(" ORDER BY pl.title, pl.id LIMIT ");
         qb.push_bind(limit);
         qb.push(" OFFSET ");
         qb.push_bind(offset);

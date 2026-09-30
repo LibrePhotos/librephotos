@@ -65,15 +65,19 @@ fn push_terms(qb: &mut QueryBuilder<'_, Postgres>, terms: &[String], semantic: O
         if i > 0 {
             qb.push(" AND ");
         }
-        push_term_without_tags(qb, term, semantic);
+        push_term_without_tags(qb, term, semantic, "p", "pig_s");
     }
+    // Uncorrelated, so Postgres hashes it once: as a correlated EXISTS it ran
+    // a tag scan for every photo the text branch rejected.
     qb.push(
-        ") OR EXISTS (SELECT 1 FROM api_tag_photos stp JOIN api_tag stg ON stg.id = stp.tag_id \
-             WHERE stp.photo_id = p.id",
+        ") OR p.id IN (SELECT stp.photo_id FROM api_tag_photos stp \
+             JOIN api_tag stg ON stg.id = stp.tag_id \
+             JOIN api_photo sp ON sp.id = stp.photo_id \
+             LEFT JOIN api_photo_search sps ON sps.photo_id = sp.id WHERE TRUE",
     );
     for term in terms {
         qb.push(" AND (");
-        push_term_without_tags(qb, term, semantic);
+        push_term_without_tags(qb, term, semantic, "sp", "sps");
         qb.push(" OR UPPER(stg.name::text) LIKE UPPER(");
         qb.push_bind(pattern(term));
         qb.push("))");
@@ -92,22 +96,26 @@ fn push_term_without_tags(
     qb: &mut QueryBuilder<'_, Postgres>,
     term: &str,
     semantic: Option<&[String]>,
+    p: &str,
+    s: &str,
 ) {
     let pat = pattern(term);
-    qb.push("(UPPER(pig_s.search_captions::text) LIKE UPPER(");
+    qb.push(format!("(UPPER({s}.search_captions::text) LIKE UPPER("));
     qb.push_bind(pat.clone());
-    qb.push(") OR UPPER(pig_s.search_location::text) LIKE UPPER(");
+    qb.push(format!(") OR UPPER({s}.search_location::text) LIKE UPPER("));
     qb.push_bind(pat.clone());
-    qb.push(") OR UPPER((p.exif_timestamp AT TIME ZONE 'UTC')::text || '+00') LIKE UPPER(");
+    qb.push(format!(
+        ") OR UPPER(({p}.exif_timestamp AT TIME ZONE 'UTC')::text || '+00') LIKE UPPER("
+    ));
     qb.push_bind(pat);
-    qb.push(
-        ") OR p.id IN (SELECT so.photo_id FROM api_photo_ocr so \
-         WHERE to_tsvector('simple'::regconfig, COALESCE(so.text, '')) @@ plainto_tsquery('simple'::regconfig, ",
-    );
+    qb.push(format!(
+        ") OR {p}.id IN (SELECT so.photo_id FROM api_photo_ocr so \
+         WHERE to_tsvector('simple'::regconfig, COALESCE(so.text, '')) @@ plainto_tsquery('simple'::regconfig, "
+    ));
     qb.push_bind(term.to_string());
     qb.push("))");
     if let Some(hashes) = semantic {
-        qb.push(" OR p.image_hash = ANY(");
+        qb.push(format!(" OR {p}.image_hash = ANY("));
         qb.push_bind(hashes.to_vec());
         qb.push(")");
     }

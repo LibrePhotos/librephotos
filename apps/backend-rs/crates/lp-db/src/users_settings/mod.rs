@@ -55,9 +55,12 @@ pub async fn photo_stats(
     }
     let (counts, samples) = tokio::try_join!(
         sqlx::query_as::<_, CountRow>(
-            "SELECT owner_id, count(*) AS photo_count, \
-                    count(*) FILTER (WHERE public) AS public_photo_count \
-             FROM api_photo WHERE owner_id = ANY($1) GROUP BY owner_id",
+            // Two scalar counts per owner can each use an index; one FILTER
+            // aggregate forces a sequential scan of the owner's photos.
+            "SELECT o.id AS owner_id, \
+                    (SELECT count(*) FROM api_photo WHERE owner_id = o.id) AS photo_count, \
+                    (SELECT count(*) FROM api_photo WHERE owner_id = o.id AND public) AS public_photo_count \
+             FROM unnest($1::int[]) AS o(id)",
         )
         .bind(user_ids)
         .fetch_all(db),
