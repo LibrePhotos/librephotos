@@ -4,9 +4,9 @@
 //! (one slot per path, `null` where unreadable), `POST /query-embeddings
 //! {query, model}` -> `{emb, magnitude}`. `model` is the model directory.
 
-mod inprocess;
+pub mod inprocess;
 
-pub use inprocess::InProcess;
+pub use inprocess::{Clip, InProcess, prepare_image};
 
 use async_trait::async_trait;
 use lp_sidecars::{ClipEmbeddings, QueryEmbedding, SidecarError, Sidecars};

@@ -264,3 +264,38 @@ through libvips). The reference is opencv-python 5.0.0 + pyclipper 1.4.0 (Clippe
   level) and text on 23/24 for tiny and medium. The difference: cv2
   refuses a truncated JPEG (400); the port (image crate or libvips) reads
   what is there.
+
+## CLIP and the similarity index (`golden_clip.py`, `golden_similarity.py`)
+
+`cargo test -p lp-ml --test clip --test similarity -- --nocapture`
+(`LP_ORT_LIB` set), and end to end `cargo test -p lp-tasks --test clip_inprocess`:
+
+- Text embeddings (9 queries incl. empty, non-Latin and > 77 tokens): token
+  ids identical, embeddings bit-identical (cosine 1.0, max abs diff 0).
+- Image embeddings over 82 images + a missing path (one `encode_images`
+  call, batches of 32, `None` slot kept): WebP and PNG bit-identical
+  (cosine 1.0); JPEG min cosine 0.99953 (zune-jpeg vs libjpeg-turbo, see
+  above). `clip.embed` reads the WebP big thumbnails, so stored embeddings
+  equal the sidecar's (31/31 on the fixture).
+- The index's inner product reproduces FAISS 1.15's AVX2
+  `fvec_inner_product` bit for bit (8 f32 lanes, mul then add, halving
+  reduction): 10,200 top-100 distances identical, and all 444 searches
+  (thresholds 0/20/27/90, n 3..100, exact-duplicate ties) return the same
+  hashes in the same order as `RetrievalIndex.search_similar`. A plain f32
+  or f64 dot product swaps near-equal neighbours (1 ulp apart).
+- Edge images (`clip/edge.json`: 66 files from the shared `tags_edge`,
+  `caption_edge`, `faces_edge` sets plus `clip_edge`: cut JPEG/PNG, trailing
+  junk, zero bytes, text named .png, 16-bit RGB/RGBA/grey, 6000x4000):
+  the same 10 are unreadable as for Pillow (`None` slot); the rest are
+  within cosine 0.998 (PNG incl. 16-bit and palette, BMP, TIFF, GIF, WebP:
+  1.0; JPEG min 0.99823 on a 96x64 JPEG upscaled 3.5x, EXIF-rotated and
+  progressive >= 0.9990, CMYK >= 0.9999). `preprocess::load_rgb` follows Pillow here through
+  `open_pillow` (a JPEG without EOI is "truncated", a PNG cut in `IEND`
+  opens) and `pillow_rgb8` (16-bit colour keeps the high byte, 16-bit grey
+  clips at 255 like mode `I;16`). `preprocess::open` stays lenient.
+- `similarity.build` reads the embeddings page by page (keyset on
+  `image_hash, id`, 5000 per page, `clip_embeddings::text` parsed straight
+  to f32), so a rebuild holds one page in memory, not every embedding as
+  JSON values; rebuilds are serialized per process. Index files are
+  streamed in and out (no second copy in memory), and the startup check
+  also validates the hash list, so a torn or damaged file is rebuilt.

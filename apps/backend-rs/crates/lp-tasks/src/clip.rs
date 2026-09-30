@@ -126,40 +126,85 @@ async fn store_batch(state: &AppState, model: &str, batch: &[Missing]) -> anyhow
 
 #[derive(Debug, FromRow)]
 struct Indexed {
+    id: Uuid,
     image_hash: String,
-    clip_embeddings: Value,
+    clip_embeddings: String,
 }
 
-/// Rebuild the user's similarity index: pages of 5000 as one rebuild (the
-/// first carries `begin`, the last `commit`; a user without embeddings
-/// still sends one empty page so a stale index goes away). Returns its size.
+/// One process-wide rebuild at a time: two interleaved paged rebuilds of
+/// one user (a `clip.embed` job and the startup check) would mix their
+/// pages in the staging index.
+static BUILD_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// `get_clip_embeddings()` of the jsonb text: the list, or the list in a
+/// JSON string; `None` for anything else or an empty list.
+fn decode_embedding(text: &str) -> Option<Vec<f32>> {
+    let e = match serde_json::from_str::<Vec<f32>>(text) {
+        Ok(e) => e,
+        Err(_) => ClipEmbedding::decode(&serde_json::from_str(text).ok()?)?,
+    };
+    (!e.is_empty()).then_some(e)
+}
+
+/// Rebuild the user's similarity index: pages of 5000 photos as one rebuild
+/// (the first carries `begin`, the last `commit`; a user without embeddings
+/// still sends one empty page so a stale index goes away). Each page is
+/// read from the database as it is sent, so memory stays at one page of
+/// embeddings rather than all of them. Returns the index size.
 pub async fn build_index(state: &AppState, user_id: i32) -> anyhow::Result<i64> {
+    build_index_paged(state, user_id, INDEX_PAGE_SIZE).await
+}
+
+/// [`build_index`] in pages of `page_size` photos.
+pub async fn build_index_paged(
+    state: &AppState,
+    user_id: i32,
+    page_size: usize,
+) -> anyhow::Result<i64> {
+    let page_size = page_size.max(1);
+    let _one_at_a_time = BUILD_LOCK.lock().await;
     let started = std::time::Instant::now();
-    let rows = sqlx::query_as::<_, Indexed>(
-        "SELECT image_hash, clip_embeddings FROM api_photo \
-         WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL \
-         ORDER BY image_hash",
-    )
-    .bind(user_id)
-    .fetch_all(&state.db)
-    .await?;
     let username: String = sqlx::query_scalar("SELECT username FROM api_user WHERE id = $1")
         .bind(user_id)
         .fetch_one(&state.db)
         .await?;
-    let mut hashes = Vec::with_capacity(rows.len());
-    let mut embeddings = Vec::with_capacity(rows.len());
-    for r in rows {
-        if let Some(e) = ClipEmbedding::decode(&r.clip_embeddings).filter(|e| !e.is_empty()) {
-            hashes.push(r.image_hash);
-            embeddings.push(e);
-        }
-    }
-    let pages = hashes.len().div_ceil(INDEX_PAGE_SIZE).max(1);
+    let total: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM api_photo \
+         WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL",
+    )
+    .bind(user_id)
+    .fetch_one(&state.db)
+    .await?;
+    let pages = usize::try_from(total)
+        .unwrap_or(0)
+        .div_ceil(page_size)
+        .max(1);
+    let mut after: Option<(String, Uuid)> = None;
     let mut size = 0;
     for page in 0..pages {
-        let lo = (page * INDEX_PAGE_SIZE).min(hashes.len());
-        let hi = ((page + 1) * INDEX_PAGE_SIZE).min(hashes.len());
+        let rows = sqlx::query_as::<_, Indexed>(
+            "SELECT id, image_hash, clip_embeddings::text AS clip_embeddings FROM api_photo \
+             WHERE owner_id = $1 AND NOT hidden AND clip_embeddings IS NOT NULL \
+               AND ($2::text IS NULL OR (image_hash, id) > ($2, $3)) \
+             ORDER BY image_hash, id LIMIT $4",
+        )
+        .bind(user_id)
+        .bind(after.as_ref().map(|a| a.0.as_str()))
+        .bind(after.as_ref().map(|a| a.1))
+        .bind(page_size as i64)
+        .fetch_all(&state.db)
+        .await?;
+        if let Some(last) = rows.last() {
+            after = Some((last.image_hash.clone(), last.id));
+        }
+        let mut hashes = Vec::with_capacity(rows.len());
+        let mut embeddings = Vec::with_capacity(rows.len());
+        for r in rows {
+            if let Some(e) = decode_embedding(&r.clip_embeddings) {
+                hashes.push(r.image_hash);
+                embeddings.push(e);
+            }
+        }
         let where_ = format!(
             "page {} of {pages} of the similarity index of {username}",
             page + 1
@@ -169,8 +214,8 @@ pub async fn build_index(state: &AppState, user_id: i32) -> anyhow::Result<i64> 
             .similarity()
             .build(&lp_sidecars::SimilarityBuild {
                 user_id,
-                image_hashes: &hashes[lo..hi],
-                image_embeddings: &embeddings[lo..hi],
+                image_hashes: &hashes,
+                image_embeddings: &embeddings,
                 begin: page == 0,
                 commit: page + 1 == pages,
             })
@@ -191,4 +236,42 @@ pub async fn build_index(state: &AppState, user_id: i32) -> anyhow::Result<i64> 
         "built similarity index"
     );
     Ok(size)
+}
+
+/// The startup `build_similarity_index` for the in-process index: rebuild
+/// every user's index that is missing (e.g. the first start after the
+/// Python sidecar, whose `.npz` files it does not read) or holds another
+/// number of photos than the database. Returns how many were rebuilt.
+pub async fn rebuild_stale_indices(state: &AppState) -> anyhow::Result<usize> {
+    if !state.ml().is_inprocess(lp_ml::Service::Similarity) {
+        return Ok(0);
+    }
+    let users: Vec<(i32, i64)> = sqlx::query_as(
+        "SELECT u.id, count(p.id) FROM api_user u \
+         LEFT JOIN api_photo p ON p.owner_id = u.id AND NOT p.hidden \
+           AND p.clip_embeddings IS NOT NULL AND p.clip_embeddings <> '[]'::jsonb \
+         GROUP BY u.id ORDER BY u.id",
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let mut rebuilt = 0;
+    for (user_id, n) in users {
+        let media_root = state.config.media_root.clone();
+        let stored = tokio::task::spawn_blocking(move || {
+            lp_ml::similarity::stored_len(&media_root, user_id)
+        })
+        .await?;
+        let stale = match stored {
+            None => n > 0,
+            Some(stored) => i64::try_from(stored).ok() != Some(n),
+        };
+        if !stale {
+            continue;
+        }
+        match build_index(state, user_id).await {
+            Ok(_) => rebuilt += 1,
+            Err(e) => tracing::error!(user_id, error = %e, "similarity index rebuild failed"),
+        }
+    }
+    Ok(rebuilt)
 }
