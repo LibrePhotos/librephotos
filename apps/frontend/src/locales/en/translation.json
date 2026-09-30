@@ -733,6 +733,7 @@
     "phototaken": "Photo taken {{date}}",
     "video": "Video",
     "videotaken": "Video taken {{date}}",
+    "hdrvideo": "HDR video: recorded with more brightness and colour than the tile can show",
     "select": "Select {{name}}"
   },
   "trash": {
