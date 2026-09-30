@@ -72,3 +72,56 @@ also skip without `LP_ORT_LIB`.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
+
+## face_cluster (`golden_face_cluster.py`)
+
+Calls the face_cluster sidecar's routes through Flask's test client (no port)
+and writes `cluster.json`, `train.json`, `mlp.json`, `pca.json`, and with
+`edge` the `*_edge.json` sets (non-finite encodings, 5k faces, train splits
+hard enough that the held-out accuracy is below 1). `timing` writes
+`timing.json` (the Python code's wall time on 5k faces). The fixture's
+encodings come from `ml-goldens/face_cluster/fixture_faces.psv`
+(`id|owner|person|deleted|hex`, exported from a clone of `lp_fixture`).
+
+`cargo test -p lp-ml --test face_cluster -- --nocapture` (loads both sets):
+
+- HDBSCAN (`face_cluster::hdbscan`): identical partitions (adjusted Rand
+  index 1.0) on all 20 cases: synthetic identities in 128/512-d, epsilon
+  0 / 0.05 / 0.3 / 0.5 / 1.0, `min_samples` 1-5, exact duplicates, all-zero
+  inputs, 1.5k and 5k faces, the fixture's faces, rows with NaN / inf
+  (noise, as `HDBSCAN.fit` drops them); the same error text for a single
+  face and for no finite row. With `min_samples=1` (the default) the labels
+  are identical number for number; with larger `min_samples` MST edges tie
+  and clusters may be numbered differently (numpy's unstable argsort).
+- MLPClassifier (`face_cluster::mlp`): numpy's `RandomState(1)` is
+  bit-identical (weights init, epoch shuffles), sklearn's epoch count is hit
+  exactly and `predict_proba` differs by at most 2.2e-16. Big products are
+  split across rayon without changing a bit (`split_products_are_exact`).
+- `/train`: every cluster / classification person identical on 14 cases
+  (incl. binary, single-person, no labels, 128-d, 1k known faces, three hard
+  splits with held-out accuracy 0.989 / 0.989 / 0.909 in both, NaN / inf
+  errors, nothing to predict, the empty error); probabilities within 6.7e-16.
+- PCA: the covariance-eigh path (n >= 10 d) within 4e-9; below that sklearn
+  uses an unseeded randomized SVD, which the exact result beats in captured
+  variance. NaN / inf give sklearn's error text.
+- End to end (`cargo test -p lp-tasks --test face_cluster_inprocess`):
+  faces.cluster + faces.train in-process on a fixture clone; user-labelled
+  faces keep their person. With `LP_FC_SIDECAR_URL` set to a running sidecar
+  the same jobs also run through it and must write the same rows.
+
+Throughput (`LP_FC_BENCH=5000,50000 cargo test -p lp-ml --test
+face_cluster_bench -- --ignored --nocapture`, debug profile with lp-ml at
+opt-level 2, 12 threads, `LP_FC_BENCH_SKIP_HDBSCAN` / `LP_FC_BENCH_TRAIN_MAX`
+split a run to stay under 10 minutes), on a box shared with another build:
+
+| | Rust in-process | Python (sklearn / hdbscan) |
+| --- | --- | --- |
+| HDBSCAN 5k faces | 5.4-6.0 s | 17.7 s |
+| HDBSCAN 50k faces | 196 s (core distances 62 s, Prim 134 s), +198 MB over the 195 MB input | ~30 min (n², extrapolated) |
+| train 5k (1.4k known / 100 persons, 1.6k rows / 350 classes, 3.6k predicted) | 40-42 s | ~90 s (0.14 s per cluster-classifier epoch) |
+| train epoch, 14.3k faces / 1000 classes | 1.4-1.6 s | 3.2 s |
+| train epoch, 16.8k rows / 3500 classes | 3.1-3.7 s | 9.0 s |
+
+A 50k-face train needs a few hundred epochs per classifier, so it runs for
+tens of minutes either way (not run to the end: benchmarks stay under 10
+minutes).
