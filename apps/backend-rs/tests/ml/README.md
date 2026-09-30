@@ -353,3 +353,47 @@ JPEG, GIF, TIFF, BMP, alpha and lossless WebP, 512x512, 20x3000 and 3x2.
 All are bit-exact except the JPEGs (at most 3 levels); 16-bit PNGs needed
 `preprocess::pillow_rgb8` (Pillow keeps the high byte of 16-bit colour and
 clips `I;16` grey at 255, where `to_rgb8` scales).
+
+## End to end: Rust in-process ML vs Django + sidecars (`e2e/`)
+
+The same HTTP sequence on two fixture clones: `POST /api/scanphotos` (tags,
+CLIP, faces follow), `/api/trainfaces`, `/api/generateocr {full_scan}`, one
+`/api/photosedit/generateim2txt` per photo, `GET /api/photos/{hash}`
+(`similar_photos`); then the ML rows are dumped and compared per file.
+
+```bash
+PY=.../.venv-win/Scripts/python.exe
+$PY tests/ml/e2e/make_lib.py <rust-pg>/e2e-ml/lib/mlcheck   # 66 photos, no download
+cargo build -p lp-server && bash tests/ml/e2e/setup.sh
+$PY tests/ml/e2e/launch.py start rs
+$PY tests/ml/e2e/drive.py rs http://127.0.0.1:8751 lp_run_e2e_rs rs.json
+$PY tests/ml/e2e/launch.py stop rs
+$PY tests/ml/e2e/launch.py start dj   # real sidecars on 8002-8012: nothing else may hold them
+$PY tests/ml/e2e/drive.py dj http://127.0.0.1:8750 lp_run_e2e_dj dj.json
+$PY tests/ml/e2e/launch.py stop dj
+$PY tests/ml/e2e/compare.py rs.json dj.json
+```
+
+The library: insightface's `t1` group (6 people) and Tom Hanks, skimage's
+astronaut and cameraman, the mask samples, each in 5-8 variants (flip, 1.5x,
+brighter, padded, crops, grey) so clusters have several faces per person;
+17 skimage/sklearn scenes; the OCR golden documents and 15 bench text cards.
+Django serves exif in-process (`djmods/`), like the Rust server.
+
+Result (2026-09-30, debug `librephotos-rs`, buffalo_sc, mobileclip_s2,
+ppocrv6_small, lfm2_vl_450m, idle 12-thread box):
+
+| | Rust (in-process) vs Django + sidecars |
+| --- | --- |
+| photos | 66 / 66 on both |
+| faces | 51 vs 51, same count on 66/66 photos, box IoU 1.0, embedding cosine >= 0.999999 |
+| clustering (`trainfaces`) | 8 clusters each, ARI 1.0 (cluster id and person) |
+| tags (mobileclip_s2) | identical on 66/66 |
+| captions (im2txt) | identical on 66/66 |
+| OCR text | identical on 66/66 |
+| CLIP embeddings | cosine 1.0 (min) on 66/66 |
+| similar photos | identical sets on 66/66 |
+
+Wall time, same box: scan + tags/CLIP/faces 58 s (Rust debug) vs 50 s;
+OCR 20 s vs 22 s; captions about 3.2 s vs 3.0 s per photo. The Rust side is
+a debug build; ONNX Runtime does the heavy lifting on both.
