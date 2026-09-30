@@ -5,6 +5,9 @@
 //! `captions_json[<model>]`); an unknown model is a 400.
 
 mod inprocess;
+pub mod npy;
+pub mod spm;
+pub mod tagger;
 
 pub use inprocess::InProcess;
 

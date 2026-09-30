@@ -1,24 +1,43 @@
-//! In-process tagging (port of `service/tags/{mobileclip,siglip2}`). STUB.
+//! In-process tagging (port of `service/tags/{main,mobileclip,siglip2}.py`).
+//!
+//! One slot keyed by the model dir holds the selected tagger. Its text
+//! embeddings come from `<model dir>/tag_embeddings.npy`, shared with the
+//! Python sidecar; when that cache is missing or stale the first call builds
+//! it with the text tower (tens of seconds, SigLIP 2's 1.1 GB text model the
+//! longest) and writes it back, as the sidecar does on first use.
 
+use std::path::Path;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use lp_sidecars::SidecarError;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use super::TagsApi;
-use crate::{Backend, MlContext, Service};
+use super::tagger::{MAX_TAGS, Model, Tagger};
+use crate::{Backend, MlContext, ModelSlot, Service};
 
 pub struct InProcess {
     ctx: Arc<MlContext>,
+    slot: ModelSlot<Tagger>,
 }
 
 impl InProcess {
     /// Set to true once the port passes its goldens; `auto` mode then uses it.
-    pub const IMPLEMENTED: bool = false;
+    pub const IMPLEMENTED: bool = true;
 
     pub fn new(ctx: Arc<MlContext>) -> Self {
-        InProcess { ctx }
+        let slot = ctx.slot(Service::Tags, "tagger");
+        InProcess { ctx, slot }
+    }
+}
+
+/// `tagging_model or DEFAULT_TAGGING_MODEL`.
+fn model_name(tagging_model: &str) -> &str {
+    if tagging_model.is_empty() {
+        Model::DEFAULT.name()
+    } else {
+        tagging_model
     }
 }
 
@@ -30,12 +49,7 @@ impl Backend for InProcess {
     /// The tagging model the site settings select is installed.
     fn ready(&self) -> bool {
         let model = self.ctx.selection().tagging_model;
-        let model = if model.trim().is_empty() {
-            "mobileclip_s2".to_string()
-        } else {
-            model
-        };
-        self.ctx.model_present(&model)
+        self.ctx.model_present(model_name(&model))
     }
 }
 
@@ -43,10 +57,41 @@ impl Backend for InProcess {
 impl TagsApi for InProcess {
     async fn generate_tags(
         &self,
-        _image_path: &str,
+        image_path: &str,
         _confidence: f64,
-        _tagging_model: &str,
+        tagging_model: &str,
     ) -> Result<Value, SidecarError> {
-        Err(crate::not_implemented(Service::Tags))
+        let name = model_name(tagging_model);
+        let Some(model) = Model::from_name(name) else {
+            return Err(crate::bad_input(
+                Service::Tags,
+                format!("Unknown tagging model '{name}'"),
+            ));
+        };
+        if !self.ctx.model_present(name) {
+            return Err(crate::unavailable(
+                Service::Tags,
+                format!("the {name} model is not downloaded"),
+            ));
+        }
+        let dir = self
+            .ctx
+            .model_dir(name)
+            .ok_or_else(|| crate::unavailable(Service::Tags, format!("unknown model {name}")))?;
+        let key = dir.display().to_string();
+        let image = image_path.to_string();
+        let prediction = self
+            .slot
+            .run(
+                &key,
+                move || Tagger::load(model, &dir),
+                move |t| t.predict(Path::new(&image), model.threshold(), MAX_TAGS),
+            )
+            .await
+            .map_err(|e| {
+                tracing::warn!(image = %image_path, error = %format!("{e:#}"), "tags: error processing image");
+                crate::failed(Service::Tags, format!("Failed to process image: {e:#}"))
+            })?;
+        Ok(json!({ "tags": { "tags": prediction.tags } }))
     }
 }

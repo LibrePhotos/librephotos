@@ -154,3 +154,75 @@ and `cargo test -p lp-tasks --test faces_inprocess`:
 - Tied detector scores are ordered by numpy 2's SIMD `argsort`, which is not
   stable and depends on the CPU (AVX2/AVX-512/NEON); the port breaks ties by
   descending index. No golden image is affected.
+
+## What the tags goldens established
+
+`golden_tags.py` (both taggers, 82 images: 36 fixture JPEG originals, 37 WebP
+big thumbnails, 9 generated edge cases) and
+`cargo test -p lp-ml --test tags -- --nocapture`:
+
+- On the same pixels (JPEGs through the Pillow-decoded copies in
+  `_decoded/tags/`) both ports give the identical tag list, in the same order,
+  on 82/82 images; scores within 4.2e-6 (MobileCLIP probabilities) and 1.6e-7
+  (SigLIP 2 cosines), image embeddings at cosine 1.000000.
+- Files as they are (our zune-jpeg decoder on the JPEGs): 81/82 (MobileCLIP)
+  and 80/82 (SigLIP 2) identical tag sets; the differences are the 10th tag of
+  JPEG originals, JPEG score diffs up to 1.1e-2. `tags.generate` feeds the
+  WebP big thumbnails, which decode exactly.
+- Prompt token ids identical for all 938 prompts plus 12 edge cases, for
+  MobileCLIP (`tokenizer.json`) and SigLIP 2 (`tokenizer.model` through the
+  pure-Rust sentencepiece BPE encoder in `lp_ml::tags::spm`).
+- The tag-embedding cache rebuilt in Rust matches Python's
+  `tag_embeddings.npy` (MobileCLIP: min cosine 1.0000000, max diff 4.2e-7;
+  SigLIP 2, run with `LP_ML_SLOW_TESTS=1`: min cosine 1.0000000, max diff
+  4.2e-7). So a Rust-only install needs no Python to build the caches.
+
+The Python generator must run in UTF-8 mode (it re-executes itself with
+`-X utf8`): `siglip2.py` opens `tags.txt` with the locale encoding, which on
+Windows garbles "quinceañera". `bench_tags.py` is the Python side of the
+`bench_tagger_latency_and_memory` test.
+
+Latency and memory (2026-09-30, release test binary, CPU provider, the 37
+fixture WebP thumbnails; the 12-thread box was at 100% load from parallel
+agents, so latencies are only roughly comparable):
+
+| Tagger | Model RSS delta Rust / Python | Per photo Rust / Python |
+| --- | --- | --- |
+| MobileCLIP-S2, 1 intra-op thread, 2 interleaved runs | +177 / +161 MB loaded, +192 / +190 MB after inference | p50 883, 799 ms / 2142, 860 ms |
+| MobileCLIP-S2, ORT default threads | +178 / +162 MB, +186 / +191 MB | mean 1064 / 2920 ms |
+| SigLIP 2, ORT default threads | +380 / +389 MB, +382 / +499 MB | mean 7385 / 4883 ms |
+
+Base process: Rust 12 MB before loading (40-48 MB after unloading the model),
+the Python interpreter with numpy/onnxruntime/PIL 53 MB. The text towers
+(MobileCLIP 254 MB, SigLIP 2 1.1 GB) are never resident after the cache exists.
+
+Review round (`golden_tags_edge.py`, written independently of `golden_tags.py`):
+
+- 22 generated inputs per tagger (grey / CMYK / progressive / EXIF-rotated
+  JPEG, RGBA / palette+transparency / LA / 16-bit PNG, animated GIF, BMP,
+  TIFF, lossless and alpha WebP, 2x3, 90x1600, 257x256, 255x383) plus 4
+  fixture thumbnails: identical tags on Pillow's pixels, scores within 5e-6.
+  PNG/GIF/BMP/TIFF/WebP files decode to Pillow's exact pixels; JPEGs differ by
+  up to 5 levels (CMYK and grey by 1); 16-bit RGB PNG by 1 (rounding vs
+  truncation). Neither side applies EXIF orientation (thumbnails are already
+  upright).
+- Known differences: Pillow turns a 16-bit grey PNG (`I;16`) into solid white
+  where we scale it to 8 bits (the caption review's `preprocess::pillow_rgb`
+  removes this once merged); a truncated JPEG is a 500 in Python
+  ("image file is truncated") but decodes partially here. Empty and non-image
+  files fail on both sides.
+- `text_fresh.json`: 35 prompts (all non-ASCII tags included) embedded by
+  Python's text tower in memory, not read back from the shared cache: Rust
+  matches at min cosine 1.0000000, max diff 2.1e-7 (MobileCLIP) and 2.4e-7
+  (SigLIP 2).
+- SigLIP 2 model time measured alone, interleaved: Rust 4.1 / 2.8 s against
+  Python 2.9 / 3.2 s per photo on the loaded box, so the slower SigLIP 2 mean
+  above is load noise, not the port.
+- Fixed in review: MobileCLIP's shortest-edge resize of an extreme panorama
+  (a 10000x1 big thumbnail resizes to 2,560,000x256, about 2 GB) now resamples
+  only the centre crop (`pil::resize_crop`, bit-identical to resize-then-crop,
+  unit-tested against it); in one process an OOM there would take the whole
+  backend down. Python allocates the full image. A corrupt
+  `tag_embeddings.npy` or `tokenizer.model` header (huge shape or length) is
+  an error instead of an overflow panic while loading. Only an empty model
+  name means MobileCLIP, as `tagging_model or DEFAULT` (a padded name is a 400).
