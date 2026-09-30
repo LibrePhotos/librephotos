@@ -48,14 +48,21 @@ logger = logging.getLogger(__name__)
 HDR_TRANSFERS = frozenset({"smpte2084", "arib-std-b67"})
 
 # npl=100 is the display being mapped *to*, not the one the source was graded
-# for: 100 nits is SDR reference white. hable rolls the highlights off gradually
-# instead of clipping them, which is what stops a bright sky becoming a flat
-# white shape.
+# for: 100 nits is SDR reference white.
+#
+# desat=0 is the part that matters most. The filter's default, 2.0, fades
+# anything brighter than twice reference white towards white -- and HDR puts
+# ordinary diffuse white near 203 nits (BT.2408), right at that line, with the
+# sky and every highlight above it. Graded at 1000 nits, a picture came out 98%
+# flat white. mobius is linear up to a knee and rolls off only above it, so the
+# midtones keep their brightness and colour: of the three operators it came
+# closest to the SDR original in every test, where hable left a 100-nit picture
+# with half its saturation and a quarter of its brightness gone.
 _TONEMAP = (
     "zscale=t=linear:npl=100,"
     "format=gbrpf32le,"
     "zscale=p=bt709,"
-    "tonemap=hable,"
+    "tonemap=mobius:desat=0,"
     "zscale=t=bt709:m=bt709:r=tv,"
     "format=yuv420p"
 )

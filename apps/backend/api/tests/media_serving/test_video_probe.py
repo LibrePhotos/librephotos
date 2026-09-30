@@ -219,7 +219,7 @@ class StoredTransferTest(SimpleTestCase):
     def test_a_stored_hdr_transfer_tonemaps_without_probing(self):
         with _zscale():
             chain = video_color.video_filter("/v.mov", transfer="smpte2084")
-        self.assertIn("tonemap=hable", chain)
+        self.assertIn("tonemap=mobius", chain)
         self.is_hdr.assert_not_called()
 
     def test_a_stored_empty_transfer_is_sdr_without_probing(self):
@@ -254,7 +254,7 @@ class H264OutputTest(SimpleTestCase):
     def test_tonemapped_output_says_it_is_bt709(self):
         with _zscale():
             args = video_color.h264_video_args("/v.mov", transfer="smpte2084")
-        self.assertIn("tonemap=hable", _after(args, "-filter:v"))
+        self.assertIn("tonemap=mobius", _after(args, "-filter:v"))
         self.assertEqual(_after(args, "-color_primaries"), "bt709")
         self.assertEqual(_after(args, "-color_trc"), "bt709")
         self.assertEqual(_after(args, "-colorspace"), "bt709")
@@ -291,13 +291,13 @@ class ConversionSitesUseTheStoredValueTest(SimpleTestCase):
     def test_live_playback(self):
         with _zscale():
             command = media.build_live_command("/v.mov", "arib-std-b67")
-        self.assertIn("tonemap=hable", _after(command, "-filter:v"))
+        self.assertIn("tonemap=mobius", _after(command, "-filter:v"))
         self.is_hdr.assert_not_called()
 
     def test_the_cached_copy(self):
         with _zscale():
             command = transcode_cache.build_command("/v.mov", "/o.mp4", "smpte2084")
-        self.assertIn("tonemap=hable", _after(command, "-filter:v"))
+        self.assertIn("tonemap=mobius", _after(command, "-filter:v"))
         self.is_hdr.assert_not_called()
 
     def test_the_poster_frame_and_the_animated_thumbnail(self):
@@ -309,7 +309,7 @@ class ConversionSitesUseTheStoredValueTest(SimpleTestCase):
                 "/v.mov", 500, "out", "h", ".mp4", transfer="smpte2084"
             )
         for call in run.call_args_list:
-            self.assertIn("tonemap=hable", _after(call.args[0], "-filter:v"))
+            self.assertIn("tonemap=mobius", _after(call.args[0], "-filter:v"))
         self.is_hdr.assert_not_called()
 
     def test_the_cache_hands_over_the_photos_value(self):
