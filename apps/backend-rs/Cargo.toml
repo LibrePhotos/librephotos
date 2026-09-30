@@ -111,6 +111,8 @@ tempfile = "3"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "tiff", "bmp"] }
 fast_image_resize = "5"
 webp = "0.3"
+# RAW decoding for the in-process RAW thumbnails (LGPL-2.1, pure Rust).
+rawler = "0.8"
 rustdct = "0.7"
 libloading = "0.8"
 sysinfo = "0.33"
@@ -159,6 +161,8 @@ opt-level = 3
 [profile.dev.package.fast_image_resize]
 opt-level = 3
 [profile.dev.package.rustdct]
+opt-level = 3
+[profile.dev.package.rawler]
 opt-level = 3
 [profile.dev.package.zune-jpeg]
 opt-level = 3

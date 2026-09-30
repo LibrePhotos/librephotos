@@ -72,3 +72,25 @@ also skip without `LP_ORT_LIB`.
 - HF `tokenizers` ids identical for every `tokenizer.json` (CLIP, MobileCLIP,
   LFM2). SigLIP 2 ships a sentencepiece `tokenizer.model`, which the
   `tokenizers` crate cannot read directly.
+
+## What the RAW thumbnail goldens established
+
+No camera RAWs are checked in, so `raw_samples.py` writes synthetic DNGs
+(14-bit RGGB/BGGR/GRBG/GBRG CFA, a D850-like ColorMatrix1, AsShotNeutral,
+per-channel black levels, ActiveArea, orientation 3/6/8, a JPEG preview in
+IFD0 or a SubIFD, a bitmap-only thumbnail, a letterboxed / too small preview,
+a 1500x1000 sensor) that LibRaw 0.22 reads; `golden_raw_thumbnail.py` runs
+Django's path on them (`image_decoding.raw_preview`, else the service's
+`render_raw`). `cargo test -p lp-ml --test raw_thumbnail -- --nocapture`:
+
+- Same choice (embedded preview vs render) on all 11 files, same LibRaw
+  sizes/flip, same output dimensions everywhere (thumbnails and rawpy's
+  `postprocess` output).
+- Half-size render (every sensor >= 2160 px high): `develop` vs rawpy
+  `postprocess` 99.8% of samples identical, max 1 level, 75 dB PSNR.
+- Full-size render (small sensors): AHD ported from LibRaw, 99.3% identical,
+  61 dB (a few pixels where near-equal homogeneity counts tip the other way).
+- Resize (Lanczos3, libvips' `thumbnail` geometry) vs pyvips: 58-59 dB,
+  max 4 levels; 45 dB on the one 1500->1473 px case. Previews (full JPEG
+  decode vs libvips' shrink-on-load) 58-59 dB.
+- The WebP files themselves (both encoded at Q95): 43-51 dB.

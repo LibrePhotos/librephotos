@@ -5,8 +5,9 @@
 //!
 //! Decoders, in order: libvips (`LP_VIPS_LIB`); for files it rejects (HEIC,
 //! JPEG XL, ... which the bundled libvips lacks) Pillow through the Python
-//! interpreter, as `image_decoding._pillow_to_vips` does; RAW files the
-//! thumbnail sidecar. Without libvips at all, a pure-Rust path (`image` +
+//! interpreter, as `image_decoding._pillow_to_vips` does; RAW files their
+//! embedded preview, else `lp_ml::raw_thumbnail` (in-process or the sidecar).
+//! Without libvips at all, a pure-Rust path (`image` +
 //! `fast_image_resize` + libwebp) does the same work.
 
 use std::path::{Path, PathBuf};
@@ -124,7 +125,10 @@ impl Renderer {
             None => {
                 let data = std::fs::read(&big_path)
                     .with_context(|| format!("reading {}", big_path.display()))?;
-                v.load_buffer(&data).map_err(|e| anyhow!(e))?
+                // libvips reads `data` lazily: decode before it is dropped.
+                v.load_buffer(&data)
+                    .and_then(|i| i.copy_memory())
+                    .map_err(|e| anyhow!(e))?
             }
         };
         let big = big.copy_memory().map_err(|e| anyhow!(e))?;
@@ -149,15 +153,9 @@ impl Renderer {
     ) -> anyhow::Result<Option<vips::Image>> {
         let height = height_of(BIG);
         if fsutil::is_raw(&fsutil::path_str(input)) {
-            // No LibRaw preview extraction here: libvips if it can, else the
-            // RAW service, as `_request_raw_thumbnail`.
-            if let Ok(img) = v.thumbnail_file(input, height) {
-                let img = orient(img, local_orientation)?;
-                img.webpsave(out, WEBP_Q, Some(WEBP_EFFORT))
-                    .map_err(|e| anyhow!(e))?;
-                return Ok(Some(img));
-            }
-            self.raw_sidecar(input, height, out, local_orientation)?;
+            // Never libvips (Django neither): it would read a TIFF-based RAW's
+            // small IFD0 thumbnail or its CFA plane as the picture.
+            self.raw_big(input, out, local_orientation, false)?;
             return Ok(None);
         }
         let img = self.decode(v, input, height)?;
@@ -232,17 +230,38 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
                     .await
             })
             .map_err(|e| anyhow!("RAW render of {} failed: {}", input.display(), e.detail()))?;
-        if local_orientation > 1
-            && let Some(v) = self.vips()
-        {
-            let data = std::fs::read(out)?;
-            let img = v.load_buffer(&data).map_err(|e| anyhow!(e))?;
-            let img = img.copy_memory().map_err(|e| anyhow!(e))?;
-            let img = orient(img, local_orientation)?;
-            img.webpsave(out, WEBP_Q, Some(WEBP_EFFORT))
-                .map_err(|e| anyhow!(e))?;
+        if local_orientation > 1 {
+            if let Some(v) = self.vips() {
+                let data = std::fs::read(out)?;
+                let img = v.load_buffer(&data).map_err(|e| anyhow!(e))?;
+                let img = img.copy_memory().map_err(|e| anyhow!(e))?;
+                let img = orient(img, local_orientation)?;
+                img.webpsave(out, WEBP_Q, Some(WEBP_EFFORT))
+                    .map_err(|e| anyhow!(e))?;
+            } else {
+                let img = rust_orient(image::open(out)?, local_orientation);
+                rust_webp(&img, out)?;
+            }
         }
         Ok(())
+    }
+
+    /// `_render_raw_thumbnail` (big): the camera's embedded preview when it
+    /// is usable (`image_decoding.raw_preview`, always in-process), else the
+    /// RAW renderer. `legacy` skips the preview, as releases before it did.
+    fn raw_big(
+        &self,
+        input: &Path,
+        out: &Path,
+        local_orientation: i32,
+        legacy: bool,
+    ) -> anyhow::Result<()> {
+        let height = height_of(BIG);
+        if !legacy && let Some(img) = lp_ml::raw_thumbnail::raw_preview(input, height as u32) {
+            let img = rust_orient(image::DynamicImage::ImageRgb8(img), local_orientation);
+            return rust_webp(&img, out);
+        }
+        self.raw_sidecar(input, height, out, local_orientation)
     }
 
     /// `render_big_thumbnail_to`: the big thumbnail written to `out` (for
@@ -255,14 +274,14 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
         local_orientation: i32,
         legacy: bool,
     ) -> anyhow::Result<()> {
+        if fsutil::is_raw(&fsutil::path_str(input)) {
+            return self.raw_big(input, out, local_orientation, legacy);
+        }
         let Some(v) = self.vips() else {
             let img = rust_decode(input, height_of(BIG))?;
             let img = rust_orient(img, local_orientation);
             return rust_webp(&img, out);
         };
-        if fsutil::is_raw(&fsutil::path_str(input)) {
-            return self.raw_sidecar(input, height_of(BIG), out, local_orientation);
-        }
         let img = orient(self.decode(v, input, height_of(BIG))?, local_orientation)?;
         img.webpsave(out, WEBP_Q, if legacy { None } else { Some(WEBP_EFFORT) })
             .map_err(|e| anyhow!(e))
@@ -276,7 +295,10 @@ with Image.open(sys.argv[1]) as image:\n    ImageOps.exif_transpose(image).conve
         local_orientation: i32,
     ) -> anyhow::Result<()> {
         let big_path = self.path(BIG, hash, ".webp");
-        let big = if dirs.contains(&BIG) {
+        let big = if dirs.contains(&BIG) && fsutil::is_raw(&fsutil::path_str(input)) {
+            self.raw_big(input, &big_path, local_orientation, false)?;
+            image::open(&big_path)?
+        } else if dirs.contains(&BIG) {
             let img = rust_orient(rust_decode(input, height_of(BIG))?, local_orientation);
             rust_webp(&img, &big_path)?;
             img

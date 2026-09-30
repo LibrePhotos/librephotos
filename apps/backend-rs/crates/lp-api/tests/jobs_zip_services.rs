@@ -765,6 +765,9 @@ async fn services_are_staff_only() {
         .ml
         .set_mode(lp_ml::Service::Similarity, lp_ml::Mode::Auto);
     // Nothing was started by this process, so there is nothing to stop.
+    app.state
+        .ml
+        .set_mode(lp_ml::Service::RawThumbnail, lp_ml::Mode::Sidecar);
     let res = app
         .post_json("/api/services/thumbnail/stop/", &json!({}), Some(&admin))
         .await;
